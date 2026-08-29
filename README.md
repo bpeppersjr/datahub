@@ -8,7 +8,7 @@ Co*Tive Collector is a standalone desktop management console for configuring, ru
 - **API call** — JSON or text HTTP requests with configurable method, headers, body, and timeout.
 - **Map data** — GeoJSON or JSON feature pulls with feature counts, geometry types, and calculated bounds.
 - **ZIP place segments** — ZIP-by-ZIP counts and permitted place IDs from the official Google Geocoding and Places Aggregate APIs, with filters, budgets, throttling, checkpoints, and expiry.
-- **Retail pharmacy directory** — Streams the CMS NPPES V2 data file, indexes ZIPs `00100` through `99999`, and optionally enriches pharmacy records from an authorized NCPDP dataQ export.
+- **Retail pharmacy directory** — Discovers, downloads, validates, extracts, and caches the current CMS NPPES V2 release before streaming it to index ZIPs `00100` through `99999`; optionally enriches records from an authorized NCPDP dataQ export.
 - **Download** — streamed HTTP downloads with a 50 MB safety limit.
 - **Parser** — JSON, GeoJSON, CSV, and text parsing from files inside this repository.
 - **OCR** — Tesseract text recognition from a URL or a local image.
@@ -90,10 +90,18 @@ The runner estimates the request count before starting and refuses jobs above `m
 
 ## Nationwide retail pharmacy directory
 
-Download and extract the current [CMS NPPES Data Dissemination V2 file](https://download.cms.gov/nppes/NPI_Files.html) into a folder under `data/pharmacy-sources/`. Then run:
+Run the collector with no arguments:
 
 ```bat
-collect-retail-pharmacies.bat "data\pharmacy-sources\nppes"
+collect-retail-pharmacies.bat
+```
+
+Before processing starts, the preflight discovers the current monthly [CMS NPPES Data Dissemination V2 file](https://download.cms.gov/nppes/NPI_Files.html), checks available disk space, streams the archive with progress, validates its ZIP structure and expected size, extracts only the main provider CSV, and atomically activates it under `data/pharmacy-sources/nppes/`. Later runs reuse the cache when it matches the current CMS release. If CMS is temporarily unavailable, a previously validated cache remains usable. The archive is removed after successful extraction by default.
+
+The first run downloads a large archive and requires enough free space for both the download and the extracted provider CSV plus a 1 GB reserve. To use a source already inside `datahub`, pass its CSV or directory explicitly:
+
+```bat
+collect-retail-pharmacies.bat "data\pharmacy-sources\my-nppes"
 ```
 
 The script streams the large NPPES CSV rather than issuing nearly 100,000 API searches. It selects organization records with the active NUCC Community/Retail Pharmacy taxonomy `3336C0003X`, requires a physical practice address, and emits records in numeric ZIP order from `00100` through `99999`.
@@ -103,7 +111,7 @@ The public NPPES source supplies the pharmacy name, physical practice address, r
 For the complete requested schema, place an authorized [NCPDP dataQ](https://dataq.ncpdp.org/) CSV export inside `data/pharmacy-sources/` and pass it as the second argument:
 
 ```bat
-collect-retail-pharmacies.bat "data\pharmacy-sources\nppes" "data\pharmacy-sources\ncpdp-dataq.csv"
+collect-retail-pharmacies.bat auto "data\pharmacy-sources\ncpdp-dataq.csv"
 ```
 
 NCPDP dataQ documents that its licensed pharmacy data includes physical and mailing addresses, NPI, parent relationships, network/relationship types, and NCPDP Provider IDs. NABP explains that a pharmacy “NABP number” usually means the NCPDP number; NABP no longer assigns a separate pharmacy number. Missing licensed fields remain blank rather than being guessed.

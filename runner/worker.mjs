@@ -8,6 +8,7 @@ import { chromium } from 'playwright';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { createWorker as createOcrWorker } from 'tesseract.js';
 import { collectGooglePlacesByZip } from './google-places.mjs';
+import { prepareNppesInput } from './nppes-source.mjs';
 import { buildRetailPharmacyDirectory } from './pharmacy-directory.mjs';
 import {
   DOWNLOAD_DIR,
@@ -215,9 +216,16 @@ async function executeGooglePlaces() {
 }
 
 async function executePharmacyDirectory() {
+  const source = await prepareNppesInput({
+    configuredPath: job.config.nppesFile,
+    autoDownload: job.config.autoDownload !== false,
+    keepArchive: job.config.keepArchive === true,
+    onProgress: (value, message) => progress(value * 0.2, message),
+    onLog: log,
+  });
   return buildRetailPharmacyDirectory({
-    config: job.config,
-    onProgress: progress,
+    config: { ...job.config, nppesFile: source.inputPath },
+    onProgress: (value, message) => progress(20 + value * 0.72, message),
     onLog: log,
   });
 }

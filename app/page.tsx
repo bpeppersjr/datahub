@@ -51,7 +51,10 @@ type Health = {
   node: string;
   logicalCpus: number;
   pool: { concurrency: number; active: number; queued: number; available: number };
-  services?: { googleMaps?: { configured: boolean } };
+  services?: {
+    googleMaps?: { configured: boolean };
+    pharmacySource?: { cached: boolean; status: string; releaseId?: string | null; readyAt?: string | null; mainFile?: string | null };
+  };
 };
 
 const jobMeta: Record<JobType, { label: string; short: string; tone: string; hint: string }> = {
@@ -428,6 +431,16 @@ export default function Home() {
               </div>
             </section>
 
+            <section className="panel service-panel">
+              <div className="panel-heading compact"><div><span className="section-kicker">Managed source</span><h2>Pharmacy directory</h2></div><span className={`service-status ${health?.services?.pharmacySource?.cached ? 'ready' : ''}`}><i />{health?.services?.pharmacySource?.cached ? 'Cached' : 'Auto-download'}</span></div>
+              <div className="service-body">
+                <p>{health?.services?.pharmacySource?.cached ? `${health.services.pharmacySource.releaseId ?? 'CMS NPPES V2'} is validated and ready.` : 'The current CMS NPPES V2 release will be discovered, downloaded, validated, and extracted before the first build.'}</p>
+                <div><span>Release discovery</span><span>Integrity checks</span><span>Cache reuse</span></div>
+                <button className="run-button" onClick={() => openNew('pharmacy')}>Configure pharmacy build</button>
+                <small>{health?.services?.pharmacySource?.cached ? health.services.pharmacySource.mainFile : 'The first run downloads a large CMS archive.'}</small>
+              </div>
+            </section>
+
             <section className="quick-types">
               <span className="section-kicker">Quick create</span>
               <div className="type-grid">{(Object.keys(jobMeta) as JobType[]).map((type) => <button key={type} onClick={() => openNew(type)}><i className={jobMeta[type].tone}>{jobMeta[type].short}</i><span>{jobMeta[type].label}</span></button>)}</div>
@@ -445,7 +458,7 @@ export default function Home() {
               <label><span>Job type</span><select value={editorType} onChange={(event) => changeEditorType(event.target.value as JobType)} disabled={editor !== 'new'}>{(Object.keys(jobMeta) as JobType[]).map((type) => <option value={type} key={type}>{jobMeta[type].label}</option>)}</select></label>
               <div className="config-heading"><div><span>Configuration</span><small>{jobMeta[editorType].hint}</small></div><button onClick={() => setEditorConfig(JSON.stringify(templates?.[editorType] ?? {}, null, 2))}>Reset template</button></div>
               {editorType === 'places' && <div className="service-note"><strong>Official API connector</strong><span>Add <code>GOOGLE_MAPS_API_KEY</code> to <code>datahub/.env</code>. Enable Geocoding API and Places Aggregate API. The key is never stored in this job.</span></div>}
-              {editorType === 'pharmacy' && <div className="service-note"><strong>Nationwide pharmacy build</strong><span>Point <code>nppesFile</code> to an extracted CMS NPPES V2 CSV inside datahub. Add an authorized NCPDP dataQ CSV to populate NCPDP/NABP, drive-through, network, and parent fields.</span></div>}
+              {editorType === 'pharmacy' && <div className="service-note"><strong>Managed nationwide source</strong><span>Keep <code>nppesFile</code> set to <code>auto</code> to discover, download, validate, extract, and cache the current CMS NPPES V2 release before processing. Add an authorized NCPDP dataQ CSV to populate NCPDP/NABP, drive-through, network, and parent fields.</span></div>}
               <textarea value={editorConfig} onChange={(event) => { setEditorConfig(event.target.value); setEditorError(''); }} spellCheck={false} aria-label="JSON job configuration" />
               <label className="toggle-label"><input type="checkbox" checked={editorEnabled} onChange={(event) => setEditorEnabled(event.target.checked)} /><span>Include this job when “Run all” is used</span></label>
               {editorError && <p className="form-error">{editorError}</p>}

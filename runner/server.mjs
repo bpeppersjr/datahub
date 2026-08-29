@@ -4,6 +4,7 @@ import { cpus } from 'node:os';
 import path from 'node:path';
 import { createStore } from './store.mjs';
 import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
+import { inspectNppesSource } from './nppes-source.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 
@@ -71,7 +72,9 @@ const templates = {
     resume: true,
   },
   pharmacy: {
-    nppesFile: 'data/pharmacy-sources/nppes',
+    nppesFile: 'auto',
+    autoDownload: true,
+    keepArchive: false,
     enrichmentFile: '',
     columnMapFile: 'config/pharmacy-column-map.example.json',
     outputDirectory: 'data/pharmacies',
@@ -232,6 +235,7 @@ const server = http.createServer(async (request, response) => {
     const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
+      const pharmacySource = await inspectNppesSource();
       json(response, 200, {
         ok: true,
         runner: 'Co*Tive Collector',
@@ -240,6 +244,7 @@ const server = http.createServer(async (request, response) => {
         pool: pool.stats(),
         services: {
           googleMaps: { configured: Boolean(process.env.GOOGLE_MAPS_API_KEY) },
+          pharmacySource,
         },
       });
       return;
