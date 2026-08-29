@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Atlas Runner — Data Operations',
+  title: 'Co*Tive Collector — Data Operations',
   description: 'Run and manage browser scrapes, APIs, map pulls, downloads, parsing, and OCR workflows.',
 };
 

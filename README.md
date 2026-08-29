@@ -1,6 +1,6 @@
-# Atlas Runner
+# Co*Tive Collector
 
-Atlas Runner is a standalone desktop management console for configuring, running, and monitoring mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms.
+Co*Tive Collector is a standalone desktop management console for configuring, running, and monitoring mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms.
 
 ## Included job types
 
@@ -18,7 +18,7 @@ Each run is isolated in a Node worker thread. Browser jobs also launch an isolat
 
 Requirements: Node.js 22.13 or newer.
 
-Double-click `launch-datahub.bat`. The launcher performs the one-time dependency checks and opens Atlas Runner as a self-contained desktop window. The runner starts and stops with the window; there is no terminal or separate browser tab to manage.
+Double-click `launch-datahub.bat`. The launcher performs the one-time dependency checks and opens Co*Tive Collector as a self-contained desktop window. The runner starts and stops with the window; there is no terminal or separate browser tab to manage.
 
 All browsers, runtime state, downloads, logs, screenshots, and outputs remain inside the `datahub` folder.
 

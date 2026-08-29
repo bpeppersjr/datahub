@@ -41,7 +41,7 @@ async function runnerIsReady() {
 
 async function startRunner() {
   if (await runnerIsReady()) {
-    await log('Connected to an existing Atlas Runner service.');
+    await log('Connected to an existing Co*Tive Collector service.');
     return;
   }
 
@@ -85,20 +85,21 @@ async function readWindowState() {
 }
 
 async function saveWindowState() {
-  if (!mainWindow || mainWindow.isDestroyed()) return;
-  const bounds = mainWindow.getBounds();
+  const window = mainWindow;
+  if (!window || window.isDestroyed()) return;
+  const state = { ...window.getBounds(), maximized: window.isMaximized() };
   await mkdir(runtimePath('data'), { recursive: true });
-  await writeFile(runtimePath('data', 'window-state.json'), JSON.stringify({ ...bounds, maximized: mainWindow.isMaximized() }, null, 2), 'utf8');
+  await writeFile(runtimePath('data', 'window-state.json'), JSON.stringify(state, null, 2), 'utf8');
 }
 
 function safeDownloadName(value) {
-  return path.basename(value || 'atlas-output.json').replace(/[^a-zA-Z0-9._-]/g, '_');
+  return path.basename(value || 'cotive-collector-output.json').replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
 async function createWindow() {
   const state = await readWindowState();
   mainWindow = new BrowserWindow({
-    title: 'Atlas Runner',
+    title: 'Co*Tive Collector',
     width: Math.max(980, Number(state.width) || 1440),
     height: Math.max(720, Number(state.height) || 920),
     x: Number.isFinite(state.x) ? state.x : undefined,
@@ -139,7 +140,11 @@ async function createWindow() {
     if (state.maximized) mainWindow.maximize();
     mainWindow.show();
   });
-  mainWindow.on('close', () => void saveWindowState());
+  mainWindow.on('close', () => {
+    void saveWindowState().catch((error) => {
+      void log(`Window state could not be saved: ${error.message}`).catch(() => {});
+    });
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 
   await mainWindow.loadFile(path.join(applicationRoot(), 'desktop-dist', 'index.html'));

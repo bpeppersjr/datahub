@@ -1,13 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import AtlasRunner from '../../app/page';
+import CoTiveCollector from '../../app/page';
 import '../../app/globals.css';
 
 const root = document.getElementById('root');
-if (!root) throw new Error('Atlas Runner could not find its application root.');
+if (!root) throw new Error('Co*Tive Collector could not find its application root.');
 
 createRoot(root).render(
   <React.StrictMode>
-    <AtlasRunner />
+    <CoTiveCollector />
   </React.StrictMode>,
 );

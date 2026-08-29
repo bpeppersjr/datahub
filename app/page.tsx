@@ -273,7 +273,7 @@ export default function Home() {
     const url = URL.createObjectURL(new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'atlas-jobs.json';
+    link.download = 'cotive-collector-jobs.json';
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -315,7 +315,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <div className="eyebrow"><span className={`live-dot ${health ? '' : 'offline'}`} /> {health ? `Runner online · ${health.node}` : 'Runner offline'}</div>
-            <h1>Atlas Runner</h1>
+            <h1>Co*Tive Collector</h1>
           </div>
           <div className="top-actions">
             <input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden />

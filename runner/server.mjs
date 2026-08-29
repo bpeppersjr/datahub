@@ -184,7 +184,7 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/health') {
       json(response, 200, {
         ok: true,
-        runner: 'Atlas Runner',
+        runner: 'Co*Tive Collector',
         node: process.version,
         logicalCpus: cpus().length,
         pool: pool.stats(),
@@ -309,7 +309,7 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Atlas Runner listening at http://${HOST}:${PORT}`);
+  console.log(`Co*Tive Collector listening at http://${HOST}:${PORT}`);
 });
 
 async function shutdown() {

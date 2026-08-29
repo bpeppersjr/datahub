@@ -1,12 +1,12 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title Atlas Runner
+title Co*Tive Collector
 
 where node.exe >nul 2>&1
 if errorlevel 1 (
   echo.
-  echo Atlas Runner requires Node.js 22.13 or newer.
+  echo Co*Tive Collector requires Node.js 22.13 or newer.
   echo Download Node.js from https://nodejs.org/
   echo.
   pause
@@ -29,7 +29,7 @@ if not exist "node_modules\.package-lock.json" (
 )
 
 if not exist "node_modules\electron\dist\electron.exe" (
-  echo Installing the Atlas Runner desktop shell...
+  echo Installing the Co*Tive Collector desktop shell...
   call npx.cmd install-electron
   if errorlevel 1 goto :failed
 )
@@ -43,13 +43,13 @@ echo Preparing the standalone management page...
 call npm.cmd run desktop:build
 if errorlevel 1 goto :failed
 
-echo Opening Atlas Runner...
+echo Opening Co*Tive Collector...
 start "" "%~dp0node_modules\electron\dist\electron.exe" "%~dp0desktop\main.mjs"
 exit /b 0
 
 :failed
 echo.
-echo Atlas Runner could not be started. Review the messages above.
+echo Co*Tive Collector could not be started. Review the messages above.
 echo.
 pause
 exit /b 1
