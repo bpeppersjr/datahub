@@ -22,32 +22,30 @@ if errorlevel 1 (
   exit /b 1
 )
 
-powershell.exe -NoProfile -Command "try { $response = Invoke-WebRequest -Uri 'http://127.0.0.1:4300/api/health' -UseBasicParsing -TimeoutSec 2; if ($response.StatusCode -eq 200) { exit 0 } } catch {}; exit 1" >nul 2>&1
-if not errorlevel 1 (
-  echo Atlas Runner is already running. Opening the dashboard...
-  start "" "http://localhost:3000/"
-  exit /b 0
-)
-
 if not exist "node_modules\.package-lock.json" (
   echo Installing project dependencies...
   call npm.cmd install
   if errorlevel 1 goto :failed
 )
 
+if not exist "node_modules\electron\dist\electron.exe" (
+  echo Installing the Atlas Runner desktop shell...
+  call npx.cmd install-electron
+  if errorlevel 1 goto :failed
+)
+
+set "PLAYWRIGHT_BROWSERS_PATH=%~dp0.playwright-browsers"
 echo Checking the Playwright Chromium installation...
 call npx.cmd playwright install chromium
 if errorlevel 1 goto :failed
 
-echo Starting Atlas Runner...
-echo The dashboard will open automatically at http://localhost:3000/
-echo Keep this window open while Atlas Runner is in use.
-echo Press Ctrl+C to stop it.
-echo.
+echo Preparing the standalone management page...
+call npm.cmd run desktop:build
+if errorlevel 1 goto :failed
 
-start "" /b powershell.exe -NoProfile -WindowStyle Hidden -Command "$deadline = (Get-Date).AddSeconds(45); do { try { $response = Invoke-WebRequest -Uri 'http://localhost:3000/' -UseBasicParsing -TimeoutSec 2; if ($response.StatusCode -eq 200) { Start-Process 'http://localhost:3000/'; exit } } catch {}; Start-Sleep -Milliseconds 500 } while ((Get-Date) -lt $deadline)"
-call npm.cmd run dev
-exit /b %errorlevel%
+echo Opening Atlas Runner...
+start "" "%~dp0node_modules\electron\dist\electron.exe" "%~dp0desktop\main.mjs"
+exit /b 0
 
 :failed
 echo.

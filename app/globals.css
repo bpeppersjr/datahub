@@ -14,7 +14,7 @@
 
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-geist-sans), Arial, sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-geist-sans, "Segoe UI"), Arial, sans-serif; }
 button, input { font: inherit; }
 button { color: inherit; }
 button:disabled { cursor: not-allowed; opacity: .42; }
@@ -151,7 +151,7 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .config-heading span { display: block; color: #919ba6; font-size: 10px; font-weight: 600; }
 .config-heading small { display: block; margin-top: 5px; color: var(--muted-2); font-size: 9px; }
 .config-heading button { padding: 0; border: 0; background: transparent; color: var(--cyan); font-size: 9px; cursor: pointer; }
-.editor-body textarea { grid-column: 1 / -1; min-height: 330px; resize: vertical; padding: 14px; font: 10px/1.65 var(--font-geist-mono), monospace; tab-size: 2; }
+.editor-body textarea { grid-column: 1 / -1; min-height: 330px; resize: vertical; padding: 14px; font: 10px/1.65 var(--font-geist-mono, "Cascadia Code"), monospace; tab-size: 2; }
 .editor-body .toggle-label { grid-column: 1 / -1; display: flex; flex-direction: row; align-items: center; gap: 8px; font-weight: 500; }
 .toggle-label input { accent-color: var(--cyan); }
 .form-error, .run-error { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border: 1px solid rgba(227,111,111,.25); border-radius: 7px; background: rgba(227,111,111,.07); color: #e38b8b; font-size: 10px; }
@@ -161,7 +161,7 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .run-modal { width: min(600px, 100%); }
 .run-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 16px 22px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px; text-transform: capitalize; }
 .run-error { margin: 16px 22px 0; }
-.log-view { min-height: 240px; max-height: 430px; overflow: auto; padding: 16px 22px; background: #090d11; font: 10px/1.55 var(--font-geist-mono), monospace; }
+.log-view { min-height: 240px; max-height: 430px; overflow: auto; padding: 16px 22px; background: #090d11; font: 10px/1.55 var(--font-geist-mono, "Cascadia Code"), monospace; }
 .log-view p { display: grid; grid-template-columns: 82px 1fr; gap: 12px; margin: 0 0 7px; }
 .log-view time { color: #4e5964; }
 .log-view span { color: #aeb6be; }

@@ -43,3 +43,5 @@ next-env.d.ts
 !/data/.gitkeep
 /downloads/*
 !/downloads/.gitkeep
+/.playwright-browsers/
+/desktop-dist/

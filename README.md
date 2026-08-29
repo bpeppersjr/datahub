@@ -1,6 +1,6 @@
 # Atlas Runner
 
-Atlas Runner is a local Node.js operations console for managing and executing mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms.
+Atlas Runner is a standalone desktop management console for configuring, running, and monitoring mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms.
 
 ## Included job types
 
@@ -14,19 +14,26 @@ Atlas Runner is a local Node.js operations console for managing and executing mi
 
 Each run is isolated in a Node worker thread. Browser jobs also launch an isolated Chromium process. The adjustable worker pool allows 1–16 jobs to execute concurrently.
 
-## Start locally
+## Launch on Windows
 
 Requirements: Node.js 22.13 or newer.
 
+Double-click `launch-datahub.bat`. The launcher performs the one-time dependency checks and opens Atlas Runner as a self-contained desktop window. The runner starts and stops with the window; there is no terminal or separate browser tab to manage.
+
+All browsers, runtime state, downloads, logs, screenshots, and outputs remain inside the `datahub` folder.
+
+## Web development
+
+The browser-hosted development version remains available when changing the interface:
+
 ```bash
 npm install
+set PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers
 npx playwright install chromium
-npm run dev
+npm run dev:web
 ```
 
 Open `http://localhost:3000`. The runner API listens only on `127.0.0.1:4300` unless explicitly changed with environment variables.
-
-On Windows, you can instead double-click `launch-datahub.bat`. It checks the prerequisites, installs missing dependencies and Chromium on first use, starts both services, and opens the dashboard automatically.
 
 ## Data locations
 
@@ -37,6 +44,8 @@ All local files remain inside the `datahub` repository:
 - `data/outputs/` — normalized JSON outputs
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
+- `data/desktop.log` — desktop and runner service log
+- `.playwright-browsers/` — project-local Playwright browser binaries
 - `downloads/` — downloaded artifacts
 
 Runtime data is ignored by Git. The empty directories are retained with `.gitkeep` files.

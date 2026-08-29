@@ -130,7 +130,9 @@ pool.on('cancelled', ({ run, job }) => {
 
 function setCors(request, response) {
   const origin = request.headers.origin;
-  if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
+  if (origin === 'null') {
+    response.setHeader('Access-Control-Allow-Origin', 'null');
+  } else if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Vary', 'Origin');
   }

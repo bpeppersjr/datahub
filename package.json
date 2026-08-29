@@ -6,12 +6,16 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "concurrently --kill-others --names UI,RUNNER --prefix-colors cyan,magenta \"npm:dev:ui\" \"npm:runner\"",
+    "dev": "npm run desktop",
+    "dev:web": "concurrently --kill-others --names UI,RUNNER --prefix-colors cyan,magenta \"npm:dev:ui\" \"npm:runner\"",
     "dev:ui": "vinext dev",
     "runner": "node runner/server.mjs",
-    "build": "vinext build",
-    "start": "concurrently --kill-others --names UI,RUNNER --prefix-colors cyan,magenta \"vinext start\" \"npm:runner\"",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "desktop:build": "vite build --config vite.desktop.config.ts",
+    "desktop": "npm run desktop:build && electron desktop/main.mjs",
+    "build:web": "vinext build",
+    "build": "npm run build:web && npm run desktop:build",
+    "start": "npm run desktop",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
     "check": "npm run lint && npm run build"
   },
   "dependencies": {
@@ -33,6 +37,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
+    "electron": "^44.0.0",
     "eslint": "9.39.4",
     "eslint-config-next": "^16.3.3",
     "react-server-dom-webpack": "19.2.6",
@@ -42,5 +47,8 @@
     "vite": "8.0.13",
     "wrangler": "4.92.0"
   },
-  "type": "module"
+  "type": "module",
+  "allowScripts": {
+    "electron@44.0.0": true
+  }
 }
