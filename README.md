@@ -26,6 +26,8 @@ npm run dev
 
 Open `http://localhost:3000`. The runner API listens only on `127.0.0.1:4300` unless explicitly changed with environment variables.
 
+On Windows, you can instead double-click `launch-datahub.bat`. It checks the prerequisites, installs missing dependencies and Chromium on first use, starts both services, and opens the dashboard automatically.
+
 ## Data locations
 
 All local files remain inside the `datahub` repository:
