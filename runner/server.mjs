@@ -15,7 +15,7 @@ try {
 
 const PORT = Number(process.env.RUNNER_PORT) || 4300;
 const HOST = process.env.RUNNER_HOST || '127.0.0.1';
-const jobTypes = new Set(['browser', 'api', 'map', 'places', 'download', 'parse', 'ocr', 'transform']);
+const jobTypes = new Set(['browser', 'api', 'map', 'places', 'pharmacy', 'download', 'parse', 'ocr', 'transform']);
 
 const templates = {
   browser: {
@@ -69,6 +69,14 @@ const templates = {
     retries: 3,
     retentionDays: 30,
     resume: true,
+  },
+  pharmacy: {
+    nppesFile: 'data/pharmacy-sources/nppes',
+    enrichmentFile: '',
+    columnMapFile: 'config/pharmacy-column-map.example.json',
+    outputDirectory: 'data/pharmacies',
+    zipStart: '00100',
+    zipEnd: '99999',
   },
   download: {
     url: 'https://example.com/file.pdf',

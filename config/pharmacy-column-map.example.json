@@ -1,0 +1,8 @@
+{
+  "npi": "NPI",
+  "nabpNbr": "NCPDP Provider ID",
+  "driveThroughFlag": "Drive Through Flag",
+  "mailOrderFlag": "Mail Order Flag",
+  "networkAffiliation": "Network Affiliation",
+  "parentCompany": "Parent Organization Name"
+}

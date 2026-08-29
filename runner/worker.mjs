@@ -8,6 +8,7 @@ import { chromium } from 'playwright';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { createWorker as createOcrWorker } from 'tesseract.js';
 import { collectGooglePlacesByZip } from './google-places.mjs';
+import { buildRetailPharmacyDirectory } from './pharmacy-directory.mjs';
 import {
   DOWNLOAD_DIR,
   OCR_CACHE_DIR,
@@ -213,6 +214,14 @@ async function executeGooglePlaces() {
   });
 }
 
+async function executePharmacyDirectory() {
+  return buildRetailPharmacyDirectory({
+    config: job.config,
+    onProgress: progress,
+    onLog: log,
+  });
+}
+
 async function executeDownload() {
   const config = job.config;
   const response = await fetch(assertHttpUrl(config.url), { signal: AbortSignal.timeout(Number(config.timeoutMs) || 120_000) });
@@ -327,6 +336,7 @@ const handlers = {
   api: executeApi,
   map: executeMap,
   places: executeGooglePlaces,
+  pharmacy: executePharmacyDirectory,
   download: executeDownload,
   parse: executeParse,
   ocr: executeOcr,

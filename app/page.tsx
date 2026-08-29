@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 const RUNNER_URL = 'http://127.0.0.1:4300';
 
-type JobType = 'browser' | 'api' | 'map' | 'places' | 'download' | 'parse' | 'ocr' | 'transform';
+type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
 type Status = 'idle' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 type Job = {
@@ -59,6 +59,7 @@ const jobMeta: Record<JobType, { label: string; short: string; tone: string; hin
   api: { label: 'API call', short: 'AP', tone: 'violet', hint: 'HTTP method, headers, request body, response type, and timeout.' },
   map: { label: 'Map data', short: 'MP', tone: 'green', hint: 'Pull GeoJSON or a JSON feature collection and calculate map bounds.' },
   places: { label: 'ZIP place segments', short: 'GZ', tone: 'green', hint: 'Iterate ZIP inputs and build filtered segments with Google Places Aggregate.' },
+  pharmacy: { label: 'Retail pharmacy directory', short: 'RX', tone: 'blue', hint: 'Build a ZIP-sorted retail pharmacy directory from NPPES with optional NCPDP enrichment.' },
   download: { label: 'Download', short: 'DL', tone: 'blue', hint: 'Download an HTTP resource into the datahub/downloads folder.' },
   parse: { label: 'Parser', short: 'PR', tone: 'orange', hint: 'Parse a local JSON, GeoJSON, CSV, or text artifact inside datahub.' },
   ocr: { label: 'OCR', short: 'OC', tone: 'amber', hint: 'Recognize text from a local image or an HTTP image using Tesseract.' },
@@ -365,7 +366,7 @@ export default function Home() {
 
               <div className="table-head"><span>Job</span><span>Type</span><span>Status</span><span>Progress</span><span /></div>
               <div className="job-list">
-                {!jobs.length && <div className="empty-state"><strong>No jobs yet</strong><span>Create a browser scrape, API call, ZIP place segment, map pull, download, parser, OCR, or transform.</span><button className="run-button" onClick={() => openNew()}>Create first job</button></div>}
+                {!jobs.length && <div className="empty-state"><strong>No jobs yet</strong><span>Create a browser scrape, API call, ZIP place segment, retail pharmacy directory, map pull, download, parser, OCR, or transform.</span><button className="run-button" onClick={() => openNew()}>Create first job</button></div>}
                 {jobs.map((job) => {
                   const run = latestByJob.get(job.id);
                   const state = run?.status ?? job.status ?? 'idle';
@@ -444,6 +445,7 @@ export default function Home() {
               <label><span>Job type</span><select value={editorType} onChange={(event) => changeEditorType(event.target.value as JobType)} disabled={editor !== 'new'}>{(Object.keys(jobMeta) as JobType[]).map((type) => <option value={type} key={type}>{jobMeta[type].label}</option>)}</select></label>
               <div className="config-heading"><div><span>Configuration</span><small>{jobMeta[editorType].hint}</small></div><button onClick={() => setEditorConfig(JSON.stringify(templates?.[editorType] ?? {}, null, 2))}>Reset template</button></div>
               {editorType === 'places' && <div className="service-note"><strong>Official API connector</strong><span>Add <code>GOOGLE_MAPS_API_KEY</code> to <code>datahub/.env</code>. Enable Geocoding API and Places Aggregate API. The key is never stored in this job.</span></div>}
+              {editorType === 'pharmacy' && <div className="service-note"><strong>Nationwide pharmacy build</strong><span>Point <code>nppesFile</code> to an extracted CMS NPPES V2 CSV inside datahub. Add an authorized NCPDP dataQ CSV to populate NCPDP/NABP, drive-through, network, and parent fields.</span></div>}
               <textarea value={editorConfig} onChange={(event) => { setEditorConfig(event.target.value); setEditorError(''); }} spellCheck={false} aria-label="JSON job configuration" />
               <label className="toggle-label"><input type="checkbox" checked={editorEnabled} onChange={(event) => setEditorEnabled(event.target.checked)} /><span>Include this job when “Run all” is used</span></label>
               {editorError && <p className="form-error">{editorError}</p>}
