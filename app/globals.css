@@ -138,6 +138,17 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .type-grid i.violet { color: var(--violet); background: rgba(155,138,245,.1); }
 .type-grid i.amber { color: var(--amber); background: rgba(241,189,105,.1); }
 
+.service-status { display: flex; align-items: center; gap: 6px; color: var(--amber); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.service-status i { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+.service-status.ready { color: #69d49b; }
+.service-status.ready i { background: #69d49b; }
+.service-body { display: grid; gap: 13px; padding: 17px 18px 19px; }
+.service-body p { margin: 0; color: #929ca6; font-size: 10px; line-height: 1.55; }
+.service-body > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.service-body > div span { padding: 5px 7px; border: 1px solid #29333c; border-radius: 5px; color: #76818b; background: #0d1318; font-size: 8px; text-transform: uppercase; letter-spacing: .05em; }
+.service-body .run-button { justify-self: start; }
+.service-body small { color: #56616c; font-size: 8px; }
+
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 22px; background: rgba(3,6,8,.78); backdrop-filter: blur(7px); animation: fade-in .16s ease-out; }
 .editor-modal, .run-modal { width: min(680px, 100%); max-height: calc(100vh - 44px); overflow: hidden; display: flex; flex-direction: column; border: 1px solid #313a44; border-radius: 14px; background: #10161c; box-shadow: 0 28px 90px rgba(0,0,0,.55); }
 .editor-modal > header, .run-modal > header { min-height: 78px; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; border-bottom: 1px solid var(--border); }
@@ -151,6 +162,9 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .config-heading span { display: block; color: #919ba6; font-size: 10px; font-weight: 600; }
 .config-heading small { display: block; margin-top: 5px; color: var(--muted-2); font-size: 9px; }
 .config-heading button { padding: 0; border: 0; background: transparent; color: var(--cyan); font-size: 9px; cursor: pointer; }
+.service-note { grid-column: 1 / -1; display: grid; gap: 4px; padding: 11px 12px; border: 1px solid rgba(82,216,218,.18); border-radius: 7px; background: rgba(82,216,218,.05); color: #8e99a3; font-size: 9px; line-height: 1.5; }
+.service-note strong { color: var(--cyan); font-size: 10px; }
+.service-note code { color: #bec8d0; }
 .editor-body textarea { grid-column: 1 / -1; min-height: 330px; resize: vertical; padding: 14px; font: 10px/1.65 var(--font-geist-mono, "Cascadia Code"), monospace; tab-size: 2; }
 .editor-body .toggle-label { grid-column: 1 / -1; display: flex; flex-direction: row; align-items: center; gap: 8px; font-weight: 500; }
 .toggle-label input { accent-color: var(--cyan); }

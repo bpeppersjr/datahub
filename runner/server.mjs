@@ -1,13 +1,21 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { cpus } from 'node:os';
+import path from 'node:path';
 import { createStore } from './store.mjs';
+import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { RunnerPool } from './pool.mjs';
-import { resolveAppPath } from './paths.mjs';
+import { APP_ROOT, resolveAppPath } from './paths.mjs';
+
+try {
+  process.loadEnvFile(path.join(APP_ROOT, '.env'));
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+}
 
 const PORT = Number(process.env.RUNNER_PORT) || 4300;
 const HOST = process.env.RUNNER_HOST || '127.0.0.1';
-const jobTypes = new Set(['browser', 'api', 'map', 'download', 'parse', 'ocr', 'transform']);
+const jobTypes = new Set(['browser', 'api', 'map', 'places', 'download', 'parse', 'ocr', 'transform']);
 
 const templates = {
   browser: {
@@ -33,6 +41,34 @@ const templates = {
     headers: { Accept: 'application/geo+json, application/json' },
     featuresPath: 'features',
     timeoutMs: 45000,
+  },
+  places: {
+    countryCode: 'US',
+    zipCodes: ['60601', '60602'],
+    zipText: '',
+    zipFile: '',
+    segments: [
+      {
+        name: 'Restaurants rated 4+',
+        includedTypes: ['restaurant'],
+        operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
+        minRating: 4,
+        includePlaceIds: true,
+      },
+      {
+        name: 'Retail stores',
+        includedTypes: ['store'],
+        operatingStatus: ['OPERATING_STATUS_OPERATIONAL'],
+        includePlaceIds: false,
+      },
+    ],
+    includePlaceIds: false,
+    maxRequestsPerRun: 250,
+    delayMs: 250,
+    timeoutMs: 45000,
+    retries: 3,
+    retentionDays: 30,
+    resume: true,
   },
   download: {
     url: 'https://example.com/file.pdf',
@@ -63,6 +99,12 @@ const templates = {
 const store = await createStore();
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
+const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
+  console.warn(`Google Places output cleanup failed: ${error.message}`);
+});
+void cleanupGoogleOutputs();
+const googleOutputCleanupTimer = setInterval(cleanupGoogleOutputs, 60 * 60 * 1000);
+googleOutputCleanupTimer.unref();
 
 function recordActivity(event) {
   activity.unshift({ id: crypto.randomUUID(), at: new Date().toISOString(), ...event });
@@ -188,6 +230,9 @@ const server = http.createServer(async (request, response) => {
         node: process.version,
         logicalCpus: cpus().length,
         pool: pool.stats(),
+        services: {
+          googleMaps: { configured: Boolean(process.env.GOOGLE_MAPS_API_KEY) },
+        },
       });
       return;
     }
@@ -313,6 +358,7 @@ server.listen(PORT, HOST, () => {
 });
 
 async function shutdown() {
+  clearInterval(googleOutputCleanupTimer);
   server.close();
   await pool.close();
   await store.flush();

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Co*Tive Collector — Data Operations',
-  description: 'Run and manage browser scrapes, APIs, map pulls, downloads, parsing, and OCR workflows.',
+  description: 'Run and manage browser scrapes, ZIP place segments, APIs, map pulls, downloads, parsing, and OCR workflows.',
 };
 
 export default function RootLayout({

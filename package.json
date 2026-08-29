@@ -16,7 +16,8 @@
     "build": "npm run build:web && npm run desktop:build",
     "start": "npm run desktop",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
-    "check": "npm run lint && npm run build"
+    "test": "node --test runner/*.test.mjs",
+    "check": "npm run test && npm run lint && npm run build"
   },
   "dependencies": {
     "concurrently": "^10.0.5",

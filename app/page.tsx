@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 
 const RUNNER_URL = 'http://127.0.0.1:4300';
 
-type JobType = 'browser' | 'api' | 'map' | 'download' | 'parse' | 'ocr' | 'transform';
+type JobType = 'browser' | 'api' | 'map' | 'places' | 'download' | 'parse' | 'ocr' | 'transform';
 type Status = 'idle' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 type Job = {
@@ -51,12 +51,14 @@ type Health = {
   node: string;
   logicalCpus: number;
   pool: { concurrency: number; active: number; queued: number; available: number };
+  services?: { googleMaps?: { configured: boolean } };
 };
 
 const jobMeta: Record<JobType, { label: string; short: string; tone: string; hint: string }> = {
   browser: { label: 'Browser scrape', short: 'BR', tone: 'cyan', hint: 'Playwright navigation, actions, selectors, pagination, and screenshots.' },
   api: { label: 'API call', short: 'AP', tone: 'violet', hint: 'HTTP method, headers, request body, response type, and timeout.' },
   map: { label: 'Map data', short: 'MP', tone: 'green', hint: 'Pull GeoJSON or a JSON feature collection and calculate map bounds.' },
+  places: { label: 'ZIP place segments', short: 'GZ', tone: 'green', hint: 'Iterate ZIP inputs and build filtered segments with Google Places Aggregate.' },
   download: { label: 'Download', short: 'DL', tone: 'blue', hint: 'Download an HTTP resource into the datahub/downloads folder.' },
   parse: { label: 'Parser', short: 'PR', tone: 'orange', hint: 'Parse a local JSON, GeoJSON, CSV, or text artifact inside datahub.' },
   ocr: { label: 'OCR', short: 'OC', tone: 'amber', hint: 'Recognize text from a local image or an HTTP image using Tesseract.' },
@@ -300,7 +302,7 @@ export default function Home() {
   return (
     <main className="app-shell">
       <aside className="rail">
-        <div className="brand-mark">AR</div>
+        <div className="brand-mark">C*</div>
         <nav aria-label="Primary navigation">
           <a className="rail-link active" href="#queue" aria-label="Operations">⌁</a>
           <a className="rail-link" href="#queue" aria-label="Jobs">▦</a>
@@ -363,7 +365,7 @@ export default function Home() {
 
               <div className="table-head"><span>Job</span><span>Type</span><span>Status</span><span>Progress</span><span /></div>
               <div className="job-list">
-                {!jobs.length && <div className="empty-state"><strong>No jobs yet</strong><span>Create a browser scrape, API call, map pull, download, parser, OCR, or transform.</span><button className="run-button" onClick={() => openNew()}>Create first job</button></div>}
+                {!jobs.length && <div className="empty-state"><strong>No jobs yet</strong><span>Create a browser scrape, API call, ZIP place segment, map pull, download, parser, OCR, or transform.</span><button className="run-button" onClick={() => openNew()}>Create first job</button></div>}
                 {jobs.map((job) => {
                   const run = latestByJob.get(job.id);
                   const state = run?.status ?? job.status ?? 'idle';
@@ -415,6 +417,16 @@ export default function Home() {
               ))}
             </section>
 
+            <section className="panel service-panel">
+              <div className="panel-heading compact"><div><span className="section-kicker">Data service</span><h2>ZIP place segments</h2></div><span className={`service-status ${health?.services?.googleMaps?.configured ? 'ready' : ''}`}><i />{health?.services?.googleMaps?.configured ? 'Ready' : 'Needs key'}</span></div>
+              <div className="service-body">
+                <p>Build count and place-ID segments across ZIP lists using the official Google Maps Platform APIs.</p>
+                <div><span>Budgeted requests</span><span>Resumable runs</span><span>30-day expiry</span></div>
+                <button className="run-button" onClick={() => openNew('places')}>Configure ZIP run</button>
+                <small>Google Maps attribution and usage policies apply.</small>
+              </div>
+            </section>
+
             <section className="quick-types">
               <span className="section-kicker">Quick create</span>
               <div className="type-grid">{(Object.keys(jobMeta) as JobType[]).map((type) => <button key={type} onClick={() => openNew(type)}><i className={jobMeta[type].tone}>{jobMeta[type].short}</i><span>{jobMeta[type].label}</span></button>)}</div>
@@ -431,6 +443,7 @@ export default function Home() {
               <label><span>Job name</span><input value={editorName} onChange={(event) => setEditorName(event.target.value)} placeholder="Descriptive job name" /></label>
               <label><span>Job type</span><select value={editorType} onChange={(event) => changeEditorType(event.target.value as JobType)} disabled={editor !== 'new'}>{(Object.keys(jobMeta) as JobType[]).map((type) => <option value={type} key={type}>{jobMeta[type].label}</option>)}</select></label>
               <div className="config-heading"><div><span>Configuration</span><small>{jobMeta[editorType].hint}</small></div><button onClick={() => setEditorConfig(JSON.stringify(templates?.[editorType] ?? {}, null, 2))}>Reset template</button></div>
+              {editorType === 'places' && <div className="service-note"><strong>Official API connector</strong><span>Add <code>GOOGLE_MAPS_API_KEY</code> to <code>datahub/.env</code>. Enable Geocoding API and Places Aggregate API. The key is never stored in this job.</span></div>}
               <textarea value={editorConfig} onChange={(event) => { setEditorConfig(event.target.value); setEditorError(''); }} spellCheck={false} aria-label="JSON job configuration" />
               <label className="toggle-label"><input type="checkbox" checked={editorEnabled} onChange={(event) => setEditorEnabled(event.target.checked)} /><span>Include this job when “Run all” is used</span></label>
               {editorError && <p className="form-error">{editorError}</p>}

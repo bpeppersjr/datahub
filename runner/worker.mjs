@@ -7,6 +7,7 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { chromium } from 'playwright';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { createWorker as createOcrWorker } from 'tesseract.js';
+import { collectGooglePlacesByZip } from './google-places.mjs';
 import {
   DOWNLOAD_DIR,
   OCR_CACHE_DIR,
@@ -202,6 +203,16 @@ async function executeMap() {
   };
 }
 
+async function executeGooglePlaces() {
+  return collectGooglePlacesByZip({
+    config: job.config,
+    jobId: job.id,
+    apiKey: process.env.GOOGLE_MAPS_API_KEY,
+    onProgress: progress,
+    onLog: log,
+  });
+}
+
 async function executeDownload() {
   const config = job.config;
   const response = await fetch(assertHttpUrl(config.url), { signal: AbortSignal.timeout(Number(config.timeoutMs) || 120_000) });
@@ -315,6 +326,7 @@ const handlers = {
   browser: executeBrowser,
   api: executeApi,
   map: executeMap,
+  places: executeGooglePlaces,
   download: executeDownload,
   parse: executeParse,
   ocr: executeOcr,

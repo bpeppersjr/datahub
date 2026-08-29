@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { DATA_DIR, DOWNLOAD_DIR, OCR_CACHE_DIR, OUTPUT_DIR, SCREENSHOT_DIR, TEMP_DIR } from './paths.mjs';
+import { CHECKPOINT_DIR, DATA_DIR, DOWNLOAD_DIR, OCR_CACHE_DIR, OUTPUT_DIR, SCREENSHOT_DIR, TEMP_DIR } from './paths.mjs';
 
 const JOBS_FILE = path.join(DATA_DIR, 'jobs.json');
 const RUNS_FILE = path.join(DATA_DIR, 'runs.json');
@@ -66,6 +66,7 @@ export async function createStore() {
     OUTPUT_DIR,
     SCREENSHOT_DIR,
     TEMP_DIR,
+    CHECKPOINT_DIR,
     OCR_CACHE_DIR,
     DOWNLOAD_DIR,
   ].map((directory) => mkdir(directory, { recursive: true })));
