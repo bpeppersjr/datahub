@@ -2,7 +2,7 @@
   "dataset_id": "national-business-registry",
   "schema_version": "1.0.0",
   "title": "Governed National Business Registry",
-  "status": "foundation-in-progress",
+  "status": "partial-source-release-implemented",
   "description": "Canonical organizations, brands, sites, establishments, services, relationships, and source assertions reconciled across authorized U.S. business data sources.",
   "entity_schema": "config/schemas/business-entity.schema.json",
   "assertion_schema": "config/schemas/business-assertion.schema.json",
@@ -30,5 +30,11 @@
     "unresolved conflicts and gaps"
   ],
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
-  "documentation": "docs/BUSINESS-REGISTRY-CONTRACT.md"
+  "current_release": {
+    "output": "data/business-registry/current.json",
+    "scope": "USDA SNAP-authorized retailers only",
+    "complete_national_business_registry": false,
+    "authoritative_current_usps_zip_denominator": null
+  },
+  "documentation": ["docs/BUSINESS-REGISTRY-CONTRACT.md", "docs/NATIONAL-BUSINESS-REGISTRY.md"]
 }

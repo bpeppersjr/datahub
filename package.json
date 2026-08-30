@@ -18,6 +18,8 @@
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
     "snap:build": "node scripts/build-usda-snap-retailers.mjs",
     "snap:verify": "node scripts/verify-usda-snap-retailers.mjs",
+    "registry:build": "node scripts/build-business-registry.mjs",
+    "registry:verify": "node scripts/verify-business-registry.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",
