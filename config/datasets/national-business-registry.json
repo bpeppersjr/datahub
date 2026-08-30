@@ -8,6 +8,18 @@
   "assertion_schema": "config/schemas/business-assertion.schema.json",
   "relationship_schema": "config/schemas/business-relationship.schema.json",
   "required_foundations": ["us-census-geography", "census-zbp-baseline"],
+  "implemented_source_layers": [
+    {
+      "dataset_id": "usda-snap-retailers",
+      "scope": "current SNAP-authorized retailer locations",
+      "layer": "public-record-level"
+    },
+    {
+      "dataset_id": "hud-usps-zip-crosswalk",
+      "scope": "quarterly address-derived ZIP-to-county evidence",
+      "layer": "credential-gated-awaiting-live-release"
+    }
+  ],
   "required_coverage_dimensions": [
     "authoritative ZIP validity evidence",
     "ZIP/ZCTA polygon or explicit no-polygon status",

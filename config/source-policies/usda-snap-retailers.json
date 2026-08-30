@@ -1,0 +1,22 @@
+{
+  "policy_id": "usda-snap-retailers",
+  "version": "1.0.0",
+  "publisher": "U.S. Department of Agriculture Food and Nutrition Administration",
+  "ownership": "United States federal government public retailer-locator data",
+  "source_home": "https://www.fns.usda.gov/snap/retailer-locator",
+  "arcgis_item": "https://www.arcgis.com/home/item.html?id=8b260f9a10b0459aa441ad8588c2251c",
+  "source_access": "Public anonymous read-only ArcGIS Feature Service; item metadata declares no license or terms-of-use text.",
+  "allowed_use": ["download", "local processing", "coverage analysis", "derived registry assertions", "redistribution with provenance and limitations"],
+  "prohibited_use": [
+    "publishing confidential store-level SNAP redemption amounts",
+    "representing SNAP authorization as proof of general operating status",
+    "transferring a location-specific authorization assertion to another owner or location",
+    "inferring parent company or legal ownership from store name alone"
+  ],
+  "attribution": "Source: USDA Food and Nutrition Administration SNAP Retailer Locator.",
+  "retention": "Indefinite for public source snapshots and derived records unless an approved retention rule applies.",
+  "redistribution": "Allowed for the public locator fields with source item, update timestamp, transformation, and semantic limitations retained.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

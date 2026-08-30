@@ -1,0 +1,37 @@
+{
+  "connector_id": "usda-snap-retailers",
+  "version": "1.0.0",
+  "description": "Acquires the public USDA SNAP current-authorized retailer point snapshot and normalizes source-anchored establishment candidates.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/usda-snap" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 1000 },
+      "concurrency": { "type": "integer", "minimum": 1, "maximum": 8, "default": 4 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["source-feature-jsonl-gzip", "normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["www.arcgis.com", "services1.arcgis.com"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "usda-snap-arcgis",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 120,
+    "retries": 3,
+    "max_parallel_requests": 8,
+    "default_parallel_requests": 4
+  },
+  "retry": "Retry transient metadata and query failures with exponential backoff; fail after four attempts.",
+  "checkpoint": "Acquisition is ordered by ObjectId and artifacts are isolated by run ID; a source edit during paging invalidates the run.",
+  "idempotency": "The ArcGIS data edit timestamp identifies the source snapshot; normalized IDs derive from USDA Record_ID.",
+  "cancellation": "Abort active page requests and leave no shared lock; unpublished artifacts stay run-scoped.",
+  "source_policy": "config/source-policies/usda-snap-retailers.json",
+  "retention_profile": "Retain immutable public source snapshots and derived records until an approved retention operation removes them.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "snap-service-assertion"],
+  "produced_identifiers": ["usda-snap-record-id", "zip5", "zip9", "zcta5"]
+}
