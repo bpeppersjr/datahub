@@ -9,6 +9,9 @@ import {
   buildNationalBusinessRegistry,
   reconcileFdicInstitution,
   reconcileFdicLocation,
+  reconcileNcuaInstitution,
+  reconcileNcuaLocation,
+  reconcileNcuaTradeName,
   reconcileNppesOrganization,
   reconcileNppesOtherName,
   reconcileNppesPracticeLocation,
@@ -18,6 +21,7 @@ import {
 } from "./business-registry.mjs";
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
+import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
 function sourceFeature(recordId, zipCode, overrides = {}) {
@@ -211,6 +215,71 @@ async function writeFixtureFdicRelease(root) {
   return pointerPath;
 }
 
+async function writeFixtureNcuaRelease(root) {
+  const releaseId = "ncua-quarterly-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const context = {
+    runId: "ncua-source-fixture", retrievedAt: "2026-08-30T15:00:00.000Z", cycleDate: "2026-03-31", sourceReleaseId: "ncua-source-fixture",
+    insuredCharters: new Set(["100"]),
+    baselineByZip: new Map([
+      ["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }],
+      ["01760", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:01760", geoid: "01760" } }],
+    ]),
+  };
+  const institutions = [normalizeNcuaInstitution({
+    CU_NUMBER: "100", CYCLE_DATE: "3/31/2026 0:00:00", JOIN_NUMBER: "500", RSSD: "12345", CU_TYPE: "1", CU_NAME: "FIXTURE CREDIT UNION",
+    CITY: "CHICAGO", STATE: "IL", CharterState: "IL", ZIP_CODE: "60601", STREET: "10 MAIN ST", YEAR_OPENED: "2000", LIMITED_INC: "0", IsMDI: "False",
+  }, context)];
+  const locations = [
+    normalizeNcuaBranch({
+      CU_NUMBER: "100", CYCLE_DATE: "3/31/2026 0:00:00", JOIN_NUMBER: "500", SiteId: "700", CU_NAME: "FIXTURE CREDIT UNION", SiteName: "FIXTURE MAIN",
+      SiteTypeName: "Corporate Office", MainOffice: "Yes", PhysicalAddressLine1: "10 MAIN ST", PhysicalAddressCity: "CHICAGO",
+      PhysicalAddressStateCode: "IL", PhysicalAddressPostalCode: "60601", PhysicalAddressCountry: "United States", MemberServices: "1", ATM: "1", DriveThru: "0", Shrd_Serv_Cntr_Net: "1",
+    }, context),
+    normalizeNcuaBranch({
+      CU_NUMBER: "100", CYCLE_DATE: "3/31/2026 0:00:00", JOIN_NUMBER: "500", SiteId: "701", CU_NAME: "FIXTURE CREDIT UNION", SiteName: "FIXTURE BRANCH",
+      SiteTypeName: "Branch Office", MainOffice: "No", PhysicalAddressLine1: "20 OAK AVE", PhysicalAddressCity: "NATICK",
+      PhysicalAddressStateCode: "MA", PhysicalAddressPostalCode: "01760", PhysicalAddressCountry: "United States", MemberServices: "1", ATM: "0", DriveThru: "1", Shrd_Serv_Cntr_Net: "0",
+    }, context),
+  ];
+  const names = [normalizeNcuaTradeName({ CU_NUMBER: "100", CycleDate: "3/31/2026 0:00:00", TradeNamesId: "1", TradeName: "FIXTURE CU" }, context)];
+  const artifacts = [];
+  for (const prefix of "0123456789") {
+    for (const [relativePath, artifactType, records] of [
+      [`derived/institutions/charter-prefix=${prefix}.jsonl.gz`, "normalized-ncua-institution-jsonl-gzip", institutions.filter((record) => record.external_identifiers[0].value.startsWith(prefix))],
+      [`derived/locations/zip-prefix=${prefix}.jsonl.gz`, "normalized-ncua-location-jsonl-gzip", locations.filter((record) => record.address.zip_code.startsWith(prefix))],
+      [`derived/trade-names/charter-prefix=${prefix}.jsonl.gz`, "normalized-ncua-trade-name-jsonl-gzip", names.filter((record) => record.charter_number.startsWith(prefix))],
+    ]) {
+      const buffer = gzipSync(records.map((record) => JSON.stringify(record)).join("\n") + (records.length ? "\n" : ""));
+      const destination = path.join(releaseDirectory, relativePath);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, buffer);
+      artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: records.length, artifact_type: artifactType });
+    }
+  }
+  const zipRows = ["01760", "60601"].map((zipCode) => ({
+    zip_code: zipCode, ncua_quarterly_snapshot: { location_count: 1 }, current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}` }, employer_baseline: { status: "published", establishments: 100 }, baseline_coverage_status: "zbp-and-zcta",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "ncua-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0", dataset_id: "ncua-quarterly-credit-unions", release_id: releaseId, status: "published", complete_final_quarterly_source_snapshot: true,
+    source_release_id: context.sourceReleaseId, cycle_date: context.cycleDate,
+    coverage: {
+      accepted_federally_insured_institutions: institutions.length, accepted_us_locations: locations.length, accepted_trade_names: names.length,
+      excluded_non_federally_insured_institutions: 0, excluded_non_federally_insured_locations: 0, excluded_non_federally_insured_trade_names: 0, excluded_locations_outside_united_states: 0,
+    },
+    dependencies: [], artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -299,24 +368,52 @@ test("reconciles FDIC institutions and U.S. locations without inferring public a
   assert(!office.assertions.some((item) => item.predicate.includes("open") || item.predicate.includes("hours")));
 });
 
+test("reconciles NCUA institutions, scoped locations, and trade names without inferring public access", () => {
+  const ncuaContext = {
+    runId: "ncua-source-fixture", retrievedAt: "2026-08-30T15:00:00.000Z", cycleDate: "2026-03-31", sourceReleaseId: "ncua-source-fixture",
+    insuredCharters: new Set(["100"]), baselineByZip: new Map([["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }]]),
+  };
+  const institution = normalizeNcuaInstitution({
+    CU_NUMBER: "100", CYCLE_DATE: "3/31/2026 0:00:00", JOIN_NUMBER: "500", RSSD: "12345", CU_TYPE: "1", CU_NAME: "FIXTURE CREDIT UNION",
+    CITY: "CHICAGO", STATE: "IL", CharterState: "IL", ZIP_CODE: "60601", STREET: "10 MAIN ST", YEAR_OPENED: "2000", LIMITED_INC: "0", IsMDI: "False",
+  }, ncuaContext);
+  const organization = reconcileNcuaInstitution(institution);
+  assert.equal(organization.entity.entity_type, "organization");
+  assert(organization.assertions.some((item) => item.predicate === "organization.ncua-status"));
+  const location = normalizeNcuaBranch({
+    CU_NUMBER: "100", CYCLE_DATE: "3/31/2026 0:00:00", JOIN_NUMBER: "500", SiteId: "700", CU_NAME: "FIXTURE CREDIT UNION", SiteName: "FIXTURE MAIN",
+    SiteTypeName: "Corporate Office", MainOffice: "Yes", PhysicalAddressLine1: "10 MAIN ST", PhysicalAddressCity: "CHICAGO",
+    PhysicalAddressStateCode: "IL", PhysicalAddressPostalCode: "60601", PhysicalAddressCountry: "United States",
+    MemberServices: "1", ATM: "1", DriveThru: "0", Shrd_Serv_Cntr_Net: "1",
+  }, ncuaContext);
+  const office = reconcileNcuaLocation(location);
+  assert.deepEqual(office.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert.equal(office.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release");
+  const tradeName = normalizeNcuaTradeName({ CU_NUMBER: "100", CycleDate: "3/31/2026 0:00:00", TradeNamesId: "1", TradeName: "FIXTURE CU" }, ncuaContext);
+  assert.equal(reconcileNcuaTradeName(tradeName).predicate, "organization.other-name");
+  assert(!office.assertions.some((item) => item.predicate.includes("open")));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
   const snapPointer = await writeFixtureSnapRelease(path.join(root, "snap"));
   const fdicPointer = await writeFixtureFdicRelease(path.join(root, "fdic"));
+  const ncuaPointer = await writeFixtureNcuaRelease(path.join(root, "ncua"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
     snapPointer,
     fdicPointer,
+    ncuaPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 1);
-  assert.equal(result.manifest.coverage.physical_sites, 4);
-  assert.equal(result.manifest.coverage.establishments, 4);
-  assert.equal(result.manifest.coverage.relationships, 8);
+  assert.equal(result.manifest.coverage.organizations, 2);
+  assert.equal(result.manifest.coverage.physical_sites, 6);
+  assert.equal(result.manifest.coverage.establishments, 6);
+  assert.equal(result.manifest.coverage.relationships, 12);
   assert.equal(result.manifest.coverage.zip_union_records, 4);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
 
@@ -328,6 +425,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(uncovered.registry_coverage.status, "denominator-only-no-record-level-contribution");
   assert.equal(uncovered.registry_coverage.complete_all_businesses, false);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {

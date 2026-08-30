@@ -308,6 +308,71 @@ export function reconcileFdicLocation(record) {
   };
 }
 
+export function reconcileNcuaInstitution(record) {
+  const charterNumber = record.external_identifiers?.find((item) => item.type === "ncua_charter_number")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  if (!/^\d+$/.test(charterNumber ?? "") || organizationId !== `organization:ncua_charter_${charterNumber}` || !record.legal_name) {
+    throw new Error(`Invalid NCUA institution candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, organizationId, "organization.legal-name", record.legal_name, "string", "CU_NAME"),
+    assertion(record, organizationId, "organization.ncua-status", record.source_status, "object", "CU_TYPE|CYCLE_DATE"),
+  ];
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  if (record.credit_union_type) assertions.push(assertion(record, organizationId, "organization.ncua-credit-union-type", record.credit_union_type, "object", "CU_TYPE|CharterState"));
+  if (record.reported_mailing_address) assertions.push(assertion(record, organizationId, "organization.reported-mailing-address", record.reported_mailing_address, "address", "STREET|CITY|STATE|ZIP_CODE"));
+  if (record.organization_dates) assertions.push(assertion(record, organizationId, "organization.ncua-dates", record.organization_dates, "object", "YEAR_OPENED|ISSUE_DATE|INSURED_DATE"));
+  if (record.source_classifications) assertions.push(assertion(record, organizationId, "organization.ncua-classifications", record.source_classifications, "object", "TOM_CODE|LIMITED_INC|IsMDI|Peer_Group|REGION"));
+  return { charterNumber, charterPrefix: charterNumber[0], entity: canonicalEntity(organizationId, "organization", record.observed_at), assertions };
+}
+
+export function reconcileNcuaLocation(record) {
+  const charterNumber = record.external_identifiers?.find((item) => item.type === "ncua_charter_number")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d+$/.test(charterNumber ?? "") || organizationId !== `organization:ncua_charter_${charterNumber}` || !siteId || !establishmentId || !/^\d{5}$/.test(zipCode ?? "")) {
+    throw new Error(`Invalid NCUA location candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, siteId, "site.address", record.address, "address", "PhysicalAddress fields"),
+    assertion(record, siteId, "site.zip-code", zipCode, "string", "PhysicalAddressPostalCode"),
+    assertion(record, siteId, "site.zcta", record.geography, "object", "PhysicalAddressPostalCode"),
+    assertion(record, establishmentId, "establishment.name", record.site_name || record.credit_union_name, "string", "SiteName|CU_NAME"),
+    assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "CYCLE_DATE"),
+    assertion(record, establishmentId, "establishment.ncua-main-office", record.main_office, "boolean", "MainOffice"),
+    assertion(record, establishmentId, "establishment.ncua-reported-services", record.reported_services, "object", "MemberServices|ATM|DriveThru|Shrd_Serv_Cntr_Net"),
+  ];
+  if (record.mailing_address) assertions.push(assertion(record, siteId, "site.reported-mailing-address", record.mailing_address, "address", "MailingAddress fields"));
+  if (record.telephone) assertions.push(assertion(record, siteId, "site.telephone", record.telephone, "string", "PhoneNumber"));
+  if (record.reported_hours_of_operation) assertions.push(assertion(record, establishmentId, "establishment.reported-hours", record.reported_hours_of_operation, "string", "HoursOfOperation"));
+  if (record.site_type) assertions.push(assertion(record, establishmentId, "establishment.ncua-site-type", record.site_type, "string", "SiteTypeName"));
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  return {
+    charterNumber,
+    zipCode,
+    entities: [canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at)],
+    assertions,
+    relationships: [relationship(record, "operates", organizationId, establishmentId), relationship(record, "located_at", establishmentId, siteId)],
+  };
+}
+
+export function reconcileNcuaTradeName(record) {
+  if (!/^\d+$/.test(record.charter_number ?? "") || record.organization_id !== `organization:ncua_charter_${record.charter_number}` || !record.name) {
+    throw new Error(`Invalid NCUA trade-name candidate ${record.normalized_record_id}.`);
+  }
+  return assertion(record, record.organization_id, "organization.other-name", {
+    name: record.name,
+    name_type: "ncua-reported-trade-name",
+    ncua_trade_name_id: record.trade_name_id,
+  }, "object", "TradeName|TradeNamesId");
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -478,6 +543,42 @@ async function loadFdicRelease(pointerPath) {
   };
 }
 
+async function loadNcuaRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "NCUA manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "ncua-quarterly-credit-unions" || manifest.status !== "published" || !manifest.complete_final_quarterly_source_snapshot) {
+    throw new Error("A complete published NCUA final quarterly source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const institutionArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-ncua-institution-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  const locationArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-ncua-location-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  const nameArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-ncua-trade-name-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (institutionArtifacts.length !== 10 || locationArtifacts.length !== 10 || nameArtifacts.length !== 10) throw new Error("NCUA source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "ncua-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("NCUA source release has no ZIP coverage artifact.");
+  for (const artifact of [...institutionArtifacts, ...locationArtifacts, ...nameArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `NCUA artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`NCUA artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("NCUA ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    institutionArtifacts,
+    locationArtifacts,
+    nameArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -501,28 +602,32 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys()])].sort();
+  const ncuaRows = new Map((ncua?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
     const fdicRow = fdicRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow;
+    const ncuaRow = ncuaRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
     const secondary = nppesSecondaryCounts.get(zipCode) ?? 0;
     const fdicLocations = fdicLocationCounts.get(zipCode) ?? 0;
+    const ncuaLocations = ncuaLocationCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
       throw new Error(`ZIP ${zipCode} CMS NPPES counts do not reconcile.`);
     }
     if (fdic && fdicLocations !== (fdicRow?.fdic_current_location_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} FDIC location counts do not reconcile.`);
-    const locationCount = snapCount + primary + secondary + fdicLocations;
+    if (ncua && ncuaLocations !== (ncuaRow?.ncua_quarterly_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} NCUA location counts do not reconcile.`);
+    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -536,6 +641,7 @@ function registryZipCoverage({ snap, nppes, fdic, snapCounts, nppesPrimaryCounts
         nppes_primary_practice_location_count: primary,
         nppes_non_primary_practice_location_count: secondary,
         fdic_current_location_count: fdicLocations,
+        ncua_reported_us_location_count: ncuaLocations,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -558,6 +664,13 @@ function registryZipCoverage({ snap, nppes, fdic, snapCounts, nppesPrimaryCounts
             source_updated_at: fdic.manifest.source_updated_at,
           },
         } : {}),
+        ...(ncua ? {
+          ncua_quarterly_credit_unions: {
+            reported_us_location_count: ncuaLocations,
+            source_release_id: ncua.manifest.source_release_id,
+            cycle_date: ncua.manifest.cycle_date,
+          },
+        } : {}),
       },
       current_usps_validity: foundation.current_usps_validity,
       geography: foundation.geography,
@@ -572,6 +685,7 @@ export async function buildNationalBusinessRegistry({
   snapPointer,
   nppesPointer = null,
   fdicPointer = null,
+  ncuaPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -580,6 +694,7 @@ export async function buildNationalBusinessRegistry({
   const snap = await loadSnapRelease(snapPointer);
   const nppes = nppesPointer ? await loadNppesRelease(nppesPointer) : null;
   const fdic = fdicPointer ? await loadFdicRelease(fdicPointer) : null;
+  const ncua = ncuaPointer ? await loadNcuaRelease(ncuaPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -594,6 +709,8 @@ export async function buildNationalBusinessRegistry({
   const organizationAssertionWriters = new Map();
   const fdicOrganizationWriters = new Map();
   const fdicOrganizationAssertionWriters = new Map();
+  const ncuaOrganizationWriters = new Map();
+  const ncuaOrganizationAssertionWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
     establishmentWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/establishments/prefix=${prefix}.jsonl.gz`));
@@ -607,16 +724,23 @@ export async function buildNationalBusinessRegistry({
       fdicOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/fdic-cert-prefix=${prefix}.jsonl.gz`));
       fdicOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/fdic-cert-prefix=${prefix}.jsonl.gz`));
     }
+    if (ncua) {
+      ncuaOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/ncua-charter-prefix=${prefix}.jsonl.gz`));
+      ncuaOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/ncua-charter-prefix=${prefix}.jsonl.gz`));
+    }
   }
 
   const snapCountsByZip = new Map();
   const nppesPrimaryCountsByZip = new Map();
   const nppesSecondaryCountsByZip = new Map();
   const fdicLocationCountsByZip = new Map();
+  const ncuaLocationCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
   const fdicCertificates = new Set();
   const fdicLocationIds = new Set();
+  const ncuaCharters = new Set();
+  const ncuaLocationIds = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
@@ -624,6 +748,9 @@ export async function buildNationalBusinessRegistry({
   let nppesOtherNames = 0;
   let fdicInstitutions = 0;
   let fdicLocations = 0;
+  let ncuaInstitutions = 0;
+  let ncuaLocations = 0;
+  let ncuaTradeNames = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -752,14 +879,71 @@ export async function buildNationalBusinessRegistry({
     if (fdicLocations !== fdic.manifest.coverage.accepted_current_locations) throw new Error("Registry FDIC location count does not match the source release.");
   }
 
+  if (ncua) {
+    for (const artifact of ncua.institutionArtifacts) {
+      const partition = artifact.path.match(/charter-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine NCUA charter prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(ncua.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileNcuaInstitution(record);
+        if (reconciled.charterPrefix !== partition) throw new Error(`NCUA institution ${reconciled.charterNumber} is in the wrong charter partition.`);
+        if (ncuaCharters.has(reconciled.charterNumber)) throw new Error(`Duplicate NCUA charter ${reconciled.charterNumber}.`);
+        ncuaCharters.add(reconciled.charterNumber);
+        await writeGzipRecord(ncuaOrganizationWriters.get(partition), reconciled.entity);
+        for (const item of reconciled.assertions) await writeGzipRecord(ncuaOrganizationAssertionWriters.get(partition), item);
+        assertions += reconciled.assertions.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`NCUA institution artifact ${artifact.path} record count mismatch.`);
+      ncuaInstitutions += count;
+      logger(`Reconciled ${ncuaInstitutions.toLocaleString("en-US")} NCUA institutions.`);
+    }
+    if (ncuaInstitutions !== ncua.manifest.coverage.accepted_federally_insured_institutions) throw new Error("Registry NCUA institution count does not match the source release.");
+
+    for (const artifact of ncua.locationArtifacts) {
+      const partition = artifact.path.match(/zip-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine NCUA ZIP prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(ncua.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileNcuaLocation(record);
+        if (reconciled.zipCode[0] !== partition) throw new Error(`NCUA location ${record.normalized_record_id} is in the wrong ZIP partition.`);
+        if (!ncuaCharters.has(reconciled.charterNumber)) throw new Error(`NCUA location has no federally insured charter ${reconciled.charterNumber}.`);
+        if (ncuaLocationIds.has(record.normalized_record_id)) throw new Error(`Duplicate NCUA location ${record.normalized_record_id}.`);
+        ncuaLocationIds.add(record.normalized_record_id);
+        await writeGzipRecord(siteWriters.get(partition), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        ncuaLocationCountsByZip.set(reconciled.zipCode, (ncuaLocationCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`NCUA location artifact ${artifact.path} record count mismatch.`);
+      ncuaLocations += count;
+      logger(`Reconciled ${ncuaLocations.toLocaleString("en-US")} NCUA U.S. locations.`);
+    }
+    if (ncuaLocations !== ncua.manifest.coverage.accepted_us_locations) throw new Error("Registry NCUA location count does not match the source release.");
+
+    for (const artifact of ncua.nameArtifacts) {
+      const count = await forEachGzipRecord(path.join(ncua.releaseDirectory, artifact.path), async (record) => {
+        if (!ncuaCharters.has(record.charter_number)) throw new Error(`NCUA trade name has no federally insured charter ${record.charter_number}.`);
+        await writeGzipRecord(ncuaOrganizationAssertionWriters.get(record.charter_number[0]), reconcileNcuaTradeName(record));
+        ncuaTradeNames += 1;
+        assertions += 1;
+      });
+      if (count !== artifact.record_count) throw new Error(`NCUA trade-name artifact ${artifact.path} record count mismatch.`);
+      logger(`Reconciled ${ncuaTradeNames.toLocaleString("en-US")} NCUA trade names.`);
+    }
+    if (ncuaTradeNames !== ncua.manifest.coverage.accepted_trade_names) throw new Error("Registry NCUA trade-name count does not match the source release.");
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (ncua) artifacts.push(...await closeGzipWriters([...ncuaOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (ncua) artifacts.push(...await closeGzipWriters([...ncuaOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
 
   const serviceEntity = {
@@ -776,7 +960,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -824,6 +1008,24 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(ncua ? {
+      ncua_quarterly_credit_unions: {
+        source_id: "ncua-final-quarterly-call-report",
+        dataset_id: ncua.manifest.dataset_id,
+        source_release_id: ncua.manifest.source_release_id,
+        dataset_release_id: ncua.manifest.release_id,
+        cycle_date: ncua.manifest.cycle_date,
+        federally_insured_institutions_published: ncuaInstitutions,
+        reported_us_locations_published: ncuaLocations,
+        trade_name_assertions_published: ncuaTradeNames,
+        non_insured_and_foreign_records_excluded_by_source_layer: ncua.manifest.coverage.excluded_non_federally_insured_institutions
+          + ncua.manifest.coverage.excluded_non_federally_insured_locations
+          + ncua.manifest.coverage.excluded_non_federally_insured_trade_names
+          + ncua.manifest.coverage.excluded_locations_outside_united_states,
+        identity_resolution: "one provisional organization per NCUA charter and one provisional site/establishment per composite charter plus SiteId; no cross-source merge",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -842,23 +1044,27 @@ export async function buildNationalBusinessRegistry({
       "USDA SNAP-authorized retailers",
       ...(nppes ? ["CMS NPPES organization providers and reported practice locations"] : []),
       ...(fdic ? ["FDIC active insured institutions and current indexed U.S. locations"] : []),
+      ...(ncua ? ["NCUA federally insured credit unions and reported U.S. locations from the final quarterly release"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
       nppes_other_name_records: nppesOtherNames,
       fdic_institution_records: fdicInstitutions,
       fdic_location_records: fdicLocations,
-      organizations: nppesOrganizations + fdicInstitutions,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations,
+      ncua_institution_records: ncuaInstitutions,
+      ncua_location_records: ncuaLocations,
+      ncua_trade_name_records: ncuaTradeNames,
+      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -877,9 +1083,15 @@ export async function buildNationalBusinessRegistry({
         release_id: fdic.manifest.release_id,
         manifest_sha256: fdic.manifestSha256,
       }] : []),
+      ...(ncua ? [{
+        dataset_id: ncua.manifest.dataset_id,
+        release_id: ncua.manifest.release_id,
+        manifest_sha256: ncua.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
       ...(fdic?.manifest.dependencies ?? []),
+      ...(ncua?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -899,6 +1111,12 @@ export async function buildNationalBusinessRegistry({
         "FDIC BankFind covers FDIC-insured institutions and current indexed locations, not all banks, credit unions, financial businesses, or all U.S. businesses.",
         "An FDIC current-location record does not independently prove public access, current hours, or every service offered.",
         "Foreign FDIC offices are excluded from the normalized U.S. location layer by the source connector.",
+      ] : []),
+      ...(ncua ? [
+        "NCUA quarterly data covers federally insured credit unions and reported locations, not all credit unions, financial businesses, or all U.S. businesses.",
+        "An NCUA quarterly branch row does not independently prove current public access, membership eligibility, current hours, or service availability.",
+        "Non-federally-insured and foreign NCUA records are excluded by the governed source connector.",
+        "NCUA SiteId is scoped by credit-union charter because the source reuses site IDs across institutions.",
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
@@ -988,6 +1206,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "npi-reactivated-as-of-source-release",
     "reported-non-primary-practice-location-for-active-npi",
     "fdic-current-location-for-active-institution-as-of-index",
+    "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {

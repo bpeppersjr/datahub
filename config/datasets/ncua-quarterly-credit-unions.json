@@ -1,0 +1,13 @@
+{
+  "dataset_id": "ncua-quarterly-credit-unions",
+  "schema_version": "1.0.0",
+  "title": "NCUA Final Quarterly Federally Insured Credit Unions and U.S. Locations",
+  "status": "implemented",
+  "description": "Governed final-quarterly NCUA source layer for federally insured credit unions, reported U.S. corporate and branch offices, trade names, service flags, source-specific temporal status, ZIP/ZCTA context, provenance, and explicit gaps.",
+  "output": "data/business-sources/ncua-quarterly-credit-unions/current.json",
+  "connector": "config/connectors/ncua-quarterly.json",
+  "source_policy": "config/source-policies/ncua-quarterly.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "CU_TYPE 1 and 2 federally insured credit unions and their valid reported U.S. branch rows in one final NCUA quarterly release; not all financial businesses or all U.S. businesses.",
+  "documentation": "docs/NCUA-QUARTERLY.md"
+}

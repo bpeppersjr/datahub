@@ -25,6 +25,11 @@
       "layer": "public-record-level"
     },
     {
+      "dataset_id": "ncua-quarterly-credit-unions",
+      "scope": "federally insured credit unions and valid reported U.S. locations in the final quarterly release",
+      "layer": "public-record-level"
+    },
+    {
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
@@ -42,7 +47,7 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP-authorized retailers, CMS NPPES organization providers and reported practice locations, plus FDIC active insured institutions and current indexed U.S. locations",
+    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, plus NCUA federally insured credit unions and reported U.S. locations",
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },

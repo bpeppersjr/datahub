@@ -1,0 +1,39 @@
+{
+  "connector_id": "ncua-quarterly",
+  "version": "1.0.0",
+  "description": "Discovers and acquires the newest final NCUA quarterly Call Report ZIP, then normalizes federally insured credit unions, reported U.S. locations, trade names, ZIP coverage, provenance, and explicit exclusions.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ncua-quarterly-credit-unions" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "source_url": { "type": ["string", "null"], "default": null },
+      "minimum_institutions": { "type": "integer", "minimum": 1, "default": 3500 },
+      "minimum_locations": { "type": "integer", "minimum": 1, "default": 15000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.005 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ncua-source-quarterly-zip", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["ncua.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "ncua-quarterly-public-bulk",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 60,
+    "retries": 3,
+    "max_parallel_requests": 1,
+    "maximum_download_bytes": 100000000
+  },
+  "retry": "Retry discovery or archive requests with capped exponential backoff; never retry schema, cycle, checksum, or quality failures.",
+  "checkpoint": "The complete official ZIP is retained and hashed before normalization; publication is run-scoped and current.json changes only after all quality gates pass.",
+  "idempotency": "The source release is identified by cycle date and archive SHA-256; charter number and composite charter/site identifiers produce stable entity candidates.",
+  "cancellation": "Abort the active request, leave unpublished staging run-scoped, and do not change current.json before complete publication.",
+  "source_policy": "config/source-policies/ncua-quarterly.json",
+  "retention_profile": "Retain immutable public source archives and normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "organization-other-name-assertion", "credit-union-service-assertion", "ncua-source-status-assertion"],
+  "produced_identifiers": ["ncua-charter-number", "ncua-join-number", "ncua-site-id-within-charter", "federal-reserve-rssd", "zip5", "zip4", "zcta5"]
+}

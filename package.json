@@ -23,6 +23,8 @@
     "nppes-org:verify": "node scripts/verify-cms-nppes-organizations.mjs",
     "fdic:build": "node scripts/build-fdic-bankfind.mjs",
     "fdic:verify": "node scripts/verify-fdic-bankfind.mjs",
+    "ncua:build": "node scripts/build-ncua-quarterly.mjs",
+    "ncua:verify": "node scripts/verify-ncua-quarterly.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",
     "registry:verify": "node scripts/verify-business-registry.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
