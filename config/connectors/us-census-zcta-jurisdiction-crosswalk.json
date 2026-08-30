@@ -1,0 +1,37 @@
+{
+  "connector_id": "us-census-zcta-jurisdiction-crosswalk",
+  "version": "1.0.0",
+  "implementation_status": "implemented-and-live-verified",
+  "description": "Builds a governed local polygon overlay between the published Census ZCTA and county/state-equivalent layers.",
+  "lifecycle": ["preflight", "validate", "spatial overlay", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "geography": { "type": "string", "default": "data/geography/current.json" },
+      "output": { "type": "string", "default": "data/zcta-jurisdiction-crosswalk" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["source-geojson", "dataset-manifest-json"],
+  "output_artifact_types": ["zcta-county-area-weights", "zcta-overlay-summary", "county-overlay-summary", "state-overlay-summary", "dataset-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-census-spatial-overlay",
+  "resource_class": "cpu-disk",
+  "execution_limits": {
+    "network_requests": 0,
+    "parallel_partitions": 1,
+    "material_intersection_minimum_raw_share_of_zcta_polygon": 0.001,
+    "complete_coverage_minimum_ratio": 0.995,
+    "complete_coverage_maximum_ratio": 1.005
+  },
+  "retry": "Rerun from the immutable Census geography pointer; no external requests occur.",
+  "checkpoint": "Artifacts are written to run-scoped staging and the current pointer changes only after publication.",
+  "idempotency": "Relationship IDs are deterministic from ZCTA and county GEOIDs; release IDs are immutable run identities.",
+  "cancellation": "Stop after the current ZCTA partition; staged output remains unpublished.",
+  "source_policy": "config/source-policies/us-census-geography.json",
+  "retention_profile": "Retain immutable releases until an explicitly approved retention operation removes them.",
+  "produced_entities": ["zcta-county-area-relationship", "zcta-overlay-summary", "county-overlay-summary", "state-overlay-summary"],
+  "produced_identifiers": ["zcta-county-area-relationship-id", "census-geoid", "state-fips", "county-fips", "zcta5"]
+}

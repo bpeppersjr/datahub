@@ -32,3 +32,11 @@ The JSON Lines indexes contain one object per geography. Fields are:
 | `source_feature_id` | Census service feature identifier |
 
 Additive fields are backward compatible within schema version 1. Removing fields, changing meanings, changing coordinate order, or changing typed-ID construction requires a major schema version.
+
+## ZCTA jurisdiction overlay
+
+The separate `us-census-zcta-jurisdiction-crosswalk` release consumes this geography release. Its relationship records use stable `zcta-county-area:<zcta>:<county-geoid>` IDs and publish `intersection_area_m2`, `raw_share_of_zcta_polygon_area`, and `normalized_share_of_matched_zcta_area`.
+
+All relationship and summary records carry `allocation_semantics: polygon-area-only-not-business-location`. Consumers must retain that meaning. Changing the weight denominator or representing the weights as known population, address, establishment, or business distributions is not backward compatible.
+
+Every positive polygon intersection remains in the relationship artifact. `material_intersection` is true when the published raw share is at least `0.001`; summary fields keep topological and material multi-jurisdiction counts separate. The machine-readable relationship contract is `config/schemas/zcta-county-area-relationship.schema.json`.

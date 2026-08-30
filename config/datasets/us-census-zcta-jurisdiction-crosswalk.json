@@ -1,0 +1,40 @@
+{
+  "dataset_id": "us-census-zcta-jurisdiction-crosswalk",
+  "schema_version": "1.0.0",
+  "title": "U.S. Census ZCTA Jurisdiction Crosswalk",
+  "status": "published-verified",
+  "description": "Versioned polygon-area intersections relating every Census ZCTA to every Census county and state equivalent it crosses, with explicit overlay diagnostics and non-business-allocation semantics.",
+  "producer_connector": "us-census-zcta-jurisdiction-crosswalk",
+  "runtime_pointer": "data/zcta-jurisdiction-crosswalk/current.json",
+  "required_datasets": ["us-census-geography"],
+  "identifiers": ["census-geoid", "state-fips", "county-fips", "zcta5"],
+  "coordinate_reference_system": "EPSG:4326",
+  "schemas": {
+    "zcta_county_area_relationship": "config/schemas/zcta-county-area-relationship.schema.json"
+  },
+  "artifacts": {
+    "zcta_county_area_weights": "derived/zcta-county-area-weights.jsonl",
+    "zcta_summary": "derived/zcta-overlay-summary.jsonl",
+    "county_summary": "derived/county-overlay-summary.jsonl",
+    "state_summary": "derived/state-overlay-summary.jsonl"
+  },
+  "allocation_semantics": "polygon-area-only-not-business-location",
+  "current_verified_release": {
+    "release_id": "us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8",
+    "upstream_geography_release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "state_equivalents": 56,
+    "county_equivalents": 3235,
+    "zctas": 33791,
+    "zcta_county_relationships": 65631,
+    "zcta_count_complete_within_tolerance": 33788,
+    "zcta_count_partial_or_overlapping": 3,
+    "zcta_count_unmatched": 0,
+    "zctas_crossing_county_boundaries_materially": 10277,
+    "zctas_crossing_state_boundaries_materially": 184,
+    "verified_artifact_count": 4,
+    "verified_bytes": 74392285
+  },
+  "compatibility": "Additive fields are backward compatible within schema version 1; allocation meaning, identifier construction, or weight denominator changes require a major version.",
+  "documentation": "docs/ZCTA-JURISDICTION-CROSSWALK.md",
+  "source_policy": "config/source-policies/us-census-geography.json"
+}

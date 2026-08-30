@@ -47,6 +47,8 @@ All local files remain inside the `datahub` repository:
 - `data/checkpoints/` — resumable ZIP segment progress
 - `data/pharmacy-sources/` — local NPPES and licensed enrichment inputs
 - `data/pharmacies/` — pharmacy CSV, JSONL, ZIP coverage, and manifest outputs
+- `data/geography/` — versioned national, state, county, and Census ZCTA polygons
+- `data/zcta-jurisdiction-crosswalk/` — governed ZCTA-to-county/state polygon-area overlays
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

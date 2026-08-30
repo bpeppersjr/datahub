@@ -60,4 +60,6 @@ The source GeoJSON keeps Census-native fields. Normalized JSON Lines indexes add
 - ZCTAs can cross state and county boundaries. Assign them by spatial overlay when a downstream use needs jurisdiction shares; do not infer a state from the ZIP digits.
 - Geometry is requested in EPSG:4326 and generalized by 0.0001 degrees by default, roughly 11.13 meters at the equator. Use full TIGER/Line data for survey-grade work.
 
+The governed many-to-many spatial overlay is published separately as [`us-census-zcta-jurisdiction-crosswalk`](ZCTA-JURISDICTION-CROSSWALK.md). Its area weights must not be represented as population, address, establishment, or business allocation.
+
 The record contract is maintained in [the skill schema](../.codex/skills/build-us-geography/references/schema.md). Source policy is in [`config/source-policies/us-census-geography.json`](../config/source-policies/us-census-geography.json).
