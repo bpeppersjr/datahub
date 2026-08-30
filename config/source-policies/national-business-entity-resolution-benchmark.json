@@ -1,0 +1,18 @@
+{
+  "policy_id": "national-business-entity-resolution-benchmark",
+  "version": "1.0.0",
+  "publisher": "Co*Tive Collector local governed data hub",
+  "ownership": "Derived review evidence and human labels bounded by every contributing source policy",
+  "source_home": "local:data/business-entity-resolution-benchmark/current.json",
+  "terms_url": null,
+  "review_status": "Local review only; no record-level packet or label is approved for public export.",
+  "allowed_use": ["local independent labeling", "local precision measurement", "local rule calibration", "aggregate quality analysis after privacy review"],
+  "prohibited_use": ["fabricated or model-inferred ground-truth labels", "public disclosure of review packets", "silent mutation of source entities or resolution decisions", "treating a precision pass as source-policy permission", "claiming recall or national completeness from this sample"],
+  "attribution": "Retain the exact registry and resolution dependency hashes, sampling seed, reviewer identity, time, and evidence note.",
+  "retention": "Retain immutable sample releases and submitted label evidence locally; corrections supersede prior labels without deleting history.",
+  "redistribution": "Record-level packets and labels are local-review-only. Aggregate metrics require separate privacy and contributing-source policy review.",
+  "contains_secrets": false,
+  "contains_personal_data": true,
+  "personal_data_note": "Review packets can contain source-reported home-based addresses, names, identifiers, and linkage evidence.",
+  "reviewed_at": "2026-08-30"
+}

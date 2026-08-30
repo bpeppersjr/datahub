@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-entity-resolution-benchmark-label.schema.json",
+  "title": "Business Entity-Resolution Benchmark Label",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_id", "label", "reviewer_id", "reviewed_at", "evidence_note", "evidence_references"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "candidate_id": { "type": "string", "pattern": "^benchmark-candidate:[a-f0-9]{32}$" },
+    "label": { "type": ["string", "null"], "enum": ["match", "non-match", "uncertain", "not-reviewable", null] },
+    "reviewer_id": { "type": ["string", "null"] },
+    "reviewed_at": { "type": ["string", "null"], "format": "date-time" },
+    "evidence_note": { "type": ["string", "null"] },
+    "evidence_references": { "type": "array", "items": { "type": "string" } }
+  }
+}

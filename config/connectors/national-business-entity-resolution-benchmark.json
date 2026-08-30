@@ -1,0 +1,37 @@
+{
+  "connector_id": "national-business-entity-resolution-benchmark",
+  "version": "1.0.0",
+  "implementation_status": "implemented-and-live-sample-verified-awaiting-independent-labels",
+  "description": "Builds deterministic stratified review packets and evaluates independently supplied labels without changing entity-resolution decisions.",
+  "lifecycle": ["preflight", "plan", "validate dependencies", "sample", "enrich", "quality gate", "publish", "verify"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-entity-resolution-benchmark" },
+      "resolution_pointer": { "type": "string", "default": "data/business-entity-resolution/current.json" },
+      "registry_pointer": { "type": "string", "default": "data/business-registry/current.json" },
+      "sample_size_per_stratum": { "type": "integer", "minimum": 384, "default": 425 },
+      "seed": { "type": "string", "minLength": 16 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["entity-resolution-decision-jsonl-gzip", "entity-resolution-location-profile-jsonl-gzip"],
+  "output_artifact_types": ["entity-resolution-benchmark-candidate-jsonl-gzip", "entity-resolution-benchmark-label-template-jsonl", "entity-resolution-benchmark-sample-summary-json", "dataset-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-entity-resolution-benchmark",
+  "resource_class": "cpu-disk-human-review",
+  "execution_limits": {
+    "network_requests": 0,
+    "decision_partitions": 100,
+    "profile_partitions": 100,
+    "sample_size_per_stratum": 425,
+    "parallel_partitions": 1
+  },
+  "sampling": "Deterministic minimum SHA-256 priority within automatic-site, automatic-establishment, and review-candidate strata.",
+  "precision_gate": "Each automatic stratum requires all 425 labels submitted, at least 384 conclusive labels, no more than 10% exclusions, and a 95% Wilson lower bound of at least 0.99.",
+  "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json",
+  "retention_profile": "Keep review packets and labels local; publish aggregate metrics only after privacy and contributing-source policy review.",
+  "cancellation": "Stop after the current partition; no current pointer changes until the complete sample passes verification."
+}

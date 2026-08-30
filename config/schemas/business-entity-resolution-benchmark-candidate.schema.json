@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-entity-resolution-benchmark-candidate.schema.json",
+  "title": "Business Entity-Resolution Benchmark Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_id", "stratum", "sampling_key", "sample_priority_sha256", "source_decision_ids", "entity_type", "rule_id", "resolved_entity_id", "left_entity_id", "right_entity_id", "left_profile_id", "right_profile_id", "resolution_release_id", "registry_release_id", "source_pair", "left_profile", "right_profile", "label_question", "allowed_labels", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "candidate_id": { "type": "string", "pattern": "^benchmark-candidate:[a-f0-9]{32}$" },
+    "stratum": { "enum": ["automatic-physical-site", "automatic-establishment", "review-candidate"] },
+    "sampling_key": { "type": "string", "minLength": 1 },
+    "sample_priority_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source_decision_ids": { "type": "array", "minItems": 1, "maxItems": 2, "items": { "type": "string", "pattern": "^resolution-decision:[a-f0-9]{32}$" } },
+    "entity_type": { "enum": ["physical_site", "establishment"] },
+    "rule_id": { "type": "string", "minLength": 1 },
+    "resolved_entity_id": { "type": ["string", "null"] },
+    "left_entity_id": { "type": "string", "minLength": 1 },
+    "right_entity_id": { "type": "string", "minLength": 1 },
+    "left_profile_id": { "type": "string", "pattern": "^location-profile:[a-f0-9]{32}$" },
+    "right_profile_id": { "type": "string", "pattern": "^location-profile:[a-f0-9]{32}$" },
+    "resolution_release_id": { "type": "string", "minLength": 1 },
+    "registry_release_id": { "type": "string", "minLength": 1 },
+    "source_pair": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "string", "minLength": 1 } },
+    "left_profile": { "type": "object" },
+    "right_profile": { "type": "object" },
+    "label_question": { "type": "string", "minLength": 1 },
+    "allowed_labels": { "const": ["match", "non-match", "uncertain", "not-reviewable"] },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

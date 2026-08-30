@@ -1,0 +1,42 @@
+{
+  "dataset_id": "national-business-entity-resolution-benchmark",
+  "schema_version": "1.0.0",
+  "title": "National Business Entity-Resolution Benchmark",
+  "status": "live-sample-verified-awaiting-independent-labels",
+  "description": "Deterministic, independently labeled precision benchmark and review calibration sample for governed national business entity resolution.",
+  "producer_connector": "national-business-entity-resolution-benchmark",
+  "runtime_pointer": "data/business-entity-resolution-benchmark/current.json",
+  "required_datasets": ["national-business-entity-resolution", "national-business-registry"],
+  "schemas": {
+    "candidate": "config/schemas/business-entity-resolution-benchmark-candidate.schema.json",
+    "label": "config/schemas/business-entity-resolution-benchmark-label.schema.json"
+  },
+  "strata": ["automatic-physical-site", "automatic-establishment", "review-candidate"],
+  "sample_size_per_stratum": 425,
+  "automatic_precision_gate": {
+    "confidence": 0.95,
+    "method": "Wilson score lower bound",
+    "minimum_conclusive_labels_per_automatic_stratum": 384,
+    "minimum_lower_bound": 0.99,
+    "maximum_exclusion_rate": 0.1,
+    "requires_complete_sample_review": true
+  },
+  "label_values": ["match", "non-match", "uncertain", "not-reviewable"],
+  "current_verified_sample": {
+    "release_id": "business-entity-resolution-benchmark-sample-20260830-210015066Z-d9d1af77",
+    "resolution_release_id": "business-entity-resolution-20260830-204410292Z-371d0923",
+    "registry_release_id": "national-business-registry-20260830-201530698Z-7230b6a4",
+    "automatic_physical_site_universe": 1014108,
+    "automatic_establishment_universe": 32623,
+    "review_candidate_universe": 53727,
+    "sampled_per_stratum": 425,
+    "total_sampled_candidates": 1275,
+    "unique_profiles": 2544,
+    "submitted_labels": 0,
+    "automatic_precision_gate_passed": false,
+    "export_authorized": false
+  },
+  "limitations": ["estimates precision, not recall", "does not prove all-source-pair performance", "does not authorize export", "requires independent human labels"],
+  "documentation": "docs/ENTITY-RESOLUTION-BENCHMARK.md",
+  "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json"
+}

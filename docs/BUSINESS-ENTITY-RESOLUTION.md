@@ -53,4 +53,4 @@ These are decision-row counts, not counts of unique resolved businesses. The rel
 
 ## Benchmark gate
 
-Decisions remain `local-review-only` until a labeled cross-source benchmark demonstrates an approved automatic-link precision threshold and each contributing source policy permits the intended export. A later operator-review workflow may affirm or reject candidates by publishing new decisions; it must retain earlier evidence instead of mutating history.
+Decisions remain `local-review-only` until the independently labeled [`national-business-entity-resolution-benchmark`](ENTITY-RESOLUTION-BENCHMARK.md) demonstrates the automatic-link precision threshold and each contributing source policy permits the intended export. The live deterministic sample is verified but has no submitted labels, so the precision gate is false. A later operator-review workflow may affirm or reject candidates by publishing new decisions; it must retain earlier evidence instead of mutating history.
