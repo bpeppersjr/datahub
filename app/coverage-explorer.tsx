@@ -29,6 +29,12 @@ type Overview = {
     zip_views_without_zcta_polygon: number;
     zip_views_with_published_employer_baseline: number;
     zip_views_without_published_employer_baseline: number;
+    nonemployer_reference_year: number;
+    national_nonemployer_establishments: number;
+    state_views_with_published_nonemployer_baseline: number;
+    state_views_without_published_nonemployer_baseline: number;
+    county_views_with_published_nonemployer_baseline: number;
+    county_views_without_published_nonemployer_baseline: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -56,6 +62,7 @@ type StateRow = {
   coordinate_assigned_profile_count: number;
   material_intersecting_zcta_count: number;
   zctas_with_record_level_source_contribution: number;
+  nonemployer_baseline?: NonemployerBaseline;
 };
 
 type CountyRow = {
@@ -66,6 +73,7 @@ type CountyRow = {
   coordinate_assigned_profile_count: number;
   material_intersecting_zcta_count: number;
   zctas_with_record_level_source_contribution: number;
+  nonemployer_baseline?: NonemployerBaseline;
 };
 
 type ZipRow = {
@@ -93,6 +101,18 @@ type SourceRow = {
   coordinate_present_valid_count: number;
   coordinate_assigned_single_count: number;
   coordinate_missing_count: number;
+  source_kind?: string;
+  aggregate_baseline?: {
+    national_nonemployer_establishments: number;
+    state_totals: number;
+    county_totals: number;
+  } | null;
+};
+
+type NonemployerBaseline = {
+  status: string;
+  reference_year: number;
+  nonemployer_establishments: number | null;
 };
 
 type GapRow = {
@@ -142,6 +162,7 @@ function StateRows({ records }: { records: StateRow[] }) {
       <div><strong>{row.postal_abbreviation}</strong><span>{row.state_name}</span></div>
       <span>{count(row.reported_address_profile_count)}</span>
       <span>{count(row.coordinate_assigned_profile_count)}</span>
+      <span>{row.nonemployer_baseline?.status === 'published-annual-aggregate' ? count(row.nonemployer_baseline.nonemployer_establishments) : '—'}</span>
       <span>{count(row.zctas_with_record_level_source_contribution)} <small>/ {count(row.material_intersecting_zcta_count)}</small></span>
     </div>
   ));
@@ -152,6 +173,7 @@ function CountyRows({ records }: { records: CountyRow[] }) {
     <div className="coverage-table-row county-row" key={row.view_id}>
       <div><strong>{row.county_name}</strong><span>{row.county_geoid} · state {row.state_fips}</span></div>
       <span>{count(row.coordinate_assigned_profile_count)}</span>
+      <span>{row.nonemployer_baseline?.status === 'published-annual-aggregate' ? count(row.nonemployer_baseline.nonemployer_establishments) : '—'}</span>
       <span>{count(row.zctas_with_record_level_source_contribution)} <small>/ {count(row.material_intersecting_zcta_count)}</small></span>
     </div>
   ));
@@ -170,14 +192,17 @@ function ZipRows({ records }: { records: ZipRow[] }) {
 }
 
 function SourceRows({ records }: { records: SourceRow[] }) {
-  return records.map((row) => (
-    <div className="coverage-table-row source-row" key={row.view_id}>
-      <div><strong>{label(row.source_key)}</strong><span>{row.profile_source_id ?? 'Organization-only evidence'}</span></div>
-      <span>{count(row.profile_count)}</span>
-      <span>{count(row.coordinate_assigned_single_count)}</span>
-      <span>{count(row.zip_rows_with_contribution)}</span>
-    </div>
-  ));
+  return records.map((row) => {
+    const aggregate = row.source_kind === 'aggregate-baseline' ? row.aggregate_baseline : null;
+    return (
+      <div className="coverage-table-row source-row" key={row.view_id}>
+        <div><strong>{label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Organization-only evidence'}</span></div>
+        <span>{count(aggregate?.national_nonemployer_establishments ?? row.profile_count)}</span>
+        <span>{aggregate ? `${count(aggregate.state_totals)} states` : count(row.coordinate_assigned_single_count)}</span>
+        <span>{aggregate ? `${count(aggregate.county_totals)} counties` : count(row.zip_rows_with_contribution)}</span>
+      </div>
+    );
+  });
 }
 
 function GapRows({ records }: { records: GapRow[] }) {
@@ -282,6 +307,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.county_views)}</strong> county equivalents</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_zcta_polygon)}</strong> ZCTA-linked ZIPs</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
+            <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

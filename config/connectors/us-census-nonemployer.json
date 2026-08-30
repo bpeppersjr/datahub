@@ -1,0 +1,51 @@
+{
+  "connector_id": "us-census-nonemployer",
+  "version": "1.0.0",
+  "description": "Publishes a governed national, state, and county baseline for annual Census Nonemployer Statistics.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-baselines/census-nonemployer" },
+      "reference_year": { "type": ["integer", "null"], "minimum": 1997, "maximum": 2100, "default": null }
+    }
+  },
+  "input_artifact_types": [],
+  "output_artifact_types": [
+    "source-archive",
+    "normalized-nonemployer-industry-jsonl-gzip",
+    "nonemployer-geography-totals-jsonl",
+    "dataset-manifest-json"
+  ],
+  "named_secret_references": [],
+  "allowed_hosts": ["www2.census.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "us-census-nonemployer",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 300,
+    "retries": 3,
+    "max_parallel_downloads": 1,
+    "maximum_source_archive_bytes": 100000000,
+    "maximum_uncompressed_source_bytes": 1000000000
+  },
+  "retry": "Exponential backoff for discovery and source acquisition; fail after four total attempts.",
+  "checkpoint": "The source archive and derived artifacts are run-scoped; the manifest and current pointer publish only after all quality gates pass.",
+  "idempotency": "Each build publishes one immutable release and atomically changes current.json only after success.",
+  "cancellation": "Abort an active download or parse and retain no shared lock; unpublished staging remains isolated by run ID.",
+  "source_policy": "config/source-policies/us-census-nonemployer.json",
+  "retention_profile": "Retain immutable public aggregate releases until an approved retention operation removes them.",
+  "produced_entities": ["national-business-baseline", "state-business-baseline", "county-business-baseline"],
+  "produced_identifiers": ["state-fips", "county-geoid", "naics-2022"]
+}

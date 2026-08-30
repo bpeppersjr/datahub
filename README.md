@@ -37,7 +37,7 @@ npm run dev:web
 
 Open `http://localhost:3000`. The runner API listens only on `127.0.0.1:4300` unless explicitly changed with environment variables.
 
-The **U.S. business coverage** panel is the management view over the current governed aggregate release. It provides paged state, county, ZIP, source, and explicit-gap visibility, including state-FIPS, ZIP-prefix, and gap-type filters. The panel is deliberately source-preserving: it does not claim a complete or deduplicated census of U.S. businesses. See [the national coverage-view contract](docs/NATIONAL-BUSINESS-COVERAGE-VIEWS.md).
+The **U.S. business coverage** panel is the management view over the current governed aggregate release. It provides paged state, county, ZIP, source, and explicit-gap visibility, including state-FIPS, ZIP-prefix, and gap-type filters. Annual Census Nonemployer baselines appear separately from record-level profiles and are never allocated to ZIPs. The panel is deliberately source-preserving: it does not claim a complete or deduplicated census of U.S. businesses. See [the national coverage-view contract](docs/NATIONAL-BUSINESS-COVERAGE-VIEWS.md).
 
 ## Data locations
 
@@ -52,6 +52,7 @@ All local files remain inside the `datahub` repository:
 - `data/geography/` — versioned national, state, county, and Census ZCTA polygons
 - `data/zcta-jurisdiction-crosswalk/` — governed ZCTA-to-county/state polygon-area overlays
 - `data/business-coverage-views/` — governed national, state, county, ZIP, source, and coverage-gap views
+- `data/business-baselines/census-nonemployer/` — governed national, state, county, and industry aggregates for businesses with no paid employees
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

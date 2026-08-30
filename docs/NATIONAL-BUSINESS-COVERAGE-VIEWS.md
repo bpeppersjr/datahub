@@ -18,8 +18,9 @@ It consumes the current immutable releases for:
 - the national business registry;
 - Census state, county, and ZCTA geography;
 - the Census ZCTA-to-jurisdiction polygon overlay;
-- national business entity resolution; and
-- the independent entity-resolution benchmark packet.
+- national business entity resolution;
+- the independent entity-resolution benchmark packet; and
+- the Census Nonemployer Statistics annual aggregate baseline.
 
 Every dependency release ID and manifest SHA-256 digest is pinned in the output manifest. Generated releases remain under `data/business-coverage-views` and are ignored by Git; the tracked dataset catalog records the verified live release identity and metrics.
 
@@ -52,11 +53,11 @@ The registry-union row preserves the registry manifest totals. Census-scope rows
 
 ### State
 
-All 56 state equivalents appear, including zero-evidence rows. Counts distinguish profiles assigned by their source-reported address state from profiles whose coordinates fall within a county in that state. Conflicts remain counted and neither value overwrites the other.
+All 56 state equivalents appear, including zero-evidence rows. Counts distinguish profiles assigned by their source-reported address state from profiles whose coordinates fall within a county in that state. Conflicts remain counted and neither value overwrites the other. The 51 states/D.C. in the Census Nonemployer source receive their published annual no-paid-employee baseline; the five territory rows remain visible with an explicit out-of-source-scope status.
 
 ### County
 
-All 3,235 county equivalents appear. A county profile count includes only a source-preserving registry location profile with one valid point falling in that generalized Census county polygon. Profiles without points, points outside every county polygon, and boundary points matching multiple counties remain unallocated and visible as gaps.
+All 3,235 county equivalents appear. A county profile count includes only a source-preserving registry location profile with one valid point falling in that generalized Census county polygon. Profiles without points, points outside every county polygon, and boundary points matching multiple counties remain unallocated and visible as gaps. Census publishes 2023 Nonemployer totals for 3,143 county rows; the other 92 county equivalents remain explicit null-baseline gaps.
 
 ZIP totals are never distributed to counties with ZCTA polygon-area weights. `zip_business_count_allocation` is therefore always `null`.
 
@@ -66,15 +67,17 @@ Every row from the registry's 43,586-ZIP union is retained with source counts, s
 
 Every ZIP row carries `complete_all_businesses: false` and `entity_resolution_applied: false`.
 
+Census Nonemployer Statistics has no ZIP-level geography. Every ZIP view therefore carries `nonemployer_baseline_allocation: null` and a declared no-allocation gap; national, state, or county Nonemployer totals are never area-weighted or otherwise distributed to ZIPs/ZCTAs.
+
 ### Source and gaps
 
-Source rows reconcile ZIP-level contribution counts with profile geography coverage, observation ranges, missing coordinates, unmatched points, ambiguous boundaries, and state conflicts.
+Record-level source rows reconcile ZIP contribution counts with profile geography coverage, observation ranges, missing coordinates, unmatched points, ambiguous boundaries, and state conflicts. The separate Census Nonemployer source row reports only its annual aggregate national/state/county coverage and explicitly records that ZIP allocation is unavailable.
 
 Gap rows are first-class data. They include global blockers, inherited registry limitations, per-source coordinate gaps, ZIPs without record-level contributions, ZIPs without ZCTAs or employer baselines, ZCTA overlay diagnostics, and county equivalents without ZCTA intersections.
 
 ## Management page and read-only API
 
-The Co*Tive Collector management page exposes the current verified release in the **U.S. business coverage** panel. Operators can search and page through states, counties, ZIPs, source summaries, and coverage gaps without loading the 231 MB ZIP artifact into the browser. County filters accept a two-digit state FIPS code; ZIP search is a numeric prefix; gap rows can be narrowed to one declared gap type.
+The Co*Tive Collector management page exposes the current verified release in the **U.S. business coverage** panel. Operators can search and page through states, counties, ZIPs, source summaries, and coverage gaps without loading the large ZIP artifact into the browser. County filters accept a two-digit state FIPS code; ZIP search is a numeric prefix; gap rows can be narrowed to one declared gap type. State, county, and source views show the Nonemployer baseline separately from source-preserving profiles.
 
 The runner serves the same local-only, read-only view at:
 
@@ -97,12 +100,14 @@ The machine-readable contracts are [`config/datasets/national-business-coverage-
 
 ## Current verified release
 
-Release `national-business-coverage-views-20260830-224156693Z-66a2f2ff` publishes seven independently checksummed artifacts totaling 231,412,674 bytes. It contains three national scopes, all 56 state equivalents, all 3,235 county equivalents, all 43,586 registry ZIP rows, eight source views, and 18,753 explicit gap rows.
+Release `national-business-coverage-views-20260830-230901771Z-d285346e` publishes seven independently checksummed artifacts totaling 248,126,277 bytes. It contains three national scopes, all 56 state equivalents, all 3,235 county equivalents, all 43,586 registry ZIP rows, nine source views, and 18,852 explicit gap rows.
 
 The publisher assessed all 6,161,280 source-preserving location profiles. Source-reported address states match a supported Census state equivalent for 6,161,013 profiles; 267 remain missing or unsupported. Exactly 336,600 profiles carry valid points, 336,573 have one county assignment, 20 fall outside every generalized county polygon, and seven sit on ambiguous county boundaries. Eleven profiles have a conflict between their reported state and coordinate-derived county state; both observations remain visible.
 
 County point coverage currently comes from SNAP, FDIC, and FSIS profile layers. The current registry match-profile layer carries no point for NPPES, ECHO, FMCSA, or NCUA, so their 5,824,678 point-missing profiles are not silently placed in counties. ECHO retains source-reported coordinates and precision metadata in its own governed assertion layer, but those assertions are not generalized into premise-level match-profile points.
 
 Of the ZIP rows, 43,310 have record-level source contributions and 276 are denominator-only. The ZIP/ZCTA join reconciles exactly to all 33,791 crosswalk ZCTAs, leaving 9,795 ZIP rows without a ZCTA polygon. Census ZBP publishes an employer baseline for 34,954 ZIP rows; 8,632 retain an explicit unpublished or missing-baseline gap. The authoritative current USPS ZIP denominator remains unavailable, so no percentage over “all valid ZIP Codes” is published.
+
+The release also pins the verified 2023 Census Nonemployer baseline. It exposes 30,427,808 annual no-paid-employee establishments at the national/51-state-and-D.C. scope and 30,427,807 across 3,143 published county totals. One establishment remains unallocated to county, five state equivalents and 92 county equivalents remain outside the source geography scope, and no Nonemployer value is assigned to a ZIP.
 
 The release remains local aggregate, partial, and non-deduplicated. Its identity gate records zero benchmark labels, entity resolution unapplied, and export authorization false.

@@ -15,6 +15,8 @@
     "representing source-specific status as universal current operating status",
     "publishing source-preserving profile counts as deduplicated business counts",
     "allocating ZIP business counts to counties with polygon-area weights",
+    "allocating Census Nonemployer Statistics to ZIPs or ZCTAs",
+    "representing annual Nonemployer aggregates as named businesses or current operating status",
     "forcing ambiguous boundary points into one county",
     "public export before every dependency policy and entity-resolution precision gate authorizes it"
   ],

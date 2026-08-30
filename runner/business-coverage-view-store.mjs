@@ -68,6 +68,7 @@ function stateApiRow(row) {
     material_intersecting_zcta_count: row.zcta_coverage.material_intersecting_zcta_count,
     zctas_with_record_level_source_contribution: row.zcta_coverage.zctas_with_record_level_source_contribution,
     zctas_denominator_only_no_record_level_contribution: row.zcta_coverage.zctas_denominator_only_no_record_level_contribution,
+    nonemployer_baseline: row.nonemployer_baseline,
   };
 }
 
@@ -83,6 +84,7 @@ function countyApiRow(row) {
     material_intersecting_zcta_count: row.zcta_coverage.material_intersecting_zcta_count,
     zctas_with_record_level_source_contribution: row.zcta_coverage.zctas_with_record_level_source_contribution,
     zctas_denominator_only_no_record_level_contribution: row.zcta_coverage.zctas_denominator_only_no_record_level_contribution,
+    nonemployer_baseline: row.nonemployer_baseline,
   };
 }
 
@@ -91,6 +93,7 @@ function sourceApiRow(row) {
     view_id: row.view_id,
     source_key: row.source_key,
     profile_source_id: row.profile_source_id,
+    source_kind: row.source_kind ?? "record-level-evidence",
     release_metadata: row.release_metadata,
     zip_level_counts: row.zip_level_counts,
     zip_rows_with_contribution: row.zip_rows_with_contribution,
@@ -103,6 +106,7 @@ function sourceApiRow(row) {
     coordinate_ambiguous_boundary_count: row.location_profile_geography.coordinate_ambiguous_boundary_count,
     earliest_observed_at: row.location_profile_geography.earliest_observed_at,
     latest_observed_at: row.location_profile_geography.latest_observed_at,
+    aggregate_baseline: row.aggregate_baseline ?? null,
   };
 }
 

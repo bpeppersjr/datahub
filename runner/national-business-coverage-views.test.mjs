@@ -259,6 +259,86 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     coverage: { submitted_labels: 0, benchmark_gate_passed: false },
   });
 
+  const nonemployerRoot = path.join(root, "nonemployer");
+  const nonemployerReleaseId = "nonemployer-fixture";
+  const nonemployerRelease = path.join(nonemployerRoot, "releases", nonemployerReleaseId);
+  const nonemployerTotals = [
+    {
+      schema_version: "1.0.0",
+      geography_type: "national",
+      geoid: "US",
+      state_fips: null,
+      county_fips: null,
+      geography_name: "United States",
+      reference_year: 2023,
+      observation_period: { from: "2023-01-01", to: "2023-12-31" },
+      status: "published-annual-aggregate",
+      universe: "businesses-with-no-paid-employees-subject-to-federal-income-tax-and-meeting-source-receipts-threshold",
+      nonemployer_establishments: 5,
+      receipts_thousands_usd: 100,
+      receipts_flag: null,
+      receipts_noise_range_thousands_usd: 0,
+      receipts_noise_range_flag: "G",
+      provenance: { policy_id: "us-census-nonemployer" },
+    },
+    {
+      schema_version: "1.0.0",
+      geography_type: "state",
+      geoid: "01",
+      state_fips: "01",
+      county_fips: null,
+      geography_name: "Fixture State",
+      reference_year: 2023,
+      observation_period: { from: "2023-01-01", to: "2023-12-31" },
+      status: "published-annual-aggregate",
+      universe: "businesses-with-no-paid-employees-subject-to-federal-income-tax-and-meeting-source-receipts-threshold",
+      nonemployer_establishments: 5,
+      receipts_thousands_usd: 100,
+      receipts_flag: null,
+      receipts_noise_range_thousands_usd: 0,
+      receipts_noise_range_flag: "G",
+      provenance: { policy_id: "us-census-nonemployer" },
+    },
+    {
+      schema_version: "1.0.0",
+      geography_type: "county",
+      geoid: "01001",
+      state_fips: "01",
+      county_fips: "001",
+      geography_name: "Fixture County",
+      reference_year: 2023,
+      observation_period: { from: "2023-01-01", to: "2023-12-31" },
+      status: "published-annual-aggregate",
+      universe: "businesses-with-no-paid-employees-subject-to-federal-income-tax-and-meeting-source-receipts-threshold",
+      nonemployer_establishments: 4,
+      receipts_thousands_usd: 80,
+      receipts_flag: null,
+      receipts_noise_range_thousands_usd: 0,
+      receipts_noise_range_flag: "G",
+      provenance: { policy_id: "us-census-nonemployer" },
+    },
+  ];
+  const nonemployerArtifact = await writeArtifact(
+    nonemployerRelease,
+    "derived/geography-totals.jsonl",
+    jsonLines(nonemployerTotals),
+    { artifact_type: "nonemployer-geography-totals-jsonl", record_count: nonemployerTotals.length },
+  );
+  const nonemployer = await publishFixture(nonemployerRoot, "census-nonemployer-baseline", nonemployerReleaseId, {
+    status: "published-annual-aggregate",
+    complete_source_release: true,
+    reference_year: 2023,
+    geography_scope: "50-states-and-district-of-columbia",
+    coverage: {
+      state_totals: 1,
+      county_totals: 1,
+      national_nonemployer_establishments: 5,
+      county_nonemployer_establishments: 4,
+      nonemployer_establishments_not_allocated_to_county: 1,
+    },
+    artifacts: [nonemployerArtifact],
+  });
+
   const outputRoot = path.join(root, "coverage-views");
   const result = await buildNationalBusinessCoverageViews({
     registryPointerPath: registry.pointerPath,
@@ -266,6 +346,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     crosswalkPointerPath: crosswalk.pointerPath,
     resolutionPointerPath: resolution.pointerPath,
     benchmarkPointerPath: benchmark.pointerPath,
+    nonemployerPointerPath: nonemployer.pointerPath,
     outputRoot,
     now: () => new Date("2026-08-30T12:00:00.000Z"),
     logger: () => {},
@@ -275,15 +356,18 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 1);
+  assert.equal(verification.coverage.source_views, 2);
   assert.equal(verification.coverage.location_profiles_assessed, 2);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(states[0].registry_evidence.reported_address_profile_count, 2);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
+  assert.equal(states[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(counties[0].registry_evidence.coordinate_assigned_profile_count, 1);
   assert.equal(counties[0].zip_business_count_allocation, null);
+  assert.equal(counties[0].nonemployer_baseline.nonemployer_establishments, 4);
+  assert.equal(verification.coverage.national_nonemployer_establishments, 5);
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
 });

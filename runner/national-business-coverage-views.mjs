@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.0.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.1.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -256,14 +256,69 @@ function sourceContributionSummary(zipRows) {
   return summaries;
 }
 
-function createLineage(registry, geography, crosswalk, resolution, benchmark) {
+function createLineage(registry, geography, crosswalk, resolution, benchmark, nonemployer) {
   return {
     registry_release_id: registry.manifest.release_id,
     geography_release_id: geography.manifest.release_id,
     zcta_jurisdiction_crosswalk_release_id: crosswalk.manifest.release_id,
     entity_resolution_release_id: resolution.manifest.release_id,
     entity_resolution_benchmark_release_id: benchmark.manifest.release_id,
+    census_nonemployer_release_id: nonemployer.manifest.release_id,
     transformation_version: COVERAGE_VIEWS_TRANSFORMATION_VERSION,
+  };
+}
+
+function baselineForGeography(row, nonemployer, expectedInScope) {
+  if (row) {
+    return {
+      status: row.status,
+      reference_year: row.reference_year,
+      observation_period: row.observation_period,
+      universe: row.universe,
+      nonemployer_establishments: row.nonemployer_establishments,
+      receipts_thousands_usd: row.receipts_thousands_usd,
+      receipts_flag: row.receipts_flag,
+      receipts_noise_range_thousands_usd: row.receipts_noise_range_thousands_usd,
+      receipts_noise_range_flag: row.receipts_noise_range_flag,
+      source_release_id: nonemployer.manifest.release_id,
+      provenance: row.provenance,
+      current_named_business_status: false,
+    };
+  }
+  return {
+    status: expectedInScope ? "not-published-for-geography" : "outside-source-geography-scope",
+    reference_year: nonemployer.manifest.reference_year,
+    observation_period: { from: `${nonemployer.manifest.reference_year}-01-01`, to: `${nonemployer.manifest.reference_year}-12-31` },
+    universe: "businesses-with-no-paid-employees-subject-to-federal-income-tax-and-meeting-source-receipts-threshold",
+    nonemployer_establishments: null,
+    receipts_thousands_usd: null,
+    receipts_flag: null,
+    receipts_noise_range_thousands_usd: null,
+    receipts_noise_range_flag: null,
+    source_release_id: nonemployer.manifest.release_id,
+    provenance: null,
+    current_named_business_status: false,
+  };
+}
+
+function nonemployerBaselineForScope(selectedStates, nonemployer) {
+  const published = selectedStates.filter((state) => state.nonemployer_baseline.status === "published-annual-aggregate");
+  const missing = selectedStates.filter((state) => state.nonemployer_baseline.status !== "published-annual-aggregate");
+  return {
+    status: missing.length === 0 ? "published-complete-for-selected-state-scope" : "published-partial-for-selected-state-scope",
+    reference_year: nonemployer.manifest.reference_year,
+    source_release_id: nonemployer.manifest.release_id,
+    source_geography_scope: nonemployer.manifest.geography_scope,
+    selected_state_equivalent_count: selectedStates.length,
+    published_state_equivalent_count: published.length,
+    missing_state_equivalent_count: missing.length,
+    missing_state_fips: missing.map((state) => state.state_fips),
+    published_nonemployer_establishments: published.reduce(
+      (sum, state) => sum + (state.nonemployer_baseline.nonemployer_establishments ?? 0),
+      0,
+    ),
+    universe: "businesses-with-no-paid-employees-subject-to-federal-income-tax-and-meeting-source-receipts-threshold",
+    current_named_business_status: false,
   };
 }
 
@@ -299,7 +354,7 @@ function hasPublishedEmployerBaseline(row) {
     && Number.isFinite(row.employer_baseline.establishments);
 }
 
-function buildGapRecords({ zipViews, zctaSummaries, countyViews, profileSummary, registry, resolution, benchmark, lineage }) {
+function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, profileSummary, registry, resolution, benchmark, nonemployer, lineage }) {
   const gaps = [];
   const add = (gap) => gaps.push({
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
@@ -360,6 +415,59 @@ function buildGapRecords({ zipViews, zctaSummaries, countyViews, profileSummary,
       benchmark_gate_passed: benchmark.manifest.coverage?.benchmark_gate_passed ?? false,
     },
     consequence: "All site and establishment counts remain source-preserving provisional counts; resolution aliases are not applied.",
+  });
+  add({
+    gap_id: "gap:nonemployer-zip-allocation",
+    gap_type: "nonemployer-baseline-unavailable-at-zip",
+    scope_type: "national",
+    scope_id: "registry-union",
+    severity: "baseline-geography",
+    evidence: {
+      source_release_id: nonemployer.manifest.release_id,
+      reference_year: nonemployer.manifest.reference_year,
+      smallest_published_geography: "county",
+    },
+    consequence: "Census Nonemployer Statistics publishes no ZIP-level counts; national, state, and county totals are never allocated to ZIPs or ZCTAs.",
+  });
+  for (const state of stateViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate")) add({
+    gap_id: `gap:state-no-nonemployer-baseline:${state.state_fips}`,
+    gap_type: "state-equivalent-without-census-nonemployer-baseline",
+    scope_type: "state",
+    scope_id: state.state_fips,
+    severity: "baseline-geography",
+    evidence: {
+      state_name: state.state_name,
+      baseline_status: state.nonemployer_baseline.status,
+      source_geography_scope: nonemployer.manifest.geography_scope,
+    },
+    consequence: "The state-equivalent view remains visible with a null Nonemployer baseline because it is outside or absent from the source geography scope.",
+  });
+  for (const county of countyViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate")) add({
+    gap_id: `gap:county-no-nonemployer-baseline:${county.county_geoid}`,
+    gap_type: "county-equivalent-without-census-nonemployer-baseline",
+    scope_type: "county",
+    scope_id: county.county_geoid,
+    severity: "baseline-geography",
+    evidence: {
+      county_name: county.county_name,
+      state_fips: county.state_fips,
+      baseline_status: county.nonemployer_baseline.status,
+      source_geography_scope: nonemployer.manifest.geography_scope,
+    },
+    consequence: "The county-equivalent view remains visible with a null Nonemployer baseline because it is outside or absent from the source geography scope.",
+  });
+  if (nonemployer.manifest.coverage.nonemployer_establishments_not_allocated_to_county > 0) add({
+    gap_id: "gap:nonemployer-not-allocated-to-county",
+    gap_type: "nonemployer-establishments-not-allocated-to-county",
+    scope_type: "national",
+    scope_id: "50-states-and-dc",
+    severity: "source-reconciliation",
+    evidence: {
+      national_nonemployer_establishments: nonemployer.manifest.coverage.national_nonemployer_establishments,
+      county_nonemployer_establishments: nonemployer.manifest.coverage.county_nonemployer_establishments,
+      difference: nonemployer.manifest.coverage.nonemployer_establishments_not_allocated_to_county,
+    },
+    consequence: "The source national total exceeds the sum of published county totals; the difference remains unallocated rather than being forced into a county.",
   });
   (registry.manifest.limitations ?? []).forEach((limitation, index) => add({
     gap_id: `gap:registry-limitation:${String(index + 1).padStart(3, "0")}`,
@@ -469,19 +577,21 @@ export async function buildNationalBusinessCoverageViews({
   crosswalkPointerPath,
   resolutionPointerPath,
   benchmarkPointerPath,
+  nonemployerPointerPath,
   outputRoot,
   now = () => new Date(),
   logger = console.log,
 } = {}) {
-  for (const [name, value] of Object.entries({ registryPointerPath, geographyPointerPath, crosswalkPointerPath, resolutionPointerPath, benchmarkPointerPath, outputRoot })) {
+  for (const [name, value] of Object.entries({ registryPointerPath, geographyPointerPath, crosswalkPointerPath, resolutionPointerPath, benchmarkPointerPath, nonemployerPointerPath, outputRoot })) {
     if (!value) throw new Error(`${name} is required.`);
   }
-  const [registry, geography, crosswalk, resolution, benchmark] = await Promise.all([
+  const [registry, geography, crosswalk, resolution, benchmark, nonemployer] = await Promise.all([
     resolveDataset(registryPointerPath, "national-business-registry"),
     resolveDataset(geographyPointerPath, "us-census-geography"),
     resolveDataset(crosswalkPointerPath, "us-census-zcta-jurisdiction-crosswalk"),
     resolveDataset(resolutionPointerPath, "national-business-entity-resolution"),
     resolveDataset(benchmarkPointerPath, "national-business-entity-resolution-benchmark"),
+    resolveDataset(nonemployerPointerPath, "census-nonemployer-baseline"),
   ]);
   if (!geography.manifest.complete_national_release || !crosswalk.manifest.complete_national_release) {
     throw new Error("Complete national geography and ZCTA crosswalk releases are required.");
@@ -495,6 +605,21 @@ export async function buildNationalBusinessCoverageViews({
   if (benchmark.manifest.dependencies?.resolution?.release_id !== resolution.manifest.release_id
       || benchmark.manifest.dependencies?.registry?.release_id !== registry.manifest.release_id) {
     throw new Error("Benchmark dependencies do not match the selected resolution and registry releases.");
+  }
+  if (nonemployer.manifest.status !== "published-annual-aggregate" || nonemployer.manifest.complete_source_release !== true) {
+    throw new Error("A complete published Census Nonemployer baseline is required.");
+  }
+
+  const nonemployerTotalsArtifact = artifactByType(nonemployer, "nonemployer-geography-totals-jsonl");
+  const nonemployerTotals = await readJsonLines(artifactPath(nonemployer, nonemployerTotalsArtifact));
+  const nonemployerNationalTotals = nonemployerTotals.filter((row) => row.geography_type === "national");
+  if (nonemployerNationalTotals.length !== 1) throw new Error("Census Nonemployer baseline must contain one national total.");
+  const nonemployerNationalTotal = nonemployerNationalTotals[0];
+  const nonemployerStateByFips = new Map(nonemployerTotals.filter((row) => row.geography_type === "state").map((row) => [row.geoid, row]));
+  const nonemployerCountyByGeoid = new Map(nonemployerTotals.filter((row) => row.geography_type === "county").map((row) => [row.geoid, row]));
+  if (nonemployerStateByFips.size !== nonemployer.manifest.coverage.state_totals
+      || nonemployerCountyByGeoid.size !== nonemployer.manifest.coverage.county_totals) {
+    throw new Error("Census Nonemployer geography totals do not reconcile to its manifest.");
   }
 
   const stateIndexArtifact = (geography.manifest.artifacts ?? []).find((artifact) => artifact.path === "derived/index/states.jsonl");
@@ -542,6 +667,7 @@ export async function buildNationalBusinessCoverageViews({
   const zipByCode = new Map(registryZipRows.map((row) => [row.zip_code, row]));
   const sourceContributionSummaries = sourceContributionSummary(registryZipRows);
   const stateByAbbreviation = new Map(stateIndexRecords.map((record) => [record.postal_abbreviation, record]));
+  const stateIndexByFips = new Map(stateIndexRecords.map((record) => [record.geoid, record]));
   const stateStats = new Map(stateIndexRecords.map((record) => [record.geoid, {
     ...emptyProfileStats(),
     coordinate_source_counts: {},
@@ -624,7 +750,7 @@ export async function buildNationalBusinessCoverageViews({
     ...stats,
     source_counts: undefined,
   })).sort((left, right) => left.source_id.localeCompare(right.source_id));
-  const lineage = createLineage(registry, geography, crosswalk, resolution, benchmark);
+  const lineage = createLineage(registry, geography, crosswalk, resolution, benchmark, nonemployer);
   const identitySemantics = {
     entity_resolution_applied: false,
     count_semantics: "source-preserving-provisional-location-profiles-not-deduplicated-businesses",
@@ -669,6 +795,11 @@ export async function buildNationalBusinessCoverageViews({
       },
       employer_baseline_allocation: null,
       employer_baseline_gap: "ZIP-level Census ZBP counts are not allocated to states with polygon-area weights.",
+      nonemployer_baseline: baselineForGeography(
+        nonemployerStateByFips.get(state.geoid),
+        nonemployer,
+        state.is_50_states_or_dc,
+      ),
       identity_semantics: identitySemantics,
       complete_all_businesses: false,
       lineage,
@@ -708,6 +839,11 @@ export async function buildNationalBusinessCoverageViews({
       },
       zip_business_count_allocation: null,
       zip_business_count_allocation_gap: "Polygon-area weights are not business-location weights; ZIP totals are not allocated to counties.",
+      nonemployer_baseline: baselineForGeography(
+        nonemployerCountyByGeoid.get(county.geoid),
+        nonemployer,
+        stateIndexByFips.get(county.state_fips)?.is_50_states_or_dc === true,
+      ),
       identity_semantics: identitySemantics,
       complete_all_businesses: false,
       lineage,
@@ -717,7 +853,7 @@ export async function buildNationalBusinessCoverageViews({
   const zipViews = registryZipRows.map((row) => {
     const zcta = row.geography?.geoid ?? null;
     const relationships = zcta ? relationshipsByZcta.get(zcta) ?? [] : [];
-    const gapCodes = ["authoritative-current-usps-validity-unverified", "incomplete-business-universe", "entity-resolution-not-applied"];
+    const gapCodes = ["authoritative-current-usps-validity-unverified", "incomplete-business-universe", "entity-resolution-not-applied", "no-census-nonemployer-zip-allocation"];
     if (row.registry_coverage.status !== "record-level-source-contribution") gapCodes.push("no-record-level-source-contribution");
     if (!zcta) gapCodes.push("no-2020-zcta-polygon");
     if (!hasPublishedEmployerBaseline(row)) gapCodes.push("no-published-census-zbp-employer-baseline");
@@ -731,6 +867,8 @@ export async function buildNationalBusinessCoverageViews({
       current_usps_validity: row.current_usps_validity,
       geography: row.geography,
       employer_baseline: row.employer_baseline,
+      nonemployer_baseline_allocation: null,
+      nonemployer_baseline_allocation_gap: "Census Nonemployer Statistics has no ZIP-level published geography.",
       baseline_coverage_status: row.baseline_coverage_status,
       jurisdiction_overlay: {
         status: zcta ? zctaSummaryByCode.get(zcta)?.overlay_status ?? "missing-crosswalk-summary" : "not-applicable-no-zcta",
@@ -777,9 +915,38 @@ export async function buildNationalBusinessCoverageViews({
         latest_observed_at: profiles.latest_observed_at,
       },
       complete_source_for_all_businesses: false,
+      source_kind: "record-level-evidence",
       lineage,
     };
-  }).sort((left, right) => left.source_key.localeCompare(right.source_key));
+  });
+  sourceViews.push({
+    schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
+    view_type: "source",
+    view_id: "source:census_nonemployer_statistics",
+    source_key: "census_nonemployer_statistics",
+    profile_source_id: null,
+    source_kind: "aggregate-baseline",
+    release_metadata: {
+      source_release_id: nonemployer.manifest.release_id,
+      reference_year: nonemployer.manifest.reference_year,
+      geography_scope: nonemployer.manifest.geography_scope,
+    },
+    zip_level_counts: {},
+    zip_rows_with_contribution: 0,
+    location_profile_geography: emptyProfileStats(),
+    aggregate_baseline: {
+      national_nonemployer_establishments: nonemployer.manifest.coverage.national_nonemployer_establishments,
+      state_totals: nonemployer.manifest.coverage.state_totals,
+      county_totals: nonemployer.manifest.coverage.county_totals,
+      county_nonemployer_establishments: nonemployer.manifest.coverage.county_nonemployer_establishments,
+      establishments_not_allocated_to_county: nonemployer.manifest.coverage.nonemployer_establishments_not_allocated_to_county,
+      zip_allocation_available: false,
+      current_named_business_status: false,
+    },
+    complete_source_for_all_businesses: false,
+    lineage,
+  });
+  sourceViews.sort((left, right) => left.source_key.localeCompare(right.source_key));
 
   const allStateFips = new Set(stateViews.map((state) => state.state_fips));
   const statesDcFips = new Set(stateViews.filter((state) => state.is_50_states_or_dc).map((state) => state.state_fips));
@@ -808,6 +975,7 @@ export async function buildNationalBusinessCoverageViews({
         conflict_endpoint_semantics: "one endpoint for each reported or coordinate-derived state in scope; see registry-union profile summary for national incident count",
       },
       zcta_coverage: zctaCoverageForSet(selectedZctas, zipByCode, zctaSummaryByCode),
+      nonemployer_baseline: nonemployerBaselineForScope(selectedStates, nonemployer),
       identity_semantics: identitySemantics,
       complete_all_businesses: false,
       lineage,
@@ -830,6 +998,11 @@ export async function buildNationalBusinessCoverageViews({
         rows_without_zcta_polygon: zipViews.filter((row) => !hasZctaGeography(row)).length,
         authoritative_current_usps_zip_denominator: registry.manifest.coverage.authoritative_current_usps_zip_denominator,
       },
+      nonemployer_baseline: {
+        ...nonemployerBaselineForScope(stateViews, nonemployer),
+        national_source_total: nonemployerNationalTotal.nonemployer_establishments,
+        source_national_geography: nonemployerNationalTotal.geography_name,
+      },
       identity_semantics: identitySemantics,
       complete_all_businesses: false,
       lineage,
@@ -841,11 +1014,13 @@ export async function buildNationalBusinessCoverageViews({
   const gapViews = buildGapRecords({
     zipViews,
     zctaSummaries,
+    stateViews,
     countyViews,
     profileSummary,
     registry,
     resolution,
     benchmark,
+    nonemployer,
     lineage,
   });
   const zipViewsWithZcta = zipViews.filter(hasZctaGeography).length;
@@ -875,7 +1050,7 @@ export async function buildNationalBusinessCoverageViews({
     json(profileSummary),
     { artifact_type: "profile-geography-summary-json", record_count: 1 },
   ));
-  const dependencies = [registry, geography, crosswalk, resolution, benchmark].map((dataset) => ({
+  const dependencies = [registry, geography, crosswalk, resolution, benchmark, nonemployer].map((dataset) => ({
     dataset_id: dataset.manifest.dataset_id,
     release_id: dataset.manifest.release_id,
     manifest_sha256: dataset.manifestSha256,
@@ -883,7 +1058,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.0.0" },
+    publisher: { id: "national-business-coverage-views", version: "1.1.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -911,11 +1086,20 @@ export async function buildNationalBusinessCoverageViews({
       zip_views_without_record_level_source_contribution: zipViews.filter((row) => row.registry_coverage.status !== "record-level-source-contribution").length,
       zip_views_with_published_employer_baseline: zipViews.filter(hasPublishedEmployerBaseline).length,
       zip_views_without_published_employer_baseline: zipViews.filter((row) => !hasPublishedEmployerBaseline(row)).length,
+      nonemployer_reference_year: nonemployer.manifest.reference_year,
+      national_nonemployer_establishments: nonemployer.manifest.coverage.national_nonemployer_establishments,
+      county_nonemployer_establishments: nonemployer.manifest.coverage.county_nonemployer_establishments,
+      nonemployer_establishments_not_allocated_to_county: nonemployer.manifest.coverage.nonemployer_establishments_not_allocated_to_county,
+      state_views_with_published_nonemployer_baseline: stateViews.filter((row) => row.nonemployer_baseline.status === "published-annual-aggregate").length,
+      state_views_without_published_nonemployer_baseline: stateViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
+      county_views_with_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status === "published-annual-aggregate").length,
+      county_views_without_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
       county: "source-preserving profiles with one valid point assigned to a generalized Census county polygon",
       zcta_relationships: "polygon-area-only-not-business-location",
+      nonemployer: "annual Census aggregate baseline for businesses with no paid employees; not named records, not current status, and never allocated to ZIPs",
       absence: "no integrated source evidence is not evidence of no active business",
     },
     limitations: [
@@ -925,6 +1109,8 @@ export async function buildNationalBusinessCoverageViews({
       "Source-specific active, authorized, registered, current, or filing evidence is not generalized into one universal operating-status claim.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
+      "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",
+      "Census Nonemployer Statistics has no ZIP-level geography; national, state, and county totals are never allocated to ZIPs or ZCTAs.",
     ],
     artifacts: artifacts.sort((left, right) => left.path.localeCompare(right.path)),
   };
@@ -999,14 +1185,29 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const coverage = manifest.coverage;
   const nationalCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("national-coverage-view-jsonl").path), (row) => {
     if (row.complete_all_businesses !== false || row.identity_semantics?.entity_resolution_applied !== false) throw new Error(`${row.view_id} has invalid completeness semantics.`);
+    if (!row.nonemployer_baseline || row.nonemployer_baseline.current_named_business_status !== false) throw new Error(`${row.view_id} has invalid Nonemployer baseline semantics.`);
   });
+  let stateNonemployerEstablishments = 0;
+  let stateViewsWithNonemployerBaseline = 0;
   const stateCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("state-coverage-view-jsonl").path), (row) => {
     if (row.complete_all_businesses !== false || row.employer_baseline_allocation !== null) throw new Error(`${row.view_id} has unsupported state completeness/allocation.`);
+    if (!row.nonemployer_baseline || row.nonemployer_baseline.current_named_business_status !== false) throw new Error(`${row.view_id} has invalid Nonemployer semantics.`);
+    if (row.nonemployer_baseline.status === "published-annual-aggregate") {
+      stateViewsWithNonemployerBaseline += 1;
+      stateNonemployerEstablishments += row.nonemployer_baseline.nonemployer_establishments;
+    }
   });
   let countyAssignedProfiles = 0;
+  let countyNonemployerEstablishments = 0;
+  let countyViewsWithNonemployerBaseline = 0;
   const countyCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("county-coverage-view-jsonl").path), (row) => {
     if (row.complete_all_businesses !== false || row.zip_business_count_allocation !== null) throw new Error(`${row.view_id} has unsupported county completeness/allocation.`);
     countyAssignedProfiles += row.registry_evidence.coordinate_assigned_profile_count;
+    if (!row.nonemployer_baseline || row.nonemployer_baseline.current_named_business_status !== false) throw new Error(`${row.view_id} has invalid Nonemployer semantics.`);
+    if (row.nonemployer_baseline.status === "published-annual-aggregate") {
+      countyViewsWithNonemployerBaseline += 1;
+      countyNonemployerEstablishments += row.nonemployer_baseline.nonemployer_establishments;
+    }
   });
   let zipPhysicalSites = 0;
   let zipRowsWithZcta = 0;
@@ -1014,6 +1215,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   let zipRowsWithPublishedEmployerBaseline = 0;
   const zipCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("zip-coverage-view-jsonl").path), (row) => {
     if (row.complete_all_businesses !== false || row.registry_coverage.complete_all_businesses !== false) throw new Error(`${row.view_id} has invalid ZIP completeness semantics.`);
+    if (row.nonemployer_baseline_allocation !== null || !row.coverage_gap_codes.includes("no-census-nonemployer-zip-allocation")) throw new Error(`${row.view_id} has unsupported Nonemployer ZIP allocation.`);
     zipPhysicalSites += row.registry_coverage.physical_site_count;
     if (hasZctaGeography(row)) zipRowsWithZcta += 1;
     if (row.registry_coverage.status === "record-level-source-contribution") zipRowsWithRecordContribution += 1;
@@ -1021,9 +1223,18 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   });
   let sourceProfileTotal = 0;
   let sourceCoordinateAssignedTotal = 0;
+  let nonemployerSourceViews = 0;
   const sourceCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("source-coverage-view-jsonl").path), (row) => {
     sourceProfileTotal += row.location_profile_geography.profile_count;
     sourceCoordinateAssignedTotal += row.location_profile_geography.coordinate_assigned_single_count;
+    if (row.source_kind === "aggregate-baseline") {
+      nonemployerSourceViews += 1;
+      if (row.source_key !== "census_nonemployer_statistics"
+          || row.aggregate_baseline?.national_nonemployer_establishments !== coverage.national_nonemployer_establishments
+          || row.aggregate_baseline?.zip_allocation_available !== false) {
+        throw new Error("Census Nonemployer source view does not reconcile to the manifest.");
+      }
+    }
   });
   const gapCountsByType = {};
   const gapCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("coverage-gap-view-jsonl").path), (row) => {
@@ -1051,6 +1262,19 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   if (sourceCoordinateAssignedTotal !== profileSummary.coordinate_assigned_single_count) throw new Error("Source-view coordinate counts do not reconcile to the profile summary.");
   const registryDependency = manifest.dependencies.find((dependency) => dependency.dataset_id === "national-business-registry");
   if (!registryDependency) throw new Error("Registry dependency is missing.");
+  const nonemployerDependency = manifest.dependencies.find((dependency) => dependency.dataset_id === "census-nonemployer-baseline");
+  if (!nonemployerDependency) throw new Error("Census Nonemployer dependency is missing.");
+  if (nonemployerSourceViews !== 1) throw new Error(`Expected one Census Nonemployer source view, found ${nonemployerSourceViews}.`);
+  if (stateViewsWithNonemployerBaseline !== coverage.state_views_with_published_nonemployer_baseline
+      || stateCount - stateViewsWithNonemployerBaseline !== coverage.state_views_without_published_nonemployer_baseline) {
+    throw new Error("State Nonemployer baseline coverage does not match the manifest.");
+  }
+  if (stateNonemployerEstablishments !== coverage.national_nonemployer_establishments) throw new Error("State Nonemployer establishments do not reconcile to national.");
+  if (countyViewsWithNonemployerBaseline !== coverage.county_views_with_published_nonemployer_baseline
+      || countyCount - countyViewsWithNonemployerBaseline !== coverage.county_views_without_published_nonemployer_baseline) {
+    throw new Error("County Nonemployer baseline coverage does not match the manifest.");
+  }
+  if (countyNonemployerEstablishments !== coverage.county_nonemployer_establishments) throw new Error("County Nonemployer establishments do not match the manifest.");
   if (zipPhysicalSites !== profileSummary.profile_count) throw new Error("ZIP physical-site totals do not reconcile to location profiles.");
   return {
     dataset_id: manifest.dataset_id,

@@ -37,6 +37,7 @@
         "zcta_jurisdiction_crosswalk_release_id",
         "entity_resolution_release_id",
         "entity_resolution_benchmark_release_id",
+        "census_nonemployer_release_id",
         "transformation_version"
       ],
       "properties": {
@@ -45,7 +46,8 @@
         "zcta_jurisdiction_crosswalk_release_id": { "type": "string", "minLength": 1 },
         "entity_resolution_release_id": { "type": "string", "minLength": 1 },
         "entity_resolution_benchmark_release_id": { "type": "string", "minLength": 1 },
-        "transformation_version": { "const": "national-business-coverage-views@1.0.0" }
+        "census_nonemployer_release_id": { "type": "string", "minLength": 1 },
+        "transformation_version": { "const": "national-business-coverage-views@1.1.0" }
       }
     }
   }

@@ -1,0 +1,42 @@
+{
+  "dataset_id": "census-nonemployer-baseline",
+  "schema_version": "1.0.0",
+  "title": "Census Nonemployer Statistics Baseline",
+  "status": "published-verified-annual-aggregate",
+  "description": "Annual national, state, county, and industry aggregate counts for businesses with no paid employees in the Census source universe.",
+  "producer_connector": "us-census-nonemployer",
+  "runtime_pointer": "data/business-baselines/census-nonemployer/current.json",
+  "publication_manifest": "The runtime pointer's manifest field resolves relative to data/business-baselines/census-nonemployer.",
+  "required_datasets": [],
+  "identifiers": ["state-fips", "county-geoid", "naics-2022"],
+  "normalized_artifacts": {
+    "geography_totals": "derived/geography-totals.jsonl",
+    "national_industry": "derived/industry/national.jsonl.gz",
+    "state_industry": "derived/industry/state.jsonl.gz",
+    "county_industry": "derived/industry/county.jsonl.gz"
+  },
+  "coverage_semantics": {
+    "published": "Census published an annual aggregate for the geography/reference year.",
+    "current_status": "Reference-year activity is not a current named-business operating-status assertion.",
+    "zip": "The source has no ZIP-level Nonemployer Statistics; no ZIP or ZCTA allocation is permitted.",
+    "territories": "The national/state/county source archive covers the 50 states and District of Columbia."
+  },
+  "current_verified_release": {
+    "release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+    "reference_year": 2023,
+    "source_rows_all_geographies": 1153323,
+    "normalized_national_industry_rows": 6412,
+    "normalized_state_industry_rows": 94825,
+    "normalized_county_industry_rows": 701010,
+    "national_totals": 1,
+    "state_totals": 51,
+    "county_totals": 3143,
+    "national_nonemployer_establishments": 30427808,
+    "county_nonemployer_establishments": 30427807,
+    "nonemployer_establishments_not_allocated_to_county": 1,
+    "verified_artifact_count": 5,
+    "verified_bytes": 51622242
+  },
+  "documentation": "docs/CENSUS-NONEMPLOYER-BASELINE.md",
+  "source_policy": "config/source-policies/us-census-nonemployer.json"
+}

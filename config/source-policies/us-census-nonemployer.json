@@ -1,0 +1,21 @@
+{
+  "policy_id": "us-census-nonemployer",
+  "version": "1.0.0",
+  "publisher": "United States Census Bureau",
+  "ownership": "United States federal government public aggregate data",
+  "source_home": "https://www.census.gov/programs-surveys/nonemployer-statistics/data/datasets.html",
+  "methodology_url": "https://www.census.gov/programs-surveys/nonemployer-statistics/technical-documentation/methodology.html",
+  "allowed_use": ["download", "local processing", "analysis", "derived aggregate datasets", "redistribution with provenance"],
+  "prohibited_use": [
+    "attempting to identify an individual business from protected aggregates",
+    "representing annual aggregate counts as a current named-business directory",
+    "allocating national, state, or county totals to ZIP codes without a published source relationship",
+    "converting suppressed, flagged, or unpublished values into unsupported values"
+  ],
+  "attribution": "Source: U.S. Census Bureau Nonemployer Statistics.",
+  "retention": "Indefinite for public aggregate source releases and derived artifacts unless an approved retention rule applies.",
+  "redistribution": "Allowed with publisher, reference year, source universe, disclosure limitations, transformation version, and provenance.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

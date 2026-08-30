@@ -18,6 +18,8 @@
     "coverage-views:verify": "node scripts/verify-national-business-coverage-views.mjs",
     "zbp:build": "node scripts/build-census-zbp.mjs",
     "zbp:verify": "node scripts/verify-census-zbp.mjs",
+    "nonemployer:build": "node scripts/build-census-nonemployer.mjs",
+    "nonemployer:verify": "node scripts/verify-census-nonemployer.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
     "usps-zips:build": "node scripts/build-usps-operational-zip-assignments.mjs",

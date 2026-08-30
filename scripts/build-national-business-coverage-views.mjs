@@ -17,6 +17,7 @@ Options:
   --crosswalk <path>   ZCTA jurisdiction pointer or manifest (default: data/zcta-jurisdiction-crosswalk/current.json)
   --resolution <path>  Entity-resolution pointer or manifest (default: data/business-entity-resolution/current.json)
   --benchmark <path>   Benchmark pointer or manifest (default: data/business-entity-resolution-benchmark/current.json)
+  --nonemployer <path> Census Nonemployer pointer or manifest (default: data/business-baselines/census-nonemployer/current.json)
   --output <path>      Output root (default: data/business-coverage-views)
   --help               Show this help
 `;
@@ -29,9 +30,10 @@ function parseArguments(args) {
     crosswalk: "data/zcta-jurisdiction-crosswalk/current.json",
     resolution: "data/business-entity-resolution/current.json",
     benchmark: "data/business-entity-resolution-benchmark/current.json",
+    nonemployer: "data/business-baselines/census-nonemployer/current.json",
     output: "data/business-coverage-views",
   };
-  const names = new Set(["--registry", "--geography", "--crosswalk", "--resolution", "--benchmark", "--output"]);
+  const names = new Set(["--registry", "--geography", "--crosswalk", "--resolution", "--benchmark", "--nonemployer", "--output"]);
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
@@ -57,6 +59,7 @@ try {
     crosswalkPointerPath: inside(options.crosswalk),
     resolutionPointerPath: inside(options.resolution),
     benchmarkPointerPath: inside(options.benchmark),
+    nonemployerPointerPath: inside(options.nonemployer),
     outputRoot: inside(options.output),
     logger: (message) => process.stdout.write(`${message}\n`),
   });

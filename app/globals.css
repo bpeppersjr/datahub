@@ -143,8 +143,8 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .coverage-table-row strong { overflow: hidden; color: #c8d0d7; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .coverage-table-row > div > span { overflow: hidden; margin-top: 4px; color: #58636d; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .coverage-table-row small { color: #4f5a64; }
-.coverage-table-row.state-row { grid-template-columns: minmax(180px,1.4fr) repeat(3,minmax(90px,.7fr)); }
-.coverage-table-row.county-row { grid-template-columns: minmax(220px,1.5fr) minmax(100px,.7fr) minmax(100px,.7fr); }
+.coverage-table-row.state-row { grid-template-columns: minmax(180px,1.4fr) repeat(4,minmax(82px,.65fr)); }
+.coverage-table-row.county-row { grid-template-columns: minmax(220px,1.5fr) repeat(3,minmax(92px,.65fr)); }
 .coverage-table-row.zip-row { grid-template-columns: minmax(190px,1.3fr) repeat(4,minmax(75px,.55fr)); }
 .coverage-table-row.source-row { grid-template-columns: minmax(240px,1.6fr) repeat(3,minmax(80px,.6fr)); }
 .coverage-table-row.gap-row { grid-template-columns: minmax(230px,1.1fr) minmax(100px,.45fr) minmax(280px,1.7fr); }

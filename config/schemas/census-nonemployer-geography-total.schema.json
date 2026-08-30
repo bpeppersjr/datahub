@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/census-nonemployer-geography-total.schema.json",
+  "title": "Census Nonemployer geography total",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "geography_type",
+    "geoid",
+    "state_fips",
+    "county_fips",
+    "source_geo_id",
+    "geography_name",
+    "reference_year",
+    "observation_period",
+    "status",
+    "universe",
+    "nonemployer_establishments",
+    "nonemployer_establishments_flag",
+    "receipts_thousands_usd",
+    "receipts_flag",
+    "receipts_noise_range_thousands_usd",
+    "receipts_noise_range_flag",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "geography_type": { "enum": ["national", "state", "county"] },
+    "geoid": { "type": "string", "pattern": "^(US|[0-9]{2}|[0-9]{5})$" },
+    "state_fips": { "type": ["string", "null"], "pattern": "^[0-9]{2}$" },
+    "county_fips": { "type": ["string", "null"], "pattern": "^[0-9]{3}$" },
+    "source_geo_id": { "type": ["string", "null"] },
+    "geography_name": { "type": ["string", "null"] },
+    "reference_year": { "type": "integer", "minimum": 1997, "maximum": 2100 },
+    "observation_period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": { "from": { "type": "string", "format": "date" }, "to": { "type": "string", "format": "date" } }
+    },
+    "status": { "const": "published-annual-aggregate" },
+    "universe": { "type": "string", "minLength": 1 },
+    "nonemployer_establishments": { "type": ["integer", "null"], "minimum": 0 },
+    "nonemployer_establishments_flag": { "type": ["string", "null"] },
+    "receipts_thousands_usd": { "type": ["integer", "null"], "minimum": 0 },
+    "receipts_flag": { "type": ["string", "null"] },
+    "receipts_noise_range_thousands_usd": { "type": ["integer", "null"], "minimum": 0 },
+    "receipts_noise_range_flag": { "type": ["string", "null"] },
+    "provenance": { "type": "object" }
+  }
+}

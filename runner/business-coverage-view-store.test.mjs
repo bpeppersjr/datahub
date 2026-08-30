@@ -36,6 +36,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     geography: { county_equivalent_count: 1 },
     registry_evidence: { reported_address_profile_count: 2, coordinate_assigned_profile_count: 1, reported_coordinate_state_conflict_count: 0 },
     zcta_coverage: { material_intersecting_zcta_count: 1, zctas_with_record_level_source_contribution: 1, zctas_denominator_only_no_record_level_contribution: 0 },
+    nonemployer_baseline: { status: "published-annual-aggregate", reference_year: 2023, nonemployer_establishments: 5 },
   }]);
   await artifact("county-coverage-view-jsonl", "counties", [{
     view_id: "county:01001",
@@ -44,6 +45,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     state_fips: "01",
     registry_evidence: { coordinate_assigned_profile_count: 1, earliest_observed_at: "2026-08-01T00:00:00.000Z", latest_observed_at: "2026-08-02T00:00:00.000Z" },
     zcta_coverage: { material_intersecting_zcta_count: 1, zctas_with_record_level_source_contribution: 1, zctas_denominator_only_no_record_level_contribution: 0 },
+    nonemployer_baseline: { status: "published-annual-aggregate", reference_year: 2023, nonemployer_establishments: 4 },
   }]);
   await artifact("zip-coverage-view-jsonl", "zips", [{
     view_id: "zip:12345",
@@ -59,6 +61,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     view_id: "source:snap",
     source_key: "snap",
     profile_source_id: "snap-source",
+    source_kind: "aggregate-baseline",
+    aggregate_baseline: { national_nonemployer_establishments: 5, state_totals: 1, county_totals: 1, zip_allocation_available: false },
     release_metadata: {},
     zip_level_counts: { record_count: 2 },
     zip_rows_with_contribution: 1,
@@ -112,8 +116,12 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const states = await store.listDimension("states", { query: "fixture" });
   assert.equal(states.total, 1);
   assert.equal(states.records[0].reported_address_profile_count, 2);
+  assert.equal(states.records[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = await store.listDimension("counties", { stateFips: "99" });
   assert.equal(counties.total, 0);
+  const sourceRows = await store.listDimension("sources");
+  assert.equal(sourceRows.records[0].source_kind, "aggregate-baseline");
+  assert.equal(sourceRows.records[0].aggregate_baseline.national_nonemployer_establishments, 5);
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);
