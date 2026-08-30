@@ -1,10 +1,10 @@
 # National business registry releases
 
-The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, and USDA FSIS active MPI establishment layer. It is an operational foundation, not a claim that every U.S. business has been collected.
+The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, USDA FSIS active MPI establishment layer, and EPA ECHO source-designated active regulated-facility layer. It is an operational foundation, not a claim that every U.S. business has been collected.
 
 ## Build and verify
 
-The default commands use `data/business-sources/usda-snap/current.json` and keep all artifacts under `datahub/data/business-registry`:
+The default command consumes each integrated source's governed `current.json` pointer and keeps all artifacts under `datahub/data/business-registry`:
 
 ```powershell
 npm run registry:build
@@ -41,9 +41,13 @@ Each accepted FSIS establishment ID produces one provisional physical site and e
 
 FSIS active-directory membership is source-specific regulatory evidence. It is not independent proof of general business operating status, public access, current hours, ownership, or every product made.
 
+Each accepted EPA ECHO FRS `REGISTRY_ID` produces one provisional physical site and establishment with a `located_at` relationship. Facility name, address, reported/derived geography, coordinates and precision metadata, NAICS/SIC classifications, environmental-program associations and identifiers, facility context, and source-specific status remain separate assertions. The publisher does not infer a legal organization, owner, parent company, or cross-source match from `FAC_NAME`.
+
+ECHO `FAC_ACTIVE_FLAG=Y` means at least one associated ICIS-Air, ICIS-NPDES, RCRAInfo, or SDWIS permit/facility is active. It is not independent proof of general business operation, public access, ownership, or active status in every associated program. ECHO contains businesses, public agencies, utilities, institutions, and other regulated sites; it is not a business census. Coordinates marked as ZIP or county centroids retain an explicit precision warning.
+
 ## ZIP coverage
 
-`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, source releases and freshness, Census employer baseline data, ZCTA geometry status, and unverified current-USPS validity.
+`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, source releases and freshness, Census employer baseline data, ZCTA geometry status, and unverified current-USPS validity.
 
 Rows with no record-level contribution from any integrated source are retained as `denominator-only-no-record-level-contribution`. Every row sets `complete_all_businesses` to `false`. The manifest also leaves `authoritative_current_usps_zip_denominator` as `null`; percentages over “all valid U.S. ZIPs” remain prohibited until that denominator is acquired from an authorized source.
 
@@ -62,6 +66,10 @@ Rows with no record-level contribution from any integrated source are retained a
 - `manifest.json`
 
 The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, reconciles ZIP and manifest counts, and rejects any release that claims completeness or authoritative current-USPS ZIP coverage.
+
+## Validated live release
+
+The independently verified release `national-business-registry-20260830-163745578Z-e4b840f2` contains 4,784,759 governed source records, 1,968,121 organizations, 3,965,717 provisional physical sites, 3,965,717 provisional establishments, one service, 44,128,925 assertions, and 6,406,371 relationships. Its 42,239-row ZIP union has record-level source contributions in 40,024 ZIPs. It remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
 
 ## Adding the next source
 

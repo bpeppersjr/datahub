@@ -411,6 +411,39 @@ export function reconcileFsisEstablishment(record) {
   };
 }
 
+export function reconcileEpaEchoFacility(record) {
+  const frsId = record.external_identifiers?.find((item) => item.type === "frs_registry_id")?.value;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d+$/.test(frsId ?? "") || siteId !== `site:epa_frs_${frsId}`
+    || establishmentId !== `establishment:epa_frs_${frsId}` || !/^\d{5}$/.test(zipCode ?? "") || !record.name) {
+    throw new Error(`Invalid EPA ECHO facility candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, siteId, "site.address", record.address, "address", "FAC_STREET|FAC_CITY|FAC_STATE|FAC_ZIP|FAC_COUNTY|FAC_FIPS_CODE"),
+    assertion(record, siteId, "site.zip-code", zipCode, "string", "FAC_ZIP"),
+    assertion(record, siteId, "site.zcta", record.geography, "object", "FAC_ZIP"),
+    assertion(record, establishmentId, "establishment.name", record.name, "string", "FAC_NAME"),
+    assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "FAC_ACTIVE_FLAG"),
+    assertion(record, establishmentId, "establishment.epa-program-associations", record.program_associations, "object", "AIR_FLAG|NPDES_FLAG|SDWIS_FLAG|RCRA_FLAG|TRI_FLAG|GHG_FLAG"),
+    assertion(record, establishmentId, "establishment.source-classifications", record.source_classifications, "object", "FAC_NAICS_CODES|FAC_SIC_CODES|CAA_NAICS|CWA_NAICS|RCRA_NAICS"),
+    assertion(record, establishmentId, "establishment.epa-facility-context", record.facility_context, "object", "FAC_EPA_REGION|FAC_MAJOR_FLAG|FAC_FEDERAL_FLG|FAC_FEDERAL_AGENCY|FAC_INDIAN_CNTRY_FLG"),
+  ];
+  if (record.reported_location) assertions.push(assertion(record, siteId, "site.reported-location", record.reported_location, "object", "FAC_LAT|FAC_LONG|FAC_COLLECTION_METHOD|FAC_REFERENCE_POINT|FAC_ACCURACY_METERS"));
+  if (record.detailed_facility_report_url) assertions.push(assertion(record, establishmentId, "establishment.epa-detailed-facility-report-url", record.detailed_facility_report_url, "string", "DFR_URL"));
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  return {
+    frsId,
+    zipCode,
+    entities: [canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at)],
+    assertions,
+    relationships: [relationship(record, "located_at", establishmentId, siteId)],
+  };
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -649,6 +682,38 @@ async function loadFsisRelease(pointerPath) {
   };
 }
 
+async function loadEpaEchoRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "EPA ECHO manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "epa-echo-active-facilities" || manifest.status !== "published" || !manifest.complete_echo_exporter_snapshot || manifest.active_filter !== "FAC_ACTIVE_FLAG=Y") {
+    throw new Error("A complete published EPA ECHO active-facility source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const facilityArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-epa-echo-facility-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (facilityArtifacts.length !== 10) throw new Error("EPA ECHO source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "epa-echo-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("EPA ECHO source release has no ZIP coverage artifact.");
+  for (const artifact of [...facilityArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `EPA ECHO artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`EPA ECHO artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("EPA ECHO ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    facilityArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -672,20 +737,22 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const ncuaRows = new Map((ncua?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fsisRows = new Map((fsis?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys()])].sort();
+  const echoRows = new Map((echo?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
     const fdicRow = fdicRows.get(zipCode);
     const ncuaRow = ncuaRows.get(zipCode);
     const fsisRow = fsisRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow;
+    const echoRow = echoRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
@@ -693,6 +760,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesP
     const fdicLocations = fdicLocationCounts.get(zipCode) ?? 0;
     const ncuaLocations = ncuaLocationCounts.get(zipCode) ?? 0;
     const fsisEstablishments = fsisEstablishmentCounts.get(zipCode) ?? 0;
+    const echoFacilities = echoFacilityCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
@@ -701,7 +769,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesP
     if (fdic && fdicLocations !== (fdicRow?.fdic_current_location_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} FDIC location counts do not reconcile.`);
     if (ncua && ncuaLocations !== (ncuaRow?.ncua_quarterly_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} NCUA location counts do not reconcile.`);
     if (fsis && fsisEstablishments !== (fsisRow?.fsis_active_mpi_snapshot?.establishment_count ?? 0)) throw new Error(`ZIP ${zipCode} FSIS establishment counts do not reconcile.`);
-    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments;
+    if (echo && echoFacilities !== (echoRow?.epa_echo_active_facility_snapshot?.facility_count ?? 0)) throw new Error(`ZIP ${zipCode} EPA ECHO facility counts do not reconcile.`);
+    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -717,6 +786,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesP
         fdic_current_location_count: fdicLocations,
         ncua_reported_us_location_count: ncuaLocations,
         fsis_active_establishment_count: fsisEstablishments,
+        epa_echo_active_facility_count: echoFacilities,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -753,6 +823,13 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesP
             source_date: fsis.manifest.source_date,
           },
         } : {}),
+        ...(echo ? {
+          epa_echo_active_facilities: {
+            active_facility_count: echoFacilities,
+            source_release_id: echo.manifest.source_release_id,
+            source_updated_at: echo.manifest.source_updated_at,
+          },
+        } : {}),
       },
       current_usps_validity: foundation.current_usps_validity,
       geography: foundation.geography,
@@ -769,6 +846,7 @@ export async function buildNationalBusinessRegistry({
   fdicPointer = null,
   ncuaPointer = null,
   fsisPointer = null,
+  echoPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -779,6 +857,7 @@ export async function buildNationalBusinessRegistry({
   const fdic = fdicPointer ? await loadFdicRelease(fdicPointer) : null;
   const ncua = ncuaPointer ? await loadNcuaRelease(ncuaPointer) : null;
   const fsis = fsisPointer ? await loadFsisRelease(fsisPointer) : null;
+  const echo = echoPointer ? await loadEpaEchoRelease(echoPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -820,6 +899,7 @@ export async function buildNationalBusinessRegistry({
   const fdicLocationCountsByZip = new Map();
   const ncuaLocationCountsByZip = new Map();
   const fsisEstablishmentCountsByZip = new Map();
+  const echoFacilityCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
   const fdicCertificates = new Set();
@@ -827,6 +907,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaCharters = new Set();
   const ncuaLocationIds = new Set();
   const fsisEstablishmentIds = new Set();
+  const echoFacilityIds = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
@@ -838,6 +919,7 @@ export async function buildNationalBusinessRegistry({
   let ncuaLocations = 0;
   let ncuaTradeNames = 0;
   let fsisEstablishments = 0;
+  let echoFacilities = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -1045,6 +1127,30 @@ export async function buildNationalBusinessRegistry({
     if (fsisEstablishments !== fsis.manifest.coverage.accepted_active_establishments) throw new Error("Registry FSIS establishment count does not match the source release.");
   }
 
+  if (echo) {
+    for (const artifact of echo.facilityArtifacts) {
+      const partition = artifact.path.match(/zip-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine EPA ECHO ZIP prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(echo.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileEpaEchoFacility(record);
+        if (reconciled.zipCode[0] !== partition) throw new Error(`EPA ECHO facility ${record.normalized_record_id} is in the wrong ZIP partition.`);
+        if (echoFacilityIds.has(reconciled.frsId)) throw new Error(`Duplicate EPA ECHO facility ${reconciled.frsId}.`);
+        echoFacilityIds.add(reconciled.frsId);
+        await writeGzipRecord(siteWriters.get(partition), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        echoFacilityCountsByZip.set(reconciled.zipCode, (echoFacilityCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`EPA ECHO facility artifact ${artifact.path} record count mismatch.`);
+      echoFacilities += count;
+      logger(`Reconciled ${echoFacilities.toLocaleString("en-US")} EPA ECHO active facilities.`);
+    }
+    if (echoFacilities !== echo.manifest.coverage.accepted_active_facilities) throw new Error("Registry EPA ECHO facility count does not match the source release.");
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -1071,7 +1177,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -1149,6 +1255,20 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(echo ? {
+      epa_echo_active_facilities: {
+        source_id: "epa-echo-exporter-active-facility",
+        dataset_id: echo.manifest.dataset_id,
+        source_release_id: echo.manifest.source_release_id,
+        dataset_release_id: echo.manifest.release_id,
+        source_updated_at: echo.manifest.source_updated_at,
+        active_facilities_published: echoFacilities,
+        active_rows_quarantined_by_source_layer: echo.manifest.coverage.quarantined_active_or_unexpected_records,
+        unknown_active_status_rows_excluded_by_source_layer: echo.manifest.coverage.source_unknown_blank_active_flag_records_excluded,
+        identity_resolution: "one provisional physical site and establishment per FRS REGISTRY_ID; no legal organization or cross-source merge inferred",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -1169,9 +1289,10 @@ export async function buildNationalBusinessRegistry({
       ...(fdic ? ["FDIC active insured institutions and current indexed U.S. locations"] : []),
       ...(ncua ? ["NCUA federally insured credit unions and reported U.S. locations from the final quarterly release"] : []),
       ...(fsis ? ["USDA FSIS establishments in the current active MPI directory"] : []),
+      ...(echo ? ["EPA ECHO facilities with FAC_ACTIVE_FLAG=Y and a valid reported U.S. physical address"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -1182,14 +1303,15 @@ export async function buildNationalBusinessRegistry({
       ncua_location_records: ncuaLocations,
       ncua_trade_name_records: ncuaTradeNames,
       fsis_establishment_records: fsisEstablishments,
+      epa_echo_active_facility_records: echoFacilities,
       organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -1218,11 +1340,17 @@ export async function buildNationalBusinessRegistry({
         release_id: fsis.manifest.release_id,
         manifest_sha256: fsis.manifestSha256,
       }] : []),
+      ...(echo ? [{
+        dataset_id: echo.manifest.dataset_id,
+        release_id: echo.manifest.release_id,
+        manifest_sha256: echo.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
       ...(fdic?.manifest.dependencies ?? []),
       ...(ncua?.manifest.dependencies ?? []),
       ...(fsis?.manifest.dependencies ?? []),
+      ...(echo?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -1253,6 +1381,12 @@ export async function buildNationalBusinessRegistry({
         "USDA FSIS MPI data covers regulated meat, poultry, and egg-product establishments, not all food businesses or all U.S. businesses.",
         "FSIS active-directory membership does not independently prove general business operating status, public access, current hours, ownership, or every product made.",
         "No legal organization or parent company is inferred from FSIS establishment names or DBAs, and the source DUNS field is excluded from the public registry.",
+      ] : []),
+      ...(echo ? [
+        "EPA ECHO covers environmentally regulated facilities and program records, not every U.S. business; included facilities can be businesses, public agencies, utilities, institutions, or other regulated sites.",
+        "ECHO FAC_ACTIVE_FLAG=Y means at least one associated ICIS-Air, ICIS-NPDES, RCRAInfo, or SDWIS permit/facility is active; it does not independently prove general business operation, public access, ownership, or active status in every associated program.",
+        "EPA ECHO program flags and identifiers are associations, and source coordinates can be ZIP or county centroids rather than premise-level geocodes.",
+        "No legal organization, owner, or parent company is inferred from EPA ECHO facility names.",
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
@@ -1344,6 +1478,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "fdic-current-location-for-active-institution-as-of-index",
     "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release",
     "listed-in-fsis-active-mpi-directory-as-of-release",
+    "epa-echo-active-program-facility-as-of-source-release",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {

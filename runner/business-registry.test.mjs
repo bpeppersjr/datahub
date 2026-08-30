@@ -10,6 +10,7 @@ import {
   reconcileFdicInstitution,
   reconcileFdicLocation,
   reconcileFsisEstablishment,
+  reconcileEpaEchoFacility,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -23,6 +24,7 @@ import {
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
 import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
+import { normalizeEchoFacility } from "./epa-echo.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -367,6 +369,84 @@ async function writeFixtureFsisRelease(root) {
   return pointerPath;
 }
 
+function normalizedEchoRecord(id = "110000000001", zip = "60601", overrides = {}) {
+  return normalizeEchoFacility({
+    REGISTRY_ID: id,
+    FAC_NAME: `Fixture ECHO ${id}`,
+    FAC_STREET: `${id} INDUSTRIAL WAY`,
+    FAC_CITY: "CHICAGO",
+    FAC_STATE: "IL",
+    FAC_ZIP: zip,
+    FAC_COUNTY: "Cook",
+    FAC_FIPS_CODE: "17031",
+    FAC_EPA_REGION: "05",
+    FAC_ACTIVE_FLAG: "Y",
+    FAC_LAT: "41.88",
+    FAC_LONG: "-87.63",
+    FAC_COLLECTION_METHOD: "Address Matching-House Number",
+    FAC_ACCURACY_METERS: "30",
+    AIR_FLAG: "Y",
+    AIR_IDS: `AIR${id}`,
+    FAC_NAICS_CODES: "311111",
+    DFR_URL: `https://echo.epa.gov/detailed-facility-report?fid=${id}`,
+    ...overrides,
+  }, {
+    runId: "echo-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceUpdatedAt: "2026-08-30T06:36:03.000Z",
+    sourceReleaseId: "echo-source-fixture",
+    baselineByZip: new Map([[zip, { geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip}`, geoid: zip } }]]),
+  });
+}
+
+async function writeFixtureEchoRelease(root) {
+  const releaseId = "epa-echo-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedEchoRecord("110000000001", "60601"),
+    normalizedEchoRecord("110000000002", "33101", { FAC_NAME: "Fixture Florida Utility", FAC_CITY: "MIAMI", FAC_STATE: "FL", FAC_COUNTY: "Miami-Dade", FAC_FIPS_CODE: "12086" }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789") {
+    const partitionRecords = records.filter((record) => record.address.zip_code.startsWith(prefix));
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/facilities/zip-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-epa-echo-facility-jsonl-gzip" });
+  }
+  const zipRows = ["33101", "60601"].map((zipCode) => ({
+    zip_code: zipCode,
+    epa_echo_active_facility_snapshot: { facility_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}` },
+    employer_baseline: zipCode === "60601" ? { status: "published", establishments: 1000 } : null,
+    baseline_coverage_status: zipCode === "60601" ? "zbp-and-zcta" : "outside-zbp-zcta-union",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "epa-echo-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "epa-echo-active-facilities",
+    release_id: releaseId,
+    status: "published",
+    complete_echo_exporter_snapshot: true,
+    active_filter: "FAC_ACTIVE_FLAG=Y",
+    source_release_id: "echo-source-fixture",
+    source_updated_at: "2026-08-30T06:36:03.000Z",
+    coverage: { accepted_active_facilities: records.length, quarantined_active_or_unexpected_records: 0, source_unknown_blank_active_flag_records_excluded: 0 },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -492,6 +572,17 @@ test("reconciles FSIS sites and establishments without inferring an organization
   assert(!result.assertions.some((item) => item.predicate.includes("organization") || item.predicate.includes("owner") || item.predicate.includes("open")));
 });
 
+test("reconciles EPA ECHO regulated facilities without inferring an organization or general open status", () => {
+  const source = normalizedEchoRecord();
+  const result = reconcileEpaEchoFacility(source);
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["located_at"]);
+  assert.equal(result.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "epa-echo-active-program-facility-as-of-source-release");
+  assert(result.assertions.some((item) => item.predicate === "establishment.epa-program-associations"));
+  assert(result.assertions.some((item) => item.predicate === "site.reported-location"));
+  assert(!result.assertions.some((item) => item.predicate.includes("organization") || item.predicate.includes("owner") || item.predicate.includes("open")));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -499,6 +590,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const fdicPointer = await writeFixtureFdicRelease(path.join(root, "fdic"));
   const ncuaPointer = await writeFixtureNcuaRelease(path.join(root, "ncua"));
   const fsisPointer = await writeFixtureFsisRelease(path.join(root, "fsis"));
+  const echoPointer = await writeFixtureEchoRelease(path.join(root, "echo"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
@@ -506,16 +598,18 @@ test("publishes and verifies a combined partial registry while retaining denomin
     fdicPointer,
     ncuaPointer,
     fsisPointer,
+    echoPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
   assert.equal(result.manifest.coverage.organizations, 2);
-  assert.equal(result.manifest.coverage.physical_sites, 8);
-  assert.equal(result.manifest.coverage.establishments, 8);
+  assert.equal(result.manifest.coverage.physical_sites, 10);
+  assert.equal(result.manifest.coverage.establishments, 10);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
-  assert.equal(result.manifest.coverage.relationships, 14);
-  assert.equal(result.manifest.coverage.zip_union_records, 5);
+  assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
+  assert.equal(result.manifest.coverage.relationships, 16);
+  assert.equal(result.manifest.coverage.zip_union_records, 6);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
@@ -528,6 +622,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "33101").registry_coverage.epa_echo_active_facility_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {

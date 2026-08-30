@@ -18,6 +18,7 @@ Options:
   --fdic <path>    FDIC BankFind current.json prerequisite
   --ncua <path>    NCUA quarterly credit-union current.json prerequisite
   --fsis <path>    USDA FSIS active MPI establishment current.json prerequisite
+  --echo <path>    EPA ECHO active regulated-facility current.json prerequisite
   --help           Show this help
 `;
 }
@@ -30,11 +31,12 @@ function parseArguments(args) {
     fdic: "data/business-sources/fdic-bankfind/current.json",
     ncua: "data/business-sources/ncua-quarterly-credit-unions/current.json",
     fsis: "data/business-sources/fsis-active-mpi-establishments/current.json",
+    echo: "data/business-sources/epa-echo-active-facilities/current.json",
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -44,6 +46,7 @@ function parseArguments(args) {
       if (argument === "--fdic") options.fdic = value;
       if (argument === "--ncua") options.ncua = value;
       if (argument === "--fsis") options.fsis = value;
+      if (argument === "--echo") options.echo = value;
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -64,6 +67,7 @@ try {
     fdicPointer: assertInsideApp(path.resolve(APP_ROOT, options.fdic)),
     ncuaPointer: assertInsideApp(path.resolve(APP_ROOT, options.ncua)),
     fsisPointer: assertInsideApp(path.resolve(APP_ROOT, options.fsis)),
+    echoPointer: assertInsideApp(path.resolve(APP_ROOT, options.echo)),
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

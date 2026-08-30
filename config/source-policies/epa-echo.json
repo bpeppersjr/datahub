@@ -1,0 +1,33 @@
+{
+  "policy_id": "epa-echo",
+  "version": "1.0.0",
+  "publisher": "United States Environmental Protection Agency",
+  "ownership": "Public facility-level records assembled by EPA from federal and state environmental program systems through FRS and ECHO",
+  "source_home": "https://echo.epa.gov/tools/data-downloads",
+  "source_download": "https://echo.epa.gov/files/echodownloads/echo_exporter.zip",
+  "column_dictionary": "https://echo.epa.gov/system/files/echo_exporter_columns_7-16-2025_0.xlsx",
+  "source_access": "Public anonymous read-only HTTPS download published as the weekly ECHO Exporter.",
+  "allowed_use": ["official HTTPS download", "local processing", "immutable internal source retention", "regulated-facility site and establishment normalization", "coverage analysis", "derived registry assertions", "redistribution of approved facility-level normalized fields with EPA attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing FAC_ACTIVE_FLAG as proof that a business is generally operating, open to the public, or active in every associated environmental program",
+    "representing ECHO facilities as all U.S. businesses",
+    "representing RCRA active or inactive designations as independently carrying legal or regulatory significance",
+    "presenting ZIP- or county-centroid coordinates as premise-level geocodes",
+    "inferring a legal organization, owner, or parent company from FAC_NAME",
+    "merging facilities across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "raw_source_archive": "internal",
+    "normalized_facility_site_and_establishment_records": "public",
+    "frs_and_environmental_program_identifiers": "public",
+    "facility_names_physical_addresses_coordinates_precision_metadata_classifications_program_associations_and_source_status": "public",
+    "enforcement_and_penalty_fields": "excluded-from-this-business-registry-normalization",
+    "environmental-justice-demographic-fields": "excluded-from-this-business-registry-normalization"
+  },
+  "attribution": "Source: U.S. Environmental Protection Agency Enforcement and Compliance History Online (ECHO) Exporter and Facility Registry Service identifiers.",
+  "retention": "Indefinite for immutable source and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved normalized public facility records may be redistributed with EPA attribution, source timestamp, archive checksum, provenance, active-status definition, coordinate precision, and coverage limitations retained; the compressed source archive remains internal.",
+  "contains_personal_data": false,
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

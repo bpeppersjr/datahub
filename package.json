@@ -27,6 +27,8 @@
     "ncua:verify": "node scripts/verify-ncua-quarterly.mjs",
     "fsis:build": "node scripts/build-fsis-mpi.mjs",
     "fsis:verify": "node scripts/verify-fsis-mpi.mjs",
+    "echo:build": "node scripts/build-epa-echo.mjs",
+    "echo:verify": "node scripts/verify-epa-echo.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",
     "registry:verify": "node scripts/verify-business-registry.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",

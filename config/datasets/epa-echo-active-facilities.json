@@ -1,0 +1,13 @@
+{
+  "dataset_id": "epa-echo-active-facilities",
+  "schema_version": "1.0.0",
+  "title": "EPA ECHO Source-Designated Active Regulated Facilities",
+  "status": "implemented",
+  "description": "Governed weekly ECHO Exporter layer for FAC_ACTIVE_FLAG=Y facilities with valid reported U.S. physical addresses, source-specific status, FRS and program identifiers, classifications, coordinates and precision metadata, ZIP/ZCTA context, provenance, exclusions, and explicit gaps.",
+  "output": "data/business-sources/epa-echo-active-facilities/current.json",
+  "connector": "config/connectors/epa-echo.json",
+  "source_policy": "config/source-policies/epa-echo.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Facilities whose ECHO FAC_ACTIVE_FLAG is Y and whose source row contains a valid reported U.S. physical address/ZIP; not all businesses and not proof of general operating status.",
+  "documentation": "docs/EPA-ECHO.md"
+}

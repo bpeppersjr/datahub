@@ -1,0 +1,38 @@
+{
+  "connector_id": "epa-echo",
+  "version": "1.0.0",
+  "description": "Streams the official EPA ECHO Exporter and publishes source-designated active regulated-facility site and establishment candidates with address, ZIP, coordinates and precision metadata, classifications, program associations, provenance, exclusions, and explicit semantic limitations.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "archive": { "type": ["string", "null"], "default": null },
+      "output": { "type": "string", "default": "data/business-sources/epa-echo-active-facilities" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_active_facilities": { "type": "integer", "minimum": 1, "default": 1000000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.10 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["epa-echo-exporter-zip", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["epa-echo-source-exporter-zip", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["echo.epa.gov"],
+  "redirect_policy": "Reject redirects and accept only the exact HTTPS /files/echodownloads/echo_exporter.zip path on echo.epa.gov.",
+  "provider_budget_key": "epa-echo-weekly-exporter",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_compressed_input_bytes": 600000000,
+    "maximum_uncompressed_csv_bytes": 3000000000,
+    "maximum_csv_record_bytes": 1000000
+  },
+  "retry": "Network acquisition may be resumed by supplying a complete official archive; do not retry schema, duplicate-identifier, checksum, source-timestamp, or quality-gate failures without a new verified source snapshot.",
+  "checkpoint": "The complete compressed source is retained and hashed before streaming normalization; publication is run-scoped and current.json changes only after all quality gates pass.",
+  "idempotency": "Source Last-Modified date plus archive SHA-256 identify a release; FRS REGISTRY_ID creates stable provisional site and establishment candidates.",
+  "cancellation": "Stop network and local streams cooperatively, close partition writers, leave unpublished run-scoped staging, and do not change current.json before complete publication.",
+  "source_policy": "config/source-policies/epa-echo.json",
+  "retention_profile": "Retain the immutable internal source archive and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "epa-program-association-assertion", "source-classification-assertion", "epa-echo-source-status-assertion"],
+  "produced_identifiers": ["frs-registry-id", "epa-program-id", "zip5", "zip4", "county-fips", "naics", "sic", "zcta5"]
+}
