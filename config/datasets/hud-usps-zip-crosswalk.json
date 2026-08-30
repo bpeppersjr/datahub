@@ -1,0 +1,21 @@
+{
+  "dataset_id": "hud-usps-zip-crosswalk",
+  "schema_version": "1.0.0",
+  "title": "Quarterly HUD-USPS ZIP-to-County Evidence",
+  "status": "implemented-awaiting-authorized-token-for-live-release",
+  "description": "USPS-derived quarterly ZIP observations and address-weighted county relationships from the HUD USER API.",
+  "producer_connector": "hud-usps-zip-crosswalk",
+  "runtime_pointer": "data/zip-validity/hud-usps/current.json",
+  "required_datasets": ["us-census-geography"],
+  "named_secret": "HUD_USPS_API_TOKEN",
+  "normalized_artifacts": {
+    "zip_validity_evidence": "derived/zip-validity-evidence.jsonl",
+    "zip_county_crosswalk": "derived/zip-county-crosswalk.jsonl"
+  },
+  "coverage_semantics": {
+    "observed": "ZIP appears in the selected quarterly address-derived HUD-USPS crosswalk.",
+    "not_complete": "PO Box-only ZIPs and some ungeocoded active ZIPs are outside the source; do not use it as the full USPS master denominator."
+  },
+  "documentation": "docs/HUD-USPS-ZIP-CROSSWALK.md",
+  "source_policy": "config/source-policies/hud-usps-zip-crosswalk.json"
+}

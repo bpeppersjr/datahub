@@ -4,8 +4,9 @@
   "publisher": "U.S. Department of Housing and Urban Development, derived from USPS Vacancy Data",
   "ownership": "HUD-published USPS-derived data requiring a HUD USER account or API token",
   "source_home": "https://www.huduser.gov/portal/datasets/usps_crosswalk.html",
+  "terms_url": "https://www.huduser.gov/portal/dataset/uspszip-api.html",
   "api_registration": "https://www.huduser.gov/portal/dataset/uspszip-api.html",
-  "review_status": "account-terms-and-redistribution-review-required-before-ingest",
+  "review_status": "official API documentation states no special content-use restrictions; preserve account controls and review terms before public redistribution",
   "allowed_use": ["credentialed local acquisition after authorization", "local reconciliation", "coverage analysis"],
   "prohibited_use": [
     "storing access tokens in configuration, logs, source records, or manifests",

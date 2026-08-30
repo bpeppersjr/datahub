@@ -1,0 +1,42 @@
+{
+  "data": [
+    {
+      "year": "2026",
+      "quarter": "Q1",
+      "input": "All",
+      "crosswalk_type": "zip-county",
+      "results": [
+        {
+          "zip": "01001",
+          "geoid": "25013",
+          "res_ratio": 0.9975,
+          "bus_ratio": 0.995,
+          "oth_ratio": 1,
+          "tot_ratio": 0.997,
+          "city": "AGAWAM",
+          "state": "MA"
+        },
+        {
+          "zip": "01001",
+          "geoid": "25015",
+          "res_ratio": 0.0025,
+          "bus_ratio": 0.005,
+          "oth_ratio": 0,
+          "tot_ratio": 0.003,
+          "city": "AGAWAM",
+          "state": "MA"
+        },
+        {
+          "zip": "60601",
+          "geoid": "17031",
+          "res_ratio": 1,
+          "bus_ratio": 1,
+          "oth_ratio": 1,
+          "tot_ratio": 1,
+          "city": "CHICAGO",
+          "state": "IL"
+        }
+      ]
+    }
+  ]
+}
