@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/business-assertion.schema.json",
+  "title": "Provenanced Business Assertion",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "assertion_id",
+    "subject_entity_id",
+    "predicate",
+    "value",
+    "assertion_status",
+    "observed_at",
+    "first_seen",
+    "last_seen",
+    "source",
+    "export_policy"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "assertion_id": { "type": "string", "minLength": 1 },
+    "subject_entity_id": { "type": "string", "minLength": 1 },
+    "predicate": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
+    "value": {},
+    "value_type": { "enum": ["string", "number", "boolean", "date", "datetime", "identifier", "address", "geometry", "object", "null"] },
+    "assertion_status": { "enum": ["active", "superseded", "disputed", "retracted", "expired"] },
+    "valid_from": { "type": ["string", "null"], "format": "date-time" },
+    "valid_to": { "type": ["string", "null"], "format": "date-time" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "first_seen": { "type": "string", "format": "date-time" },
+    "last_seen": { "type": "string", "format": "date-time" },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "export_policy": { "enum": ["public", "derived-only", "restricted", "internal"] },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "transformation_version", "policy_id"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_release_id": { "type": "string", "minLength": 1 },
+        "source_record_id": { "type": "string", "minLength": 1 },
+        "ingest_run_id": { "type": "string", "minLength": 1 },
+        "transformation_version": { "type": "string", "minLength": 1 },
+        "policy_id": { "type": "string", "minLength": 1 },
+        "source_field": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

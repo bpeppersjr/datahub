@@ -1,0 +1,23 @@
+{
+  "dataset_id": "census-zbp-baseline",
+  "schema_version": "1.0.0",
+  "title": "Census ZIP Business Patterns Employer Baseline",
+  "description": "Annual ZIP-level employer establishment counts, industry detail, and explicit ZIP/ZCTA coverage gaps.",
+  "producer_connector": "us-census-zbp",
+  "runtime_pointer": "data/business-baselines/census-zbp/current.json",
+  "publication_manifest": "The runtime pointer's manifest field resolves relative to data/business-baselines/census-zbp.",
+  "required_datasets": ["us-census-geography"],
+  "identifiers": ["zip5", "zcta5", "naics"],
+  "normalized_artifacts": {
+    "zip_coverage": "derived/zip-coverage.jsonl",
+    "zip_naics_partitions": "derived/zip-naics/prefix=<first-digit>.csv.gz",
+    "naics_coverage": "derived/naics-coverage.jsonl"
+  },
+  "coverage_semantics": {
+    "published": "Census published an aggregate row for the ZIP/reference year.",
+    "not_published": "No row was published; counts remain null and must not be treated as zero.",
+    "usps_validity": "Unverified until a current authoritative USPS or authorized HUD-USPS assertion is reconciled."
+  },
+  "documentation": "docs/CENSUS-ZBP-BASELINE.md",
+  "source_policy": "config/source-policies/us-census-zbp.json"
+}

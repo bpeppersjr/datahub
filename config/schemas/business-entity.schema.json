@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/business-entity.schema.json",
+  "title": "Canonical Business Entity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "entity_id", "entity_type", "identity_status", "created_at", "updated_at"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "entity_id": { "type": "string", "pattern": "^(organization|brand|site|establishment|service):[A-Za-z0-9_-]+$" },
+    "entity_type": { "enum": ["organization", "brand", "physical_site", "establishment", "service"] },
+    "identity_status": { "enum": ["provisional", "resolved", "disputed", "merged", "retired"] },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "superseded_by": { "type": ["string", "null"] }
+  }
+}

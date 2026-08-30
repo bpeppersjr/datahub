@@ -12,6 +12,8 @@
     "runner": "node runner/server.mjs",
     "geography:build": "node scripts/build-us-geography.mjs",
     "geography:verify": "node scripts/verify-us-geography.mjs",
+    "zbp:build": "node scripts/build-census-zbp.mjs",
+    "zbp:verify": "node scripts/verify-census-zbp.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",

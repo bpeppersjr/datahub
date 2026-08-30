@@ -1,0 +1,22 @@
+{
+  "policy_id": "hud-usps-zip-crosswalk",
+  "version": "0.1.0",
+  "publisher": "U.S. Department of Housing and Urban Development, derived from USPS Vacancy Data",
+  "ownership": "HUD-published USPS-derived data requiring a HUD USER account or API token",
+  "source_home": "https://www.huduser.gov/portal/datasets/usps_crosswalk.html",
+  "api_registration": "https://www.huduser.gov/portal/dataset/uspszip-api.html",
+  "review_status": "account-terms-and-redistribution-review-required-before-ingest",
+  "allowed_use": ["credentialed local acquisition after authorization", "local reconciliation", "coverage analysis"],
+  "prohibited_use": [
+    "storing access tokens in configuration, logs, source records, or manifests",
+    "publishing raw or derived records before account terms and redistribution rights are reviewed",
+    "claiming coverage of PO Box-only ZIP codes",
+    "claiming the HUD crosswalk is a complete USPS master list"
+  ],
+  "attribution": "Source: HUD-USPS ZIP Code Crosswalk Data.",
+  "retention": "Pending account-specific terms review; default raw data to local restricted storage.",
+  "redistribution": "Undetermined until account-specific terms are reviewed.",
+  "contains_secrets": true,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

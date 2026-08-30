@@ -1,0 +1,22 @@
+{
+  "dataset_id": "national-business-registry",
+  "schema_version": "1.0.0",
+  "title": "Governed National Business Registry",
+  "status": "foundation-in-progress",
+  "description": "Canonical organizations, brands, sites, establishments, services, relationships, and source assertions reconciled across authorized U.S. business data sources.",
+  "entity_schema": "config/schemas/business-entity.schema.json",
+  "assertion_schema": "config/schemas/business-assertion.schema.json",
+  "relationship_schema": "config/schemas/business-relationship.schema.json",
+  "required_foundations": ["us-census-geography", "census-zbp-baseline"],
+  "required_coverage_dimensions": [
+    "authoritative ZIP validity evidence",
+    "ZIP/ZCTA polygon or explicit no-polygon status",
+    "employer-establishment denominator",
+    "record-level source contribution",
+    "industry coverage",
+    "source freshness",
+    "unresolved conflicts and gaps"
+  ],
+  "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
+  "documentation": "docs/BUSINESS-REGISTRY-CONTRACT.md"
+}

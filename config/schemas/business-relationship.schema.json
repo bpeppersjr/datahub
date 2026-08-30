@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/business-relationship.schema.json",
+  "title": "Provenanced Business Relationship",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "relationship_id",
+    "relationship_type",
+    "subject_entity_id",
+    "object_entity_id",
+    "status",
+    "observed_at",
+    "source"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "relationship_id": { "type": "string", "minLength": 1 },
+    "relationship_type": { "enum": ["owns", "operates", "brands", "located_at", "co_located_with", "member_of", "licensed_as", "provides_service"] },
+    "subject_entity_id": { "type": "string", "minLength": 1 },
+    "object_entity_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["active", "superseded", "disputed", "retracted", "expired"] },
+    "valid_from": { "type": ["string", "null"], "format": "date-time" },
+    "valid_to": { "type": ["string", "null"], "format": "date-time" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "source": {
+      "$ref": "#/$defs/source"
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "transformation_version", "policy_id"],
+      "properties": {
+        "source_id": { "type": "string" },
+        "source_release_id": { "type": "string" },
+        "source_record_id": { "type": "string" },
+        "ingest_run_id": { "type": "string" },
+        "transformation_version": { "type": "string" },
+        "policy_id": { "type": "string" }
+      }
+    }
+  }
+}

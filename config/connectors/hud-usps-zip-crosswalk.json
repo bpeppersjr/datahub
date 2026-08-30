@@ -1,0 +1,52 @@
+{
+  "connector_id": "hud-usps-zip-crosswalk",
+  "version": "0.1.0",
+  "implementation_status": "contract-only-awaiting-authorized-credential",
+  "description": "Acquires quarterly USPS-derived ZIP-to-county evidence from HUD for current ZIP coverage and address-weighted jurisdiction mapping.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["quarter"],
+    "properties": {
+      "quarter": { "type": "string", "pattern": "^Q[1-4]20[0-9]{2}$" },
+      "output": { "type": "string", "default": "data/zip-validity/hud-usps" }
+    }
+  },
+  "named_secret_references": [
+    {
+      "name": "HUD_USPS_API_TOKEN",
+      "purpose": "HUD USER API authorization",
+      "storage": "environment-or-local-secret-store-only"
+    }
+  ],
+  "input_artifact_types": [],
+  "output_artifact_types": ["source-json", "zip-county-crosswalk-jsonl", "zip-validity-evidence-jsonl", "dataset-manifest-json"],
+  "allowed_hosts": ["www.huduser.gov"],
+  "redirect_policy": "same-host-only",
+  "provider_budget_key": "hud-usps-crosswalk",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 120,
+    "retries": 3,
+    "max_parallel_requests": 1
+  },
+  "retry": "Retry rate limits and transient service errors with server-directed or exponential backoff.",
+  "checkpoint": "Persist page checkpoints by immutable run ID without storing the token.",
+  "idempotency": "Quarter and source-record identity determine stable assertions; releases are immutable.",
+  "cancellation": "Abort requests and keep partial pages isolated in the run staging directory.",
+  "source_policy": "config/source-policies/hud-usps-zip-crosswalk.json",
+  "retention_profile": "Raw access-controlled source data is local-only until account terms and redistribution rights are reviewed.",
+  "produced_entities": ["zip-validity-evidence", "zip-county-allocation"],
+  "produced_identifiers": ["zip5", "county-fips"]
+}

@@ -1,0 +1,20 @@
+{
+  "policy_id": "us-census-zbp",
+  "version": "1.0.0",
+  "publisher": "United States Census Bureau",
+  "ownership": "United States federal government public aggregate data",
+  "source_home": "https://www.census.gov/programs-surveys/cbp/data/datasets.html",
+  "methodology_url": "https://www.census.gov/programs-surveys/cbp/technical-documentation/methodology.html",
+  "allowed_use": ["download", "local processing", "analysis", "derived aggregate datasets", "redistribution with provenance"],
+  "prohibited_use": [
+    "attempting to identify individual employers from protected aggregates",
+    "representing annual aggregate counts as a current named-business directory",
+    "converting suppressed or unpublished values to zero"
+  ],
+  "attribution": "Source: U.S. Census Bureau ZIP Business Patterns.",
+  "retention": "Indefinite for public aggregate source releases and derived artifacts unless an approved retention rule applies.",
+  "redistribution": "Allowed with source, reference year, disclosure limitations, transformation version, and provenance.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

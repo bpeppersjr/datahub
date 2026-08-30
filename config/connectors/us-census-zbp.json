@@ -1,0 +1,51 @@
+{
+  "connector_id": "us-census-zbp",
+  "version": "1.0.0",
+  "description": "Builds a versioned ZIP-level employer-establishment and NAICS coverage baseline from Census ZIP Business Patterns.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-baselines/census-zbp" },
+      "geography_pointer": { "type": "string", "default": "data/geography/current.json" },
+      "reference_year": { "type": ["integer", "null"], "minimum": 1994, "maximum": 2100, "default": null }
+    }
+  },
+  "input_artifact_types": ["us-census-geography-release"],
+  "output_artifact_types": [
+    "source-archive",
+    "zip-coverage-union-jsonl",
+    "normalized-zbp-naics-csv-gzip",
+    "naics-coverage-jsonl",
+    "dataset-manifest-json"
+  ],
+  "named_secret_references": [],
+  "allowed_hosts": ["www2.census.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "us-census-zbp",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 300,
+    "retries": 3,
+    "max_parallel_downloads": 1
+  },
+  "retry": "Exponential backoff for discovery and source downloads; fail after four total attempts.",
+  "checkpoint": "Source archives and derived artifacts are run-scoped; publication occurs only after all coverage gates pass.",
+  "idempotency": "Each build produces an immutable release and updates current.json only after publication.",
+  "cancellation": "Abort active downloads and leave no shared lock; unpublished staging remains isolated by run ID.",
+  "source_policy": "config/source-policies/us-census-zbp.json",
+  "retention_profile": "Retain immutable public aggregate releases until explicitly removed by an approved retention operation.",
+  "produced_entities": ["zip-business-coverage", "zip-naics-coverage"],
+  "produced_identifiers": ["zip5", "zcta5", "naics"]
+}
