@@ -1,0 +1,38 @@
+{
+  "connector_id": "cms-nppes-organizations",
+  "version": "1.0.0",
+  "description": "Acquires the public CMS NPPES monthly V2 replacement and normalizes organization NPIs, reported U.S. practice locations, taxonomies, and organization other names with strict status and export semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/cms-nppes-organizations" },
+      "source_directory": { "type": "string", "default": "data/pharmacy-sources/nppes" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 1000000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["cms-nppes-monthly-v2-archive", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["cms-nppes-raw-main-csv", "cms-nppes-raw-other-names-csv", "cms-nppes-raw-practice-locations-csv", "cms-nppes-raw-endpoints-csv", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "limited-deactivated-npi-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["download.cms.gov", "www.cms.gov"],
+  "redirect_policy": "same approved host set only",
+  "provider_budget_key": "cms-nppes-download",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "download_timeout_seconds": 14400,
+    "max_parallel_requests": 1,
+    "minimum_free_disk_reserve_bytes": 1073741824,
+    "input_partitions": 1,
+    "output_zip_prefix_partitions": 10
+  },
+  "retry": "Retain the deterministic partial archive and resume with a validated HTTP Range request; restart if the provider does not honor the range or the archive is invalid.",
+  "checkpoint": "A source lock records PID ownership, dead owners are recovered, source files are checksummed, and all release artifacts remain run-scoped until atomic publication.",
+  "idempotency": "The CMS release filename identifies the source snapshot; NPI and normalized address hashes determine stable source-record and entity-candidate IDs.",
+  "cancellation": "Abort the active request or stream, retain a valid partial download for resume, and do not change a current dataset pointer before quality-gated publication.",
+  "source_policy": "config/source-policies/cms-nppes-organizations.json",
+  "retention_profile": "Retain immutable source snapshots internally and public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "healthcare-taxonomy-assertion", "npi-status-assertion"],
+  "produced_identifiers": ["npi", "zip5", "zip9", "zcta5"]
+}

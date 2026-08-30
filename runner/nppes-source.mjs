@@ -1,8 +1,10 @@
-import { createWriteStream } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
 import {
   mkdir,
   open,
   readFile,
+  readdir,
   rename,
   rm,
   stat,
@@ -71,7 +73,7 @@ async function availableBytes(directory) {
 function formatBytes(bytes) {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value <= 0) return 'unknown size';
-  const units = ['B', 'MB', 'GB', 'TB'];
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let scaled = value;
   let unit = 0;
   while (scaled >= 1024 && unit < units.length - 1) {
@@ -99,6 +101,12 @@ async function validCachedSource(activeDirectory) {
     if (!details.isFile() || details.size <= 0) return null;
     const expectedBytes = Number(metadata.uncompressedBytes ?? 0);
     if (expectedBytes > 0 && details.size !== expectedBytes) return null;
+    for (const file of metadata.files ?? []) {
+      const filename = path.basename(String(file.file ?? ''));
+      if (!filename || filename !== file.file) return null;
+      const fileDetails = await stat(path.join(activeDirectory, filename));
+      if (!fileDetails.isFile() || (Number(file.uncompressedBytes) > 0 && fileDetails.size !== Number(file.uncompressedBytes))) return null;
+    }
     return {
       cached: true,
       inputPath: mainPath,
@@ -136,7 +144,23 @@ async function acquireSourceLock(lockPath, onProgress) {
       if (error.code !== 'EEXIST') throw error;
       try {
         const lockDetails = await stat(lockPath);
-        if (Date.now() - lockDetails.mtimeMs > LOCK_STALE_MS) {
+        let ownerAlive = true;
+        try {
+          const owner = JSON.parse(await readFile(lockPath, 'utf8'));
+          if (!Number.isInteger(owner.pid) || owner.pid <= 0) ownerAlive = false;
+          else {
+            try {
+              process.kill(owner.pid, 0);
+            } catch (ownerError) {
+              if (ownerError.code === 'ESRCH') ownerAlive = false;
+              else if (ownerError.code !== 'EPERM') throw ownerError;
+            }
+          }
+        } catch (ownerError) {
+          if (ownerError.name === 'SyntaxError' || ownerError.code === 'ENOENT') ownerAlive = false;
+          else throw ownerError;
+        }
+        if (!ownerAlive || Date.now() - lockDetails.mtimeMs > LOCK_STALE_MS) {
           await rm(lockPath, { force: true });
           continue;
         }
@@ -155,20 +179,49 @@ async function acquireSourceLock(lockPath, onProgress) {
 }
 
 async function downloadArchive({ release, destination, fetchImpl, onProgress }) {
+  let resumedBytes = 0;
+  try {
+    resumedBytes = (await stat(destination)).size;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const headers = { Accept: 'application/zip, application/octet-stream', 'User-Agent': 'CoTive-Collector/0.1' };
+  if (resumedBytes > 0) headers.Range = `bytes=${resumedBytes}-`;
   const response = await fetchImpl(release.sourceUrl, {
-    headers: { Accept: 'application/zip, application/octet-stream', 'User-Agent': 'CoTive-Collector/0.1' },
+    headers,
     signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
   });
-  if (!response.ok || !response.body) throw new Error(`CMS NPPES download failed with HTTP ${response.status}.`);
-  const expectedBytes = Number(response.headers.get('content-length') || 0);
-  if (expectedBytes > 0) {
-    await assertFreeSpace(path.dirname(destination), expectedBytes + DISK_RESERVE_BYTES, 'The NPPES download');
+  if (response.status === 416 && resumedBytes > 0) {
+    const total = Number(response.headers.get('content-range')?.match(/\*\/(\d+)$/)?.[1] ?? 0);
+    if (total === resumedBytes) return { received: resumedBytes, downloadedThisAttempt: 0, expectedBytes: total, resumedBytes };
+    const error = new Error('CMS rejected an invalid NPPES resume offset.');
+    error.discardPartial = true;
+    throw error;
   }
-  let received = 0;
+  if (!response.ok || !response.body) throw new Error(`CMS NPPES download failed with HTTP ${response.status}.`);
+  let append = response.status === 206 && resumedBytes > 0;
+  if (append) {
+    const contentRange = response.headers.get('content-range')?.match(/^bytes (\d+)-(\d+)\/(\d+|\*)$/i);
+    if (!contentRange || Number(contentRange[1]) !== resumedBytes) {
+      const error = new Error('CMS returned an invalid Content-Range for the NPPES resume request.');
+      error.discardPartial = true;
+      throw error;
+    }
+  } else if (resumedBytes > 0) {
+    resumedBytes = 0;
+  }
+  const responseBytes = Number(response.headers.get('content-length') || 0);
+  const rangeTotal = Number(response.headers.get('content-range')?.match(/\/(\d+)$/)?.[1] ?? 0);
+  const expectedBytes = rangeTotal || (responseBytes > 0 ? resumedBytes + responseBytes : 0);
+  if (expectedBytes > 0) {
+    await assertFreeSpace(path.dirname(destination), Math.max(0, expectedBytes - resumedBytes) + DISK_RESERVE_BYTES, 'The NPPES download');
+  }
+  let downloadedThisAttempt = 0;
   let lastReported = 0;
   const monitor = new Transform({
     transform(chunk, _encoding, callback) {
-      received += chunk.length;
+      downloadedThisAttempt += chunk.length;
+      const received = resumedBytes + downloadedThisAttempt;
       const now = Date.now();
       if (now - lastReported > 750) {
         const percent = expectedBytes > 0 ? Math.min(78, (received / expectedBytes) * 78) : 35;
@@ -178,9 +231,10 @@ async function downloadArchive({ release, destination, fetchImpl, onProgress }) 
       callback(null, chunk);
     },
   });
-  await pipeline(Readable.fromWeb(response.body), monitor, createWriteStream(destination, { flags: 'wx' }));
+  await pipeline(Readable.fromWeb(response.body), monitor, createWriteStream(destination, { flags: append ? 'a' : 'w' }));
+  const received = resumedBytes + downloadedThisAttempt;
   if (expectedBytes > 0 && received !== expectedBytes) {
-    throw new Error(`CMS NPPES download was incomplete: expected ${expectedBytes} bytes and received ${received}.`);
+    throw new Error(`CMS NPPES download was incomplete: expected ${expectedBytes} bytes and received ${received}. The partial is retained for resume.`);
   }
   const header = Buffer.alloc(4);
   const archive = await open(destination, 'r');
@@ -190,9 +244,79 @@ async function downloadArchive({ release, destination, fetchImpl, onProgress }) 
     await archive.close();
   }
   if (header[0] !== 0x50 || header[1] !== 0x4b || ![0x03, 0x05, 0x07].includes(header[2])) {
-    throw new Error('CMS response was not a valid ZIP archive.');
+    const error = new Error('CMS response was not a valid ZIP archive.');
+    error.discardPartial = true;
+    throw error;
   }
-  return { received, expectedBytes };
+  return { received, downloadedThisAttempt, expectedBytes, resumedBytes };
+}
+
+async function adoptLegacyPartial(root, archiveName, destination) {
+  try {
+    await stat(destination);
+    return;
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const escaped = archiveName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`^\\.${escaped}\\.\\d+\\.part$`);
+  const candidates = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (!entry.isFile() || !pattern.test(entry.name)) continue;
+    const candidatePath = path.join(root, entry.name);
+    candidates.push({ path: candidatePath, size: (await stat(candidatePath)).size });
+  }
+  candidates.sort((left, right) => right.size - left.size || left.path.localeCompare(right.path));
+  if (candidates[0]) await rename(candidates[0].path, destination);
+}
+
+async function hashFile(filename) {
+  const hash = createHash('sha256');
+  let bytes = 0;
+  for await (const chunk of createReadStream(filename)) {
+    bytes += chunk.length;
+    hash.update(chunk);
+  }
+  return { bytes, sha256: hash.digest('hex') };
+}
+
+function archiveDataEntries(directory) {
+  const patterns = [
+    { kind: 'main', pattern: /(^|[\\/])npidata_pfile[^\\/]*\.csv$/i },
+    { kind: 'other-names', pattern: /(^|[\\/])othername_pfile[^\\/]*\.csv$/i },
+    { kind: 'practice-locations', pattern: /(^|[\\/])pl_pfile[^\\/]*\.csv$/i },
+    { kind: 'endpoints', pattern: /(^|[\\/])endpoint_pfile[^\\/]*\.csv$/i },
+  ];
+  return patterns.flatMap(({ kind, pattern }) => {
+    const entry = directory.files.find((candidate) => pattern.test(String(candidate.path)));
+    return entry ? [{ kind, entry }] : [];
+  });
+}
+
+async function extractEntry({ entry, kind, staging, onProgress, progressStart, progressSpan }) {
+  const filename = path.basename(entry.path);
+  const uncompressedBytes = Number(entry.vars?.uncompressedSize ?? entry.uncompressedSize ?? 0);
+  let extracted = 0;
+  let lastReported = 0;
+  const monitor = new Transform({
+    transform(chunk, _encoding, callback) {
+      extracted += chunk.length;
+      const now = Date.now();
+      if (now - lastReported > 750) {
+        const fraction = uncompressedBytes > 0 ? Math.min(1, extracted / uncompressedBytes) : 0.5;
+        onProgress?.(progressStart + fraction * progressSpan, `Extracting ${filename} (${formatBytes(extracted)}${uncompressedBytes ? ` of ${formatBytes(uncompressedBytes)}` : ''})`);
+        lastReported = now;
+      }
+      callback(null, chunk);
+    },
+  });
+  const destination = path.join(staging, filename);
+  await pipeline(await entry.stream(), monitor, createWriteStream(destination, { flags: 'wx' }));
+  if (uncompressedBytes > 0 && extracted !== uncompressedBytes) {
+    throw new Error(`NPPES extraction was incomplete for ${filename}: expected ${uncompressedBytes} bytes and extracted ${extracted}.`);
+  }
+  const hashed = await hashFile(destination);
+  return { kind, file: filename, uncompressedBytes: extracted, sha256: hashed.sha256 };
 }
 
 async function activateStagingDirectory(staging, active) {
@@ -254,49 +378,46 @@ export async function ensureNppesSource({
     }
 
     staging = path.join(locations.root, `.nppes-staging-${process.pid}-${crypto.randomUUID()}`);
-    partialArchive = path.join(locations.root, `.${release.archiveName}.${process.pid}.part`);
+    partialArchive = path.join(locations.root, `.${release.archiveName}.part`);
     finalArchive = path.join(locations.root, release.archiveName);
-    await rm(partialArchive, { force: true });
+    await adoptLegacyPartial(locations.root, release.archiveName, partialArchive);
     await rm(finalArchive, { force: true });
     await mkdir(staging, { recursive: false });
 
     onLog?.(`Preparing managed CMS source ${release.releaseId}.`);
     const download = await downloadArchive({ release, destination: partialArchive, fetchImpl, onProgress });
     await rename(partialArchive, finalArchive);
+    const archiveHash = await hashFile(finalArchive);
     const directory = await openArchive(finalArchive);
-    const mainEntry = directory.files.find((entry) => /(^|[\\/])npidata_pfile[^\\/]*\.csv$/i.test(String(entry.path)));
+    const dataEntries = archiveDataEntries(directory);
+    const mainEntry = dataEntries.find(({ kind }) => kind === 'main');
     if (!mainEntry) throw new Error('The CMS archive does not contain the expected npidata_pfile CSV.');
-    const mainName = path.basename(mainEntry.path);
-    const uncompressedBytes = Number(mainEntry.vars?.uncompressedSize ?? mainEntry.uncompressedSize ?? 0);
-    await assertFreeSpace(locations.root, uncompressedBytes + DISK_RESERVE_BYTES, 'NPPES extraction');
-
-    let extracted = 0;
-    let lastReported = 0;
-    const monitor = new Transform({
-      transform(chunk, _encoding, callback) {
-        extracted += chunk.length;
-        const now = Date.now();
-        if (now - lastReported > 750) {
-          const percent = uncompressedBytes > 0 ? Math.min(14, (extracted / uncompressedBytes) * 14) : 7;
-          onProgress?.(84 + percent, `Extracting ${mainName} (${formatBytes(extracted)}${uncompressedBytes ? ` of ${formatBytes(uncompressedBytes)}` : ''})`);
-          lastReported = now;
-        }
-        callback(null, chunk);
-      },
-    });
-    const destination = path.join(staging, mainName);
-    await pipeline(await mainEntry.stream(), monitor, createWriteStream(destination, { flags: 'wx' }));
-    if (uncompressedBytes > 0 && extracted !== uncompressedBytes) {
-      throw new Error(`NPPES extraction was incomplete: expected ${uncompressedBytes} bytes and extracted ${extracted}.`);
+    const expectedExtractedBytes = dataEntries.reduce((sum, { entry }) => sum + Number(entry.vars?.uncompressedSize ?? entry.uncompressedSize ?? 0), 0);
+    await assertFreeSpace(locations.root, expectedExtractedBytes + DISK_RESERVE_BYTES, 'NPPES extraction');
+    const files = [];
+    for (let index = 0; index < dataEntries.length; index += 1) {
+      files.push(await extractEntry({
+        ...dataEntries[index],
+        staging,
+        onProgress,
+        progressStart: 84 + (index / dataEntries.length) * 14,
+        progressSpan: 14 / dataEntries.length,
+      }));
     }
+    const mainFile = files.find(({ kind }) => kind === 'main');
 
     const metadata = {
       schemaVersion: 1,
       ...release,
       downloadedBytes: download.received,
       expectedBytes: download.expectedBytes || null,
-      mainFile: mainName,
-      uncompressedBytes: extracted,
+      resumedBytes: download.resumedBytes,
+      downloadedThisAttempt: download.downloadedThisAttempt,
+      archiveSha256: archiveHash.sha256,
+      mainFile: mainFile.file,
+      mainFileSha256: mainFile.sha256,
+      uncompressedBytes: mainFile.uncompressedBytes,
+      files,
       fetchedAt: new Date().toISOString(),
       readyAt: new Date().toISOString(),
     };
@@ -309,7 +430,7 @@ export async function ensureNppesSource({
     return validCachedSource(locations.active);
   } catch (error) {
     await rm(staging, { recursive: true, force: true }).catch(() => undefined);
-    await rm(partialArchive, { force: true }).catch(() => undefined);
+    if (error.discardPartial) await rm(partialArchive, { force: true }).catch(() => undefined);
     if (!keepArchive) await rm(finalArchive, { force: true }).catch(() => undefined);
     throw error;
   } finally {

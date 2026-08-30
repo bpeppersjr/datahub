@@ -15,6 +15,11 @@
       "layer": "public-record-level"
     },
     {
+      "dataset_id": "cms-nppes-organizations",
+      "scope": "active/reactivated organization NPIs and reported U.S. practice locations",
+      "layer": "public-record-level-with-internal-raw-source"
+    },
+    {
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
@@ -32,7 +37,7 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP-authorized retailers only",
+    "scope": "USDA SNAP-authorized retailers plus CMS NPPES organization providers and reported practice locations",
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },

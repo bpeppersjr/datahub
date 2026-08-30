@@ -14,6 +14,7 @@ Usage:
 Options:
   --output <path>  Output root (default: data/business-registry)
   --snap <path>    USDA SNAP current.json prerequisite
+  --nppes <path>   CMS NPPES organizations current.json prerequisite
   --help           Show this help
 `;
 }
@@ -22,16 +23,18 @@ function parseArguments(args) {
   const options = {
     output: "data/business-registry",
     snap: "data/business-sources/usda-snap/current.json",
+    nppes: "data/business-sources/cms-nppes-organizations/current.json",
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap"].includes(argument)) {
+    if (["--output", "--snap", "--nppes"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--snap") options.snap = value;
+      if (argument === "--nppes") options.nppes = value;
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -48,6 +51,7 @@ try {
   const result = await buildNationalBusinessRegistry({
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     snapPointer: assertInsideApp(path.resolve(APP_ROOT, options.snap)),
+    nppesPointer: assertInsideApp(path.resolve(APP_ROOT, options.nppes)),
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

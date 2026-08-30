@@ -7,10 +7,14 @@ import test from "node:test";
 import { gzipSync } from "node:zlib";
 import {
   buildNationalBusinessRegistry,
+  reconcileNppesOrganization,
+  reconcileNppesOtherName,
+  reconcileNppesPracticeLocation,
   reconcileSnapRecord,
   SNAP_SERVICE_ENTITY_ID,
   verifyNationalBusinessRegistry,
 } from "./business-registry.mjs";
+import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
 function sourceFeature(recordId, zipCode, overrides = {}) {
@@ -142,6 +146,52 @@ test("reconciles source-specific SNAP evidence without inferring an owner or gen
   assert.equal(result.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "snap-authorized-as-of-source-update");
   assert(!result.assertions.some((item) => item.predicate.includes("owner") || item.predicate.includes("open")));
   assert(result.assertions.every((item) => item.source.source_record_id === "101" && item.export_policy === "public"));
+});
+
+test("reconciles NPPES organizations and practice locations without inferring ownership or open status", () => {
+  const nppesContext = {
+    runId: "nppes-source-fixture",
+    observedAt: "2026-08-30T15:00:00.000Z",
+    sourceReleaseId: "NPPES_Data_Dissemination_August_2026_V2",
+    baselineByZip: new Map([["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }]]),
+  };
+  const sourceOrganization = normalizeNppesOrganization({
+    npi: "1234567890",
+    entityType: "2",
+    legalName: "FIXTURE HEALTH LLC",
+    otherName: "FIXTURE CLINIC",
+    otherNameType: "3",
+    address1: "10 MAIN ST",
+    city: "CHICAGO",
+    state: "IL",
+    postalCode: "60601",
+    country: "US",
+    deactivationDate: "",
+    reactivationDate: "",
+    organizationSubpart: "N",
+    parentOrganizationName: "REPORTED PARENT",
+    taxonomies: [{ code: "261Q00000X", primary: true }],
+  }, nppesContext).record;
+  const organization = reconcileNppesOrganization(sourceOrganization);
+  assert.deepEqual(organization.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(organization.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(organization.organizationAssertions.some((item) => item.predicate === "organization.npi-status"));
+  assert(organization.organizationAssertions.some((item) => item.predicate === "organization.reported-parent-name"));
+  assert(!organization.relationships.some((item) => item.relationship_type === "owns"));
+
+  const sourcePractice = normalizeNppesPracticeLocation({
+    npi: "1234567890",
+    address1: "20 OAK AVE",
+    city: "CHICAGO",
+    state: "IL",
+    postalCode: "60601",
+    country: "US",
+  }, nppesContext).record;
+  const practice = reconcileNppesPracticeLocation(sourcePractice);
+  assert.equal(practice.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "reported-non-primary-practice-location-for-active-npi");
+
+  const sourceName = normalizeNppesOtherName({ npi: "1234567890", name: "FIXTURE DBA", typeCode: "3", createdDate: "01/01/2020" }, nppesContext);
+  assert.equal(reconcileNppesOtherName(sourceName).predicate, "organization.other-name");
 });
 
 test("publishes and verifies a partial registry while retaining denominator-only ZIPs", async (t) => {

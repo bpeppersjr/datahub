@@ -142,6 +142,113 @@ export function reconcileSnapRecord(record) {
   };
 }
 
+function canonicalEntity(entityId, entityType, observedAt) {
+  return {
+    schema_version: REGISTRY_SCHEMA_VERSION,
+    entity_id: entityId,
+    entity_type: entityType,
+    identity_status: "provisional",
+    created_at: observedAt,
+    updated_at: observedAt,
+    superseded_by: null,
+  };
+}
+
+function nppesLocationAssertions(record, establishmentId, siteId, address, geography, telephone, sourceStatus, name = null, fieldPrefix = "Provider Business Practice Location") {
+  const assertions = [
+    assertion(record, siteId, "site.address", address, "address", `${fieldPrefix} Address fields`),
+    assertion(record, siteId, "site.zcta", geography, "object", `${fieldPrefix} Address Postal Code`),
+    assertion(record, establishmentId, "establishment.source-status", sourceStatus, "object", "NPI Deactivation Date|NPI Reactivation Date"),
+  ];
+  if (telephone) assertions.push(assertion(record, siteId, "site.telephone", telephone, "string", `${fieldPrefix} Address Telephone Number`));
+  if (name) assertions.push(assertion(record, establishmentId, "establishment.name", name, "string", "Provider Organization Name (Legal Business Name)|Provider Other Organization Name"));
+  return assertions;
+}
+
+export function reconcileNppesOrganization(record) {
+  const npi = record.external_identifiers?.find((item) => item.type === "npi")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  if (!/^\d{10}$/.test(npi ?? "") || organizationId !== `organization:cms_npi_${npi}`) throw new Error(`Invalid NPPES organization candidate ${record.normalized_record_id}.`);
+  const entities = [canonicalEntity(organizationId, "organization", record.observed_at)];
+  const organizationAssertions = [
+    assertion(record, organizationId, "organization.legal-name", record.legal_business_name, "string", "Provider Organization Name (Legal Business Name)"),
+    assertion(record, organizationId, "organization.external-identifier", { type: "npi", value: npi }, "identifier", "NPI"),
+    assertion(record, organizationId, "organization.npi-status", record.npi_status, "object", "NPI Deactivation Date|NPI Reactivation Date"),
+    assertion(record, organizationId, "organization.healthcare-taxonomies", { system: "NUCC Healthcare Provider Taxonomy", items: record.healthcare_taxonomies }, "object", "Healthcare Provider Taxonomy Code_1 through _15"),
+  ];
+  if (record.organization_subpart !== null) {
+    organizationAssertions.push(assertion(record, organizationId, "organization.subpart", record.organization_subpart, "boolean", "Is Organization Subpart"));
+  }
+  if (record.other_organization_name) {
+    organizationAssertions.push(assertion(record, organizationId, "organization.other-name", {
+      name: record.other_organization_name,
+      name_type: record.other_organization_name_type,
+    }, "object", "Provider Other Organization Name|Provider Other Organization Name Type Code"));
+  }
+  if (record.parent_organization_name) {
+    organizationAssertions.push(assertion(record, organizationId, "organization.reported-parent-name", record.parent_organization_name, "string", "Parent Organization LBN"));
+  }
+  const locationAssertions = [];
+  const relationships = [];
+  let zipCode = null;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  if (record.primary_practice_location) {
+    zipCode = record.primary_practice_location.address?.zip_code;
+    if (!/^\d{5}$/.test(zipCode ?? "") || !siteId || !establishmentId) throw new Error(`NPPES organization ${npi} has an invalid primary location candidate.`);
+    entities.push(canonicalEntity(siteId, "physical_site", record.observed_at));
+    entities.push(canonicalEntity(establishmentId, "establishment", record.observed_at));
+    locationAssertions.push(...nppesLocationAssertions(
+      record,
+      establishmentId,
+      siteId,
+      record.primary_practice_location.address,
+      record.primary_practice_location.geography,
+      record.primary_practice_location.telephone,
+      record.npi_status,
+      record.other_organization_name || record.legal_business_name,
+    ));
+    relationships.push(relationship(record, "operates", organizationId, establishmentId));
+    relationships.push(relationship(record, "located_at", establishmentId, siteId));
+  }
+  return { npi, npiPrefix: npi[0], zipCode, entities, organizationAssertions, locationAssertions, relationships };
+}
+
+export function reconcileNppesPracticeLocation(record) {
+  const npi = record.npi;
+  const organizationId = record.entity_candidates?.organization_id;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d{10}$/.test(npi ?? "") || organizationId !== `organization:cms_npi_${npi}` || !siteId || !establishmentId || !/^\d{5}$/.test(zipCode ?? "")) {
+    throw new Error(`Invalid NPPES practice-location candidate ${record.normalized_record_id}.`);
+  }
+  return {
+    npi,
+    zipCode,
+    entities: [
+      canonicalEntity(siteId, "physical_site", record.observed_at),
+      canonicalEntity(establishmentId, "establishment", record.observed_at),
+    ],
+    assertions: nppesLocationAssertions(record, establishmentId, siteId, record.address, record.geography, record.telephone, record.source_status, null, "Provider Secondary Practice Location"),
+    relationships: [
+      relationship(record, "operates", organizationId, establishmentId),
+      relationship(record, "located_at", establishmentId, siteId),
+    ],
+  };
+}
+
+export function reconcileNppesOtherName(record) {
+  if (!/^\d{10}$/.test(record.npi ?? "") || record.organization_id !== `organization:cms_npi_${record.npi}` || !record.name) {
+    throw new Error(`Invalid NPPES organization other name ${record.normalized_record_id}.`);
+  }
+  return assertion(record, record.organization_id, "organization.other-name", {
+    name: record.name,
+    name_type: record.name_type,
+    source_created_date: record.source_created_date,
+  }, "object", "Provider Other Organization Name|Provider Other Organization Name Type Code|Created Date");
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -242,6 +349,42 @@ async function loadSnapRelease(pointerPath) {
   };
 }
 
+async function loadNppesRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "NPPES manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "cms-nppes-organizations" || manifest.status !== "published" || !manifest.complete_cms_monthly_source_snapshot) {
+    throw new Error("A complete published CMS NPPES organization source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const organizationArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-nppes-organization-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  const practiceArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-nppes-practice-location-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  const nameArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-nppes-other-name-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (organizationArtifacts.length !== 11 || practiceArtifacts.length !== 10 || nameArtifacts.length !== 10) throw new Error("CMS NPPES source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "nppes-organization-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("CMS NPPES source release has no ZIP coverage artifact.");
+  for (const artifact of [...organizationArtifacts, ...practiceArtifacts, ...nameArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `NPPES artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`CMS NPPES artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("CMS NPPES ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    organizationArtifacts,
+    practiceArtifacts,
+    nameArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -265,35 +408,56 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage(sourceRows, countsByZip, context) {
-  const knownZips = new Set(sourceRows.map((row) => row.zip_code));
-  const outside = [...countsByZip.keys()].filter((zipCode) => !knownZips.has(zipCode));
-  if (outside.length) throw new Error(`Registry records reference ${outside.length} ZIPs missing from the source coverage union.`);
-  return sourceRows.map((row) => {
-    const count = countsByZip.get(row.zip_code) ?? 0;
-    const expected = row.snap_retailer_snapshot?.retailer_count ?? 0;
-    if (count !== expected) throw new Error(`ZIP ${row.zip_code} reconciled ${count} records but the source coverage reports ${expected}.`);
+function registryZipCoverage({ snap, nppes, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts }) {
+  const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
+  const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys()])].sort();
+  return zipCodes.map((zipCode) => {
+    const snapRow = snapRows.get(zipCode);
+    const nppesRow = nppesRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow;
+    if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
+    const snapCount = snapCounts.get(zipCode) ?? 0;
+    const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
+    const secondary = nppesSecondaryCounts.get(zipCode) ?? 0;
+    if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
+    if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
+      || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
+      throw new Error(`ZIP ${zipCode} CMS NPPES counts do not reconcile.`);
+    }
+    const locationCount = snapCount + primary + secondary;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
-      zip_code: row.zip_code,
+      zip_code: zipCode,
       registry_coverage: {
-        status: count > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution",
+        status: locationCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution",
         complete_all_businesses: false,
-        physical_site_count: count,
-        establishment_count: count,
-        snap_authorization_evidence_count: count,
+        physical_site_count: locationCount,
+        establishment_count: locationCount,
+        organization_primary_location_count: primary,
+        snap_authorization_evidence_count: snapCount,
+        nppes_primary_practice_location_count: primary,
+        nppes_non_primary_practice_location_count: secondary,
       },
       source_contributions: {
         usda_snap_retailers: {
-          record_count: count,
-          source_release_id: context.sourceReleaseId,
-          source_updated_at: context.sourceUpdatedAt,
+          record_count: snapCount,
+          source_release_id: snap.manifest.source_release_id,
+          source_updated_at: snap.manifest.source_updated_at,
         },
+        ...(nppes ? {
+          cms_nppes_organizations: {
+            primary_practice_location_count: primary,
+            non_primary_practice_location_count: secondary,
+            source_release_id: nppes.manifest.source_release_id,
+            source_through_date: nppes.manifest.source_through_date,
+          },
+        } : {}),
       },
-      current_usps_validity: row.current_usps_validity,
-      geography: row.geography,
-      employer_baseline: row.employer_baseline,
-      baseline_coverage_status: row.baseline_coverage_status,
+      current_usps_validity: foundation.current_usps_validity,
+      geography: foundation.geography,
+      employer_baseline: foundation.employer_baseline,
+      baseline_coverage_status: foundation.baseline_coverage_status,
     };
   });
 }
@@ -301,12 +465,14 @@ function registryZipCoverage(sourceRows, countsByZip, context) {
 export async function buildNationalBusinessRegistry({
   outputRoot,
   snapPointer,
+  nppesPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
   if (!outputRoot) throw new Error("outputRoot is required.");
   if (!snapPointer) throw new Error("snapPointer is required.");
   const snap = await loadSnapRelease(snapPointer);
+  const nppes = nppesPointer ? await loadNppesRelease(nppesPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -317,16 +483,29 @@ export async function buildNationalBusinessRegistry({
   const establishmentWriters = new Map();
   const assertionWriters = new Map();
   const relationshipWriters = new Map();
+  const organizationWriters = new Map();
+  const organizationAssertionWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
     establishmentWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/establishments/prefix=${prefix}.jsonl.gz`));
     assertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/prefix=${prefix}.jsonl.gz`));
     relationshipWriters.set(prefix, await openGzipWriter(stagingDirectory, `relationships/prefix=${prefix}.jsonl.gz`));
+    if (nppes) {
+      organizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/npi-prefix=${prefix}.jsonl.gz`));
+      organizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/npi-prefix=${prefix}.jsonl.gz`));
+    }
   }
 
-  const countsByZip = new Map();
+  const snapCountsByZip = new Map();
+  const nppesPrimaryCountsByZip = new Map();
+  const nppesSecondaryCountsByZip = new Map();
   const normalizedIds = new Set();
-  let sourceRecords = 0;
+  const nppesNpis = new Set();
+  let snapRecords = 0;
+  let nppesOrganizations = 0;
+  let nppesPrimaryLocations = 0;
+  let nppesSecondaryLocations = 0;
+  let nppesOtherNames = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -341,20 +520,83 @@ export async function buildNationalBusinessRegistry({
       await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
       for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
       for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
-      countsByZip.set(reconciled.zipCode, (countsByZip.get(reconciled.zipCode) ?? 0) + 1);
+      snapCountsByZip.set(reconciled.zipCode, (snapCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
       assertions += reconciled.assertions.length;
       relationships += reconciled.relationships.length;
     });
     if (count !== artifact.record_count) throw new Error(`SNAP artifact ${artifact.path} has ${count} records; expected ${artifact.record_count}.`);
-    sourceRecords += count;
-    logger(`Reconciled ${sourceRecords.toLocaleString("en-US")} USDA SNAP records.`);
+    snapRecords += count;
+    logger(`Reconciled ${snapRecords.toLocaleString("en-US")} USDA SNAP records.`);
   }
-  if (sourceRecords !== snap.manifest.coverage.accepted_records) throw new Error("Registry input count does not match the USDA SNAP accepted-record count.");
+  if (snapRecords !== snap.manifest.coverage.accepted_records) throw new Error("Registry input count does not match the USDA SNAP accepted-record count.");
+
+  if (nppes) {
+    for (const artifact of nppes.organizationArtifacts) {
+      const count = await forEachGzipRecord(path.join(nppes.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileNppesOrganization(record);
+        if (nppesNpis.has(reconciled.npi)) throw new Error(`Duplicate CMS NPPES organization ${reconciled.npi}.`);
+        nppesNpis.add(reconciled.npi);
+        await writeGzipRecord(organizationWriters.get(reconciled.npiPrefix), reconciled.entities[0]);
+        for (const item of reconciled.organizationAssertions) await writeGzipRecord(organizationAssertionWriters.get(reconciled.npiPrefix), item);
+        assertions += reconciled.organizationAssertions.length;
+        if (reconciled.zipCode) {
+          const prefix = reconciled.zipCode[0];
+          await writeGzipRecord(siteWriters.get(prefix), reconciled.entities[1]);
+          await writeGzipRecord(establishmentWriters.get(prefix), reconciled.entities[2]);
+          for (const item of reconciled.locationAssertions) await writeGzipRecord(assertionWriters.get(prefix), item);
+          for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(prefix), item);
+          nppesPrimaryCountsByZip.set(reconciled.zipCode, (nppesPrimaryCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+          nppesPrimaryLocations += 1;
+          assertions += reconciled.locationAssertions.length;
+          relationships += reconciled.relationships.length;
+        }
+      });
+      if (count !== artifact.record_count) throw new Error(`CMS NPPES organization artifact ${artifact.path} record count mismatch.`);
+      nppesOrganizations += count;
+      logger(`Reconciled ${nppesOrganizations.toLocaleString("en-US")} CMS NPPES organizations.`);
+    }
+    if (nppesOrganizations !== nppes.manifest.coverage.active_organization_npis || nppesPrimaryLocations !== nppes.manifest.coverage.organization_primary_locations_with_us_zip) {
+      throw new Error("Registry CMS NPPES organization counts do not match the source release.");
+    }
+
+    for (const artifact of nppes.practiceArtifacts) {
+      const count = await forEachGzipRecord(path.join(nppes.releaseDirectory, artifact.path), async (record) => {
+        if (!nppesNpis.has(record.npi)) throw new Error(`CMS NPPES practice location has no organization ${record.npi}.`);
+        const reconciled = reconcileNppesPracticeLocation(record);
+        const prefix = reconciled.zipCode[0];
+        await writeGzipRecord(siteWriters.get(prefix), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(prefix), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(prefix), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(prefix), item);
+        nppesSecondaryCountsByZip.set(reconciled.zipCode, (nppesSecondaryCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        nppesSecondaryLocations += 1;
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`CMS NPPES practice-location artifact ${artifact.path} record count mismatch.`);
+      logger(`Reconciled ${nppesSecondaryLocations.toLocaleString("en-US")} CMS NPPES non-primary practice locations.`);
+    }
+    if (nppesSecondaryLocations !== nppes.manifest.coverage.accepted_non_primary_practice_locations) throw new Error("Registry CMS NPPES practice-location count does not match the source release.");
+
+    for (const artifact of nppes.nameArtifacts) {
+      const count = await forEachGzipRecord(path.join(nppes.releaseDirectory, artifact.path), async (record) => {
+        if (!nppesNpis.has(record.npi)) throw new Error(`CMS NPPES other name has no organization ${record.npi}.`);
+        await writeGzipRecord(organizationAssertionWriters.get(record.npi[0]), reconcileNppesOtherName(record));
+        nppesOtherNames += 1;
+        assertions += 1;
+      });
+      if (count !== artifact.record_count) throw new Error(`CMS NPPES other-name artifact ${artifact.path} record count mismatch.`);
+      logger(`Reconciled ${nppesOtherNames.toLocaleString("en-US")} CMS NPPES organization other names.`);
+    }
+    if (nppesOtherNames !== nppes.manifest.coverage.accepted_other_names) throw new Error("Registry CMS NPPES other-name count does not match the source release.");
+  }
 
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
+  if (nppes) artifacts.push(...await closeGzipWriters([...organizationWriters.values()], "canonical-organization-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
 
   const serviceEntity = {
@@ -371,26 +613,40 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage(snap.zipRows, countsByZip, {
-    sourceReleaseId: snap.manifest.source_release_id,
-    sourceUpdatedAt: snap.manifest.source_updated_at,
-  });
+  const zipCoverage = registryZipCoverage({ snap, nppes, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
   }));
   const sourceContribution = {
-    source_id: "usda-snap-current-retailers",
-    dataset_id: "usda-snap-retailers",
-    source_release_id: snap.manifest.source_release_id,
-    dataset_release_id: snap.manifest.release_id,
-    source_updated_at: snap.manifest.source_updated_at,
-    accepted_source_records: sourceRecords,
-    physical_sites_published: sourceRecords,
-    establishments_published: sourceRecords,
-    service_relationships_published: sourceRecords,
-    identity_resolution: "one provisional site and establishment per source record; no cross-source merge",
-    general_operating_status_inferred: false,
+    usda_snap_retailers: {
+      source_id: "usda-snap-current-retailers",
+      dataset_id: "usda-snap-retailers",
+      source_release_id: snap.manifest.source_release_id,
+      dataset_release_id: snap.manifest.release_id,
+      source_updated_at: snap.manifest.source_updated_at,
+      accepted_source_records: snapRecords,
+      physical_sites_published: snapRecords,
+      establishments_published: snapRecords,
+      service_relationships_published: snapRecords,
+      identity_resolution: "one provisional site and establishment per source record; no cross-source merge",
+      general_operating_status_inferred: false,
+    },
+    ...(nppes ? {
+      cms_nppes_organizations: {
+        source_id: "cms-nppes-monthly-v2",
+        dataset_id: nppes.manifest.dataset_id,
+        source_release_id: nppes.manifest.source_release_id,
+        dataset_release_id: nppes.manifest.release_id,
+        source_through_date: nppes.manifest.source_through_date,
+        organizations_published: nppesOrganizations,
+        primary_practice_locations_published: nppesPrimaryLocations,
+        non_primary_practice_locations_published: nppesSecondaryLocations,
+        other_name_assertions_published: nppesOtherNames,
+        identity_resolution: "one provisional organization per active organization NPI and one provisional site/establishment per reported practice location; no cross-source merge",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -405,16 +661,23 @@ export async function buildNationalBusinessRegistry({
     created_at: createdAt,
     status: "published-partial",
     complete_national_business_registry: false,
-    publication_scope: "USDA SNAP-authorized retailer source only, reconciled against the Census ZBP/ZCTA ZIP coverage union",
+    publication_scope: nppes
+      ? "USDA SNAP-authorized retailers and CMS NPPES organization providers/practice locations, reconciled against the Census ZBP/ZCTA ZIP coverage union"
+      : "USDA SNAP-authorized retailer source only, reconciled against the Census ZBP/ZCTA ZIP coverage union",
     coverage: {
-      source_records: sourceRecords,
-      physical_sites: sourceRecords,
-      establishments: sourceRecords,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames,
+      snap_source_records: snapRecords,
+      nppes_organization_records: nppesOrganizations,
+      nppes_non_primary_practice_location_records: nppesSecondaryLocations,
+      nppes_other_name_records: nppesOtherNames,
+      organizations: nppesOrganizations,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: countsByZip.size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -423,7 +686,13 @@ export async function buildNationalBusinessRegistry({
         release_id: snap.manifest.release_id,
         manifest_sha256: snap.manifestSha256,
       },
+      ...(nppes ? [{
+        dataset_id: nppes.manifest.dataset_id,
+        release_id: nppes.manifest.release_id,
+        manifest_sha256: nppes.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
+      ...(nppes?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -434,6 +703,11 @@ export async function buildNationalBusinessRegistry({
     limitations: [
       "This is a partial registry release and must not be represented as all U.S. businesses.",
       "The source covers SNAP-authorized retailers, not all grocery stores, retailers, employers, or establishments.",
+      ...(nppes ? [
+        "CMS NPPES covers health care providers and suppliers, not all U.S. businesses.",
+        "Active NPI enumeration does not validate licensure or credentials and does not prove that a reported practice location is currently open.",
+        "Active individual NPI records and authorized-official personal fields are excluded from this registry release.",
+      ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
       "No brand, legal organization, parent company, ownership, or general operating-status claim is inferred from the source name.",
@@ -492,7 +766,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const assertionArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-assertion-jsonl-gzip");
   const relationshipArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-relationship-jsonl-gzip");
   const entityIds = new Set();
-  const entityCounts = { physical_site: 0, establishment: 0, service: 0 };
+  const entityCounts = { organization: 0, physical_site: 0, establishment: 0, service: 0 };
   for (const artifact of entityArtifacts) {
     try {
       const consume = (record) => {
@@ -516,17 +790,23 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   }
   if (!entityIds.has(SNAP_SERVICE_ENTITY_ID)) failures.push({ path: "entities/services.jsonl", reason: "missing SNAP service entity" });
 
-  const assertionIds = new Set();
+  const allowedSourceStatuses = new Set([
+    "snap-authorized-as-of-source-update",
+    "npi-active-as-of-source-release",
+    "npi-reactivated-as-of-source-release",
+    "reported-non-primary-practice-location-for-active-npi",
+  ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {
     try {
+      const assertionIds = new Set();
       const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (record) => {
         if (assertionIds.has(record.assertion_id)) throw new Error(`duplicate assertion ${record.assertion_id}`);
         assertionIds.add(record.assertion_id);
         if (!entityIds.has(record.subject_entity_id)) throw new Error(`missing assertion subject ${record.subject_entity_id}`);
         if (!validateProvenance(record.source) || record.export_policy !== "public") throw new Error(`invalid provenance or policy for ${record.assertion_id}`);
         if (!record.observed_at || !record.first_seen || !record.last_seen) throw new Error(`missing temporal scope for ${record.assertion_id}`);
-        if (record.predicate === "establishment.source-status" && record.value?.value !== "snap-authorized-as-of-source-update") {
+        if (record.predicate === "establishment.source-status" && !allowedSourceStatuses.has(record.value?.value)) {
           throw new Error(`invalid source-specific status for ${record.assertion_id}`);
         }
       });
@@ -537,16 +817,16 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     }
   }
 
-  const relationshipIds = new Set();
   let relationshipCount = 0;
   for (const artifact of relationshipArtifacts) {
     try {
+      const relationshipIds = new Set();
       const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (record) => {
         if (relationshipIds.has(record.relationship_id)) throw new Error(`duplicate relationship ${record.relationship_id}`);
         relationshipIds.add(record.relationship_id);
         if (!entityIds.has(record.subject_entity_id) || !entityIds.has(record.object_entity_id)) throw new Error(`missing relationship endpoint ${record.relationship_id}`);
         if (!validateProvenance(record.source) || !record.observed_at) throw new Error(`invalid relationship provenance ${record.relationship_id}`);
-        if (!["located_at", "provides_service"].includes(record.relationship_type)) throw new Error(`unsupported relationship ${record.relationship_type}`);
+        if (!["located_at", "provides_service", "operates"].includes(record.relationship_type)) throw new Error(`unsupported relationship ${record.relationship_type}`);
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual relationship line count mismatch" });
       relationshipCount += count;
@@ -555,11 +835,11 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     }
   }
 
-  if (entityCounts.physical_site !== manifest.coverage?.physical_sites || entityCounts.establishment !== manifest.coverage?.establishments || entityCounts.service !== manifest.coverage?.services) {
+  if (entityCounts.organization !== (manifest.coverage?.organizations ?? 0) || entityCounts.physical_site !== manifest.coverage?.physical_sites || entityCounts.establishment !== manifest.coverage?.establishments || entityCounts.service !== manifest.coverage?.services) {
     failures.push({ path: "manifest.json", reason: "entity counts do not reconcile" });
   }
   if (assertionCount !== manifest.coverage?.assertions) failures.push({ path: "manifest.json", reason: "assertion count does not reconcile" });
-  if (relationshipCount !== manifest.coverage?.relationships || relationshipCount !== manifest.coverage?.source_records * 2) {
+  if (relationshipCount !== manifest.coverage?.relationships) {
     failures.push({ path: "manifest.json", reason: "relationship count does not reconcile" });
   }
 

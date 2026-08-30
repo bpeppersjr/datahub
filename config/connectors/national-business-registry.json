@@ -8,12 +8,13 @@
     "additionalProperties": false,
     "properties": {
       "output": { "type": "string", "default": "data/business-registry" },
-      "snap_pointer": { "type": "string", "default": "data/business-sources/usda-snap/current.json" }
+      "snap_pointer": { "type": "string", "default": "data/business-sources/usda-snap/current.json" },
+      "nppes_pointer": { "type": "string", "default": "data/business-sources/cms-nppes-organizations/current.json" }
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl"],
-  "output_artifact_types": ["canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
+  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl"],
+  "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
   "allowed_hosts": [],
   "redirect_policy": "deny",
   "provider_budget_key": "local-registry-reconciliation",
@@ -27,8 +28,8 @@
   "checkpoint": "Inputs and outputs are checksummed; publication uses a run-scoped staging directory and atomic current pointer.",
   "idempotency": "Entity IDs derive from source candidates and assertion/relationship IDs are deterministic hashes of source-backed facts.",
   "cancellation": "Stop streaming at the current record; no current pointer is changed until the complete release is published.",
-  "source_policy": "Inherited per assertion from each contributing source policy; the first release uses config/source-policies/usda-snap-retailers.json.",
+  "source_policy": "Inherited per assertion from each contributing source policy; current releases use USDA SNAP and CMS NPPES public normalized policies.",
   "retention_profile": "Retain immutable public registry releases until an approved retention operation removes them.",
-  "produced_entities": ["physical_site", "establishment", "service"],
+  "produced_entities": ["organization", "physical_site", "establishment", "service"],
   "produced_identifiers": ["canonical-entity-id", "assertion-id", "relationship-id", "usda-snap-record-id", "zip5", "zcta5"]
 }
