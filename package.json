@@ -37,6 +37,8 @@
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",
     "registry:verify": "node scripts/verify-business-registry.mjs",
+    "entity-resolution:build": "node scripts/build-business-entity-resolution.mjs",
+    "entity-resolution:verify": "node scripts/verify-business-entity-resolution.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",

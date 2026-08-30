@@ -7,6 +7,7 @@
   "entity_schema": "config/schemas/business-entity.schema.json",
   "assertion_schema": "config/schemas/business-assertion.schema.json",
   "relationship_schema": "config/schemas/business-relationship.schema.json",
+  "location_match_profile_schema": "config/schemas/business-location-match-profile.schema.json",
   "required_foundations": ["us-census-geography", "census-zbp-baseline"],
   "implemented_source_layers": [
     {
@@ -73,8 +74,18 @@
   "current_release": {
     "output": "data/business-registry/current.json",
     "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, plus current IRS EO BMF organizations and filing addresses",
+    "release_id": "national-business-registry-20260830-201530698Z-7230b6a4",
+    "publisher_version": "1.2.0",
+    "resolution_location_profiles": 6161280,
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
+  },
+  "entity_resolution_capability": {
+    "registry_publisher_version": "1.2.0",
+    "profile_artifacts": "resolution/location-profiles/zip2=<00-99>.jsonl.gz",
+    "profile_cardinality": "exactly one location match profile per provisional physical-site/establishment pair, including an explicitly ineligible null match key when the reported street address is incomplete",
+    "downstream_dataset": "national-business-entity-resolution",
+    "identity_effect": "Profiles are derived evidence only; they do not mutate provisional source entities or assertions."
   },
   "documentation": ["docs/BUSINESS-REGISTRY-CONTRACT.md", "docs/NATIONAL-BUSINESS-REGISTRY.md"]
 }

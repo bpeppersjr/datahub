@@ -1,0 +1,37 @@
+{
+  "connector_id": "national-business-entity-resolution",
+  "version": "1.0.0",
+  "implementation_status": "implemented-and-live-verified-local-review-only",
+  "description": "Publishes reversible exact-match aliases and unapplied scored review candidates from governed registry location profiles.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-entity-resolution" },
+      "registry_pointer": { "type": "string", "default": "data/business-registry/current.json" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["entity-resolution-location-profile-jsonl-gzip"],
+  "output_artifact_types": ["entity-resolution-decision-jsonl-gzip", "entity-resolution-summary-json", "dataset-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-business-entity-resolution",
+  "resource_class": "cpu-disk",
+  "execution_limits": {
+    "network_requests": 0,
+    "input_partitions": 100,
+    "parallel_partitions": 1,
+    "maximum_review_address_group_members": 50,
+    "review_score_threshold": 0.78
+  },
+  "retry": "Rerun from the immutable registry pointer; no external requests or partial side effects occur.",
+  "checkpoint": "Each ZIP2 partition is independently derived in run-scoped staging; no current pointer changes until all partitions pass.",
+  "idempotency": "Resolved entity IDs and decision IDs are deterministic hashes of rule inputs; releases remain immutable.",
+  "cancellation": "Stop after the current ZIP2 partition; staged decisions remain unpublished and can be discarded or inspected.",
+  "source_policy": "config/source-policies/national-business-entity-resolution.json",
+  "retention_profile": "Keep decision releases local-review-only until benchmark and contributing-source policies authorize an export.",
+  "produced_entities": ["resolved-physical-site-alias", "resolved-establishment-alias", "establishment-review-candidate"],
+  "produced_identifiers": ["resolution-decision-id", "resolved-site-id", "resolved-establishment-id"]
+}

@@ -69,4 +69,6 @@ A national release requires:
 7. Explicit unresolved conflicts and source-specific exclusions.
 8. No restricted fields in public exports.
 
+Registry publisher 1.2.0 emits source-preserving location match profiles as a separate derived input. The entity-resolution publisher records exact-address aliases, exact address-and-name aliases, and unapplied review candidates in immutable decision artifacts. It never rewrites provisional entity IDs or source assertions. Automatic links remain reversible, fuzzy evidence remains review-only, and record-level linkage remains local until benchmark precision and every contributing source policy authorize an export.
+
 The machine-readable contracts are [`business-entity.schema.json`](../config/schemas/business-entity.schema.json), [`business-assertion.schema.json`](../config/schemas/business-assertion.schema.json), and [`business-relationship.schema.json`](../config/schemas/business-relationship.schema.json).

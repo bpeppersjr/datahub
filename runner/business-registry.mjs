@@ -6,9 +6,10 @@ import path from "node:path";
 import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
+import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.1.0";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.2.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -567,6 +568,15 @@ async function closeGzipWriters(writers, artifactType) {
   return artifacts;
 }
 
+async function writeLocationResolutionProfile(writers, record, reconciled) {
+  const profile = createLocationMatchProfile(record, reconciled);
+  if (!profile) throw new Error(`Location ${record.normalized_record_id ?? "<unknown>"} produced no entity-resolution profile.`);
+  const zip2 = profile.zip_code.slice(0, 2);
+  const writer = writers.get(zip2);
+  if (!writer) throw new Error(`No entity-resolution profile writer exists for ZIP2 ${zip2}.`);
+  await writeGzipRecord(writer, profile);
+}
+
 function assertContained(parent, child, label) {
   const relative = path.relative(parent, child);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
@@ -1097,6 +1107,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaOrganizationAssertionWriters = new Map();
   const irsEoOrganizationWriters = new Map();
   const irsEoOrganizationAssertionWriters = new Map();
+  const resolutionProfileWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
     establishmentWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/establishments/prefix=${prefix}.jsonl.gz`));
@@ -1118,6 +1129,10 @@ export async function buildNationalBusinessRegistry({
       irsEoOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/irs-ein-prefix=${prefix}.jsonl.gz`));
       irsEoOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/irs-ein-prefix=${prefix}.jsonl.gz`));
     }
+  }
+  for (let prefix = 0; prefix < 100; prefix += 1) {
+    const zip2 = String(prefix).padStart(2, "0");
+    resolutionProfileWriters.set(zip2, await openGzipWriter(stagingDirectory, `resolution/location-profiles/zip2=${zip2}.jsonl.gz`));
   }
 
   const snapCountsByZip = new Map();
@@ -1155,6 +1170,7 @@ export async function buildNationalBusinessRegistry({
   let irsEoOrganizations = 0;
   let assertions = 0;
   let relationships = 0;
+  let resolutionLocationProfiles = 0;
   for (const artifact of snap.retailerArtifacts) {
     const partition = artifact.path.match(/prefix=(\d)/)?.[1];
     if (!partition) throw new Error(`Cannot determine ZIP prefix for ${artifact.path}.`);
@@ -1167,6 +1183,8 @@ export async function buildNationalBusinessRegistry({
       await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
       for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
       for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+      await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+      resolutionLocationProfiles += 1;
       snapCountsByZip.set(reconciled.zipCode, (snapCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
       assertions += reconciled.assertions.length;
       relationships += reconciled.relationships.length;
@@ -1192,6 +1210,8 @@ export async function buildNationalBusinessRegistry({
           await writeGzipRecord(establishmentWriters.get(prefix), reconciled.entities[2]);
           for (const item of reconciled.locationAssertions) await writeGzipRecord(assertionWriters.get(prefix), item);
           for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(prefix), item);
+          await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+          resolutionLocationProfiles += 1;
           nppesPrimaryCountsByZip.set(reconciled.zipCode, (nppesPrimaryCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
           nppesPrimaryLocations += 1;
           assertions += reconciled.locationAssertions.length;
@@ -1215,6 +1235,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(prefix), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(prefix), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(prefix), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         nppesSecondaryCountsByZip.set(reconciled.zipCode, (nppesSecondaryCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         nppesSecondaryLocations += 1;
         assertions += reconciled.assertions.length;
@@ -1270,6 +1292,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         fdicLocationCountsByZip.set(reconciled.zipCode, (fdicLocationCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         assertions += reconciled.assertions.length;
         relationships += reconciled.relationships.length;
@@ -1313,6 +1337,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         ncuaLocationCountsByZip.set(reconciled.zipCode, (ncuaLocationCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         assertions += reconciled.assertions.length;
         relationships += reconciled.relationships.length;
@@ -1349,6 +1375,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         fsisEstablishmentCountsByZip.set(reconciled.zipCode, (fsisEstablishmentCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         assertions += reconciled.assertions.length;
         relationships += reconciled.relationships.length;
@@ -1373,6 +1401,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         echoFacilityCountsByZip.set(reconciled.zipCode, (echoFacilityCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         assertions += reconciled.assertions.length;
         relationships += reconciled.relationships.length;
@@ -1397,6 +1427,8 @@ export async function buildNationalBusinessRegistry({
         await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
         for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
         for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+        resolutionLocationProfiles += 1;
         fmcsaRecordCountsByZip.set(reconciled.zipCode, (fmcsaRecordCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
         assertions += reconciled.assertions.length;
         relationships += reconciled.relationships.length;
@@ -1429,6 +1461,11 @@ export async function buildNationalBusinessRegistry({
     if (irsEoOrganizations !== irsEo.manifest.coverage.accepted_current_exempt_organizations) throw new Error("Registry IRS EO organization count does not match the source release.");
   }
 
+  const physicalSiteCount = snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords;
+  if (resolutionLocationProfiles !== physicalSiteCount) {
+    throw new Error(`Entity-resolution profile count ${resolutionLocationProfiles} does not match physical-site count ${physicalSiteCount}.`);
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -1442,6 +1479,7 @@ export async function buildNationalBusinessRegistry({
   if (ncua) artifacts.push(...await closeGzipWriters([...ncuaOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (irsEo) artifacts.push(...await closeGzipWriters([...irsEoOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
+  artifacts.push(...await closeGzipWriters([...resolutionProfileWriters.values()], "entity-resolution-location-profile-jsonl-gzip"));
 
   const serviceEntity = {
     schema_version: REGISTRY_SCHEMA_VERSION,
@@ -1602,7 +1640,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "1.1.0" },
+    publisher: { id: "national-business-registry", version: "1.2.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1634,11 +1672,12 @@ export async function buildNationalBusinessRegistry({
       fmcsa_active_principal_office_records: fmcsaRecords,
       irs_eo_organization_records: irsEoOrganizations,
       organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords,
+      physical_sites: physicalSiteCount,
+      establishments: physicalSiteCount,
       services: 1,
       assertions,
       relationships,
+      resolution_location_profiles: resolutionLocationProfiles,
       zip_union_records: zipCoverage.length,
       zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: uspsZips ? {
@@ -1825,6 +1864,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   }
 
   const entityArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type?.startsWith("canonical-"));
+  const resolutionProfileArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   const assertionArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-assertion-jsonl-gzip");
   const relationshipArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-relationship-jsonl-gzip");
   const entityIds = new Set();
@@ -1851,6 +1891,39 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     }
   }
   if (!entityIds.has(SNAP_SERVICE_ENTITY_ID)) failures.push({ path: "entities/services.jsonl", reason: "missing SNAP service entity" });
+
+  let resolutionProfileCount = 0;
+  if (manifest.publisher?.version === "1.2.0" && resolutionProfileArtifacts.length !== 100) {
+    failures.push({ path: "resolution/location-profiles", reason: `expected 100 match-profile partitions; found ${resolutionProfileArtifacts.length}` });
+  }
+  const profileIds = new Set();
+  for (const artifact of resolutionProfileArtifacts) {
+    try {
+      const zip2 = artifact.path.match(/zip2=(\d{2})/)?.[1];
+      if (!zip2) throw new Error("missing ZIP2 partition");
+      const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (profile) => {
+        const matchKey = profile.normalized_address?.match_key;
+        if (profileIds.has(profile.profile_id)) throw new Error(`duplicate profile ${profile.profile_id}`);
+        if (profile.schema_version !== "1.0.0" || profile.profile_version !== "business-location-match-profile@1.0.0"
+          || profile.zip_code?.slice(0, 2) !== zip2 || !entityIds.has(profile.site_entity_id)
+          || !entityIds.has(profile.establishment_entity_id)
+          || profile.normalized_address?.complete !== Boolean(matchKey) || profile.normalized_address?.zip_code !== profile.zip_code
+          || (matchKey ? profile.address_match_key_sha256 !== digest(matchKey) : profile.address_match_key_sha256 !== null)
+          || !validateProvenance(profile.source) || !profile.observed_at || !profile.export_policy) {
+          throw new Error(`invalid match profile ${profile.profile_id ?? "<unknown>"}`);
+        }
+        profileIds.add(profile.profile_id);
+      });
+      if (count !== artifact.record_count) throw new Error("actual profile line count mismatch");
+      resolutionProfileCount += count;
+    } catch (error) {
+      failures.push({ path: artifact.path, reason: `match-profile validation failed: ${error.message}` });
+    }
+  }
+  if (manifest.publisher?.version === "1.2.0"
+    && (resolutionProfileCount !== manifest.coverage?.resolution_location_profiles || resolutionProfileCount !== manifest.coverage?.physical_sites)) {
+    failures.push({ path: "manifest.json", reason: "entity-resolution profile counts do not reconcile" });
+  }
 
   const allowedSourceStatuses = new Set([
     "snap-authorized-as-of-source-update",

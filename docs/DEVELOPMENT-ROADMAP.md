@@ -143,6 +143,10 @@ Owner: data engineering
 - Route ambiguous candidates to operator review.
 - Establish a labeled benchmark and a release threshold for automatic-merge precision.
 
+Implementation evidence: independently verified registry release `national-business-registry-20260830-201530698Z-7230b6a4` emits 6,161,280 checksummed, source-preserving ZIP2 location profiles. Independently verified resolution release `business-entity-resolution-20260830-204410292Z-371d0923` uses ruleset `business-entity-resolution@1.0.0` to publish 1,635,421 reversible exact-address site-alias decisions, 65,069 stricter exact-address-and-name establishment-alias decisions, and 53,727 unapplied scored review candidates. The verifier enforces dependency hashes, decision uniqueness, scores, rule versions, counts, and local-review-only export policy.
+
+Remaining gate: build a labeled cross-source benchmark, set and document the approved automatic-link precision threshold, add an auditable operator-review workflow, and authorize any record-level export under every contributing source policy.
+
 ### DH-013 — Validation, quarantine, and quality gates
 
 - Produce counts for source, accepted, quarantined, duplicate, and rejected records plus null, uniqueness, and drift metrics.

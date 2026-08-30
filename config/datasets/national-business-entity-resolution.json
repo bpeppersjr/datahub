@@ -1,0 +1,38 @@
+{
+  "dataset_id": "national-business-entity-resolution",
+  "schema_version": "1.0.0",
+  "title": "Governed National Business Entity Resolution",
+  "status": "published-reviewable-partial-local-only",
+  "description": "Reversible physical-site and establishment aliases plus scored review candidates derived from source-preserving national registry location profiles.",
+  "producer_connector": "national-business-entity-resolution",
+  "runtime_pointer": "data/business-entity-resolution/current.json",
+  "required_datasets": ["national-business-registry"],
+  "required_registry_publisher_version": "1.2.0",
+  "schemas": {
+    "location_match_profile": "config/schemas/business-location-match-profile.schema.json",
+    "resolution_decision": "config/schemas/business-entity-resolution-decision.schema.json"
+  },
+  "artifacts": {
+    "decisions": "decisions/zip2=<00-99>.jsonl.gz",
+    "summary": "derived/resolution-summary.json"
+  },
+  "automatic_rules": [
+    "exact complete normalized street address creates reversible physical-site aliases",
+    "exact eligible address plus exact non-generic name with one member per source release creates reversible establishment aliases"
+  ],
+  "review_rule": "Exact eligible address plus name evidence not eligible for an automatic establishment link creates an unapplied review candidate when its similarity score is at least 0.78; this includes similar non-exact names and exact names blocked as generic or source-ambiguous.",
+  "prohibited_inferences": ["co-location as establishment identity", "name-only identity", "PO Box as physical-site identity", "ownership or parent company", "general operating status"],
+  "current_verified_release": {
+    "release_id": "business-entity-resolution-20260830-204410292Z-371d0923",
+    "registry_dependency_release_id": "national-business-registry-20260830-201530698Z-7230b6a4",
+    "profiles": 6161280,
+    "site_alias_decisions": 1635421,
+    "establishment_alias_decisions": 65069,
+    "review_candidate_decisions": 53727,
+    "review_groups_skipped_for_size": 1,
+    "complete_entity_resolution": false,
+    "export_policy": "local-review-only"
+  },
+  "documentation": "docs/BUSINESS-ENTITY-RESOLUTION.md",
+  "source_policy": "config/source-policies/national-business-entity-resolution.json"
+}

@@ -878,6 +878,10 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
   assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
   assert.equal(result.manifest.coverage.relationships, 18);
+  assert.equal(result.manifest.coverage.resolution_location_profiles, 12);
+  const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
+  assert.equal(resolutionProfiles.length, 100);
+  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 12);
   assert.equal(result.manifest.coverage.zip_union_records, 9);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);

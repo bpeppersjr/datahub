@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-location-match-profile.schema.json",
+  "title": "Business Location Match Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_version", "profile_id", "zip_code", "site_entity_id", "establishment_entity_id", "organization_entity_id", "address", "normalized_address", "address_match_key_sha256", "names", "primary_name_match_key_sha256", "location", "external_identifiers", "source_status", "observed_at", "source", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "profile_version": { "const": "business-location-match-profile@1.0.0" },
+    "profile_id": { "type": "string", "pattern": "^location-profile:[a-f0-9]{32}$" },
+    "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+    "site_entity_id": { "type": "string", "pattern": "^site:[A-Za-z0-9_-]+$" },
+    "establishment_entity_id": { "type": "string", "pattern": "^establishment:[A-Za-z0-9_-]+$" },
+    "organization_entity_id": { "type": ["string", "null"] },
+    "address": { "type": "object" },
+    "normalized_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "street", "unit", "city", "state", "zip_code", "complete", "match_key"],
+      "properties": {
+        "kind": { "enum": ["street", "po-box", "route", "unknown"] },
+        "street": { "type": ["string", "null"] },
+        "unit": { "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "state": { "type": ["string", "null"] },
+        "zip_code": { "type": ["string", "null"] },
+        "complete": { "type": "boolean" },
+        "match_key": { "type": ["string", "null"] }
+      }
+    },
+    "address_match_key_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+    "names": { "type": "array", "items": { "type": "object" } },
+    "primary_name_match_key_sha256": { "type": ["string", "null"] },
+    "location": {},
+    "external_identifiers": { "type": "array", "items": { "type": "object" } },
+    "source_status": {},
+    "observed_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "object" },
+    "export_policy": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "normalized_address": {
+            "properties": { "complete": { "const": true } },
+            "required": ["complete"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "normalized_address": { "properties": { "match_key": { "type": "string", "minLength": 1 } } },
+          "address_match_key_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        }
+      },
+      "else": {
+        "properties": {
+          "normalized_address": { "properties": { "match_key": { "type": "null" } } },
+          "address_match_key_sha256": { "type": "null" }
+        }
+      }
+    }
+  ]
+}

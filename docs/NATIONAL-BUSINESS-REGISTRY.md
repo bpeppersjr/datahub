@@ -72,19 +72,22 @@ The optional `--usps-zips` prerequisite accepts the governed `usps-operational-z
 - `entities/services.jsonl`
 - `assertions/prefix=<0-9>.jsonl.gz`
 - `relationships/prefix=<0-9>.jsonl.gz`
+- `resolution/location-profiles/zip2=<00-99>.jsonl.gz`
 - `derived/zip-coverage.jsonl`
 - `derived/source-contributions.json`
 - `manifest.json`
 
-The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, and reconciles ZIP and manifest counts. It rejects unsupported business-completeness claims and rejects any USPS denominator without a checksummed governed dependency, exact scoped semantics, conservative deliverability flags, and inherited distribution policy.
+The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, and reconciles ZIP and manifest counts. For publisher 1.2.0 it also requires exactly 100 ZIP2 match-profile partitions, validates their links back to provisional entities and their provenance hashes, and requires exactly one profile per provisional physical site. It rejects unsupported business-completeness claims and rejects any USPS denominator without a checksummed governed dependency, exact scoped semantics, conservative deliverability flags, and inherited distribution policy.
+
+Match profiles feed the separate [`national-business-entity-resolution`](BUSINESS-ENTITY-RESOLUTION.md) dataset. That layer can publish reversible aliases and review candidates without changing this registry release, its source assertions, or its current pointer.
 
 ## Validated live release
 
-The independently verified release `national-business-registry-20260830-182714861Z-cc2070d9` contains 8,936,163 governed source records, including 2,195,563 accepted FMCSA active principal-office records and 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 77,115,239 assertions, and 8,601,934 relationships across 123 verified artifacts.
+The independently verified publisher-1.2 release `national-business-registry-20260830-201530698Z-7230b6a4` contains 8,936,163 governed source records, including 2,195,563 accepted FMCSA active principal-office records and 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 77,115,239 assertions, 8,601,934 relationships, and exactly 6,161,280 location match profiles across 223 verified artifacts.
 
 Its 43,586-row ZIP union has record-level source contributions in 43,310 ZIPs. FMCSA added one site, one establishment, and one `located_at` relationship per accepted USDOT principal-office record, but no inferred organization or parent. The source and registry transformations deduplicate repeated typed docket identifiers while preserving source slot observations; the rejected intermediate registry release remains immutable and is not current. The verified release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
 
-The USPS connector and optional registry integration were implemented after this live release. The current registry remains unchanged until an operator truthfully selects an authorized USPS use basis and publishes a local governed USPS source release.
+This 1.2 release supersedes the prior verified 1.1 registry while preserving its source-derived entity, assertion, relationship, and ZIP counts; the additional 100 artifacts are source-preserving ZIP2 match profiles. The USPS connector and optional registry integration are implemented, but this current release still omits USPS evidence until an operator truthfully selects an authorized use basis and publishes a local governed USPS source release.
 
 ## Adding the next source
 

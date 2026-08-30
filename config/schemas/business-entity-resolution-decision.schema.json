@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-entity-resolution-decision.schema.json",
+  "title": "Business Entity Resolution Decision",
+  "type": "object",
+  "required": ["schema_version", "decision_id", "decision_type", "decision_status", "entity_type", "score", "rule_id", "ruleset_version", "evidence", "decided_at", "reversible", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "decision_id": { "type": "string", "pattern": "^resolution-decision:[a-f0-9]{32}$" },
+    "decision_type": { "enum": ["automatic-link", "review-candidate"] },
+    "decision_status": { "enum": ["active", "pending-review"] },
+    "entity_type": { "enum": ["physical_site", "establishment"] },
+    "subject_entity_id": { "type": "string" },
+    "resolved_entity_id": { "type": "string" },
+    "left_entity_id": { "type": "string" },
+    "right_entity_id": { "type": "string" },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "rule_id": { "type": "string", "minLength": 1 },
+    "ruleset_version": { "const": "business-entity-resolution@1.0.0" },
+    "evidence": { "type": "object" },
+    "source_profile_id": { "type": "string" },
+    "left_profile_id": { "type": "string" },
+    "right_profile_id": { "type": "string" },
+    "source": { "type": "object" },
+    "observed_at": { "type": "string" },
+    "decided_at": { "type": "string", "format": "date-time" },
+    "reversible": { "const": true },
+    "export_policy": { "const": "local-review-only" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "decision_type": { "const": "automatic-link" } } },
+      "then": { "required": ["subject_entity_id", "resolved_entity_id", "source_profile_id", "source", "observed_at"] }
+    },
+    {
+      "if": { "properties": { "decision_type": { "const": "review-candidate" } } },
+      "then": { "required": ["left_entity_id", "right_entity_id", "left_profile_id", "right_profile_id"] }
+    }
+  ],
+  "additionalProperties": false
+}

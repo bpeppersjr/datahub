@@ -1,0 +1,18 @@
+{
+  "policy_id": "national-business-entity-resolution",
+  "version": "1.0.0",
+  "publisher": "Co*Tive Collector local governed data hub",
+  "ownership": "Derived linkage evidence whose export rights are bounded by every contributing source policy",
+  "source_home": "local:data/business-registry/current.json",
+  "terms_url": null,
+  "review_status": "Local review layer; no derived linkage is approved for public export until benchmarked precision and all contributing source policies are evaluated.",
+  "allowed_use": ["local exact-match aliasing under versioned deterministic rules", "local candidate review", "coverage and quality measurement", "reversible downstream grouping without overwriting source entities"],
+  "prohibited_use": ["silently overwriting source identities or assertions", "automatically applying fuzzy-name candidates", "inferring an establishment match from co-location alone", "inferring ownership, parent company, or general operating status", "exporting linkage rows before source-policy and precision review"],
+  "attribution": "Derived from the governed National Business Registry; retain every contributing source reference and ruleset version.",
+  "retention": "Retain immutable decision releases locally with dependency hashes and reversible status; review decisions may supersede but never erase prior evidence.",
+  "redistribution": "Local review only until a separately approved export policy confirms benchmark precision and the most restrictive contributing source rights.",
+  "contains_secrets": false,
+  "contains_personal_data": true,
+  "personal_data_note": "May include linkage evidence involving source-reported home-based principal offices; do not expose record-level decisions without review.",
+  "reviewed_at": "2026-08-30"
+}

@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-registry",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Reconciles governed record-level source releases into canonical business entities, assertions, relationships, and ZIP coverage without overstating completeness.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -21,7 +21,7 @@
   },
   "named_secret_references": [],
   "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "normalized-fmcsa-company-census-record-jsonl-gzip", "fmcsa-company-census-zip-coverage-jsonl", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl", "usps-operational-zip-assignment-jsonl"],
-  "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
+  "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "entity-resolution-location-profile-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
   "allowed_hosts": [],
   "redirect_policy": "deny",
   "provider_budget_key": "local-registry-reconciliation",
@@ -29,7 +29,8 @@
   "execution_limits": {
     "network_requests": 0,
     "input_partitions": 122,
-    "parallel_partitions": 1
+    "parallel_partitions": 1,
+    "output_match_profile_partitions": 100
   },
   "retry": "Rerun from immutable source pointers; no external requests or partial retry side effects occur.",
   "checkpoint": "Inputs and outputs are checksummed; publication uses a run-scoped staging directory and atomic current pointer.",
