@@ -1,0 +1,28 @@
+{
+  "connector_id": "national-business-entity-resolution-benchmark-labels",
+  "version": "1.0.0",
+  "implementation_status": "implemented-awaiting-independent-labels",
+  "description": "Publishes submitted human benchmark labels and recomputed rule/source-pair assessments as immutable local releases.",
+  "lifecycle": ["preflight", "validate sample", "validate labels", "evaluate", "quality gate", "publish", "verify"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-entity-resolution-benchmark-labels" },
+      "benchmark_pointer": { "type": "string", "default": "data/business-entity-resolution-benchmark/current.json" },
+      "labels_path": { "type": ["string", "null"], "default": null, "description": "Optional JSON Lines file; null uses the audited local working copy." }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["entity-resolution-benchmark-candidate-jsonl-gzip", "entity-resolution-benchmark-label-template-jsonl"],
+  "output_artifact_types": ["entity-resolution-benchmark-submitted-label-jsonl-gzip", "entity-resolution-benchmark-assessment-json", "dataset-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-entity-resolution-benchmark-label-publication",
+  "resource_class": "cpu-disk-human-review",
+  "minimum_input": "At least one independently completed label; empty or fabricated label releases are prohibited.",
+  "quality_gate": "Recompute automatic-rule precision and source-pair diagnostics; statistical success never sets export_authorized=true.",
+  "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json",
+  "retention_profile": "Retain immutable local label snapshots and assessments; corrections publish a later release.",
+  "cancellation": "No pointer changes until the complete immutable snapshot verifies."
+}

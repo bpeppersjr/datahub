@@ -1,0 +1,20 @@
+{
+  "dataset_id": "national-business-entity-resolution-benchmark-labels",
+  "schema_version": "1.0.0",
+  "title": "National Business Entity-Resolution Benchmark Labels",
+  "status": "implemented-awaiting-independent-labels",
+  "description": "Immutable snapshots of independently submitted benchmark labels, automatic-rule precision, and source-pair diagnostics.",
+  "producer_connector": "national-business-entity-resolution-benchmark-labels",
+  "runtime_pointer": "data/business-entity-resolution-benchmark-labels/current.json",
+  "required_datasets": ["national-business-entity-resolution-benchmark"],
+  "label_schema": "config/schemas/business-entity-resolution-benchmark-label.schema.json",
+  "artifacts": {
+    "submitted_labels": "labels/submitted-labels.jsonl.gz",
+    "assessment": "derived/benchmark-assessment.json"
+  },
+  "publication_rule": "At least one independently completed label is required. The publisher stores all submitted judgments, recomputes aggregate and source-pair metrics, and never authorizes export.",
+  "correction_rule": "Publish a later immutable snapshot; never overwrite a prior label release.",
+  "export_authorized": false,
+  "documentation": "docs/ENTITY-RESOLUTION-BENCHMARK.md",
+  "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json"
+}

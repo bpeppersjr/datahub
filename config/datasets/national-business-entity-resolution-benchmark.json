@@ -37,6 +37,7 @@
     "export_authorized": false
   },
   "limitations": ["estimates precision, not recall", "does not prove all-source-pair performance", "does not authorize export", "requires independent human labels"],
+  "downstream_label_dataset": "national-business-entity-resolution-benchmark-labels",
   "documentation": "docs/ENTITY-RESOLUTION-BENCHMARK.md",
   "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json"
 }

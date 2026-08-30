@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createStore } from './store.mjs';
 import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
+import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 
@@ -252,6 +253,42 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/templates') {
       json(response, 200, templates);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/entity-resolution/benchmark') {
+      const stratum = url.searchParams.get('stratum') || 'all';
+      const status = url.searchParams.get('status') || 'all';
+      const offset = Number(url.searchParams.get('offset') || 0);
+      const limit = Number(url.searchParams.get('limit') || 12);
+      json(response, 200, await getBenchmarkReviewState({ stratum, status, offset, limit }));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/entity-resolution/benchmark/labels') {
+      const working = await getBenchmarkWorkingLabels();
+      const content = Buffer.from(working.content, 'utf8');
+      response.writeHead(200, {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Content-Length': content.length,
+        'Content-Disposition': `attachment; filename="${working.release_id}.labels.jsonl"`,
+        ETag: `"${working.revision}"`,
+      });
+      response.end(content);
+      return;
+    }
+
+    if (segments[0] === 'api' && segments[1] === 'entity-resolution' && segments[2] === 'benchmark'
+      && segments[3] === 'labels' && segments[4] && request.method === 'PUT') {
+      const input = await bodyJson(request);
+      json(response, 200, await saveBenchmarkLabel({
+        candidateId: segments[4],
+        label: input.label,
+        reviewerId: input.reviewerId,
+        evidenceNote: input.evidenceNote,
+        evidenceReferences: input.evidenceReferences,
+        expectedRevision: input.expectedRevision,
+      }));
       return;
     }
 

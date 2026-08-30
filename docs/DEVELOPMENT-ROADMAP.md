@@ -147,7 +147,9 @@ Implementation evidence: independently verified registry release `national-busin
 
 Benchmark evidence: verified sample `business-entity-resolution-benchmark-sample-20260830-210015066Z-d9d1af77` deterministically selected 425 rows per stratum from 1,014,108 site-membership pairs, 32,623 establishment-membership pairs, and 53,727 review candidates. The documented proposed gate requires complete review, at least 384 conclusive labels per automatic stratum, no more than 10% exclusions, and a 95% Wilson lower bound of at least 0.99. Current submitted labels: zero; the gate is truthfully false.
 
-Remaining gate: obtain independent labels, add an auditable operator-review interface and immutable label-decision publisher, evaluate source-pair-specific errors, formally approve the threshold, and authorize any record-level export under every contributing source policy.
+Operator-review evidence: the local Co*Tive Collector page now serves verified packets with source comparisons, reviewer identity, controlled label values, required negative/exclusion notes, optimistic concurrency, an atomic working label copy, append-only proposed/committed audit events, download, filters, and live Wilson gate progress. The immutable benchmark sample itself is never edited. A separate checksummed label-snapshot publisher refuses an empty working set, recomputes rule and source-pair metrics, preserves corrections as later releases, and cannot authorize export.
+
+Remaining gate: obtain independent labels, publish the first actual immutable label snapshot, evaluate the resulting source-pair-specific errors, formally approve the threshold, and authorize any record-level export under every contributing source policy.
 
 ### DH-013 — Validation, quarantine, and quality gates
 

@@ -7,6 +7,10 @@ import test from "node:test";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { buildBusinessEntityResolution, createLocationMatchProfile } from "./business-entity-resolution.mjs";
 import {
+  buildEntityResolutionBenchmarkLabelRelease,
+  verifyEntityResolutionBenchmarkLabelRelease,
+} from "./entity-resolution-benchmark-labels.mjs";
+import {
   buildEntityResolutionBenchmarkSample,
   evaluateBenchmarkLabels,
   verifyEntityResolutionBenchmarkSample,
@@ -162,6 +166,30 @@ test("builds and independently verifies a deterministic enriched benchmark sampl
   const verified = await verifyEntityResolutionBenchmarkSample(path.join(benchmark.releaseDirectory, "manifest.json"));
   assert.equal(verified.candidates.length, 1152);
   assert(verified.candidates.every((candidate) => candidate.left_profile.source && candidate.right_profile.source));
+
+  await assert.rejects(buildEntityResolutionBenchmarkLabelRelease({
+    outputRoot: path.join(root, "empty-label-release"),
+    benchmarkPointer: benchmark.pointerPath,
+    workRoot: path.join(root, "empty-label-work"),
+  }), /At least one independently completed label/);
+
+  const completedLabelsPath = path.join(root, "completed-labels.jsonl");
+  const completedLabels = verified.candidates.map((candidate) => completedLabel(candidate));
+  await writeFile(completedLabelsPath, `${completedLabels.map((label) => JSON.stringify(label)).join("\n")}\n`);
+  const labelRelease = await buildEntityResolutionBenchmarkLabelRelease({
+    outputRoot: path.join(root, "label-release"),
+    benchmarkPointer: benchmark.pointerPath,
+    labelsPath: completedLabelsPath,
+    now: () => new Date("2026-08-30T23:00:00.000Z"),
+  });
+  assert.equal(labelRelease.manifest.automatic_precision_gate_passed, true);
+  assert.equal(labelRelease.manifest.export_authorized, false);
+  const verifiedLabels = await verifyEntityResolutionBenchmarkLabelRelease(
+    path.join(labelRelease.releaseDirectory, "manifest.json"),
+    { benchmarkPointer: benchmark.pointerPath },
+  );
+  assert.equal(verifiedLabels.coverage.submitted_labels, 1152);
+  assert.equal(verifiedLabels.export_authorized, false);
 
   const labelsArtifact = benchmark.manifest.artifacts.find(
     (artifact) => artifact.artifact_type === "entity-resolution-benchmark-label-template-jsonl",

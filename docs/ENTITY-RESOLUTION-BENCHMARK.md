@@ -27,6 +27,32 @@ Every completed label requires a reviewer ID and timestamp. `non-match`, `uncert
 
 No automated model, including this software, is allowed to fill the benchmark labels and call them ground truth.
 
+## Operator review page
+
+Co*Tive Collector exposes the current sample in the local management page under **Entity-resolution review**. The runner binds to loopback and provides:
+
+- verified packet pagination and filters by stratum and label status;
+- side-by-side source names, reported addresses, record IDs, and observation dates;
+- reviewer-ID capture and the four governed label actions;
+- required notes for non-match and exclusion judgments;
+- optimistic concurrency through a content revision, so a stale browser cannot overwrite newer work;
+- an atomic working label copy outside the immutable sample release;
+- two-phase `proposed` and `committed` events in an append-only local audit journal; and
+- live per-stratum Wilson metrics plus an explicit export prohibition.
+
+The working copy can be downloaded as JSON Lines. It is not yet a published immutable label release; that publication step remains a separate gate so incomplete work cannot be mistaken for an approved benchmark.
+
+## Immutable label snapshots
+
+After at least one independent label is saved, publish and verify an immutable snapshot:
+
+```powershell
+npm run entity-resolution:benchmark:labels:publish
+npm run entity-resolution:benchmark:labels:verify
+```
+
+The publisher refuses an empty working set. It stores submitted labels, the exact working-set SHA-256, aggregate automatic-rule metrics, and source-pair diagnostic counts under a checksummed dependency on the immutable sample. Partial snapshots remain explicitly incomplete; later corrections create a new release. Even a passing precision result sets `export_authorized` to `false` until privacy and every contributing source policy pass separately.
+
 ## Precision gate
 
 Each automatic stratum is evaluated separately. A stratum passes only when:

@@ -42,6 +42,8 @@
     "entity-resolution:benchmark:build": "node scripts/build-entity-resolution-benchmark.mjs",
     "entity-resolution:benchmark:verify": "node scripts/verify-entity-resolution-benchmark.mjs",
     "entity-resolution:benchmark:evaluate": "node scripts/evaluate-entity-resolution-benchmark.mjs",
+    "entity-resolution:benchmark:labels:publish": "node scripts/publish-entity-resolution-benchmark-labels.mjs",
+    "entity-resolution:benchmark:labels:verify": "node scripts/verify-entity-resolution-benchmark-labels.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",

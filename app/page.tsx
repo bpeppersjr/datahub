@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react';
+import BenchmarkReview from './benchmark-review';
 
 const RUNNER_URL = 'http://127.0.0.1:4300';
 
@@ -311,6 +312,7 @@ export default function Home() {
           <a className="rail-link active" href="#queue" aria-label="Operations">⌁</a>
           <a className="rail-link" href="#queue" aria-label="Jobs">▦</a>
           <a className="rail-link" href="#activity" aria-label="Activity">↺</a>
+          <a className="rail-link" href="#benchmark" aria-label="Entity-resolution benchmark">≋</a>
         </nav>
         <div className="rail-spacer" />
         <span className={`system-dot ${health ? '' : 'offline'}`} title={health ? 'Runner online' : 'Runner offline'} />
@@ -400,6 +402,8 @@ export default function Home() {
                 })}
               </div>
             </section>
+
+            <BenchmarkReview />
           </section>
 
           <aside className="side-column">
