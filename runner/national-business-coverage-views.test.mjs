@@ -1,0 +1,289 @@
+import assert from "node:assert/strict";
+import { gzipSync } from "node:zlib";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import {
+  assignPointToCounty,
+  buildNationalBusinessCoverageViews,
+  verifyNationalBusinessCoverageViewsRelease,
+} from "./national-business-coverage-views.mjs";
+
+function polygonFeature(properties, west = -90, south = 30, east = -89, north = 31) {
+  return {
+    type: "Feature",
+    properties,
+    geometry: {
+      type: "Polygon",
+      coordinates: [[
+        [west, south],
+        [east, south],
+        [east, north],
+        [west, north],
+        [west, south],
+      ]],
+    },
+  };
+}
+
+function countyCandidate(geoid, stateFips, feature) {
+  return { geoid, stateFips, wrapped: false, feature };
+}
+
+function json(value) {
+  return `${JSON.stringify(value)}\n`;
+}
+
+function jsonLines(values) {
+  return values.length ? `${values.map((value) => JSON.stringify(value)).join("\n")}\n` : "";
+}
+
+async function writeArtifact(releaseDirectory, relativePath, value, metadata = {}) {
+  const filePath = path.join(releaseDirectory, relativePath);
+  await mkdir(path.dirname(filePath), { recursive: true });
+  await writeFile(filePath, value);
+  return { path: relativePath.replaceAll("\\", "/"), bytes: Buffer.byteLength(value), ...metadata };
+}
+
+async function publishFixture(root, datasetId, releaseId, manifest) {
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  await writeFile(path.join(releaseDirectory, "manifest.json"), json({
+    schema_version: "1.0.0",
+    dataset_id: datasetId,
+    release_id: releaseId,
+    status: "published",
+    artifacts: [],
+    ...manifest,
+  }));
+  await mkdir(root, { recursive: true });
+  await writeFile(path.join(root, "current.json"), json({
+    dataset_id: datasetId,
+    release_id: releaseId,
+    manifest: `releases/${releaseId}/manifest.json`,
+  }));
+  return { releaseDirectory, pointerPath: path.join(root, "current.json") };
+}
+
+test("assigns an interior point and refuses a point matching multiple counties", () => {
+  const leftFeature = polygonFeature({ GEOID: "01001" }, -90, 30, -89, 31);
+  const rightFeature = polygonFeature({ GEOID: "01003" }, -89, 30, -88, 31);
+  const candidates = [
+    countyCandidate("01001", "01", leftFeature),
+    countyCandidate("01003", "01", rightFeature),
+  ];
+  const index = { search: () => candidates };
+  const assigned = assignPointToCounty([-89.5, 30.5], index);
+  assert.equal(assigned.status, "assigned-single-county");
+  assert.equal(assigned.county.geoid, "01001");
+  const boundary = assignPointToCounty([-89, 30.5], index);
+  assert.equal(boundary.status, "ambiguous-county-boundary");
+  assert.deepEqual(boundary.candidate_geoids, ["01001", "01003"]);
+  assert.equal(assignPointToCounty([999, 30], index).status, "invalid-coordinate");
+});
+
+test("publishes and verifies governed national through ZIP coverage views", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "datahub-coverage-views-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+
+  const geographyRoot = path.join(root, "geography");
+  const geographyReleaseId = "geography-fixture";
+  const geographyRelease = path.join(geographyRoot, "releases", geographyReleaseId);
+  const stateIndex = [{
+    geo_id: "state:01",
+    geo_type: "state",
+    geoid: "01",
+    name: "Fixture State",
+    postal_abbreviation: "AA",
+    state_equivalent_kind: "state",
+    is_50_states_or_dc: true,
+    centroid: [-89.5, 30.5],
+    bbox: [-90, 30, -89, 31],
+    geometry_file: "source/states.geojson",
+  }];
+  const countyIndex = [{
+    geo_id: "county:01001",
+    geo_type: "county",
+    geoid: "01001",
+    name: "Fixture County",
+    state_fips: "01",
+    county_fips: "001",
+    centroid: [-89.5, 30.5],
+    bbox: [-90, 30, -89, 31],
+    geometry_file: "source/counties/state=01.geojson",
+  }];
+  const geographyArtifacts = [
+    await writeArtifact(geographyRelease, "derived/index/states.jsonl", jsonLines(stateIndex)),
+    await writeArtifact(geographyRelease, "derived/index/counties.jsonl", jsonLines(countyIndex)),
+    await writeArtifact(
+      geographyRelease,
+      "source/counties/state=01.geojson",
+      json({ type: "FeatureCollection", features: [polygonFeature({ GEOID: "01001" })] }),
+      { geography_type: "county" },
+    ),
+  ];
+  const geography = await publishFixture(geographyRoot, "us-census-geography", geographyReleaseId, {
+    complete_national_release: true,
+    artifacts: geographyArtifacts,
+  });
+
+  const crosswalkRoot = path.join(root, "crosswalk");
+  const crosswalkReleaseId = "crosswalk-fixture";
+  const crosswalkRelease = path.join(crosswalkRoot, "releases", crosswalkReleaseId);
+  const relationship = {
+    zcta: "12345",
+    county_geoid: "01001",
+    county_geo_id: "county:01001",
+    state_fips: "01",
+    state_geo_id: "state:01",
+    intersection_area_m2: 100,
+    raw_share_of_zcta_polygon_area: 1,
+    normalized_share_of_matched_zcta_area: 1,
+    material_intersection: true,
+  };
+  const zctaSummary = { zcta: "12345", overlay_status: "complete-within-tolerance" };
+  const crosswalkArtifacts = [
+    await writeArtifact(crosswalkRelease, "derived/relationships.jsonl", jsonLines([relationship]), { artifact_type: "zcta-county-area-weights" }),
+    await writeArtifact(crosswalkRelease, "derived/zcta-summary.jsonl", jsonLines([zctaSummary]), { artifact_type: "zcta-overlay-summary" }),
+  ];
+  const crosswalk = await publishFixture(crosswalkRoot, "us-census-zcta-jurisdiction-crosswalk", crosswalkReleaseId, {
+    complete_national_release: true,
+    upstream: { release_id: geographyReleaseId },
+    artifacts: crosswalkArtifacts,
+  });
+
+  const registryRoot = path.join(root, "registry");
+  const registryReleaseId = "registry-fixture";
+  const registryRelease = path.join(registryRoot, "releases", registryReleaseId);
+  const sourceContribution = {
+    usda_snap_retailers: {
+      record_count: 2,
+      source_release_id: "snap-fixture",
+      source_updated_at: "2026-08-01T00:00:00.000Z",
+    },
+  };
+  const zipRows = [
+    {
+      zip_code: "12345",
+      registry_coverage: {
+        status: "record-level-source-contribution",
+        complete_all_businesses: false,
+        physical_site_count: 2,
+        establishment_count: 2,
+      },
+      source_contributions: sourceContribution,
+      current_usps_validity: { status: "unverified" },
+      geography: { status: "2020-zcta-polygon-available", geoid: "12345", geo_id: "zcta:12345" },
+      employer_baseline: { status: "published", establishments: 4 },
+      baseline_coverage_status: "zbp-and-zcta",
+    },
+    {
+      zip_code: "54321",
+      registry_coverage: {
+        status: "denominator-only-no-record-level-contribution",
+        complete_all_businesses: false,
+        physical_site_count: 0,
+        establishment_count: 0,
+      },
+      source_contributions: {
+        usda_snap_retailers: {
+          record_count: 0,
+          source_release_id: "snap-fixture",
+          source_updated_at: "2026-08-01T00:00:00.000Z",
+        },
+      },
+      current_usps_validity: { status: "unverified" },
+      geography: { status: "no-2020-zcta-polygon", geoid: null, geo_id: null },
+      employer_baseline: null,
+      baseline_coverage_status: "outside-zbp-zcta-union",
+    },
+  ];
+  const registryArtifacts = [
+    await writeArtifact(registryRelease, "derived/zip-coverage.jsonl", jsonLines(zipRows), {
+      artifact_type: "registry-zip-coverage-jsonl",
+      record_count: zipRows.length,
+    }),
+  ];
+  const profiles = [
+    {
+      profile_id: "profile:1",
+      normalized_address: { state: "AA" },
+      location: { type: "Point", coordinates: [-89.5, 30.5] },
+      observed_at: "2026-08-01T00:00:00.000Z",
+      source: { source_id: "usda-snap-current-retailers" },
+    },
+    {
+      profile_id: "profile:2",
+      normalized_address: { state: "AA" },
+      location: null,
+      observed_at: "2026-08-02T00:00:00.000Z",
+      source: { source_id: "usda-snap-current-retailers" },
+    },
+  ];
+  for (let partition = 0; partition < 100; partition += 1) {
+    const rows = partition === 12 ? profiles : [];
+    registryArtifacts.push(await writeArtifact(
+      registryRelease,
+      `resolution/location-profiles/zip2=${String(partition).padStart(2, "0")}.jsonl.gz`,
+      gzipSync(jsonLines(rows)),
+      { artifact_type: "entity-resolution-location-profile-jsonl-gzip", record_count: rows.length },
+    ));
+  }
+  const registry = await publishFixture(registryRoot, "national-business-registry", registryReleaseId, {
+    status: "published-partial",
+    complete_national_business_registry: false,
+    coverage: {
+      resolution_location_profiles: 2,
+      physical_sites: 2,
+      establishments: 2,
+      zip_union_records: 2,
+      zips_with_record_level_contributions: 1,
+      authoritative_current_usps_zip_denominator: null,
+    },
+    limitations: [],
+    artifacts: registryArtifacts,
+  });
+
+  const resolution = await publishFixture(path.join(root, "resolution"), "national-business-entity-resolution", "resolution-fixture", {
+    status: "published-reviewable-partial",
+    dependency: { dataset_id: "national-business-registry", release_id: registryReleaseId },
+    coverage: { profiles: 2 },
+  });
+  const benchmark = await publishFixture(path.join(root, "benchmark"), "national-business-entity-resolution-benchmark", "benchmark-fixture", {
+    status: "awaiting-independent-labels",
+    dependencies: {
+      registry: { dataset_id: "national-business-registry", release_id: registryReleaseId },
+      resolution: { dataset_id: "national-business-entity-resolution", release_id: "resolution-fixture" },
+    },
+    coverage: { submitted_labels: 0, benchmark_gate_passed: false },
+  });
+
+  const outputRoot = path.join(root, "coverage-views");
+  const result = await buildNationalBusinessCoverageViews({
+    registryPointerPath: registry.pointerPath,
+    geographyPointerPath: geography.pointerPath,
+    crosswalkPointerPath: crosswalk.pointerPath,
+    resolutionPointerPath: resolution.pointerPath,
+    benchmarkPointerPath: benchmark.pointerPath,
+    outputRoot,
+    now: () => new Date("2026-08-30T12:00:00.000Z"),
+    logger: () => {},
+  });
+  const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
+  assert.equal(verification.coverage.national_views, 3);
+  assert.equal(verification.coverage.state_views, 1);
+  assert.equal(verification.coverage.county_views, 1);
+  assert.equal(verification.coverage.zip_views, 2);
+  assert.equal(verification.coverage.source_views, 1);
+  assert.equal(verification.coverage.location_profiles_assessed, 2);
+  assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
+  const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(states[0].registry_evidence.reported_address_profile_count, 2);
+  assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
+  const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(counties[0].registry_evidence.coordinate_assigned_profile_count, 1);
+  assert.equal(counties[0].zip_business_count_allocation, null);
+  const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
+  assert.equal(pointer.release_id, result.manifest.release_id);
+});

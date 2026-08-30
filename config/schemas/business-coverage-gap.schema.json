@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-coverage-gap.schema.json",
+  "title": "Governed business coverage gap",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "view_type",
+    "gap_id",
+    "gap_type",
+    "scope_type",
+    "scope_id",
+    "severity",
+    "status",
+    "evidence",
+    "consequence",
+    "lineage"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "view_type": { "const": "coverage-gap" },
+    "gap_id": { "type": "string", "pattern": "^gap:" },
+    "gap_type": { "type": "string", "minLength": 1 },
+    "scope_type": { "enum": ["national", "state", "county", "zip", "zcta", "source"] },
+    "scope_id": { "type": "string", "minLength": 1 },
+    "severity": { "type": "string", "minLength": 1 },
+    "status": { "const": "open" },
+    "evidence": { "type": "object" },
+    "consequence": { "type": "string", "minLength": 1 },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registry_release_id",
+        "geography_release_id",
+        "zcta_jurisdiction_crosswalk_release_id",
+        "entity_resolution_release_id",
+        "entity_resolution_benchmark_release_id",
+        "transformation_version"
+      ],
+      "properties": {
+        "registry_release_id": { "type": "string", "minLength": 1 },
+        "geography_release_id": { "type": "string", "minLength": 1 },
+        "zcta_jurisdiction_crosswalk_release_id": { "type": "string", "minLength": 1 },
+        "entity_resolution_release_id": { "type": "string", "minLength": 1 },
+        "entity_resolution_benchmark_release_id": { "type": "string", "minLength": 1 },
+        "transformation_version": { "const": "national-business-coverage-views@1.0.0" }
+      }
+    }
+  }
+}

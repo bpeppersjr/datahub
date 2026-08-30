@@ -14,6 +14,8 @@
     "geography:verify": "node scripts/verify-us-geography.mjs",
     "zcta-crosswalk:build": "node scripts/build-zcta-jurisdiction-crosswalk.mjs",
     "zcta-crosswalk:verify": "node scripts/verify-zcta-jurisdiction-crosswalk.mjs",
+    "coverage-views:build": "node scripts/build-national-business-coverage-views.mjs",
+    "coverage-views:verify": "node scripts/verify-national-business-coverage-views.mjs",
     "zbp:build": "node scripts/build-census-zbp.mjs",
     "zbp:verify": "node scripts/verify-census-zbp.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
@@ -58,6 +60,7 @@
   },
   "dependencies": {
     "@turf/area": "^7.4.0",
+    "@turf/boolean-point-in-polygon": "^7.4.0",
     "concurrently": "^10.0.5",
     "csv-parse": "^6.2.1",
     "next": "^16.3.3",

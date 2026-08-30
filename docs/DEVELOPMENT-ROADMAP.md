@@ -177,6 +177,8 @@ Start only after Release 0.2 foundations are complete.
 6. Use authoritative ZIP/ZCTA geography and adaptive spatial subdivision; do not iterate every number from `00100` through `99999` as though each were a physical ZIP area.
 7. Report coverage, freshness, source contribution, conflicts, and unresolved gaps by state, county, and ZCTA.
 
+Coverage-view evidence: verified release `national-business-coverage-views-20260830-224156693Z-66a2f2ff` pins the registry, geography, ZCTA jurisdiction overlay, resolution, and benchmark manifests. It publishes three national scopes, 56 state views, 3,235 county views, 43,586 ZIP views, eight source views, and 18,753 first-class gap rows. All 6,161,280 location profiles were assessed; 336,573 coordinate-bearing profiles received one county assignment, while missing, unmatched, ambiguous, and conflicting geography remains explicit. ZIP/ZCTA topology reconciles exactly to 33,791 ZCTAs, and polygon-area weights are never used as business-location weights. The release remains partial, source-preserving, non-deduplicated, and local-aggregate-only.
+
 Current ZIP-denominator progress: the `usps-operational-zip-assignments` connector now discovers and validates the current PostalPro Area/District and AISU files, excludes AISU-only routing rows, publishes immutable local-restricted releases, and can feed scoped assignment evidence into registry ZIP coverage. A live source and rebuilt registry remain gated on a truthful personal non-commercial use basis or reviewed USPS written permission; public redistribution is not inferred from download access.
 
 ## Verification and release gates

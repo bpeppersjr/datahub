@@ -1,0 +1,58 @@
+{
+  "connector_id": "national-business-coverage-views",
+  "version": "1.0.0",
+  "implementation_status": "implemented-and-live-verified",
+  "description": "Publishes governed national through ZIP coverage views and explicit gaps from immutable registry and geography dependencies.",
+  "lifecycle": ["preflight", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "registry": { "type": "string", "default": "data/business-registry/current.json" },
+      "geography": { "type": "string", "default": "data/geography/current.json" },
+      "crosswalk": { "type": "string", "default": "data/zcta-jurisdiction-crosswalk/current.json" },
+      "resolution": { "type": "string", "default": "data/business-entity-resolution/current.json" },
+      "benchmark": { "type": "string", "default": "data/business-entity-resolution-benchmark/current.json" },
+      "output": { "type": "string", "default": "data/business-coverage-views" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "entity-resolution-location-profile-jsonl-gzip",
+    "registry-zip-coverage-jsonl",
+    "source-geojson",
+    "normalized-geography-index-jsonl",
+    "zcta-county-area-weights",
+    "zcta-overlay-summary",
+    "entity-resolution-decision-jsonl-gzip",
+    "entity-resolution-benchmark-candidate-jsonl"
+  ],
+  "output_artifact_types": [
+    "national-coverage-view-jsonl",
+    "state-coverage-view-jsonl",
+    "county-coverage-view-jsonl",
+    "zip-coverage-view-jsonl",
+    "source-coverage-view-jsonl",
+    "coverage-gap-view-jsonl",
+    "profile-geography-summary-json",
+    "dataset-manifest-json"
+  ],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-business-coverage-views",
+  "resource_class": "cpu-disk",
+  "execution_limits": {
+    "network_requests": 0,
+    "parallel_profile_partitions": 1,
+    "expected_profile_partitions": 100,
+    "maximum_forced_county_assignments": 0
+  },
+  "retry": "Rerun from immutable dependency pointers; a completed dependency release is never modified.",
+  "checkpoint": "Output remains in run-scoped staging until every view and manifest check passes.",
+  "idempotency": "View IDs and row semantics are deterministic for the same immutable dependency releases; release IDs identify publication runs.",
+  "cancellation": "Stop after the current profile partition; staged artifacts remain unpublished.",
+  "source_policy": "config/source-policies/national-business-coverage-views.json",
+  "retention_profile": "Retain immutable aggregate releases with their exact dependency hashes until explicitly approved removal.",
+  "produced_entities": ["national-coverage-view", "state-coverage-view", "county-coverage-view", "zip-coverage-view", "source-coverage-view", "coverage-gap"],
+  "produced_identifiers": ["coverage-view-id", "coverage-gap-id", "census-geoid", "state-fips", "county-fips", "zcta5", "zip5"]
+}

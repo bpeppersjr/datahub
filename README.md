@@ -49,6 +49,7 @@ All local files remain inside the `datahub` repository:
 - `data/pharmacies/` — pharmacy CSV, JSONL, ZIP coverage, and manifest outputs
 - `data/geography/` — versioned national, state, county, and Census ZCTA polygons
 - `data/zcta-jurisdiction-crosswalk/` — governed ZCTA-to-county/state polygon-area overlays
+- `data/business-coverage-views/` — governed national, state, county, ZIP, source, and coverage-gap views
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

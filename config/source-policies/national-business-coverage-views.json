@@ -1,0 +1,26 @@
+{
+  "policy_id": "national-business-coverage-views",
+  "version": "1.0.0",
+  "source_kind": "derived governed aggregate over policy-controlled local datasets",
+  "ownership": "Each field remains governed by its named upstream source and policy; this publisher owns only the aggregate transformation and view contract.",
+  "allowed_use": [
+    "local coverage analysis",
+    "aggregate national, state, county, ZIP, and source visibility",
+    "coverage-gap discovery",
+    "quality review",
+    "planning authorized source acquisition"
+  ],
+  "prohibited_use": [
+    "representing the views as a complete census of active U.S. businesses",
+    "representing source-specific status as universal current operating status",
+    "publishing source-preserving profile counts as deduplicated business counts",
+    "allocating ZIP business counts to counties with polygon-area weights",
+    "forcing ambiguous boundary points into one county",
+    "public export before every dependency policy and entity-resolution precision gate authorizes it"
+  ],
+  "attribution": "Retain exact dependency dataset IDs, release IDs, manifest SHA-256 digests, transformation version, observation ranges, and count semantics.",
+  "retention": "Keep aggregate releases with immutable dependency hashes; dependency record-level retention remains governed by each source policy.",
+  "redistribution": "Local aggregate review required. No public redistribution is authorized by this derived policy alone.",
+  "personal_data_handling": "The publisher emits aggregate counts and geography identifiers only; it does not copy names, street addresses, identifiers, or source profile records into state, county, national, source, or gap views.",
+  "export_policy": "local-aggregate-review-required"
+}
