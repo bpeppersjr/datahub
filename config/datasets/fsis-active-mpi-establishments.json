@@ -1,0 +1,13 @@
+{
+  "dataset_id": "fsis-active-mpi-establishments",
+  "schema_version": "1.0.0",
+  "title": "USDA FSIS Active Meat, Poultry and Egg Product Inspection Establishments",
+  "status": "implemented",
+  "description": "Governed current-edition FSIS source layer for active regulated establishments, names, DBAs, physical addresses, coordinates, county/FIPS, grant dates, activities, demographic operation flags, source-specific status, ZIP/ZCTA context, provenance, and explicit gaps.",
+  "output": "data/business-sources/fsis-active-mpi-establishments/current.json",
+  "connector": "config/connectors/fsis-mpi.json",
+  "source_policy": "config/source-policies/fsis-mpi.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Establishments listed in one current FSIS active MPI directory and its same-date demographic supplement; not all food businesses or all U.S. businesses.",
+  "documentation": "docs/FSIS-MPI.md"
+}

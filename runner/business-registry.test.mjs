@@ -9,6 +9,7 @@ import {
   buildNationalBusinessRegistry,
   reconcileFdicInstitution,
   reconcileFdicLocation,
+  reconcileFsisEstablishment,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -21,6 +22,7 @@ import {
 } from "./business-registry.mjs";
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
+import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -280,6 +282,91 @@ async function writeFixtureNcuaRelease(root) {
   return pointerPath;
 }
 
+function normalizedFsisRecord(id = "100", zip = "60601", overrides = {}) {
+  const name = overrides.establishment_name ?? `Fixture FSIS ${id}`;
+  return normalizeFsisEstablishment({
+    establishment_id: id,
+    establishment_number: `M${id}`,
+    establishment_name: name,
+    street: `${id} FOOD WAY`,
+    city: "CHICAGO",
+    state: "IL",
+    zip,
+    phone: "3125550100",
+    grant_date: "1/2/2020",
+    activities: "Meat Processing",
+    dbas: `Fixture Foods ${id}`,
+    district: "50",
+    circuit: "5001",
+    size: "Small",
+    latitude: "41.88",
+    longitude: "-87.63",
+    county: "Cook County",
+    fips_code: "17031",
+    ...overrides,
+  }, {
+    establishment_id: id,
+    establishment_number: `M${id}`,
+    establishment_name: name,
+    active_meat_grant: "Yes",
+    last_meat_grant_edit_date: "1/2/2020",
+    processing: "Yes",
+  }, {
+    runId: "fsis-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceDate: "2026-08-24",
+    sourceReleaseId: "fsis-source-fixture",
+    baselineByZip: new Map([[zip.padStart(5, "0"), { geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip.padStart(5, "0")}`, geoid: zip.padStart(5, "0") } }]]),
+  });
+}
+
+async function writeFixtureFsisRelease(root) {
+  const releaseId = "fsis-mpi-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedFsisRecord("100", "60601"),
+    normalizedFsisRecord("200", "956", { establishment_name: "Fixture Island Foods", state: "PR", fips_code: "72021" }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789") {
+    const partitionRecords = records.filter((record) => record.address.zip_code.startsWith(prefix));
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/establishments/zip-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-fsis-establishment-jsonl-gzip" });
+  }
+  const zipRows = ["00956", "60601"].map((zipCode) => ({
+    zip_code: zipCode,
+    fsis_active_mpi_snapshot: { establishment_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}` },
+    employer_baseline: zipCode === "60601" ? { status: "published", establishments: 1000 } : null,
+    baseline_coverage_status: zipCode === "60601" ? "zbp-and-zcta" : "outside-zbp-zcta-union",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "fsis-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "fsis-active-mpi-establishments",
+    release_id: releaseId,
+    status: "published",
+    complete_current_active_directory_snapshot: true,
+    source_release_id: "fsis-source-fixture",
+    source_date: "2026-08-24",
+    coverage: { accepted_active_establishments: records.length },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -394,27 +481,41 @@ test("reconciles NCUA institutions, scoped locations, and trade names without in
   assert(!office.assertions.some((item) => item.predicate.includes("open")));
 });
 
+test("reconciles FSIS sites and establishments without inferring an organization or general open status", () => {
+  const source = normalizedFsisRecord();
+  const result = reconcileFsisEstablishment(source);
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["located_at"]);
+  assert.equal(result.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "listed-in-fsis-active-mpi-directory-as-of-release");
+  assert(result.assertions.some((item) => item.predicate === "establishment.fsis-activities"));
+  assert(result.assertions.some((item) => item.predicate === "establishment.other-name"));
+  assert(!result.assertions.some((item) => item.predicate.includes("organization") || item.predicate.includes("owner") || item.predicate.includes("open")));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
   const snapPointer = await writeFixtureSnapRelease(path.join(root, "snap"));
   const fdicPointer = await writeFixtureFdicRelease(path.join(root, "fdic"));
   const ncuaPointer = await writeFixtureNcuaRelease(path.join(root, "ncua"));
+  const fsisPointer = await writeFixtureFsisRelease(path.join(root, "fsis"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
     snapPointer,
     fdicPointer,
     ncuaPointer,
+    fsisPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
   assert.equal(result.manifest.coverage.organizations, 2);
-  assert.equal(result.manifest.coverage.physical_sites, 6);
-  assert.equal(result.manifest.coverage.establishments, 6);
-  assert.equal(result.manifest.coverage.relationships, 12);
-  assert.equal(result.manifest.coverage.zip_union_records, 4);
+  assert.equal(result.manifest.coverage.physical_sites, 8);
+  assert.equal(result.manifest.coverage.establishments, 8);
+  assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
+  assert.equal(result.manifest.coverage.relationships, 14);
+  assert.equal(result.manifest.coverage.zip_union_records, 5);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
@@ -426,6 +527,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(uncovered.registry_coverage.complete_all_businesses, false);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {

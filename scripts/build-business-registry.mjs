@@ -17,6 +17,7 @@ Options:
   --nppes <path>   CMS NPPES organizations current.json prerequisite
   --fdic <path>    FDIC BankFind current.json prerequisite
   --ncua <path>    NCUA quarterly credit-union current.json prerequisite
+  --fsis <path>    USDA FSIS active MPI establishment current.json prerequisite
   --help           Show this help
 `;
 }
@@ -28,11 +29,12 @@ function parseArguments(args) {
     nppes: "data/business-sources/cms-nppes-organizations/current.json",
     fdic: "data/business-sources/fdic-bankfind/current.json",
     ncua: "data/business-sources/ncua-quarterly-credit-unions/current.json",
+    fsis: "data/business-sources/fsis-active-mpi-establishments/current.json",
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -41,6 +43,7 @@ function parseArguments(args) {
       if (argument === "--nppes") options.nppes = value;
       if (argument === "--fdic") options.fdic = value;
       if (argument === "--ncua") options.ncua = value;
+      if (argument === "--fsis") options.fsis = value;
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -60,6 +63,7 @@ try {
     nppesPointer: assertInsideApp(path.resolve(APP_ROOT, options.nppes)),
     fdicPointer: assertInsideApp(path.resolve(APP_ROOT, options.fdic)),
     ncuaPointer: assertInsideApp(path.resolve(APP_ROOT, options.ncua)),
+    fsisPointer: assertInsideApp(path.resolve(APP_ROOT, options.fsis)),
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

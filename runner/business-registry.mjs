@@ -373,6 +373,44 @@ export function reconcileNcuaTradeName(record) {
   }, "object", "TradeName|TradeNamesId");
 }
 
+export function reconcileFsisEstablishment(record) {
+  const fsisId = record.external_identifiers?.find((item) => item.type === "fsis_establishment_id")?.value;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d+$/.test(fsisId ?? "") || siteId !== `site:fsis_establishment_${fsisId}`
+    || establishmentId !== `establishment:fsis_establishment_${fsisId}` || !/^\d{5}$/.test(zipCode ?? "") || !record.name) {
+    throw new Error(`Invalid FSIS establishment candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, siteId, "site.address", record.address, "address", "street|city|state|zip|county|fips_code"),
+    assertion(record, siteId, "site.zip-code", zipCode, "string", "zip"),
+    assertion(record, siteId, "site.location", record.location, "geometry", "latitude|longitude"),
+    assertion(record, siteId, "site.zcta", record.geography, "object", "zip"),
+    assertion(record, establishmentId, "establishment.name", record.name, "string", "establishment_name"),
+    assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", null),
+    assertion(record, establishmentId, "establishment.fsis-activities", { items: record.activities }, "object", "activities"),
+    assertion(record, establishmentId, "establishment.fsis-inspection-context", record.inspection_context, "object", "district|circuit|size"),
+    assertion(record, establishmentId, "establishment.fsis-active-grants", record.active_grants, "object", "active_*_grant|last_*_grant_edit_date"),
+    assertion(record, establishmentId, "establishment.fsis-reported-demographics", record.reported_demographics, "object", "Establishment Demographic Data fields"),
+  ];
+  if (record.telephone) assertions.push(assertion(record, siteId, "site.telephone", record.telephone, "string", "phone"));
+  if (record.grant_date) assertions.push(assertion(record, establishmentId, "establishment.fsis-grant-date", record.grant_date, "date", "grant_date"));
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  for (const name of record.other_names ?? []) {
+    assertions.push(assertion(record, establishmentId, "establishment.other-name", { name, name_type: "fsis-reported-dba" }, "object", "dbas"));
+  }
+  return {
+    fsisId,
+    zipCode,
+    entities: [canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at)],
+    assertions,
+    relationships: [relationship(record, "located_at", establishmentId, siteId)],
+  };
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -579,6 +617,38 @@ async function loadNcuaRelease(pointerPath) {
   };
 }
 
+async function loadFsisRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "FSIS manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "fsis-active-mpi-establishments" || manifest.status !== "published" || !manifest.complete_current_active_directory_snapshot) {
+    throw new Error("A complete published FSIS active MPI source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const establishmentArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-fsis-establishment-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (establishmentArtifacts.length !== 10) throw new Error("FSIS source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "fsis-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("FSIS source release has no ZIP coverage artifact.");
+  for (const artifact of [...establishmentArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `FSIS artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`FSIS artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("FSIS ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    establishmentArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -602,24 +672,27 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const ncuaRows = new Map((ncua?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys()])].sort();
+  const fsisRows = new Map((fsis?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
     const fdicRow = fdicRows.get(zipCode);
     const ncuaRow = ncuaRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow;
+    const fsisRow = fsisRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
     const secondary = nppesSecondaryCounts.get(zipCode) ?? 0;
     const fdicLocations = fdicLocationCounts.get(zipCode) ?? 0;
     const ncuaLocations = ncuaLocationCounts.get(zipCode) ?? 0;
+    const fsisEstablishments = fsisEstablishmentCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
@@ -627,7 +700,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts, nppesPrimary
     }
     if (fdic && fdicLocations !== (fdicRow?.fdic_current_location_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} FDIC location counts do not reconcile.`);
     if (ncua && ncuaLocations !== (ncuaRow?.ncua_quarterly_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} NCUA location counts do not reconcile.`);
-    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations;
+    if (fsis && fsisEstablishments !== (fsisRow?.fsis_active_mpi_snapshot?.establishment_count ?? 0)) throw new Error(`ZIP ${zipCode} FSIS establishment counts do not reconcile.`);
+    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -642,6 +716,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts, nppesPrimary
         nppes_non_primary_practice_location_count: secondary,
         fdic_current_location_count: fdicLocations,
         ncua_reported_us_location_count: ncuaLocations,
+        fsis_active_establishment_count: fsisEstablishments,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -671,6 +746,13 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts, nppesPrimary
             cycle_date: ncua.manifest.cycle_date,
           },
         } : {}),
+        ...(fsis ? {
+          fsis_active_mpi_establishments: {
+            active_establishment_count: fsisEstablishments,
+            source_release_id: fsis.manifest.source_release_id,
+            source_date: fsis.manifest.source_date,
+          },
+        } : {}),
       },
       current_usps_validity: foundation.current_usps_validity,
       geography: foundation.geography,
@@ -686,6 +768,7 @@ export async function buildNationalBusinessRegistry({
   nppesPointer = null,
   fdicPointer = null,
   ncuaPointer = null,
+  fsisPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -695,6 +778,7 @@ export async function buildNationalBusinessRegistry({
   const nppes = nppesPointer ? await loadNppesRelease(nppesPointer) : null;
   const fdic = fdicPointer ? await loadFdicRelease(fdicPointer) : null;
   const ncua = ncuaPointer ? await loadNcuaRelease(ncuaPointer) : null;
+  const fsis = fsisPointer ? await loadFsisRelease(fsisPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -735,12 +819,14 @@ export async function buildNationalBusinessRegistry({
   const nppesSecondaryCountsByZip = new Map();
   const fdicLocationCountsByZip = new Map();
   const ncuaLocationCountsByZip = new Map();
+  const fsisEstablishmentCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
   const fdicCertificates = new Set();
   const fdicLocationIds = new Set();
   const ncuaCharters = new Set();
   const ncuaLocationIds = new Set();
+  const fsisEstablishmentIds = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
@@ -751,6 +837,7 @@ export async function buildNationalBusinessRegistry({
   let ncuaInstitutions = 0;
   let ncuaLocations = 0;
   let ncuaTradeNames = 0;
+  let fsisEstablishments = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -934,6 +1021,30 @@ export async function buildNationalBusinessRegistry({
     if (ncuaTradeNames !== ncua.manifest.coverage.accepted_trade_names) throw new Error("Registry NCUA trade-name count does not match the source release.");
   }
 
+  if (fsis) {
+    for (const artifact of fsis.establishmentArtifacts) {
+      const partition = artifact.path.match(/zip-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine FSIS ZIP prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(fsis.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileFsisEstablishment(record);
+        if (reconciled.zipCode[0] !== partition) throw new Error(`FSIS establishment ${record.normalized_record_id} is in the wrong ZIP partition.`);
+        if (fsisEstablishmentIds.has(reconciled.fsisId)) throw new Error(`Duplicate FSIS establishment ${reconciled.fsisId}.`);
+        fsisEstablishmentIds.add(reconciled.fsisId);
+        await writeGzipRecord(siteWriters.get(partition), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        fsisEstablishmentCountsByZip.set(reconciled.zipCode, (fsisEstablishmentCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`FSIS establishment artifact ${artifact.path} record count mismatch.`);
+      fsisEstablishments += count;
+      logger(`Reconciled ${fsisEstablishments.toLocaleString("en-US")} FSIS active establishments.`);
+    }
+    if (fsisEstablishments !== fsis.manifest.coverage.accepted_active_establishments) throw new Error("Registry FSIS establishment count does not match the source release.");
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -960,7 +1071,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -1026,6 +1137,18 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(fsis ? {
+      fsis_active_mpi_establishments: {
+        source_id: "usda-fsis-active-mpi-directory",
+        dataset_id: fsis.manifest.dataset_id,
+        source_release_id: fsis.manifest.source_release_id,
+        dataset_release_id: fsis.manifest.release_id,
+        source_date: fsis.manifest.source_date,
+        active_establishments_published: fsisEstablishments,
+        identity_resolution: "one provisional physical site and establishment per FSIS establishment ID; no legal organization or cross-source merge inferred",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -1045,9 +1168,10 @@ export async function buildNationalBusinessRegistry({
       ...(nppes ? ["CMS NPPES organization providers and reported practice locations"] : []),
       ...(fdic ? ["FDIC active insured institutions and current indexed U.S. locations"] : []),
       ...(ncua ? ["NCUA federally insured credit unions and reported U.S. locations from the final quarterly release"] : []),
+      ...(fsis ? ["USDA FSIS establishments in the current active MPI directory"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -1057,14 +1181,15 @@ export async function buildNationalBusinessRegistry({
       ncua_institution_records: ncuaInstitutions,
       ncua_location_records: ncuaLocations,
       ncua_trade_name_records: ncuaTradeNames,
+      fsis_establishment_records: fsisEstablishments,
       organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -1088,10 +1213,16 @@ export async function buildNationalBusinessRegistry({
         release_id: ncua.manifest.release_id,
         manifest_sha256: ncua.manifestSha256,
       }] : []),
+      ...(fsis ? [{
+        dataset_id: fsis.manifest.dataset_id,
+        release_id: fsis.manifest.release_id,
+        manifest_sha256: fsis.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
       ...(fdic?.manifest.dependencies ?? []),
       ...(ncua?.manifest.dependencies ?? []),
+      ...(fsis?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -1117,6 +1248,11 @@ export async function buildNationalBusinessRegistry({
         "An NCUA quarterly branch row does not independently prove current public access, membership eligibility, current hours, or service availability.",
         "Non-federally-insured and foreign NCUA records are excluded by the governed source connector.",
         "NCUA SiteId is scoped by credit-union charter because the source reuses site IDs across institutions.",
+      ] : []),
+      ...(fsis ? [
+        "USDA FSIS MPI data covers regulated meat, poultry, and egg-product establishments, not all food businesses or all U.S. businesses.",
+        "FSIS active-directory membership does not independently prove general business operating status, public access, current hours, ownership, or every product made.",
+        "No legal organization or parent company is inferred from FSIS establishment names or DBAs, and the source DUNS field is excluded from the public registry.",
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
@@ -1207,6 +1343,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "reported-non-primary-practice-location-for-active-npi",
     "fdic-current-location-for-active-institution-as-of-index",
     "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release",
+    "listed-in-fsis-active-mpi-directory-as-of-release",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {

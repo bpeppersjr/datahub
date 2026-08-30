@@ -1,0 +1,30 @@
+{
+  "policy_id": "fsis-mpi",
+  "version": "1.0.0",
+  "publisher": "United States Department of Agriculture, Food Safety and Inspection Service",
+  "ownership": "United States federal government public establishment directory and demographic data",
+  "source_home": "https://www.fsis.usda.gov/inspection/establishments/meat-poultry-and-egg-product-inspection-directory",
+  "api_documentation": "https://www.fsis.usda.gov/science-data/developer-resources/mpi-api",
+  "source_access": "Public anonymous read-only CSV download links. This connector accepts explicitly supplied official files because FSIS edge controls reject unattended HTTP and fresh headless clients in the validated environment.",
+  "allowed_use": ["browser download", "local processing", "immutable internal source retention", "establishment and site normalization", "coverage analysis", "derived registry assertions", "redistribution of approved normalized fields with attribution and semantic limitations"],
+  "prohibited_use": [
+    "evading FSIS access controls or disguising automated clients",
+    "representing active-directory membership as independent proof of general business operating status, public access, current hours, ownership, or every product made",
+    "representing FSIS coverage as all food businesses or all U.S. businesses",
+    "inferring a legal organization or parent company from establishment name or DBA text",
+    "merging establishments across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "raw_source_csv_files": "internal",
+    "normalized_establishment_and_site_records": "public",
+    "fsis_establishment_identifiers": "public",
+    "business_names_addresses_phones_coordinates_activities_grants_and_demographics": "public",
+    "duns_number_source_field": "excluded-from-normalization-and-public-registry-pending-field-specific-review"
+  },
+  "attribution": "Source: USDA Food Safety and Inspection Service Meat, Poultry and Egg Product Inspection Directory and Establishment Demographic Data.",
+  "retention": "Indefinite for immutable source and normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved normalized public business records may be redistributed with FSIS attribution, source date, both source checksums, provenance, temporal scope, and coverage limitations retained; raw source CSVs remain internal.",
+  "contains_personal_data": false,
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

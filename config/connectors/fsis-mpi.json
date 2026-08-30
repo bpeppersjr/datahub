@@ -1,0 +1,39 @@
+{
+  "connector_id": "fsis-mpi",
+  "version": "1.0.0",
+  "description": "Validates explicitly supplied current USDA FSIS active MPI directory and demographic CSV files, then normalizes regulated establishments, activities, grants, names, addresses, coordinates, ZIP coverage, provenance, and explicit limitations.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["directory", "demographic", "source_date"],
+    "properties": {
+      "directory": { "type": "string", "default": "downloads/fsis-mpi/MPI_Directory_by_Establishment_Name.csv" },
+      "demographic": { "type": "string", "default": "downloads/fsis-mpi/Dataset_Establishment_Demographic_Data.csv" },
+      "source_date": { "type": "string", "format": "date" },
+      "output": { "type": "string", "default": "data/business-sources/fsis-active-mpi-establishments" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_establishments": { "type": "integer", "minimum": 1, "default": 6000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.005 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["fsis-official-active-directory-csv", "fsis-official-demographic-csv", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["fsis-source-active-directory-csv", "fsis-source-demographic-csv", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["www.fsis.usda.gov"],
+  "redirect_policy": "No network acquisition occurs inside this connector. Operators obtain both files from the two exact official links on the FSIS source page.",
+  "provider_budget_key": "fsis-mpi-public-file-drop",
+  "resource_class": "cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 0,
+    "maximum_input_bytes_per_file": 50000000
+  },
+  "retry": "Do not retry schema, join, date, checksum, or quality failures. Replace inputs only with a newly verified official pair.",
+  "checkpoint": "Both complete source CSVs are retained and hashed before normalization; publication is run-scoped and current.json changes only after all quality gates pass.",
+  "idempotency": "Source date plus both source-file SHA-256 values identify a release; FSIS establishment ID produces stable site and establishment candidates.",
+  "cancellation": "Stop local processing, leave unpublished staging run-scoped, and do not change current.json before complete publication.",
+  "source_policy": "config/source-policies/fsis-mpi.json",
+  "retention_profile": "Retain immutable source files internally and normalized public releases until an approved retention operation removes them.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "establishment-other-name-assertion", "fsis-activity-assertion", "fsis-grant-assertion", "fsis-source-status-assertion"],
+  "produced_identifiers": ["fsis-establishment-id", "fsis-establishment-number", "zip5", "zip4", "county-fips", "zcta5"]
+}

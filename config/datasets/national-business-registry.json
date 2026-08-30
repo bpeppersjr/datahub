@@ -30,6 +30,11 @@
       "layer": "public-record-level"
     },
     {
+      "dataset_id": "fsis-active-mpi-establishments",
+      "scope": "establishments in the current USDA FSIS active MPI directory and same-date demographic supplement",
+      "layer": "public-record-level-with-internal-raw-source"
+    },
+    {
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
@@ -47,7 +52,7 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, plus NCUA federally insured credit unions and reported U.S. locations",
+    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, plus USDA FSIS active MPI establishments",
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },
