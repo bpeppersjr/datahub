@@ -6,6 +6,7 @@ import { createStore } from './store.mjs';
 import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
+import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 
@@ -109,6 +110,7 @@ const templates = {
 };
 
 const store = await createStore();
+const businessCoverageViews = createBusinessCoverageViewStore();
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
 const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
@@ -253,6 +255,22 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/templates') {
       json(response, 200, templates);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
+      json(response, 200, await businessCoverageViews.getOverview());
+      return;
+    }
+
+    if (request.method === 'GET' && segments[0] === 'api' && segments[1] === 'business-coverage' && segments[2]) {
+      json(response, 200, await businessCoverageViews.listDimension(segments[2], {
+        query: url.searchParams.get('query'),
+        stateFips: url.searchParams.get('state_fips'),
+        gapType: url.searchParams.get('gap_type'),
+        offset: url.searchParams.get('offset'),
+        limit: url.searchParams.get('limit'),
+      }));
       return;
     }
 

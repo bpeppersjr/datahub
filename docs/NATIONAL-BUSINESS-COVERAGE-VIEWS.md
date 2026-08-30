@@ -72,6 +72,21 @@ Source rows reconcile ZIP-level contribution counts with profile geography cover
 
 Gap rows are first-class data. They include global blockers, inherited registry limitations, per-source coordinate gaps, ZIPs without record-level contributions, ZIPs without ZCTAs or employer baselines, ZCTA overlay diagnostics, and county equivalents without ZCTA intersections.
 
+## Management page and read-only API
+
+The Co*Tive Collector management page exposes the current verified release in the **U.S. business coverage** panel. Operators can search and page through states, counties, ZIPs, source summaries, and coverage gaps without loading the 231 MB ZIP artifact into the browser. County filters accept a two-digit state FIPS code; ZIP search is a numeric prefix; gap rows can be narrowed to one declared gap type.
+
+The runner serves the same local-only, read-only view at:
+
+- `GET /api/business-coverage` for release metadata, national totals, and source summaries;
+- `GET /api/business-coverage/states?query=&offset=&limit=`;
+- `GET /api/business-coverage/counties?query=&state_fips=&offset=&limit=`;
+- `GET /api/business-coverage/zips?query=&offset=&limit=`;
+- `GET /api/business-coverage/sources?query=&offset=&limit=`; and
+- `GET /api/business-coverage/gaps?query=&gap_type=&offset=&limit=`.
+
+Page size is capped at 100. The store validates the current pointer and release path before reading artifacts, caches immutable state/county/source/gap rows by release ID, and builds a compact ZIP index by streaming the ZIP artifact. Responses preserve the release's source-specific semantics and do not apply entity-resolution aliases.
+
 ## Identity and export boundary
 
 Registry physical sites and establishments remain provisional and source-preserving. The current entity-resolution release has reversible aliases, but its independent benchmark has no submitted labels and its precision/export gate has not passed. These views therefore do not apply aliases or claim deduplicated business counts.
