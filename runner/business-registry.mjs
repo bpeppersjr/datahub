@@ -8,7 +8,7 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.0.1";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.1.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -847,6 +847,47 @@ async function loadIrsEoRelease(pointerPath) {
   };
 }
 
+async function loadUspsOperationalZipRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "USPS operational ZIP manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "usps-operational-zip-assignments" || manifest.status !== "published-local-restricted"
+    || manifest.complete_source_release !== true || manifest.complete_current_area_district_assignment_file !== true
+    || manifest.complete_current_delivery_zip_registry !== false) {
+    throw new Error("A complete governed USPS Area/District ZIP assignment source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const zipArtifact = manifest.artifacts?.find((artifact) => artifact.artifact_type === "usps-operational-zip-assignment-jsonl");
+  if (!zipArtifact) throw new Error("USPS operational ZIP release has no normalized assignment artifact.");
+  const filename = path.resolve(releaseDirectory, zipArtifact.path);
+  assertContained(releaseDirectory, filename, `USPS operational ZIP artifact ${zipArtifact.path}`);
+  const actual = await hashFile(filename);
+  if (actual.bytes !== zipArtifact.bytes || actual.sha256 !== zipArtifact.sha256) {
+    throw new Error(`USPS operational ZIP artifact ${zipArtifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(filename, "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  const expectedExportPolicy = manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted";
+  if (zipRows.length !== zipArtifact.record_count
+    || zipRows.length !== manifest.coverage?.current_area_district_zip_assignment_denominator
+    || new Set(zipRows.map((row) => row.zip_code)).size !== zipRows.length
+    || zipRows.some((row) => row.assignment_status !== "listed-in-current-usps-area-district-file"
+      || row.deliverability_status !== "not-asserted" || row.zcta_status !== "not-asserted"
+      || row.export_policy !== expectedExportPolicy)
+    || !["personal-noncommercial-home-use", "usps-written-permission"].includes(manifest.use_authorization?.basis)
+    || (manifest.use_authorization?.basis === "personal-noncommercial-home-use" && manifest.use_authorization?.redistribution_authorized !== false)
+    || (manifest.use_authorization?.basis === "usps-written-permission" && manifest.use_authorization?.redistribution_authorized !== true)) {
+    throw new Error("USPS operational ZIP normalized assignments failed structural validation.");
+  }
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -870,7 +911,7 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, uspsZips, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
@@ -879,7 +920,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
   const echoRows = new Map((echo?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fmcsaRows = new Map((fmcsa?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const irsEoRows = new Map((irsEo?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys()])].sort();
+  const uspsRows = new Map((uspsZips?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...uspsRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
@@ -889,8 +931,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     const echoRow = echoRows.get(zipCode);
     const fmcsaRow = fmcsaRows.get(zipCode);
     const irsEoRow = irsEoRows.get(zipCode);
+    const uspsRow = uspsRows.get(zipCode);
     const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow;
-    if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
+    if (!foundation && !uspsRow) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
     const secondary = nppesSecondaryCounts.get(zipCode) ?? 0;
@@ -989,10 +1032,24 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
           },
         } : {}),
       },
-      current_usps_validity: foundation.current_usps_validity,
-      geography: foundation.geography,
-      employer_baseline: foundation.employer_baseline,
-      baseline_coverage_status: foundation.baseline_coverage_status,
+      current_usps_validity: uspsZips ? (uspsRow ? {
+        status: uspsRow.assignment_status,
+        evidence_scope: uspsRow.evidence_scope,
+        deliverability_status: "not-asserted",
+        source_month: uspsRow.source_month,
+        source_release_id: uspsRow.provenance?.source_release_id ?? null,
+        export_policy: uspsRow.export_policy,
+      } : {
+        status: "not-listed-in-current-usps-area-district-file",
+        evidence_scope: "operational-area-district-5-digit-zip-assignment",
+        deliverability_status: "not-asserted",
+        source_month: uspsZips.manifest.source_month,
+        source_release_id: `usps-postalpro-area-district-zip5-${uspsZips.manifest.source_month}`,
+        export_policy: uspsZips.manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted",
+      }) : foundation?.current_usps_validity ?? { status: "unverified" },
+      geography: foundation?.geography ?? { status: "not-observed-in-integrated-census-coverage-union" },
+      employer_baseline: foundation?.employer_baseline ?? null,
+      baseline_coverage_status: foundation?.baseline_coverage_status ?? "not-observed-in-integrated-census-coverage-union",
     };
   });
 }
@@ -1007,6 +1064,7 @@ export async function buildNationalBusinessRegistry({
   echoPointer = null,
   fmcsaPointer = null,
   irsEoPointer = null,
+  uspsZipsPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -1020,6 +1078,7 @@ export async function buildNationalBusinessRegistry({
   const echo = echoPointer ? await loadEpaEchoRelease(echoPointer) : null;
   const fmcsa = fmcsaPointer ? await loadFmcsaRelease(fmcsaPointer) : null;
   const irsEo = irsEoPointer ? await loadIrsEoRelease(irsEoPointer) : null;
+  const uspsZips = uspsZipsPointer ? await loadUspsOperationalZipRelease(uspsZipsPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -1398,10 +1457,13 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, uspsZips, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
+    distribution_policy: uspsZips
+      ? (uspsZips.manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted")
+      : "public-source-layer",
   }));
   const sourceContribution = {
     usda_snap_retailers: {
@@ -1519,6 +1581,19 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(uspsZips ? {
+      usps_operational_zip_assignments: {
+        source_id: "usps-postalpro-area-district-zip5",
+        dataset_id: uspsZips.manifest.dataset_id,
+        dataset_release_id: uspsZips.manifest.release_id,
+        source_month: uspsZips.manifest.source_month,
+        operational_area_district_zip_assignments: uspsZips.zipRows.length,
+        aisu_routing_rows: uspsZips.manifest.coverage.aisu_routing_rows,
+        aisu_only_rows_excluded: uspsZips.manifest.coverage.routing_only_rows_excluded_from_denominator,
+        address_deliverability_inferred: false,
+        export_policy: uspsZips.manifest.export_policy,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -1527,7 +1602,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "1.0.1" },
+    publisher: { id: "national-business-registry", version: "1.1.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1566,7 +1641,15 @@ export async function buildNationalBusinessRegistry({
       relationships,
       zip_union_records: zipCoverage.length,
       zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys()]).size,
-      authoritative_current_usps_zip_denominator: null,
+      authoritative_current_usps_zip_denominator: uspsZips ? {
+        count: uspsZips.zipRows.length,
+        evidence_scope: "current-usps-area-district-5-digit-zip-assignments",
+        source_month: uspsZips.manifest.source_month,
+        dataset_id: uspsZips.manifest.dataset_id,
+        release_id: uspsZips.manifest.release_id,
+        address_level_deliverability_asserted: false,
+        distribution_policy: uspsZips.manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted",
+      } : null,
     },
     dependencies: [
       {
@@ -1609,6 +1692,11 @@ export async function buildNationalBusinessRegistry({
         release_id: irsEo.manifest.release_id,
         manifest_sha256: irsEo.manifestSha256,
       }] : []),
+      ...(uspsZips ? [{
+        dataset_id: uspsZips.manifest.dataset_id,
+        release_id: uspsZips.manifest.release_id,
+        manifest_sha256: uspsZips.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
       ...(fdic?.manifest.dependencies ?? []),
@@ -1623,7 +1711,9 @@ export async function buildNationalBusinessRegistry({
       assertion: "config/schemas/business-assertion.schema.json",
       relationship: "config/schemas/business-relationship.schema.json",
     },
-    export_policy: "public source layer only; restricted and licensed fields are not present",
+    export_policy: uspsZips
+      ? "Business entity/assertion/relationship artifacts retain their source policies; ZIP coverage derived from USPS assignments inherits the USPS release export policy."
+      : "public source layer only; restricted and licensed fields are not present",
     limitations: [
       "This is a partial registry release and must not be represented as all U.S. businesses.",
       "The source covers SNAP-authorized retailers, not all grocery stores, retailers, employers, or establishments.",
@@ -1670,7 +1760,10 @@ export async function buildNationalBusinessRegistry({
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
       "No brand, legal organization, parent company, ownership, or general operating-status claim is inferred from the source name.",
-      "Current USPS ZIP validity remains unverified until an authoritative current ZIP denominator is integrated.",
+      ...(uspsZips ? [
+        "USPS evidence establishes membership in the current Area/District 5-digit ZIP assignment file, not address-level deliverability, delivery type, preferred city/state, ZIP+4 ranges, or ZCTA geography.",
+        "ZIP coverage derived from USPS rows must not be exported beyond the recorded USPS use authorization and reviewed permission.",
+      ] : ["Current USPS ZIP validity remains unverified until an authoritative current ZIP denominator is integrated."]),
     ],
     artifacts: artifacts.sort((a, b) => a.path.localeCompare(b.path)),
   };
@@ -1707,8 +1800,18 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   if (manifest.complete_national_business_registry !== false || manifest.status !== "published-partial") {
     failures.push({ path: "manifest.json", reason: "release is not explicitly marked partial" });
   }
-  if (manifest.coverage?.authoritative_current_usps_zip_denominator !== null) {
-    failures.push({ path: "manifest.json", reason: "unsupported authoritative USPS ZIP denominator claim" });
+  const uspsDependency = manifest.dependencies?.find((dependency) => dependency.dataset_id === "usps-operational-zip-assignments");
+  const uspsDenominator = manifest.coverage?.authoritative_current_usps_zip_denominator;
+  if (uspsDependency) {
+    if (!uspsDenominator || uspsDenominator.dataset_id !== uspsDependency.dataset_id
+      || uspsDenominator.release_id !== uspsDependency.release_id || !Number.isInteger(uspsDenominator.count)
+      || uspsDenominator.count < 1 || uspsDenominator.evidence_scope !== "current-usps-area-district-5-digit-zip-assignments"
+      || uspsDenominator.address_level_deliverability_asserted !== false
+      || !["local-restricted", "permission-governed"].includes(uspsDenominator.distribution_policy)) {
+      failures.push({ path: "manifest.json", reason: "invalid governed USPS Area/District ZIP denominator claim" });
+    }
+  } else if (uspsDenominator !== null) {
+    failures.push({ path: "manifest.json", reason: "USPS ZIP denominator has no governed source dependency" });
   }
   for (const artifact of manifest.artifacts ?? []) {
     const artifactPath = path.resolve(releaseDirectory, artifact.path);
@@ -1834,8 +1937,19 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0);
       return row.registry_coverage.status !== (recordCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution");
     })) throw new Error("ZIP record-level contribution status does not reconcile");
-    if (rows.some((row) => row.registry_coverage.complete_all_businesses !== false || row.current_usps_validity?.status !== "unverified")) {
-      throw new Error("ZIP coverage overstates completeness or USPS validity");
+    if (rows.some((row) => row.registry_coverage.complete_all_businesses !== false)) throw new Error("ZIP coverage overstates business completeness");
+    if (uspsDependency) {
+      const listed = rows.filter((row) => row.current_usps_validity?.status === "listed-in-current-usps-area-district-file");
+      if (listed.length !== uspsDenominator.count) throw new Error("USPS ZIP denominator count does not match listed coverage rows");
+      if (rows.some((row) => !["listed-in-current-usps-area-district-file", "not-listed-in-current-usps-area-district-file"].includes(row.current_usps_validity?.status)
+        || row.current_usps_validity?.deliverability_status !== "not-asserted"
+        || row.current_usps_validity?.source_month !== uspsDenominator.source_month
+        || row.current_usps_validity?.export_policy !== uspsDenominator.distribution_policy)) {
+        throw new Error("ZIP coverage overstates or mislabels USPS assignment evidence");
+      }
+      if (zipArtifact.distribution_policy !== uspsDenominator.distribution_policy) throw new Error("ZIP artifact does not inherit USPS distribution policy");
+    } else if (rows.some((row) => row.current_usps_validity?.status !== "unverified")) {
+      throw new Error("ZIP coverage overstates USPS validity without a governed dependency");
     }
   } catch (error) {
     failures.push({ path: zipArtifact?.path ?? "derived/zip-coverage.jsonl", reason: `ZIP coverage validation failed: ${error.message}` });

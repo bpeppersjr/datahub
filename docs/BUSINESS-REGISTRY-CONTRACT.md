@@ -52,7 +52,9 @@ Coverage is measured over an authoritative current ZIP denominator once one is l
 - record-level source counts, latest observations, conflicts, and unresolved gaps;
 - whether the ZIP is excluded from a source by design.
 
-Until the authoritative denominator exists, coverage percentages over “all valid ZIPs” are prohibited. ZCTA and ZBP unions may be reported only with their exact denominators.
+The implemented USPS operational ZIP connector uses the current PostalPro Area/District assignment file as a precisely scoped denominator and reconciles it against the broader AISU routing file. It does not equate assignment membership with address-level deliverability, and it excludes AISU-only routing rows. The connector requires an explicit authorized-use basis and keeps source and derived record-level rows local restricted unless reviewed USPS written permission covers export.
+
+Until a governed USPS release is actually integrated into a registry release, coverage percentages over “all valid ZIPs” remain prohibited. After integration, any percentage must name the exact denominator as “current USPS Area/District 5-digit ZIP assignments,” inherit its source month and export policy, and must not be labeled address-deliverability coverage. ZCTA and ZBP unions may be reported only with their exact denominators.
 
 ## Publication gates
 

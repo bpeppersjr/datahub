@@ -16,6 +16,8 @@
     "zbp:verify": "node scripts/verify-census-zbp.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
+    "usps-zips:build": "node scripts/build-usps-operational-zip-assignments.mjs",
+    "usps-zips:verify": "node scripts/verify-usps-operational-zip-assignments.mjs",
     "snap:build": "node scripts/build-usda-snap-retailers.mjs",
     "snap:verify": "node scripts/verify-usda-snap-retailers.mjs",
     "nppes:prepare": "node scripts/prepare-nppes-source.mjs",

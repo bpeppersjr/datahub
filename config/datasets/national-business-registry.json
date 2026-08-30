@@ -53,6 +53,11 @@
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
+    },
+    {
+      "dataset_id": "usps-operational-zip-assignments",
+      "scope": "current PostalPro Area/District 5-digit ZIP assignment denominator reconciled against AISU routing rows",
+      "layer": "local-restricted-connector-awaiting-explicit-authorized-use-basis-for-live-release"
     }
   ],
   "required_coverage_dimensions": [

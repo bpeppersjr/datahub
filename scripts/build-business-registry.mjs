@@ -21,6 +21,7 @@ Options:
   --echo <path>    EPA ECHO active regulated-facility current.json prerequisite
   --fmcsa <path>   FMCSA active U.S. Company Census current.json prerequisite
   --irs-eo <path>  IRS EO BMF organization current.json prerequisite
+  --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --help           Show this help
 `;
 }
@@ -36,11 +37,12 @@ function parseArguments(args) {
     echo: "data/business-sources/epa-echo-active-facilities/current.json",
     fmcsa: "data/business-sources/fmcsa-active-us-company-census/current.json",
     irsEo: "data/business-sources/irs-eo-bmf-organizations/current.json",
+    uspsZips: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -53,6 +55,7 @@ function parseArguments(args) {
       if (argument === "--echo") options.echo = value;
       if (argument === "--fmcsa") options.fmcsa = value;
       if (argument === "--irs-eo") options.irsEo = value;
+      if (argument === "--usps-zips") options.uspsZips = value;
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -76,6 +79,7 @@ try {
     echoPointer: assertInsideApp(path.resolve(APP_ROOT, options.echo)),
     fmcsaPointer: assertInsideApp(path.resolve(APP_ROOT, options.fmcsa)),
     irsEoPointer: assertInsideApp(path.resolve(APP_ROOT, options.irsEo)),
+    uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

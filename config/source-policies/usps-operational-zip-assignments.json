@@ -1,0 +1,37 @@
+{
+  "policy_id": "usps-operational-zip-assignments",
+  "version": "1.0.0",
+  "publisher": "United States Postal Service",
+  "ownership": "USPS-copyrighted site material and operational addressing data",
+  "source_home": "https://postalpro.usps.com/address-quality/ais-viewer",
+  "source_resources": [
+    "https://postalpro.usps.com/areadist_ZIP5",
+    "https://postalpro.usps.com/ais-viewer/aisuzips",
+    "https://postalpro.usps.com/ais-viewer/aisulout"
+  ],
+  "terms_url": "https://about.usps.com/who/legal/terms-of-use.htm",
+  "license_reference": "https://postalpro.usps.com/AISCopyright_License",
+  "review_status": "USPS site terms allow personal non-commercial home use, page-specific permission, or express written permission; the source pages do not state a broader redistribution grant.",
+  "required_authorization_basis": [
+    "personal-noncommercial-home-use",
+    "usps-written-permission"
+  ],
+  "allowed_use": [
+    "local personal non-commercial home use when that basis is true",
+    "uses expressly covered by a reviewed USPS written permission"
+  ],
+  "prohibited_use": [
+    "running the live connector without recording a truthful authorized-use basis",
+    "committing or publishing raw USPS files",
+    "publishing derived record-level ZIP assignment rows without reviewed written permission",
+    "using AISU-only routing rows as the operational Area/District ZIP denominator",
+    "claiming that file membership proves address-level deliverability",
+    "treating ZIP Codes as Census ZCTA polygons"
+  ],
+  "attribution": "Source: United States Postal Service PostalPro Address Information System resources.",
+  "retention": "Keep raw and derived record-level artifacts in local ignored storage. Review and remove obsolete copies according to the applicable permission and USPS terms.",
+  "redistribution": "Not authorized by the public source pages or general USPS site terms; requires express written permission covering the intended export.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

@@ -1,0 +1,67 @@
+{
+  "connector_id": "usps-operational-zip-assignments",
+  "version": "1.0.0",
+  "implementation_status": "implemented-and-offline-verified-awaiting-explicit-authorized-use-basis-for-live-publication",
+  "description": "Acquires and reconciles the current USPS PostalPro Area/District and AISU ZIP files into a governed local operational ZIP assignment denominator.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["use_basis"],
+    "properties": {
+      "use_basis": {
+        "type": "string",
+        "enum": ["personal-noncommercial-home-use", "usps-written-permission"]
+      },
+      "permission_reference": {
+        "type": "string",
+        "description": "Non-secret permission record identifier required for usps-written-permission."
+      },
+      "output": {
+        "type": "string",
+        "default": "data/zip-validity/usps-operational-zips"
+      }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [],
+  "output_artifact_types": [
+    "usps-resource-page-html",
+    "usps-areaDistrict-text",
+    "usps-aisuZips-text",
+    "usps-aisuLayout-text",
+    "usps-operational-zip-assignment-jsonl",
+    "usps-routing-only-summary-json",
+    "dataset-manifest-json"
+  ],
+  "allowed_hosts": ["postalpro.usps.com"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "usps-postalpro-operational-zips",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 120,
+    "max_parallel_requests": 3,
+    "maximum_page_bytes": 2000000,
+    "maximum_area_district_bytes": 5000000,
+    "maximum_aisu_zip_bytes": 2000000,
+    "minimum_area_district_assignments": 30000
+  },
+  "retry": "No automatic retry in version 1.0.0; an operator can rerun after a transient failure without publishing partial state.",
+  "checkpoint": "All files are acquired into an immutable run staging directory; no current pointer is changed until validation and publication complete.",
+  "idempotency": "Source storage month and checksums identify content; releases remain immutable even when content is reacquired.",
+  "cancellation": "An AbortSignal cancels page and file requests; staged partial state is never published.",
+  "source_policy": "config/source-policies/usps-operational-zip-assignments.json",
+  "retention_profile": "USPS source and derived record-level artifacts remain local and ignored by Git unless a reviewed written permission explicitly authorizes another treatment.",
+  "produced_entities": ["zip-operational-assignment-evidence"],
+  "produced_identifiers": ["zip5", "usps-area-code", "usps-aisu"]
+}

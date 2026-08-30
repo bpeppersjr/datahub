@@ -169,6 +169,8 @@ Start only after Release 0.2 foundations are complete.
 6. Use authoritative ZIP/ZCTA geography and adaptive spatial subdivision; do not iterate every number from `00100` through `99999` as though each were a physical ZIP area.
 7. Report coverage, freshness, source contribution, conflicts, and unresolved gaps by state, county, and ZCTA.
 
+Current ZIP-denominator progress: the `usps-operational-zip-assignments` connector now discovers and validates the current PostalPro Area/District and AISU files, excludes AISU-only routing rows, publishes immutable local-restricted releases, and can feed scoped assignment evidence into registry ZIP coverage. A live source and rebuilt registry remain gated on a truthful personal non-commercial use basis or reviewed USPS written permission; public redistribution is not inferred from download access.
+
 ## Verification and release gates
 
 Every milestone must pass:

@@ -55,9 +55,11 @@ Current EO BMF membership and exempt-status codes are federal tax-status evidenc
 
 ## ZIP coverage
 
-`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, FMCSA active-registration principal offices, source releases and freshness, Census employer baseline data, ZCTA geometry status, and unverified current-USPS validity. An IRS filing-address contribution changes record-level coverage status but never increments physical-site or establishment counts.
+`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, FMCSA active-registration principal offices, source releases and freshness, Census employer baseline data, ZCTA geometry status, and current-USPS evidence when a governed USPS release is supplied. An IRS filing-address contribution changes record-level coverage status but never increments physical-site or establishment counts.
 
 Rows with no record-level contribution from any integrated source are retained as `denominator-only-no-record-level-contribution`. Every row sets `complete_all_businesses` to `false`. The manifest also leaves `authoritative_current_usps_zip_denominator` as `null`; percentages over “all valid U.S. ZIPs” remain prohibited until that denominator is acquired from an authorized source.
+
+The optional `--usps-zips` prerequisite accepts the governed `usps-operational-zip-assignments` release. When present, the ZIP union adds USPS-only denominator rows, the manifest records a scoped Area/District assignment denominator object, and every ZIP receives either `listed-in-current-usps-area-district-file` or `not-listed-in-current-usps-area-district-file`. Neither status asserts address-level deliverability. The ZIP artifact inherits `local-restricted` or `permission-governed` distribution policy from the USPS release; other business artifacts retain their own source policies.
 
 ## Artifact contract
 
@@ -74,13 +76,15 @@ Rows with no record-level contribution from any integrated source are retained a
 - `derived/source-contributions.json`
 - `manifest.json`
 
-The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, reconciles ZIP and manifest counts, and rejects any release that claims completeness or authoritative current-USPS ZIP coverage.
+The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, and reconciles ZIP and manifest counts. It rejects unsupported business-completeness claims and rejects any USPS denominator without a checksummed governed dependency, exact scoped semantics, conservative deliverability flags, and inherited distribution policy.
 
 ## Validated live release
 
 The independently verified release `national-business-registry-20260830-182714861Z-cc2070d9` contains 8,936,163 governed source records, including 2,195,563 accepted FMCSA active principal-office records and 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 77,115,239 assertions, and 8,601,934 relationships across 123 verified artifacts.
 
 Its 43,586-row ZIP union has record-level source contributions in 43,310 ZIPs. FMCSA added one site, one establishment, and one `located_at` relationship per accepted USDOT principal-office record, but no inferred organization or parent. The source and registry transformations deduplicate repeated typed docket identifiers while preserving source slot observations; the rejected intermediate registry release remains immutable and is not current. The verified release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
+
+The USPS connector and optional registry integration were implemented after this live release. The current registry remains unchanged until an operator truthfully selects an authorized USPS use basis and publishes a local governed USPS source release.
 
 ## Adding the next source
 

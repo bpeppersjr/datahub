@@ -1,0 +1,28 @@
+{
+  "dataset_id": "usps-operational-zip-assignments",
+  "schema_version": "1.0.0",
+  "title": "USPS Operational 5-Digit ZIP Assignment Evidence",
+  "status": "implemented-awaiting-explicit-authorized-use-basis-for-live-release",
+  "description": "Current USPS-published Area/District 5-digit ZIP assignments reconciled against the broader AISU routing file.",
+  "producer_connector": "usps-operational-zip-assignments",
+  "runtime_pointer": "data/zip-validity/usps-operational-zips/current.json",
+  "required_datasets": [],
+  "normalized_artifacts": {
+    "operational_zip_assignments": "derived/operational-zip-assignments.jsonl",
+    "routing_only_summary": "derived/routing-only-summary.json"
+  },
+  "coverage_semantics": {
+    "included": "ZIP appears in the current USPS AREADIST_ZIP5 Area/District assignment file.",
+    "excluded": "AISUZIPS-only routing rows are not counted as operational Area/District assignments.",
+    "not_asserted": [
+      "address-level deliverability",
+      "delivery type",
+      "preferred city or state",
+      "ZIP+4 ranges",
+      "Census ZCTA polygon"
+    ]
+  },
+  "publication": "Local restricted by default; manifest aggregates may be reported, but record-level USPS and derived ZIP assignment rows are not committed or redistributed without reviewed written permission.",
+  "documentation": "docs/USPS-OPERATIONAL-ZIP-ASSIGNMENTS.md",
+  "source_policy": "config/source-policies/usps-operational-zip-assignments.json"
+}

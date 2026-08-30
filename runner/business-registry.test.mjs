@@ -152,6 +152,66 @@ async function writeFixtureSnapRelease(root) {
   return pointerPath;
 }
 
+async function writeFixtureUspsOperationalZipRelease(root) {
+  const releaseId = "usps-operational-zips-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  const sourceMonth = "2026-08";
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  const rows = ["00001", "01760", "60601"].map((zipCode) => ({
+    schema_version: "1.0.0",
+    zip_code: zipCode,
+    assignment_status: "listed-in-current-usps-area-district-file",
+    evidence_scope: "operational-area-district-5-digit-zip-assignment",
+    deliverability_status: "not-asserted",
+    zcta_status: "not-asserted",
+    source_month: sourceMonth,
+    provenance: {
+      source_id: "usps-postalpro-area-district-zip5",
+      source_release_id: `usps-postalpro-area-district-zip5-${sourceMonth}`,
+      source_record_id: zipCode,
+      ingest_run_id: "usps-fixture-run",
+      transformation_version: "usps-operational-zip-assignments@1.0.0",
+      policy_id: "usps-operational-zip-assignments",
+    },
+    export_policy: "local-restricted",
+  }));
+  const zipBuffer = Buffer.from(`${rows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/operational-zip-assignments.jsonl"), zipBuffer);
+  const manifest = {
+    dataset_id: "usps-operational-zip-assignments",
+    release_id: releaseId,
+    status: "published-local-restricted",
+    source_month: sourceMonth,
+    complete_source_release: true,
+    complete_current_area_district_assignment_file: true,
+    complete_current_delivery_zip_registry: false,
+    use_authorization: {
+      basis: "personal-noncommercial-home-use",
+      permission_reference: null,
+      redistribution_authorized: false,
+    },
+    export_policy: "Local restricted use only; do not redistribute USPS rows or derived ZIP assignments.",
+    coverage: {
+      current_area_district_zip_assignment_denominator: rows.length,
+      aisu_routing_rows: 4,
+      routing_only_rows_excluded_from_denominator: 1,
+    },
+    artifacts: [{
+      path: "derived/operational-zip-assignments.jsonl",
+      bytes: zipBuffer.length,
+      sha256: sha256(zipBuffer),
+      record_count: rows.length,
+      artifact_type: "usps-operational-zip-assignment-jsonl",
+      distribution_policy: "local-restricted",
+    }],
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  await mkdir(root, { recursive: true });
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 async function writeFixtureFdicRelease(root) {
   const releaseId = "fdic-bankfind-fixture";
   const releaseDirectory = path.join(root, "releases", releaseId);
@@ -794,6 +854,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const echoPointer = await writeFixtureEchoRelease(path.join(root, "echo"));
   const fmcsaPointer = await writeFixtureFmcsaRelease(path.join(root, "fmcsa"));
   const irsEoPointer = await writeFixtureIrsEoRelease(path.join(root, "irs-eo"));
+  const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
@@ -804,6 +865,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
     echoPointer,
     fmcsaPointer,
     irsEoPointer,
+    uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
@@ -816,8 +878,9 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
   assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
   assert.equal(result.manifest.coverage.relationships, 18);
-  assert.equal(result.manifest.coverage.zip_union_records, 8);
-  assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
+  assert.equal(result.manifest.coverage.zip_union_records, 9);
+  assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
+  assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
   assert.equal(verification.status, "published-partial");
@@ -826,6 +889,11 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const uncovered = zipRows.find((row) => row.zip_code === "99999");
   assert.equal(uncovered.registry_coverage.status, "denominator-only-no-record-level-contribution");
   assert.equal(uncovered.registry_coverage.complete_all_businesses, false);
+  assert.equal(uncovered.current_usps_validity.status, "not-listed-in-current-usps-area-district-file");
+  const uspsOnly = zipRows.find((row) => row.zip_code === "00001");
+  assert.equal(uspsOnly.registry_coverage.status, "denominator-only-no-record-level-contribution");
+  assert.equal(uspsOnly.current_usps_validity.status, "listed-in-current-usps-area-district-file");
+  assert.equal(uspsOnly.geography.status, "not-observed-in-integrated-census-coverage-union");
   const irsOnly = zipRows.find((row) => row.zip_code === "88888");
   assert.equal(irsOnly.registry_coverage.status, "record-level-source-contribution");
   assert.equal(irsOnly.registry_coverage.physical_site_count, 0);
