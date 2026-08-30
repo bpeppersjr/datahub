@@ -40,6 +40,11 @@
       "layer": "public-record-level-with-internal-raw-source"
     },
     {
+      "dataset_id": "irs-eo-bmf-organizations",
+      "scope": "organizations present in the current IRS EO BMF extract with supported U.S. or territory filing addresses",
+      "layer": "public-organization-record-level-with-internal-raw-source"
+    },
+    {
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
@@ -57,7 +62,7 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, plus EPA ECHO source-designated active regulated facilities",
+    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, plus current IRS EO BMF organizations and filing addresses",
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },

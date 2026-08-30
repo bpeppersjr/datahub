@@ -1,0 +1,13 @@
+{
+  "dataset_id": "irs-eo-bmf-organizations",
+  "schema_version": "1.0.0",
+  "title": "IRS Current Exempt Organizations Business Master File",
+  "status": "implemented",
+  "description": "Governed monthly IRS EO BMF organization layer with EINs, approved public names, reported filing addresses, tax-status classifications, ZIP/ZCTA context, provenance, privacy exclusions, and explicit gaps.",
+  "output": "data/business-sources/irs-eo-bmf-organizations/current.json",
+  "connector": "config/connectors/irs-eo-bmf.json",
+  "source_policy": "config/source-policies/irs-eo-bmf.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Organizations present in the current cumulative IRS EO BMF extract with a supported U.S. state or territory and a valid reported filing address; not every nonprofit, business, or physical operating location.",
+  "documentation": "docs/IRS-EO-BMF.md"
+}

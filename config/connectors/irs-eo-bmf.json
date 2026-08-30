@@ -1,0 +1,38 @@
+{
+  "connector_id": "irs-eo-bmf",
+  "version": "1.0.0",
+  "description": "Discovers and streams the four official monthly IRS EO Business Master File regional CSVs, then publishes current-extract exempt-organization candidates with EINs, public names, filing addresses, tax-status classifications, ZIP/ZCTA context, provenance, exclusions, and explicit semantic limitations.",
+  "lifecycle": ["preflight", "discover", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source_directory": { "type": ["string", "null"], "default": null },
+      "output": { "type": "string", "default": "data/business-sources/irs-eo-bmf-organizations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 1500000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.005 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["irs-eo-bmf-regional-csv", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["irs-eo-bmf-source-region-csv", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["www.irs.gov"],
+  "redirect_policy": "Reject redirects and accept only the exact HTTPS EO BMF page and /pub/irs-soi/eo1.csv through eo4.csv paths on www.irs.gov.",
+  "provider_budget_key": "irs-eo-bmf-monthly-regional-files",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "regional_source_files": 4,
+    "maximum_bytes_per_regional_csv": 800000000,
+    "maximum_csv_record_bytes": 100000
+  },
+  "retry": "Retry only transient page or file acquisition failures. Do not retry schema, duplicate-EIN, source-count, source-date, checksum, or quality-gate failures without a new verified source snapshot.",
+  "checkpoint": "All four complete source CSVs are retained and hashed before normalization; publication is run-scoped and current.json changes only after every quality gate passes.",
+  "idempotency": "Source posting date plus the ordered SHA-256 checksums of eo1.csv through eo4.csv identify a source release; EIN creates a stable provisional organization candidate.",
+  "cancellation": "Stop network and local streams cooperatively, close partition writers, leave unpublished run-scoped staging, and do not change current.json before complete publication.",
+  "source_policy": "config/source-policies/irs-eo-bmf.json",
+  "retention_profile": "Retain immutable internal source CSVs and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "irs-eo-tax-profile-assertion", "reported-filing-address-assertion", "irs-eo-source-status-assertion"],
+  "produced_identifiers": ["ein", "zip5", "zip4", "zcta5", "ntee", "irs-subsection-code"]
+}

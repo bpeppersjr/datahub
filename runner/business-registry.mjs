@@ -444,6 +444,37 @@ export function reconcileEpaEchoFacility(record) {
   };
 }
 
+export function reconcileIrsEoOrganization(record) {
+  const ein = record.external_identifiers?.find((item) => item.type === "ein")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  const zipCode = record.reported_filing_address?.zip_code;
+  if (!/^\d{9}$/.test(ein ?? "") || organizationId !== `organization:irs_ein_${ein}`
+    || !/^\d{5}$/.test(zipCode ?? "") || !record.legal_name || record.entity_candidates?.physical_site_id || record.entity_candidates?.establishment_id) {
+    throw new Error(`Invalid IRS EO organization candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, organizationId, "organization.legal-name", record.legal_name, "string", "NAME"),
+    assertion(record, organizationId, "organization.reported-filing-address", record.reported_filing_address, "address", "STREET|CITY|STATE|ZIP"),
+    assertion(record, organizationId, "organization.reported-filing-zip-code", zipCode, "string", "ZIP"),
+    assertion(record, organizationId, "organization.reported-filing-zcta", record.geography, "object", "ZIP"),
+    assertion(record, organizationId, "organization.irs-eo-tax-profile", record.tax_exempt_profile, "object", "GROUP|SUBSECTION|AFFILIATION|CLASSIFICATION|RULING|DEDUCTIBILITY|FOUNDATION|ACTIVITY|ORGANIZATION|STATUS|TAX_PERIOD|FILING_REQ_CD|PF_FILING_REQ_CD|ACCT_PD|NTEE_CD"),
+    assertion(record, organizationId, "organization.irs-eo-source-status", record.source_status, "object", "STATUS"),
+  ];
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  for (const otherName of record.other_names ?? []) {
+    assertions.push(assertion(record, organizationId, "organization.other-name", otherName, "object", "SORT_NAME"));
+  }
+  return {
+    ein,
+    einPrefix: ein[0],
+    zipCode,
+    entity: canonicalEntity(organizationId, "organization", record.observed_at),
+    assertions,
+  };
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -714,6 +745,38 @@ async function loadEpaEchoRelease(pointerPath) {
   };
 }
 
+async function loadIrsEoRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "IRS EO BMF manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "irs-eo-bmf-organizations" || manifest.status !== "published" || !manifest.complete_current_eo_bmf_snapshot) {
+    throw new Error("A complete published IRS EO BMF organization source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const organizationArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-irs-eo-organization-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (organizationArtifacts.length !== 10) throw new Error("IRS EO BMF source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "irs-eo-bmf-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("IRS EO BMF source release has no ZIP coverage artifact.");
+  for (const artifact of [...organizationArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `IRS EO BMF artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`IRS EO BMF artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("IRS EO BMF ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    organizationArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -737,14 +800,15 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, irsEoOrganizationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const ncuaRows = new Map((ncua?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fsisRows = new Map((fsis?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const echoRows = new Map((echo?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys()])].sort();
+  const irsEoRows = new Map((irsEo?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...irsEoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...irsEoOrganizationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
@@ -752,7 +816,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, 
     const ncuaRow = ncuaRows.get(zipCode);
     const fsisRow = fsisRows.get(zipCode);
     const echoRow = echoRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow;
+    const irsEoRow = irsEoRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? irsEoRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
@@ -761,6 +826,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, 
     const ncuaLocations = ncuaLocationCounts.get(zipCode) ?? 0;
     const fsisEstablishments = fsisEstablishmentCounts.get(zipCode) ?? 0;
     const echoFacilities = echoFacilityCounts.get(zipCode) ?? 0;
+    const irsEoOrganizations = irsEoOrganizationCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
@@ -770,12 +836,14 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, 
     if (ncua && ncuaLocations !== (ncuaRow?.ncua_quarterly_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} NCUA location counts do not reconcile.`);
     if (fsis && fsisEstablishments !== (fsisRow?.fsis_active_mpi_snapshot?.establishment_count ?? 0)) throw new Error(`ZIP ${zipCode} FSIS establishment counts do not reconcile.`);
     if (echo && echoFacilities !== (echoRow?.epa_echo_active_facility_snapshot?.facility_count ?? 0)) throw new Error(`ZIP ${zipCode} EPA ECHO facility counts do not reconcile.`);
+    if (irsEo && irsEoOrganizations !== (irsEoRow?.irs_eo_bmf_current_snapshot?.organization_filing_address_count ?? 0)) throw new Error(`ZIP ${zipCode} IRS EO organization filing-address counts do not reconcile.`);
     const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities;
+    const recordContributionCount = locationCount + irsEoOrganizations;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
       registry_coverage: {
-        status: locationCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution",
+        status: recordContributionCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution",
         complete_all_businesses: false,
         physical_site_count: locationCount,
         establishment_count: locationCount,
@@ -787,6 +855,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, 
         ncua_reported_us_location_count: ncuaLocations,
         fsis_active_establishment_count: fsisEstablishments,
         epa_echo_active_facility_count: echoFacilities,
+        irs_eo_organization_filing_address_count: irsEoOrganizations,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -830,6 +899,13 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts, 
             source_updated_at: echo.manifest.source_updated_at,
           },
         } : {}),
+        ...(irsEo ? {
+          irs_eo_bmf_organizations: {
+            organization_filing_address_count: irsEoOrganizations,
+            source_release_id: irsEo.manifest.source_release_id,
+            source_posting_date: irsEo.manifest.source_posting_date,
+          },
+        } : {}),
       },
       current_usps_validity: foundation.current_usps_validity,
       geography: foundation.geography,
@@ -847,6 +923,7 @@ export async function buildNationalBusinessRegistry({
   ncuaPointer = null,
   fsisPointer = null,
   echoPointer = null,
+  irsEoPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -858,6 +935,7 @@ export async function buildNationalBusinessRegistry({
   const ncua = ncuaPointer ? await loadNcuaRelease(ncuaPointer) : null;
   const fsis = fsisPointer ? await loadFsisRelease(fsisPointer) : null;
   const echo = echoPointer ? await loadEpaEchoRelease(echoPointer) : null;
+  const irsEo = irsEoPointer ? await loadIrsEoRelease(irsEoPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -874,6 +952,8 @@ export async function buildNationalBusinessRegistry({
   const fdicOrganizationAssertionWriters = new Map();
   const ncuaOrganizationWriters = new Map();
   const ncuaOrganizationAssertionWriters = new Map();
+  const irsEoOrganizationWriters = new Map();
+  const irsEoOrganizationAssertionWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
     establishmentWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/establishments/prefix=${prefix}.jsonl.gz`));
@@ -891,6 +971,10 @@ export async function buildNationalBusinessRegistry({
       ncuaOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/ncua-charter-prefix=${prefix}.jsonl.gz`));
       ncuaOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/ncua-charter-prefix=${prefix}.jsonl.gz`));
     }
+    if (irsEo) {
+      irsEoOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/irs-ein-prefix=${prefix}.jsonl.gz`));
+      irsEoOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/irs-ein-prefix=${prefix}.jsonl.gz`));
+    }
   }
 
   const snapCountsByZip = new Map();
@@ -900,6 +984,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaLocationCountsByZip = new Map();
   const fsisEstablishmentCountsByZip = new Map();
   const echoFacilityCountsByZip = new Map();
+  const irsEoOrganizationCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
   const fdicCertificates = new Set();
@@ -908,6 +993,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaLocationIds = new Set();
   const fsisEstablishmentIds = new Set();
   const echoFacilityIds = new Set();
+  const irsEoEins = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
@@ -920,6 +1006,7 @@ export async function buildNationalBusinessRegistry({
   let ncuaTradeNames = 0;
   let fsisEstablishments = 0;
   let echoFacilities = 0;
+  let irsEoOrganizations = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -1151,16 +1238,39 @@ export async function buildNationalBusinessRegistry({
     if (echoFacilities !== echo.manifest.coverage.accepted_active_facilities) throw new Error("Registry EPA ECHO facility count does not match the source release.");
   }
 
+  if (irsEo) {
+    for (const artifact of irsEo.organizationArtifacts) {
+      const partition = artifact.path.match(/ein-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine IRS EO EIN prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(irsEo.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileIrsEoOrganization(record);
+        if (reconciled.einPrefix !== partition) throw new Error(`IRS EO organization ${reconciled.ein} is in the wrong EIN partition.`);
+        if (irsEoEins.has(reconciled.ein)) throw new Error(`Duplicate IRS EO EIN ${reconciled.ein}.`);
+        irsEoEins.add(reconciled.ein);
+        await writeGzipRecord(irsEoOrganizationWriters.get(partition), reconciled.entity);
+        for (const item of reconciled.assertions) await writeGzipRecord(irsEoOrganizationAssertionWriters.get(partition), item);
+        irsEoOrganizationCountsByZip.set(reconciled.zipCode, (irsEoOrganizationCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`IRS EO organization artifact ${artifact.path} record count mismatch.`);
+      irsEoOrganizations += count;
+      logger(`Reconciled ${irsEoOrganizations.toLocaleString("en-US")} IRS EO organizations.`);
+    }
+    if (irsEoOrganizations !== irsEo.manifest.coverage.accepted_current_exempt_organizations) throw new Error("Registry IRS EO organization count does not match the source release.");
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (ncua) artifacts.push(...await closeGzipWriters([...ncuaOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (irsEo) artifacts.push(...await closeGzipWriters([...irsEoOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (ncua) artifacts.push(...await closeGzipWriters([...ncuaOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (irsEo) artifacts.push(...await closeGzipWriters([...irsEoOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
 
   const serviceEntity = {
@@ -1177,7 +1287,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -1269,6 +1379,20 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(irsEo ? {
+      irs_eo_bmf_organizations: {
+        source_id: "irs-eo-business-master-file-current-extract",
+        dataset_id: irsEo.manifest.dataset_id,
+        source_release_id: irsEo.manifest.source_release_id,
+        dataset_release_id: irsEo.manifest.release_id,
+        source_posting_date: irsEo.manifest.source_posting_date,
+        organizations_published: irsEoOrganizations,
+        outside_supported_us_scope_excluded_by_source_layer: irsEo.manifest.coverage.excluded_outside_supported_us_scope,
+        records_quarantined_by_source_layer: irsEo.manifest.coverage.quarantined_records,
+        identity_resolution: "one provisional organization per EIN; filing addresses remain organization assertions and do not create physical sites or establishments; no cross-source merge",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -1290,9 +1414,10 @@ export async function buildNationalBusinessRegistry({
       ...(ncua ? ["NCUA federally insured credit unions and reported U.S. locations from the final quarterly release"] : []),
       ...(fsis ? ["USDA FSIS establishments in the current active MPI directory"] : []),
       ...(echo ? ["EPA ECHO facilities with FAC_ACTIVE_FLAG=Y and a valid reported U.S. physical address"] : []),
+      ...(irsEo ? ["IRS organizations present in the current EO BMF extract with supported U.S. or territory filing addresses"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + irsEoOrganizations,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -1304,14 +1429,15 @@ export async function buildNationalBusinessRegistry({
       ncua_trade_name_records: ncuaTradeNames,
       fsis_establishment_records: fsisEstablishments,
       epa_echo_active_facility_records: echoFacilities,
-      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions,
+      irs_eo_organization_records: irsEoOrganizations,
+      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations,
       physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
       establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -1345,12 +1471,18 @@ export async function buildNationalBusinessRegistry({
         release_id: echo.manifest.release_id,
         manifest_sha256: echo.manifestSha256,
       }] : []),
+      ...(irsEo ? [{
+        dataset_id: irsEo.manifest.dataset_id,
+        release_id: irsEo.manifest.release_id,
+        manifest_sha256: irsEo.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
       ...(fdic?.manifest.dependencies ?? []),
       ...(ncua?.manifest.dependencies ?? []),
       ...(fsis?.manifest.dependencies ?? []),
       ...(echo?.manifest.dependencies ?? []),
+      ...(irsEo?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -1387,6 +1519,12 @@ export async function buildNationalBusinessRegistry({
         "ECHO FAC_ACTIVE_FLAG=Y means at least one associated ICIS-Air, ICIS-NPDES, RCRAInfo, or SDWIS permit/facility is active; it does not independently prove general business operation, public access, ownership, or active status in every associated program.",
         "EPA ECHO program flags and identifiers are associations, and source coordinates can be ZIP or county centroids rather than premise-level geocodes.",
         "No legal organization, owner, or parent company is inferred from EPA ECHO facility names.",
+      ] : []),
+      ...(irsEo ? [
+        "IRS EO BMF covers organizations in the current cumulative exempt-organization extract, not every nonprofit, exempt organization, employer, physical establishment, or U.S. business.",
+        "IRS filing addresses can be mailing addresses or P.O. boxes and may not represent an operating location; the registry creates no physical site or establishment from them.",
+        "Current EO BMF membership and source status codes are federal tax-status evidence, not independent proof of current operations, public access, or a current physical location.",
+        "The IRS ICO in-care-of personal-contact field and source financial amounts are excluded from normalized and registry records, and group or affiliation codes do not create parent or ownership relationships.",
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
@@ -1479,6 +1617,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release",
     "listed-in-fsis-active-mpi-directory-as-of-release",
     "epa-echo-active-program-facility-as-of-source-release",
+    "listed-in-current-irs-eo-bmf-extract-as-of-source-posting",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {
@@ -1490,8 +1629,13 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (!entityIds.has(record.subject_entity_id)) throw new Error(`missing assertion subject ${record.subject_entity_id}`);
         if (!validateProvenance(record.source) || record.export_policy !== "public") throw new Error(`invalid provenance or policy for ${record.assertion_id}`);
         if (!record.observed_at || !record.first_seen || !record.last_seen) throw new Error(`missing temporal scope for ${record.assertion_id}`);
-        if (record.predicate === "establishment.source-status" && !allowedSourceStatuses.has(record.value?.value)) {
+        if (["establishment.source-status", "organization.irs-eo-source-status"].includes(record.predicate) && !allowedSourceStatuses.has(record.value?.value)) {
           throw new Error(`invalid source-specific status for ${record.assertion_id}`);
+        }
+        if (record.source.policy_id === "irs-eo-bmf") {
+          const sourceFields = String(record.source.source_field ?? "").split("|");
+          if (!record.subject_entity_id.startsWith("organization:irs_ein_") || !record.predicate.startsWith("organization.")) throw new Error(`IRS EO assertion targets a non-organization entity ${record.assertion_id}`);
+          if (sourceFields.some((field) => ["ICO", "ASSET_AMT", "INCOME_AMT", "REVENUE_AMT"].includes(field))) throw new Error(`IRS EO excluded source field leaked for ${record.assertion_id}`);
         }
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual assertion line count mismatch" });
@@ -1510,6 +1654,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         relationshipIds.add(record.relationship_id);
         if (!entityIds.has(record.subject_entity_id) || !entityIds.has(record.object_entity_id)) throw new Error(`missing relationship endpoint ${record.relationship_id}`);
         if (!validateProvenance(record.source) || !record.observed_at) throw new Error(`invalid relationship provenance ${record.relationship_id}`);
+        if (record.source.policy_id === "irs-eo-bmf") throw new Error(`IRS EO filing-address record created a relationship ${record.relationship_id}`);
         if (!["located_at", "provides_service", "operates"].includes(record.relationship_type)) throw new Error(`unsupported relationship ${record.relationship_type}`);
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual relationship line count mismatch" });
@@ -1534,6 +1679,12 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     if (new Set(rows.map((row) => row.zip_code)).size !== rows.length) throw new Error("duplicate ZIP coverage row");
     const siteTotal = rows.reduce((sum, row) => sum + row.registry_coverage.physical_site_count, 0);
     if (siteTotal !== manifest.coverage.physical_sites) throw new Error("ZIP physical-site counts do not reconcile");
+    const irsEoOrganizationTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0), 0);
+    if (irsEoOrganizationTotal !== (manifest.coverage.irs_eo_organization_records ?? 0)) throw new Error("ZIP IRS EO organization counts do not reconcile");
+    if (rows.some((row) => {
+      const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0);
+      return row.registry_coverage.status !== (recordCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution");
+    })) throw new Error("ZIP record-level contribution status does not reconcile");
     if (rows.some((row) => row.registry_coverage.complete_all_businesses !== false || row.current_usps_validity?.status !== "unverified")) {
       throw new Error("ZIP coverage overstates completeness or USPS validity");
     }

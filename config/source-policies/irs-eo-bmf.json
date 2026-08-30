@@ -1,0 +1,37 @@
+{
+  "policy_id": "irs-eo-bmf",
+  "version": "1.0.0",
+  "publisher": "United States Internal Revenue Service",
+  "ownership": "Public exempt-organization records disclosed by the IRS in the EO Business Master File Extract",
+  "source_home": "https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf",
+  "source_downloads": [
+    "https://www.irs.gov/pub/irs-soi/eo1.csv",
+    "https://www.irs.gov/pub/irs-soi/eo2.csv",
+    "https://www.irs.gov/pub/irs-soi/eo3.csv",
+    "https://www.irs.gov/pub/irs-soi/eo4.csv"
+  ],
+  "data_dictionary": "https://www.irs.gov/pub/foia/ig/tege/eo-info.pdf",
+  "source_access": "Public anonymous read-only HTTPS page and monthly regional CSV downloads.",
+  "allowed_use": ["official HTTPS discovery and download", "local processing", "immutable internal source retention", "organization and filing-address normalization", "coverage analysis", "derived registry assertions", "redistribution of approved public normalized fields with IRS attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing EO BMF coverage as every nonprofit, exempt organization, employer, operating establishment, or U.S. business",
+    "representing a filing or headquarters address as a verified physical operating site or public storefront",
+    "representing current-extract membership as independent proof of ongoing operations",
+    "inferring parent, subordinate, chapter, ownership, or control relationships from group or affiliation codes alone",
+    "exporting the ICO in-care-of personal-contact field in normalized or registry records",
+    "merging organizations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "raw_regional_source_csvs": "internal",
+    "ein_organization_names_sort_names_filing_addresses_and_tax_status_classifications": "public",
+    "ico_in_care_of_personal_contact": "internal-source-only-excluded-from-normalized-and-registry-records",
+    "asset_income_and_revenue_amounts": "internal-source-only-excluded-pending-a-separate-time-aware-financial-contract"
+  },
+  "attribution": "Source: U.S. Internal Revenue Service Exempt Organizations Business Master File Extract.",
+  "retention": "Indefinite for immutable source and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved public normalized fields may be redistributed with IRS attribution, source posting date, source checksums, provenance, filing-address semantics, and coverage limitations retained; raw CSVs remain internal.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The public ICO in-care-of field can identify an officer, director, or other contact. It is retained only in internal raw source CSVs and never emitted to normalized or registry artifacts.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

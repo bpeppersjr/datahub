@@ -11,6 +11,7 @@ import {
   reconcileFdicLocation,
   reconcileFsisEstablishment,
   reconcileEpaEchoFacility,
+  reconcileIrsEoOrganization,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -25,6 +26,7 @@ import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPrac
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
 import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
 import { normalizeEchoFacility } from "./epa-echo.mjs";
+import { normalizeIrsEoOrganization } from "./irs-eo-bmf.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -447,6 +449,93 @@ async function writeFixtureEchoRelease(root) {
   return pointerPath;
 }
 
+function normalizedIrsEoRecord(ein = "123456789", zip = "60601", overrides = {}) {
+  return normalizeIrsEoOrganization({
+    EIN: ein,
+    NAME: `FIXTURE EXEMPT ORGANIZATION ${ein}`,
+    ICO: "PRIVATE CONTACT EXCLUDED",
+    STREET: "10 MAIN ST",
+    CITY: "CHICAGO",
+    STATE: "IL",
+    ZIP: zip,
+    GROUP: "0000",
+    SUBSECTION: "03",
+    AFFILIATION: "3",
+    CLASSIFICATION: "1",
+    RULING: "200101",
+    DEDUCTIBILITY: "1",
+    FOUNDATION: "15",
+    ACTIVITY: "",
+    ORGANIZATION: "1",
+    STATUS: "01",
+    TAX_PERIOD: "202512",
+    ASSET_CD: "7",
+    INCOME_CD: "6",
+    FILING_REQ_CD: "01",
+    PF_FILING_REQ_CD: "0",
+    ACCT_PD: "12",
+    ASSET_AMT: "2500000",
+    INCOME_AMT: "900000",
+    REVENUE_AMT: "850000",
+    NTEE_CD: "T30",
+    SORT_NAME: "FIXTURE EO",
+    ...overrides,
+  }, {
+    runId: "irs-eo-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourcePostingDate: "2026-08-11",
+    sourceReleaseId: "irs-eo-source-fixture",
+    baselineByZip: new Map([[zip, { geography: { status: zip === "60601" ? "2020-zcta-polygon-available" : "no-2020-zcta-polygon", geo_id: zip === "60601" ? `zcta:${zip}` : null, geoid: zip === "60601" ? zip : null } }]]),
+  });
+}
+
+async function writeFixtureIrsEoRelease(root) {
+  const releaseId = "irs-eo-bmf-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedIrsEoRecord("123456789", "60601"),
+    normalizedIrsEoRecord("923456789", "88888", { NAME: "FIXTURE REMOTE EXEMPT ORGANIZATION", CITY: "AUSTIN", STATE: "TX", SORT_NAME: "" }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789") {
+    const partitionRecords = records.filter((record) => record.external_identifiers[0].value.startsWith(prefix));
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/organizations/ein-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-irs-eo-organization-jsonl-gzip" });
+  }
+  const zipRows = ["60601", "88888"].map((zipCode) => ({
+    zip_code: zipCode,
+    irs_eo_bmf_current_snapshot: { organization_filing_address_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: zipCode === "60601" ? "2020-zcta-polygon-available" : "no-2020-zcta-polygon", geo_id: zipCode === "60601" ? `zcta:${zipCode}` : null },
+    employer_baseline: zipCode === "60601" ? { status: "published", establishments: 1000 } : null,
+    baseline_coverage_status: zipCode === "60601" ? "zbp-and-zcta" : "outside-zbp-zcta-union",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "irs-eo-bmf-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "irs-eo-bmf-organizations",
+    release_id: releaseId,
+    status: "published",
+    complete_current_eo_bmf_snapshot: true,
+    source_release_id: "irs-eo-source-fixture",
+    source_posting_date: "2026-08-11",
+    coverage: { accepted_current_exempt_organizations: records.length, excluded_outside_supported_us_scope: 0, quarantined_records: 0 },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -583,6 +672,18 @@ test("reconciles EPA ECHO regulated facilities without inferring an organization
   assert(!result.assertions.some((item) => item.predicate.includes("organization") || item.predicate.includes("owner") || item.predicate.includes("open")));
 });
 
+test("reconciles IRS EO organizations and filing addresses without creating physical sites or relationships", () => {
+  const source = normalizedIrsEoRecord();
+  const result = reconcileIrsEoOrganization(source);
+  assert.equal(result.entity.entity_type, "organization");
+  assert.equal(result.zipCode, "60601");
+  assert(result.assertions.some((item) => item.predicate === "organization.reported-filing-address"));
+  assert(result.assertions.some((item) => item.predicate === "organization.irs-eo-tax-profile"));
+  assert(result.assertions.some((item) => item.predicate === "organization.irs-eo-source-status"));
+  assert(result.assertions.every((item) => item.subject_entity_id === "organization:irs_ein_123456789"));
+  assert(result.assertions.every((item) => !String(item.source.source_field).split("|").some((field) => ["ICO", "ASSET_AMT", "INCOME_AMT", "REVENUE_AMT"].includes(field))));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -591,6 +692,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const ncuaPointer = await writeFixtureNcuaRelease(path.join(root, "ncua"));
   const fsisPointer = await writeFixtureFsisRelease(path.join(root, "fsis"));
   const echoPointer = await writeFixtureEchoRelease(path.join(root, "echo"));
+  const irsEoPointer = await writeFixtureIrsEoRelease(path.join(root, "irs-eo"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
@@ -599,17 +701,19 @@ test("publishes and verifies a combined partial registry while retaining denomin
     ncuaPointer,
     fsisPointer,
     echoPointer,
+    irsEoPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 2);
+  assert.equal(result.manifest.coverage.organizations, 4);
   assert.equal(result.manifest.coverage.physical_sites, 10);
   assert.equal(result.manifest.coverage.establishments, 10);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
+  assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
   assert.equal(result.manifest.coverage.relationships, 16);
-  assert.equal(result.manifest.coverage.zip_union_records, 6);
+  assert.equal(result.manifest.coverage.zip_union_records, 7);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
@@ -619,6 +723,10 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const uncovered = zipRows.find((row) => row.zip_code === "99999");
   assert.equal(uncovered.registry_coverage.status, "denominator-only-no-record-level-contribution");
   assert.equal(uncovered.registry_coverage.complete_all_businesses, false);
+  const irsOnly = zipRows.find((row) => row.zip_code === "88888");
+  assert.equal(irsOnly.registry_coverage.status, "record-level-source-contribution");
+  assert.equal(irsOnly.registry_coverage.physical_site_count, 0);
+  assert.equal(irsOnly.registry_coverage.irs_eo_organization_filing_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);
