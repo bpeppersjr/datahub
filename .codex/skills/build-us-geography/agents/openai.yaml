@@ -1,0 +1,6 @@
+interface:
+  display_name: "Build U.S. Geography"
+  short_description: "Build governed Census boundary datasets"
+  default_prompt: "Use $build-us-geography to build and validate the nationwide geography foundation."
+policy:
+  allow_implicit_invocation: true

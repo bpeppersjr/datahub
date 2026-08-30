@@ -1,0 +1,25 @@
+{
+  "dataset_id": "us-census-geography",
+  "schema_version": "1.0.0",
+  "title": "U.S. Census Geography Foundation",
+  "description": "Versioned EPSG:4326 polygons and geocoded indexes for nationwide, state-equivalent, county-equivalent, and ZCTA geography.",
+  "producer_connector": "us-census-geography",
+  "runtime_pointer": "data/geography/current.json",
+  "publication_manifest": "The runtime pointer's manifest field resolves relative to data/geography.",
+  "geography_types": ["nation", "state", "county", "zcta"],
+  "identifiers": ["census-geoid", "state-fips", "county-fips", "zcta5"],
+  "coordinate_reference_system": "EPSG:4326",
+  "partitioning": {
+    "states": "single source GeoJSON",
+    "counties": "state FIPS",
+    "zctas": "first ZCTA digit"
+  },
+  "normalized_indexes": {
+    "states": "derived/index/states.jsonl",
+    "counties": "derived/index/counties.jsonl",
+    "zctas": "derived/index/zctas.jsonl"
+  },
+  "compatibility": "Additive normalized fields are backward compatible within schema version 1; identifier, coordinate-order, or semantic changes require a major version.",
+  "documentation": "docs/US-GEOGRAPHY-DATASET.md",
+  "source_policy": "config/source-policies/us-census-geography.json"
+}

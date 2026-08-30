@@ -1,0 +1,25 @@
+{
+  "policy_id": "us-census-geography",
+  "version": "1.0.0",
+  "publisher": "United States Census Bureau",
+  "ownership": "United States federal government public data",
+  "source_home": "https://tigerweb.geo.census.gov/",
+  "terms_url": "https://www.census.gov/about/policies/quality/standards.html",
+  "allowed_use": [
+    "download",
+    "local processing",
+    "analysis",
+    "derived datasets",
+    "redistribution with source and vintage metadata"
+  ],
+  "prohibited_use": [
+    "representing ZCTAs as exact USPS delivery-route boundaries",
+    "removing source, vintage, or generalization metadata from published derivatives"
+  ],
+  "attribution": "Source: U.S. Census Bureau TIGERweb/TIGER/Line.",
+  "retention": "Indefinite for source releases and derived public-data artifacts unless a project retention rule is approved.",
+  "redistribution": "Allowed with provenance, source vintage, transformation version, and stated limitations.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-08-30"
+}

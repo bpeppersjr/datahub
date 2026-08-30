@@ -1,0 +1,47 @@
+{
+  "connector_id": "us-census-geography",
+  "version": "1.0.0",
+  "description": "Builds versioned nationwide state, county, and ZCTA polygon releases from U.S. Census TIGERweb.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/geography" },
+      "geometry_offset_degrees": { "type": "number", "exclusiveMinimum": 0, "maximum": 0.01, "default": 0.0001 },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 2000, "default": 500 }
+    }
+  },
+  "output_artifact_types": [
+    "source-geojson",
+    "normalized-geography-index-jsonl",
+    "dataset-manifest-json"
+  ],
+  "named_secret_references": [],
+  "allowed_hosts": ["tigerweb.geo.census.gov"],
+  "redirect_policy": "same-host-only",
+  "provider_budget_key": "us-census-tigerweb",
+  "resource_class": "network-and-cpu",
+  "execution_limits": {
+    "request_timeout_seconds": 120,
+    "retries": 3,
+    "max_parallel_requests": 1
+  },
+  "retry": "Exponential backoff for HTTP and service errors; fail after four total attempts.",
+  "checkpoint": "Artifacts are written to an immutable run-scoped staging directory.",
+  "idempotency": "Each build creates a unique immutable release and atomically updates current.json after publication.",
+  "cancellation": "Abort active HTTP requests; run-scoped staging never blocks a later build.",
+  "source_policy": "config/source-policies/us-census-geography.json",
+  "retention_profile": "Retain immutable releases until an explicitly approved retention operation removes them.",
+  "produced_entities": ["nation", "state-equivalent", "county-equivalent", "zcta"],
+  "produced_identifiers": ["census-geoid", "state-fips", "county-fips", "zcta5"]
+}

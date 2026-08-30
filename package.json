@@ -10,6 +10,8 @@
     "dev:web": "concurrently --kill-others --names UI,RUNNER --prefix-colors cyan,magenta \"npm:dev:ui\" \"npm:runner\"",
     "dev:ui": "vinext dev",
     "runner": "node runner/server.mjs",
+    "geography:build": "node scripts/build-us-geography.mjs",
+    "geography:verify": "node scripts/verify-us-geography.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",
