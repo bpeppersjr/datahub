@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Reconciles governed record-level source releases into canonical business entities, assertions, relationships, and ZIP coverage without overstating completeness.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -14,11 +14,12 @@
       "ncua_pointer": { "type": "string", "default": "data/business-sources/ncua-quarterly-credit-unions/current.json" },
       "fsis_pointer": { "type": "string", "default": "data/business-sources/fsis-active-mpi-establishments/current.json" },
       "echo_pointer": { "type": "string", "default": "data/business-sources/epa-echo-active-facilities/current.json" },
+      "fmcsa_pointer": { "type": "string", "default": "data/business-sources/fmcsa-active-us-company-census/current.json" },
       "irs_eo_pointer": { "type": "string", "default": "data/business-sources/irs-eo-bmf-organizations/current.json" }
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl"],
+  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "normalized-fmcsa-company-census-record-jsonl-gzip", "fmcsa-company-census-zip-coverage-jsonl", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl"],
   "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
   "allowed_hosts": [],
   "redirect_policy": "deny",
@@ -26,15 +27,15 @@
   "resource_class": "cpu-disk",
   "execution_limits": {
     "network_requests": 0,
-    "input_partitions": 112,
+    "input_partitions": 122,
     "parallel_partitions": 1
   },
   "retry": "Rerun from immutable source pointers; no external requests or partial retry side effects occur.",
   "checkpoint": "Inputs and outputs are checksummed; publication uses a run-scoped staging directory and atomic current pointer.",
   "idempotency": "Entity IDs derive from source candidates and assertion/relationship IDs are deterministic hashes of source-backed facts.",
   "cancellation": "Stop streaming at the current record; no current pointer is changed until the complete release is published.",
-  "source_policy": "Inherited per assertion from each contributing source policy; current releases use USDA SNAP, CMS NPPES, FDIC BankFind, NCUA final quarterly, USDA FSIS active MPI, EPA ECHO, and IRS EO BMF public normalized policies.",
+  "source_policy": "Inherited per assertion from each contributing source policy; current releases use USDA SNAP, CMS NPPES, FDIC BankFind, NCUA final quarterly, USDA FSIS active MPI, EPA ECHO, FMCSA Company Census, and IRS EO BMF public normalized policies.",
   "retention_profile": "Retain immutable public registry releases until an approved retention operation removes them.",
   "produced_entities": ["organization", "physical_site", "establishment", "service"],
-  "produced_identifiers": ["canonical-entity-id", "assertion-id", "relationship-id", "usda-snap-record-id", "npi", "fdic-certificate", "fdic-location-unique-number", "ncua-charter-number", "ncua-site-id-within-charter", "fsis-establishment-id", "fsis-establishment-number", "frs-registry-id", "epa-program-id", "ein", "zip5", "zcta5"]
+  "produced_identifiers": ["canonical-entity-id", "assertion-id", "relationship-id", "usda-snap-record-id", "npi", "fdic-certificate", "fdic-location-unique-number", "ncua-charter-number", "ncua-site-id-within-charter", "fsis-establishment-id", "fsis-establishment-number", "frs-registry-id", "epa-program-id", "usdot-number", "fmcsa-docket-number", "ein", "zip5", "zcta5"]
 }

@@ -19,6 +19,7 @@ Options:
   --ncua <path>    NCUA quarterly credit-union current.json prerequisite
   --fsis <path>    USDA FSIS active MPI establishment current.json prerequisite
   --echo <path>    EPA ECHO active regulated-facility current.json prerequisite
+  --fmcsa <path>   FMCSA active U.S. Company Census current.json prerequisite
   --irs-eo <path>  IRS EO BMF organization current.json prerequisite
   --help           Show this help
 `;
@@ -33,12 +34,13 @@ function parseArguments(args) {
     ncua: "data/business-sources/ncua-quarterly-credit-unions/current.json",
     fsis: "data/business-sources/fsis-active-mpi-establishments/current.json",
     echo: "data/business-sources/epa-echo-active-facilities/current.json",
+    fmcsa: "data/business-sources/fmcsa-active-us-company-census/current.json",
     irsEo: "data/business-sources/irs-eo-bmf-organizations/current.json",
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--irs-eo"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -49,6 +51,7 @@ function parseArguments(args) {
       if (argument === "--ncua") options.ncua = value;
       if (argument === "--fsis") options.fsis = value;
       if (argument === "--echo") options.echo = value;
+      if (argument === "--fmcsa") options.fmcsa = value;
       if (argument === "--irs-eo") options.irsEo = value;
       continue;
     }
@@ -71,6 +74,7 @@ try {
     ncuaPointer: assertInsideApp(path.resolve(APP_ROOT, options.ncua)),
     fsisPointer: assertInsideApp(path.resolve(APP_ROOT, options.fsis)),
     echoPointer: assertInsideApp(path.resolve(APP_ROOT, options.echo)),
+    fmcsaPointer: assertInsideApp(path.resolve(APP_ROOT, options.fmcsa)),
     irsEoPointer: assertInsideApp(path.resolve(APP_ROOT, options.irsEo)),
     logger: (message) => process.stdout.write(`${message}\n`),
   });

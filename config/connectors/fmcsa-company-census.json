@@ -1,0 +1,41 @@
+{
+  "connector_id": "fmcsa-company-census",
+  "version": "1.0.1",
+  "description": "Pins the official daily FMCSA Company Census metadata, streams a server-side minimized STATUS_CODE=A and PHY_COUNTRY=US export, and publishes source-specific active regulatory registration candidates with principal-office geography and no inferred legal organization.",
+  "lifecycle": ["preflight", "discover", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source_csv": { "type": ["string", "null"], "default": null },
+      "dictionary_pdf": { "type": ["string", "null"], "default": null },
+      "source_metadata_json": { "type": ["string", "null"], "default": null },
+      "output": { "type": "string", "default": "data/business-sources/fmcsa-active-us-company-census" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_accepted_records": { "type": "integer", "minimum": 1, "default": 2000000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.02 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["fmcsa-socrata-metadata", "fmcsa-selected-company-census-csv", "fmcsa-company-census-data-dictionary-pdf", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["fmcsa-selected-source-csv", "fmcsa-source-data-dictionary-pdf", "normalized-fmcsa-company-census-record-jsonl-gzip", "fmcsa-company-census-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["data.transportation.gov"],
+  "redirect_policy": "Reject redirects and accept only the exact HTTPS Company Census metadata, selected Socrata CSV resource, aggregate JSON resource, and pinned data-dictionary attachment paths on data.transportation.gov.",
+  "provider_budget_key": "fmcsa-company-census-daily-selected-export",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_file_requests": 1,
+    "maximum_selected_csv_bytes": 1500000000,
+    "maximum_data_dictionary_bytes": 20000000,
+    "maximum_csv_record_bytes": 200000,
+    "maximum_selected_rows": 3000000
+  },
+  "retry": "Retry only transient metadata or file acquisition failures. Reject and restart when rowsUpdatedAt or aggregate counts change during acquisition; do not retry schema, filter, ordering, duplicate-USDOT, checksum, count, or quality-gate failures against the same snapshot.",
+  "checkpoint": "The exact selected CSV and official dictionary are retained and hashed before normalization; the source metadata timestamp and counts are checked before and after acquisition; current.json changes only after every gate passes.",
+  "idempotency": "Socrata rowsUpdatedAt plus selected-source SHA-256, pinned selected-schema fingerprint, and exact export-query SHA-256 identify a source release; USDOT creates a stable provisional principal-office site and establishment candidate.",
+  "cancellation": "Stop network and local streams cooperatively, close partition writers, leave unpublished run-scoped staging, and do not change current.json before complete publication.",
+  "source_policy": "config/source-policies/fmcsa-company-census.json",
+  "retention_profile": "Retain immutable internal minimized source evidence and approved normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "fmcsa-registration-profile-assertion", "fmcsa-source-status-assertion"],
+  "produced_identifiers": ["usdot-number", "fmcsa-docket-number", "zip5", "zip4", "zcta5"]
+}

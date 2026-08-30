@@ -8,7 +8,7 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.0.0";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.0.1";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -444,6 +444,42 @@ export function reconcileEpaEchoFacility(record) {
   };
 }
 
+export function reconcileFmcsaCompany(record) {
+  const dotNumber = record.external_identifiers?.find((item) => item.type === "usdot_number")?.value;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d+$/.test(dotNumber ?? "") || siteId !== `site:fmcsa_usdot_${dotNumber}_principal_office`
+    || establishmentId !== `establishment:fmcsa_usdot_${dotNumber}_principal_office` || !/^\d{5}$/.test(zipCode ?? "")
+    || !record.legal_name || record.entity_candidates?.organization_id) {
+    throw new Error(`Invalid FMCSA Company Census candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, siteId, "site.address", record.address, "address", "PHY_STREET|PHY_CITY|PHY_STATE|PHY_ZIP|PHY_CNTY|PHY_COUNTRY"),
+    assertion(record, siteId, "site.zip-code", zipCode, "string", "PHY_ZIP"),
+    assertion(record, siteId, "site.zcta", record.geography, "object", "PHY_ZIP"),
+    assertion(record, establishmentId, "establishment.name", record.legal_name, "string", "LEGAL_NAME"),
+    assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "STATUS_CODE"),
+    assertion(record, establishmentId, "establishment.fmcsa-registration-profile", record.registration_profile, "object", "CARRIER_OPERATION|BUSINESS_ORG_ID|BUSINESS_ORG_DESC|CARSHIP|CLASSDEF|HM_Ind|PHY_OMC_REGION|MCS150_DATE|ADD_DATE|DOCKET1PREFIX|DOCKET1|DOCKET1_STATUS_CODE through DOCKET3PREFIX|DOCKET3|DOCKET3_STATUS_CODE"),
+    assertion(record, establishmentId, "establishment.source-data-sensitivity", record.data_sensitivity, "object", null),
+  ];
+  if (record.dba_name) assertions.push(assertion(record, establishmentId, "establishment.other-name", { name: record.dba_name, name_type: "fmcsa-reported-dba" }, "object", "DBA_NAME"));
+  const identifierKeys = new Set();
+  for (const identifier of record.external_identifiers ?? []) {
+    const key = `${identifier.type}:${identifier.value}`;
+    if (identifierKeys.has(key)) continue;
+    identifierKeys.add(key);
+    assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  return {
+    dotNumber,
+    zipCode,
+    entities: [canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at)],
+    assertions,
+    relationships: [relationship(record, "located_at", establishmentId, siteId)],
+  };
+}
+
 export function reconcileIrsEoOrganization(record) {
   const ein = record.external_identifiers?.find((item) => item.type === "ein")?.value;
   const organizationId = record.entity_candidates?.organization_id;
@@ -745,6 +781,40 @@ async function loadEpaEchoRelease(pointerPath) {
   };
 }
 
+async function loadFmcsaRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "FMCSA manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "fmcsa-active-us-company-census" || manifest.status !== "published"
+    || !manifest.complete_pinned_active_us_selected_snapshot || manifest.source_filter !== "status_code='A' AND phy_country='US'"
+    || manifest.source_order !== "dot_number") {
+    throw new Error("A complete published FMCSA active U.S. Company Census source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const recordArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-fmcsa-company-census-record-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (recordArtifacts.length !== 10) throw new Error("FMCSA source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "fmcsa-company-census-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("FMCSA source release has no ZIP coverage artifact.");
+  for (const artifact of [...recordArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `FMCSA artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`FMCSA artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("FMCSA ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    recordArtifacts,
+    zipRows,
+  };
+}
+
 async function loadIrsEoRelease(pointerPath) {
   const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
   const pointerDirectory = path.dirname(pointerPath);
@@ -800,15 +870,16 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, irsEoOrganizationCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const ncuaRows = new Map((ncua?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fsisRows = new Map((fsis?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const echoRows = new Map((echo?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const fmcsaRows = new Map((fmcsa?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const irsEoRows = new Map((irsEo?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...irsEoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...irsEoOrganizationCounts.keys()])].sort();
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
@@ -816,8 +887,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapC
     const ncuaRow = ncuaRows.get(zipCode);
     const fsisRow = fsisRows.get(zipCode);
     const echoRow = echoRows.get(zipCode);
+    const fmcsaRow = fmcsaRows.get(zipCode);
     const irsEoRow = irsEoRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? irsEoRow;
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
@@ -826,6 +898,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapC
     const ncuaLocations = ncuaLocationCounts.get(zipCode) ?? 0;
     const fsisEstablishments = fsisEstablishmentCounts.get(zipCode) ?? 0;
     const echoFacilities = echoFacilityCounts.get(zipCode) ?? 0;
+    const fmcsaRecords = fmcsaRecordCounts.get(zipCode) ?? 0;
     const irsEoOrganizations = irsEoOrganizationCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
@@ -836,8 +909,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapC
     if (ncua && ncuaLocations !== (ncuaRow?.ncua_quarterly_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} NCUA location counts do not reconcile.`);
     if (fsis && fsisEstablishments !== (fsisRow?.fsis_active_mpi_snapshot?.establishment_count ?? 0)) throw new Error(`ZIP ${zipCode} FSIS establishment counts do not reconcile.`);
     if (echo && echoFacilities !== (echoRow?.epa_echo_active_facility_snapshot?.facility_count ?? 0)) throw new Error(`ZIP ${zipCode} EPA ECHO facility counts do not reconcile.`);
+    if (fmcsa && fmcsaRecords !== (fmcsaRow?.fmcsa_active_registration_principal_office_snapshot?.record_count ?? 0)) throw new Error(`ZIP ${zipCode} FMCSA principal-office counts do not reconcile.`);
     if (irsEo && irsEoOrganizations !== (irsEoRow?.irs_eo_bmf_current_snapshot?.organization_filing_address_count ?? 0)) throw new Error(`ZIP ${zipCode} IRS EO organization filing-address counts do not reconcile.`);
-    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities;
+    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords;
     const recordContributionCount = locationCount + irsEoOrganizations;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
@@ -855,6 +929,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapC
         ncua_reported_us_location_count: ncuaLocations,
         fsis_active_establishment_count: fsisEstablishments,
         epa_echo_active_facility_count: echoFacilities,
+        fmcsa_active_registration_principal_office_count: fmcsaRecords,
         irs_eo_organization_filing_address_count: irsEoOrganizations,
       },
       source_contributions: {
@@ -899,6 +974,13 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapC
             source_updated_at: echo.manifest.source_updated_at,
           },
         } : {}),
+        ...(fmcsa ? {
+          fmcsa_active_us_company_census: {
+            active_registration_principal_office_count: fmcsaRecords,
+            source_release_id: fmcsa.manifest.source_release_id,
+            source_updated_at: fmcsa.manifest.source_updated_at,
+          },
+        } : {}),
         ...(irsEo ? {
           irs_eo_bmf_organizations: {
             organization_filing_address_count: irsEoOrganizations,
@@ -923,6 +1005,7 @@ export async function buildNationalBusinessRegistry({
   ncuaPointer = null,
   fsisPointer = null,
   echoPointer = null,
+  fmcsaPointer = null,
   irsEoPointer = null,
   logger = console.log,
   now = () => new Date(),
@@ -935,6 +1018,7 @@ export async function buildNationalBusinessRegistry({
   const ncua = ncuaPointer ? await loadNcuaRelease(ncuaPointer) : null;
   const fsis = fsisPointer ? await loadFsisRelease(fsisPointer) : null;
   const echo = echoPointer ? await loadEpaEchoRelease(echoPointer) : null;
+  const fmcsa = fmcsaPointer ? await loadFmcsaRelease(fmcsaPointer) : null;
   const irsEo = irsEoPointer ? await loadIrsEoRelease(irsEoPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
@@ -984,6 +1068,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaLocationCountsByZip = new Map();
   const fsisEstablishmentCountsByZip = new Map();
   const echoFacilityCountsByZip = new Map();
+  const fmcsaRecordCountsByZip = new Map();
   const irsEoOrganizationCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
@@ -993,6 +1078,7 @@ export async function buildNationalBusinessRegistry({
   const ncuaLocationIds = new Set();
   const fsisEstablishmentIds = new Set();
   const echoFacilityIds = new Set();
+  const fmcsaDotNumbers = new Set();
   const irsEoEins = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
@@ -1006,6 +1092,7 @@ export async function buildNationalBusinessRegistry({
   let ncuaTradeNames = 0;
   let fsisEstablishments = 0;
   let echoFacilities = 0;
+  let fmcsaRecords = 0;
   let irsEoOrganizations = 0;
   let assertions = 0;
   let relationships = 0;
@@ -1238,6 +1325,30 @@ export async function buildNationalBusinessRegistry({
     if (echoFacilities !== echo.manifest.coverage.accepted_active_facilities) throw new Error("Registry EPA ECHO facility count does not match the source release.");
   }
 
+  if (fmcsa) {
+    for (const artifact of fmcsa.recordArtifacts) {
+      const partition = artifact.path.match(/zip-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine FMCSA ZIP prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(fmcsa.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileFmcsaCompany(record);
+        if (reconciled.zipCode[0] !== partition) throw new Error(`FMCSA record ${record.normalized_record_id} is in the wrong ZIP partition.`);
+        if (fmcsaDotNumbers.has(reconciled.dotNumber)) throw new Error(`Duplicate FMCSA USDOT number ${reconciled.dotNumber}.`);
+        fmcsaDotNumbers.add(reconciled.dotNumber);
+        await writeGzipRecord(siteWriters.get(partition), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        fmcsaRecordCountsByZip.set(reconciled.zipCode, (fmcsaRecordCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`FMCSA record artifact ${artifact.path} record count mismatch.`);
+      fmcsaRecords += count;
+      logger(`Reconciled ${fmcsaRecords.toLocaleString("en-US")} FMCSA active principal-office records.`);
+    }
+    if (fmcsaRecords !== fmcsa.manifest.coverage.accepted_principal_office_records) throw new Error("Registry FMCSA record count does not match the source release.");
+  }
+
   if (irsEo) {
     for (const artifact of irsEo.organizationArtifacts) {
       const partition = artifact.path.match(/ein-prefix=(\d)/)?.[1];
@@ -1287,7 +1398,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, irsEo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -1379,6 +1490,21 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(fmcsa ? {
+      fmcsa_active_us_company_census: {
+        source_id: "fmcsa-company-census-active-us-principal-office",
+        dataset_id: fmcsa.manifest.dataset_id,
+        source_release_id: fmcsa.manifest.source_release_id,
+        dataset_release_id: fmcsa.manifest.release_id,
+        source_updated_at: fmcsa.manifest.source_updated_at,
+        active_principal_office_records_published: fmcsaRecords,
+        selected_rows_quarantined_by_source_layer: fmcsa.manifest.coverage.quarantined_selected_records,
+        source_columns_available: fmcsa.manifest.privacy.source_columns_available,
+        source_columns_acquired: fmcsa.manifest.privacy.source_columns_acquired,
+        identity_resolution: "one provisional physical site and establishment per accepted USDOT principal-office record; no legal organization, parent, or cross-source merge inferred",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
     ...(irsEo ? {
       irs_eo_bmf_organizations: {
         source_id: "irs-eo-business-master-file-current-extract",
@@ -1401,7 +1527,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "1.0.0" },
+    publisher: { id: "national-business-registry", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1414,10 +1540,11 @@ export async function buildNationalBusinessRegistry({
       ...(ncua ? ["NCUA federally insured credit unions and reported U.S. locations from the final quarterly release"] : []),
       ...(fsis ? ["USDA FSIS establishments in the current active MPI directory"] : []),
       ...(echo ? ["EPA ECHO facilities with FAC_ACTIVE_FLAG=Y and a valid reported U.S. physical address"] : []),
+      ...(fmcsa ? ["FMCSA Company Census registrations with STATUS_CODE=A and an accepted reported U.S./territory principal-office address"] : []),
       ...(irsEo ? ["IRS organizations present in the current EO BMF extract with supported U.S. or territory filing addresses"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + irsEoOrganizations,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + fmcsaRecords + irsEoOrganizations,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -1429,15 +1556,16 @@ export async function buildNationalBusinessRegistry({
       ncua_trade_name_records: ncuaTradeNames,
       fsis_establishment_records: fsisEstablishments,
       epa_echo_active_facility_records: echoFacilities,
+      fmcsa_active_principal_office_records: fmcsaRecords,
       irs_eo_organization_records: irsEoOrganizations,
       organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -1471,6 +1599,11 @@ export async function buildNationalBusinessRegistry({
         release_id: echo.manifest.release_id,
         manifest_sha256: echo.manifestSha256,
       }] : []),
+      ...(fmcsa ? [{
+        dataset_id: fmcsa.manifest.dataset_id,
+        release_id: fmcsa.manifest.release_id,
+        manifest_sha256: fmcsa.manifestSha256,
+      }] : []),
       ...(irsEo ? [{
         dataset_id: irsEo.manifest.dataset_id,
         release_id: irsEo.manifest.release_id,
@@ -1482,6 +1615,7 @@ export async function buildNationalBusinessRegistry({
       ...(ncua?.manifest.dependencies ?? []),
       ...(fsis?.manifest.dependencies ?? []),
       ...(echo?.manifest.dependencies ?? []),
+      ...(fmcsa?.manifest.dependencies ?? []),
       ...(irsEo?.manifest.dependencies ?? []),
     ],
     contracts: {
@@ -1519,6 +1653,13 @@ export async function buildNationalBusinessRegistry({
         "ECHO FAC_ACTIVE_FLAG=Y means at least one associated ICIS-Air, ICIS-NPDES, RCRAInfo, or SDWIS permit/facility is active; it does not independently prove general business operation, public access, ownership, or active status in every associated program.",
         "EPA ECHO program flags and identifiers are associations, and source coordinates can be ZIP or county centroids rather than premise-level geocodes.",
         "No legal organization, owner, or parent company is inferred from EPA ECHO facility names.",
+      ] : []),
+      ...(fmcsa ? [
+        "FMCSA Company Census covers regulated registrants, not every U.S. business, and the public file excludes shipper-only business types and entities with an active Hazardous Materials Safety Permit.",
+        "FMCSA active registration is retained as source-specific regulatory evidence and is not generalized into proof of public access, customer-facing operations, or status outside FMCSA scope.",
+        "The reported physical address is the principal office, can be home-based, and is not independently proven to be a storefront, vehicle base, or currently deliverable location.",
+        "No legal organization, proprietor entity, parent, or ownership relationship is inferred because the source can describe individuals and its business-organization type is review-only and incomplete.",
+        "Officer, phone, cell, fax, email, D&B, mailing-address, crash, review, inspection, safety-rating, and unnecessary operational fields were excluded before source acquisition.",
       ] : []),
       ...(irsEo ? [
         "IRS EO BMF covers organizations in the current cumulative exempt-organization extract, not every nonprofit, exempt organization, employer, physical establishment, or U.S. business.",
@@ -1617,6 +1758,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release",
     "listed-in-fsis-active-mpi-directory-as-of-release",
     "epa-echo-active-program-facility-as-of-source-release",
+    "fmcsa-active-registration-as-of-daily-source-release",
     "listed-in-current-irs-eo-bmf-extract-as-of-source-posting",
   ]);
   let assertionCount = 0;
@@ -1637,6 +1779,12 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
           if (!record.subject_entity_id.startsWith("organization:irs_ein_") || !record.predicate.startsWith("organization.")) throw new Error(`IRS EO assertion targets a non-organization entity ${record.assertion_id}`);
           if (sourceFields.some((field) => ["ICO", "ASSET_AMT", "INCOME_AMT", "REVENUE_AMT"].includes(field))) throw new Error(`IRS EO excluded source field leaked for ${record.assertion_id}`);
         }
+        if (record.source.policy_id === "fmcsa-company-census") {
+          const sourceFields = String(record.source.source_field ?? "").toUpperCase();
+          const forbidden = ["PHONE", "FAX", "CELL_PHONE", "EMAIL", "COMPANY_OFFICER", "DUNS", "MAILING", "CRASH", "REVIEW", "SAFETY_RATING"];
+          if (record.subject_entity_id.startsWith("organization:") || record.predicate.startsWith("organization.")) throw new Error(`FMCSA assertion targets an inferred organization ${record.assertion_id}`);
+          if (forbidden.some((field) => sourceFields.includes(field))) throw new Error(`FMCSA excluded source field leaked for ${record.assertion_id}`);
+        }
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual assertion line count mismatch" });
       assertionCount += count;
@@ -1655,6 +1803,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (!entityIds.has(record.subject_entity_id) || !entityIds.has(record.object_entity_id)) throw new Error(`missing relationship endpoint ${record.relationship_id}`);
         if (!validateProvenance(record.source) || !record.observed_at) throw new Error(`invalid relationship provenance ${record.relationship_id}`);
         if (record.source.policy_id === "irs-eo-bmf") throw new Error(`IRS EO filing-address record created a relationship ${record.relationship_id}`);
+        if (record.source.policy_id === "fmcsa-company-census" && record.relationship_type !== "located_at") throw new Error(`FMCSA record created an unsupported relationship ${record.relationship_id}`);
         if (!["located_at", "provides_service", "operates"].includes(record.relationship_type)) throw new Error(`unsupported relationship ${record.relationship_type}`);
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual relationship line count mismatch" });

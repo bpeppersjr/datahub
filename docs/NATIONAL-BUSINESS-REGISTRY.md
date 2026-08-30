@@ -1,6 +1,6 @@
 # National business registry releases
 
-The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, USDA FSIS active MPI establishment layer, EPA ECHO source-designated active regulated-facility layer, and IRS EO BMF current exempt-organization layer. It is an operational foundation, not a claim that every U.S. business has been collected.
+The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, USDA FSIS active MPI establishment layer, EPA ECHO source-designated active regulated-facility layer, FMCSA active U.S. Company Census principal-office layer, and IRS EO BMF current exempt-organization layer. It is an operational foundation, not a claim that every U.S. business has been collected.
 
 ## Build and verify
 
@@ -45,13 +45,17 @@ Each accepted EPA ECHO FRS `REGISTRY_ID` produces one provisional physical site 
 
 ECHO `FAC_ACTIVE_FLAG=Y` means at least one associated ICIS-Air, ICIS-NPDES, RCRAInfo, or SDWIS permit/facility is active. It is not independent proof of general business operation, public access, ownership, or active status in every associated program. ECHO contains businesses, public agencies, utilities, institutions, and other regulated sites; it is not a business census. Coordinates marked as ZIP or county centroids retain an explicit precision warning.
 
+Each accepted FMCSA USDOT record produces one provisional physical site and establishment with a `located_at` relationship. The publisher keeps USDOT/docket identifiers, legal and DBA names, reported principal-office address and ZIP/ZCTA, source classifications, registration dates, source-specific active status, and data-sensitivity warnings as separate assertions. It creates no legal organization, proprietor entity, parent, ownership relationship, or cross-source match.
+
+The FMCSA business-organization type is review-only and incomplete, and a registered entity can be an individual proprietor. A principal office can be home-based and is not independently verified as a storefront, customer-accessible location, vehicle base, or currently deliverable address. Officer, phone, cell, fax, email, D&B, mailing-address, crash, review, inspection, safety-rating, and unnecessary operational fields are excluded before acquisition.
+
 Each accepted IRS EO BMF EIN produces one provisional organization. Legal and secondary names, EIN, filing address and ZIP/ZCTA, tax-exempt profile, and source-specific current-extract status remain separate assertions. Filing addresses can be mailing addresses or P.O. boxes, so the publisher creates no physical site, establishment, or relationship from an IRS row. Group and affiliation codes do not create parent, chapter, ownership, or control relationships.
 
 Current EO BMF membership and exempt-status codes are federal tax-status evidence, not independent proof of current operation, public access, or a current physical location. The source `ICO` in-care-of personal-contact field and financial amounts are excluded from normalized and registry records.
 
 ## ZIP coverage
 
-`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, source releases and freshness, Census employer baseline data, ZCTA geometry status, and unverified current-USPS validity. An IRS filing-address contribution changes record-level coverage status but never increments physical-site or establishment counts.
+`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, FMCSA active-registration principal offices, source releases and freshness, Census employer baseline data, ZCTA geometry status, and unverified current-USPS validity. An IRS filing-address contribution changes record-level coverage status but never increments physical-site or establishment counts.
 
 Rows with no record-level contribution from any integrated source are retained as `denominator-only-no-record-level-contribution`. Every row sets `complete_all_businesses` to `false`. The manifest also leaves `authoritative_current_usps_zip_denominator` as `null`; percentages over “all valid U.S. ZIPs” remain prohibited until that denominator is acquired from an authorized source.
 
@@ -74,9 +78,9 @@ The verifier hashes every artifact, parses every record, checks unique IDs and r
 
 ## Validated live release
 
-The independently verified release `national-business-registry-20260830-171554147Z-7397049d` contains 6,740,600 governed source records, including 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 3,965,717 provisional physical sites, 3,965,717 provisional establishments, one service, 58,228,998 assertions, and 6,406,371 relationships across 123 verified artifacts.
+The independently verified release `national-business-registry-20260830-182714861Z-cc2070d9` contains 8,936,163 governed source records, including 2,195,563 accepted FMCSA active principal-office records and 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 77,115,239 assertions, and 8,601,934 relationships across 123 verified artifacts.
 
-Its 43,016-row ZIP union has record-level source contributions in 42,428 ZIPs. Adding IRS organization filing addresses increased neither the prior physical-site/establishment total nor the prior relationship total. The release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
+Its 43,586-row ZIP union has record-level source contributions in 43,310 ZIPs. FMCSA added one site, one establishment, and one `located_at` relationship per accepted USDOT principal-office record, but no inferred organization or parent. The source and registry transformations deduplicate repeated typed docket identifiers while preserving source slot observations; the rejected intermediate registry release remains immutable and is not current. The verified release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
 
 ## Adding the next source
 
