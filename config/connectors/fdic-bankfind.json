@@ -1,0 +1,36 @@
+{
+  "connector_id": "fdic-bankfind",
+  "version": "1.0.0",
+  "description": "Acquires the pinned current FDIC BankFind active-institution and location indexes and normalizes institution, office, address, point, service-type, status, and temporal evidence.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/fdic-bankfind" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 10000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["fdic-source-institution-jsonl-gzip", "fdic-source-location-jsonl-gzip", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "quarantine-jsonl-gzip", "dataset-manifest-json"],
+  "allowed_hosts": ["api.fdic.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "fdic-bankfind-api",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 60,
+    "retries": 3,
+    "max_parallel_requests": 1,
+    "maximum_page_size": 10000
+  },
+  "retry": "Retry transient query failures with capped exponential backoff; fail after four attempts.",
+  "checkpoint": "Pin institution and location index names and creation timestamps before normalization; any total or index change invalidates the run.",
+  "idempotency": "FDIC certificate and unique location numbers determine stable source-record and entity-candidate IDs; index metadata identifies the source snapshot.",
+  "cancellation": "Abort the active request, leave all unpublished artifacts run-scoped, and do not change current.json before complete quality-gated publication.",
+  "source_policy": "config/source-policies/fdic-bankfind.json",
+  "retention_profile": "Retain immutable public source snapshots and normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "bank-service-type-assertion", "fdic-source-status-assertion"],
+  "produced_identifiers": ["fdic-certificate", "fdic-unique-number", "fdic-location-unique-number", "legal-entity-identifier", "federal-reserve-rssd", "zip5", "zcta5"]
+}

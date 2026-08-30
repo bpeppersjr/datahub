@@ -1,0 +1,30 @@
+{
+  "policy_id": "fdic-bankfind",
+  "version": "1.0.0",
+  "publisher": "Federal Deposit Insurance Corporation",
+  "ownership": "United States federal government public bank structure data",
+  "source_home": "https://banks.data.fdic.gov/bankfind-suite/",
+  "api_documentation": "https://api.fdic.gov/banks/docs/",
+  "bulk_data": "https://banks.data.fdic.gov/bankfind-suite/bulkData/bulkDataDownload",
+  "source_access": "Public anonymous read-only API; FDIC documentation states a key is currently not required.",
+  "allowed_use": ["download", "local processing", "immutable source retention", "institution and office normalization", "coverage analysis", "derived registry assertions", "redistribution with attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing a current indexed location as independent confirmation of public access, current hours, or every service offered",
+    "representing FDIC coverage as all banks, credit unions, financial businesses, or all U.S. businesses",
+    "representing foreign offices with no U.S. state and state/county code 00 as U.S. locations",
+    "merging institutions or locations across sources without versioned evidence",
+    "using institution website links as an FDIC endorsement or authenticity guarantee"
+  ],
+  "field_export_policy": {
+    "source_and_normalized_records": "public",
+    "institution_and_location_identifiers": "public",
+    "address_and_coordinates": "public",
+    "source_specific_status_and_dates": "public"
+  },
+  "attribution": "Source: FDIC BankFind Suite public API.",
+  "retention": "Indefinite for public immutable source and normalized records unless an approved retention rule applies.",
+  "redistribution": "Allowed with FDIC attribution, pinned index metadata, provenance, temporal scope, and coverage limitations retained.",
+  "contains_personal_data": false,
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

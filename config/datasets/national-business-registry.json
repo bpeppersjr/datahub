@@ -20,6 +20,11 @@
       "layer": "public-record-level-with-internal-raw-source"
     },
     {
+      "dataset_id": "fdic-bankfind",
+      "scope": "active FDIC-insured institutions and current indexed U.S. locations",
+      "layer": "public-record-level"
+    },
+    {
       "dataset_id": "hud-usps-zip-crosswalk",
       "scope": "quarterly address-derived ZIP-to-county evidence",
       "layer": "credential-gated-awaiting-live-release"
@@ -37,7 +42,7 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP-authorized retailers plus CMS NPPES organization providers and reported practice locations",
+    "scope": "USDA SNAP-authorized retailers, CMS NPPES organization providers and reported practice locations, plus FDIC active insured institutions and current indexed U.S. locations",
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },

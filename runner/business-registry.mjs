@@ -22,7 +22,7 @@ function hashId(prefix, parts) {
 function sourceFor(record, sourceField) {
   const source = record.provenance;
   if (!source?.source_id || !source.source_release_id || !source.source_record_id || !source.ingest_run_id || !source.transformation_version || !source.policy_id) {
-    throw new Error(`SNAP record ${record.normalized_record_id ?? "<unknown>"} has incomplete provenance.`);
+    throw new Error(`Source record ${record.normalized_record_id ?? "<unknown>"} has incomplete provenance.`);
   }
   return {
     source_id: source.source_id,
@@ -43,7 +43,7 @@ function relationshipSource(record) {
 
 function assertion(record, subjectEntityId, predicate, value, valueType, sourceField) {
   const observedAt = record.observed_at;
-  if (!observedAt) throw new Error(`SNAP record ${record.normalized_record_id} has no observation timestamp.`);
+  if (!observedAt) throw new Error(`Source record ${record.normalized_record_id} has no observation timestamp.`);
   const source = sourceFor(record, sourceField);
   return {
     schema_version: REGISTRY_SCHEMA_VERSION,
@@ -249,6 +249,65 @@ export function reconcileNppesOtherName(record) {
   }, "object", "Provider Other Organization Name|Provider Other Organization Name Type Code|Created Date");
 }
 
+export function reconcileFdicInstitution(record) {
+  const certificate = record.external_identifiers?.find((item) => item.type === "fdic_certificate")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  if (!/^\d+$/.test(certificate ?? "") || organizationId !== `organization:fdic_cert_${certificate}` || !record.legal_name) {
+    throw new Error(`Invalid FDIC institution candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, organizationId, "organization.legal-name", record.legal_name, "string", "NAME"),
+    assertion(record, organizationId, "organization.fdic-status", record.source_status, "object", "ACTIVE|INACTIVE"),
+  ];
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  if (record.headquarters?.address) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-address", record.headquarters.address, "address", "ADDRESS|ADDRESS2|CITY|STALP|ZIP|COUNTY|STCNTY"));
+  if (record.headquarters?.location) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-location", record.headquarters.location, "geometry", "LATITUDE|LONGITUDE"));
+  if (record.headquarters?.geography) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-zcta", record.headquarters.geography, "object", "ZIP"));
+  if (record.website) assertions.push(assertion(record, organizationId, "organization.reported-website", record.website, "string", "WEBADDR"));
+  if (record.institution_class) assertions.push(assertion(record, organizationId, "organization.fdic-institution-class", record.institution_class, "object", "BKCLASS|CHRTAGNT|REGAGNT"));
+  if (record.minority_depository_status) assertions.push(assertion(record, organizationId, "organization.fdic-minority-depository-status", record.minority_depository_status, "object", "MDI_STATUS_CODE|MDI_STATUS_DESC"));
+  if (record.reported_office_count !== null) assertions.push(assertion(record, organizationId, "organization.reported-office-count", record.reported_office_count, "number", "OFFICES"));
+  if (record.operating_dates) assertions.push(assertion(record, organizationId, "organization.fdic-operating-dates", record.operating_dates, "object", "ESTYMD|INSDATE|ENDEFYMD|DATEUPDT|RUNDATE"));
+  return { certificate, certificatePrefix: certificate[0], entity: canonicalEntity(organizationId, "organization", record.observed_at), assertions };
+}
+
+export function reconcileFdicLocation(record) {
+  const certificate = record.external_identifiers?.find((item) => item.type === "fdic_certificate")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.address?.zip_code;
+  if (!/^\d+$/.test(certificate ?? "") || organizationId !== `organization:fdic_cert_${certificate}` || !siteId || !establishmentId || !/^\d{5}$/.test(zipCode ?? "")) {
+    throw new Error(`Invalid FDIC location candidate ${record.normalized_record_id}.`);
+  }
+  const assertions = [
+    assertion(record, siteId, "site.address", record.address, "address", "ADDRESS|ADDRESS2|CITY|STALP|ZIP|COUNTY|STCNTY"),
+    assertion(record, siteId, "site.zip-code", zipCode, "string", "ZIP"),
+    assertion(record, siteId, "site.zcta", record.geography, "object", "ZIP"),
+    assertion(record, establishmentId, "establishment.name", record.office_name || record.institution_name, "string", "OFFNAME|NAME"),
+    assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", null),
+    assertion(record, establishmentId, "establishment.fdic-main-office", record.main_office, "boolean", "MAINOFF"),
+  ];
+  if (record.location) assertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "LATITUDE|LONGITUDE"));
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
+  }
+  if (record.office_number) assertions.push(assertion(record, establishmentId, "establishment.fdic-office-number", record.office_number, "string", "OFFNUM"));
+  if (record.service_type) assertions.push(assertion(record, establishmentId, "establishment.fdic-service-type", record.service_type, "object", "SERVTYPE|SERVTYPE_DESC"));
+  if (record.institution_class_code) assertions.push(assertion(record, establishmentId, "establishment.fdic-institution-class-code", record.institution_class_code, "string", "BKCLASS"));
+  if (record.established_date) assertions.push(assertion(record, establishmentId, "establishment.established-date", record.established_date, "date", "ESTYMD"));
+  if (record.source_run_date) assertions.push(assertion(record, establishmentId, "establishment.source-run-date", record.source_run_date, "date", "RUNDATE"));
+  return {
+    certificate,
+    zipCode,
+    entities: [canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at)],
+    assertions,
+    relationships: [relationship(record, "operates", organizationId, establishmentId), relationship(record, "located_at", establishmentId, siteId)],
+  };
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -385,6 +444,40 @@ async function loadNppesRelease(pointerPath) {
   };
 }
 
+async function loadFdicRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "FDIC manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "fdic-bankfind" || manifest.status !== "published" || !manifest.complete_current_structure_snapshot) {
+    throw new Error("A complete published FDIC BankFind source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const institutionArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-fdic-institution-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  const locationArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-fdic-location-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (institutionArtifacts.length !== 10 || locationArtifacts.length !== 10) throw new Error("FDIC BankFind source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "fdic-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("FDIC BankFind source release has no ZIP coverage artifact.");
+  for (const artifact of [...institutionArtifacts, ...locationArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `FDIC artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`FDIC artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("FDIC ZIP coverage record count does not match its manifest.");
+  return {
+    manifest,
+    manifestSha256: sha256Buffer(manifestBuffer),
+    releaseDirectory,
+    institutionArtifacts,
+    locationArtifacts,
+    zipRows,
+  };
+}
+
 async function forEachGzipRecord(filePath, consumer) {
   const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
   let count = 0;
@@ -408,24 +501,28 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys()])].sort();
+  const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow;
+    const fdicRow = fdicRows.get(zipCode);
+    const foundation = nppesRow ?? snapRow ?? fdicRow;
     if (!foundation) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
     const secondary = nppesSecondaryCounts.get(zipCode) ?? 0;
+    const fdicLocations = fdicLocationCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
       throw new Error(`ZIP ${zipCode} CMS NPPES counts do not reconcile.`);
     }
-    const locationCount = snapCount + primary + secondary;
+    if (fdic && fdicLocations !== (fdicRow?.fdic_current_location_snapshot?.location_count ?? 0)) throw new Error(`ZIP ${zipCode} FDIC location counts do not reconcile.`);
+    const locationCount = snapCount + primary + secondary + fdicLocations;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -438,6 +535,7 @@ function registryZipCoverage({ snap, nppes, snapCounts, nppesPrimaryCounts, nppe
         snap_authorization_evidence_count: snapCount,
         nppes_primary_practice_location_count: primary,
         nppes_non_primary_practice_location_count: secondary,
+        fdic_current_location_count: fdicLocations,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -453,6 +551,13 @@ function registryZipCoverage({ snap, nppes, snapCounts, nppesPrimaryCounts, nppe
             source_through_date: nppes.manifest.source_through_date,
           },
         } : {}),
+        ...(fdic ? {
+          fdic_bankfind: {
+            current_location_count: fdicLocations,
+            source_release_id: fdic.manifest.source_release_id,
+            source_updated_at: fdic.manifest.source_updated_at,
+          },
+        } : {}),
       },
       current_usps_validity: foundation.current_usps_validity,
       geography: foundation.geography,
@@ -466,6 +571,7 @@ export async function buildNationalBusinessRegistry({
   outputRoot,
   snapPointer,
   nppesPointer = null,
+  fdicPointer = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -473,6 +579,7 @@ export async function buildNationalBusinessRegistry({
   if (!snapPointer) throw new Error("snapPointer is required.");
   const snap = await loadSnapRelease(snapPointer);
   const nppes = nppesPointer ? await loadNppesRelease(nppesPointer) : null;
+  const fdic = fdicPointer ? await loadFdicRelease(fdicPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
@@ -485,6 +592,8 @@ export async function buildNationalBusinessRegistry({
   const relationshipWriters = new Map();
   const organizationWriters = new Map();
   const organizationAssertionWriters = new Map();
+  const fdicOrganizationWriters = new Map();
+  const fdicOrganizationAssertionWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
     establishmentWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/establishments/prefix=${prefix}.jsonl.gz`));
@@ -494,18 +603,27 @@ export async function buildNationalBusinessRegistry({
       organizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/npi-prefix=${prefix}.jsonl.gz`));
       organizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/npi-prefix=${prefix}.jsonl.gz`));
     }
+    if (fdic) {
+      fdicOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/fdic-cert-prefix=${prefix}.jsonl.gz`));
+      fdicOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/fdic-cert-prefix=${prefix}.jsonl.gz`));
+    }
   }
 
   const snapCountsByZip = new Map();
   const nppesPrimaryCountsByZip = new Map();
   const nppesSecondaryCountsByZip = new Map();
+  const fdicLocationCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
+  const fdicCertificates = new Set();
+  const fdicLocationIds = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
   let nppesSecondaryLocations = 0;
   let nppesOtherNames = 0;
+  let fdicInstitutions = 0;
+  let fdicLocations = 0;
   let assertions = 0;
   let relationships = 0;
   for (const artifact of snap.retailerArtifacts) {
@@ -591,12 +709,57 @@ export async function buildNationalBusinessRegistry({
     if (nppesOtherNames !== nppes.manifest.coverage.accepted_other_names) throw new Error("Registry CMS NPPES other-name count does not match the source release.");
   }
 
+  if (fdic) {
+    for (const artifact of fdic.institutionArtifacts) {
+      const partition = artifact.path.match(/cert-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine FDIC certificate prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(fdic.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileFdicInstitution(record);
+        if (reconciled.certificatePrefix !== partition) throw new Error(`FDIC institution ${reconciled.certificate} is in the wrong certificate partition.`);
+        if (fdicCertificates.has(reconciled.certificate)) throw new Error(`Duplicate FDIC institution certificate ${reconciled.certificate}.`);
+        fdicCertificates.add(reconciled.certificate);
+        await writeGzipRecord(fdicOrganizationWriters.get(partition), reconciled.entity);
+        for (const item of reconciled.assertions) await writeGzipRecord(fdicOrganizationAssertionWriters.get(partition), item);
+        assertions += reconciled.assertions.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`FDIC institution artifact ${artifact.path} record count mismatch.`);
+      fdicInstitutions += count;
+      logger(`Reconciled ${fdicInstitutions.toLocaleString("en-US")} FDIC institutions.`);
+    }
+    if (fdicInstitutions !== fdic.manifest.coverage.accepted_active_institutions) throw new Error("Registry FDIC institution count does not match the source release.");
+
+    for (const artifact of fdic.locationArtifacts) {
+      const partition = artifact.path.match(/zip-prefix=(\d)/)?.[1];
+      if (!partition) throw new Error(`Cannot determine FDIC ZIP prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(fdic.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileFdicLocation(record);
+        if (reconciled.zipCode[0] !== partition) throw new Error(`FDIC location ${record.normalized_record_id} is in the wrong ZIP partition.`);
+        if (!fdicCertificates.has(reconciled.certificate)) throw new Error(`FDIC location has no active institution certificate ${reconciled.certificate}.`);
+        if (fdicLocationIds.has(record.normalized_record_id)) throw new Error(`Duplicate FDIC location ${record.normalized_record_id}.`);
+        fdicLocationIds.add(record.normalized_record_id);
+        await writeGzipRecord(siteWriters.get(partition), reconciled.entities[0]);
+        await writeGzipRecord(establishmentWriters.get(partition), reconciled.entities[1]);
+        for (const item of reconciled.assertions) await writeGzipRecord(assertionWriters.get(partition), item);
+        for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(partition), item);
+        fdicLocationCountsByZip.set(reconciled.zipCode, (fdicLocationCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        assertions += reconciled.assertions.length;
+        relationships += reconciled.relationships.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`FDIC location artifact ${artifact.path} record count mismatch.`);
+      fdicLocations += count;
+      logger(`Reconciled ${fdicLocations.toLocaleString("en-US")} FDIC locations.`);
+    }
+    if (fdicLocations !== fdic.manifest.coverage.accepted_current_locations) throw new Error("Registry FDIC location count does not match the source release.");
+  }
+
   const artifacts = [];
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
 
   const serviceEntity = {
@@ -613,7 +776,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -647,6 +810,20 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(fdic ? {
+      fdic_bankfind: {
+        source_id: "fdic-bankfind-current-structure",
+        dataset_id: fdic.manifest.dataset_id,
+        source_release_id: fdic.manifest.source_release_id,
+        dataset_release_id: fdic.manifest.release_id,
+        source_updated_at: fdic.manifest.source_updated_at,
+        active_institutions_published: fdicInstitutions,
+        current_us_locations_published: fdicLocations,
+        foreign_locations_excluded_by_source_layer: fdic.manifest.coverage.excluded_locations_outside_united_states,
+        identity_resolution: "one provisional organization per FDIC certificate and one provisional site/establishment per U.S. location unique number; no cross-source merge",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
   };
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-contributions.json", json(sourceContribution), {
     artifact_type: "registry-source-contribution-summary",
@@ -661,23 +838,27 @@ export async function buildNationalBusinessRegistry({
     created_at: createdAt,
     status: "published-partial",
     complete_national_business_registry: false,
-    publication_scope: nppes
-      ? "USDA SNAP-authorized retailers and CMS NPPES organization providers/practice locations, reconciled against the Census ZBP/ZCTA ZIP coverage union"
-      : "USDA SNAP-authorized retailer source only, reconciled against the Census ZBP/ZCTA ZIP coverage union",
+    publication_scope: `${[
+      "USDA SNAP-authorized retailers",
+      ...(nppes ? ["CMS NPPES organization providers and reported practice locations"] : []),
+      ...(fdic ? ["FDIC active insured institutions and current indexed U.S. locations"] : []),
+    ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames,
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations,
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
       nppes_other_name_records: nppesOtherNames,
-      organizations: nppesOrganizations,
-      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations,
-      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations,
+      fdic_institution_records: fdicInstitutions,
+      fdic_location_records: fdicLocations,
+      organizations: nppesOrganizations + fdicInstitutions,
+      physical_sites: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations,
+      establishments: snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations,
       services: 1,
       assertions,
       relationships,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: null,
     },
     dependencies: [
@@ -691,8 +872,14 @@ export async function buildNationalBusinessRegistry({
         release_id: nppes.manifest.release_id,
         manifest_sha256: nppes.manifestSha256,
       }] : []),
+      ...(fdic ? [{
+        dataset_id: fdic.manifest.dataset_id,
+        release_id: fdic.manifest.release_id,
+        manifest_sha256: fdic.manifestSha256,
+      }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
+      ...(fdic?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -707,6 +894,11 @@ export async function buildNationalBusinessRegistry({
         "CMS NPPES covers health care providers and suppliers, not all U.S. businesses.",
         "Active NPI enumeration does not validate licensure or credentials and does not prove that a reported practice location is currently open.",
         "Active individual NPI records and authorized-official personal fields are excluded from this registry release.",
+      ] : []),
+      ...(fdic ? [
+        "FDIC BankFind covers FDIC-insured institutions and current indexed locations, not all banks, credit unions, financial businesses, or all U.S. businesses.",
+        "An FDIC current-location record does not independently prove public access, current hours, or every service offered.",
+        "Foreign FDIC offices are excluded from the normalized U.S. location layer by the source connector.",
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
@@ -795,6 +987,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "npi-active-as-of-source-release",
     "npi-reactivated-as-of-source-release",
     "reported-non-primary-practice-location-for-active-npi",
+    "fdic-current-location-for-active-institution-as-of-index",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {

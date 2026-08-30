@@ -1,0 +1,13 @@
+{
+  "dataset_id": "fdic-bankfind",
+  "schema_version": "1.0.0",
+  "title": "FDIC BankFind Active Institutions and Current Locations",
+  "status": "implemented",
+  "description": "Governed current FDIC-insured institution and office/branch source with identifiers, reported physical addresses and points, service types, dates, source-specific status, ZIP/ZCTA context, provenance, and explicit gaps.",
+  "output": "data/business-sources/fdic-bankfind/current.json",
+  "connector": "config/connectors/fdic-bankfind.json",
+  "source_policy": "config/source-policies/fdic-bankfind.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "FDIC-insured active institutions and their current indexed locations only; not all financial businesses or all U.S. businesses.",
+  "documentation": "docs/FDIC-BANKFIND.md"
+}

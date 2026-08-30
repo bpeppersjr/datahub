@@ -7,6 +7,8 @@ import test from "node:test";
 import { gzipSync } from "node:zlib";
 import {
   buildNationalBusinessRegistry,
+  reconcileFdicInstitution,
+  reconcileFdicLocation,
   reconcileNppesOrganization,
   reconcileNppesOtherName,
   reconcileNppesPracticeLocation,
@@ -15,6 +17,7 @@ import {
   verifyNationalBusinessRegistry,
 } from "./business-registry.mjs";
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
+import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
 function sourceFeature(recordId, zipCode, overrides = {}) {
@@ -137,6 +140,77 @@ async function writeFixtureSnapRelease(root) {
   return pointerPath;
 }
 
+async function writeFixtureFdicRelease(root) {
+  const releaseId = "fdic-bankfind-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const context = {
+    runId: "fdic-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceUpdatedAt: "2026-08-28T11:57:32.000Z",
+    sourceReleaseId: "fdic-bankfind-source-fixture",
+    baselineByZip: new Map([
+      ["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }],
+      ["99998", { geography: { status: "no-2020-zcta-polygon", geo_id: null, geoid: null } }],
+    ]),
+    activeCertificates: new Set(["100"]),
+  };
+  const institutions = [normalizeFdicInstitution({
+    CERT: 100, UNINUM: 500, NAME: "FIXTURE BANK", ACTIVE: 1, INACTIVE: 0,
+    ADDRESS: "10 MAIN ST", CITY: "CHICAGO", STALP: "IL", ZIP: "60601", STCNTY: "17031",
+    LATITUDE: 41.88, LONGITUDE: -87.63, OFFICES: 2, BKCLASS: "NM", RUNDATE: "08/28/2026",
+  }, context)];
+  const locations = [
+    normalizeFdicLocation({
+      CERT: 100, FI_UNINUM: 500, UNINUM: 501, NAME: "FIXTURE BANK", OFFNAME: "FIXTURE MAIN", OFFNUM: 0, MAINOFF: 1,
+      ADDRESS: "10 MAIN ST", CITY: "CHICAGO", STALP: "IL", ZIP: "60601", STCNTY: "17031",
+      LATITUDE: 41.88, LONGITUDE: -87.63, SERVTYPE: 11, SERVTYPE_DESC: "FULL SERVICE - BRICK AND MORTAR", RUNDATE: "08/28/2026",
+    }, context),
+    normalizeFdicLocation({
+      CERT: 100, FI_UNINUM: 500, UNINUM: 502, NAME: "FIXTURE BANK", OFFNAME: "FIXTURE BRANCH", OFFNUM: 1, MAINOFF: 0,
+      ADDRESS: "20 OAK AVE", CITY: "FIXTURE", STALP: "IL", ZIP: "99998", STCNTY: "17031",
+      LATITUDE: 41.89, LONGITUDE: -87.64, SERVTYPE: 11, SERVTYPE_DESC: "FULL SERVICE - BRICK AND MORTAR", RUNDATE: "08/28/2026",
+    }, context),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789") {
+    for (const [relativePath, artifactType, records] of [
+      [`derived/institutions/cert-prefix=${prefix}.jsonl.gz`, "normalized-fdic-institution-jsonl-gzip", institutions.filter((record) => record.external_identifiers[0].value.startsWith(prefix))],
+      [`derived/locations/zip-prefix=${prefix}.jsonl.gz`, "normalized-fdic-location-jsonl-gzip", locations.filter((record) => record.address.zip_code.startsWith(prefix))],
+    ]) {
+      const buffer = gzipSync(records.map((record) => JSON.stringify(record)).join("\n") + (records.length ? "\n" : ""));
+      const destination = path.join(releaseDirectory, relativePath);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, buffer);
+      artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: records.length, artifact_type: artifactType });
+    }
+  }
+  const zipRows = [
+    {
+      zip_code: "60601", fdic_current_location_snapshot: { location_count: 1 }, current_usps_validity: { status: "unverified" },
+      geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601" }, employer_baseline: { status: "published", establishments: 1000 }, baseline_coverage_status: "zbp-and-zcta",
+    },
+    {
+      zip_code: "99998", fdic_current_location_snapshot: { location_count: 1 }, current_usps_validity: { status: "unverified" },
+      geography: { status: "no-2020-zcta-polygon", geo_id: null }, employer_baseline: null, baseline_coverage_status: "outside-zbp-zcta-union",
+    },
+  ];
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  const zipPath = "derived/zip-coverage.jsonl";
+  await writeFile(path.join(releaseDirectory, zipPath), zipBuffer);
+  artifacts.push({ path: zipPath, bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "fdic-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0", dataset_id: "fdic-bankfind", release_id: releaseId, status: "published", complete_current_structure_snapshot: true,
+    source_release_id: context.sourceReleaseId, source_updated_at: context.sourceUpdatedAt,
+    coverage: { accepted_active_institutions: institutions.length, accepted_current_locations: locations.length, excluded_locations_outside_united_states: 0 },
+    dependencies: [], artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -194,22 +268,56 @@ test("reconciles NPPES organizations and practice locations without inferring ow
   assert.equal(reconcileNppesOtherName(sourceName).predicate, "organization.other-name");
 });
 
-test("publishes and verifies a partial registry while retaining denominator-only ZIPs", async (t) => {
+test("reconciles FDIC institutions and U.S. locations without inferring public access", () => {
+  const fdicContext = {
+    runId: "fdic-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceUpdatedAt: "2026-08-28T11:57:32.000Z",
+    sourceReleaseId: "fdic-bankfind-fixture",
+    baselineByZip: new Map([["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }]]),
+    activeCertificates: new Set(["100"]),
+  };
+  const institution = normalizeFdicInstitution({
+    CERT: 100, UNINUM: 500, NAME: "FIXTURE BANK", ACTIVE: 1, INACTIVE: 0,
+    ADDRESS: "10 MAIN ST", CITY: "CHICAGO", STALP: "IL", ZIP: "60601", STCNTY: "17031",
+    LATITUDE: 41.88, LONGITUDE: -87.63, OFFICES: 1, BKCLASS: "NM", RUNDATE: "08/28/2026",
+  }, fdicContext);
+  const organization = reconcileFdicInstitution(institution);
+  assert.equal(organization.entity.entity_type, "organization");
+  assert(organization.assertions.some((item) => item.predicate === "organization.fdic-status"));
+  assert(organization.assertions.some((item) => item.predicate === "organization.external-identifier"));
+
+  const location = normalizeFdicLocation({
+    CERT: 100, FI_UNINUM: 500, UNINUM: 501, NAME: "FIXTURE BANK", OFFNAME: "FIXTURE BRANCH", OFFNUM: 1, MAINOFF: 0,
+    ADDRESS: "20 OAK AVE", CITY: "CHICAGO", STALP: "IL", ZIP: "60601", STCNTY: "17031",
+    LATITUDE: 41.89, LONGITUDE: -87.64, SERVTYPE: 11, SERVTYPE_DESC: "FULL SERVICE - BRICK AND MORTAR", RUNDATE: "08/28/2026",
+  }, fdicContext);
+  const office = reconcileFdicLocation(location);
+  assert.deepEqual(office.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
+  assert.deepEqual(office.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert.equal(office.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "fdic-current-location-for-active-institution-as-of-index");
+  assert(!office.assertions.some((item) => item.predicate.includes("open") || item.predicate.includes("hours")));
+});
+
+test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
   const snapPointer = await writeFixtureSnapRelease(path.join(root, "snap"));
+  const fdicPointer = await writeFixtureFdicRelease(path.join(root, "fdic"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
     outputRoot,
     snapPointer,
+    fdicPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.physical_sites, 2);
-  assert.equal(result.manifest.coverage.establishments, 2);
-  assert.equal(result.manifest.coverage.relationships, 4);
-  assert.equal(result.manifest.coverage.zip_union_records, 3);
+  assert.equal(result.manifest.coverage.organizations, 1);
+  assert.equal(result.manifest.coverage.physical_sites, 4);
+  assert.equal(result.manifest.coverage.establishments, 4);
+  assert.equal(result.manifest.coverage.relationships, 8);
+  assert.equal(result.manifest.coverage.zip_union_records, 4);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator, null);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
@@ -219,6 +327,7 @@ test("publishes and verifies a partial registry while retaining denominator-only
   const uncovered = zipRows.find((row) => row.zip_code === "99999");
   assert.equal(uncovered.registry_coverage.status, "denominator-only-no-record-level-contribution");
   assert.equal(uncovered.registry_coverage.complete_all_businesses, false);
+  assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {
