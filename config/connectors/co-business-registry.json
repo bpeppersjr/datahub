@@ -1,0 +1,38 @@
+{
+  "connector_id": "co-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a selected-field snapshot of Good Standing and Delinquent records from the official Business Entities in Colorado dataset, preserving source-specific status, entity ID, principal-office address, formation profile, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 2000000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["co-cdos-socrata-business-entities-selected-status-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["co-business-registry-source-jsonl-gzip", "normalized-co-business-organization-jsonl-gzip", "co-business-registry-zip-coverage-jsonl", "co-business-registry-source-summary", "co-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.colorado.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.colorado.gov metadata and 4ykn-tg5h JSON resource paths.",
+  "provider_budget_key": "co-cdos-business-entities-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 25000,
+    "maximum_response_bytes": 50000000,
+    "minimum_selected_status_organizations": 2000000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, duplicate identity, source refresh drift, count mismatch, or quality-gate failures.",
+  "checkpoint": "The selected-field source snapshot is acquired in strictly increasing entity-ID order and hashed before normalization. Source metadata and the selected-status count are rechecked before publication. A complete staged source snapshot can be revalidated and normalized into a new immutable run without reacquisition, and a complete unpublished manifest can be independently verified and published by immutable run ID. current.json changes only after complete run-scoped publication.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the Colorado entity ID creates a stable provisional organization candidate.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/co-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "co-registration-status-assertion", "principal-office-address-assertion", "formation-profile-assertion"],
+  "produced_identifiers": ["co-business-entity-id", "zip5", "zip4", "zcta5"]
+}

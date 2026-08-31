@@ -37,6 +37,9 @@ type Overview = {
     county_views_without_published_nonemployer_baseline: number;
     ct_business_registry_active_organization_records: number;
     ct_business_registry_eligible_reported_us_business_addresses: number;
+    co_business_registry_good_standing_or_delinquent_organization_records: number;
+    co_business_registry_quarantined_source_records: number;
+    co_business_registry_eligible_reported_us_business_addresses: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -315,6 +318,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
+            <span><strong>{count(overview?.coverage?.co_business_registry_good_standing_or_delinquent_organization_records)}</strong> CO Good Standing/Delinquent registrations</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

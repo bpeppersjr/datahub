@@ -51,6 +51,11 @@
       "layer": "public-state-registration-record-level-with-internal-selected-field-source"
     },
     {
+      "dataset_id": "co-business-registry-good-standing-or-delinquent-organizations",
+      "scope": "organizations whose source status is Good Standing or Delinquent in the Colorado Business Entities dataset, with principal-office addresses retained as organization-only evidence and one invalid-identity source row quarantined",
+      "layer": "public-state-registration-record-level-with-internal-selected-field-source"
+    },
+    {
       "dataset_id": "fmcsa-active-us-company-census",
       "scope": "FMCSA source-designated active U.S./territory registrations with accepted reported principal-office addresses",
       "layer": "public-regulatory-record-level-with-internal-minimized-source"
@@ -78,21 +83,24 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, current IRS EO BMF organizations and filing addresses, and Connecticut active-registration organizations and reported business addresses",
-    "release_id": "national-business-registry-20260831-001757303Z-46e85122",
-    "publisher_version": "1.3.0",
-    "source_records": 9394699,
-    "organizations": 4382498,
+    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, current IRS EO BMF organizations and filing addresses, Connecticut active-registration organizations and reported business addresses, and Colorado Good Standing or Delinquent registration organizations and principal-office addresses",
+    "release_id": "national-business-registry-20260831-012312910Z-7939b82b",
+    "publisher_version": "1.4.0",
+    "source_records": 11563762,
+    "organizations": 6551560,
     "physical_sites": 6161280,
-    "assertions": 80815454,
+    "assertions": 95969950,
     "ct_business_registry_active_organizations": 458536,
     "ct_business_registry_eligible_reported_us_business_addresses": 447807,
+    "co_business_registry_good_standing_or_delinquent_organizations": 2169062,
+    "co_business_registry_quarantined_source_records": 1,
+    "co_business_registry_eligible_reported_us_business_addresses": 2154593,
     "resolution_location_profiles": 6161280,
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },
   "entity_resolution_capability": {
-    "registry_publisher_version": "1.3.0",
+    "registry_publisher_version": "1.4.0",
     "profile_artifacts": "resolution/location-profiles/zip2=<00-99>.jsonl.gz",
     "profile_cardinality": "exactly one location match profile per provisional physical-site/establishment pair, including an explicitly ineligible null match key when the reported street address is incomplete",
     "downstream_dataset": "national-business-entity-resolution",

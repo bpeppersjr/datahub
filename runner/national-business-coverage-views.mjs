@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.1.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.2.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -400,9 +400,12 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       irs_eo_organization_records: registry.manifest.coverage?.irs_eo_organization_records ?? null,
       ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? null,
       ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? null,
+      co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? null,
+      co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? null,
+      co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-only evidence such as IRS EO filing addresses and Connecticut Secretary-of-the-State reported business addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-only evidence such as IRS EO filing addresses and Connecticut or Colorado registry-reported business addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1060,7 +1063,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.1.0" },
+    publisher: { id: "national-business-coverage-views", version: "1.2.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1098,6 +1101,9 @@ export async function buildNationalBusinessCoverageViews({
       county_views_without_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
       ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? 0,
       ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? 0,
+      co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? 0,
+      co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? 0,
+      co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",

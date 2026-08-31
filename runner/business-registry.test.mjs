@@ -14,6 +14,7 @@ import {
   reconcileFmcsaCompany,
   reconcileIrsEoOrganization,
   reconcileCtBusinessOrganization,
+  reconcileCoBusinessOrganization,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -31,6 +32,7 @@ import { normalizeEchoFacility } from "./epa-echo.mjs";
 import { normalizeFmcsaCompany } from "./fmcsa-company-census.mjs";
 import { normalizeIrsEoOrganization } from "./irs-eo-bmf.mjs";
 import { normalizeCtBusinessOrganization } from "./ct-business-registry.mjs";
+import { normalizeCoBusinessOrganization } from "./co-business-registry.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -763,6 +765,85 @@ async function writeFixtureCtBusinessRelease(root) {
   return pointerPath;
 }
 
+function normalizedCoBusinessRecord(entityid = "20251665680", overrides = {}) {
+  return normalizeCoBusinessOrganization({
+    entityid,
+    entityname: `FIXTURE COLORADO ORGANIZATION ${entityid}`,
+    principaladdress1: "1 MAIN ST",
+    principaladdress2: null,
+    principalcity: "AURORA",
+    principalstate: "CO",
+    principalzipcode: "80014",
+    principalcountry: "US",
+    entitystatus: "Good Standing",
+    jurisdictonofformation: "CO",
+    entitytype: "DLLC",
+    entityformdate: "2025-06-16T00:00:00.000",
+    ...overrides,
+  }, {
+    runId: "co-business-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-30T11:20:54.000Z",
+    sourceReleaseId: "co-business-source-fixture",
+    baselineByZip: new Map([["80014", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:80014", geoid: "80014" } }]]),
+  });
+}
+
+async function writeFixtureCoBusinessRelease(root) {
+  const releaseId = "co-business-registry-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedCoBusinessRecord(),
+    normalizedCoBusinessRecord("20261147600", { entitystatus: "Delinquent", principaladdress1: null, principalcity: null, principalstate: null, principalzipcode: null, principalcountry: null }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.external_identifiers[0].value)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/organizations/id-hash-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-co-business-organization-jsonl-gzip" });
+  }
+  const zipRows = [{
+    zip_code: "80014",
+    co_business_registry_registration_snapshot: { organization_reported_business_address_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:80014" },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }];
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "co-business-registry-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "co-business-registry-good-standing-or-delinquent-organizations",
+    release_id: releaseId,
+    status: "published",
+    complete_selected_business_entities_snapshot: true,
+    source_release_id: "co-business-source-fixture",
+    source_rows_updated_at: "2026-08-30T11:20:54.000Z",
+    coverage: {
+      source_good_standing_or_delinquent_records: records.length,
+      organizations_published: records.length,
+      quarantined_source_records: 0,
+      good_standing_organizations: 1,
+      delinquent_organizations: 1,
+      eligible_reported_us_business_addresses: 1,
+      organizations_without_eligible_us_zip_address: 1,
+    },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -936,6 +1017,18 @@ test("reconciles Connecticut active-registration evidence without creating physi
   assert(result.assertions.every((item) => !String(item.source.source_field).includes("email")));
 });
 
+test("reconciles Colorado registration evidence without creating physical sites or relationships", () => {
+  const source = normalizedCoBusinessRecord();
+  const result = reconcileCoBusinessOrganization(source);
+  assert.equal(result.entity.entity_type, "organization");
+  assert.equal(result.zipCode, "80014");
+  assert(result.assertions.some((item) => item.predicate === "organization.principal-office-address"));
+  assert(result.assertions.some((item) => item.predicate === "organization.co-registration-profile"));
+  assert(result.assertions.some((item) => item.predicate === "organization.co-registration-status"));
+  assert(result.assertions.every((item) => item.subject_entity_id === "organization:co_sos_record_20251665680"));
+  assert(result.assertions.every((item) => !String(item.source.source_field).toLowerCase().includes("agent")));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -947,6 +1040,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const fmcsaPointer = await writeFixtureFmcsaRelease(path.join(root, "fmcsa"));
   const irsEoPointer = await writeFixtureIrsEoRelease(path.join(root, "irs-eo"));
   const ctBusinessPointer = await writeFixtureCtBusinessRelease(path.join(root, "ct-business"));
+  const coBusinessPointer = await writeFixtureCoBusinessRelease(path.join(root, "co-business"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -959,12 +1053,13 @@ test("publishes and verifies a combined partial registry while retaining denomin
     fmcsaPointer,
     irsEoPointer,
     ctBusinessPointer,
+    coBusinessPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 6);
+  assert.equal(result.manifest.coverage.organizations, 8);
   assert.equal(result.manifest.coverage.physical_sites, 12);
   assert.equal(result.manifest.coverage.establishments, 12);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
@@ -973,12 +1068,14 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
   assert.equal(result.manifest.coverage.ct_business_registry_active_organization_records, 2);
   assert.equal(result.manifest.coverage.ct_business_registry_eligible_reported_us_business_addresses, 1);
+  assert.equal(result.manifest.coverage.co_business_registry_good_standing_or_delinquent_organization_records, 2);
+  assert.equal(result.manifest.coverage.co_business_registry_eligible_reported_us_business_addresses, 1);
   assert.equal(result.manifest.coverage.relationships, 18);
   assert.equal(result.manifest.coverage.resolution_location_profiles, 12);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
   assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 12);
-  assert.equal(result.manifest.coverage.zip_union_records, 9);
+  assert.equal(result.manifest.coverage.zip_union_records, 10);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
@@ -999,6 +1096,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(irsOnly.registry_coverage.physical_site_count, 0);
   assert.equal(irsOnly.registry_coverage.irs_eo_organization_filing_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "60601").registry_coverage.ct_business_registry_organization_reported_business_address_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "80014").registry_coverage.co_business_registry_organization_principal_office_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);

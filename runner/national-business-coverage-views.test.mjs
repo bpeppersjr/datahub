@@ -162,6 +162,11 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source_release_id: "snap-fixture",
       source_updated_at: "2026-08-01T00:00:00.000Z",
     },
+    co_business_registry_good_standing_or_delinquent_organizations: {
+      organization_principal_office_address_count: 3,
+      source_release_id: "co-business-fixture",
+      source_updated_at: "2026-08-30T11:20:54.000Z",
+    },
   };
   const zipRows = [
     {
@@ -240,6 +245,9 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
+      co_business_registry_good_standing_or_delinquent_organization_records: 3,
+      co_business_registry_quarantined_source_records: 1,
+      co_business_registry_eligible_reported_us_business_addresses: 3,
     },
     limitations: [],
     artifacts: registryArtifacts,
@@ -356,7 +364,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 2);
+  assert.equal(verification.coverage.source_views, 3);
   assert.equal(verification.coverage.location_profiles_assessed, 2);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -368,6 +376,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(counties[0].zip_business_count_allocation, null);
   assert.equal(counties[0].nonemployer_baseline.nonemployer_establishments, 4);
   assert.equal(verification.coverage.national_nonemployer_establishments, 5);
+  assert.equal(verification.coverage.co_business_registry_good_standing_or_delinquent_organization_records, 3);
+  assert.equal(verification.coverage.co_business_registry_quarantined_source_records, 1);
+  assert.equal(verification.coverage.co_business_registry_eligible_reported_us_business_addresses, 3);
+  const sources = (await readFile(path.join(result.releaseDirectory, "views/sources.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const colorado = sources.find((row) => row.source_key === "co_business_registry_good_standing_or_delinquent_organizations");
+  assert.equal(colorado.profile_source_id, null);
+  assert.equal(colorado.zip_level_counts.organization_principal_office_address_count, 3);
+  assert.equal(colorado.zip_rows_with_contribution, 1);
+  assert.equal(colorado.location_profile_geography.profile_count, 0);
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
 });

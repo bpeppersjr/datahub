@@ -54,6 +54,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-coverage-views/` — governed national, state, county, ZIP, source, and coverage-gap views
 - `data/business-baselines/census-nonemployer/` — governed national, state, county, and industry aggregates for businesses with no paid employees
 - `data/business-sources/ct-business-registry-active-organizations/` — governed Connecticut active-registration organizations and reported business-address evidence
+- `data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/` — governed Colorado Good Standing/Delinquent organizations, principal-office-address evidence, and explicit source-quality quarantine
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

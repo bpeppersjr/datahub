@@ -22,6 +22,7 @@ Options:
   --fmcsa <path>   FMCSA active U.S. Company Census current.json prerequisite
   --irs-eo <path>  IRS EO BMF organization current.json prerequisite
   --ct-business <path> Connecticut active Business Registry current.json prerequisite
+  --co-business <path> Colorado Good Standing or Delinquent Business Registry current.json prerequisite
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --help           Show this help
 `;
@@ -39,12 +40,13 @@ function parseArguments(args) {
     fmcsa: "data/business-sources/fmcsa-active-us-company-census/current.json",
     irsEo: "data/business-sources/irs-eo-bmf-organizations/current.json",
     ctBusiness: "data/business-sources/ct-business-registry-active-organizations/current.json",
+    coBusiness: "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json",
     uspsZips: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -58,6 +60,7 @@ function parseArguments(args) {
       if (argument === "--fmcsa") options.fmcsa = value;
       if (argument === "--irs-eo") options.irsEo = value;
       if (argument === "--ct-business") options.ctBusiness = value;
+      if (argument === "--co-business") options.coBusiness = value;
       if (argument === "--usps-zips") options.uspsZips = value;
       continue;
     }
@@ -83,6 +86,7 @@ try {
     fmcsaPointer: assertInsideApp(path.resolve(APP_ROOT, options.fmcsa)),
     irsEoPointer: assertInsideApp(path.resolve(APP_ROOT, options.irsEo)),
     ctBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.ctBusiness)),
+    coBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.coBusiness)),
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });

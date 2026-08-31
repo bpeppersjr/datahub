@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/co-business-registry-organization.schema.json",
+  "title": "Normalized Colorado Business Registry Good Standing or Delinquent Organization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_name", "other_names", "reported_business_address", "reported_address_coordinate", "geography", "registration_profile", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^co-business-registry:organization:" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:co_sos_record_[0-9]{11}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "legal_name": { "type": "string", "minLength": 1 },
+    "other_names": { "type": "array", "maxItems": 0 },
+    "reported_business_address": { "type": "object" },
+    "reported_address_coordinate": { "type": "null" },
+    "geography": { "type": "object" },
+    "registration_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "status_class", "semantics"],
+      "properties": {
+        "value": { "const": "listed-good-standing-or-delinquent-in-colorado-business-registry-as-of-retrieval" },
+        "status": { "enum": ["Good Standing", "Delinquent"] },
+        "status_class": { "enum": ["required-reports-and-required-information-current-in-registry", "uncured-registry-delinquency"] },
+        "semantics": { "const": "source-registration-status-not-independent-proof-of-current-operations-legality-reputation-or-an-open-storefront" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "public" }
+  }
+}
