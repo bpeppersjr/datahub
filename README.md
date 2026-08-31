@@ -55,6 +55,9 @@ All local files remain inside the `datahub` repository:
 - `data/business-baselines/census-nonemployer/` — governed national, state, county, and industry aggregates for businesses with no paid employees
 - `data/business-sources/ct-business-registry-active-organizations/` — governed Connecticut active-registration organizations and reported business-address evidence
 - `data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/` — governed Colorado Good Standing/Delinquent organizations, principal-office-address evidence, and explicit source-quality quarantine
+- `data/business-sources/or-business-registry-active-registrations/` — governed Oregon active legal-entity and assumed-name registration evidence
+- `data/business-sources/ia-business-registry-active-entities/` — governed Iowa active-entity and home-office evidence with source geocodes
+- `data/business-sources/ny-business-registry-active-entities/` — governed New York monthly active-corporations extract and reported-location evidence under OPEN-NY terms
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

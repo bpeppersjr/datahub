@@ -31,7 +31,7 @@
     "first_seen": { "type": "string", "format": "date-time" },
     "last_seen": { "type": "string", "format": "date-time" },
     "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-    "export_policy": { "enum": ["public", "derived-only", "restricted", "internal"] },
+    "export_policy": { "enum": ["public", "public-open-ny-terms", "derived-only", "restricted", "internal"] },
     "source": {
       "type": "object",
       "additionalProperties": false,

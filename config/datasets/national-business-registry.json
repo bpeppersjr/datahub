@@ -66,6 +66,11 @@
       "layer": "public-state-registration-record-level-with-internal-personal-data-minimized-selected-field-source"
     },
     {
+      "dataset_id": "ny-business-registry-active-entities",
+      "scope": "entities listed in New York's monthly Active Corporations extract, with reported locations retained as organization-only evidence",
+      "layer": "open-ny-state-registration-record-level-with-internal-personal-data-minimized-selected-field-source"
+    },
+    {
       "dataset_id": "fmcsa-active-us-company-census",
       "scope": "FMCSA source-designated active U.S./territory registrations with accepted reported principal-office addresses",
       "layer": "public-regulatory-record-level-with-internal-minimized-source"
@@ -93,14 +98,14 @@
   "publication_rule": "No field is publishable without a source record, release, ingest run, transformation version, temporal scope, and policy profile.",
   "current_release": {
     "output": "data/business-registry/current.json",
-    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, current IRS EO BMF organizations and filing addresses, Connecticut, Colorado, and Iowa registration organizations, and Oregon active legal-entity and assumed-name registrations",
-    "release_id": "national-business-registry-20260831-054124535Z-107116a8",
-    "publisher_version": "1.6.0",
-    "source_records": 12470460,
-    "organizations": 7341918,
+    "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, current IRS EO BMF organizations and filing addresses, Connecticut, Colorado, Iowa, and New York registration organizations, and Oregon active legal-entity and assumed-name registrations",
+    "release_id": "national-business-registry-20260831-075326227Z-b35a2bcb",
+    "publisher_version": "1.7.0",
+    "source_records": 16745957,
+    "organizations": 11617415,
     "brands": 116332,
     "physical_sites": 6161280,
-    "assertions": 102620706,
+    "assertions": 124702659,
     "ct_business_registry_active_organizations": 458536,
     "ct_business_registry_eligible_reported_us_business_addresses": 447807,
     "co_business_registry_good_standing_or_delinquent_organizations": 2169062,
@@ -116,16 +121,19 @@
     "ia_business_registry_entities_with_eligible_us_home_office_address": 334176,
     "ia_business_registry_eligible_entity_zip_contributions": 334176,
     "ia_business_registry_entities_with_source_geocoded_coordinates": 330664,
+    "ny_business_registry_active_organizations": 4275497,
+    "ny_business_registry_quarantined_source_records": 0,
+    "ny_business_registry_eligible_reported_us_location_addresses": 352234,
     "resolution_location_profiles": 6161280,
-    "zip_union_records": 44870,
-    "zips_with_record_level_contributions": 44619,
-    "verified_artifact_count": 367,
-    "verified_bytes": 6881270205,
+    "zip_union_records": 45406,
+    "zips_with_record_level_contributions": 45160,
+    "verified_artifact_count": 399,
+    "verified_bytes": 7841630022,
     "complete_national_business_registry": false,
     "authoritative_current_usps_zip_denominator": null
   },
   "entity_resolution_capability": {
-    "registry_publisher_version": "1.6.0",
+    "registry_publisher_version": "1.7.0",
     "profile_artifacts": "resolution/location-profiles/zip2=<00-99>.jsonl.gz",
     "profile_cardinality": "exactly one location match profile per provisional physical-site/establishment pair, including an explicitly ineligible null match key when the reported street address is incomplete",
     "downstream_dataset": "national-business-entity-resolution",

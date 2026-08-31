@@ -1,0 +1,36 @@
+{
+  "policy_id": "ny-business-registry",
+  "version": "1.0.0",
+  "publisher": "New York State Department of State, Division of Corporations",
+  "ownership": "Official public active-corporation and other business-entity records published through OPEN-NY",
+  "source_home": "https://data.ny.gov/Economic-Development/Active-Corporations-Beginning-1800/n9v6-gdp6",
+  "source_dataset": "https://data.ny.gov/resource/n9v6-gdp6.json",
+  "catalog_dataset_id": "n9v6-gdp6",
+  "catalog_license": "No dataset-specific license; governed by OPEN-NY Terms of Use, which grant a non-exclusive revocable license and permit lawful reuse without attribution, share-alike, preapproval, or technical restrictions.",
+  "terms_url": "https://data.ny.gov/api/views/77gx-ii52/files/ef0c1840-ad54-4240-92fd-6397c49fde46?filename=OPEN-NY_20Terms_20of_20Use.pdf",
+  "source_access": "Public anonymous read-only HTTPS metadata and SODA API endpoints documented by OPEN-NY.",
+  "allowed_use": ["official HTTPS metadata and selected-field SODA API queries", "local processing", "immutable internal selected-field source retention", "organization and reported-location-address normalization", "ZIP coverage analysis", "derived registry assertions", "lawful redistribution of approved normalized fields under the OPEN-NY Terms of Use with source and semantic limitations retained"],
+  "prohibited_use": [
+    "using the data as legal documentation for bank loans, court cases, incorporation, or another legal purpose",
+    "representing extract membership as proof of current legal status, current operations, legality, solvency, public access, licensure, or an open storefront",
+    "representing a location address as a verified current physical operating site",
+    "representing this dataset as inactive or temporarily suspended entities, assumed names, every business operating in New York, or every U.S. business",
+    "exporting DOS process/service-of-process names or addresses, CEO names or addresses, registered-agent names or addresses, or the location-name line",
+    "merging organizations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "dos_id_current_entity_name_initial_filing_date_county_jurisdiction_entity_type_and_location_address": "public-under-open-ny-terms-with-provenance-and-semantic-limitations",
+    "dos_process_service_of_process_fields": "excluded",
+    "ceo_or_chairman_fields": "excluded",
+    "registered_agent_fields": "excluded",
+    "location_name": "excluded-as-unnecessary-name-line"
+  },
+  "attribution": "Source: New York State Department of State, Division of Corporations, Active Corporations: Beginning 1800, via OPEN-NY.",
+  "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule or OPEN-NY notice requires another treatment.",
+  "redistribution": "Approved normalized fields may be redistributed under the OPEN-NY Terms of Use with source refresh timestamp, source checksum, provenance, field exclusions, and legal-status/address limitations retained; state marks, logos, and other protected presentation assets are not included.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The connector never acquires or publishes service-of-process, CEO/chairman, registered-agent, or location-name fields. Entity names and reported location street addresses can incidentally identify an individual or residence, so they retain purpose and non-site limitations.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-31"
+}

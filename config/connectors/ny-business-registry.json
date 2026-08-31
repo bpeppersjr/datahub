@@ -1,0 +1,38 @@
+{
+  "connector_id": "ny-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a privacy-minimized snapshot of entities in the official monthly New York Active Corporations dataset, preserving business identity, filing profile, reported location-address evidence, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ny-business-registry-active-entities" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 4000000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["ny-open-data-active-corporations-selected-field-api-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ny-business-registry-source-jsonl-gzip", "normalized-ny-business-organization-jsonl-gzip", "ny-business-registry-quarantine-jsonl-gzip", "ny-business-registry-zip-coverage-jsonl", "ny-business-registry-source-summary", "ny-business-registry-preflight", "ny-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.ny.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.ny.gov metadata and n9v6-gdp6 JSON resource paths.",
+  "provider_budget_key": "ny-department-of-state-active-corporations-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 25000,
+    "maximum_response_bytes": 75000000,
+    "minimum_active_organizations": 4000000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, duplicate identity, source refresh drift, count mismatch, ordering violations, or quality-gate failures.",
+  "checkpoint": "Write a safe preflight snapshot before acquisition. Acquire the selected-field source snapshot in strictly increasing DOS-ID order and hash it before normalization. Recheck live metadata, total count, and distinct DOS-ID count before publication. A complete staged snapshot can be revalidated and normalized into a new immutable run, and a complete unpublished manifest can be independently verified and published by immutable run ID. current.json changes only after verification and atomic release publication.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the New York DOS ID creates one stable provisional organization candidate.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis or resume, and do not change current.json.",
+  "source_policy": "config/source-policies/ny-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "ny-active-extract-membership-assertion", "reported-location-address-assertion", "registration-profile-assertion"],
+  "produced_identifiers": ["ny-dos-id", "zip5", "zip4", "zcta5"]
+}
