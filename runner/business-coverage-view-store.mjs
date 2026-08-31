@@ -28,6 +28,7 @@ const SOURCE_DISPLAY_NAMES = Object.freeze({
   ncua_quarterly_credit_unions: "NCUA Quarterly Credit Unions",
   ny_business_registry_active_entities: "New York Business Registry Active Entities",
   or_business_registry_active_registrations: "Oregon Business Registry Active Registrations",
+  pa_business_registry_active_registrations: "Pennsylvania Department of State Active Business Registrations",
   usda_snap_retailers: "USDA SNAP Retailers",
 });
 

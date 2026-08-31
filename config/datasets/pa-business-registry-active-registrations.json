@@ -1,0 +1,33 @@
+{
+  "dataset_id": "pa-business-registry-active-registrations",
+  "schema_version": "1.0.0",
+  "title": "Pennsylvania Department of State Active Business Registrations",
+  "status": "implemented",
+  "description": "Governed official Pennsylvania Department of State active-registration organization layer with selected non-personal fields, reported business-address ZIP/ZIP+4 and ZCTA context, portal geocode plausibility, provenance, deterministic duplicate handling, statutory-overcount warning, and explicit non-site semantics.",
+  "output": "data/business-sources/pa-business-registry-active-registrations/current.json",
+  "connector": "config/connectors/pa-business-registry.json",
+  "source_policy": "config/source-policies/pa-business-registry.json",
+  "record_schema": "config/schemas/pa-business-registry-organization.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Distinct organizations listed in the official Pennsylvania active-business-registration dataset at its source refresh; this is source-specific registration evidence and the publisher warns it overstates currently operating businesses due to statutory removal limitations.",
+  "current_verified_release": {
+    "release_id": "pa-business-registry-20260831-153419013Z-b52dec9e",
+    "source_release_id": "pa-business-registry-2026-08-04-af1d62be9892514f",
+    "source_rows_updated_at": "2026-08-04T14:12:34.000Z",
+    "source_active_registration_rows": 2347230,
+    "distinct_active_registration_organizations_published": 2347229,
+    "duplicate_filing_number_groups": 1,
+    "duplicate_rows_collapsed": 1,
+    "eligible_reported_us_business_addresses": 2088998,
+    "organizations_without_eligible_us_zip_address": 258231,
+    "source_geocoded_reported_business_addresses": 2227747,
+    "reported_pa_address_geocodes_outside_broad_pa_bounds": 2320,
+    "source_zip_codes": 4537,
+    "zip_union_records": 39204,
+    "verified_artifact_count": 20,
+    "verified_bytes": 431363581,
+    "physical_sites": null,
+    "establishments": null
+  },
+  "documentation": "docs/PA-BUSINESS-REGISTRY.md"
+}

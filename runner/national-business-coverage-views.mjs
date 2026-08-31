@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.5.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.6.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -414,9 +414,11 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       ny_business_registry_eligible_reported_us_location_addresses: registry.manifest.coverage?.ny_business_registry_eligible_reported_us_location_addresses ?? null,
       fl_business_registry_active_organization_records: registry.manifest.coverage?.fl_business_registry_active_organization_records ?? null,
       fl_business_registry_eligible_reported_us_principal_addresses: registry.manifest.coverage?.fl_business_registry_eligible_reported_us_principal_addresses ?? null,
+      pa_business_registry_active_organization_records: registry.manifest.coverage?.pa_business_registry_active_organization_records ?? null,
+      pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, Oregon, Iowa, New York, or Florida registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1074,7 +1076,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.5.0" },
+    publisher: { id: "national-business-coverage-views", version: "1.6.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1134,6 +1136,13 @@ export async function buildNationalBusinessCoverageViews({
       fl_business_registry_active_organization_records: registry.manifest.coverage?.fl_business_registry_active_organization_records ?? 0,
       fl_business_registry_quarantined_source_records: registry.manifest.coverage?.fl_business_registry_quarantined_source_records ?? 0,
       fl_business_registry_eligible_reported_us_principal_addresses: registry.manifest.coverage?.fl_business_registry_eligible_reported_us_principal_addresses ?? 0,
+      pa_business_registry_source_active_registration_rows: registry.manifest.coverage?.pa_business_registry_source_active_registration_rows ?? 0,
+      pa_business_registry_active_organization_records: registry.manifest.coverage?.pa_business_registry_active_organization_records ?? 0,
+      pa_business_registry_duplicate_filing_number_groups: registry.manifest.coverage?.pa_business_registry_duplicate_filing_number_groups ?? 0,
+      pa_business_registry_duplicate_rows_collapsed: registry.manifest.coverage?.pa_business_registry_duplicate_rows_collapsed ?? 0,
+      pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? 0,
+      pa_business_registry_source_geocoded_reported_business_addresses: registry.manifest.coverage?.pa_business_registry_source_geocoded_reported_business_addresses ?? 0,
+      pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: registry.manifest.coverage?.pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
@@ -1151,6 +1160,7 @@ export async function buildNationalBusinessCoverageViews({
       "Iowa home-office addresses and source geocodes remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "New York monthly active-extract membership and reported locations remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "Florida quarterly corporate records coded A and their principal addresses remain organization-only registration evidence without inferred owners, agents, officers, physical sites, establishments, or relationships.",
+      "Pennsylvania active-registration dataset inclusion and reported business addresses remain organization-only evidence; the publisher's statutory-overcount warning is retained, officer/person fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
       "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",

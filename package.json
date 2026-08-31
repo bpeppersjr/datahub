@@ -51,6 +51,8 @@
     "ny-business:verify": "node scripts/verify-ny-business-registry.mjs",
     "fl-business:build": "node scripts/build-fl-business-registry.mjs",
     "fl-business:verify": "node scripts/verify-fl-business-registry.mjs",
+    "pa-business:build": "node scripts/build-pa-business-registry.mjs",
+    "pa-business:verify": "node scripts/verify-pa-business-registry.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",

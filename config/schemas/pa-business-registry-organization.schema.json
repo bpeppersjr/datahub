@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/pa-business-registry-organization.schema.json",
+  "title": "Normalized Pennsylvania Department of State Active Registration Organization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_name", "other_names", "reported_business_address", "reported_address_coordinate", "geography", "registration_profile", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^pa-business-registry:organization:[0-9]{10}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:pa_dos_filing_[0-9]{10}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "legal_name": { "type": "string", "minLength": 1 },
+    "other_names": { "type": "array", "maxItems": 0 },
+    "reported_business_address": { "type": "object" },
+    "reported_address_coordinate": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "registration_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics", "statutory_overcount_warning"],
+      "properties": {
+        "value": { "const": "listed-in-pennsylvania-active-business-registration-dataset-as-of-source-refresh" },
+        "status": { "const": "Active (dataset inclusion)" },
+        "semantics": { "const": "active-registration-in-department-of-state-dataset-not-independent-proof-of-current-operations-or-good-standing" },
+        "statutory_overcount_warning": { "const": "source-publisher-reports-statutory-limitations-removing-businesses-no-longer-in-operation" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "public" }
+  }
+}

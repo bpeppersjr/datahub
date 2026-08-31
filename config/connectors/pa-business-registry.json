@@ -1,0 +1,38 @@
+{
+  "connector_id": "pa-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a selected-field snapshot of the official Pennsylvania Department of State distinct active-registration view, preserving filing identity, registration type, reported business address, county, portal geocode, provenance, statutory-overcount warning, deterministic duplicate handling, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/pa-business-registry-active-registrations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 50000 },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 2000000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["pa-dos-socrata-distinct-active-business-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["pa-business-registry-source-jsonl-gzip", "normalized-pa-business-organization-jsonl-gzip", "pa-business-registry-zip-coverage-jsonl", "pa-business-registry-source-summary", "pa-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.pa.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.pa.gov metadata and 3urc-uaba JSON resource paths.",
+  "provider_budget_key": "pa-dos-active-business-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 50000,
+    "maximum_response_bytes": 80000000,
+    "minimum_distinct_active_registration_organizations": 2000000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, source refresh drift, count mismatch, or quality-gate failures.",
+  "checkpoint": "The selected-field source snapshot is acquired in deterministic filing-number and Socrata-row order and hashed before normalization. Source metadata, total rows, and distinct filing count are rechecked before publication. A complete unpublished staging run can be independently verified and resumed by immutable run ID without reacquisition. current.json changes only after complete run-scoped publication.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the Department of State filing number creates a stable provisional organization candidate.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/pa-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "pa-active-registration-dataset-inclusion-assertion", "reported-business-address-assertion", "registration-type-assertion"],
+  "produced_identifiers": ["pa-department-of-state-filing-number", "zip5", "zip4", "zcta5", "source-alphabetical-pa-county-code"]
+}

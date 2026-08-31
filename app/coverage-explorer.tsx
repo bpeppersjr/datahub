@@ -59,6 +59,13 @@ type Overview = {
     fl_business_registry_active_organization_records: number;
     fl_business_registry_quarantined_source_records: number;
     fl_business_registry_eligible_reported_us_principal_addresses: number;
+    pa_business_registry_source_active_registration_rows: number;
+    pa_business_registry_active_organization_records: number;
+    pa_business_registry_duplicate_filing_number_groups: number;
+    pa_business_registry_duplicate_rows_collapsed: number;
+    pa_business_registry_eligible_reported_us_business_addresses: number;
+    pa_business_registry_source_geocoded_reported_business_addresses: number;
+    pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -343,6 +350,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.ia_business_registry_active_organization_records)}</strong> IA active entities</span>
             <span><strong>{count(overview?.coverage?.ny_business_registry_active_organization_records)}</strong> NY active extract entities</span>
             <span><strong>{count(overview?.coverage?.fl_business_registry_active_organization_records)}</strong> FL active quarterly entities</span>
+            <span><strong>{count(overview?.coverage?.pa_business_registry_active_organization_records)}</strong> PA active registrations</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 
