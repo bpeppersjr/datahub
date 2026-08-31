@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/la-active-business-location-account.schema.json",
+  "title": "Normalized City of Los Angeles Active Business Location Account",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "name", "other_names", "address", "location", "geography", "industry_profile", "registration_profile", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^la-active-business:location-account:[0-9]{10}-[0-9]{4}-[0-9]$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "physical_site_id": { "type": "string", "pattern": "^site:la_finance_location_[0-9]{10}_[0-9]{4}_[0-9]$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:la_finance_location_[0-9]{10}_[0-9]{4}_[0-9]$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "name": { "type": "string", "minLength": 1 },
+    "other_names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "address": { "type": "object" },
+    "location": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "industry_profile": { "type": "object" },
+    "registration_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-in-la-office-of-finance-active-business-dataset-as-of-source-refresh" },
+        "status": { "const": "Active (source-defined)" },
+        "semantics": { "const": "owner-has-not-notified-office-of-finance-of-cease-of-business-operations-not-independent-proof-of-current-operations-or-public-access" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

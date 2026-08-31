@@ -1,0 +1,40 @@
+{
+  "connector_id": "la-active-businesses",
+  "version": "1.0.0",
+  "description": "Publishes a privacy-minimized selected-field snapshot of the City of Los Angeles Office of Finance monthly active-business listing and provisional registered-location/establishment records without inferring ownership or continuous operations.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/la-active-business-location-accounts" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 50000 },
+      "minimum_location_accounts": { "type": "integer", "minimum": 1, "default": 600000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.01 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["la-office-of-finance-socrata-selected-field-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["la-active-business-source-jsonl-gzip", "normalized-la-active-business-location-jsonl-gzip", "la-active-business-quarantine-jsonl-gzip", "la-active-business-zip-coverage-jsonl", "la-active-business-source-summary", "la-active-business-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.lacity.org"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.lacity.org metadata and 6rrh-rzua JSON resource paths.",
+  "provider_budget_key": "la-office-of-finance-active-business-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 50000,
+    "maximum_response_bytes": 80000000,
+    "minimum_location_accounts": 600000,
+    "maximum_quarantine_rate": 0.01
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, source refresh drift, count mismatch, duplicate location-account identity, or quality-gate failures.",
+  "checkpoint": "The selected-field source snapshot is acquired in deterministic location-account and Socrata-row order and hashed before normalization. Source metadata and total rows are rechecked before publication. A complete unpublished staging run can be verified and resumed by immutable run ID without reacquisition. current.json changes only after complete run-scoped publication.",
+  "idempotency": "The catalog rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the Office of Finance location account creates stable provisional site and establishment candidates.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/la-active-businesses.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "la-active-business-dataset-inclusion-assertion", "reported-business-location-assertion", "self-reported-naics-assertion"],
+  "produced_identifiers": ["la-office-of-finance-location-account", "zip5", "zip4", "zcta5", "la-city-council-district"]
+}

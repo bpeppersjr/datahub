@@ -1,0 +1,33 @@
+{
+  "dataset_id": "la-active-business-location-accounts",
+  "schema_version": "1.0.0",
+  "title": "City of Los Angeles Active Business Location Accounts",
+  "status": "implemented",
+  "description": "Governed City of Los Angeles Office of Finance monthly active-business location-account layer with privacy-minimized selected fields, ZIP/ZIP+4 and ZCTA context, source coordinates, self-reported NAICS, provenance, and source-specific active semantics.",
+  "output": "data/business-sources/la-active-business-location-accounts/current.json",
+  "connector": "config/connectors/la-active-businesses.json",
+  "source_policy": "config/source-policies/la-active-businesses.json",
+  "record_schema": "config/schemas/la-active-business-location-account.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Business location accounts in the official monthly City of Los Angeles active-business listing at its source refresh. Active means the owner has not notified the Office of Finance of cessation; it is not independent proof of current operations or public access.",
+  "current_verified_release": {
+    "release_id": "la-active-businesses-20260831-195158034Z-5a5328d2",
+    "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac",
+    "source_rows_updated_at": "2026-08-15T15:37:22.000Z",
+    "source_location_accounts": 633782,
+    "normalized_us_location_accounts": 633332,
+    "quarantined_source_records": 450,
+    "quarantine_rate": 0.0007100233203214985,
+    "source_geocoded_locations": 566943,
+    "in_city_council_district_locations": 482261,
+    "out_of_city_locations": 151071,
+    "suspect_in_city_coordinates": 29457,
+    "source_zip_codes": 5437,
+    "zip_union_records": 37894,
+    "physical_sites": 633332,
+    "establishments": 633332,
+    "verified_artifact_count": 21,
+    "verified_bytes": 227107980
+  },
+  "documentation": "docs/LA-ACTIVE-BUSINESSES.md"
+}

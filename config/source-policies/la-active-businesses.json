@@ -1,0 +1,43 @@
+{
+  "policy_id": "la-active-businesses",
+  "version": "1.0.0",
+  "publisher": "City of Los Angeles Office of Finance",
+  "ownership": "Official public active-business registration records published through the Los Angeles Open Data Portal",
+  "source_home": "https://data.lacity.org/Administration-Finance/Listing-of-Active-Businesses/6rrh-rzua",
+  "source_dataset": "https://data.lacity.org/resource/6rrh-rzua.json",
+  "catalog_dataset_id": "6rrh-rzua",
+  "catalog_license": "Creative Commons CC0 1.0 Universal",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+  "source_access": "Public anonymous read-only HTTPS Socrata API. The official catalog identifies the dataset as CC0 1.0.",
+  "allowed_use": [
+    "official HTTPS metadata, count, and selected-field API queries",
+    "local processing",
+    "immutable internal selected-field source retention",
+    "registered-business-location and establishment normalization",
+    "ZIP and source coverage analysis",
+    "derived business-registry assertions",
+    "redistribution of aggregate statistics with source attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing source inclusion as independent proof that a business is currently operating, open to the public, solvent, licensed for every activity, or present at the address today",
+    "representing a reported business location or portal coordinate as independently verified",
+    "representing this municipal registration source as every business in Los Angeles, California, or the United States",
+    "publishing mailing-address fields, portal-computed region identifiers, or the redundant location-description field",
+    "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+    "inferring ownership, parent-company, or cross-source identity relationships without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_location_accounts": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+    "mailing_address_mailing_city_and_mailing_zip_code": "excluded-at-query-time",
+    "location_description_and_computed_region_fields": "excluded-at-query-time"
+  },
+  "attribution": "Source: City of Los Angeles Office of Finance, Listing of Active Businesses, via data.lacity.org.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed with City of Los Angeles Office of Finance attribution, source refresh timestamp, source checksum, provenance, and source-specific active-status limitations. Record-level normalized data remains local-review-only pending privacy review even though the source license is CC0.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names may be natural-person names and business-location addresses may be residences. Mailing fields are excluded at query time; selected source and normalized record-level artifacts remain local, while only aggregate coverage is public by default.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-31"
+}

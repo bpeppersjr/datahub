@@ -66,6 +66,13 @@ type Overview = {
     pa_business_registry_eligible_reported_us_business_addresses: number;
     pa_business_registry_source_geocoded_reported_business_addresses: number;
     pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: number;
+    la_active_business_source_location_accounts: number;
+    la_active_business_normalized_us_location_accounts: number;
+    la_active_business_quarantined_source_records: number;
+    la_active_business_source_geocoded_locations: number;
+    la_active_business_in_city_council_district_locations: number;
+    la_active_business_out_of_city_locations: number;
+    la_active_business_suspect_in_city_coordinates: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -351,6 +358,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.ny_business_registry_active_organization_records)}</strong> NY active extract entities</span>
             <span><strong>{count(overview?.coverage?.fl_business_registry_active_organization_records)}</strong> FL active quarterly entities</span>
             <span><strong>{count(overview?.coverage?.pa_business_registry_active_organization_records)}</strong> PA active registrations</span>
+            <span><strong>{count(overview?.coverage?.la_active_business_normalized_us_location_accounts)}</strong> LA active location accounts</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

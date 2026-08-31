@@ -21,6 +21,7 @@ import {
   reconcileNyBusinessOrganization,
   reconcileFlBusinessOrganization,
   reconcilePaBusinessOrganization,
+  reconcileLaActiveBusinessLocation,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -44,6 +45,7 @@ import { normalizeIaBusinessEntity } from "./ia-business-registry.mjs";
 import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
 import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
+import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -86,6 +88,18 @@ test("exact partitioned entity membership preserves duplicate detection without 
   assert.equal(ids.has("site:fmcsa_usdot_123_principal_office"), true);
   assert.equal(ids.has("organization:pa_dos_filing_0000000099"), false);
   assert.throws(() => ids.add(null), /must be strings/);
+});
+
+test("exact partitioned membership shards generic digest identities", () => {
+  const ids = new ExactPartitionedSet();
+  ids.add("assertion:000aaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  ids.add("assertion:111bbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+  ids.add("relationship:fffccccccccccccccccccccccccccccc");
+  ids.add("assertion:000aaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  assert.equal(ids.size, 3);
+  assert.equal(ids.genericPartitionCount, 3);
+  assert.equal(ids.has("assertion:111bbbbbbbbbbbbbbbbbbbbbbbbbbbbb"), true);
+  assert.equal(ids.has("assertion:222ddddddddddddddddddddddddddddd"), false);
 });
 
 function normalizedRecord(recordId = 101, zipCode = "60601", overrides = {}) {
@@ -1281,6 +1295,92 @@ async function writeFixturePaBusinessRelease(root) {
   return pointerPath;
 }
 
+function normalizedLaActiveBusinessRecord(locationAccount = "0000000108-0001-3", zipCode = "90019-6037") {
+  return normalizeLaActiveBusinessLocation({
+    socrata_row_id: `row-${locationAccount}`,
+    location_account: locationAccount,
+    business_name: "Fixture Los Angeles Company LLC",
+    dba_name: "Fixture Market|Fixture Shop",
+    street_address: "1727 CRENSHAW BLVD",
+    city: "LOS ANGELES",
+    zip_code: zipCode,
+    naics: "445110",
+    primary_naics_description: "Supermarkets and other grocery stores",
+    council_district: "10",
+    location_start_date: "1991-05-15T00:00:00.000",
+    location_end_date: null,
+    location_1: { latitude: "34.0425", longitude: "-118.3295", human_address: "{}" },
+  }, {
+    runId: "la-active-business-source-fixture",
+    retrievedAt: "2026-08-31T20:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-15T15:37:22.000Z",
+    sourceReleaseId: "la-active-business-source-fixture",
+    baselineByZip: new Map([
+      ["90019", { postal_label: { preferred_state: "CA" }, geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:90019", geoid: "90019" } }],
+      ["90026", { postal_label: { preferred_state: "CA" }, geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:90026", geoid: "90026" } }],
+    ]),
+  });
+}
+
+async function writeFixtureLaActiveBusinessRelease(root) {
+  const releaseId = "la-active-business-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [normalizedLaActiveBusinessRecord(), normalizedLaActiveBusinessRecord("0000000109-0001-1", "90026-")];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.external_identifiers[0].value)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `normalized/locations/prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-la-active-business-location-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  const zipRows = [
+    { zip_code: "90019", count: 1 },
+    { zip_code: "90026", count: 1 },
+    { zip_code: "99999", count: 0 },
+  ].map(({ zip_code: zip, count }) => ({
+    zip_code: zip,
+    la_active_business_snapshot: { registered_business_location_count: count },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip}` },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "la-active-business-zip-coverage-jsonl", distribution_policy: "public-aggregate-with-source-limitations" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "la-active-business-location-accounts",
+    release_id: releaseId,
+    status: "complete",
+    complete_source_snapshot: true,
+    source_release_id: "la-active-business-source-fixture",
+    source: { rows_updated_at: "2026-08-15T15:37:22.000Z" },
+    coverage: {
+      source_location_accounts: 3,
+      normalized_us_location_accounts: 2,
+      quarantined_source_records: 1,
+      source_geocoded_locations: 2,
+      in_city_council_district_locations: 2,
+      out_of_city_locations: 0,
+      suspect_in_city_coordinates: 0,
+      physical_sites: 2,
+      establishments: 2,
+    },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -1525,6 +1625,17 @@ test("reconciles Pennsylvania active-registration evidence without inventing sit
   assert(result.assertions.every((item) => !/(party_type|last_name|middle_name|first_name|governor|officer|principal|agent)/i.test(String(item.source.source_field))));
 });
 
+test("reconciles Los Angeles source-defined active location evidence without inventing ownership or public access", () => {
+  const result = reconcileLaActiveBusinessLocation(normalizedLaActiveBusinessRecord());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["located_at"]);
+  assert(result.assertions.some((item) => item.predicate === "site.address"));
+  assert(result.assertions.some((item) => item.predicate === "establishment.la-active-business-status"));
+  assert(result.assertions.some((item) => item.predicate === "establishment.self-reported-naics"));
+  assert(result.assertions.every((item) => item.export_policy === "local-review-only"));
+  assert(result.assertions.every((item) => !/(mailing|computed_region|location_description)/i.test(String(item.source.source_field))));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -1542,6 +1653,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const nyBusinessPointer = await writeFixtureNyBusinessRelease(path.join(root, "ny-business"));
   const flBusinessPointer = await writeFixtureFlBusinessRelease(path.join(root, "fl-business"));
   const paBusinessPointer = await writeFixturePaBusinessRelease(path.join(root, "pa-business"));
+  const laActiveBusinessesPointer = await writeFixtureLaActiveBusinessRelease(path.join(root, "la-active-businesses"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -1560,6 +1672,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
     nyBusinessPointer,
     flBusinessPointer,
     paBusinessPointer,
+    laActiveBusinessesPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
@@ -1567,8 +1680,8 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.complete_national_business_registry, false);
   assert.equal(result.manifest.coverage.organizations, 17);
   assert.equal(result.manifest.coverage.brands, 1);
-  assert.equal(result.manifest.coverage.physical_sites, 12);
-  assert.equal(result.manifest.coverage.establishments, 12);
+  assert.equal(result.manifest.coverage.physical_sites, 14);
+  assert.equal(result.manifest.coverage.establishments, 14);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
@@ -1597,12 +1710,16 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.pa_business_registry_duplicate_filing_number_groups, 1);
   assert.equal(result.manifest.coverage.pa_business_registry_duplicate_rows_collapsed, 1);
   assert.equal(result.manifest.coverage.pa_business_registry_eligible_reported_us_business_addresses, 1);
-  assert.equal(result.manifest.coverage.relationships, 18);
-  assert.equal(result.manifest.coverage.resolution_location_profiles, 12);
+  assert.equal(result.manifest.coverage.la_active_business_source_location_accounts, 3);
+  assert.equal(result.manifest.coverage.la_active_business_normalized_us_location_accounts, 2);
+  assert.equal(result.manifest.coverage.la_active_business_quarantined_source_records, 1);
+  assert.match(result.manifest.export_policy, /local-review-only/);
+  assert.equal(result.manifest.coverage.relationships, 20);
+  assert.equal(result.manifest.coverage.resolution_location_profiles, 14);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
-  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 12);
-  assert.equal(result.manifest.coverage.zip_union_records, 15);
+  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 14);
+  assert.equal(result.manifest.coverage.zip_union_records, 17);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
@@ -1630,6 +1747,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(zipRows.find((row) => row.zip_code === "60601").registry_coverage.ny_business_registry_organization_reported_location_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "60601").registry_coverage.fl_business_registry_organization_reported_principal_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "17101").registry_coverage.pa_business_registry_organization_reported_business_address_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "90019").registry_coverage.la_active_business_registered_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);

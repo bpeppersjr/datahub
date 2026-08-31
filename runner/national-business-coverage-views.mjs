@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.6.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.7.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -19,6 +19,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   fsis_active_mpi_establishments: "usda-fsis-active-mpi-directory",
   epa_echo_active_facilities: "epa-echo-exporter-active-facility",
   fmcsa_active_us_company_census: "fmcsa-company-census-active-us-principal-office",
+  la_active_business_location_accounts: "los-angeles-office-of-finance-active-businesses",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
 });
 
@@ -1076,7 +1077,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.6.0" },
+    publisher: { id: "national-business-coverage-views", version: COVERAGE_VIEWS_TRANSFORMATION_VERSION.split("@")[1] },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1143,6 +1144,13 @@ export async function buildNationalBusinessCoverageViews({
       pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? 0,
       pa_business_registry_source_geocoded_reported_business_addresses: registry.manifest.coverage?.pa_business_registry_source_geocoded_reported_business_addresses ?? 0,
       pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: registry.manifest.coverage?.pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds ?? 0,
+      la_active_business_source_location_accounts: registry.manifest.coverage?.la_active_business_source_location_accounts ?? 0,
+      la_active_business_normalized_us_location_accounts: registry.manifest.coverage?.la_active_business_normalized_us_location_accounts ?? 0,
+      la_active_business_quarantined_source_records: registry.manifest.coverage?.la_active_business_quarantined_source_records ?? 0,
+      la_active_business_source_geocoded_locations: registry.manifest.coverage?.la_active_business_source_geocoded_locations ?? 0,
+      la_active_business_in_city_council_district_locations: registry.manifest.coverage?.la_active_business_in_city_council_district_locations ?? 0,
+      la_active_business_out_of_city_locations: registry.manifest.coverage?.la_active_business_out_of_city_locations ?? 0,
+      la_active_business_suspect_in_city_coordinates: registry.manifest.coverage?.la_active_business_suspect_in_city_coordinates ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
@@ -1161,6 +1169,7 @@ export async function buildNationalBusinessCoverageViews({
       "New York monthly active-extract membership and reported locations remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "Florida quarterly corporate records coded A and their principal addresses remain organization-only registration evidence without inferred owners, agents, officers, physical sites, establishments, or relationships.",
       "Pennsylvania active-registration dataset inclusion and reported business addresses remain organization-only evidence; the publisher's statutory-overcount warning is retained, officer/person fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
+      "Los Angeles Office of Finance location accounts create source-preserving provisional sites and establishments, but source-defined active status is not proof of continuous operations or public access; person/home-address risk keeps record-level data and linkage local-review-only.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
       "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",
@@ -1200,6 +1209,10 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   if (manifest.dataset_id !== "national-business-coverage-views") throw new Error(`Unexpected dataset_id ${manifest.dataset_id ?? "missing"}.`);
+  if (manifest.publisher?.id !== "national-business-coverage-views"
+    || manifest.publisher?.version !== COVERAGE_VIEWS_TRANSFORMATION_VERSION.split("@")[1]) {
+    throw new Error(`Unexpected publisher version ${manifest.publisher?.version ?? "missing"}.`);
+  }
   if (manifest.status !== "published-partial-local-aggregate") throw new Error(`Unexpected release status ${manifest.status ?? "missing"}.`);
   if (manifest.complete_all_businesses !== false || manifest.entity_resolution_applied !== false) {
     throw new Error("Coverage views must not claim completeness or applied entity resolution.");

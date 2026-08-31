@@ -177,6 +177,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source_release_id: "pa-business-fixture",
       source_rows_updated_at: "2026-08-04T14:12:34.000Z",
     },
+    la_active_business_location_accounts: {
+      registered_business_location_count: 1,
+      source_release_id: "la-active-business-fixture",
+      source_rows_updated_at: "2026-08-15T15:37:22.000Z",
+      record_level_distribution: "local-review-only",
+    },
   };
   const zipRows = [
     {
@@ -184,8 +190,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       registry_coverage: {
         status: "record-level-source-contribution",
         complete_all_businesses: false,
-        physical_site_count: 2,
-        establishment_count: 2,
+        physical_site_count: 3,
+        establishment_count: 3,
       },
       source_contributions: sourceContribution,
       current_usps_validity: { status: "unverified" },
@@ -235,6 +241,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       observed_at: "2026-08-02T00:00:00.000Z",
       source: { source_id: "usda-snap-current-retailers" },
     },
+    {
+      profile_id: "profile:3",
+      normalized_address: { state: "AA" },
+      location: null,
+      observed_at: "2026-08-03T00:00:00.000Z",
+      source: { source_id: "los-angeles-office-of-finance-active-businesses" },
+    },
   ];
   for (let partition = 0; partition < 100; partition += 1) {
     const rows = partition === 12 ? profiles : [];
@@ -249,9 +262,9 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     status: "published-partial",
     complete_national_business_registry: false,
     coverage: {
-      resolution_location_profiles: 2,
-      physical_sites: 2,
-      establishments: 2,
+      resolution_location_profiles: 3,
+      physical_sites: 3,
+      establishments: 3,
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
@@ -271,6 +284,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       pa_business_registry_eligible_reported_us_business_addresses: 2,
       pa_business_registry_source_geocoded_reported_business_addresses: 2,
       pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: 1,
+      la_active_business_source_location_accounts: 2,
+      la_active_business_normalized_us_location_accounts: 1,
+      la_active_business_quarantined_source_records: 1,
+      la_active_business_source_geocoded_locations: 1,
+      la_active_business_in_city_council_district_locations: 1,
+      la_active_business_out_of_city_locations: 0,
+      la_active_business_suspect_in_city_coordinates: 0,
     },
     limitations: [],
     artifacts: registryArtifacts,
@@ -279,7 +299,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const resolution = await publishFixture(path.join(root, "resolution"), "national-business-entity-resolution", "resolution-fixture", {
     status: "published-reviewable-partial",
     dependency: { dataset_id: "national-business-registry", release_id: registryReleaseId },
-    coverage: { profiles: 2 },
+    coverage: { profiles: 3 },
   });
   const benchmark = await publishFixture(path.join(root, "benchmark"), "national-business-entity-resolution-benchmark", "benchmark-fixture", {
     status: "awaiting-independent-labels",
@@ -383,15 +403,16 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
+  assert.equal(result.manifest.publisher.version, "1.7.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 5);
-  assert.equal(verification.coverage.location_profiles_assessed, 2);
+  assert.equal(verification.coverage.source_views, 6);
+  assert.equal(verification.coverage.location_profiles_assessed, 3);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(states[0].registry_evidence.reported_address_profile_count, 2);
+  assert.equal(states[0].registry_evidence.reported_address_profile_count, 3);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
   assert.equal(states[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -409,6 +430,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.pa_business_registry_active_organization_records, 3);
   assert.equal(verification.coverage.pa_business_registry_duplicate_rows_collapsed, 1);
   assert.equal(verification.coverage.pa_business_registry_eligible_reported_us_business_addresses, 2);
+  assert.equal(verification.coverage.la_active_business_source_location_accounts, 2);
+  assert.equal(verification.coverage.la_active_business_normalized_us_location_accounts, 1);
   const sources = (await readFile(path.join(result.releaseDirectory, "views/sources.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   const colorado = sources.find((row) => row.source_key === "co_business_registry_good_standing_or_delinquent_organizations");
   assert.equal(colorado.profile_source_id, null);
@@ -425,6 +448,11 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(pennsylvania.zip_level_counts.organization_reported_business_address_count, 2);
   assert.equal(pennsylvania.zip_rows_with_contribution, 1);
   assert.equal(pennsylvania.location_profile_geography.profile_count, 0);
+  const losAngeles = sources.find((row) => row.source_key === "la_active_business_location_accounts");
+  assert.equal(losAngeles.profile_source_id, "los-angeles-office-of-finance-active-businesses");
+  assert.equal(losAngeles.zip_level_counts.registered_business_location_count, 1);
+  assert.equal(losAngeles.zip_rows_with_contribution, 1);
+  assert.equal(losAngeles.location_profile_geography.profile_count, 1);
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
 });
