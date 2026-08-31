@@ -4,7 +4,7 @@ The entity-resolution layer groups provisional source entities without deleting 
 
 ## Match profiles
 
-Compatible registry publisher versions 1.2.0 through 1.5.0 emit one compact location profile for every provisional physical site and establishment. State-registration organization and brand layers added in 1.3.0 through 1.5.0 do not create profiles. Profiles are partitioned into 100 ZIP2 files and contain:
+Compatible registry publisher versions 1.2.0 through 1.6.0 emit one compact location profile for every provisional physical site and establishment. State-registration organization and brand layers added in 1.3.0 through 1.6.0 do not create profiles. Profiles are partitioned into 100 ZIP2 files and contain:
 
 - provisional site, establishment, and optional operating-organization IDs;
 - the reported address and a deterministic normalized address;
@@ -47,7 +47,7 @@ The layer remains `published-reviewable-partial`. It does not claim all entities
 
 ## Validated live release
 
-The independently verified release `business-entity-resolution-20260831-051153111Z-d1e9c4e1` depends on registry release `national-business-registry-20260831-033502218Z-5f7eee43`. Across 6,161,280 profiles and 5,144,959 usable address groups, it publishes 1,635,421 reversible site-alias decisions, 65,069 reversible establishment-alias decisions, and 53,727 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it. The 101 verified artifacts total 277,219,187 bytes. Counts remain unchanged because the Connecticut, Colorado, and Oregon registry addresses create no location profiles.
+The independently verified release `business-entity-resolution-20260831-072027413Z-f1dcd7d8` depends on registry release `national-business-registry-20260831-054124535Z-107116a8`. Across 6,161,280 profiles and 5,144,959 usable address groups, it publishes 1,635,421 reversible site-alias decisions, 65,069 reversible establishment-alias decisions, and 53,727 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it. The 101 verified artifacts total 277,215,787 bytes. Counts remain unchanged because the Connecticut, Colorado, Oregon, and Iowa registry addresses create no location profiles.
 
 These are decision-row counts, not counts of unique resolved businesses. The release remains incomplete and local-review-only.
 

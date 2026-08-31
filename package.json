@@ -45,6 +45,8 @@
     "co-business:verify": "node scripts/verify-co-business-registry.mjs",
     "or-business:build": "node scripts/build-or-business-registry.mjs",
     "or-business:verify": "node scripts/verify-or-business-registry.mjs",
+    "ia-business:build": "node scripts/build-ia-business-registry.mjs",
+    "ia-business:verify": "node scripts/verify-ia-business-registry.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",

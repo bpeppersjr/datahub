@@ -1,0 +1,36 @@
+{
+  "connector_id": "ia-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a privacy-minimized snapshot of active Iowa Secretary of State entities from the official monthly Iowa Data Hub archive, preserving source-defined home-office evidence, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ia-business-registry-active-entities" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_entities": { "type": "integer", "minimum": 1, "default": 300000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["iowa-data-hub-active-business-entities-zip", "iowa-data-hub-dataset-metadata", "iowa-data-hub-column-schema", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ia-business-registry-source-archive-zip", "ia-business-registry-source-selected-jsonl-gzip", "normalized-ia-business-entity-jsonl-gzip", "ia-business-registry-quarantine-jsonl-gzip", "ia-business-registry-zip-coverage-jsonl", "ia-business-registry-source-summary", "ia-business-registry-preflight", "ia-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["idh-be.iowa.gov", "storage.googleapis.com"],
+  "redirect_policy": "Reject archive and metadata redirects. For columns.json only, accept one manually validated HTTPS redirect to the exact Iowa Data Hub storage.googleapis.com dataset-554 columns object; never retain or log the signed query string.",
+  "provider_budget_key": "ia-secretary-of-state-active-business-entities-public-archive",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_metadata_bytes": 2000000,
+    "maximum_archive_bytes": 500000000,
+    "minimum_active_entities": 300000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry unexpected redirects, other 4xx responses, schema drift, duplicate identity, source refresh drift, archive-layout drift, row-count mismatch, or quality-gate failures.",
+  "checkpoint": "Write a safe preflight snapshot before acquisition, retain the complete archive in run-scoped staging, derive and hash a business-only selected-field snapshot before normalization, and recheck live metadata and schema before publication. A complete staged archive can be revalidated and normalized into a new immutable run, and a complete unpublished manifest can be independently verified and published by immutable run ID. current.json changes only after verification and atomic release publication.",
+  "idempotency": "The source modifiedAt timestamp plus SHA-256 of the official archive identify a source release; the six-digit Iowa corporation number creates one stable provisional organization candidate.",
+  "cancellation": "Abort network and record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis or resume, and do not change current.json.",
+  "source_policy": "config/source-policies/ia-business-registry.json",
+  "retention_profile": "Retain immutable internal source archives and approved public business-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "ia-active-registration-status-assertion", "home-office-address-assertion", "registration-profile-assertion"],
+  "produced_identifiers": ["ia-sos-corporation-number", "zip5", "zcta5"]
+}

@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.3.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.4.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -407,9 +407,12 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       or_business_registry_legal_entity_registrations: registry.manifest.coverage?.or_business_registry_legal_entity_registrations ?? null,
       or_business_registry_assumed_business_name_registrations: registry.manifest.coverage?.or_business_registry_assumed_business_name_registrations ?? null,
       or_business_registry_eligible_registration_zip_contributions: registry.manifest.coverage?.or_business_registry_eligible_registration_zip_contributions ?? null,
+      ia_business_registry_active_organization_records: registry.manifest.coverage?.ia_business_registry_active_organization_records ?? null,
+      ia_business_registry_entities_with_eligible_us_home_office_address: registry.manifest.coverage?.ia_business_registry_entities_with_eligible_us_home_office_address ?? null,
+      ia_business_registry_eligible_entity_zip_contributions: registry.manifest.coverage?.ia_business_registry_eligible_entity_zip_contributions ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, or Oregon registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, Oregon, or Iowa registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1067,7 +1070,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.3.0" },
+    publisher: { id: "national-business-coverage-views", version: "1.4.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1113,6 +1116,11 @@ export async function buildNationalBusinessCoverageViews({
       or_business_registry_legal_entity_registrations: registry.manifest.coverage?.or_business_registry_legal_entity_registrations ?? 0,
       or_business_registry_assumed_business_name_registrations: registry.manifest.coverage?.or_business_registry_assumed_business_name_registrations ?? 0,
       or_business_registry_eligible_registration_zip_contributions: registry.manifest.coverage?.or_business_registry_eligible_registration_zip_contributions ?? 0,
+      ia_business_registry_active_organization_records: registry.manifest.coverage?.ia_business_registry_active_organization_records ?? 0,
+      ia_business_registry_quarantined_entities: registry.manifest.coverage?.ia_business_registry_quarantined_entities ?? 0,
+      ia_business_registry_entities_with_eligible_us_home_office_address: registry.manifest.coverage?.ia_business_registry_entities_with_eligible_us_home_office_address ?? 0,
+      ia_business_registry_eligible_entity_zip_contributions: registry.manifest.coverage?.ia_business_registry_eligible_entity_zip_contributions ?? 0,
+      ia_business_registry_entities_with_source_geocoded_coordinates: registry.manifest.coverage?.ia_business_registry_entities_with_source_geocoded_coordinates ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
@@ -1127,6 +1135,7 @@ export async function buildNationalBusinessCoverageViews({
       "County profile counts cover only profiles with one valid coordinate assignment; ZIP counts are never area-weighted into counties.",
       "Source-specific active, authorized, registered, current, or filing evidence is not generalized into one universal operating-status claim.",
       "Oregon assumed business names remain provisional brands without inferred owners, organizations, physical sites, establishments, or relationships.",
+      "Iowa home-office addresses and source geocodes remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
       "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",

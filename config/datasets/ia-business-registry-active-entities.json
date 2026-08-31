@@ -1,0 +1,32 @@
+{
+  "dataset_id": "ia-business-registry-active-entities",
+  "schema_version": "1.0.0",
+  "title": "Iowa Business Registry Active Entities",
+  "status": "published-verified-partial",
+  "description": "Governed Iowa Secretary of State active-entity layer using business identity and source-defined home-office fields only, with ZIP/ZCTA context, source geocodes, provenance, and explicit non-site semantics.",
+  "output": "data/business-sources/ia-business-registry-active-entities/current.json",
+  "connector": "config/connectors/ia-business-registry.json",
+  "source_policy": "config/source-policies/ia-business-registry.json",
+  "record_schema": "config/schemas/ia-business-registry-entity.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Entities listed as active in the official monthly Iowa Secretary of State dataset; this is source-specific active-registration evidence, not a census of every operating business or physical site.",
+  "identity_rule": "Each unique six-digit Iowa corporation number becomes one provisional organization candidate. Home-office addresses and source geocodes remain registration assertions and never create physical sites or establishments.",
+  "current_verified_release": {
+    "release_id": "ia-business-registry-20260831-053540425Z-9f568d56",
+    "source_release_id": "ia-business-registry-2026-08-10-8fdff50d81e1617a",
+    "source_modified_at": "2026-08-10T12:59:03.509Z",
+    "source_rows": 347200,
+    "active_entities_published": 347200,
+    "quarantined_entities": 0,
+    "entities_with_eligible_us_home_office_address": 334176,
+    "eligible_us_entity_zip_contributions": 334176,
+    "entities_with_source_geocoded_coordinates": 330664,
+    "distinct_source_zip_codes": 9901,
+    "zip_union_records": 38176,
+    "verified_artifact_count": 23,
+    "verified_bytes": 198106268,
+    "physical_sites": null,
+    "establishments": null
+  },
+  "documentation": "docs/IA-BUSINESS-REGISTRY.md"
+}

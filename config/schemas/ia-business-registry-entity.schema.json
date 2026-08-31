@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/ia-business-registry-entity.schema.json",
+  "title": "Normalized Iowa Active Business Entity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_name", "entity_type", "effective_date", "home_office_address", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^ia-business-registry:entity:[0-9]{6}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "brand_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:ia_sos_corp_[0-9]{6}$" },
+        "brand_id": { "type": "null" },
+        "physical_site_id": { "type": "null" },
+        "establishment_id": { "type": "null" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "legal_name": { "type": "string", "minLength": 1 },
+    "entity_type": { "type": "string", "minLength": 1 },
+    "effective_date": { "type": ["string", "null"], "format": "date" },
+    "home_office_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["street", "unit_or_additional", "city", "state_source", "state_code", "postal_code_source", "zip_code", "postal_code", "zip4", "postal_code_status", "country_source", "latitude", "longitude", "coordinate_status", "coordinate_scope", "address_scope", "eligible_for_us_zip_coverage", "geography"],
+      "properties": {
+        "street": { "type": ["string", "null"] },
+        "unit_or_additional": { "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "state_source": { "type": ["string", "null"] },
+        "state_code": { "type": ["string", "null"] },
+        "postal_code_source": { "type": ["string", "null"] },
+        "zip_code": { "type": ["string", "null"] },
+        "postal_code": { "type": ["string", "null"] },
+        "zip4": { "type": ["string", "null"] },
+        "postal_code_status": { "type": "string" },
+        "country_source": { "type": ["string", "null"] },
+        "latitude": { "type": ["number", "null"] },
+        "longitude": { "type": ["number", "null"] },
+        "coordinate_status": { "enum": ["not-provided", "source-geocoded-coordinate-pair", "incomplete-source-coordinate-pair", "invalid-source-coordinate-pair"] },
+        "coordinate_scope": { "const": "iowa-data-hub-geocode-of-full-or-partial-home-office-address-near-iowa" },
+        "address_scope": { "const": "secretary-of-state-home-office-or-principal-office-address-not-verified-current-physical-operating-site" },
+        "eligible_for_us_zip_coverage": { "type": "boolean" },
+        "geography": { "type": "object" }
+      }
+    },
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "status", "status_class", "source_modified_at", "semantics"],
+      "properties": {
+        "value": { "const": "listed-in-active-iowa-business-entities-dataset-as-of-source-refresh" },
+        "status": { "const": "Active" },
+        "status_class": { "const": "active-registration-in-iowa-secretary-of-state-source-dataset" },
+        "source_modified_at": { "type": "string", "format": "date-time" },
+        "semantics": { "const": "source-active-registration-not-independent-proof-of-current-operations-legality-licensure-public-access-or-an-open-storefront" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "public" }
+  }
+}

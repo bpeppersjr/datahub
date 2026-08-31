@@ -24,6 +24,7 @@ Options:
   --ct-business <path> Connecticut active Business Registry current.json prerequisite
   --co-business <path> Colorado Good Standing or Delinquent Business Registry current.json prerequisite
   --or-business <path> Oregon active Business Registry registrations current.json prerequisite
+  --ia-business <path> Iowa active Business Registry entities current.json prerequisite
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --help           Show this help
 `;
@@ -43,12 +44,13 @@ function parseArguments(args) {
     ctBusiness: "data/business-sources/ct-business-registry-active-organizations/current.json",
     coBusiness: "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json",
     orBusiness: "data/business-sources/or-business-registry-active-registrations/current.json",
+    iaBusiness: "data/business-sources/ia-business-registry-active-entities/current.json",
     uspsZips: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--ia-business", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -64,6 +66,7 @@ function parseArguments(args) {
       if (argument === "--ct-business") options.ctBusiness = value;
       if (argument === "--co-business") options.coBusiness = value;
       if (argument === "--or-business") options.orBusiness = value;
+      if (argument === "--ia-business") options.iaBusiness = value;
       if (argument === "--usps-zips") options.uspsZips = value;
       continue;
     }
@@ -91,6 +94,7 @@ try {
     ctBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.ctBusiness)),
     coBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.coBusiness)),
     orBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.orBusiness)),
+    iaBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.iaBusiness)),
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });

@@ -45,6 +45,11 @@ type Overview = {
     or_business_registry_legal_entity_registrations: number;
     or_business_registry_assumed_business_name_registrations: number;
     or_business_registry_eligible_registration_zip_contributions: number;
+    ia_business_registry_active_organization_records: number;
+    ia_business_registry_quarantined_entities: number;
+    ia_business_registry_entities_with_eligible_us_home_office_address: number;
+    ia_business_registry_eligible_entity_zip_contributions: number;
+    ia_business_registry_entities_with_source_geocoded_coordinates: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -325,6 +330,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.co_business_registry_good_standing_or_delinquent_organization_records)}</strong> CO Good Standing/Delinquent registrations</span>
             <span><strong>{count(overview?.coverage?.or_business_registry_active_registration_records)}</strong> OR active registrations</span>
+            <span><strong>{count(overview?.coverage?.ia_business_registry_active_organization_records)}</strong> IA active entities</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 
