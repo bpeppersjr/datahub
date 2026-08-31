@@ -13,6 +13,7 @@ import {
   reconcileEpaEchoFacility,
   reconcileFmcsaCompany,
   reconcileIrsEoOrganization,
+  reconcileCtBusinessOrganization,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -29,6 +30,7 @@ import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
 import { normalizeEchoFacility } from "./epa-echo.mjs";
 import { normalizeFmcsaCompany } from "./fmcsa-company-census.mjs";
 import { normalizeIrsEoOrganization } from "./irs-eo-bmf.mjs";
+import { normalizeCtBusinessOrganization } from "./ct-business-registry.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -683,6 +685,84 @@ async function writeFixtureIrsEoRelease(root) {
   return pointerPath;
 }
 
+function normalizedCtBusinessRecord(id = "0018y000008a1JIAAY", overrides = {}) {
+  return normalizeCtBusinessOrganization({
+    id,
+    name: `FIXTURE CONNECTICUT ORGANIZATION ${id}`,
+    business_type: "LLC",
+    status: "Active",
+    sub_status: null,
+    accountnumber: id.endsWith("AAY") ? "2732224" : "0000000",
+    annual_report_due_date: "2027-03-31T00:00:00",
+    billingstreet: "8 ELM ST",
+    billingcity: "NORWALK",
+    billingcountry: "United States",
+    billingpostalcode: "60601-1234",
+    billingstate: "IL",
+    citizenship: "Domestic",
+    country_formation: "United States",
+    date_registration: "2023-02-26T00:00:00",
+    formation_place: "Connecticut",
+    state_or_territory_formation: "Connecticut",
+    naics_code: "Parking Lots and Garages (812930)",
+    create_dt: "2026-08-30 00:09:20.4833333",
+    ...overrides,
+  }, {
+    runId: "ct-business-source-fixture",
+    retrievedAt: "2026-08-30T15:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-30T08:47:47.000Z",
+    sourceReleaseId: "ct-business-source-fixture",
+    baselineByZip: new Map([["60601", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601", geoid: "60601" } }]]),
+  });
+}
+
+async function writeFixtureCtBusinessRelease(root) {
+  const releaseId = "ct-business-registry-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedCtBusinessRecord(),
+    normalizedCtBusinessRecord("0018y000008a1VBAAY", { accountnumber: "0000000", billingstreet: null, billingcity: null, billingstate: null, billingpostalcode: null, billingcountry: null }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.external_identifiers[0].value)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/organizations/id-hash-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-ct-business-organization-jsonl-gzip" });
+  }
+  const zipRows = [{
+    zip_code: "60601",
+    ct_business_registry_active_snapshot: { organization_reported_business_address_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:60601" },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }];
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "ct-business-registry-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "ct-business-registry-active-organizations",
+    release_id: releaseId,
+    status: "published",
+    complete_active_business_master_snapshot: true,
+    source_release_id: "ct-business-source-fixture",
+    source_rows_updated_at: "2026-08-30T08:47:47.000Z",
+    coverage: { active_organizations_published: records.length, eligible_reported_us_business_addresses: 1, organizations_without_eligible_us_zip_address: 1 },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -844,6 +924,18 @@ test("reconciles IRS EO organizations and filing addresses without creating phys
   assert(result.assertions.every((item) => !String(item.source.source_field).split("|").some((field) => ["ICO", "ASSET_AMT", "INCOME_AMT", "REVENUE_AMT"].includes(field))));
 });
 
+test("reconciles Connecticut active-registration evidence without creating physical sites or relationships", () => {
+  const source = normalizedCtBusinessRecord();
+  const result = reconcileCtBusinessOrganization(source);
+  assert.equal(result.entity.entity_type, "organization");
+  assert.equal(result.zipCode, "60601");
+  assert(result.assertions.some((item) => item.predicate === "organization.reported-business-address"));
+  assert(result.assertions.some((item) => item.predicate === "organization.ct-registration-profile"));
+  assert(result.assertions.some((item) => item.predicate === "organization.ct-registration-status"));
+  assert(result.assertions.every((item) => item.subject_entity_id === "organization:ct_sots_record_0018y000008a1JIAAY"));
+  assert(result.assertions.every((item) => !String(item.source.source_field).includes("email")));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -854,6 +946,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const echoPointer = await writeFixtureEchoRelease(path.join(root, "echo"));
   const fmcsaPointer = await writeFixtureFmcsaRelease(path.join(root, "fmcsa"));
   const irsEoPointer = await writeFixtureIrsEoRelease(path.join(root, "irs-eo"));
+  const ctBusinessPointer = await writeFixtureCtBusinessRelease(path.join(root, "ct-business"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -865,18 +958,21 @@ test("publishes and verifies a combined partial registry while retaining denomin
     echoPointer,
     fmcsaPointer,
     irsEoPointer,
+    ctBusinessPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 4);
+  assert.equal(result.manifest.coverage.organizations, 6);
   assert.equal(result.manifest.coverage.physical_sites, 12);
   assert.equal(result.manifest.coverage.establishments, 12);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
   assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
+  assert.equal(result.manifest.coverage.ct_business_registry_active_organization_records, 2);
+  assert.equal(result.manifest.coverage.ct_business_registry_eligible_reported_us_business_addresses, 1);
   assert.equal(result.manifest.coverage.relationships, 18);
   assert.equal(result.manifest.coverage.resolution_location_profiles, 12);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
@@ -902,6 +998,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(irsOnly.registry_coverage.status, "record-level-source-contribution");
   assert.equal(irsOnly.registry_coverage.physical_site_count, 0);
   assert.equal(irsOnly.registry_coverage.irs_eo_organization_filing_address_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "60601").registry_coverage.ct_business_registry_organization_reported_business_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "99998").registry_coverage.fdic_current_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "01760").registry_coverage.ncua_reported_us_location_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);

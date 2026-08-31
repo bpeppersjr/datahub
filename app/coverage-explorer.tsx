@@ -35,6 +35,8 @@ type Overview = {
     state_views_without_published_nonemployer_baseline: number;
     county_views_with_published_nonemployer_baseline: number;
     county_views_without_published_nonemployer_baseline: number;
+    ct_business_registry_active_organization_records: number;
+    ct_business_registry_eligible_reported_us_business_addresses: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -101,6 +103,7 @@ type SourceRow = {
   coordinate_present_valid_count: number;
   coordinate_assigned_single_count: number;
   coordinate_missing_count: number;
+  zip_level_counts?: Record<string, number>;
   source_kind?: string;
   aggregate_baseline?: {
     national_nonemployer_establishments: number;
@@ -194,10 +197,13 @@ function ZipRows({ records }: { records: ZipRow[] }) {
 function SourceRows({ records }: { records: SourceRow[] }) {
   return records.map((row) => {
     const aggregate = row.source_kind === 'aggregate-baseline' ? row.aggregate_baseline : null;
+    const organizationOnlyEvidence = row.profile_count === 0
+      ? Object.values(row.zip_level_counts ?? {}).reduce((sum, value) => sum + value, 0)
+      : row.profile_count;
     return (
       <div className="coverage-table-row source-row" key={row.view_id}>
         <div><strong>{label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Organization-only evidence'}</span></div>
-        <span>{count(aggregate?.national_nonemployer_establishments ?? row.profile_count)}</span>
+        <span>{count(aggregate?.national_nonemployer_establishments ?? organizationOnlyEvidence)}</span>
         <span>{aggregate ? `${count(aggregate.state_totals)} states` : count(row.coordinate_assigned_single_count)}</span>
         <span>{aggregate ? `${count(aggregate.county_totals)} counties` : count(row.zip_rows_with_contribution)}</span>
       </div>
@@ -308,6 +314,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.zip_views_with_zcta_polygon)}</strong> ZCTA-linked ZIPs</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
+            <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

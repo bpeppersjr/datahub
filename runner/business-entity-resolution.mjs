@@ -456,8 +456,8 @@ async function loadRegistryProfiles(pointerPath) {
   const manifestBuffer = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "national-business-registry" || manifest.status !== "published-partial"
-    || manifest.publisher?.version !== "1.2.0" || manifest.complete_national_business_registry !== false) {
-    throw new Error("A national business registry 1.2.0 partial release with match profiles is required.");
+    || !["1.2.0", "1.3.0"].includes(manifest.publisher?.version) || manifest.complete_national_business_registry !== false) {
+    throw new Error("A compatible national business registry 1.2.0 or 1.3.0 partial release with match profiles is required.");
   }
   const releaseDirectory = path.dirname(manifestPath);
   const artifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip")

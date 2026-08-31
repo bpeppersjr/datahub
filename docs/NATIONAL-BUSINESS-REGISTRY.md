@@ -1,6 +1,6 @@
 # National business registry releases
 
-The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, USDA FSIS active MPI establishment layer, EPA ECHO source-designated active regulated-facility layer, FMCSA active U.S. Company Census principal-office layer, and IRS EO BMF current exempt-organization layer. It is an operational foundation, not a claim that every U.S. business has been collected.
+The national business registry publisher converts governed source records into reusable canonical entities, field assertions, relationships, and ZIP coverage. Current releases combine the verified USDA SNAP current-retailer snapshot, CMS NPPES monthly organization-provider layer, FDIC BankFind active-institution/current-U.S.-location snapshot, NCUA final-quarterly federally insured credit-union layer, USDA FSIS active MPI establishment layer, EPA ECHO source-designated active regulated-facility layer, FMCSA active U.S. Company Census principal-office layer, IRS EO BMF current exempt-organization layer, and Connecticut Secretary-of-the-State active Business Registry layer. It is an operational foundation, not a claim that every U.S. business has been collected.
 
 ## Build and verify
 
@@ -53,9 +53,13 @@ Each accepted IRS EO BMF EIN produces one provisional organization. Legal and se
 
 Current EO BMF membership and exempt-status codes are federal tax-status evidence, not independent proof of current operation, public access, or a current physical location. The source `ICO` in-care-of personal-contact field and financial amounts are excluded from normalized and registry records.
 
+Each Connecticut Business Registry source-system record whose source status is exactly `Active` produces one provisional organization. The source record ID, non-placeholder ALEI, registered and formation-jurisdiction names, status/sub-status, registration profile, NAICS values, reported business address, eligible ZIP/ZCTA, and source address geocode remain separate assertions. Reported addresses and geocodes are organization evidence only; they create no physical site, establishment, or relationship.
+
+Connecticut `Active` is Secretary-of-the-State registration evidence, not independent proof of current operations, good standing, licensure, solvency, public access, or an open storefront. The connector excludes email, ownership-category survey responses, mailing/office/records addresses, agents, principals, organizers, and other person-linked data. Repeated placeholder ALEI `0000000` is not emitted as a unique identifier.
+
 ## ZIP coverage
 
-`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, FMCSA active-registration principal offices, source releases and freshness, Census employer baseline data, ZCTA geometry status, and current-USPS evidence when a governed USPS release is supplied. An IRS filing-address contribution changes record-level coverage status but never increments physical-site or establishment counts.
+`derived/zip-coverage.jsonl` preserves every ZIP in the Census ZBP/ZCTA plus contributing-source union. Each row reports canonical sites, establishments, organization primary locations, IRS EO organization filing addresses, Connecticut active-registration reported business addresses, SNAP evidence, NPPES primary/non-primary practice locations, FDIC current locations, NCUA reported U.S. locations, FSIS active MPI establishments, EPA ECHO active regulated facilities, FMCSA active-registration principal offices, source releases and freshness, Census employer baseline data, ZCTA geometry status, and current-USPS evidence when a governed USPS release is supplied. IRS and Connecticut organization-address contributions change record-level coverage status but never increment physical-site or establishment counts.
 
 Rows with no record-level contribution from any integrated source are retained as `denominator-only-no-record-level-contribution`. Every row sets `complete_all_businesses` to `false`. The manifest also leaves `authoritative_current_usps_zip_denominator` as `null`; percentages over “all valid U.S. ZIPs” remain prohibited until that denominator is acquired from an authorized source.
 
@@ -69,6 +73,7 @@ The optional `--usps-zips` prerequisite accepts the governed `usps-operational-z
 - `entities/organizations/fdic-cert-prefix=<0-9>.jsonl.gz`
 - `entities/organizations/ncua-charter-prefix=<0-9>.jsonl.gz`
 - `entities/organizations/irs-ein-prefix=<0-9>.jsonl.gz`
+- `entities/organizations/ct-record-hash-prefix=<0-f>.jsonl.gz`
 - `entities/services.jsonl`
 - `assertions/prefix=<0-9>.jsonl.gz`
 - `relationships/prefix=<0-9>.jsonl.gz`
@@ -77,17 +82,17 @@ The optional `--usps-zips` prerequisite accepts the governed `usps-operational-z
 - `derived/source-contributions.json`
 - `manifest.json`
 
-The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, and reconciles ZIP and manifest counts. For publisher 1.2.0 it also requires exactly 100 ZIP2 match-profile partitions, validates their links back to provisional entities and their provenance hashes, and requires exactly one profile per provisional physical site. It rejects unsupported business-completeness claims and rejects any USPS denominator without a checksummed governed dependency, exact scoped semantics, conservative deliverability flags, and inherited distribution policy.
+The verifier hashes every artifact, parses every record, checks unique IDs and relationship endpoints, requires assertion provenance and export policy, and reconciles ZIP and manifest counts. For compatible publishers 1.2.0 and 1.3.0 it also requires exactly 100 ZIP2 match-profile partitions, validates their links back to provisional entities and their provenance hashes, and requires exactly one profile per provisional physical site. It rejects excluded Connecticut fields or site/relationship inference, unsupported business-completeness claims, and any USPS denominator without a checksummed governed dependency, exact scoped semantics, conservative deliverability flags, and inherited distribution policy.
 
 Match profiles feed the separate [`national-business-entity-resolution`](BUSINESS-ENTITY-RESOLUTION.md) dataset. That layer can publish reversible aliases and review candidates without changing this registry release, its source assertions, or its current pointer.
 
 ## Validated live release
 
-The independently verified publisher-1.2 release `national-business-registry-20260830-201530698Z-7230b6a4` contains 8,936,163 governed source records, including 2,195,563 accepted FMCSA active principal-office records and 1,955,841 current IRS EO BMF organizations. It publishes 3,923,962 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 77,115,239 assertions, 8,601,934 relationships, and exactly 6,161,280 location match profiles across 223 verified artifacts.
+The independently verified publisher-1.3 release `national-business-registry-20260831-001757303Z-46e85122` contains 9,394,699 governed source records, including 2,195,563 accepted FMCSA active principal-office records, 1,955,841 current IRS EO BMF organizations, and 458,536 Connecticut active-registration organizations. It publishes 4,382,498 organizations, 6,161,280 provisional physical sites, 6,161,280 provisional establishments, one service, 80,815,454 assertions, 8,601,934 relationships, and exactly 6,161,280 location match profiles across 255 verified artifacts.
 
-Its 43,586-row ZIP union has record-level source contributions in 43,310 ZIPs. FMCSA added one site, one establishment, and one `located_at` relationship per accepted USDOT principal-office record, but no inferred organization or parent. The source and registry transformations deduplicate repeated typed docket identifiers while preserving source slot observations; the rejected intermediate registry release remains immutable and is not current. The verified release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
+Its 43,831-row ZIP union has record-level source contributions in 43,561 ZIPs. Connecticut contributes 447,807 eligible reported U.S. organization addresses across 9,228 ZIPs while creating no physical sites, establishments, relationships, or location profiles; 10,729 active registrations remain published organizations without an eligible U.S. ZIP allocation. The verified release remains explicitly `published-partial`, and `authoritative_current_usps_zip_denominator` remains `null`.
 
-This 1.2 release supersedes the prior verified 1.1 registry while preserving its source-derived entity, assertion, relationship, and ZIP counts; the additional 100 artifacts are source-preserving ZIP2 match profiles. The USPS connector and optional registry integration are implemented, but this current release still omits USPS evidence until an operator truthfully selects an authorized use basis and publishes a local governed USPS source release.
+This 1.3 release supersedes the verified 1.2 registry. Its 100 source-preserving ZIP2 match-profile artifacts and all 6,161,280 physical-site/profile records are unchanged in cardinality; only the governed organization/assertion/ZIP evidence and dependency lineage expand. The USPS connector and optional registry integration are implemented, but this current release still omits USPS evidence until an operator truthfully selects an authorized use basis and publishes a local governed USPS source release.
 
 ## Adding the next source
 

@@ -78,7 +78,7 @@ The build publishes an immutable `awaiting-independent-labels` sample and a null
 
 ## Validated live sample
 
-The independently verified sample `business-entity-resolution-benchmark-sample-20260830-210015066Z-d9d1af77` is tied to resolution release `business-entity-resolution-20260830-204410292Z-371d0923` and registry release `national-business-registry-20260830-201530698Z-7230b6a4`. It sampled 425 candidates from each of these enumerated universes:
+The independently verified sample `business-entity-resolution-benchmark-sample-20260831-005040037Z-b94684de` is tied to resolution release `business-entity-resolution-20260831-004814653Z-75a5f2b7` and registry release `national-business-registry-20260831-001757303Z-46e85122`. It sampled 425 candidates from each of these enumerated universes:
 
 - 1,014,108 automatic physical-site membership pairs;
 - 32,623 automatic establishment membership pairs; and

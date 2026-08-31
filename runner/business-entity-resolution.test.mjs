@@ -93,7 +93,7 @@ async function writeFixtureRegistry(root, profiles) {
     release_id: releaseId,
     status: "published-partial",
     complete_national_business_registry: false,
-    publisher: { id: "national-business-registry", version: "1.2.0" },
+    publisher: { id: "national-business-registry", version: "1.3.0" },
     coverage: { physical_sites: profiles.length, resolution_location_profiles: profiles.length },
     artifacts,
   };

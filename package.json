@@ -39,6 +39,8 @@
     "echo:verify": "node scripts/verify-epa-echo.mjs",
     "irs-eo:build": "node scripts/build-irs-eo-bmf.mjs",
     "irs-eo:verify": "node scripts/verify-irs-eo-bmf.mjs",
+    "ct-business:build": "node scripts/build-ct-business-registry.mjs",
+    "ct-business:verify": "node scripts/verify-ct-business-registry.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",

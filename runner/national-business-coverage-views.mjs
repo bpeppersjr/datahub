@@ -398,9 +398,11 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
     severity: "jurisdiction-coverage",
     evidence: {
       irs_eo_organization_records: registry.manifest.coverage?.irs_eo_organization_records ?? null,
+      ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? null,
+      ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-only evidence such as IRS EO filing addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-only evidence such as IRS EO filing addresses and Connecticut Secretary-of-the-State reported business addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1094,6 +1096,8 @@ export async function buildNationalBusinessCoverageViews({
       state_views_without_published_nonemployer_baseline: stateViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
       county_views_with_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status === "published-annual-aggregate").length,
       county_views_without_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
+      ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? 0,
+      ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",

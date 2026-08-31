@@ -1,0 +1,38 @@
+{
+  "connector_id": "ct-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a selected-field snapshot of records whose source status is exactly Active in the official Connecticut Business Registry Business Master dataset, preserving source-specific status, ALEI and record identifiers, reported business addresses, classifications, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ct-business-registry-active-organizations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 400000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["ct-sots-socrata-business-master-active-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ct-business-registry-source-jsonl-gzip", "normalized-ct-business-organization-jsonl-gzip", "ct-business-registry-zip-coverage-jsonl", "ct-business-registry-source-summary", "ct-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.ct.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.ct.gov metadata and n7gp-d28j JSON resource paths.",
+  "provider_budget_key": "ct-sots-business-master-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 25000,
+    "maximum_response_bytes": 50000000,
+    "minimum_active_organizations": 400000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, duplicate identity, source refresh drift, count mismatch, or quality-gate failures.",
+  "checkpoint": "The selected-field source snapshot is acquired in strictly increasing source-ID order and hashed before normalization. Source metadata and the active count are rechecked before publication. A complete unpublished staging run can be independently verified and resumed by immutable run ID without reacquisition. current.json changes only after complete run-scoped publication.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the source system ID creates a stable provisional organization candidate.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/ct-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "ct-registration-status-assertion", "reported-business-address-assertion", "classification-assertion"],
+  "produced_identifiers": ["ct-business-registry-record-id", "ct-authoritative-legal-entity-identifier", "zip5", "zip4", "zcta5", "naics"]
+}

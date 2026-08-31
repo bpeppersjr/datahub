@@ -1,0 +1,27 @@
+{
+  "dataset_id": "ct-business-registry-active-organizations",
+  "schema_version": "1.0.0",
+  "title": "Connecticut Business Registry Active Organizations",
+  "status": "implemented",
+  "description": "Governed official Connecticut Secretary-of-the-State active-registration organization layer with selected non-personal fields, source-specific status and sub-status, reported business-address ZIP/ZCTA context, provenance, and explicit non-site semantics.",
+  "output": "data/business-sources/ct-business-registry-active-organizations/current.json",
+  "connector": "config/connectors/ct-business-registry.json",
+  "source_policy": "config/source-policies/ct-business-registry.json",
+  "record_schema": "config/schemas/ct-business-registry-organization.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Organizations whose source status is exactly Active in the official Connecticut Business Registry Business Master snapshot; this is source-specific registration evidence, not a census of every operating business or physical site.",
+  "current_verified_release": {
+    "release_id": "ct-business-registry-20260831-000956860Z-cec0beff",
+    "source_release_id": "ct-business-registry-2026-08-30-e1ddd7fbb848de21",
+    "source_rows_updated_at": "2026-08-30T08:47:47.000Z",
+    "active_organizations": 458536,
+    "eligible_reported_us_business_addresses": 447807,
+    "organizations_without_eligible_us_zip_address": 10729,
+    "source_geocoded_reported_business_addresses": 47657,
+    "source_zip_codes": 9228,
+    "physical_sites": null,
+    "verified_artifact_count": 20,
+    "verified_bytes": 140998571
+  },
+  "documentation": "docs/CT-BUSINESS-REGISTRY.md"
+}

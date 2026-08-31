@@ -4,7 +4,7 @@ The entity-resolution layer groups provisional source entities without deleting 
 
 ## Match profiles
 
-Registry publisher version 1.2.0 emits one compact location profile for every provisional physical site and establishment. Profiles are partitioned into 100 ZIP2 files and contain:
+Compatible registry publisher versions 1.2.0 and 1.3.0 emit one compact location profile for every provisional physical site and establishment. Organization-only layers added in 1.3.0 do not create profiles. Profiles are partitioned into 100 ZIP2 files and contain:
 
 - provisional site, establishment, and optional operating-organization IDs;
 - the reported address and a deterministic normalized address;
@@ -47,7 +47,7 @@ The layer remains `published-reviewable-partial`. It does not claim all entities
 
 ## Validated live release
 
-The independently verified release `business-entity-resolution-20260830-204410292Z-371d0923` depends on registry release `national-business-registry-20260830-201530698Z-7230b6a4`. Across 6,161,280 profiles and 5,144,959 usable address groups, it publishes 1,635,421 reversible site-alias decisions, 65,069 reversible establishment-alias decisions, and 53,727 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it.
+The independently verified release `business-entity-resolution-20260831-004814653Z-75a5f2b7` depends on registry release `national-business-registry-20260831-001757303Z-46e85122`. Across 6,161,280 profiles and 5,144,959 usable address groups, it publishes 1,635,421 reversible site-alias decisions, 65,069 reversible establishment-alias decisions, and 53,727 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it. These counts are unchanged from the prior registry because the Connecticut layer is organization-only.
 
 These are decision-row counts, not counts of unique resolved businesses. The release remains incomplete and local-review-only.
 

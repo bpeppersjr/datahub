@@ -46,9 +46,15 @@ export default defineConfig(async () => {
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
-    server: isCodexSeatbeltSandbox
-      ? { watch: { useFsEvents: false, usePolling: true } }
-      : undefined,
+    server: {
+      watch: {
+        // Runtime releases can contain millions of immutable records. Watching
+        // them wastes resources and can hold Windows directory handles across
+        // the connector's atomic staging-to-release rename.
+        ignored: ['**/data/**', '**/downloads/**', '**/tmp/**', '**/.playwright-browsers/**'],
+        ...(isCodexSeatbeltSandbox ? { useFsEvents: false, usePolling: true } : {}),
+      },
+    },
     plugins: [
       vinext(),
       sites(),

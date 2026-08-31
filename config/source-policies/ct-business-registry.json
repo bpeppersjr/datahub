@@ -1,0 +1,35 @@
+{
+  "policy_id": "ct-business-registry",
+  "version": "1.0.0",
+  "publisher": "Connecticut Secretary of the State, Business Services Division",
+  "ownership": "Official public Business Registry records published by the Connecticut Secretary of the State",
+  "source_home": "https://data.ct.gov/stories/s/CT-Business-Registrations/dagr-u2hb/",
+  "source_dataset": "https://data.ct.gov/resource/n7gp-d28j.json",
+  "catalog_dataset_id": "n7gp-d28j",
+  "catalog_license": "Public Domain",
+  "source_access": "Public anonymous read-only HTTPS Socrata API.",
+  "allowed_use": ["official HTTPS metadata and selected-field API queries", "local processing", "immutable internal selected-field source retention", "organization and reported-business-address normalization", "coverage analysis", "derived registry assertions", "redistribution of approved normalized public fields with source attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing source Active status as independent proof of current operations, good standing, solvency, public access, licensure, or an open storefront",
+    "representing a reported business address or source geocode as a verified physical operating site",
+    "representing this state registry as every business operating in Connecticut or the United States",
+    "exporting business or survey email addresses, ownership-category survey answers, agents, principals, organizers, or other person-linked subsidiary records",
+    "treating the placeholder ALEI 0000000 as a unique identifier",
+    "merging organizations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "record_id_non_placeholder_alei_organization_names_registration_status_business_type_formation_dates_naics_reported_business_address_and_source_geocode": "public-with-provenance-and-semantic-limitations",
+    "business_and_survey_email_addresses": "excluded",
+    "ownership_category_survey_responses": "excluded",
+    "mailing_office_and_records_addresses": "excluded-pending-separate-purpose-review",
+    "agents_principals_organizers_and_other_people": "excluded"
+  },
+  "attribution": "Source: Connecticut Secretary of the State, Business Services Division, Connecticut Business Registry - Business Master.",
+  "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved normalized fields may be redistributed with Connecticut Secretary-of-the-State attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the selected-field raw snapshot remains internal.",
+  "contains_personal_data": false,
+  "personal_data_handling": "This connector deliberately excludes email, ownership-survey, agent, principal, organizer, and other person-linked fields and datasets. Organization names can incidentally contain a person's name because that is the registered organization name.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

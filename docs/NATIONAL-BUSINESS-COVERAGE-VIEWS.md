@@ -63,7 +63,7 @@ ZIP totals are never distributed to counties with ZCTA polygon-area weights. `zi
 
 ### ZIP
 
-Every row from the registry's 43,586-ZIP union is retained with source counts, source temporal metadata, ZBP employer baseline, USPS-validity status, ZCTA status, and complete many-to-many jurisdiction topology when a ZCTA exists. A ZCTA relationship continues to mean polygon area only—not the distribution of people, addresses, establishments, or businesses.
+Every row from the registry's 43,831-ZIP union is retained with source counts, source temporal metadata, ZBP employer baseline, USPS-validity status, ZCTA status, and complete many-to-many jurisdiction topology when a ZCTA exists. A ZCTA relationship continues to mean polygon area only—not the distribution of people, addresses, establishments, or businesses.
 
 Every ZIP row carries `complete_all_businesses: false` and `entity_resolution_applied: false`.
 
@@ -71,7 +71,7 @@ Census Nonemployer Statistics has no ZIP-level geography. Every ZIP view therefo
 
 ### Source and gaps
 
-Record-level source rows reconcile ZIP contribution counts with profile geography coverage, observation ranges, missing coordinates, unmatched points, ambiguous boundaries, and state conflicts. The separate Census Nonemployer source row reports only its annual aggregate national/state/county coverage and explicitly records that ZIP allocation is unavailable.
+Record-level source rows reconcile ZIP contribution counts with profile geography coverage, observation ranges, missing coordinates, unmatched points, ambiguous boundaries, and state conflicts. The Connecticut row reports 458,536 active-registration organizations and 447,807 eligible reported business addresses across 9,228 ZIPs as organization-only evidence; it intentionally has zero location profiles. The separate Census Nonemployer source row reports only its annual aggregate national/state/county coverage and explicitly records that ZIP allocation is unavailable.
 
 Gap rows are first-class data. They include global blockers, inherited registry limitations, per-source coordinate gaps, ZIPs without record-level contributions, ZIPs without ZCTAs or employer baselines, ZCTA overlay diagnostics, and county equivalents without ZCTA intersections.
 
@@ -100,14 +100,14 @@ The machine-readable contracts are [`config/datasets/national-business-coverage-
 
 ## Current verified release
 
-Release `national-business-coverage-views-20260830-230901771Z-d285346e` publishes seven independently checksummed artifacts totaling 248,126,277 bytes. It contains three national scopes, all 56 state equivalents, all 3,235 county equivalents, all 43,586 registry ZIP rows, nine source views, and 18,852 explicit gap rows.
+Release `national-business-coverage-views-20260831-005120309Z-1a03794e` publishes seven independently checksummed artifacts totaling 262,190,400 bytes. It contains three national scopes, all 56 state equivalents, all 3,235 county equivalents, all 43,831 registry ZIP rows, ten source views, and 19,340 explicit gap rows.
 
 The publisher assessed all 6,161,280 source-preserving location profiles. Source-reported address states match a supported Census state equivalent for 6,161,013 profiles; 267 remain missing or unsupported. Exactly 336,600 profiles carry valid points, 336,573 have one county assignment, 20 fall outside every generalized county polygon, and seven sit on ambiguous county boundaries. Eleven profiles have a conflict between their reported state and coordinate-derived county state; both observations remain visible.
 
 County point coverage currently comes from SNAP, FDIC, and FSIS profile layers. The current registry match-profile layer carries no point for NPPES, ECHO, FMCSA, or NCUA, so their 5,824,678 point-missing profiles are not silently placed in counties. ECHO retains source-reported coordinates and precision metadata in its own governed assertion layer, but those assertions are not generalized into premise-level match-profile points.
 
-Of the ZIP rows, 43,310 have record-level source contributions and 276 are denominator-only. The ZIP/ZCTA join reconciles exactly to all 33,791 crosswalk ZCTAs, leaving 9,795 ZIP rows without a ZCTA polygon. Census ZBP publishes an employer baseline for 34,954 ZIP rows; 8,632 retain an explicit unpublished or missing-baseline gap. The authoritative current USPS ZIP denominator remains unavailable, so no percentage over “all valid ZIP Codes” is published.
+Of the ZIP rows, 43,561 have record-level source contributions and 270 are denominator-only. The ZIP/ZCTA join reconciles exactly to all 33,791 crosswalk ZCTAs, leaving 10,040 ZIP rows without a ZCTA polygon. Census ZBP publishes an employer baseline for 34,954 ZIP rows; 8,877 retain an explicit unpublished or missing-baseline gap. The authoritative current USPS ZIP denominator remains unavailable, so no percentage over “all valid ZIP Codes” is published.
 
 The release also pins the verified 2023 Census Nonemployer baseline. It exposes 30,427,808 annual no-paid-employee establishments at the national/51-state-and-D.C. scope and 30,427,807 across 3,143 published county totals. One establishment remains unallocated to county, five state equivalents and 92 county equivalents remain outside the source geography scope, and no Nonemployer value is assigned to a ZIP.
 
-The release remains local aggregate, partial, and non-deduplicated. Its identity gate records zero benchmark labels, entity resolution unapplied, and export authorization false.
+The release remains local aggregate, partial, and non-deduplicated. Connecticut organization addresses stay out of physical-site state/county counts and are declared in the organization-only allocation gap. Its identity gate records zero benchmark labels, entity resolution unapplied, and export authorization false.
