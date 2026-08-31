@@ -13,6 +13,24 @@ const DIMENSION_ARTIFACT_TYPES = Object.freeze({
   gaps: "coverage-gap-view-jsonl",
 });
 
+const SOURCE_DISPLAY_NAMES = Object.freeze({
+  census_nonemployer_statistics: "Census Nonemployer Statistics",
+  cms_nppes_organizations: "CMS NPPES Organizations",
+  co_business_registry_good_standing_or_delinquent_organizations: "Colorado Business Registry Good Standing or Delinquent Organizations",
+  ct_business_registry_active_organizations: "Connecticut Business Registry Active Organizations",
+  epa_echo_active_facilities: "EPA ECHO Active Facilities",
+  fdic_bankfind: "FDIC BankFind",
+  fl_business_registry_quarterly_active_entities: "Florida Business Registry Quarterly Active Entities",
+  fmcsa_active_us_company_census: "FMCSA Active U.S. Company Census",
+  fsis_active_mpi_establishments: "FSIS Active MPI Establishments",
+  ia_business_registry_active_entities: "Iowa Business Registry Active Entities",
+  irs_eo_bmf_organizations: "IRS EO BMF Organizations",
+  ncua_quarterly_credit_unions: "NCUA Quarterly Credit Unions",
+  ny_business_registry_active_entities: "New York Business Registry Active Entities",
+  or_business_registry_active_registrations: "Oregon Business Registry Active Registrations",
+  usda_snap_retailers: "USDA SNAP Retailers",
+});
+
 function positiveInteger(value, fallback, maximum) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0) return fallback;
@@ -92,6 +110,7 @@ function sourceApiRow(row) {
   return {
     view_id: row.view_id,
     source_key: row.source_key,
+    source_name: SOURCE_DISPLAY_NAMES[row.source_key] ?? row.source_key.replaceAll("_", " "),
     profile_source_id: row.profile_source_id,
     source_kind: row.source_kind ?? "record-level-evidence",
     release_metadata: row.release_metadata,
@@ -226,7 +245,7 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
     if (dimension === "states") filtered = records.filter((row) => contains(row, ["state_name", "postal_abbreviation", "state_fips"], query));
     if (dimension === "counties") filtered = records.filter((row) => (!stateFips || row.state_fips === stateFips) && contains(row, ["county_name", "county_geoid", "state_fips"], query));
     if (dimension === "zips") filtered = records.filter((row) => !query || row.zip_code.startsWith(query));
-    if (dimension === "sources") filtered = records.filter((row) => contains(row, ["source_key", "profile_source_id"], query));
+    if (dimension === "sources") filtered = records.filter((row) => contains(row, ["source_key", "source_name", "profile_source_id"], query));
     if (dimension === "gaps") filtered = records.filter((row) => (!gapType || row.gap_type === gapType) && contains(row, ["gap_type", "scope_type", "scope_id", "severity", "consequence"], query));
     const offset = positiveInteger(options.offset, 0, Math.max(0, filtered.length));
     const limit = Math.max(1, positiveInteger(options.limit, 25, 100));

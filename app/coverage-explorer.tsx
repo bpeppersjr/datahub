@@ -53,6 +53,12 @@ type Overview = {
     ny_business_registry_active_organization_records: number;
     ny_business_registry_quarantined_source_records: number;
     ny_business_registry_eligible_reported_us_location_addresses: number;
+    fl_business_registry_source_records: number;
+    fl_business_registry_active_source_records: number;
+    fl_business_registry_inactive_source_records_excluded: number;
+    fl_business_registry_active_organization_records: number;
+    fl_business_registry_quarantined_source_records: number;
+    fl_business_registry_eligible_reported_us_principal_addresses: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -112,6 +118,7 @@ type ZipRow = {
 type SourceRow = {
   view_id: string;
   source_key: string;
+  source_name: string;
   profile_source_id: string | null;
   zip_rows_with_contribution: number;
   profile_count: number;
@@ -218,7 +225,7 @@ function SourceRows({ records }: { records: SourceRow[] }) {
       : row.profile_count;
     return (
       <div className="coverage-table-row source-row" key={row.view_id}>
-        <div><strong>{label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Entity-only evidence'}</span></div>
+        <div><strong>{row.source_name || label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Entity-only evidence'}</span></div>
         <span>{count(aggregate?.national_nonemployer_establishments ?? entityOnlyEvidence)}</span>
         <span>{aggregate ? `${count(aggregate.state_totals)} states` : count(row.coordinate_assigned_single_count)}</span>
         <span>{aggregate ? `${count(aggregate.county_totals)} counties` : count(row.zip_rows_with_contribution)}</span>
@@ -335,6 +342,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.or_business_registry_active_registration_records)}</strong> OR active registrations</span>
             <span><strong>{count(overview?.coverage?.ia_business_registry_active_organization_records)}</strong> IA active entities</span>
             <span><strong>{count(overview?.coverage?.ny_business_registry_active_organization_records)}</strong> NY active extract entities</span>
+            <span><strong>{count(overview?.coverage?.fl_business_registry_active_organization_records)}</strong> FL active quarterly entities</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

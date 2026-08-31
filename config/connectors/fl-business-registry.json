@@ -1,0 +1,40 @@
+{
+  "connector_id": "fl-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes rows explicitly coded A from Florida's official quarterly corporate data, retaining a privacy-minimized all-status source snapshot plus active organization identity, filing profile, reported principal address, temporal evidence, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "privacy-minimize", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/fl-business-registry-quarterly-active-entities" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 2000000 },
+      "remote_path": { "const": "/Public/doc/quarterly/cor/cordata.zip" }
+    }
+  },
+  "named_secret_references": ["FL_SUNBIZ_PUBLIC_PASSWORD"],
+  "input_artifact_types": ["fl-sunbiz-quarterly-corporate-data-zip", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["fl-business-registry-selected-source-jsonl-gzip", "normalized-fl-business-organization-jsonl-gzip", "fl-business-registry-excluded-inactive-jsonl-gzip", "fl-business-registry-quarantine-jsonl-gzip", "fl-business-registry-zip-coverage-jsonl", "fl-business-registry-source-summary", "fl-business-registry-preflight", "fl-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["sftp.floridados.gov"],
+  "allowed_remote_paths": ["/Public/doc/quarterly/cor/cordata.zip"],
+  "sftp_host_key": "SHA256:xTpc6X81is5Nyh2QXR6hIRhS7ayx5/BMr162zB73xyQ",
+  "redirect_policy": "Not applicable to SFTP. Reject any host, port, username, path, or host key outside the pinned public-source contract.",
+  "provider_budget_key": "florida-dos-sunbiz-public-sftp",
+  "resource_class": "network-cpu-disk-large",
+  "execution_limits": {
+    "max_parallel_transfers": 1,
+    "maximum_archive_bytes": 3000000000,
+    "maximum_uncompressed_archive_bytes": 25000000000,
+    "fixed_width_record_characters": 1440,
+    "minimum_active_organizations": 2000000
+  },
+  "retry": "Retry transient SFTP transport failures with bounded exponential backoff and resume from the verified partial byte offset. Do not retry host-key mismatch, authentication failure, remote-path drift, archive-size violation, invalid ZIP structure, fixed-width drift, duplicate identity, or quality-gate failure.",
+  "checkpoint": "Record remote size and modified time before download; resume only against identical metadata. Download to run-scoped temporary storage, hash the archive, stream every filing member, retain only approved selected fields, then delete the unminimized archive. Recheck remote metadata before publication. A complete selected-field staged snapshot can be independently replayed without reacquisition. current.json changes only after verification and atomic release publication.",
+  "idempotency": "Remote modified time and size plus archive SHA-256 and the ordered privacy-minimized source SHA-256 identify a source release; the Florida corporate document number creates one stable provisional organization candidate.",
+  "cancellation": "Abort SFTP and local streams cooperatively, delete the unminimized partial or complete archive, retain only privacy-minimized unpublished staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/fl-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved normalized releases; never retain the unminimized source archive in a published release.",
+  "produced_entities": ["organization-candidate", "fl-active-quarterly-snapshot-assertion", "reported-principal-address-assertion", "registration-profile-assertion"],
+  "produced_identifiers": ["fl-corporation-document-number", "zip5", "zip4", "zcta5"]
+}

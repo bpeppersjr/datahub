@@ -77,6 +77,24 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       earliest_observed_at: "2026-08-01T00:00:00.000Z",
       latest_observed_at: "2026-08-02T00:00:00.000Z",
     },
+  }, {
+    view_id: "source:fl_business_registry_quarterly_active_entities",
+    source_key: "fl_business_registry_quarterly_active_entities",
+    profile_source_id: null,
+    release_metadata: {},
+    zip_level_counts: { organization_reported_principal_address_count: 2 },
+    zip_rows_with_contribution: 1,
+    location_profile_geography: {
+      profile_count: 0,
+      reported_state_assigned_count: 0,
+      coordinate_present_valid_count: 0,
+      coordinate_assigned_single_count: 0,
+      coordinate_missing_count: 0,
+      coordinate_unmatched_count: 0,
+      coordinate_ambiguous_boundary_count: 0,
+      earliest_observed_at: null,
+      latest_observed_at: null,
+    },
   }]);
   await artifact("coverage-gap-view-jsonl", "coverage-gaps", [{
     gap_id: "gap:zip-no-zcta:54321",
@@ -96,7 +114,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     complete_all_businesses: false,
     entity_resolution_applied: false,
     authoritative_current_usps_zip_denominator: null,
-    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 1, gap_views: 1 },
+    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 2, gap_views: 1 },
     count_semantics: {},
     limitations: [],
     artifacts,
@@ -122,6 +140,9 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const sourceRows = await store.listDimension("sources");
   assert.equal(sourceRows.records[0].source_kind, "aggregate-baseline");
   assert.equal(sourceRows.records[0].aggregate_baseline.national_nonemployer_establishments, 5);
+  const floridaSources = await store.listDimension("sources", { query: "Florida" });
+  assert.equal(floridaSources.total, 1);
+  assert.equal(floridaSources.records[0].source_name, "Florida Business Registry Quarterly Active Entities");
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

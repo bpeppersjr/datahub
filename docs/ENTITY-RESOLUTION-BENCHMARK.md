@@ -78,10 +78,10 @@ The build publishes an immutable `awaiting-independent-labels` sample and a null
 
 ## Validated live sample
 
-The independently verified sample `business-entity-resolution-benchmark-sample-20260831-094202307Z-88eb01e1` is tied to resolution release `business-entity-resolution-20260831-093936427Z-40ffc672` and registry release `national-business-registry-20260831-075326227Z-b35a2bcb`. It sampled 425 candidates from each of these enumerated universes:
+The independently verified sample `business-entity-resolution-benchmark-sample-20260831-150716032Z-6aadbde0` is tied to resolution release `business-entity-resolution-20260831-150410799Z-5f9a1ddc` and registry release `national-business-registry-20260831-130700190Z-461a756c`. It sampled 425 candidates from each of these enumerated universes:
 
 - 1,014,108 automatic physical-site membership pairs;
 - 32,623 automatic establishment membership pairs; and
 - 53,727 unapplied review candidates.
 
-The 1,275-row packet contains 2,544 unique source-preserving profiles across three verified artifacts totaling 831,410 bytes. Its label template has 0 submitted labels, so both the precision gate and export authorization are correctly false.
+The 1,275-row packet contains 2,544 unique source-preserving profiles across three verified artifacts totaling 831,430 bytes. Its label template has 0 submitted labels, so both the precision gate and export authorization are correctly false.

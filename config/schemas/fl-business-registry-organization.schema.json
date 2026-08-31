@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/fl-business-registry-organization.schema.json",
+  "title": "Normalized Florida Business Registry Quarterly Active Entity",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_name", "reported_principal_address", "reported_address_coordinate", "geography", "registration_profile", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^fl-business-registry:organization:[A-Z0-9]{6,12}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:fl_document_[a-z0-9]{6,12}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "value", "source_field"],
+        "properties": {
+          "type": { "const": "fl_corporation_document_number" },
+          "value": { "type": "string", "pattern": "^[A-Z0-9]{6,12}$" },
+          "source_field": { "const": "corporation_number" }
+        }
+      }
+    },
+    "legal_name": { "type": "string", "minLength": 1 },
+    "reported_principal_address": { "type": "object" },
+    "reported_address_coordinate": { "type": "null" },
+    "geography": { "type": "object" },
+    "registration_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "source_code", "status_class", "semantics"],
+      "properties": {
+        "value": { "const": "included-as-active-in-florida-quarterly-corporate-archive" },
+        "source_code": { "const": "A" },
+        "status_class": { "const": "active-in-florida-division-of-corporations-quarterly-source" },
+        "semantics": { "const": "source-active-registration-not-independent-proof-of-current-operations-legality-licensure-public-access-or-an-open-storefront" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "public-factual-fields-with-source-limitations" }
+  }
+}

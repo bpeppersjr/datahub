@@ -1,0 +1,48 @@
+{
+  "policy_id": "fl-business-registry",
+  "version": "1.0.0",
+  "publisher": "Florida Department of State, Division of Corporations",
+  "ownership": "Official Florida corporate-registration public records distributed by the Division of Corporations through its public Data Access Portal",
+  "source_home": "https://dos.fl.gov/sunbiz/other-services/data-downloads/",
+  "source_dataset": "sftp://sftp.floridados.gov/Public/doc/quarterly/cor/cordata.zip",
+  "source_definitions": "https://dos.sunbiz.org/data-definitions/cor.html",
+  "catalog_license": null,
+  "program_use_authorization": "The Division offers free data downloads for informational purposes, documents custom-program use, and provides public portal credentials. Downloads are provided as-is and can change, be replaced, or be deleted.",
+  "program_use_authorization_url": "https://dos.fl.gov/sunbiz/other-services/data-downloads/data-usage-guide/",
+  "source_access": "Read-only SFTP using the publisher's public account. The password is supplied at runtime through FL_SUNBIZ_PUBLIC_PASSWORD and is never persisted in configuration, logs, fixtures, manifests, or artifacts.",
+  "allowed_use": [
+    "official quarterly corporate filing archive acquisition",
+    "local fixed-width processing",
+    "immutable internal retention of privacy-minimized selected-field source records",
+    "selection of rows explicitly coded A plus active organization and reported-principal-address normalization",
+    "ZIP coverage analysis",
+    "derived registry assertions",
+    "redistribution of approved normalized factual fields with source attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "publishing rows coded I or representing source Active status as independent proof of current operations, legality, solvency, licensure, public access, or an open storefront",
+    "representing a principal address as a verified current physical operating site",
+    "representing the quarterly snapshot as every business operating in Florida or the United States",
+    "retaining or exporting FEIN, mailing-address, registered-agent, or officer fields from the 1440-character source row",
+    "retaining the unminimized source archive after selected-field extraction",
+    "embedding the public-access password in source code, configuration, logs, fixtures, manifests, or artifacts",
+    "merging organizations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "corporation_number_name_status_filing_type_principal_address_filing_dates_jurisdiction_and_report_dates": "public-with-provenance-and-semantic-limitations",
+    "unminimized_fixed_width_archive": "ephemeral-delete-after-selected-field-extraction",
+    "federal_employer_identification_number": "excluded",
+    "mailing_address": "excluded",
+    "registered_agent_name_type_and_address": "excluded",
+    "officer_names_types_titles_and_addresses": "excluded"
+  },
+  "attribution": "Source: Florida Department of State, Division of Corporations, quarterly corporate data download.",
+  "retention": "Retain immutable internal selected-field source snapshots and approved normalized releases. Delete the unminimized archive after successful selected-field extraction and on acquisition or parsing failure.",
+  "redistribution": "Only approved normalized factual fields are exportable, with source attribution, archive timestamp and checksum, provenance, field exclusions, and source-status/address limitations retained. The raw archive and selected-field source snapshot remain internal.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Corporate names and principal addresses are public registration fields but can identify an individual or residence. The connector parses only positions through the approved report-date fields and never materializes FEIN, mailing-address, registered-agent, or officer fields in a retained artifact.",
+  "contains_secrets": false,
+  "named_runtime_credential": "FL_SUNBIZ_PUBLIC_PASSWORD",
+  "reviewed_at": "2026-08-31"
+}
