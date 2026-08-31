@@ -1,0 +1,33 @@
+{
+  "dataset_id": "or-business-registry-active-registrations",
+  "schema_version": "1.0.0",
+  "title": "Oregon Business Registry Active Registrations",
+  "status": "implemented",
+  "description": "Governed Oregon Secretary of State active-registration layer using only selected non-agent principal-place rows, with legal-entity versus assumed-business-name identity, ZIP/ZCTA context, provenance, and explicit non-site semantics.",
+  "output": "data/business-sources/or-business-registry-active-registrations/current.json",
+  "connector": "config/connectors/or-business-registry.json",
+  "source_policy": "config/source-policies/or-business-registry.json",
+  "record_schema": "config/schemas/or-business-registry-registration.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Registrations listed in the official Oregon Active Businesses dataset with at least one principal-place row; this is source-specific active-registration evidence, not a census of every operating business or physical site.",
+  "identity_rule": "Legal-entity registrations become provisional organization candidates. Assumed Business Name registrations become provisional brand candidates because an assumed name is not necessarily a legal organization and its owner is deliberately excluded.",
+  "current_verified_release": {
+    "release_id": "or-business-registry-20260831-032756653Z-8c05d229",
+    "source_release_id": "or-business-registry-2026-08-25-5d7cd42cfd1506c1",
+    "source_rows_updated_at": "2026-08-25T13:43:02Z",
+    "source_principal_place_rows": 559498,
+    "active_registrations": 559490,
+    "legal_entity_registrations": 443158,
+    "assumed_business_name_registrations": 116332,
+    "registrations_with_multiple_principal_place_rows": 8,
+    "registrations_with_eligible_us_principal_place_address": 559140,
+    "registrations_without_eligible_us_zip_address": 350,
+    "eligible_registration_zip_contributions": 559141,
+    "source_zip_codes": 9177,
+    "quarantined_registration_groups": 0,
+    "physical_sites": null,
+    "verified_artifact_count": 21,
+    "verified_bytes": 136372176
+  },
+  "documentation": "docs/OR-BUSINESS-REGISTRY.md"
+}

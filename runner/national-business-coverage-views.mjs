@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.2.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.3.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -391,8 +391,8 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
     consequence: "ZIP totals are not allocated to counties using polygon-area weights; county profile counts cover coordinate-bearing profiles only.",
   });
   add({
-    gap_id: "gap:organization-only-jurisdiction-allocation",
-    gap_type: "organization-only-records-not-allocated-to-state-or-county-views",
+    gap_id: "gap:organization-or-brand-jurisdiction-allocation",
+    gap_type: "organization-or-brand-records-not-allocated-to-state-or-county-views",
     scope_type: "national",
     scope_id: "registry-union",
     severity: "jurisdiction-coverage",
@@ -403,9 +403,13 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? null,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? null,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? null,
+      or_business_registry_active_registration_records: registry.manifest.coverage?.or_business_registry_active_registration_records ?? null,
+      or_business_registry_legal_entity_registrations: registry.manifest.coverage?.or_business_registry_legal_entity_registrations ?? null,
+      or_business_registry_assumed_business_name_registrations: registry.manifest.coverage?.or_business_registry_assumed_business_name_registrations ?? null,
+      or_business_registry_eligible_registration_zip_contributions: registry.manifest.coverage?.or_business_registry_eligible_registration_zip_contributions ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-only evidence such as IRS EO filing addresses and Connecticut or Colorado registry-reported business addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, or Oregon registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1063,7 +1067,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: "1.2.0" },
+    publisher: { id: "national-business-coverage-views", version: "1.3.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1104,6 +1108,11 @@ export async function buildNationalBusinessCoverageViews({
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? 0,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? 0,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? 0,
+      or_business_registry_source_principal_place_rows: registry.manifest.coverage?.or_business_registry_source_principal_place_rows ?? 0,
+      or_business_registry_active_registration_records: registry.manifest.coverage?.or_business_registry_active_registration_records ?? 0,
+      or_business_registry_legal_entity_registrations: registry.manifest.coverage?.or_business_registry_legal_entity_registrations ?? 0,
+      or_business_registry_assumed_business_name_registrations: registry.manifest.coverage?.or_business_registry_assumed_business_name_registrations ?? 0,
+      or_business_registry_eligible_registration_zip_contributions: registry.manifest.coverage?.or_business_registry_eligible_registration_zip_contributions ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
@@ -1117,6 +1126,7 @@ export async function buildNationalBusinessCoverageViews({
       "Entity-resolution decisions are not applied until independent labels, precision approval, and export-policy review pass.",
       "County profile counts cover only profiles with one valid coordinate assignment; ZIP counts are never area-weighted into counties.",
       "Source-specific active, authorized, registered, current, or filing evidence is not generalized into one universal operating-status claim.",
+      "Oregon assumed business names remain provisional brands without inferred owners, organizations, physical sites, establishments, or relationships.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
       "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",

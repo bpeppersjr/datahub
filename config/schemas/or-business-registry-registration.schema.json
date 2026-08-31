@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/or-business-registry-registration.schema.json",
+  "title": "Normalized Oregon Active Business Registration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "registration_kind", "entity_candidates", "external_identifiers", "business_name", "entity_type", "registry_date", "jurisdiction", "principal_place_addresses", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^or-business-registry:registration:[0-9]+$" },
+    "registration_kind": { "enum": ["legal-entity-registration", "assumed-business-name-registration"] },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "brand_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": ["string", "null"], "pattern": "^organization:or_sos_registry_[0-9]+$" },
+        "brand_id": { "type": ["string", "null"], "pattern": "^brand:or_sos_assumed_name_[0-9]+$" },
+        "physical_site_id": { "type": "null" },
+        "establishment_id": { "type": "null" },
+        "identity_status": { "const": "provisional" }
+      },
+      "oneOf": [
+        { "properties": { "organization_id": { "type": "string" }, "brand_id": { "type": "null" } } },
+        { "properties": { "organization_id": { "type": "null" }, "brand_id": { "type": "string" } } }
+      ]
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "business_name": { "type": "string", "minLength": 1 },
+    "entity_type": { "type": "string", "minLength": 1 },
+    "registry_date": { "type": ["string", "null"], "format": "date" },
+    "jurisdiction": { "type": ["string", "null"] },
+    "principal_place_addresses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["source_row_id", "street", "unit_or_additional", "city", "state_source", "state_code", "postal_code_source", "zip_code", "postal_code", "zip4", "postal_code_status", "address_scope", "eligible_for_us_zip_coverage", "geography"]
+      }
+    },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "status_class", "semantics"],
+      "properties": {
+        "value": { "const": "listed-in-oregon-active-businesses-dataset-as-of-source-refresh" },
+        "status": { "const": "Active" },
+        "status_class": { "const": "active-registration-in-oregon-secretary-of-state-source-dataset" },
+        "semantics": { "const": "source-active-registration-not-independent-proof-of-current-operations-legality-licensure-public-access-or-an-open-storefront" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "public" }
+  }
+}

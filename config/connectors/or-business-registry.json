@@ -1,0 +1,38 @@
+{
+  "connector_id": "or-business-registry",
+  "version": "1.0.0",
+  "description": "Publishes a selected-field snapshot of active Oregon business registrations using only principal-place-of-business rows, preserving legal-entity versus assumed-business-name semantics, one-to-many address observations, provenance, and explicit non-site semantics.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/or-business-registry-active-registrations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_registrations": { "type": "integer", "minimum": 1, "default": 500000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["or-sos-socrata-active-business-principal-place-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["or-business-registry-source-jsonl-gzip", "normalized-or-business-registration-jsonl-gzip", "or-business-registry-quarantine-jsonl-gzip", "or-business-registry-zip-coverage-jsonl", "or-business-registry-source-summary", "or-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.oregon.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.oregon.gov metadata and tckn-sxa6 JSON resource paths.",
+  "provider_budget_key": "or-sos-active-businesses-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 25000,
+    "maximum_response_bytes": 50000000,
+    "minimum_active_registrations": 500000
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, duplicate source-row identity, source refresh drift, count mismatch, or quality-gate failures.",
+  "checkpoint": "The selected-field principal-place source snapshot is acquired in stable registry-number and Socrata-row-ID order and hashed before normalization. Source metadata and selected-row/distinct-registration counts are rechecked before publication. A complete staged source snapshot can be revalidated and normalized into a new immutable run without reacquisition, and a complete unpublished manifest can be independently verified and published by immutable run ID. current.json changes only after complete run-scoped publication.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the Oregon registry number creates one stable provisional organization or assumed-business-name brand candidate.",
+  "cancellation": "Abort network requests and local record processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/or-business-registry.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and approved public normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "brand-candidate", "or-active-registration-status-assertion", "principal-place-address-assertion", "registration-profile-assertion"],
+  "produced_identifiers": ["or-business-registry-number", "socrata-row-id", "zip5", "zcta5"]
+}

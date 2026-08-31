@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-registry",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Reconciles governed record-level source releases into canonical business entities, assertions, relationships, and ZIP coverage without overstating completeness.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -18,19 +18,20 @@
       "irs_eo_pointer": { "type": "string", "default": "data/business-sources/irs-eo-bmf-organizations/current.json" },
       "ct_business_pointer": { "type": "string", "default": "data/business-sources/ct-business-registry-active-organizations/current.json" },
       "co_business_pointer": { "type": "string", "default": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json" },
+      "or_business_pointer": { "type": "string", "default": "data/business-sources/or-business-registry-active-registrations/current.json" },
       "usps_zips_pointer": { "type": ["string", "null"], "default": null, "description": "Optional governed local USPS operational ZIP assignment release." }
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "normalized-fmcsa-company-census-record-jsonl-gzip", "fmcsa-company-census-zip-coverage-jsonl", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl", "normalized-ct-business-organization-jsonl-gzip", "ct-business-registry-zip-coverage-jsonl", "normalized-co-business-organization-jsonl-gzip", "co-business-registry-zip-coverage-jsonl", "usps-operational-zip-assignment-jsonl"],
-  "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "entity-resolution-location-profile-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
+  "input_artifact_types": ["normalized-snap-retailer-jsonl-gzip", "snap-zip-coverage-jsonl", "normalized-nppes-organization-jsonl-gzip", "normalized-nppes-practice-location-jsonl-gzip", "normalized-nppes-other-name-jsonl-gzip", "nppes-organization-zip-coverage-jsonl", "normalized-fdic-institution-jsonl-gzip", "normalized-fdic-location-jsonl-gzip", "fdic-zip-coverage-jsonl", "normalized-ncua-institution-jsonl-gzip", "normalized-ncua-location-jsonl-gzip", "normalized-ncua-trade-name-jsonl-gzip", "ncua-zip-coverage-jsonl", "normalized-fsis-establishment-jsonl-gzip", "fsis-zip-coverage-jsonl", "normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "normalized-fmcsa-company-census-record-jsonl-gzip", "fmcsa-company-census-zip-coverage-jsonl", "normalized-irs-eo-organization-jsonl-gzip", "irs-eo-bmf-zip-coverage-jsonl", "normalized-ct-business-organization-jsonl-gzip", "ct-business-registry-zip-coverage-jsonl", "normalized-co-business-organization-jsonl-gzip", "co-business-registry-zip-coverage-jsonl", "normalized-or-business-registration-jsonl-gzip", "or-business-registry-zip-coverage-jsonl", "usps-operational-zip-assignment-jsonl"],
+  "output_artifact_types": ["canonical-organization-jsonl-gzip", "canonical-brand-jsonl-gzip", "canonical-physical-site-jsonl-gzip", "canonical-establishment-jsonl-gzip", "canonical-service-jsonl", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", "entity-resolution-location-profile-jsonl-gzip", "registry-zip-coverage-jsonl", "dataset-manifest-json"],
   "allowed_hosts": [],
   "redirect_policy": "deny",
   "provider_budget_key": "local-registry-reconciliation",
   "resource_class": "cpu-disk",
   "execution_limits": {
     "network_requests": 0,
-    "input_partitions": 138,
+    "input_partitions": 179,
     "parallel_partitions": 1,
     "output_match_profile_partitions": 100
   },
@@ -40,6 +41,6 @@
   "cancellation": "Stop streaming at the current record; no current pointer is changed until the complete release is published.",
   "source_policy": "Inherited per assertion and coverage field from each contributing source policy; USPS-derived ZIP coverage inherits the local-restricted or permission-governed USPS policy.",
   "retention_profile": "Retain immutable releases under the most restrictive contributing artifact policy; USPS-derived ZIP coverage remains local restricted unless reviewed written permission authorizes another treatment.",
-  "produced_entities": ["organization", "physical_site", "establishment", "service"],
-  "produced_identifiers": ["canonical-entity-id", "assertion-id", "relationship-id", "usda-snap-record-id", "npi", "fdic-certificate", "fdic-location-unique-number", "ncua-charter-number", "ncua-site-id-within-charter", "fsis-establishment-id", "fsis-establishment-number", "frs-registry-id", "epa-program-id", "usdot-number", "fmcsa-docket-number", "ein", "ct-business-registry-record-id", "ct-authoritative-legal-entity-identifier", "co-business-entity-id", "zip5", "zcta5"]
+  "produced_entities": ["organization", "brand", "physical_site", "establishment", "service"],
+  "produced_identifiers": ["canonical-entity-id", "assertion-id", "relationship-id", "usda-snap-record-id", "npi", "fdic-certificate", "fdic-location-unique-number", "ncua-charter-number", "ncua-site-id-within-charter", "fsis-establishment-id", "fsis-establishment-number", "frs-registry-id", "epa-program-id", "usdot-number", "fmcsa-docket-number", "ein", "ct-business-registry-record-id", "ct-authoritative-legal-entity-identifier", "co-business-entity-id", "or-business-registry-number", "zip5", "zcta5"]
 }

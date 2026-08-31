@@ -40,6 +40,11 @@ type Overview = {
     co_business_registry_good_standing_or_delinquent_organization_records: number;
     co_business_registry_quarantined_source_records: number;
     co_business_registry_eligible_reported_us_business_addresses: number;
+    or_business_registry_source_principal_place_rows: number;
+    or_business_registry_active_registration_records: number;
+    or_business_registry_legal_entity_registrations: number;
+    or_business_registry_assumed_business_name_registrations: number;
+    or_business_registry_eligible_registration_zip_contributions: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -200,13 +205,13 @@ function ZipRows({ records }: { records: ZipRow[] }) {
 function SourceRows({ records }: { records: SourceRow[] }) {
   return records.map((row) => {
     const aggregate = row.source_kind === 'aggregate-baseline' ? row.aggregate_baseline : null;
-    const organizationOnlyEvidence = row.profile_count === 0
-      ? Object.values(row.zip_level_counts ?? {}).reduce((sum, value) => sum + value, 0)
+    const entityOnlyEvidence = row.profile_count === 0
+      ? Math.max(0, ...Object.values(row.zip_level_counts ?? {}))
       : row.profile_count;
     return (
       <div className="coverage-table-row source-row" key={row.view_id}>
-        <div><strong>{label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Organization-only evidence'}</span></div>
-        <span>{count(aggregate?.national_nonemployer_establishments ?? organizationOnlyEvidence)}</span>
+        <div><strong>{label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Entity-only evidence'}</span></div>
+        <span>{count(aggregate?.national_nonemployer_establishments ?? entityOnlyEvidence)}</span>
         <span>{aggregate ? `${count(aggregate.state_totals)} states` : count(row.coordinate_assigned_single_count)}</span>
         <span>{aggregate ? `${count(aggregate.county_totals)} counties` : count(row.zip_rows_with_contribution)}</span>
       </div>
@@ -319,6 +324,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.co_business_registry_good_standing_or_delinquent_organization_records)}</strong> CO Good Standing/Delinquent registrations</span>
+            <span><strong>{count(overview?.coverage?.or_business_registry_active_registration_records)}</strong> OR active registrations</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

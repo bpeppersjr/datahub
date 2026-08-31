@@ -13,7 +13,7 @@ Usage:
 
 Options:
   --output <path>    Output root (default: data/business-entity-resolution)
-  --registry <path>  Registry current.json with 1.2.0 match profiles (default: data/business-registry/current.json)
+  --registry <path>  Compatible registry current.json with match profiles (default: data/business-registry/current.json)
   --help             Show this help
 `;
 }

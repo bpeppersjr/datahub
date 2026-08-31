@@ -9,7 +9,7 @@ import { createGunzip, createGzip } from "node:zlib";
 import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.3.0";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@1.5.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -579,6 +579,57 @@ export function reconcileCoBusinessOrganization(record) {
   };
 }
 
+export function reconcileOrBusinessRegistration(record) {
+  const registryNumber = record.external_identifiers?.find((item) => item.type === "or_business_registry_number")?.value;
+  const legalEntity = record.registration_kind === "legal-entity-registration";
+  const assumedName = record.registration_kind === "assumed-business-name-registration";
+  const entityId = legalEntity ? record.entity_candidates?.organization_id : record.entity_candidates?.brand_id;
+  const expectedEntityId = legalEntity
+    ? `organization:or_sos_registry_${registryNumber}`
+    : `brand:or_sos_assumed_name_${registryNumber}`;
+  const entityType = legalEntity ? "organization" : "brand";
+  if (!/^\d+$/.test(registryNumber ?? "") || (!legalEntity && !assumedName) || entityId !== expectedEntityId
+    || !record.business_name || record.entity_candidates?.physical_site_id || record.entity_candidates?.establishment_id
+    || record.source_status?.status !== "Active" || !Array.isArray(record.principal_place_addresses) || record.principal_place_addresses.length === 0) {
+    throw new Error(`Invalid Oregon Business Registry registration candidate ${record.normalized_record_id}.`);
+  }
+  const predicatePrefix = legalEntity ? "organization" : "brand";
+  const assertions = [
+    assertion(record, entityId, `${predicatePrefix}.${legalEntity ? "legal-name" : "name"}`, record.business_name, "string", "business_name"),
+    assertion(record, entityId, `${predicatePrefix}.or-registration-status`, record.source_status, "object", "associated_name_type"),
+    assertion(record, entityId, `${predicatePrefix}.or-registration-profile`, {
+      registration_kind: record.registration_kind,
+      entity_type: record.entity_type,
+      registry_date: record.registry_date,
+      jurisdiction: record.jurisdiction,
+    }, "object", "entity_type|registry_date|jurisdiction"),
+  ];
+  for (const identifier of record.external_identifiers ?? []) {
+    assertions.push(assertion(record, entityId, `${predicatePrefix}.external-identifier`, identifier, "identifier", identifier.source_field));
+  }
+  const zipCodes = new Set();
+  for (const address of record.principal_place_addresses) {
+    if (!address.source_row_id || (address.eligible_for_us_zip_coverage && !/^\d{5}$/.test(address.zip_code ?? ""))) {
+      throw new Error(`Invalid Oregon principal-place address for registration ${registryNumber}.`);
+    }
+    assertions.push(assertion(record, entityId, `${predicatePrefix}.principal-place-address`, address, "address", "address|address_continued|city|state|zip"));
+    if (address.eligible_for_us_zip_coverage) zipCodes.add(address.zip_code);
+  }
+  for (const zipCode of zipCodes) {
+    const address = record.principal_place_addresses.find((candidate) => candidate.zip_code === zipCode && candidate.eligible_for_us_zip_coverage);
+    assertions.push(assertion(record, entityId, `${predicatePrefix}.principal-place-zip-code`, zipCode, "string", "zip"));
+    assertions.push(assertion(record, entityId, `${predicatePrefix}.principal-place-zcta`, address.geography, "object", "zip"));
+  }
+  return {
+    registryNumber,
+    hashPrefix: digest(registryNumber)[0],
+    entityType,
+    entity: canonicalEntity(entityId, entityType, record.observed_at),
+    assertions,
+    zipCodes: [...zipCodes].sort(),
+  };
+}
+
 function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
@@ -988,6 +1039,32 @@ async function loadCoBusinessRelease(pointerPath) {
   };
 }
 
+async function loadOrBusinessRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "Oregon Business Registry manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "or-business-registry-active-registrations" || manifest.status !== "published" || !manifest.complete_selected_active_registration_snapshot) {
+    throw new Error("A complete published Oregon active Business Registry registration source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const registrationArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-or-business-registration-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (registrationArtifacts.length !== 16) throw new Error("Oregon Business Registry source release has an incomplete normalized partition set.");
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "or-business-registry-zip-coverage-jsonl");
+  if (!zipArtifact) throw new Error("Oregon Business Registry source release has no ZIP coverage artifact.");
+  for (const artifact of [...registrationArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `Oregon Business Registry artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Oregon Business Registry artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count) throw new Error("Oregon Business Registry ZIP coverage record count does not match its manifest.");
+  return { manifest, manifestSha256: sha256Buffer(manifestBuffer), releaseDirectory, registrationArtifacts, zipRows };
+}
+
 async function loadUspsOperationalZipRelease(pointerPath) {
   const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
   const pointerDirectory = path.dirname(pointerPath);
@@ -1052,7 +1129,7 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, coBusiness, uspsZips, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts, ctBusinessOrganizationCounts, coBusinessOrganizationCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, coBusiness, orBusiness, uspsZips, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts, ctBusinessOrganizationCounts, coBusinessOrganizationCounts, orBusinessRegistrationCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
@@ -1063,8 +1140,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
   const irsEoRows = new Map((irsEo?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const ctBusinessRows = new Map((ctBusiness?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const coBusinessRows = new Map((coBusiness?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const orBusinessRows = new Map((orBusiness?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const uspsRows = new Map((uspsZips?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...ctBusinessRows.keys(), ...coBusinessRows.keys(), ...uspsRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys(), ...ctBusinessOrganizationCounts.keys(), ...coBusinessOrganizationCounts.keys()])].sort();
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...ctBusinessRows.keys(), ...coBusinessRows.keys(), ...orBusinessRows.keys(), ...uspsRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys(), ...ctBusinessOrganizationCounts.keys(), ...coBusinessOrganizationCounts.keys(), ...orBusinessRegistrationCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
@@ -1076,8 +1154,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     const irsEoRow = irsEoRows.get(zipCode);
     const ctBusinessRow = ctBusinessRows.get(zipCode);
     const coBusinessRow = coBusinessRows.get(zipCode);
+    const orBusinessRow = orBusinessRows.get(zipCode);
     const uspsRow = uspsRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow ?? ctBusinessRow ?? coBusinessRow;
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow ?? ctBusinessRow ?? coBusinessRow ?? orBusinessRow;
     if (!foundation && !uspsRow) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
@@ -1090,6 +1169,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     const irsEoOrganizations = irsEoOrganizationCounts.get(zipCode) ?? 0;
     const ctBusinessOrganizations = ctBusinessOrganizationCounts.get(zipCode) ?? 0;
     const coBusinessOrganizations = coBusinessOrganizationCounts.get(zipCode) ?? 0;
+    const orBusinessRegistrations = orBusinessRegistrationCounts.get(zipCode) ?? { legal_entity: 0, assumed_business_name: 0 };
+    const orBusinessRegistrationTotal = orBusinessRegistrations.legal_entity + orBusinessRegistrations.assumed_business_name;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
       || secondary !== (nppesRow?.nppes_organization_provider_snapshot?.non_primary_practice_location_count ?? 0))) {
@@ -1103,8 +1184,13 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     if (irsEo && irsEoOrganizations !== (irsEoRow?.irs_eo_bmf_current_snapshot?.organization_filing_address_count ?? 0)) throw new Error(`ZIP ${zipCode} IRS EO organization filing-address counts do not reconcile.`);
     if (ctBusiness && ctBusinessOrganizations !== (ctBusinessRow?.ct_business_registry_active_snapshot?.organization_reported_business_address_count ?? 0)) throw new Error(`ZIP ${zipCode} Connecticut Business Registry organization-address counts do not reconcile.`);
     if (coBusiness && coBusinessOrganizations !== (coBusinessRow?.co_business_registry_registration_snapshot?.organization_reported_business_address_count ?? 0)) throw new Error(`ZIP ${zipCode} Colorado Business Registry organization-address counts do not reconcile.`);
+    if (orBusiness && (orBusinessRegistrationTotal !== (orBusinessRow?.or_business_registry_active_registration_snapshot?.registration_principal_place_address_count ?? 0)
+      || orBusinessRegistrations.legal_entity !== (orBusinessRow?.or_business_registry_active_registration_snapshot?.legal_entity_registration_principal_place_address_count ?? 0)
+      || orBusinessRegistrations.assumed_business_name !== (orBusinessRow?.or_business_registry_active_registration_snapshot?.assumed_business_name_registration_principal_place_address_count ?? 0))) {
+      throw new Error(`ZIP ${zipCode} Oregon Business Registry registration-address counts do not reconcile.`);
+    }
     const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords;
-    const recordContributionCount = locationCount + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations;
+    const recordContributionCount = locationCount + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations + orBusinessRegistrationTotal;
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -1125,6 +1211,9 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
         irs_eo_organization_filing_address_count: irsEoOrganizations,
         ct_business_registry_organization_reported_business_address_count: ctBusinessOrganizations,
         co_business_registry_organization_principal_office_address_count: coBusinessOrganizations,
+        or_business_registry_active_registration_principal_place_address_count: orBusinessRegistrationTotal,
+        or_business_registry_legal_entity_registration_principal_place_address_count: orBusinessRegistrations.legal_entity,
+        or_business_registry_assumed_business_name_registration_principal_place_address_count: orBusinessRegistrations.assumed_business_name,
       },
       source_contributions: {
         usda_snap_retailers: {
@@ -1196,6 +1285,15 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
             source_rows_updated_at: coBusiness.manifest.source_rows_updated_at,
           },
         } : {}),
+        ...(orBusiness ? {
+          or_business_registry_active_registrations: {
+            registration_principal_place_address_count: orBusinessRegistrationTotal,
+            legal_entity_registration_principal_place_address_count: orBusinessRegistrations.legal_entity,
+            assumed_business_name_registration_principal_place_address_count: orBusinessRegistrations.assumed_business_name,
+            source_release_id: orBusiness.manifest.source_release_id,
+            source_rows_updated_at: orBusiness.manifest.source_rows_updated_at,
+          },
+        } : {}),
       },
       current_usps_validity: uspsZips ? (uspsRow ? {
         status: uspsRow.assignment_status,
@@ -1231,6 +1329,7 @@ export async function buildNationalBusinessRegistry({
   irsEoPointer = null,
   ctBusinessPointer = null,
   coBusinessPointer = null,
+  orBusinessPointer = null,
   uspsZipsPointer = null,
   logger = console.log,
   now = () => new Date(),
@@ -1247,6 +1346,7 @@ export async function buildNationalBusinessRegistry({
   const irsEo = irsEoPointer ? await loadIrsEoRelease(irsEoPointer) : null;
   const ctBusiness = ctBusinessPointer ? await loadCtBusinessRelease(ctBusinessPointer) : null;
   const coBusiness = coBusinessPointer ? await loadCoBusinessRelease(coBusinessPointer) : null;
+  const orBusiness = orBusinessPointer ? await loadOrBusinessRelease(orBusinessPointer) : null;
   const uspsZips = uspsZipsPointer ? await loadUspsOperationalZipRelease(uspsZipsPointer) : null;
   const createdAt = now().toISOString();
   const runId = randomUUID();
@@ -1270,6 +1370,9 @@ export async function buildNationalBusinessRegistry({
   const ctBusinessOrganizationAssertionWriters = new Map();
   const coBusinessOrganizationWriters = new Map();
   const coBusinessOrganizationAssertionWriters = new Map();
+  const orBusinessOrganizationWriters = new Map();
+  const orBusinessBrandWriters = new Map();
+  const orBusinessRegistrationAssertionWriters = new Map();
   const resolutionProfileWriters = new Map();
   for (const prefix of "0123456789") {
     siteWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/physical-sites/prefix=${prefix}.jsonl.gz`));
@@ -1305,6 +1408,13 @@ export async function buildNationalBusinessRegistry({
       coBusinessOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/co-record-hash-prefix=${prefix}.jsonl.gz`));
     }
   }
+  if (orBusiness) {
+    for (const prefix of "0123456789abcdef") {
+      orBusinessOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/or-registry-hash-prefix=${prefix}.jsonl.gz`));
+      orBusinessBrandWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/brands/or-registry-hash-prefix=${prefix}.jsonl.gz`));
+      orBusinessRegistrationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/registrations/or-registry-hash-prefix=${prefix}.jsonl.gz`));
+    }
+  }
   for (let prefix = 0; prefix < 100; prefix += 1) {
     const zip2 = String(prefix).padStart(2, "0");
     resolutionProfileWriters.set(zip2, await openGzipWriter(stagingDirectory, `resolution/location-profiles/zip2=${zip2}.jsonl.gz`));
@@ -1321,6 +1431,7 @@ export async function buildNationalBusinessRegistry({
   const irsEoOrganizationCountsByZip = new Map();
   const ctBusinessOrganizationCountsByZip = new Map();
   const coBusinessOrganizationCountsByZip = new Map();
+  const orBusinessRegistrationCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
   const fdicCertificates = new Set();
@@ -1333,6 +1444,7 @@ export async function buildNationalBusinessRegistry({
   const irsEoEins = new Set();
   const ctBusinessRecordIds = new Set();
   const coBusinessRecordIds = new Set();
+  const orBusinessRegistryNumbers = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
   let nppesPrimaryLocations = 0;
@@ -1349,6 +1461,8 @@ export async function buildNationalBusinessRegistry({
   let irsEoOrganizations = 0;
   let ctBusinessOrganizations = 0;
   let coBusinessOrganizations = 0;
+  let orBusinessLegalEntityRegistrations = 0;
+  let orBusinessAssumedNameRegistrations = 0;
   let assertions = 0;
   let relationships = 0;
   let resolutionLocationProfiles = 0;
@@ -1688,6 +1802,43 @@ export async function buildNationalBusinessRegistry({
     if (allocated !== coBusiness.manifest.coverage.eligible_reported_us_business_addresses) throw new Error("Registry Colorado ZIP-address allocation count does not match the source release.");
   }
 
+  if (orBusiness) {
+    for (const artifact of orBusiness.registrationArtifacts) {
+      const partition = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
+      if (!partition) throw new Error(`Cannot determine Oregon Business Registry ID hash prefix for ${artifact.path}.`);
+      const count = await forEachGzipRecord(path.join(orBusiness.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileOrBusinessRegistration(record);
+        if (reconciled.hashPrefix !== partition) throw new Error(`Oregon Business Registry registration ${reconciled.registryNumber} is in the wrong ID-hash partition.`);
+        if (orBusinessRegistryNumbers.has(reconciled.registryNumber)) throw new Error(`Duplicate Oregon Business Registry number ${reconciled.registryNumber}.`);
+        orBusinessRegistryNumbers.add(reconciled.registryNumber);
+        const entityWriter = reconciled.entityType === "organization"
+          ? orBusinessOrganizationWriters.get(partition)
+          : orBusinessBrandWriters.get(partition);
+        await writeGzipRecord(entityWriter, reconciled.entity);
+        for (const item of reconciled.assertions) await writeGzipRecord(orBusinessRegistrationAssertionWriters.get(partition), item);
+        for (const zipCode of reconciled.zipCodes) {
+          const zipCounts = orBusinessRegistrationCountsByZip.get(zipCode) ?? { legal_entity: 0, assumed_business_name: 0 };
+          if (reconciled.entityType === "organization") zipCounts.legal_entity += 1;
+          else zipCounts.assumed_business_name += 1;
+          orBusinessRegistrationCountsByZip.set(zipCode, zipCounts);
+        }
+        if (reconciled.entityType === "organization") orBusinessLegalEntityRegistrations += 1;
+        else orBusinessAssumedNameRegistrations += 1;
+        assertions += reconciled.assertions.length;
+      });
+      if (count !== artifact.record_count) throw new Error(`Oregon Business Registry registration artifact ${artifact.path} record count mismatch.`);
+      logger(`Reconciled ${(orBusinessLegalEntityRegistrations + orBusinessAssumedNameRegistrations).toLocaleString("en-US")} Oregon active registrations.`);
+    }
+    const registrations = orBusinessLegalEntityRegistrations + orBusinessAssumedNameRegistrations;
+    if (registrations !== orBusiness.manifest.coverage.active_registrations_published
+      || orBusinessLegalEntityRegistrations !== orBusiness.manifest.coverage.legal_entity_registrations
+      || orBusinessAssumedNameRegistrations !== orBusiness.manifest.coverage.assumed_business_name_registrations) {
+      throw new Error("Registry Oregon registration-kind counts do not match the source release.");
+    }
+    const allocated = [...orBusinessRegistrationCountsByZip.values()].reduce((sum, counts) => sum + counts.legal_entity + counts.assumed_business_name, 0);
+    if (allocated !== orBusiness.manifest.coverage.eligible_us_registration_zip_contributions) throw new Error("Registry Oregon ZIP-address allocation count does not match the source release.");
+  }
+
   const physicalSiteCount = snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords;
   if (resolutionLocationProfiles !== physicalSiteCount) {
     throw new Error(`Entity-resolution profile count ${resolutionLocationProfiles} does not match physical-site count ${physicalSiteCount}.`);
@@ -1702,6 +1853,8 @@ export async function buildNationalBusinessRegistry({
   if (irsEo) artifacts.push(...await closeGzipWriters([...irsEoOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (ctBusiness) artifacts.push(...await closeGzipWriters([...ctBusinessOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (coBusiness) artifacts.push(...await closeGzipWriters([...coBusinessOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (orBusiness) artifacts.push(...await closeGzipWriters([...orBusinessOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (orBusiness) artifacts.push(...await closeGzipWriters([...orBusinessBrandWriters.values()], "canonical-brand-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (fdic) artifacts.push(...await closeGzipWriters([...fdicOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
@@ -1709,6 +1862,7 @@ export async function buildNationalBusinessRegistry({
   if (irsEo) artifacts.push(...await closeGzipWriters([...irsEoOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (ctBusiness) artifacts.push(...await closeGzipWriters([...ctBusinessOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (coBusiness) artifacts.push(...await closeGzipWriters([...coBusinessOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (orBusiness) artifacts.push(...await closeGzipWriters([...orBusinessRegistrationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...resolutionProfileWriters.values()], "entity-resolution-location-profile-jsonl-gzip"));
 
@@ -1726,7 +1880,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, coBusiness, uspsZips, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip, ctBusinessOrganizationCounts: ctBusinessOrganizationCountsByZip, coBusinessOrganizationCounts: coBusinessOrganizationCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, coBusiness, orBusiness, uspsZips, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip, ctBusinessOrganizationCounts: ctBusinessOrganizationCountsByZip, coBusinessOrganizationCounts: coBusinessOrganizationCountsByZip, orBusinessRegistrationCounts: orBusinessRegistrationCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -1885,6 +2039,26 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(orBusiness ? {
+      or_business_registry_active_registrations: {
+        source_id: "oregon-active-business-registrations-principal-place",
+        dataset_id: orBusiness.manifest.dataset_id,
+        source_release_id: orBusiness.manifest.source_release_id,
+        dataset_release_id: orBusiness.manifest.release_id,
+        source_rows_updated_at: orBusiness.manifest.source_rows_updated_at,
+        source_principal_place_rows: orBusiness.manifest.coverage.source_principal_place_rows,
+        active_registrations_published: orBusinessLegalEntityRegistrations + orBusinessAssumedNameRegistrations,
+        legal_entity_registrations_published_as_organizations: orBusinessLegalEntityRegistrations,
+        assumed_business_name_registrations_published_as_brands: orBusinessAssumedNameRegistrations,
+        registrations_with_multiple_principal_place_rows: orBusiness.manifest.coverage.registrations_with_multiple_principal_place_rows,
+        eligible_registration_zip_contributions: orBusiness.manifest.coverage.eligible_us_registration_zip_contributions,
+        physical_sites_published: 0,
+        establishments_published: 0,
+        relationships_published: 0,
+        identity_resolution: "one provisional organization per legal-entity registration and one provisional brand per assumed-business-name registration; principal-place addresses remain entity assertions; no owner, physical site, establishment, relationship, or cross-source merge inferred",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
     ...(uspsZips ? {
       usps_operational_zip_assignments: {
         source_id: "usps-postalpro-area-district-zip5",
@@ -1906,7 +2080,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "1.4.0" },
+    publisher: { id: "national-business-registry", version: "1.5.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1923,9 +2097,10 @@ export async function buildNationalBusinessRegistry({
       ...(irsEo ? ["IRS organizations present in the current EO BMF extract with supported U.S. or territory filing addresses"] : []),
       ...(ctBusiness ? ["organizations whose status is Active in the Connecticut Business Registry Business Master snapshot, with reported business addresses preserved as organization-only evidence"] : []),
       ...(coBusiness ? ["organizations whose status is Good Standing or Delinquent in the Colorado Business Entities snapshot, with principal-office addresses preserved as organization-only evidence"] : []),
+      ...(orBusiness ? ["legal-entity registrations and assumed business names listed in Oregon's Active Businesses dataset, with principal-place addresses preserved as organization-or-brand evidence"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + fmcsaRecords + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations + (coBusiness?.manifest.coverage.quarantined_source_records ?? 0),
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + fmcsaRecords + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations + (coBusiness?.manifest.coverage.quarantined_source_records ?? 0) + (orBusiness?.manifest.coverage.source_principal_place_rows ?? 0),
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -1944,7 +2119,16 @@ export async function buildNationalBusinessRegistry({
       co_business_registry_good_standing_or_delinquent_organization_records: coBusinessOrganizations,
       co_business_registry_quarantined_source_records: coBusiness?.manifest.coverage.quarantined_source_records ?? 0,
       co_business_registry_eligible_reported_us_business_addresses: coBusiness?.manifest.coverage.eligible_reported_us_business_addresses ?? 0,
-      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations,
+      or_business_registry_source_principal_place_rows: orBusiness?.manifest.coverage.source_principal_place_rows ?? 0,
+      or_business_registry_active_registration_records: orBusinessLegalEntityRegistrations + orBusinessAssumedNameRegistrations,
+      or_business_registry_quarantined_registration_groups: orBusiness?.manifest.coverage.quarantined_registration_groups ?? 0,
+      or_business_registry_quarantined_source_rows: orBusiness?.manifest.coverage.quarantined_source_rows ?? 0,
+      or_business_registry_legal_entity_registrations: orBusinessLegalEntityRegistrations,
+      or_business_registry_assumed_business_name_registrations: orBusinessAssumedNameRegistrations,
+      or_business_registry_registrations_with_eligible_us_principal_place_address: orBusiness?.manifest.coverage.registrations_with_eligible_us_principal_place_address ?? 0,
+      or_business_registry_eligible_registration_zip_contributions: orBusiness?.manifest.coverage.eligible_us_registration_zip_contributions ?? 0,
+      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations + ctBusinessOrganizations + coBusinessOrganizations + orBusinessLegalEntityRegistrations,
+      brands: orBusinessAssumedNameRegistrations,
       physical_sites: physicalSiteCount,
       establishments: physicalSiteCount,
       services: 1,
@@ -1952,7 +2136,7 @@ export async function buildNationalBusinessRegistry({
       relationships,
       resolution_location_profiles: resolutionLocationProfiles,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys(), ...ctBusinessOrganizationCountsByZip.keys(), ...coBusinessOrganizationCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys(), ...ctBusinessOrganizationCountsByZip.keys(), ...coBusinessOrganizationCountsByZip.keys(), ...orBusinessRegistrationCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: uspsZips ? {
         count: uspsZips.zipRows.length,
         evidence_scope: "current-usps-area-district-5-digit-zip-assignments",
@@ -2014,6 +2198,11 @@ export async function buildNationalBusinessRegistry({
         release_id: coBusiness.manifest.release_id,
         manifest_sha256: coBusiness.manifestSha256,
       }] : []),
+      ...(orBusiness ? [{
+        dataset_id: orBusiness.manifest.dataset_id,
+        release_id: orBusiness.manifest.release_id,
+        manifest_sha256: orBusiness.manifestSha256,
+      }] : []),
       ...(uspsZips ? [{
         dataset_id: uspsZips.manifest.dataset_id,
         release_id: uspsZips.manifest.release_id,
@@ -2029,6 +2218,7 @@ export async function buildNationalBusinessRegistry({
       ...(irsEo?.manifest.dependencies ?? []),
       ...(ctBusiness?.manifest.dependencies ?? []),
       ...(coBusiness?.manifest.dependencies ?? []),
+      ...(orBusiness?.manifest.dependencies ?? []),
     ],
     contracts: {
       entity: "config/schemas/business-entity.schema.json",
@@ -2094,9 +2284,16 @@ export async function buildNationalBusinessRegistry({
         "Principal-office addresses may be administrative, home, virtual, incomplete, stale, out-of-state, or foreign; the registry creates no physical site, establishment, or relationship from them.",
         "Principal-office mailing addresses and every registered-agent name and address are excluded.",
       ] : []),
+      ...(orBusiness ? [
+        "The Oregon Business Registry layer covers registrations listed in the Active Businesses dataset, not every operating business in Oregon or the United States; sole proprietors and general partnerships need not register unless using an assumed business name.",
+        "Oregon source Active status is registration evidence and is not independent proof of current operations, legality, licensure, solvency, public access, or an open storefront.",
+        "Principal-place addresses may be administrative, home, virtual, incomplete, stale, out-of-state, or foreign; the registry creates no physical site, establishment, or relationship from them.",
+        "Assumed business names are modeled as provisional brands, not legal organizations, and no owner or relationship is inferred.",
+        "Mailing-address, registered-agent, authorized-representative, associated-person, entity-of-record, and source business-details fields are excluded.",
+      ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
-      "No brand, legal organization, parent company, ownership, or general operating-status claim is inferred from the source name.",
+      "Except for explicitly typed Oregon assumed-name registrations, no brand, legal organization, parent company, ownership, or general operating-status claim is inferred from a source name.",
       ...(uspsZips ? [
         "USPS evidence establishes membership in the current Area/District 5-digit ZIP assignment file, not address-level deliverability, delivery type, preferred city/state, ZIP+4 ranges, or ZCTA geography.",
         "ZIP coverage derived from USPS rows must not be exported beyond the recorded USPS use authorization and reviewed permission.",
@@ -2165,10 +2362,11 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const resolutionProfileArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   const assertionArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-assertion-jsonl-gzip");
   const relationshipArtifacts = (manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-relationship-jsonl-gzip");
-  const entityCounts = { organization: 0, physical_site: 0, establishment: 0, service: 0 };
+  const entityCounts = { organization: 0, brand: 0, physical_site: 0, establishment: 0, service: 0 };
   const entityIdsByType = new Map(Object.keys(entityCounts).map((type) => [type, new Set()]));
   const entityTypeFromId = (entityId) => {
     if (entityId?.startsWith("organization:")) return "organization";
+    if (entityId?.startsWith("brand:")) return "brand";
     if (entityId?.startsWith("site:")) return "physical_site";
     if (entityId?.startsWith("establishment:")) return "establishment";
     if (entityId?.startsWith("service:")) return "service";
@@ -2200,7 +2398,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   if (!hasEntityId(SNAP_SERVICE_ENTITY_ID)) failures.push({ path: "entities/services.jsonl", reason: "missing SNAP service entity" });
 
   let resolutionProfileCount = 0;
-  if (["1.2.0", "1.3.0", "1.4.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
     failures.push({ path: "resolution/location-profiles", reason: `expected 100 match-profile partitions; found ${resolutionProfileArtifacts.length}` });
   }
   const profileIds = new Set();
@@ -2227,7 +2425,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       failures.push({ path: artifact.path, reason: `match-profile validation failed: ${error.message}` });
     }
   }
-  if (["1.2.0", "1.3.0"].includes(manifest.publisher?.version)
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0"].includes(manifest.publisher?.version)
     && (resolutionProfileCount !== manifest.coverage?.resolution_location_profiles || resolutionProfileCount !== manifest.coverage?.physical_sites)) {
     failures.push({ path: "manifest.json", reason: "entity-resolution profile counts do not reconcile" });
   }
@@ -2245,6 +2443,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "listed-in-current-irs-eo-bmf-extract-as-of-source-posting",
     "listed-active-in-connecticut-business-registry-as-of-retrieval",
     "listed-good-standing-or-delinquent-in-colorado-business-registry-as-of-retrieval",
+    "listed-in-oregon-active-businesses-dataset-as-of-source-refresh",
   ]);
   let assertionCount = 0;
   for (const artifact of assertionArtifacts) {
@@ -2256,7 +2455,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (!hasEntityId(record.subject_entity_id)) throw new Error(`missing assertion subject ${record.subject_entity_id}`);
         if (!validateProvenance(record.source) || record.export_policy !== "public") throw new Error(`invalid provenance or policy for ${record.assertion_id}`);
         if (!record.observed_at || !record.first_seen || !record.last_seen) throw new Error(`missing temporal scope for ${record.assertion_id}`);
-        if (["establishment.source-status", "organization.irs-eo-source-status", "organization.ct-registration-status", "organization.co-registration-status"].includes(record.predicate) && !allowedSourceStatuses.has(record.value?.value)) {
+        if (["establishment.source-status", "organization.irs-eo-source-status", "organization.ct-registration-status", "organization.co-registration-status", "organization.or-registration-status", "brand.or-registration-status"].includes(record.predicate) && !allowedSourceStatuses.has(record.value?.value)) {
           throw new Error(`invalid source-specific status for ${record.assertion_id}`);
         }
         if (record.source.policy_id === "irs-eo-bmf") {
@@ -2275,6 +2474,14 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
           const forbidden = ["mailingaddress", "agentfirstname", "agentmiddlename", "agentlastname", "agentsuffix", "agentorganizationname", "agentprincipal", "agentmailing"];
           if (!record.subject_entity_id.startsWith("organization:co_sos_record_") || !record.predicate.startsWith("organization.")) throw new Error(`Colorado assertion targets a non-organization entity ${record.assertion_id}`);
           if (sourceFields.some((field) => forbidden.some((excluded) => field.includes(excluded)))) throw new Error(`Colorado excluded source field leaked for ${record.assertion_id}`);
+        }
+        if (record.source.policy_id === "or-business-registry") {
+          const sourceFields = String(record.source.source_field ?? "").toLowerCase().split("|");
+          const forbidden = ["first_name", "middle_name", "last_name", "suffix", "not_of_record_entity", "entity_of_record", "mailing", "registered_agent", "authorized_representative", "business_details"];
+          const supportedSubject = record.subject_entity_id.startsWith("organization:or_sos_registry_") || record.subject_entity_id.startsWith("brand:or_sos_assumed_name_");
+          const supportedPredicate = record.predicate.startsWith("organization.") || record.predicate.startsWith("brand.");
+          if (!supportedSubject || !supportedPredicate) throw new Error(`Oregon assertion targets an unsupported entity ${record.assertion_id}`);
+          if (sourceFields.some((field) => forbidden.some((excluded) => field.includes(excluded)))) throw new Error(`Oregon excluded source field leaked for ${record.assertion_id}`);
         }
         if (record.source.policy_id === "fmcsa-company-census") {
           const sourceFields = String(record.source.source_field ?? "").toUpperCase();
@@ -2302,6 +2509,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (record.source.policy_id === "irs-eo-bmf") throw new Error(`IRS EO filing-address record created a relationship ${record.relationship_id}`);
         if (record.source.policy_id === "ct-business-registry") throw new Error(`Connecticut reported-business-address record created a relationship ${record.relationship_id}`);
         if (record.source.policy_id === "co-business-registry") throw new Error(`Colorado principal-office-address record created a relationship ${record.relationship_id}`);
+        if (record.source.policy_id === "or-business-registry") throw new Error(`Oregon principal-place-address record created a relationship ${record.relationship_id}`);
         if (record.source.policy_id === "fmcsa-company-census" && record.relationship_type !== "located_at") throw new Error(`FMCSA record created an unsupported relationship ${record.relationship_id}`);
         if (!["located_at", "provides_service", "operates"].includes(record.relationship_type)) throw new Error(`unsupported relationship ${record.relationship_type}`);
       });
@@ -2312,7 +2520,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     }
   }
 
-  if (entityCounts.organization !== (manifest.coverage?.organizations ?? 0) || entityCounts.physical_site !== manifest.coverage?.physical_sites || entityCounts.establishment !== manifest.coverage?.establishments || entityCounts.service !== manifest.coverage?.services) {
+  if (entityCounts.organization !== (manifest.coverage?.organizations ?? 0) || entityCounts.brand !== (manifest.coverage?.brands ?? 0) || entityCounts.physical_site !== manifest.coverage?.physical_sites || entityCounts.establishment !== manifest.coverage?.establishments || entityCounts.service !== manifest.coverage?.services) {
     failures.push({ path: "manifest.json", reason: "entity counts do not reconcile" });
   }
   if (assertionCount !== manifest.coverage?.assertions) failures.push({ path: "manifest.json", reason: "assertion count does not reconcile" });
@@ -2333,8 +2541,13 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     if (ctBusinessOrganizationTotal !== (manifest.coverage.ct_business_registry_eligible_reported_us_business_addresses ?? 0)) throw new Error("ZIP Connecticut organization-address counts do not reconcile");
     const coBusinessOrganizationTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.co_business_registry_organization_principal_office_address_count ?? 0), 0);
     if (coBusinessOrganizationTotal !== (manifest.coverage.co_business_registry_eligible_reported_us_business_addresses ?? 0)) throw new Error("ZIP Colorado organization-address counts do not reconcile");
+    const orBusinessRegistrationTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.or_business_registry_active_registration_principal_place_address_count ?? 0), 0);
+    const orBusinessLegalEntityTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.or_business_registry_legal_entity_registration_principal_place_address_count ?? 0), 0);
+    const orBusinessAssumedNameTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.or_business_registry_assumed_business_name_registration_principal_place_address_count ?? 0), 0);
+    if (orBusinessRegistrationTotal !== (manifest.coverage.or_business_registry_eligible_registration_zip_contributions ?? 0)
+      || orBusinessRegistrationTotal !== orBusinessLegalEntityTotal + orBusinessAssumedNameTotal) throw new Error("ZIP Oregon registration-address counts do not reconcile");
     if (rows.some((row) => {
-      const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0) + (row.registry_coverage.ct_business_registry_organization_reported_business_address_count ?? 0) + (row.registry_coverage.co_business_registry_organization_principal_office_address_count ?? 0);
+      const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0) + (row.registry_coverage.ct_business_registry_organization_reported_business_address_count ?? 0) + (row.registry_coverage.co_business_registry_organization_principal_office_address_count ?? 0) + (row.registry_coverage.or_business_registry_active_registration_principal_place_address_count ?? 0);
       return row.registry_coverage.status !== (recordCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution");
     })) throw new Error("ZIP record-level contribution status does not reconcile");
     if (rows.some((row) => row.registry_coverage.complete_all_businesses !== false)) throw new Error("ZIP coverage overstates business completeness");
