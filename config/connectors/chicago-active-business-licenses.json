@@ -1,0 +1,40 @@
+{
+  "connector_id": "chicago-active-business-licenses",
+  "version": "1.0.0",
+  "description": "Publishes privacy-minimized, source-defined current active City of Chicago business-license sites while preserving every license row and avoiding one-license-equals-one-business overcounting.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/chicago-active-business-license-sites" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 50000 },
+      "minimum_license_records": { "type": "integer", "minimum": 1, "default": 40000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.05 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["chicago-bacp-current-active-license-selected-field-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["chicago-active-business-license-source-jsonl-gzip", "normalized-chicago-active-business-license-site-jsonl-gzip", "chicago-active-business-license-quarantine-jsonl-gzip", "chicago-active-business-license-zip-coverage-jsonl", "chicago-active-business-license-source-summary", "chicago-active-business-license-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.cityofchicago.org"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.cityofchicago.org metadata and uupf-x98q JSON resource paths.",
+  "provider_budget_key": "city-of-chicago-bacp-current-active-business-licenses-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 50000,
+    "maximum_response_bytes": 80000000,
+    "minimum_active_license_records": 40000,
+    "maximum_quarantine_rate": 0.05
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, source-filter drift, schema drift, refresh drift, duplicate Socrata row identity, or quality-gate failures.",
+  "checkpoint": "Acquire the official filtered view in deterministic account-number, site-number, license-id, and Socrata-row order. Hash the complete selected-field source snapshot before grouped normalization. Recheck metadata and count before publication; publish manifest and current pointer last and atomically.",
+  "idempotency": "The catalog rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release. Account number identifies a provisional organization; account-number/site-number identifies one source-defined licensed site regardless of license count.",
+  "cancellation": "Abort network and local grouping cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/chicago-active-business-licenses.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "active-municipal-license-assertion", "reported-business-address-assertion", "business-activity-assertion"],
+  "produced_identifiers": ["chicago-bacp-account-number", "chicago-bacp-site-number", "chicago-business-license-number", "zip5", "zcta5", "chicago-ward", "chicago-community-area"]
+}

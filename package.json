@@ -57,6 +57,8 @@
     "la-active-businesses:verify": "node scripts/verify-la-active-businesses.mjs",
     "tx-sales-tax:build": "node scripts/build-tx-active-sales-tax-permits.mjs",
     "tx-sales-tax:verify": "node scripts/verify-tx-active-sales-tax-permits.mjs",
+    "chicago-licenses:build": "node scripts/build-chicago-active-business-licenses.mjs",
+    "chicago-licenses:verify": "node scripts/verify-chicago-active-business-licenses.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/chicago-active-business-license-site.schema.json",
+  "title": "Normalized City of Chicago Current Active Business-License Site",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_names", "doing_business_as_names", "address", "location", "geography", "active_licenses", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^chicago-active-business:account:[0-9]+:site:[0-9]+$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:chicago_bacp_account_[0-9]+$" },
+        "physical_site_id": { "type": "string", "pattern": "^site:chicago_bacp_account_[0-9]+_site_[0-9]+$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:chicago_bacp_account_[0-9]+_site_[0-9]+$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 2, "items": { "type": "object" } },
+    "legal_names": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "doing_business_as_names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "address": { "type": "object" },
+    "location": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "active_licenses": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-in-city-of-chicago-current-active-business-license-view-as-of-source-refresh" },
+        "status": { "const": "Active license (source-defined)" },
+        "semantics": { "const": "source-view-requires-aai-status-and-future-expiration-not-independent-proof-of-continuous-operation-or-complete-business-coverage" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

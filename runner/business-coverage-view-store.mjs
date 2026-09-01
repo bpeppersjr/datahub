@@ -15,6 +15,7 @@ const DIMENSION_ARTIFACT_TYPES = Object.freeze({
 
 const SOURCE_DISPLAY_NAMES = Object.freeze({
   census_nonemployer_statistics: "Census Nonemployer Statistics",
+  chicago_active_business_license_sites: "Chicago Current Active Business License Sites",
   cms_nppes_organizations: "CMS NPPES Organizations",
   co_business_registry_good_standing_or_delinquent_organizations: "Colorado Business Registry Good Standing or Delinquent Organizations",
   ct_business_registry_active_organizations: "Connecticut Business Registry Active Organizations",

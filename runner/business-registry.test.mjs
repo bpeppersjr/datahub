@@ -23,6 +23,7 @@ import {
   reconcilePaBusinessOrganization,
   reconcileLaActiveBusinessLocation,
   reconcileTxActiveSalesTaxOutlet,
+  reconcileChicagoActiveBusinessLicenseSite,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -46,6 +47,7 @@ import { normalizeIaBusinessEntity } from "./ia-business-registry.mjs";
 import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
 import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
+import { normalizeChicagoLicensedSite } from "./chicago-active-business-licenses.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
@@ -1412,6 +1414,44 @@ function normalizedTxActiveSalesTaxOutlet(taxpayerNumber = "32089812484", outlet
   });
 }
 
+function normalizedChicagoActiveBusinessLicenseSite(accountNumber = "122", siteNumber = "1", zipCode = "60630") {
+  const base = {
+    account_number: accountNumber,
+    site_number: siteNumber,
+    legal_name: "FIXTURE CHICAGO MARKETS LLC",
+    doing_business_as_name: `FIXTURE CHICAGO MARKET ${siteNumber}`,
+    address: siteNumber === "1" ? "5368 N MILWAUKEE AVE" : "100 N STATE ST",
+    city: "CHICAGO",
+    state: "IL",
+    zip_code: zipCode,
+    ward: siteNumber === "1" ? "45" : "42",
+    precinct: "32",
+    ward_precinct: "45-32",
+    police_district: "16",
+    community_area: "11",
+    community_area_name: "JEFFERSON PARK",
+    neighborhood: "JEFFERSON PARK",
+    latitude: "41.9783639255",
+    longitude: "-87.7703772018",
+    license_status: "AAI",
+    expiration_date: "2027-05-15T00:00:00.000",
+    license_start_date: "2025-05-16T00:00:00.000",
+    date_issued: "2025-05-05T00:00:00.000",
+    application_type: "RENEW",
+  };
+  return normalizeChicagoLicensedSite([
+    { ...base, socrata_row_id: `row-${accountNumber}-${siteNumber}-1`, id: "654-20250516", license_id: `${accountNumber}${siteNumber}01`, license_number: "654", license_code: "1470", license_description: "Tavern", business_activity_id: "829", business_activity: "Tavern - Consumption of Liquor on Premises" },
+    { ...base, socrata_row_id: `row-${accountNumber}-${siteNumber}-2`, id: "653-20250516", license_id: `${accountNumber}${siteNumber}02`, license_number: "653", license_code: "1006", license_description: "Retail Food Establishment", business_activity_id: "775", business_activity: "Retail Sales of Perishable Foods" },
+  ], {
+    runId: "chicago-license-source-fixture",
+    retrievedAt: "2026-09-01T01:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-29T09:58:27.000Z",
+    sourceFilterDate: "2026-08-31",
+    sourceReleaseId: "chicago-license-source-fixture",
+    baselineByZip: new Map([[zipCode.slice(0, 5), { postal_label: { preferred_state: "IL" }, geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode.slice(0, 5)}`, geoid: zipCode.slice(0, 5) } }]]),
+  });
+}
+
 async function writeFixtureTxActiveSalesTaxRelease(root) {
   const releaseId = "tx-active-sales-tax-fixture";
   const releaseDirectory = path.join(root, "releases", releaseId);
@@ -1736,6 +1776,17 @@ test("reconciles Texas sales-tax permit evidence into one organization, outlet, 
   assert(result.locationAssertions.some((item) => item.predicate === "establishment.self-reported-naics"));
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/taxpayer_(address|city|state|zip|county)/i.test(String(item.source.source_field))));
+});
+
+test("reconciles grouped Chicago active licenses into one organization, site, and establishment", () => {
+  const result = reconcileChicagoActiveBusinessLicenseSite(normalizedChicagoActiveBusinessLicenseSite());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.legal-name"));
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.chicago-active-license").length, 2);
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.name").length, 1);
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(officer|owner|agent|contact|phone|email|payment)/i.test(String(item.source.source_field))));
 });
 
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {

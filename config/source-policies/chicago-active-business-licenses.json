@@ -1,0 +1,47 @@
+{
+  "policy_id": "chicago-active-business-licenses",
+  "version": "1.0.0",
+  "publisher": "City of Chicago Department of Business Affairs and Consumer Protection",
+  "ownership": "Official current-active business-license records published through the City of Chicago Data Portal",
+  "source_home": "https://data.cityofchicago.org/d/uupf-x98q",
+  "source_dataset": "https://data.cityofchicago.org/resource/uupf-x98q.json",
+  "catalog_dataset_id": "uupf-x98q",
+  "underlying_dataset_id": "r5kz-chrr",
+  "catalog_license": "See Terms of Use",
+  "portal_terms": "https://data.cityofchicago.org/terms",
+  "portal_faq": "https://data.cityofchicago.org/stories/s/Data-Portal-FAQ/iy9c-7e89/",
+  "open_data_order": "https://www.chicago.gov/city/en/narr/foia/open_data_executiveorder.html",
+  "source_access": "Public anonymous read-only HTTPS Socrata API. The official view is public, provenance-marked official, API-enabled, and maintained by the City of Chicago.",
+  "allowed_use": [
+    "official HTTPS metadata, count, and selected-field API queries",
+    "local processing",
+    "immutable internal selected-field source retention",
+    "source-defined licensed-site and provisional organization normalization",
+    "ZIP and source coverage analysis",
+    "derived business-registry assertions and source-linked relationships",
+    "redistribution of aggregate statistics with source attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing a future-expiring issued City license as independent proof that a site is continuously operating, open to the public, solvent, or compliant with every requirement",
+    "representing this licensing source as every business in Chicago, Illinois, or the United States because some activities are license-exempt or licensed elsewhere",
+    "counting multiple license rows for one account/site as multiple physical sites or businesses",
+    "representing a source address or portal coordinate as independently verified or currently occupied",
+    "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+    "reconstructing addresses explicitly redacted by the publisher",
+    "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+    "owner_officer_registered_agent_contact_payment_and_application_workflow_fields": "excluded-at-query-time",
+    "publisher_redacted_addresses": "quarantined-and-never-reconstructed"
+  },
+  "attribution": "Source: City of Chicago Department of Business Affairs and Consumer Protection, Business Licenses - Current Active, via data.cityofchicago.org.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed with City attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy and terms review.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Legal names can identify sole proprietors and licensed addresses can be residences. The connector excludes ownership and contact datasets, honors publisher address redaction, and keeps selected source and normalized record-level artifacts local.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-31"
+}

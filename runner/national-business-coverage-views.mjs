@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.8.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.9.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -21,6 +21,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   fmcsa_active_us_company_census: "fmcsa-company-census-active-us-principal-office",
   la_active_business_location_accounts: "los-angeles-office-of-finance-active-businesses",
   tx_active_sales_tax_permit_outlets: "texas-comptroller-active-sales-tax-permits",
+  chicago_active_business_license_sites: "city-of-chicago-bacp-current-active-business-licenses",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
 });
 
@@ -1159,6 +1160,15 @@ export async function buildNationalBusinessCoverageViews({
       tx_active_sales_tax_inside_city_limits_outlets: registry.manifest.coverage?.tx_active_sales_tax_inside_city_limits_outlets ?? 0,
       tx_active_sales_tax_outside_city_limits_outlets: registry.manifest.coverage?.tx_active_sales_tax_outside_city_limits_outlets ?? 0,
       tx_active_sales_tax_city_limits_unreported_outlets: registry.manifest.coverage?.tx_active_sales_tax_city_limits_unreported_outlets ?? 0,
+      chicago_active_business_license_source_records: registry.manifest.coverage?.chicago_active_business_license_source_records ?? 0,
+      chicago_active_business_license_accepted_records: registry.manifest.coverage?.chicago_active_business_license_accepted_records ?? 0,
+      chicago_active_business_license_normalized_sites: registry.manifest.coverage?.chicago_active_business_license_normalized_sites ?? 0,
+      chicago_active_business_license_unique_accounts: registry.manifest.coverage?.chicago_active_business_license_unique_accounts ?? 0,
+      chicago_active_business_license_quarantined_source_records: registry.manifest.coverage?.chicago_active_business_license_quarantined_source_records ?? 0,
+      chicago_active_business_license_quarantined_site_groups: registry.manifest.coverage?.chicago_active_business_license_quarantined_site_groups ?? 0,
+      chicago_active_business_license_source_geocoded_sites: registry.manifest.coverage?.chicago_active_business_license_source_geocoded_sites ?? 0,
+      chicago_active_business_license_in_chicago_ward_sites: registry.manifest.coverage?.chicago_active_business_license_in_chicago_ward_sites ?? 0,
+      chicago_active_business_license_outside_or_unreported_ward_sites: registry.manifest.coverage?.chicago_active_business_license_outside_or_unreported_ward_sites ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",
@@ -1178,6 +1188,7 @@ export async function buildNationalBusinessCoverageViews({
       "Florida quarterly corporate records coded A and their principal addresses remain organization-only registration evidence without inferred owners, agents, officers, physical sites, establishments, or relationships.",
       "Pennsylvania active-registration dataset inclusion and reported business addresses remain organization-only evidence; the publisher's statutory-overcount warning is retained, officer/person fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
       "Los Angeles Office of Finance location accounts create source-preserving provisional sites and establishments, but source-defined active status is not proof of continuous operations or public access; person/home-address risk keeps record-level data and linkage local-review-only.",
+      "City of Chicago BACP current-active license accounts and sites create source-preserving provisional organizations, sites, and establishments, but AAI status plus future expiration is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",
       "Census Nonemployer Statistics is an annual aggregate for its no-paid-employee source universe and cannot be linked to named businesses or treated as current operating status.",

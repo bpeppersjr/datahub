@@ -77,6 +77,15 @@ type Overview = {
     tx_active_sales_tax_normalized_outlet_permits: number;
     tx_active_sales_tax_unique_taxpayers: number;
     tx_active_sales_tax_quarantined_source_records: number;
+    chicago_active_business_license_source_records: number;
+    chicago_active_business_license_accepted_records: number;
+    chicago_active_business_license_normalized_sites: number;
+    chicago_active_business_license_unique_accounts: number;
+    chicago_active_business_license_quarantined_source_records: number;
+    chicago_active_business_license_quarantined_site_groups: number;
+    chicago_active_business_license_source_geocoded_sites: number;
+    chicago_active_business_license_in_chicago_ward_sites: number;
+    chicago_active_business_license_outside_or_unreported_ward_sites: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -364,6 +373,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.pa_business_registry_active_organization_records)}</strong> PA active registrations</span>
             <span><strong>{count(overview?.coverage?.la_active_business_normalized_us_location_accounts)}</strong> LA active location accounts</span>
             <span><strong>{count(overview?.coverage?.tx_active_sales_tax_normalized_outlet_permits)}</strong> TX active sales-tax outlets</span>
+            <span><strong>{count(overview?.coverage?.chicago_active_business_license_normalized_sites)}</strong> Chicago active-license sites</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 
