@@ -301,6 +301,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
+      de_business_license_source_current_license_rows: 7,
+      de_business_license_accepted_current_license_rows: 6,
+      de_business_license_current_organization_records: 5,
+      de_business_license_quarantined_source_records: 1,
+      de_business_license_quarantined_license_groups: 1,
+      de_business_license_eligible_reported_us_business_addresses: 4,
       co_business_registry_good_standing_or_delinquent_organization_records: 3,
       co_business_registry_quarantined_source_records: 1,
       co_business_registry_eligible_reported_us_business_addresses: 3,
@@ -461,7 +467,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.0.0");
+  assert.equal(result.manifest.publisher.version, "2.1.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
@@ -481,6 +487,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.co_business_registry_good_standing_or_delinquent_organization_records, 3);
   assert.equal(verification.coverage.co_business_registry_quarantined_source_records, 1);
   assert.equal(verification.coverage.co_business_registry_eligible_reported_us_business_addresses, 3);
+  assert.equal(verification.coverage.de_business_license_source_current_license_rows, 7);
+  assert.equal(verification.coverage.de_business_license_accepted_current_license_rows, 6);
+  assert.equal(verification.coverage.de_business_license_current_organization_records, 5);
+  assert.equal(verification.coverage.de_business_license_quarantined_source_records, 1);
+  assert.equal(verification.coverage.de_business_license_quarantined_license_groups, 1);
+  assert.equal(verification.coverage.de_business_license_eligible_reported_us_business_addresses, 4);
   assert.equal(verification.coverage.fl_business_registry_source_records, 10);
   assert.equal(verification.coverage.fl_business_registry_active_organization_records, 3);
   assert.equal(verification.coverage.fl_business_registry_eligible_reported_us_principal_addresses, 2);

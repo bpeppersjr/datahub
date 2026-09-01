@@ -15,6 +15,7 @@ import {
   reconcileFmcsaCompany,
   reconcileIrsEoOrganization,
   reconcileCtBusinessOrganization,
+  reconcileDeBusinessLicense,
   reconcileCoBusinessOrganization,
   reconcileOrBusinessRegistration,
   reconcileIaBusinessEntity,
@@ -42,6 +43,7 @@ import { normalizeEchoFacility } from "./epa-echo.mjs";
 import { normalizeFmcsaCompany } from "./fmcsa-company-census.mjs";
 import { normalizeIrsEoOrganization } from "./irs-eo-bmf.mjs";
 import { normalizeCtBusinessOrganization } from "./ct-business-registry.mjs";
+import { normalizeDeBusinessLicense } from "./de-business-licenses.mjs";
 import { normalizeCoBusinessOrganization } from "./co-business-registry.mjs";
 import { normalizeOrBusinessRegistration } from "./or-business-registry.mjs";
 import { normalizeIaBusinessEntity } from "./ia-business-registry.mjs";
@@ -804,6 +806,90 @@ async function writeFixtureCtBusinessRelease(root) {
     source_release_id: "ct-business-source-fixture",
     source_rows_updated_at: "2026-08-30T08:47:47.000Z",
     coverage: { active_organizations_published: records.length, eligible_reported_us_business_addresses: 1, organizations_without_eligible_us_zip_address: 1 },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
+function normalizedDeBusinessRecord(licenseNumber = "2026000001", overrides = {}) {
+  return normalizeDeBusinessLicense([{
+    socrata_row_id: `row-${licenseNumber}`,
+    business_name: `FIXTURE DELAWARE ORGANIZATION ${licenseNumber}`,
+    trade_name: "FIXTURE DELAWARE MARKET",
+    category: "RETAILER  GENERAL",
+    current_license_valid_from: "2026-01-01T00:00:00",
+    current_license_valid_to: "2026-12-31T00:00:00",
+    address_1: "100 MARKET ST",
+    address_2: null,
+    city: "WILMINGTON",
+    state: "DE",
+    zip: "19801",
+    country: "UNITED STATES",
+    license_number: licenseNumber,
+    geocoded_location: { latitude: "39.7391", longitude: "-75.5398" },
+    ...overrides,
+  }], {
+    runId: "de-business-source-fixture",
+    retrievedAt: "2026-09-01T12:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-31T09:31:57.000Z",
+    sourceReleaseId: "de-business-source-fixture",
+    baselineByZip: new Map([["19801", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:19801", geoid: "19801" } }]]),
+  });
+}
+
+async function writeFixtureDeBusinessRelease(root) {
+  const releaseId = "de-business-licenses-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [
+    normalizedDeBusinessRecord(),
+    normalizedDeBusinessRecord("2026000002", { address_1: "1 KING ST", city: "TORONTO", state: "ON", zip: "M5H 1A1", country: "CANADA", geocoded_location: null }),
+  ];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.external_identifiers[0].value)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/organizations/id-hash-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-de-business-license-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  const zipRows = [{
+    zip_code: "19801",
+    de_business_license_snapshot: { organization_reported_business_address_count: 1 },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:19801" },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }];
+  const zipBuffer = Buffer.from(`${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "de-business-licenses-zip-coverage-jsonl" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "de-business-licenses-current",
+    release_id: releaseId,
+    status: "published",
+    complete_current_license_snapshot: true,
+    source_release_id: "de-business-source-fixture",
+    source_rows_updated_at: "2026-08-31T09:31:57.000Z",
+    policy: { record_level_distribution: "local-review-only" },
+    coverage: {
+      source_current_license_rows: 2,
+      accepted_current_license_rows: 2,
+      distinct_source_license_numbers: 2,
+      distinct_licenses_published: 2,
+      quarantined_source_records: 0,
+      quarantined_license_groups: 0,
+      eligible_reported_us_business_addresses: 1,
+      organizations_without_eligible_us_zip_address: 1,
+    },
     dependencies: [],
     artifacts,
   };
@@ -1725,6 +1811,17 @@ test("reconciles Connecticut active-registration evidence without creating physi
   assert(result.assertions.every((item) => !String(item.source.source_field).includes("email")));
 });
 
+test("reconciles Delaware current-license evidence without creating physical sites or relationships", () => {
+  const result = reconcileDeBusinessLicense(normalizedDeBusinessRecord());
+  assert.equal(result.entity.entity_id, "organization:de_dor_license_2026000001");
+  assert.equal(result.entity.entity_type, "organization");
+  assert.equal(result.zipCode, "19801");
+  assert(result.assertions.some((item) => item.predicate === "organization.de-current-license-status"));
+  assert(result.assertions.some((item) => item.predicate === "organization.other-name"));
+  assert(result.assertions.every((item) => item.export_policy === "local-review-only"));
+  assert.equal(result.relationships, undefined);
+});
+
 test("reconciles Colorado registration evidence without creating physical sites or relationships", () => {
   const source = normalizedCoBusinessRecord();
   const result = reconcileCoBusinessOrganization(source);
@@ -1851,6 +1948,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const fmcsaPointer = await writeFixtureFmcsaRelease(path.join(root, "fmcsa"));
   const irsEoPointer = await writeFixtureIrsEoRelease(path.join(root, "irs-eo"));
   const ctBusinessPointer = await writeFixtureCtBusinessRelease(path.join(root, "ct-business"));
+  const deBusinessPointer = await writeFixtureDeBusinessRelease(path.join(root, "de-business"));
   const coBusinessPointer = await writeFixtureCoBusinessRelease(path.join(root, "co-business"));
   const orBusinessPointer = await writeFixtureOrBusinessRelease(path.join(root, "or-business"));
   const iaBusinessPointer = await writeFixtureIaBusinessRelease(path.join(root, "ia-business"));
@@ -1871,6 +1969,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
     fmcsaPointer,
     irsEoPointer,
     ctBusinessPointer,
+    deBusinessPointer,
     coBusinessPointer,
     orBusinessPointer,
     iaBusinessPointer,
@@ -1884,7 +1983,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 18);
+  assert.equal(result.manifest.coverage.organizations, 20);
   assert.equal(result.manifest.coverage.brands, 1);
   assert.equal(result.manifest.coverage.physical_sites, 16);
   assert.equal(result.manifest.coverage.establishments, 16);
@@ -1894,6 +1993,8 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.irs_eo_organization_records, 2);
   assert.equal(result.manifest.coverage.ct_business_registry_active_organization_records, 2);
   assert.equal(result.manifest.coverage.ct_business_registry_eligible_reported_us_business_addresses, 1);
+  assert.equal(result.manifest.coverage.de_business_license_current_organization_records, 2);
+  assert.equal(result.manifest.coverage.de_business_license_eligible_reported_us_business_addresses, 1);
   assert.equal(result.manifest.coverage.co_business_registry_good_standing_or_delinquent_organization_records, 2);
   assert.equal(result.manifest.coverage.co_business_registry_eligible_reported_us_business_addresses, 1);
   assert.equal(result.manifest.coverage.or_business_registry_source_principal_place_rows, 3);
@@ -1929,7 +2030,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
   assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 16);
-  assert.equal(result.manifest.coverage.zip_union_records, 19);
+  assert.equal(result.manifest.coverage.zip_union_records, 20);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
@@ -1950,6 +2051,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(irsOnly.registry_coverage.physical_site_count, 0);
   assert.equal(irsOnly.registry_coverage.irs_eo_organization_filing_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "60601").registry_coverage.ct_business_registry_organization_reported_business_address_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "19801").registry_coverage.de_business_license_organization_reported_business_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "80014").registry_coverage.co_business_registry_organization_principal_office_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "97206").registry_coverage.or_business_registry_legal_entity_registration_principal_place_address_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "97603").registry_coverage.or_business_registry_assumed_business_name_registration_principal_place_address_count, 1);

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/de-business-license.schema.json",
+  "title": "Normalized Delaware Current Business License",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_name", "other_names", "reported_business_address", "reported_address_coordinate", "geography", "license_profile", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^de-business-licenses:license:[0-9]{10}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:de_dor_license_[0-9]{10}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "legal_name": { "type": "string", "minLength": 1 },
+    "other_names": { "type": "array", "items": { "type": "object" } },
+    "reported_business_address": { "type": "object" },
+    "reported_address_coordinate": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "license_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-in-delaware-current-business-licenses-dataset-as-of-source-refresh" },
+        "status": { "const": "Currently licensed (dataset inclusion)" },
+        "semantics": { "const": "current-license-in-division-of-revenue-dataset-not-independent-proof-of-current-operations-good-standing-or-an-open-storefront" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

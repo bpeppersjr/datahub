@@ -95,6 +95,24 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       earliest_observed_at: null,
       latest_observed_at: null,
     },
+  }, {
+    view_id: "source:de_business_licenses_current",
+    source_key: "de_business_licenses_current",
+    profile_source_id: null,
+    release_metadata: {},
+    zip_level_counts: { organization_reported_business_address_count: 4 },
+    zip_rows_with_contribution: 2,
+    location_profile_geography: {
+      profile_count: 0,
+      reported_state_assigned_count: 0,
+      coordinate_present_valid_count: 0,
+      coordinate_assigned_single_count: 0,
+      coordinate_missing_count: 0,
+      coordinate_unmatched_count: 0,
+      coordinate_ambiguous_boundary_count: 0,
+      earliest_observed_at: null,
+      latest_observed_at: null,
+    },
   }]);
   await artifact("coverage-gap-view-jsonl", "coverage-gaps", [{
     gap_id: "gap:zip-no-zcta:54321",
@@ -114,7 +132,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     complete_all_businesses: false,
     entity_resolution_applied: false,
     authoritative_current_usps_zip_denominator: null,
-    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 2, gap_views: 1 },
+    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 3, gap_views: 1 },
     count_semantics: {},
     limitations: [],
     artifacts,
@@ -143,6 +161,9 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const floridaSources = await store.listDimension("sources", { query: "Florida" });
   assert.equal(floridaSources.total, 1);
   assert.equal(floridaSources.records[0].source_name, "Florida Business Registry Quarterly Active Entities");
+  const delawareSources = await store.listDimension("sources", { query: "Delaware" });
+  assert.equal(delawareSources.total, 1);
+  assert.equal(delawareSources.records[0].source_name, "Delaware Division of Revenue Current Business Licenses");
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

@@ -60,6 +60,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-sources/ny-business-registry-active-entities/` — governed New York monthly active-corporations extract and reported-location evidence under OPEN-NY terms
 - `data/business-sources/fl-business-registry-quarterly-active-entities/` — governed, privacy-minimized Florida quarterly corporate archive with inactive rows explicitly excluded
 - `data/business-sources/pa-business-registry-active-registrations/` — governed, privacy-minimized Pennsylvania active-registration organizations with statutory-overcount and portal-geocode quality warnings
+- `data/business-sources/de-business-licenses-current/` — governed Delaware Division of Revenue current-license organizations with grouped trade names, quarantine, explicit non-site semantics, and record-level local-review-only controls
 - `data/business-sources/la-active-business-location-accounts/` — governed City of Los Angeles source-defined active business locations, with record-level artifacts kept local-review-only
 - `data/business-sources/tx-active-sales-tax-outlets/` — governed Texas Comptroller source-defined active sales-tax permit taxpayers and physical outlets, with taxpayer mailing fields excluded and record-level artifacts kept local-review-only
 - `data/business-sources/chicago-active-business-license-sites/` — governed City of Chicago BACP current active-license account/site groups, with publisher redactions honored and record-level artifacts kept local-review-only

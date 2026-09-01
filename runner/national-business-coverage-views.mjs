@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.0.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.1.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -404,6 +404,8 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       irs_eo_organization_records: registry.manifest.coverage?.irs_eo_organization_records ?? null,
       ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? null,
       ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? null,
+      de_business_license_current_organization_records: registry.manifest.coverage?.de_business_license_current_organization_records ?? null,
+      de_business_license_eligible_reported_us_business_addresses: registry.manifest.coverage?.de_business_license_eligible_reported_us_business_addresses ?? null,
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? null,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? null,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? null,
@@ -422,7 +424,7 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Delaware, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1118,6 +1120,12 @@ export async function buildNationalBusinessCoverageViews({
       county_views_without_published_nonemployer_baseline: countyViews.filter((row) => row.nonemployer_baseline.status !== "published-annual-aggregate").length,
       ct_business_registry_active_organization_records: registry.manifest.coverage?.ct_business_registry_active_organization_records ?? 0,
       ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? 0,
+      de_business_license_source_current_license_rows: registry.manifest.coverage?.de_business_license_source_current_license_rows ?? 0,
+      de_business_license_accepted_current_license_rows: registry.manifest.coverage?.de_business_license_accepted_current_license_rows ?? 0,
+      de_business_license_current_organization_records: registry.manifest.coverage?.de_business_license_current_organization_records ?? 0,
+      de_business_license_quarantined_source_records: registry.manifest.coverage?.de_business_license_quarantined_source_records ?? 0,
+      de_business_license_quarantined_license_groups: registry.manifest.coverage?.de_business_license_quarantined_license_groups ?? 0,
+      de_business_license_eligible_reported_us_business_addresses: registry.manifest.coverage?.de_business_license_eligible_reported_us_business_addresses ?? 0,
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? 0,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? 0,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? 0,
@@ -1192,6 +1200,7 @@ export async function buildNationalBusinessCoverageViews({
       "Entity-resolution decisions are not applied until independent labels, precision approval, and export-policy review pass.",
       "County profile counts cover only profiles with one valid coordinate assignment; ZIP counts are never area-weighted into counties.",
       "Source-specific active, authorized, registered, current, or filing evidence is not generalized into one universal operating-status claim.",
+      "Delaware current-license records and reported business addresses remain organization-only evidence; repeated license rows are grouped, conflicting groups are quarantined, person/contact fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
       "Oregon assumed business names remain provisional brands without inferred owners, organizations, physical sites, establishments, or relationships.",
       "Iowa home-office addresses and source geocodes remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "New York monthly active-extract membership and reported locations remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",

@@ -23,9 +23,9 @@
   },
   "label_values": ["match", "non-match", "uncertain", "not-reviewable"],
   "current_verified_sample": {
-    "release_id": "business-entity-resolution-benchmark-sample-20260901-063844641Z-52ff35f4",
-    "resolution_release_id": "business-entity-resolution-20260901-063537542Z-ed304229",
-    "registry_release_id": "national-business-registry-20260901-042448477Z-52767557",
+    "release_id": "business-entity-resolution-benchmark-sample-20260901-091651245Z-0689c725",
+    "resolution_release_id": "business-entity-resolution-20260901-091336354Z-3bc0423c",
+    "registry_release_id": "national-business-registry-20260901-070150033Z-cb73e5fd",
     "automatic_physical_site_universe": 1380586,
     "automatic_establishment_universe": 61004,
     "review_candidate_universe": 84894,
@@ -33,7 +33,7 @@
     "total_sampled_candidates": 1275,
     "unique_profiles": 2545,
     "verified_artifact_count": 3,
-    "verified_bytes": 892066,
+    "verified_bytes": 891979,
     "submitted_labels": 0,
     "automatic_precision_gate_passed": false,
     "export_authorized": false

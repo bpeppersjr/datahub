@@ -20,6 +20,7 @@ const SOURCE_DISPLAY_NAMES = Object.freeze({
   cms_nppes_organizations: "CMS NPPES Organizations",
   co_business_registry_good_standing_or_delinquent_organizations: "Colorado Business Registry Good Standing or Delinquent Organizations",
   ct_business_registry_active_organizations: "Connecticut Business Registry Active Organizations",
+  de_business_licenses_current: "Delaware Division of Revenue Current Business Licenses",
   epa_echo_active_facilities: "EPA ECHO Active Facilities",
   fdic_bankfind: "FDIC BankFind",
   fl_business_registry_quarterly_active_entities: "Florida Business Registry Quarterly Active Entities",

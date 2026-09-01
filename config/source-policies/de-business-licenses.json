@@ -1,0 +1,41 @@
+{
+  "policy_id": "de-business-licenses",
+  "version": "1.0.0",
+  "publisher": "Delaware Department of Finance, Division of Revenue",
+  "ownership": "Official public current business-license records published through Delaware Open Data",
+  "source_home": "https://data.delaware.gov/d/5zy2-grhr",
+  "source_dataset": "https://data.delaware.gov/resource/5zy2-grhr.json",
+  "catalog_dataset_id": "5zy2-grhr",
+  "catalog_license": "Public Domain",
+  "source_access": "Public anonymous read-only HTTPS Socrata API.",
+  "allowed_use": [
+    "official HTTPS metadata, count, and selected-field API queries",
+    "local processing",
+    "immutable internal selected-field source retention",
+    "license-backed provisional organization and reported-business-address normalization",
+    "ZIP and source coverage analysis",
+    "derived registry assertions",
+    "redistribution of aggregate statistics with source attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing source inclusion as independent proof of continuous operations, good standing, solvency, public access, or an open storefront",
+    "representing a reported business address or source geocode as a verified physical operating site",
+    "representing this licensing source as every business in Delaware or the United States",
+    "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+    "counting multiple rows for one license number as multiple businesses",
+    "inferring ownership, parent company, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_addresses_assertions_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+    "owner_officer_principal_agent_phone_email_and_contact_fields": "excluded-at-query-time"
+  },
+  "attribution": "Source: Delaware Department of Finance, Division of Revenue, Delaware Business Licenses, via data.delaware.gov.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed with Delaware attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy review.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names can identify sole proprietors and reported business addresses can be residences. The connector selects no owner, officer, principal, agent, phone, email, or contact fields and keeps source and normalized record-level artifacts local.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-01"
+}

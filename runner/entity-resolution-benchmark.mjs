@@ -97,9 +97,9 @@ async function loadDependencies(resolutionPointer, registryPointer) {
   const resolution = await loadPointer(resolutionPointer, "national-business-entity-resolution");
   await verifyBusinessEntityResolution(resolution.manifestPath);
   const registry = await loadPointer(registryPointer, "national-business-registry");
-  if (registry.manifest.status !== "published-partial" || !["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0"].includes(registry.manifest.publisher?.version)
+  if (registry.manifest.status !== "published-partial" || !["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"].includes(registry.manifest.publisher?.version)
     || registry.manifest.complete_national_business_registry !== false) {
-    throw new Error("A verified partial National Business Registry 1.2.0 through 2.3.0 release is required.");
+    throw new Error("A verified partial National Business Registry 1.2.0 through 2.4.0 release is required.");
   }
   if (resolution.manifest.dependency?.release_id !== registry.manifest.release_id
     || resolution.manifest.dependency?.manifest_sha256 !== registry.manifestSha256) {
