@@ -55,6 +55,8 @@
     "pa-business:verify": "node scripts/verify-pa-business-registry.mjs",
     "la-active-businesses:build": "node scripts/build-la-active-businesses.mjs",
     "la-active-businesses:verify": "node scripts/verify-la-active-businesses.mjs",
+    "tx-sales-tax:build": "node scripts/build-tx-active-sales-tax-permits.mjs",
+    "tx-sales-tax:verify": "node scripts/verify-tx-active-sales-tax-permits.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",

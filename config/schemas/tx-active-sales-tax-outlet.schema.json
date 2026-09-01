@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/tx-active-sales-tax-outlet.schema.json",
+  "title": "Normalized Texas Comptroller Active Sales Tax Permit Outlet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "taxpayer_name", "outlet_name", "physical_address", "geography", "taxpayer_profile", "permit_profile", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^tx-active-sales-tax:outlet:[0-9]{11}:[0-9]+$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:tx_cpa_taxpayer_[0-9]{11}$" },
+        "physical_site_id": { "type": "string", "pattern": "^site:tx_cpa_sales_tax_outlet_[0-9]{11}_[0-9]+$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:tx_cpa_sales_tax_outlet_[0-9]{11}_[0-9]+$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "object" } },
+    "taxpayer_name": { "type": "string", "minLength": 1 },
+    "outlet_name": { "type": "string", "minLength": 1 },
+    "physical_address": { "type": "object" },
+    "geography": { "type": "object" },
+    "taxpayer_profile": { "type": "object" },
+    "permit_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-as-active-texas-sales-tax-permit-outlet-as-of-source-refresh" },
+        "status": { "const": "Active sales tax permit (source-defined)" },
+        "semantics": { "const": "active-sales-tax-permit-under-texas-tax-code-chapter-151-subchapter-f-not-independent-proof-of-continuous-operations-or-public-access" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

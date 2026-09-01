@@ -29,6 +29,7 @@ Options:
   --fl-business <path> Florida quarterly active corporate entities current.json prerequisite
   --pa-business <path> Pennsylvania Department of State active registrations current.json prerequisite
   --la-active-businesses <path> City of Los Angeles active-business location accounts current.json prerequisite
+  --tx-sales-tax <path> Texas Comptroller active sales-tax permit outlets current.json prerequisite
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --help           Show this help
 `;
@@ -53,12 +54,13 @@ function parseArguments(args) {
     flBusiness: "data/business-sources/fl-business-registry-quarterly-active-entities/current.json",
     paBusiness: "data/business-sources/pa-business-registry-active-registrations/current.json",
     laActiveBusinesses: "data/business-sources/la-active-business-location-accounts/current.json",
+    txActiveSalesTax: "data/business-sources/tx-active-sales-tax-outlets/current.json",
     uspsZips: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -79,6 +81,7 @@ function parseArguments(args) {
       if (argument === "--fl-business") options.flBusiness = value;
       if (argument === "--pa-business") options.paBusiness = value;
       if (argument === "--la-active-businesses") options.laActiveBusinesses = value;
+      if (argument === "--tx-sales-tax") options.txActiveSalesTax = value;
       if (argument === "--usps-zips") options.uspsZips = value;
       continue;
     }
@@ -111,6 +114,7 @@ try {
     flBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.flBusiness)),
     paBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.paBusiness)),
     laActiveBusinessesPointer: assertInsideApp(path.resolve(APP_ROOT, options.laActiveBusinesses)),
+    txActiveSalesTaxPointer: assertInsideApp(path.resolve(APP_ROOT, options.txActiveSalesTax)),
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });

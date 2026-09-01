@@ -22,6 +22,7 @@ import {
   reconcileFlBusinessOrganization,
   reconcilePaBusinessOrganization,
   reconcileLaActiveBusinessLocation,
+  reconcileTxActiveSalesTaxOutlet,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -46,6 +47,7 @@ import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
 import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
+import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
 
@@ -1381,6 +1383,95 @@ async function writeFixtureLaActiveBusinessRelease(root) {
   return pointerPath;
 }
 
+function normalizedTxActiveSalesTaxOutlet(taxpayerNumber = "32089812484", outletNumber = "1", zipCode = "78701") {
+  return normalizeTxActiveSalesTaxOutlet({
+    socrata_row_id: `row-${taxpayerNumber}-${outletNumber}`,
+    taxpayer_number: taxpayerNumber,
+    taxpayer_name: "FIXTURE MARKETS LLC",
+    taxpayer_organization_type: "CL",
+    outlet_number: outletNumber,
+    outlet_name: `FIXTURE MARKET ${outletNumber}`,
+    outlet_address: outletNumber === "1" ? "100 CONGRESS AVE STE 100" : "200 MAIN ST",
+    outlet_city: outletNumber === "1" ? "AUSTIN" : "DALLAS",
+    outlet_state: "TX",
+    outlet_zip_code: zipCode,
+    outlet_county_code: outletNumber === "1" ? "227" : "113",
+    outlet_naics_code: "445110",
+    outlet_inside_outside_city_limits_indicator: outletNumber === "1" ? "Y" : "N",
+    outlet_permit_issue_date: "2020-03-04T00:00:00.000",
+    outlet_first_sales_date: "2020-03-05T00:00:00.000",
+  }, {
+    runId: "tx-sales-tax-source-fixture",
+    retrievedAt: "2026-08-31T20:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-29T08:21:49.000Z",
+    sourceReleaseId: "tx-sales-tax-source-fixture",
+    baselineByZip: new Map([
+      ["78701", { postal_label: { preferred_state: "TX" }, geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:78701", geoid: "78701" } }],
+      ["75001", { postal_label: { preferred_state: "TX" }, geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:75001", geoid: "75001" } }],
+    ]),
+  });
+}
+
+async function writeFixtureTxActiveSalesTaxRelease(root) {
+  const releaseId = "tx-active-sales-tax-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [normalizedTxActiveSalesTaxOutlet(), normalizedTxActiveSalesTaxOutlet("32089812484", "2", "75001")];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(`${record.external_identifiers[0].value}:${record.external_identifiers[1].value}`)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `normalized/outlets/prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-tx-active-sales-tax-outlet-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  const zipRows = [
+    { zip_code: "78701", count: 1 },
+    { zip_code: "75001", count: 1 },
+    { zip_code: "99999", count: 0 },
+  ].map(({ zip_code: zip, count }) => ({
+    zip_code: zip,
+    tx_active_sales_tax_snapshot: { permitted_outlet_count: count },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip}` },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "tx-active-sales-tax-permit-zip-coverage-jsonl", distribution_policy: "public-aggregate-with-source-limitations" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "tx-active-sales-tax-outlets",
+    release_id: releaseId,
+    status: "complete",
+    complete_source_snapshot: true,
+    source_release_id: "tx-sales-tax-source-fixture",
+    source: { rows_updated_at: "2026-08-29T08:21:49.000Z" },
+    coverage: {
+      source_outlet_permits: 3,
+      normalized_outlet_permits: 2,
+      unique_taxpayers: 1,
+      quarantined_source_records: 1,
+      inside_city_limits_outlets: 1,
+      outside_city_limits_outlets: 1,
+      city_limits_unreported_outlets: 0,
+      physical_sites: 2,
+      establishments: 2,
+      organizations: 1,
+    },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
 test("reconciles source-specific SNAP evidence without inferring an owner or general open status", () => {
   const result = reconcileSnapRecord(normalizedRecord());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["physical_site", "establishment"]);
@@ -1636,6 +1727,17 @@ test("reconciles Los Angeles source-defined active location evidence without inv
   assert(result.assertions.every((item) => !/(mailing|computed_region|location_description)/i.test(String(item.source.source_field))));
 });
 
+test("reconciles Texas sales-tax permit evidence into one organization, outlet, and physical site", () => {
+  const result = reconcileTxActiveSalesTaxOutlet(normalizedTxActiveSalesTaxOutlet());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.legal-name"));
+  assert(result.locationAssertions.some((item) => item.predicate === "establishment.source-status"));
+  assert(result.locationAssertions.some((item) => item.predicate === "establishment.self-reported-naics"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/taxpayer_(address|city|state|zip|county)/i.test(String(item.source.source_field))));
+});
+
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-registry-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -1654,6 +1756,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const flBusinessPointer = await writeFixtureFlBusinessRelease(path.join(root, "fl-business"));
   const paBusinessPointer = await writeFixturePaBusinessRelease(path.join(root, "pa-business"));
   const laActiveBusinessesPointer = await writeFixtureLaActiveBusinessRelease(path.join(root, "la-active-businesses"));
+  const txActiveSalesTaxPointer = await writeFixtureTxActiveSalesTaxRelease(path.join(root, "tx-sales-tax"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -1673,15 +1776,16 @@ test("publishes and verifies a combined partial registry while retaining denomin
     flBusinessPointer,
     paBusinessPointer,
     laActiveBusinessesPointer,
+    txActiveSalesTaxPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 17);
+  assert.equal(result.manifest.coverage.organizations, 18);
   assert.equal(result.manifest.coverage.brands, 1);
-  assert.equal(result.manifest.coverage.physical_sites, 14);
-  assert.equal(result.manifest.coverage.establishments, 14);
+  assert.equal(result.manifest.coverage.physical_sites, 16);
+  assert.equal(result.manifest.coverage.establishments, 16);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
@@ -1713,13 +1817,17 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.la_active_business_source_location_accounts, 3);
   assert.equal(result.manifest.coverage.la_active_business_normalized_us_location_accounts, 2);
   assert.equal(result.manifest.coverage.la_active_business_quarantined_source_records, 1);
+  assert.equal(result.manifest.coverage.tx_active_sales_tax_source_outlet_permits, 3);
+  assert.equal(result.manifest.coverage.tx_active_sales_tax_normalized_outlet_permits, 2);
+  assert.equal(result.manifest.coverage.tx_active_sales_tax_unique_taxpayers, 1);
+  assert.equal(result.manifest.coverage.tx_active_sales_tax_quarantined_source_records, 1);
   assert.match(result.manifest.export_policy, /local-review-only/);
-  assert.equal(result.manifest.coverage.relationships, 20);
-  assert.equal(result.manifest.coverage.resolution_location_profiles, 14);
+  assert.equal(result.manifest.coverage.relationships, 24);
+  assert.equal(result.manifest.coverage.resolution_location_profiles, 16);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
-  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 14);
-  assert.equal(result.manifest.coverage.zip_union_records, 17);
+  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 16);
+  assert.equal(result.manifest.coverage.zip_union_records, 19);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 

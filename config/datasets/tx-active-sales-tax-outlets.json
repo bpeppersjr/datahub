@@ -1,0 +1,31 @@
+{
+  "dataset_id": "tx-active-sales-tax-outlets",
+  "schema_version": "1.0.0",
+  "title": "Texas Comptroller Active Sales Tax Permit Outlets",
+  "status": "published-verified-local-review-only",
+  "description": "Governed Texas Comptroller active sales-tax permit taxpayer/outlet layer with privacy-minimized selected fields, source-described physical outlet addresses, NAICS, temporal permit evidence, ZIP/ZCTA context, and source-specific active semantics.",
+  "output": "data/business-sources/tx-active-sales-tax-outlets/current.json",
+  "connector": "config/connectors/tx-active-sales-tax-permits.json",
+  "source_policy": "config/source-policies/tx-active-sales-tax-permits.json",
+  "record_schema": "config/schemas/tx-active-sales-tax-outlet.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Taxpayer/outlet pairs in the official Texas Comptroller Active Sales Tax Permit Holders dataset at its source refresh. Active means the outlet holds an active sales-tax permit under Texas Tax Code Chapter 151, Subchapter F; it is not independent proof of continuous operations or public access.",
+  "current_verified_release": {
+    "release_id": "tx-active-sales-tax-20260831-235045220Z-c067b3eb",
+    "source_release_id": "tx-active-sales-tax-2026-08-29-98b90d177d81493e",
+    "source_outlet_permits": 885278,
+    "normalized_outlet_permits": 885097,
+    "unique_taxpayers": 700705,
+    "quarantined_source_records": 181,
+    "inside_city_limits_outlets": 684079,
+    "outside_city_limits_outlets": 201002,
+    "city_limits_unreported_outlets": 16,
+    "source_zip_codes": 2156,
+    "zip_union_records": 37828,
+    "verified_artifact_count": 21,
+    "verified_bytes": 260059941,
+    "complete_all_businesses": false,
+    "record_level_distribution": "local-review-only"
+  },
+  "documentation": "docs/TX-ACTIVE-SALES-TAX-OUTLETS.md"
+}

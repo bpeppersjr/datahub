@@ -4,7 +4,7 @@ The entity-resolution layer groups provisional source entities without deleting 
 
 ## Match profiles
 
-Compatible registry publisher versions 1.2.0 through 2.0.0 emit one compact location profile for every provisional physical site and establishment. State-registration organization and brand layers added in 1.3.0 through 1.9.0 do not create profiles. Publisher 2.0.0 adds privacy-restricted Los Angeles Office of Finance location profiles; their source policy remains local-review-only throughout resolution. Profiles are partitioned into 100 ZIP2 files and contain:
+Compatible registry publisher versions 1.2.0 through 2.1.0 emit one compact location profile for every provisional physical site and establishment. State-registration organization and brand layers added in 1.3.0 through 1.9.0 do not create profiles. Publisher 2.0.0 adds privacy-restricted Los Angeles Office of Finance locations, and 2.1.0 adds Texas Comptroller permit outlets and their taxpayer-organization links; both source policies remain local-review-only throughout resolution. Profiles are partitioned into 100 ZIP2 files and contain:
 
 - provisional site, establishment, and optional operating-organization IDs;
 - the reported address and a deterministic normalized address;
@@ -47,7 +47,7 @@ The layer remains `published-reviewable-partial`. It does not claim all entities
 
 ## Validated live release
 
-The independently verified release `business-entity-resolution-20260831-232759676Z-20c2aebc` depends on registry release `national-business-registry-20260831-210552807Z-93cdcd9e`. Across 6,794,612 profiles and 5,612,038 usable address groups, it publishes 1,895,923 reversible site-alias decisions, 84,688 reversible establishment-alias decisions, and 62,293 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it. The 101 verified artifacts total 323,006,462 bytes. The Los Angeles location-account layer adds local-review-only profiles; Connecticut, Colorado, Oregon, Iowa, New York, Florida, and Pennsylvania registry addresses still create no location profiles.
+The independently verified release `business-entity-resolution-20260901-011244450Z-d9b724bd` depends on registry release `national-business-registry-20260901-000005424Z-d8b67254`. Across 7,679,709 profiles and 6,308,888 usable address groups, it publishes 2,200,144 reversible site-alias decisions, 115,149 reversible establishment-alias decisions, and 83,296 unapplied review candidates in 100 decision partitions plus one aggregate summary. One oversized residual review group was skipped and counted; no automatic decision was created for it. The 101 verified artifacts total 380,366,512 bytes. Texas and Los Angeles profiles remain local-review-only; organization-only state-registry address layers still create no location profiles.
 
 These are decision-row counts, not counts of unique resolved businesses. The release remains incomplete and local-review-only.
 

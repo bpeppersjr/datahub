@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.7.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@1.8.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -20,6 +20,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   epa_echo_active_facilities: "epa-echo-exporter-active-facility",
   fmcsa_active_us_company_census: "fmcsa-company-census-active-us-principal-office",
   la_active_business_location_accounts: "los-angeles-office-of-finance-active-businesses",
+  tx_active_sales_tax_permit_outlets: "texas-comptroller-active-sales-tax-permits",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
 });
 
@@ -1151,6 +1152,13 @@ export async function buildNationalBusinessCoverageViews({
       la_active_business_in_city_council_district_locations: registry.manifest.coverage?.la_active_business_in_city_council_district_locations ?? 0,
       la_active_business_out_of_city_locations: registry.manifest.coverage?.la_active_business_out_of_city_locations ?? 0,
       la_active_business_suspect_in_city_coordinates: registry.manifest.coverage?.la_active_business_suspect_in_city_coordinates ?? 0,
+      tx_active_sales_tax_source_outlet_permits: registry.manifest.coverage?.tx_active_sales_tax_source_outlet_permits ?? 0,
+      tx_active_sales_tax_normalized_outlet_permits: registry.manifest.coverage?.tx_active_sales_tax_normalized_outlet_permits ?? 0,
+      tx_active_sales_tax_unique_taxpayers: registry.manifest.coverage?.tx_active_sales_tax_unique_taxpayers ?? 0,
+      tx_active_sales_tax_quarantined_source_records: registry.manifest.coverage?.tx_active_sales_tax_quarantined_source_records ?? 0,
+      tx_active_sales_tax_inside_city_limits_outlets: registry.manifest.coverage?.tx_active_sales_tax_inside_city_limits_outlets ?? 0,
+      tx_active_sales_tax_outside_city_limits_outlets: registry.manifest.coverage?.tx_active_sales_tax_outside_city_limits_outlets ?? 0,
+      tx_active_sales_tax_city_limits_unreported_outlets: registry.manifest.coverage?.tx_active_sales_tax_city_limits_unreported_outlets ?? 0,
     },
     count_semantics: {
       national_state_zip: "source-preserving provisional registry evidence; not deduplicated businesses",

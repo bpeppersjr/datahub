@@ -73,6 +73,10 @@ type Overview = {
     la_active_business_in_city_council_district_locations: number;
     la_active_business_out_of_city_locations: number;
     la_active_business_suspect_in_city_coordinates: number;
+    tx_active_sales_tax_source_outlet_permits: number;
+    tx_active_sales_tax_normalized_outlet_permits: number;
+    tx_active_sales_tax_unique_taxpayers: number;
+    tx_active_sales_tax_quarantined_source_records: number;
     gap_counts_by_type: Record<string, number>;
   };
   national?: Array<Record<string, unknown>>;
@@ -359,6 +363,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.fl_business_registry_active_organization_records)}</strong> FL active quarterly entities</span>
             <span><strong>{count(overview?.coverage?.pa_business_registry_active_organization_records)}</strong> PA active registrations</span>
             <span><strong>{count(overview?.coverage?.la_active_business_normalized_us_location_accounts)}</strong> LA active location accounts</span>
+            <span><strong>{count(overview?.coverage?.tx_active_sales_tax_normalized_outlet_permits)}</strong> TX active sales-tax outlets</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>
 

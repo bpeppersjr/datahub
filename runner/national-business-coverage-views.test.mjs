@@ -183,6 +183,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source_rows_updated_at: "2026-08-15T15:37:22.000Z",
       record_level_distribution: "local-review-only",
     },
+    tx_active_sales_tax_permit_outlets: {
+      permitted_outlet_count: 2,
+      source_release_id: "tx-sales-tax-fixture",
+      source_rows_updated_at: "2026-08-29T08:21:49.000Z",
+      record_level_distribution: "local-review-only",
+    },
   };
   const zipRows = [
     {
@@ -291,6 +297,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       la_active_business_in_city_council_district_locations: 1,
       la_active_business_out_of_city_locations: 0,
       la_active_business_suspect_in_city_coordinates: 0,
+      tx_active_sales_tax_source_outlet_permits: 3,
+      tx_active_sales_tax_normalized_outlet_permits: 2,
+      tx_active_sales_tax_unique_taxpayers: 1,
+      tx_active_sales_tax_quarantined_source_records: 1,
+      tx_active_sales_tax_inside_city_limits_outlets: 1,
+      tx_active_sales_tax_outside_city_limits_outlets: 1,
+      tx_active_sales_tax_city_limits_unreported_outlets: 0,
     },
     limitations: [],
     artifacts: registryArtifacts,
@@ -403,12 +416,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "1.7.0");
+  assert.equal(result.manifest.publisher.version, "1.8.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 6);
+  assert.equal(verification.coverage.source_views, 7);
   assert.equal(verification.coverage.location_profiles_assessed, 3);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -432,6 +445,9 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.pa_business_registry_eligible_reported_us_business_addresses, 2);
   assert.equal(verification.coverage.la_active_business_source_location_accounts, 2);
   assert.equal(verification.coverage.la_active_business_normalized_us_location_accounts, 1);
+  assert.equal(verification.coverage.tx_active_sales_tax_source_outlet_permits, 3);
+  assert.equal(verification.coverage.tx_active_sales_tax_normalized_outlet_permits, 2);
+  assert.equal(verification.coverage.tx_active_sales_tax_unique_taxpayers, 1);
   const sources = (await readFile(path.join(result.releaseDirectory, "views/sources.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   const colorado = sources.find((row) => row.source_key === "co_business_registry_good_standing_or_delinquent_organizations");
   assert.equal(colorado.profile_source_id, null);
@@ -453,6 +469,10 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(losAngeles.zip_level_counts.registered_business_location_count, 1);
   assert.equal(losAngeles.zip_rows_with_contribution, 1);
   assert.equal(losAngeles.location_profile_geography.profile_count, 1);
+  const texas = sources.find((row) => row.source_key === "tx_active_sales_tax_permit_outlets");
+  assert.equal(texas.profile_source_id, "texas-comptroller-active-sales-tax-permits");
+  assert.equal(texas.zip_level_counts.permitted_outlet_count, 2);
+  assert.equal(texas.zip_rows_with_contribution, 1);
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
 });

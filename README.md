@@ -61,6 +61,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-sources/fl-business-registry-quarterly-active-entities/` — governed, privacy-minimized Florida quarterly corporate archive with inactive rows explicitly excluded
 - `data/business-sources/pa-business-registry-active-registrations/` — governed, privacy-minimized Pennsylvania active-registration organizations with statutory-overcount and portal-geocode quality warnings
 - `data/business-sources/la-active-business-location-accounts/` — governed City of Los Angeles source-defined active business locations, with record-level artifacts kept local-review-only
+- `data/business-sources/tx-active-sales-tax-outlets/` — governed Texas Comptroller source-defined active sales-tax permit taxpayers and physical outlets, with taxpayer mailing fields excluded and record-level artifacts kept local-review-only
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log
