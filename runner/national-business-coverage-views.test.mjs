@@ -212,6 +212,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       record_level_distribution: "local-review-only",
       aggregate_distribution: "public-with-cc-by-4.0-attribution-and-source-limitations",
     },
+    california_abc_active_issued_license_sites: {
+      licensed_site_count: 1,
+      source_release_id: "ca-abc-license-fixture",
+      source_modified_at: "2026-09-01T10:50:26.000Z",
+      record_level_distribution: "local-review-only",
+      aggregate_distribution: "public-with-attribution-and-source-limitations",
+      general_operating_status_inferred: false,
+    },
     nyc_dcwp_active_license_sites: {
       licensed_site_count: 1,
       source_release_id: "nyc-dcwp-license-fixture",
@@ -225,8 +233,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       registry_coverage: {
         status: "record-level-source-contribution",
         complete_all_businesses: false,
-        physical_site_count: 7,
-        establishment_count: 7,
+        physical_site_count: 8,
+        establishment_count: 8,
       },
       source_contributions: sourceContribution,
       current_usps_validity: { status: "unverified" },
@@ -311,6 +319,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       observed_at: "2026-09-01T12:30:00.000Z",
       source: { source_id: "dc-dlcp-active-basic-business-licenses" },
     },
+    {
+      profile_id: "profile:8",
+      normalized_address: { state: "AA" },
+      location: null,
+      observed_at: "2026-09-01T10:50:26.000Z",
+      source: { source_id: "california-abc-daily-active-licenses" },
+    },
   ];
   for (let partition = 0; partition < 100; partition += 1) {
     const rows = partition === 12 ? profiles : [];
@@ -322,12 +337,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     ));
   }
   const registry = await publishFixture(registryRoot, "national-business-registry", registryReleaseId, {
+    publisher: { id: "national-business-registry", version: "2.7.0" },
     status: "published-partial",
     complete_national_business_registry: false,
     coverage: {
-      resolution_location_profiles: 7,
-      physical_sites: 7,
-      establishments: 7,
+      resolution_location_profiles: 8,
+      physical_sites: 8,
+      establishments: 8,
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
@@ -393,6 +409,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       dc_basic_business_license_source_coordinate_conflict_sites: 0,
       dc_basic_business_license_in_dc_premise_sites: 1,
       dc_basic_business_license_outside_dc_premise_sites: 0,
+      ca_abc_source_records: 6,
+      ca_abc_selected_active_issued_license_rows: 4,
+      ca_abc_excluded_source_rows: 2,
+      ca_abc_active_issued_license_normalized_sites: 1,
+      ca_abc_active_issued_license_organizations: 1,
+      ca_abc_active_issued_license_activities: 3,
+      ca_abc_quarantined_source_rows: 1,
+      ca_abc_quarantined_file_groups: 1,
+      ca_abc_source_active_rows_with_expiration_before_observation: 1,
       nyc_dcwp_active_license_source_records: 4,
       nyc_dcwp_active_license_accepted_records: 3,
       nyc_dcwp_active_license_normalized_sites: 1,
@@ -410,7 +435,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const resolution = await publishFixture(path.join(root, "resolution"), "national-business-entity-resolution", "resolution-fixture", {
     status: "published-reviewable-partial",
     dependency: { dataset_id: "national-business-registry", release_id: registryReleaseId },
-    coverage: { profiles: 7 },
+    coverage: { profiles: 8 },
   });
   const benchmark = await publishFixture(path.join(root, "benchmark"), "national-business-entity-resolution-benchmark", "benchmark-fixture", {
     status: "awaiting-independent-labels",
@@ -514,16 +539,16 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.3.0");
+  assert.equal(result.manifest.publisher.version, "2.4.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 11);
-  assert.equal(verification.coverage.location_profiles_assessed, 7);
+  assert.equal(verification.coverage.source_views, 12);
+  assert.equal(verification.coverage.location_profiles_assessed, 8);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(states[0].registry_evidence.reported_address_profile_count, 7);
+  assert.equal(states[0].registry_evidence.reported_address_profile_count, 8);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
   assert.equal(states[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -563,6 +588,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.dc_basic_business_license_accepted_rows, 3);
   assert.equal(verification.coverage.dc_basic_business_license_normalized_sites, 1);
   assert.equal(verification.coverage.dc_basic_business_license_organizations, 1);
+  assert.equal(verification.coverage.ca_abc_source_records, 6);
+  assert.equal(verification.coverage.ca_abc_selected_active_issued_license_rows, 4);
+  assert.equal(verification.coverage.ca_abc_excluded_source_rows, 2);
+  assert.equal(verification.coverage.ca_abc_active_issued_license_normalized_sites, 1);
+  assert.equal(verification.coverage.ca_abc_active_issued_license_organizations, 1);
+  assert.equal(verification.coverage.ca_abc_active_issued_license_activities, 3);
+  assert.equal(verification.coverage.ca_abc_quarantined_source_rows, 1);
+  assert.equal(verification.coverage.ca_abc_quarantined_file_groups, 1);
+  assert.equal(verification.coverage.ca_abc_source_active_rows_with_expiration_before_observation, 1);
   assert.equal(verification.coverage.nyc_dcwp_active_license_source_records, 4);
   assert.equal(verification.coverage.nyc_dcwp_active_license_normalized_sites, 1);
   assert.equal(verification.coverage.nyc_dcwp_active_license_unique_business_ids, 1);
@@ -607,6 +641,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(dc.zip_level_counts.licensed_site_count, 1);
   assert.equal(dc.zip_rows_with_contribution, 1);
   assert.equal(dc.location_profile_geography.profile_count, 1);
+  const californiaAbc = sources.find((row) => row.source_key === "california_abc_active_issued_license_sites");
+  assert.equal(californiaAbc.profile_source_id, "california-abc-daily-active-licenses");
+  assert.equal(californiaAbc.zip_level_counts.licensed_site_count, 1);
+  assert.equal(californiaAbc.zip_rows_with_contribution, 1);
+  assert.equal(californiaAbc.location_profile_geography.profile_count, 1);
+  assert.equal(californiaAbc.location_profile_geography.coordinate_missing_count, 1);
   const nycDcwp = sources.find((row) => row.source_key === "nyc_dcwp_active_license_sites");
   assert.equal(nycDcwp.profile_source_id, "nyc-dcwp-issued-licenses-active-premises");
   assert.equal(nycDcwp.zip_level_counts.licensed_site_count, 1);

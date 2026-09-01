@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/ca-abc-active-license-site.schema.json",
+  "title": "California ABC active issued-license site",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_record_id", "source_row_count", "external_identifiers", "names", "premise_address", "license_activities", "source_status", "entity_candidates", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "source_record_id": { "type": "string", "pattern": "^[0-9]{8}$" },
+    "source_row_count": { "type": "integer", "minimum": 1 },
+    "external_identifiers": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "names": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_name", "dba_names"],
+      "properties": {
+        "primary_name": { "type": "string", "minLength": 1 },
+        "dba_names": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "premise_address": {
+      "type": "object",
+      "required": ["address_line_1", "city", "state", "zip_code", "postal_code", "country", "validation_status"],
+      "properties": {
+        "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+        "postal_code": { "type": "string", "pattern": "^[0-9]{5}(?:-[0-9]{4})?$" },
+        "country": { "const": "US" }
+      }
+    },
+    "license_activities": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "source_status": { "type": "object", "required": ["source_value", "status_class", "observed_at", "expiration_before_observation_count", "general_operating_status_inferred"] },
+    "entity_candidates": { "type": "object", "required": ["organization_id", "physical_site_id", "establishment_id"] },
+    "provenance": { "type": "object", "required": ["source_id", "source_release_id", "source_record_ids", "ingest_run_id", "transformation_version", "policy_id", "observed_at", "retrieved_at"] },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

@@ -4,7 +4,10 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { createGunzip, gzipSync } from "node:zlib";
-import { verifyBusinessEntityResolution } from "./business-entity-resolution.mjs";
+import {
+  COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS,
+  verifyBusinessEntityResolution,
+} from "./business-entity-resolution.mjs";
 
 export const BENCHMARK_SCHEMA_VERSION = "1.0.0";
 export const BENCHMARK_SAMPLING_VERSION = "business-entity-resolution-benchmark-sampling@1.0.0";
@@ -22,6 +25,8 @@ const STRATA = Object.freeze([
   "automatic-establishment",
   "review-candidate",
 ]);
+
+const COMPATIBLE_REGISTRY_PUBLISHER_RANGE = `${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS[0]} through ${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.at(-1)}`;
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -97,9 +102,9 @@ async function loadDependencies(resolutionPointer, registryPointer) {
   const resolution = await loadPointer(resolutionPointer, "national-business-entity-resolution");
   await verifyBusinessEntityResolution(resolution.manifestPath);
   const registry = await loadPointer(registryPointer, "national-business-registry");
-  if (registry.manifest.status !== "published-partial" || !["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0"].includes(registry.manifest.publisher?.version)
+  if (registry.manifest.status !== "published-partial" || !COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes(registry.manifest.publisher?.version)
     || registry.manifest.complete_national_business_registry !== false) {
-    throw new Error("A verified partial National Business Registry 1.2.0 through 2.6.0 release is required.");
+    throw new Error(`A verified partial National Business Registry ${COMPATIBLE_REGISTRY_PUBLISHER_RANGE} release is required.`);
   }
   if (resolution.manifest.dependency?.release_id !== registry.manifest.release_id
     || resolution.manifest.dependency?.manifest_sha256 !== registry.manifestSha256) {

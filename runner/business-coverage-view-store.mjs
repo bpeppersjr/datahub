@@ -15,6 +15,7 @@ const DIMENSION_ARTIFACT_TYPES = Object.freeze({
 
 const SOURCE_DISPLAY_NAMES = Object.freeze({
   census_nonemployer_statistics: "Census Nonemployer Statistics",
+  california_abc_active_issued_license_sites: "California ABC Active Issued-License Sites",
   chicago_active_business_license_sites: "Chicago Current Active Business License Sites",
   dc_basic_business_license_sites: "DC DLCP Active Basic Business License Sites",
   nyc_dcwp_active_license_sites: "NYC DCWP Active Premise-License Sites",

@@ -7,6 +7,7 @@ import test from "node:test";
 import { gunzipSync, gzipSync } from "node:zlib";
 import {
   buildBusinessEntityResolution,
+  COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS,
   createLocationMatchProfile,
   normalizeBusinessAddress,
   normalizeBusinessName,
@@ -93,7 +94,7 @@ async function writeFixtureRegistry(root, profiles) {
     release_id: releaseId,
     status: "published-partial",
     complete_national_business_registry: false,
-    publisher: { id: "national-business-registry", version: "1.9.0" },
+    publisher: { id: "national-business-registry", version: "2.7.0" },
     coverage: { physical_sites: profiles.length, resolution_location_profiles: profiles.length },
     artifacts,
   };
@@ -194,7 +195,15 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("builds and independently verifies an immutable reviewable resolution release", async (t) => {
+test("declares registry publisher compatibility through 2.7.0 without dropping 2.6.0", async () => {
+  const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
+  assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.7.0"));
+  assert(!COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.8.0"));
+});
+
+test("builds and independently verifies an immutable reviewable resolution release from registry publisher 2.7.0", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "business-entity-resolution-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const profiles = [

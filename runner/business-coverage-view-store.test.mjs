@@ -131,6 +131,27 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       earliest_observed_at: "2026-09-01T12:00:00.000Z",
       latest_observed_at: "2026-09-01T12:00:00.000Z"
     }
+  }, {
+    view_id: "source:california_abc_active_issued_license_sites",
+    source_key: "california_abc_active_issued_license_sites",
+    profile_source_id: "california-abc-daily-active-licenses",
+    release_metadata: {
+      source_release_id: "ca-abc-license-fixture",
+      source_modified_at: "2026-09-01T10:50:26.000Z"
+    },
+    zip_level_counts: { licensed_site_count: 1 },
+    zip_rows_with_contribution: 1,
+    location_profile_geography: {
+      profile_count: 1,
+      reported_state_assigned_count: 1,
+      coordinate_present_valid_count: 0,
+      coordinate_assigned_single_count: 0,
+      coordinate_missing_count: 1,
+      coordinate_unmatched_count: 0,
+      coordinate_ambiguous_boundary_count: 0,
+      earliest_observed_at: "2026-09-01T10:50:26.000Z",
+      latest_observed_at: "2026-09-01T10:50:26.000Z"
+    }
   }]);
   await artifact("coverage-gap-view-jsonl", "coverage-gaps", [{
     gap_id: "gap:zip-no-zcta:54321",
@@ -150,7 +171,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     complete_all_businesses: false,
     entity_resolution_applied: false,
     authoritative_current_usps_zip_denominator: null,
-    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 4, gap_views: 1 },
+    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 5, gap_views: 1 },
     count_semantics: {},
     limitations: [],
     artifacts,
@@ -185,6 +206,11 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const alaskaSources = await store.listDimension("sources", { query: "Alaska" });
   assert.equal(alaskaSources.total, 1);
   assert.equal(alaskaSources.records[0].source_name, "Alaska DCCED Active Business Licenses");
+  const californiaSources = await store.listDimension("sources", { query: "California ABC" });
+  assert.equal(californiaSources.total, 1);
+  assert.equal(californiaSources.records[0].source_name, "California ABC Active Issued-License Sites");
+  assert.equal(californiaSources.records[0].profile_source_id, "california-abc-daily-active-licenses");
+  assert.equal(californiaSources.records[0].coordinate_missing_count, 1);
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

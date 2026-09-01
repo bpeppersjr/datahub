@@ -80,7 +80,7 @@ async function writeFixtureRegistry(root, profiles) {
     release_id: releaseId,
     status: "published-partial",
     complete_national_business_registry: false,
-    publisher: { id: "national-business-registry", version: "2.0.0" },
+    publisher: { id: "national-business-registry", version: "2.7.0" },
     coverage: { physical_sites: profiles.length, resolution_location_profiles: profiles.length },
     artifacts,
   };
@@ -124,7 +124,7 @@ test("requires complete independently labeled automatic strata before passing pr
   assert.equal(evaluateBenchmarkLabels(candidates, incomplete).automatic_precision_gate_passed, false);
 });
 
-test("builds and independently verifies a deterministic enriched benchmark sample", async (t) => {
+test("builds and independently verifies a deterministic enriched benchmark sample from registry publisher 2.7.0", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "entity-resolution-benchmark-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const profiles = [];

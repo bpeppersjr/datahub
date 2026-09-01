@@ -1,0 +1,38 @@
+{
+  "connector_id": "ca-abc-active-license-sites",
+  "version": "1.0.0",
+  "description": "Publishes privacy-minimized California ABC source-defined active issued-license premise groups from the official daily export.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "minimize", "normalize", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ca-abc-active-license-sites" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_sites": { "type": "integer", "minimum": 1, "default": 50000 },
+      "maximum_quarantine_ratio": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.02 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["california-abc-daily-export-csv-zip", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ca-abc-selected-active-issued-license-source-jsonl-gzip", "ca-abc-zip-validation-reference-jsonl", "normalized-ca-abc-active-license-site-jsonl-gzip", "ca-abc-active-license-quarantine-jsonl-gzip", "ca-abc-active-license-zip-coverage-jsonl", "ca-abc-active-license-source-summary", "dataset-manifest-json"],
+  "allowed_hosts": ["www.abc.ca.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS HEAD/GET requests to the exact official DailyExport-CSV.zip path.",
+  "provider_budget_key": "california-abc-daily-license-export",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_archive_bytes": 50000000,
+    "maximum_uncompressed_bytes": 250000000,
+    "minimum_sites": 50000,
+    "maximum_quarantine_ratio": 0.02
+  },
+  "retry": "Retry HTTP 408, 425, 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, archive-member drift, duplicate selected identities, or quality-gate failures.",
+  "checkpoint": "Pin HEAD metadata, download one exact archive, validate the one-member CSV and 26-column fingerprint, discard mailing and unselected rows while writing the selected snapshot, delete the raw archive, then publish the verified manifest and pointer atomically.",
+  "idempotency": "The source Last-Modified instant, archive byte length, archive SHA-256, and selected-source SHA-256 identify a source release. File Number identifies one source-preserving licensee/premise group regardless of active license-type row count.",
+  "cancellation": "Abort acquisition and normalization cooperatively, close streams, leave the prior current pointer unchanged, and retain only unpublished run-scoped diagnostic staging.",
+  "source_policy": "config/source-policies/ca-abc-active-license-sites.json",
+  "retention_profile": "Retain immutable privacy-minimized selected-source and governed normalized releases; never retain the raw archive containing excluded mailing fields.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "active-state-license-assertion", "reported-premise-address-assertion"],
+  "produced_identifiers": ["ca-abc-file-number", "ca-abc-license-number", "zip5", "zip-plus-4", "source-county", "source-census-tract"]
+}

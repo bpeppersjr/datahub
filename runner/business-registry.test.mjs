@@ -27,6 +27,7 @@ import {
   reconcileTxActiveSalesTaxOutlet,
   reconcileChicagoActiveBusinessLicenseSite,
   reconcileDcBasicBusinessLicenseSite,
+  reconcileCaAbcActiveLicenseSite,
   reconcileNycDcwpActiveLicenseSite,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
@@ -39,6 +40,7 @@ import {
   verifyNationalBusinessRegistry,
 } from "./business-registry.mjs";
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
+import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
 import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
 import { normalizeEchoFacility } from "./epa-echo.mjs";
@@ -55,6 +57,7 @@ import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
 import { normalizeChicagoLicensedSite } from "./chicago-active-business-licenses.mjs";
 import { normalizeDcBasicBusinessLicenseSite } from "./dc-basic-business-licenses.mjs";
+import { normalizeCaAbcActiveLicenseSite } from "./ca-abc-active-license-sites.mjs";
 import { normalizeNycDcwpLicensedSite } from "./nyc-dcwp-active-premises.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
@@ -1679,6 +1682,43 @@ function normalizedDcBasicBusinessLicenseSite(customerNumber = "500526000983", z
   });
 }
 
+function normalizedCaAbcActiveLicenseSite(fileNumber = "00123456", zipCode = "94102") {
+  const base = {
+    source_row_ordinal: 1,
+    license_type: "21",
+    file_number: fileNumber,
+    license_or_application: "LIC",
+    type_status: "ACTIVE",
+    type_original_issue_date: "15-JUN-2018",
+    expiration_date: "31-JUL-2027",
+    fee_codes: "P40",
+    duplicate_count: null,
+    master_indicator: "Y",
+    term_months: "12",
+    geo_code: "3800",
+    district: "24",
+    primary_name: "FIXTURE CALIFORNIA MARKET LLC",
+    premise_address_1: "100 TEST STREET",
+    premise_address_2: "SUITE 2",
+    premise_city: "SAN FRANCISCO",
+    premise_state: "CA",
+    premise_zip: `${zipCode}-1234`,
+    dba_name: "FIXTURE CALIFORNIA MARKET",
+    premise_county: "SAN FRANCISCO",
+    premise_census_tract: "0121.00",
+  };
+  return normalizeCaAbcActiveLicenseSite([
+    base,
+    { ...base, source_row_ordinal: 2, license_type: "42", master_indicator: "N", dba_name: "FIXTURE CALIFORNIA MARKET CAFE" },
+  ], {
+    runId: "ca-abc-source-fixture",
+    retrievedAt: "2026-09-01T12:00:00.000Z",
+    sourceModifiedAt: "2026-09-01T10:50:26.000Z",
+    sourceReleaseId: "ca-abc-source-fixture",
+    baselineByZip: new Map([[zipCode, { postal_label: { preferred_state: "CA" } }]]),
+  });
+}
+
 function normalizedNycDcwpActiveLicenseSite(businessUniqueId = "BA-1305489-2022", zipCode = "10018") {
   const base = {
     business_name: "HUDSON GROUP (HG) RETAIL, LLC",
@@ -1769,6 +1809,68 @@ async function writeFixtureDcBasicBusinessLicenseRelease(root) {
       source_coordinate_conflict_sites: 0,
       in_dc_premise_sites: 1,
       outside_dc_premise_sites: 0,
+    },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
+}
+
+async function writeFixtureCaAbcActiveLicenseRelease(root) {
+  const releaseId = "ca-abc-active-license-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [normalizedCaAbcActiveLicenseSite()];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.source_record_id)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `derived/sites/id-hash-prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-ca-abc-active-license-site-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  const zipRows = [
+    { zip_code: "94102", count: 1 },
+    { zip_code: "99999", count: 0 },
+  ].map(({ zip_code: zip, count }) => ({
+    zip_code: zip,
+    ca_abc_active_issued_license_snapshot: { physical_site_count: count },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip}` },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "ca-abc-active-license-zip-coverage-jsonl", export_policy: "public-aggregate-with-attribution-and-limitations" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "ca-abc-active-license-sites",
+    release_id: releaseId,
+    status: "published",
+    complete_selected_active_issued_license_snapshot: true,
+    raw_archive_retained: false,
+    source_release_id: "ca-abc-source-fixture",
+    source_modified_at: "2026-09-01T10:50:26.000Z",
+    coverage: {
+      source_records: 2,
+      selected_active_issued_license_rows: 2,
+      excluded_source_rows: 0,
+      normalized_sites: 1,
+      organizations: 1,
+      establishments: 1,
+      license_activities: 2,
+      quarantined_source_rows: 0,
+      quarantined_file_groups: 0,
+      source_active_rows_with_expiration_before_observation: 0,
+      eligible_zip_contributions: 1,
+      zip_union_records: 2,
     },
     dependencies: [],
     artifacts,
@@ -2152,6 +2254,24 @@ test("reconciles grouped DC Basic Business License activities into one organizat
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(owner|agent|billing|phone|email|contact|ssl|square|lot|latitude|longitude)/i.test(String(item.source.source_field))));
 });
 
+test("reconciles grouped California ABC active issued-license activities into one organization, site, and establishment", () => {
+  const result = reconcileCaAbcActiveLicenseSite(normalizedCaAbcActiveLicenseSite());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.legal-name"));
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.ca-abc-active-issued-license-activity").length, 2);
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.name").length, 1);
+  assert.equal(result.locationAssertions.find((item) => item.predicate === "site.address").value.street, "100 TEST STREET");
+  assert.equal(result.locationAssertions.find((item) => item.predicate === "site.address").value.unit_or_additional, "SUITE 2");
+  const profile = createLocationMatchProfile(result.registryRecord, result);
+  assert.equal(profile.normalized_address.complete, true);
+  assert.equal(profile.normalized_address.match_key, "street|100 TEST ST|SUITE 2|SAN FRANCISCO|CA|94102");
+  assert.equal(result.locationAssertions.some((item) => item.predicate === "site.location"), false);
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(mail|owner|agent|contact|phone|email|parent|network)/i.test(String(item.source.source_field))));
+  assert.equal(result.locationAssertions.find((item) => item.predicate === "establishment.source-status").value.general_operating_status_inferred, false);
+});
+
 test("reconciles grouped NYC DCWP active premise licenses into one organization, site, and establishment", () => {
   const result = reconcileNycDcwpActiveLicenseSite(normalizedNycDcwpActiveLicenseSite());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
@@ -2185,6 +2305,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const laActiveBusinessesPointer = await writeFixtureLaActiveBusinessRelease(path.join(root, "la-active-businesses"));
   const txActiveSalesTaxPointer = await writeFixtureTxActiveSalesTaxRelease(path.join(root, "tx-sales-tax"));
   const dcBasicBusinessLicensesPointer = await writeFixtureDcBasicBusinessLicenseRelease(path.join(root, "dc-licenses"));
+  const caAbcActiveLicensesPointer = await writeFixtureCaAbcActiveLicenseRelease(path.join(root, "ca-abc"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -2208,15 +2329,16 @@ test("publishes and verifies a combined partial registry while retaining denomin
     laActiveBusinessesPointer,
     txActiveSalesTaxPointer,
     dcBasicBusinessLicensesPointer,
+    caAbcActiveLicensesPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 23);
+  assert.equal(result.manifest.coverage.organizations, 24);
   assert.equal(result.manifest.coverage.brands, 1);
-  assert.equal(result.manifest.coverage.physical_sites, 18);
-  assert.equal(result.manifest.coverage.establishments, 18);
+  assert.equal(result.manifest.coverage.physical_sites, 19);
+  assert.equal(result.manifest.coverage.establishments, 19);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
@@ -2262,14 +2384,19 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.dc_basic_business_license_accepted_rows, 2);
   assert.equal(result.manifest.coverage.dc_basic_business_license_normalized_sites, 1);
   assert.equal(result.manifest.coverage.dc_basic_business_license_organizations, 1);
+  assert.equal(result.manifest.coverage.ca_abc_source_records, 2);
+  assert.equal(result.manifest.coverage.ca_abc_selected_active_issued_license_rows, 2);
+  assert.equal(result.manifest.coverage.ca_abc_active_issued_license_normalized_sites, 1);
+  assert.equal(result.manifest.coverage.ca_abc_active_issued_license_organizations, 1);
+  assert.equal(result.manifest.coverage.ca_abc_active_issued_license_activities, 2);
   assert.match(result.manifest.export_policy, /local-review-only/);
   assert.match(result.manifest.export_policy, /CC BY 4\.0/);
-  assert.equal(result.manifest.coverage.relationships, 28);
-  assert.equal(result.manifest.coverage.resolution_location_profiles, 18);
+  assert.equal(result.manifest.coverage.relationships, 30);
+  assert.equal(result.manifest.coverage.resolution_location_profiles, 19);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
-  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 18);
-  assert.equal(result.manifest.coverage.zip_union_records, 22);
+  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 19);
+  assert.equal(result.manifest.coverage.zip_union_records, 23);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
@@ -2307,6 +2434,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(zipRows.find((row) => row.zip_code === "33101").registry_coverage.epa_echo_active_facility_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "90210").registry_coverage.fmcsa_active_registration_principal_office_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "20001").registry_coverage.dc_basic_business_license_site_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "94102").registry_coverage.ca_abc_active_issued_license_site_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {

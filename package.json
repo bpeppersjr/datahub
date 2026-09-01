@@ -59,6 +59,8 @@
     "ak-business:verify": "node scripts/verify-ak-active-business-licenses.mjs",
     "dc-bbl:build": "node scripts/build-dc-basic-business-licenses.mjs",
     "dc-bbl:verify": "node scripts/verify-dc-basic-business-licenses.mjs",
+    "ca-abc:build": "node scripts/build-ca-abc-active-license-sites.mjs",
+    "ca-abc:verify": "node scripts/verify-ca-abc-active-license-sites.mjs",
     "la-active-businesses:build": "node scripts/build-la-active-businesses.mjs",
     "la-active-businesses:verify": "node scripts/verify-la-active-businesses.mjs",
     "tx-sales-tax:build": "node scripts/build-tx-active-sales-tax-permits.mjs",

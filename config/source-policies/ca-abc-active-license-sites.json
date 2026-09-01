@@ -1,0 +1,46 @@
+{
+  "policy_id": "ca-abc-active-license-sites",
+  "version": "1.0.0",
+  "publisher": "California Department of Alcoholic Beverage Control",
+  "ownership": "Official state alcoholic-beverage licensing records published as a daily machine-readable export",
+  "source_home": "https://www.abc.ca.gov/licensing/licensing-reports/",
+  "source_dataset": "https://www.abc.ca.gov/wp-content/uploads/DailyExport-CSV.zip",
+  "source_layout": "https://www.abc.ca.gov/licensing/licensing-reports/weekly-data-export-fixed-width-layout-definition/",
+  "source_glossary": "https://www.abc.ca.gov/licensing/license-lookup/glossary/",
+  "catalog_license": "California state-created website information is generally public domain unless otherwise indicated",
+  "catalog_license_url": "https://www.ca.gov/legal/conditions-of-use/",
+  "source_access": "Public anonymous read-only HTTPS download refreshed each business day. The ABC page explicitly offers raw fixed-width and CSV downloads of pending and active license records.",
+  "allowed_use": [
+    "official HTTPS metadata and archive download",
+    "local privacy-minimized processing",
+    "immutable internal selected-field source retention",
+    "normalization of source rows marked both ACTIVE and LIC",
+    "ZIP/ZCTA and source coverage analysis",
+    "derived source-linked registry assertions and relationships",
+    "redistribution of aggregate statistics with publisher attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing ABC ACTIVE as independent proof of continuous operation, public access, current hours, solvency, or compliance",
+    "representing alcohol licenses as every business in California or the United States",
+    "representing application rows as issued licenses",
+    "counting multiple active license-type rows for one File Number as multiple premises",
+    "silently overriding source ACTIVE when an expiration date predates observation",
+    "publishing record-level natural-person names or possible residential premises without approved privacy review",
+    "retaining or publishing mailing addresses from the raw archive",
+    "inferring ownership, parent company, network affiliation, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "raw_archive": "ephemeral-acquisition-only-delete-before-publication",
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-attribution-and-semantic-limitations",
+    "mailing_contact_owner_officer_and_agent_fields": "excluded-before-staging"
+  },
+  "attribution": "Source: California Department of Alcoholic Beverage Control, Daily Data Export, Licensing Reports.",
+  "retention": "Retain immutable privacy-minimized selected-source and governed normalized releases. Delete the raw downloaded archive after selected-field staging.",
+  "redistribution": "Aggregate counts may be redistributed with California ABC attribution, exact refresh/checksum, and license-scope limitations. Record-level normalized data remains local-review-only because licensee names can identify people and premises can be residences.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Primary licensee names may be natural persons and premise addresses may be residences. Mailing fields are discarded before staging; normalized record-level artifacts remain local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-01"
+}
