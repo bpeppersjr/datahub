@@ -55,6 +55,8 @@
     "pa-business:verify": "node scripts/verify-pa-business-registry.mjs",
     "de-business:build": "node scripts/build-de-business-licenses.mjs",
     "de-business:verify": "node scripts/verify-de-business-licenses.mjs",
+    "ak-business:build": "node scripts/build-ak-active-business-licenses.mjs",
+    "ak-business:verify": "node scripts/verify-ak-active-business-licenses.mjs",
     "la-active-businesses:build": "node scripts/build-la-active-businesses.mjs",
     "la-active-businesses:verify": "node scripts/verify-la-active-businesses.mjs",
     "tx-sales-tax:build": "node scripts/build-tx-active-sales-tax-permits.mjs",

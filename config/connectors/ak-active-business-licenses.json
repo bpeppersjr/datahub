@@ -1,0 +1,40 @@
+{
+  "connector_id": "ak-active-business-licenses",
+  "version": "1.0.0",
+  "description": "Publishes privacy-minimized organization candidates and conditional provisional physical sites from Alaska DCCED's full active Business License and NAICS downloads.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ak-active-business-licenses" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_license_rows": { "type": "integer", "minimum": 1, "default": 80000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.01 },
+      "minimum_naics_coverage_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.99 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["alaska-dcced-active-business-license-csv", "alaska-dcced-business-license-naics-csv", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ak-active-business-license-selected-source-jsonl-gzip", "ak-active-business-license-naics-selected-source-jsonl-gzip", "normalized-ak-active-business-license-jsonl-gzip", "ak-active-business-license-quarantine-jsonl-gzip", "ak-active-business-license-zip-coverage-jsonl", "ak-active-business-license-source-summary", "ak-active-business-license-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["www.commerce.alaska.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact Alaska DCCED BusinessLicenseDownload and NaicsDownload paths without query parameters.",
+  "provider_budget_key": "alaska-dcced-public-business-license-downloads",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_response_bytes_per_download": 50000000,
+    "minimum_active_license_rows": 80000,
+    "maximum_quarantine_rate": 0.01,
+    "minimum_naics_license_coverage_rate": 0.99,
+    "maximum_source_observation_window_seconds": 300
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, orphan NAICS rows, duplicate license identities, observation-window drift, or quality-gate failures.",
+  "checkpoint": "Each full CSV is streamed into a privacy-minimized immutable selected-field snapshot. Both source snapshots and their observation times are hashed before normalization. A complete unpublished staging run can be independently verified and resumed by immutable run ID; current.json changes only after publication.",
+  "idempotency": "The coherent two-download observation window and SHA-256 values of both selected-field source artifacts identify a source release; the Alaska business license number creates a stable provisional organization candidate.",
+  "cancellation": "Abort network and local processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/ak-active-business-licenses.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "conditional-physical-site-candidate", "conditional-establishment-candidate", "active-alaska-business-license-assertion", "reported-physical-address-assertion", "source-naics-assertion"],
+  "produced_identifiers": ["alaska-business-license-number", "zip5", "zip4", "zcta5", "naics"]
+}

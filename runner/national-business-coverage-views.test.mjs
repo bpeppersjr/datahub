@@ -189,6 +189,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source_rows_updated_at: "2026-08-29T08:21:49.000Z",
       record_level_distribution: "local-review-only",
     },
+    ak_active_business_licenses: {
+      active_license_organization_reported_address_count: 1,
+      provisional_physical_site_count: 1,
+      source_release_id: "ak-business-fixture",
+      source_observed_from: "2026-09-01T11:59:00.000Z",
+      source_observed_through: "2026-09-01T12:00:00.000Z",
+      record_level_distribution: "local-review-only",
+      aggregate_distribution: "local-aggregate-review-required",
+    },
     chicago_active_business_license_sites: {
       licensed_site_count: 1,
       source_release_id: "chicago-license-fixture",
@@ -209,8 +218,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       registry_coverage: {
         status: "record-level-source-contribution",
         complete_all_businesses: false,
-        physical_site_count: 5,
-        establishment_count: 5,
+        physical_site_count: 6,
+        establishment_count: 6,
       },
       source_contributions: sourceContribution,
       current_usps_validity: { status: "unverified" },
@@ -281,6 +290,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       observed_at: "2026-08-05T00:00:00.000Z",
       source: { source_id: "nyc-dcwp-issued-licenses-active-premises" },
     },
+    {
+      profile_id: "profile:6",
+      normalized_address: { state: "AA" },
+      location: null,
+      observed_at: "2026-09-01T12:00:00.000Z",
+      source: { source_id: "alaska-dcced-active-business-licenses" },
+    },
   ];
   for (let partition = 0; partition < 100; partition += 1) {
     const rows = partition === 12 ? profiles : [];
@@ -295,9 +311,9 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     status: "published-partial",
     complete_national_business_registry: false,
     coverage: {
-      resolution_location_profiles: 5,
-      physical_sites: 5,
-      establishments: 5,
+      resolution_location_profiles: 6,
+      physical_sites: 6,
+      establishments: 6,
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
@@ -307,6 +323,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       de_business_license_quarantined_source_records: 1,
       de_business_license_quarantined_license_groups: 1,
       de_business_license_eligible_reported_us_business_addresses: 4,
+      ak_active_business_license_source_rows: 3,
+      ak_active_business_license_organizations: 2,
+      ak_active_business_license_provisional_physical_sites: 1,
+      ak_active_business_license_organizations_without_eligible_physical_site: 1,
+      ak_active_business_license_reported_us_address_zip_contributions: 1,
+      ak_active_business_license_quarantined_source_records: 1,
+      ak_active_business_license_accepted_naics_pairs: 2,
       co_business_registry_good_standing_or_delinquent_organization_records: 3,
       co_business_registry_quarantined_source_records: 1,
       co_business_registry_eligible_reported_us_business_addresses: 3,
@@ -363,7 +386,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const resolution = await publishFixture(path.join(root, "resolution"), "national-business-entity-resolution", "resolution-fixture", {
     status: "published-reviewable-partial",
     dependency: { dataset_id: "national-business-registry", release_id: registryReleaseId },
-    coverage: { profiles: 5 },
+    coverage: { profiles: 6 },
   });
   const benchmark = await publishFixture(path.join(root, "benchmark"), "national-business-entity-resolution-benchmark", "benchmark-fixture", {
     status: "awaiting-independent-labels",
@@ -467,16 +490,16 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.1.0");
+  assert.equal(result.manifest.publisher.version, "2.2.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 9);
-  assert.equal(verification.coverage.location_profiles_assessed, 5);
+  assert.equal(verification.coverage.source_views, 10);
+  assert.equal(verification.coverage.location_profiles_assessed, 6);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(states[0].registry_evidence.reported_address_profile_count, 5);
+  assert.equal(states[0].registry_evidence.reported_address_profile_count, 6);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
   assert.equal(states[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -493,6 +516,10 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.de_business_license_quarantined_source_records, 1);
   assert.equal(verification.coverage.de_business_license_quarantined_license_groups, 1);
   assert.equal(verification.coverage.de_business_license_eligible_reported_us_business_addresses, 4);
+  assert.equal(verification.coverage.ak_active_business_license_source_rows, 3);
+  assert.equal(verification.coverage.ak_active_business_license_organizations, 2);
+  assert.equal(verification.coverage.ak_active_business_license_provisional_physical_sites, 1);
+  assert.equal(verification.coverage.ak_active_business_license_quarantined_source_records, 1);
   assert.equal(verification.coverage.fl_business_registry_source_records, 10);
   assert.equal(verification.coverage.fl_business_registry_active_organization_records, 3);
   assert.equal(verification.coverage.fl_business_registry_eligible_reported_us_principal_addresses, 2);
@@ -536,6 +563,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(texas.profile_source_id, "texas-comptroller-active-sales-tax-permits");
   assert.equal(texas.zip_level_counts.permitted_outlet_count, 2);
   assert.equal(texas.zip_rows_with_contribution, 1);
+  const alaska = sources.find((row) => row.source_key === "ak_active_business_licenses");
+  assert.equal(alaska.profile_source_id, "alaska-dcced-active-business-licenses");
+  assert.equal(alaska.zip_level_counts.active_license_organization_reported_address_count, 1);
+  assert.equal(alaska.zip_level_counts.provisional_physical_site_count, 1);
+  assert.equal(alaska.zip_rows_with_contribution, 1);
+  assert.equal(alaska.location_profile_geography.profile_count, 1);
   const chicago = sources.find((row) => row.source_key === "chicago_active_business_license_sites");
   assert.equal(chicago.profile_source_id, "city-of-chicago-bacp-current-active-business-licenses");
   assert.equal(chicago.zip_level_counts.licensed_site_count, 1);

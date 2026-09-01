@@ -1,0 +1,44 @@
+{
+  "policy_id": "ak-active-business-licenses",
+  "version": "1.0.0",
+  "publisher": "Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing",
+  "ownership": "Official public Alaska business-license records made available as full CSV downloads by DCCED",
+  "source_home": "https://www.commerce.alaska.gov/cbp/main/",
+  "business_license_download": "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload",
+  "naics_download": "https://www.commerce.alaska.gov/cbp/main/DbDownload/NaicsDownload",
+  "publisher_terms": "https://www.commerce.alaska.gov/web/TermsofUsePolicy.aspx",
+  "source_access": "Public anonymous read-only HTTPS full CSV downloads. DCCED presents the files as a service to the public, warns that manipulation may be required, does not verify submitted information, and disclaims accuracy and reliability warranties.",
+  "allowed_use": [
+    "official full HTTPS business-license and NAICS downloads",
+    "local processing and quality analysis",
+    "immutable internal privacy-minimized selected-field source retention",
+    "license-backed provisional organization normalization",
+    "conditional provisional physical-site normalization from complete reported U.S. street addresses",
+    "ZIP and source coverage analysis",
+    "derived local business-registry assertions and source-linked relationships"
+  ],
+  "prohibited_use": [
+    "representing source Active status as independent proof of continuous operations, public access, good standing, solvency, or compliance with every occupational or local requirement",
+    "representing the one reported physical address as a complete location inventory or independently verified operating site",
+    "representing this licensing source as every Alaska or United States business",
+    "persisting or publishing Owners or mailing-address fields",
+    "persisting raw PhysicalLine2 values that may contain phone or other contact data",
+    "publishing record-level natural-person names or possible residential addresses without an approved privacy and terms review",
+    "redistributing aggregate outputs without a separate terms review",
+    "inferring ownership, parent company, network affiliation, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_addresses_sites_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "local-aggregate-review-required",
+    "owners_and_all_mailing_fields": "excluded-before-persistence",
+    "physical_line_2": "exclude-contact-or-unstructured-values-and-retain-only-conservative-unit-designators"
+  },
+  "attribution": "Source: Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Business License and NAICS downloads.",
+  "retention": "Indefinite for immutable privacy-minimized selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Record-level artifacts remain local-review-only. Aggregate redistribution requires a separate review of the Alaska site terms and must retain attribution, observation window, checksums, provenance, and license/address limitations.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names can identify sole proprietors and reported physical addresses can be residences. Owners and all mailing fields are excluded before persistence. Raw PhysicalLine2 is excluded because it contains contact-like and unstructured values; only conservative unit designators may be retained.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-01"
+}

@@ -113,6 +113,24 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       earliest_observed_at: null,
       latest_observed_at: null,
     },
+  }, {
+    view_id: "source:ak_active_business_licenses",
+    source_key: "ak_active_business_licenses",
+    profile_source_id: "alaska-dcced-active-business-licenses",
+    release_metadata: {},
+    zip_level_counts: { provisional_physical_site_count: 1 },
+    zip_rows_with_contribution: 1,
+    location_profile_geography: {
+      profile_count: 1,
+      reported_state_assigned_count: 1,
+      coordinate_present_valid_count: 0,
+      coordinate_assigned_single_count: 0,
+      coordinate_missing_count: 1,
+      coordinate_unmatched_count: 0,
+      coordinate_ambiguous_boundary_count: 0,
+      earliest_observed_at: "2026-09-01T12:00:00.000Z",
+      latest_observed_at: "2026-09-01T12:00:00.000Z"
+    }
   }]);
   await artifact("coverage-gap-view-jsonl", "coverage-gaps", [{
     gap_id: "gap:zip-no-zcta:54321",
@@ -132,7 +150,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     complete_all_businesses: false,
     entity_resolution_applied: false,
     authoritative_current_usps_zip_denominator: null,
-    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 3, gap_views: 1 },
+    coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 4, gap_views: 1 },
     count_semantics: {},
     limitations: [],
     artifacts,
@@ -164,6 +182,9 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const delawareSources = await store.listDimension("sources", { query: "Delaware" });
   assert.equal(delawareSources.total, 1);
   assert.equal(delawareSources.records[0].source_name, "Delaware Division of Revenue Current Business Licenses");
+  const alaskaSources = await store.listDimension("sources", { query: "Alaska" });
+  assert.equal(alaskaSources.total, 1);
+  assert.equal(alaskaSources.records[0].source_name, "Alaska DCCED Active Business Licenses");
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

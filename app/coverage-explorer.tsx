@@ -43,6 +43,13 @@ type Overview = {
     de_business_license_quarantined_source_records: number;
     de_business_license_quarantined_license_groups: number;
     de_business_license_eligible_reported_us_business_addresses: number;
+    ak_active_business_license_source_rows: number;
+    ak_active_business_license_organizations: number;
+    ak_active_business_license_provisional_physical_sites: number;
+    ak_active_business_license_organizations_without_eligible_physical_site: number;
+    ak_active_business_license_reported_us_address_zip_contributions: number;
+    ak_active_business_license_quarantined_source_records: number;
+    ak_active_business_license_accepted_naics_pairs: number;
     co_business_registry_good_standing_or_delinquent_organization_records: number;
     co_business_registry_quarantined_source_records: number;
     co_business_registry_eligible_reported_us_business_addresses: number;
@@ -381,6 +388,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.de_business_license_current_organization_records)}</strong> DE current licenses · {count(overview?.coverage?.de_business_license_eligible_reported_us_business_addresses)} reported U.S. addresses</span>
+            <span><strong>{count(overview?.coverage?.ak_active_business_license_organizations)}</strong> AK active licenses · {count(overview?.coverage?.ak_active_business_license_provisional_physical_sites)} provisional sites</span>
             <span><strong>{count(overview?.coverage?.co_business_registry_good_standing_or_delinquent_organization_records)}</strong> CO Good Standing/Delinquent registrations</span>
             <span><strong>{count(overview?.coverage?.or_business_registry_active_registration_records)}</strong> OR active registrations</span>
             <span><strong>{count(overview?.coverage?.ia_business_registry_active_organization_records)}</strong> IA active entities</span>

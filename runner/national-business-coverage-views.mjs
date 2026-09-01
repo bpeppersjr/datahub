@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.1.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.2.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -21,6 +21,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   fmcsa_active_us_company_census: "fmcsa-company-census-active-us-principal-office",
   la_active_business_location_accounts: "los-angeles-office-of-finance-active-businesses",
   tx_active_sales_tax_permit_outlets: "texas-comptroller-active-sales-tax-permits",
+  ak_active_business_licenses: "alaska-dcced-active-business-licenses",
   chicago_active_business_license_sites: "city-of-chicago-bacp-current-active-business-licenses",
   nyc_dcwp_active_license_sites: "nyc-dcwp-issued-licenses-active-premises",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
@@ -406,6 +407,9 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       ct_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.ct_business_registry_eligible_reported_us_business_addresses ?? null,
       de_business_license_current_organization_records: registry.manifest.coverage?.de_business_license_current_organization_records ?? null,
       de_business_license_eligible_reported_us_business_addresses: registry.manifest.coverage?.de_business_license_eligible_reported_us_business_addresses ?? null,
+      ak_active_business_license_organizations: registry.manifest.coverage?.ak_active_business_license_organizations ?? null,
+      ak_active_business_license_provisional_physical_sites: registry.manifest.coverage?.ak_active_business_license_provisional_physical_sites ?? null,
+      ak_active_business_license_organizations_without_eligible_physical_site: registry.manifest.coverage?.ak_active_business_license_organizations_without_eligible_physical_site ?? null,
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? null,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? null,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? null,
@@ -1126,6 +1130,13 @@ export async function buildNationalBusinessCoverageViews({
       de_business_license_quarantined_source_records: registry.manifest.coverage?.de_business_license_quarantined_source_records ?? 0,
       de_business_license_quarantined_license_groups: registry.manifest.coverage?.de_business_license_quarantined_license_groups ?? 0,
       de_business_license_eligible_reported_us_business_addresses: registry.manifest.coverage?.de_business_license_eligible_reported_us_business_addresses ?? 0,
+      ak_active_business_license_source_rows: registry.manifest.coverage?.ak_active_business_license_source_rows ?? 0,
+      ak_active_business_license_organizations: registry.manifest.coverage?.ak_active_business_license_organizations ?? 0,
+      ak_active_business_license_provisional_physical_sites: registry.manifest.coverage?.ak_active_business_license_provisional_physical_sites ?? 0,
+      ak_active_business_license_organizations_without_eligible_physical_site: registry.manifest.coverage?.ak_active_business_license_organizations_without_eligible_physical_site ?? 0,
+      ak_active_business_license_reported_us_address_zip_contributions: registry.manifest.coverage?.ak_active_business_license_reported_us_address_zip_contributions ?? 0,
+      ak_active_business_license_quarantined_source_records: registry.manifest.coverage?.ak_active_business_license_quarantined_source_records ?? 0,
+      ak_active_business_license_accepted_naics_pairs: registry.manifest.coverage?.ak_active_business_license_accepted_naics_pairs ?? 0,
       co_business_registry_good_standing_or_delinquent_organization_records: registry.manifest.coverage?.co_business_registry_good_standing_or_delinquent_organization_records ?? 0,
       co_business_registry_quarantined_source_records: registry.manifest.coverage?.co_business_registry_quarantined_source_records ?? 0,
       co_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.co_business_registry_eligible_reported_us_business_addresses ?? 0,

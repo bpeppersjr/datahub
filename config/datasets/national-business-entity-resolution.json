@@ -7,7 +7,7 @@
   "producer_connector": "national-business-entity-resolution",
   "runtime_pointer": "data/business-entity-resolution/current.json",
   "required_datasets": ["national-business-registry"],
-  "compatible_registry_publisher_versions": ["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"],
+  "compatible_registry_publisher_versions": ["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0"],
   "schemas": {
     "location_match_profile": "config/schemas/business-location-match-profile.schema.json",
     "resolution_decision": "config/schemas/business-entity-resolution-decision.schema.json"
@@ -23,15 +23,15 @@
   "review_rule": "Exact eligible address plus name evidence not eligible for an automatic establishment link creates an unapplied review candidate when its similarity score is at least 0.78; this includes similar non-exact names and exact names blocked as generic or source-ambiguous.",
   "prohibited_inferences": ["co-location as establishment identity", "name-only identity", "PO Box as physical-site identity", "ownership or parent company", "general operating status"],
   "current_verified_release": {
-    "release_id": "business-entity-resolution-20260901-091336354Z-3bc0423c",
-    "registry_dependency_release_id": "national-business-registry-20260901-070150033Z-cb73e5fd",
-    "profiles": 7753736,
-    "site_alias_decisions": 2220276,
-    "establishment_alias_decisions": 121036,
-    "review_candidate_decisions": 84894,
+    "release_id": "business-entity-resolution-20260901-130709191Z-9ac403ad",
+    "registry_dependency_release_id": "national-business-registry-20260901-105332522Z-b307e896",
+    "profiles": 7848222,
+    "site_alias_decisions": 2263767,
+    "establishment_alias_decisions": 125770,
+    "review_candidate_decisions": 86916,
     "review_groups_skipped_for_size": 2,
     "verified_artifact_count": 101,
-    "verified_bytes": 385212592,
+    "verified_bytes": 393588654,
     "complete_entity_resolution": false,
     "export_policy": "local-review-only"
   },

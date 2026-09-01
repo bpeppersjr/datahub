@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-coverage-views",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "implementation_status": "implemented-and-live-verified",
   "description": "Publishes governed national through ZIP coverage views and explicit gaps from immutable registry and geography dependencies.",
   "lifecycle": ["preflight", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "quality gate", "publish", "finalize"],
@@ -53,8 +53,8 @@
   "checkpoint": "Output remains in run-scoped staging until every view and manifest check passes.",
   "idempotency": "View IDs and row semantics are deterministic for the same immutable dependency releases; release IDs identify publication runs.",
   "cancellation": "Stop after the current profile partition; staged artifacts remain unpublished.",
-  "source_policy": "config/source-policies/national-business-coverage-views.json",
-  "retention_profile": "Retain immutable aggregate releases with their exact dependency hashes until explicitly approved removal.",
+  "source_policy": "config/source-policies/national-business-coverage-views.json; Alaska-derived source and ZIP aggregates retain local-aggregate-review-required semantics.",
+  "retention_profile": "Retain immutable aggregate releases with their exact dependency hashes until explicitly approved removal; Alaska-derived aggregates require terms review before redistribution.",
   "produced_entities": ["national-coverage-view", "state-coverage-view", "county-coverage-view", "zip-coverage-view", "source-coverage-view", "coverage-gap"],
   "produced_identifiers": ["coverage-view-id", "coverage-gap-id", "census-geoid", "state-fips", "county-fips", "zcta5", "zip5"]
 }
