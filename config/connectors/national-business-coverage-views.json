@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-coverage-views",
-  "version": "1.9.0",
+  "version": "2.0.0",
   "implementation_status": "implemented-and-live-verified",
   "description": "Publishes governed national through ZIP coverage views and explicit gaps from immutable registry and geography dependencies.",
   "lifecycle": ["preflight", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "quality gate", "publish", "finalize"],

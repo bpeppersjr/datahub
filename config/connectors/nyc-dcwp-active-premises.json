@@ -1,0 +1,40 @@
+{
+  "connector_id": "nyc-dcwp-active-premises",
+  "version": "1.0.0",
+  "description": "Publishes privacy-minimized, source-defined active NYC DCWP premise-license sites while grouping multiple license rows by the publisher's Business Unique ID.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/nyc-dcwp-active-license-sites" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 50000 },
+      "minimum_license_records": { "type": "integer", "minimum": 1, "default": 30000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.05 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["nyc-dcwp-issued-license-selected-field-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["nyc-dcwp-active-premise-license-source-jsonl-gzip", "normalized-nyc-dcwp-active-license-site-jsonl-gzip", "nyc-dcwp-active-license-quarantine-jsonl-gzip", "nyc-dcwp-active-license-zip-coverage-jsonl", "nyc-dcwp-active-license-source-summary", "nyc-dcwp-active-license-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.cityofnewyork.us"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.cityofnewyork.us w7w3-xahh metadata and JSON resource paths.",
+  "provider_budget_key": "nyc-open-data-dcwp-issued-licenses-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "default_page_records": 50000,
+    "maximum_response_bytes": 80000000,
+    "minimum_active_premise_license_records": 30000,
+    "maximum_quarantine_rate": 0.05
+  },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, selected-filter drift, schema drift, refresh drift, duplicate Socrata row identity, or quality-gate failures.",
+  "checkpoint": "Acquire Active/Premises rows in deterministic Business Unique ID, license-number, and Socrata-row order. Hash the complete selected-field source snapshot before grouped normalization. Recheck metadata and filtered count before publication; publish manifest and current pointer last and atomically.",
+  "idempotency": "The catalog rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release. Business Unique ID identifies one provisional license-business organization, site, and establishment regardless of active license count.",
+  "cancellation": "Abort network and local grouping cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/nyc-dcwp-active-premises.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "active-municipal-premise-license-assertion", "reported-business-address-assertion", "business-category-assertion"],
+  "produced_identifiers": ["nyc-dcwp-business-unique-id", "nyc-dcwp-license-number", "nyc-bin", "nyc-bbl", "zip5", "zcta5", "nyc-borough", "nyc-community-board", "nyc-council-district"]
+}

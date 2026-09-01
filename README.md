@@ -63,6 +63,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-sources/la-active-business-location-accounts/` — governed City of Los Angeles source-defined active business locations, with record-level artifacts kept local-review-only
 - `data/business-sources/tx-active-sales-tax-outlets/` — governed Texas Comptroller source-defined active sales-tax permit taxpayers and physical outlets, with taxpayer mailing fields excluded and record-level artifacts kept local-review-only
 - `data/business-sources/chicago-active-business-license-sites/` — governed City of Chicago BACP current active-license account/site groups, with publisher redactions honored and record-level artifacts kept local-review-only
+- `data/business-sources/nyc-dcwp-active-license-sites/` — governed NYC DCWP Active/Premises Business Unique ID groups, with incomplete or conflicting addresses quarantined and record-level artifacts kept local-review-only
 - `data/screenshots/` — Playwright screenshots
 - `data/tesseract-cache/` — OCR language cache
 - `data/desktop.log` — desktop and runner service log

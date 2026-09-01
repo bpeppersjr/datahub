@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/nyc-dcwp-active-license-site.schema.json",
+  "title": "Normalized NYC DCWP Active Premise-License Site",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_names", "doing_business_as_names", "address", "location", "geography", "active_licenses", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^nyc-dcwp-active-business:business:BA-[0-9]+-[0-9]{4}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:nyc_dcwp_business_ba_[0-9]+_[0-9]{4}$" },
+        "physical_site_id": { "type": "string", "pattern": "^site:nyc_dcwp_business_ba_[0-9]+_[0-9]{4}$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:nyc_dcwp_business_ba_[0-9]+_[0-9]{4}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "legal_names": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "doing_business_as_names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "address": { "type": "object" },
+    "location": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "active_licenses": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-as-active-nyc-dcwp-premise-license-as-of-source-refresh" },
+        "status": { "const": "Active premise license (source-defined)" },
+        "semantics": { "const": "source-row-status-active-and-license-type-premises-not-independent-proof-of-continuous-operation-or-complete-business-coverage" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "policy_id": "nyc-dcwp-active-premises",
+  "version": "1.0.0",
+  "publisher": "New York City Department of Consumer and Worker Protection",
+  "ownership": "Official issued-license records published through NYC Open Data",
+  "source_home": "https://data.cityofnewyork.us/Business/Issued-Licenses/w7w3-xahh",
+  "source_dataset": "https://data.cityofnewyork.us/resource/w7w3-xahh.json",
+  "catalog_dataset_id": "w7w3-xahh",
+  "catalog_license": "NYC Open Data Terms of Use; no additional dataset license is stated in catalog metadata",
+  "portal_terms": "https://data.cityofnewyork.us/stories/s/Terms-of-Use/k9k7-3cje/",
+  "portal_faq": "https://opendata.cityofnewyork.us/faq/",
+  "open_data_law": "https://opendata.cityofnewyork.us/open-data-law/",
+  "source_access": "Public anonymous read-only HTTPS Socrata API. The official dataset is public, provenance-marked official, API-enabled, automated, and updated weekly.",
+  "allowed_use": [
+    "official HTTPS metadata, count, and selected-field API queries",
+    "local processing",
+    "immutable internal selected-field source retention",
+    "source-defined active-premise licensed-site and provisional organization normalization",
+    "ZIP and source coverage analysis",
+    "derived business-registry assertions and source-linked relationships",
+    "redistribution of aggregate statistics with source attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing an Active DCWP premise license as independent proof that a site is continuously operating, open to the public, solvent, or compliant with every requirement",
+    "representing this licensing source as every business in New York City, New York, or the United States because DCWP licenses only specified industries",
+    "counting multiple active license rows for one Business Unique ID as multiple physical sites or businesses",
+    "representing a source address or portal coordinate as independently verified or currently occupied",
+    "publishing record-level natural-person names, phone numbers, or possible residential addresses without an approved privacy review",
+    "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+    "contact_phone_and_free_form_detail": "excluded-at-query-time",
+    "individual_license_rows": "excluded-by-premises-filter"
+  },
+  "attribution": "Source: New York City Department of Consumer and Worker Protection, Issued Licenses, via NYC Open Data.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed with City attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy review.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business Name can identify an individual and a licensed premise can be a residence. The connector excludes individual licenses, contact phone, and free-form detail and keeps selected source and normalized record-level artifacts local.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-31"
+}

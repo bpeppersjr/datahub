@@ -31,6 +31,7 @@ Options:
   --la-active-businesses <path> City of Los Angeles active-business location accounts current.json prerequisite
   --tx-sales-tax <path> Texas Comptroller active sales-tax permit outlets current.json prerequisite
   --chicago-licenses <path> City of Chicago current active business-license sites current.json prerequisite
+  --nyc-dcwp <path> NYC DCWP active Premises-license sites current.json prerequisite
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --help           Show this help
 `;
@@ -57,12 +58,13 @@ function parseArguments(args) {
     laActiveBusinesses: "data/business-sources/la-active-business-location-accounts/current.json",
     txActiveSalesTax: "data/business-sources/tx-active-sales-tax-outlets/current.json",
     chicagoActiveBusinessLicenses: "data/business-sources/chicago-active-business-license-sites/current.json",
+    nycDcwpActiveLicenses: "data/business-sources/nyc-dcwp-active-license-sites/current.json",
     uspsZips: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--co-business", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -85,6 +87,7 @@ function parseArguments(args) {
       if (argument === "--la-active-businesses") options.laActiveBusinesses = value;
       if (argument === "--tx-sales-tax") options.txActiveSalesTax = value;
       if (argument === "--chicago-licenses") options.chicagoActiveBusinessLicenses = value;
+      if (argument === "--nyc-dcwp") options.nycDcwpActiveLicenses = value;
       if (argument === "--usps-zips") options.uspsZips = value;
       continue;
     }
@@ -119,6 +122,7 @@ try {
     laActiveBusinessesPointer: assertInsideApp(path.resolve(APP_ROOT, options.laActiveBusinesses)),
     txActiveSalesTaxPointer: assertInsideApp(path.resolve(APP_ROOT, options.txActiveSalesTax)),
     chicagoActiveBusinessLicensesPointer: assertInsideApp(path.resolve(APP_ROOT, options.chicagoActiveBusinessLicenses)),
+    nycDcwpActiveLicensesPointer: assertInsideApp(path.resolve(APP_ROOT, options.nycDcwpActiveLicenses)),
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });

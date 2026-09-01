@@ -24,6 +24,7 @@ import {
   reconcileLaActiveBusinessLocation,
   reconcileTxActiveSalesTaxOutlet,
   reconcileChicagoActiveBusinessLicenseSite,
+  reconcileNycDcwpActiveLicenseSite,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
   reconcileNcuaTradeName,
@@ -48,6 +49,7 @@ import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
 import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
 import { normalizeChicagoLicensedSite } from "./chicago-active-business-licenses.mjs";
+import { normalizeNycDcwpLicensedSite } from "./nyc-dcwp-active-premises.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
@@ -1452,6 +1454,44 @@ function normalizedChicagoActiveBusinessLicenseSite(accountNumber = "122", siteN
   });
 }
 
+function normalizedNycDcwpActiveLicenseSite(businessUniqueId = "BA-1305489-2022", zipCode = "10018") {
+  const base = {
+    business_name: "HUDSON GROUP (HG) RETAIL, LLC",
+    dba_trade_name: "HUDSON STORE 1152",
+    business_unique_id: businessUniqueId,
+    license_type: "Premises",
+    license_status: "Active",
+    address_type: "Complete Address",
+    address_building: "625",
+    address_street_name: "8TH AVE",
+    unit_type: "STE",
+    apt_suite: "101",
+    address_city: "NEW YORK",
+    address_state: "NY",
+    address_zip: zipCode,
+    address_borough: "Manhattan",
+    community_board: "104",
+    council_district: "03",
+    bin: "1083268",
+    bbl: "1010320029",
+    nta: "MN15",
+    census_block_2010_: "1001",
+    census_tract: "115",
+    latitude: "40.7561920718278",
+    longitude: "-73.99056478174674",
+  };
+  return normalizeNycDcwpLicensedSite([
+    { ...base, socrata_row_id: "row-nyc-1", license_nbr: "1373079-DCA", business_category: "Tobacco Retail Dealer", license_creation_date: "2010-10-01T00:00:00", lic_expir_dd: "2027-12-31T00:00:00" },
+    { ...base, socrata_row_id: "row-nyc-2", license_nbr: "2091999-DCA", business_category: "Electronic Store", license_creation_date: "2022-01-01T00:00:00", lic_expir_dd: "2027-12-31T00:00:00" },
+  ], {
+    runId: "nyc-dcwp-source-fixture",
+    retrievedAt: "2026-09-01T02:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-08-20T13:24:53.000Z",
+    sourceReleaseId: "nyc-dcwp-source-fixture",
+    baselineByZip: new Map([[zipCode, { postal_label: { preferred_state: "NY" }, geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}`, geoid: zipCode } }]]),
+  });
+}
+
 async function writeFixtureTxActiveSalesTaxRelease(root) {
   const releaseId = "tx-active-sales-tax-fixture";
   const releaseDirectory = path.join(root, "releases", releaseId);
@@ -1787,6 +1827,17 @@ test("reconciles grouped Chicago active licenses into one organization, site, an
   assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.name").length, 1);
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(officer|owner|agent|contact|phone|email|payment)/i.test(String(item.source.source_field))));
+});
+
+test("reconciles grouped NYC DCWP active premise licenses into one organization, site, and establishment", () => {
+  const result = reconcileNycDcwpActiveLicenseSite(normalizedNycDcwpActiveLicenseSite());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.legal-name"));
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.nyc-dcwp-active-premise-license").length, 2);
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.name").length, 1);
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(owner|officer|agent|contact|phone|email|detail|payment)/i.test(String(item.source.source_field))));
 });
 
 test("publishes and verifies a combined partial registry while retaining denominator-only ZIPs", async (t) => {
