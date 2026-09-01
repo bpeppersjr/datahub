@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/dc-basic-business-license-site.schema.json",
+  "title": "Normalized District of Columbia Active Basic Business License Site",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "legal_names", "trade_names", "entity_types", "address", "location", "geography", "active_license_activities", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^dc-basic-business-license:customer:[0-9]+$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "physical_site_id", "establishment_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:dc_dlcp_customer_[0-9]+$" },
+        "physical_site_id": { "type": "string", "pattern": "^site:dc_dlcp_customer_[0-9]+$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:dc_dlcp_customer_[0-9]+$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 2, "items": { "type": "object" } },
+    "legal_names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "trade_names": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "entity_types": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "address": { "type": "object" },
+    "location": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "active_license_activities": { "type": "array", "minItems": 1, "items": { "type": "object" } },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "semantics"],
+      "properties": {
+        "value": { "const": "listed-as-active-business-license-in-official-dc-dlcp-feed-at-source-refresh" },
+        "status": { "const": "Active Basic Business License (source-defined)" },
+        "semantics": { "const": "municipal-license-evidence-not-independent-proof-of-continuous-operation-public-access-or-complete-business-coverage" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  },
+  "allOf": [
+    { "anyOf": [{ "properties": { "legal_names": { "minItems": 1 } } }, { "properties": { "trade_names": { "minItems": 1 } } }] }
+  ]
+}

@@ -26,6 +26,7 @@ import {
   reconcileLaActiveBusinessLocation,
   reconcileTxActiveSalesTaxOutlet,
   reconcileChicagoActiveBusinessLicenseSite,
+  reconcileDcBasicBusinessLicenseSite,
   reconcileNycDcwpActiveLicenseSite,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
@@ -53,6 +54,7 @@ import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
 import { normalizeFlBusinessOrganization } from "./fl-business-registry.mjs";
 import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
 import { normalizeChicagoLicensedSite } from "./chicago-active-business-licenses.mjs";
+import { normalizeDcBasicBusinessLicenseSite } from "./dc-basic-business-licenses.mjs";
 import { normalizeNycDcwpLicensedSite } from "./nyc-dcwp-active-premises.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
@@ -1637,6 +1639,46 @@ function normalizedChicagoActiveBusinessLicenseSite(accountNumber = "122", siteN
   });
 }
 
+function normalizedDcBasicBusinessLicenseSite(customerNumber = "500526000983", zipCode = "20001") {
+  const base = {
+    CUSTOMERNUMBER: customerNumber,
+    LICENSESTATUS: "Active",
+    LICENSETYPE: "Business License",
+    LICENSESTATUSDATE: Date.parse("2026-08-20T04:00:00.000Z"),
+    LICENSESTARTDATE: Date.parse("2026-08-01T04:00:00.000Z"),
+    LICENSEENDDATE: Date.parse("2028-07-31T04:00:00.000Z"),
+    INITIALISSUEDATE: Date.parse("2020-08-01T04:00:00.000Z"),
+    PREMISEADDRESS: `100 TEST ST NW, STE 200, Washington, DC, ${zipCode}, USA`,
+    PREMISEINDC: "Yes",
+    ENTITYNAME: "FIXTURE DC MARKET LLC",
+    ENTITYTRADENAME: "FIXTURE MARKET",
+    ENTITYTYPE: "Domestic Limited Liability Company",
+    CATEGORYSERVICETYPE: "General Sales and Services",
+    DATAREFRESHEDON: Date.parse("2026-09-01T04:00:00.000Z"),
+    WARD: "Ward 2",
+    ANC: "ANC 2C",
+    SMD: "2C01",
+    DISTRICT: "FIRST",
+    PSA: "101",
+    NEIGHBORHOODCLUSTER: "Cluster 8",
+    BUSINESSIMPROVEMENTDISTRICT: "Downtown BID",
+    MAINSTREET: null,
+    MAR_ID: 300001,
+    X_COORDINATE: 397000,
+    Y_COORDINATE: 136000,
+  };
+  return normalizeDcBasicBusinessLicenseSite([
+    { ...base, BUSINESSACTIVITY: "Grocery Store", PRIMARYACTIVITYFLAG: "Yes", GLOBALID: "{11111111-1111-1111-1111-111111111111}", OBJECTID: 1001 },
+    { ...base, BUSINESSACTIVITY: "Delicatessen", PRIMARYACTIVITYFLAG: "No", GLOBALID: "{22222222-2222-2222-2222-222222222222}", OBJECTID: 1002 },
+  ], {
+    runId: "dc-license-source-fixture",
+    retrievedAt: "2026-09-01T12:00:00.000Z",
+    sourceRefreshedAt: "2026-09-01T04:00:00.000Z",
+    sourceReleaseId: "dc-license-source-fixture",
+    baselineByZip: new Map([[zipCode, { postal_label: { preferred_state: "DC" }, geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}`, geoid: zipCode } }]]),
+  });
+}
+
 function normalizedNycDcwpActiveLicenseSite(businessUniqueId = "BA-1305489-2022", zipCode = "10018") {
   const base = {
     business_name: "HUDSON GROUP (HG) RETAIL, LLC",
@@ -1673,6 +1715,68 @@ function normalizedNycDcwpActiveLicenseSite(businessUniqueId = "BA-1305489-2022"
     sourceReleaseId: "nyc-dcwp-source-fixture",
     baselineByZip: new Map([[zipCode, { postal_label: { preferred_state: "NY" }, geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zipCode}`, geoid: zipCode } }]]),
   });
+}
+
+async function writeFixtureDcBasicBusinessLicenseRelease(root) {
+  const releaseId = "dc-basic-business-license-fixture";
+  const releaseDirectory = path.join(root, "releases", releaseId);
+  await mkdir(releaseDirectory, { recursive: true });
+  const records = [normalizedDcBasicBusinessLicenseSite()];
+  const artifacts = [];
+  for (const prefix of "0123456789abcdef") {
+    const partitionRecords = records.filter((record) => sha256(record.normalized_record_id)[0] === prefix);
+    const buffer = gzipSync(partitionRecords.map((record) => JSON.stringify(record)).join("\n") + (partitionRecords.length ? "\n" : ""));
+    const relativePath = `normalized/sites/prefix=${prefix}.jsonl.gz`;
+    const destination = path.join(releaseDirectory, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: partitionRecords.length, artifact_type: "normalized-dc-basic-business-license-site-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  const zipRows = [
+    { zip_code: "20001", count: 1 },
+    { zip_code: "99999", count: 0 },
+  ].map(({ zip_code: zip, count }) => ({
+    zip_code: zip,
+    dc_basic_business_license_snapshot: { licensed_site_count: count },
+    current_usps_validity: { status: "unverified" },
+    geography: { status: "2020-zcta-polygon-available", geo_id: `zcta:${zip}` },
+    employer_baseline: { status: "published", establishments: 1000 },
+    baseline_coverage_status: "zbp-and-zcta",
+  }));
+  const zipBuffer = Buffer.from(`${zipRows.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
+  await writeFile(path.join(releaseDirectory, "derived/zip-coverage.jsonl"), zipBuffer);
+  artifacts.push({ path: "derived/zip-coverage.jsonl", bytes: zipBuffer.length, sha256: sha256(zipBuffer), record_count: zipRows.length, artifact_type: "dc-basic-business-license-zip-coverage-jsonl", distribution_policy: "public-aggregate-with-cc-by-4.0-attribution-and-source-limitations" });
+  const manifest = {
+    schema_version: "1.0.0",
+    dataset_id: "dc-basic-business-license-sites",
+    release_id: releaseId,
+    status: "complete",
+    complete_source_selected_view: true,
+    source_release_id: "dc-license-source-fixture",
+    source: { data_refreshed_on: "2026-09-01T04:00:00.000Z" },
+    coverage: {
+      source_active_business_license_rows: 2,
+      source_customer_groups: 1,
+      accepted_active_business_license_rows: 2,
+      normalized_licensed_sites: 1,
+      organizations: 1,
+      physical_sites: 1,
+      establishments: 1,
+      quarantined_source_records: 0,
+      quarantined_customer_groups: 0,
+      source_geocoded_sites: 1,
+      source_coordinate_conflict_sites: 0,
+      in_dc_premise_sites: 1,
+      outside_dc_premise_sites: 0,
+    },
+    dependencies: [],
+    artifacts,
+  };
+  await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  const pointerPath = path.join(root, "current.json");
+  await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
+  return pointerPath;
 }
 
 async function writeFixtureTxActiveSalesTaxRelease(root) {
@@ -2037,6 +2141,17 @@ test("reconciles grouped Chicago active licenses into one organization, site, an
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(officer|owner|agent|contact|phone|email|payment)/i.test(String(item.source.source_field))));
 });
 
+test("reconciles grouped DC Basic Business License activities into one organization, site, and establishment", () => {
+  const result = reconcileDcBasicBusinessLicenseSite(normalizedDcBasicBusinessLicenseSite());
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.legal-name"));
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.dc-active-basic-business-license-activity").length, 2);
+  assert.equal(result.locationAssertions.filter((item) => item.predicate === "establishment.name").length, 1);
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(owner|agent|billing|phone|email|contact|ssl|square|lot|latitude|longitude)/i.test(String(item.source.source_field))));
+});
+
 test("reconciles grouped NYC DCWP active premise licenses into one organization, site, and establishment", () => {
   const result = reconcileNycDcwpActiveLicenseSite(normalizedNycDcwpActiveLicenseSite());
   assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
@@ -2069,6 +2184,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   const paBusinessPointer = await writeFixturePaBusinessRelease(path.join(root, "pa-business"));
   const laActiveBusinessesPointer = await writeFixtureLaActiveBusinessRelease(path.join(root, "la-active-businesses"));
   const txActiveSalesTaxPointer = await writeFixtureTxActiveSalesTaxRelease(path.join(root, "tx-sales-tax"));
+  const dcBasicBusinessLicensesPointer = await writeFixtureDcBasicBusinessLicenseRelease(path.join(root, "dc-licenses"));
   const uspsZipsPointer = await writeFixtureUspsOperationalZipRelease(path.join(root, "usps-zips"));
   const outputRoot = path.join(root, "registry");
   const result = await buildNationalBusinessRegistry({
@@ -2091,15 +2207,16 @@ test("publishes and verifies a combined partial registry while retaining denomin
     paBusinessPointer,
     laActiveBusinessesPointer,
     txActiveSalesTaxPointer,
+    dcBasicBusinessLicensesPointer,
     uspsZipsPointer,
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   });
   assert.equal(result.manifest.complete_national_business_registry, false);
-  assert.equal(result.manifest.coverage.organizations, 22);
+  assert.equal(result.manifest.coverage.organizations, 23);
   assert.equal(result.manifest.coverage.brands, 1);
-  assert.equal(result.manifest.coverage.physical_sites, 17);
-  assert.equal(result.manifest.coverage.establishments, 17);
+  assert.equal(result.manifest.coverage.physical_sites, 18);
+  assert.equal(result.manifest.coverage.establishments, 18);
   assert.equal(result.manifest.coverage.fsis_establishment_records, 2);
   assert.equal(result.manifest.coverage.epa_echo_active_facility_records, 2);
   assert.equal(result.manifest.coverage.fmcsa_active_principal_office_records, 2);
@@ -2141,13 +2258,18 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.tx_active_sales_tax_normalized_outlet_permits, 2);
   assert.equal(result.manifest.coverage.tx_active_sales_tax_unique_taxpayers, 1);
   assert.equal(result.manifest.coverage.tx_active_sales_tax_quarantined_source_records, 1);
+  assert.equal(result.manifest.coverage.dc_basic_business_license_source_rows, 2);
+  assert.equal(result.manifest.coverage.dc_basic_business_license_accepted_rows, 2);
+  assert.equal(result.manifest.coverage.dc_basic_business_license_normalized_sites, 1);
+  assert.equal(result.manifest.coverage.dc_basic_business_license_organizations, 1);
   assert.match(result.manifest.export_policy, /local-review-only/);
-  assert.equal(result.manifest.coverage.relationships, 26);
-  assert.equal(result.manifest.coverage.resolution_location_profiles, 17);
+  assert.match(result.manifest.export_policy, /CC BY 4\.0/);
+  assert.equal(result.manifest.coverage.relationships, 28);
+  assert.equal(result.manifest.coverage.resolution_location_profiles, 18);
   const resolutionProfiles = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip");
   assert.equal(resolutionProfiles.length, 100);
-  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 17);
-  assert.equal(result.manifest.coverage.zip_union_records, 21);
+  assert.equal(resolutionProfiles.reduce((sum, artifact) => sum + artifact.record_count, 0), 18);
+  assert.equal(result.manifest.coverage.zip_union_records, 22);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
 
@@ -2184,6 +2306,7 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(zipRows.find((row) => row.zip_code === "00956").registry_coverage.fsis_active_establishment_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "33101").registry_coverage.epa_echo_active_facility_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "90210").registry_coverage.fmcsa_active_registration_principal_office_count, 1);
+  assert.equal(zipRows.find((row) => row.zip_code === "20001").registry_coverage.dc_basic_business_license_site_count, 1);
 });
 
 test("verifier rejects a completeness claim", async (t) => {

@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.2.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.3.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -23,6 +23,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   tx_active_sales_tax_permit_outlets: "texas-comptroller-active-sales-tax-permits",
   ak_active_business_licenses: "alaska-dcced-active-business-licenses",
   chicago_active_business_license_sites: "city-of-chicago-bacp-current-active-business-licenses",
+  dc_basic_business_license_sites: "dc-dlcp-active-basic-business-licenses",
   nyc_dcwp_active_license_sites: "nyc-dcwp-issued-licenses-active-premises",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
 });
@@ -1189,6 +1190,16 @@ export async function buildNationalBusinessCoverageViews({
       chicago_active_business_license_source_geocoded_sites: registry.manifest.coverage?.chicago_active_business_license_source_geocoded_sites ?? 0,
       chicago_active_business_license_in_chicago_ward_sites: registry.manifest.coverage?.chicago_active_business_license_in_chicago_ward_sites ?? 0,
       chicago_active_business_license_outside_or_unreported_ward_sites: registry.manifest.coverage?.chicago_active_business_license_outside_or_unreported_ward_sites ?? 0,
+      dc_basic_business_license_source_rows: registry.manifest.coverage?.dc_basic_business_license_source_rows ?? 0,
+      dc_basic_business_license_accepted_rows: registry.manifest.coverage?.dc_basic_business_license_accepted_rows ?? 0,
+      dc_basic_business_license_normalized_sites: registry.manifest.coverage?.dc_basic_business_license_normalized_sites ?? 0,
+      dc_basic_business_license_organizations: registry.manifest.coverage?.dc_basic_business_license_organizations ?? 0,
+      dc_basic_business_license_quarantined_source_records: registry.manifest.coverage?.dc_basic_business_license_quarantined_source_records ?? 0,
+      dc_basic_business_license_quarantined_customer_groups: registry.manifest.coverage?.dc_basic_business_license_quarantined_customer_groups ?? 0,
+      dc_basic_business_license_source_geocoded_sites: registry.manifest.coverage?.dc_basic_business_license_source_geocoded_sites ?? 0,
+      dc_basic_business_license_source_coordinate_conflict_sites: registry.manifest.coverage?.dc_basic_business_license_source_coordinate_conflict_sites ?? 0,
+      dc_basic_business_license_in_dc_premise_sites: registry.manifest.coverage?.dc_basic_business_license_in_dc_premise_sites ?? 0,
+      dc_basic_business_license_outside_dc_premise_sites: registry.manifest.coverage?.dc_basic_business_license_outside_dc_premise_sites ?? 0,
       nyc_dcwp_active_license_source_records: registry.manifest.coverage?.nyc_dcwp_active_license_source_records ?? 0,
       nyc_dcwp_active_license_accepted_records: registry.manifest.coverage?.nyc_dcwp_active_license_accepted_records ?? 0,
       nyc_dcwp_active_license_normalized_sites: registry.manifest.coverage?.nyc_dcwp_active_license_normalized_sites ?? 0,
@@ -1219,6 +1230,7 @@ export async function buildNationalBusinessCoverageViews({
       "Pennsylvania active-registration dataset inclusion and reported business addresses remain organization-only evidence; the publisher's statutory-overcount warning is retained, officer/person fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
       "Los Angeles Office of Finance location accounts create source-preserving provisional sites and establishments, but source-defined active status is not proof of continuous operations or public access; person/home-address risk keeps record-level data and linkage local-review-only.",
       "City of Chicago BACP current-active license accounts and sites create source-preserving provisional organizations, sites, and establishments, but AAI status plus future expiration is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
+      "DC DLCP Active Basic Business License Customer Number groups create source-preserving provisional organizations, sites, and establishments, but municipal-license status is not proof of continuous operations, public access, or complete business coverage; multiple activity rows do not inflate site counts, record-level data and linkage remain local-review-only, and aggregate redistribution requires CC BY 4.0 attribution plus the retained semantic limitations.",
       "NYC DCWP Active Premises-license Business Unique ID groups create source-preserving provisional organizations, sites, and establishments, but license status is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",

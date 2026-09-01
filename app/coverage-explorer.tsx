@@ -99,6 +99,16 @@ type Overview = {
     chicago_active_business_license_source_geocoded_sites: number;
     chicago_active_business_license_in_chicago_ward_sites: number;
     chicago_active_business_license_outside_or_unreported_ward_sites: number;
+    dc_basic_business_license_source_rows: number;
+    dc_basic_business_license_accepted_rows: number;
+    dc_basic_business_license_normalized_sites: number;
+    dc_basic_business_license_organizations: number;
+    dc_basic_business_license_quarantined_source_records: number;
+    dc_basic_business_license_quarantined_customer_groups: number;
+    dc_basic_business_license_source_geocoded_sites: number;
+    dc_basic_business_license_source_coordinate_conflict_sites: number;
+    dc_basic_business_license_in_dc_premise_sites: number;
+    dc_basic_business_license_outside_dc_premise_sites: number;
     nyc_dcwp_active_license_source_records: number;
     nyc_dcwp_active_license_accepted_records: number;
     nyc_dcwp_active_license_normalized_sites: number;
@@ -398,6 +408,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.la_active_business_normalized_us_location_accounts)}</strong> LA active location accounts</span>
             <span><strong>{count(overview?.coverage?.tx_active_sales_tax_normalized_outlet_permits)}</strong> TX active sales-tax outlets</span>
             <span><strong>{count(overview?.coverage?.chicago_active_business_license_normalized_sites)}</strong> Chicago active-license sites</span>
+            <span><strong>{count(overview?.coverage?.dc_basic_business_license_normalized_sites)}</strong> DC Basic Business License sites</span>
             <span><strong>{count(overview?.coverage?.nyc_dcwp_active_license_normalized_sites)}</strong> NYC DCWP active-license sites</span>
             <span className="coverage-hold">Entity resolution unapplied</span>
           </div>

@@ -1,0 +1,44 @@
+{
+  "policy_id": "dc-basic-business-licenses",
+  "version": "1.0.0",
+  "publisher": "District of Columbia Department of Licensing and Consumer Protection",
+  "ownership": "Official Basic Business License records published through Open Data DC and the DCGIS FEEDS/DCRA ArcGIS service",
+  "source_home": "https://opendata.dc.gov/datasets/DCGIS::basic-business-licenses",
+  "source_dataset": "https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/0",
+  "catalog_item_id": "85bf98d3915f412c8a4de706f2d13513",
+  "catalog_license": "CC BY 4.0",
+  "catalog_license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "source_access": "Public anonymous read-only HTTPS ArcGIS query and bulk download access. The catalog identifies DLCP as publisher, public access, and CC BY 4.0 licensing.",
+  "allowed_use": [
+    "official HTTPS metadata, count, and selected-field ArcGIS queries",
+    "local processing",
+    "immutable internal selected-field source retention",
+    "source-defined active license customer/premise normalization",
+    "deterministic conversion of official MAR Maryland State Plane NAD83 coordinates to WGS84",
+    "ZIP and source coverage analysis",
+    "derived business-registry assertions and source-linked relationships",
+    "redistribution of aggregate statistics with source attribution, CC BY 4.0 notice, and semantic limitations"
+  ],
+  "prohibited_use": [
+    "representing source status Active as independent proof that a premise is continuously operating, open to the public, solvent, or compliant with every requirement",
+    "representing Basic Business Licenses as every business in the District of Columbia or United States because exemptions and other licensing regimes exist",
+    "counting multiple business-activity rows for one Customer Number as multiple premises or organizations",
+    "representing a premise address or MAR coordinate as independently verified current occupancy",
+    "publishing record-level sole-proprietor names or possible residential premises without an approved privacy review",
+    "acquiring or publishing owner, agent, billing-address, parcel-lot, or rounded latitude/longitude fields",
+    "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-cc-by-4.0-attribution-and-semantic-limitations",
+    "owner_agent_billing_parcel_and_rounded_coordinate_fields": "excluded-at-query-time"
+  },
+  "attribution": "Source: District of Columbia Department of Licensing and Consumer Protection, Basic Business Licenses, via Open Data DC/DCGIS; licensed CC BY 4.0.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed with DLCP/Open Data DC attribution, CC BY 4.0 notice, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only due sole-proprietor and possible residential content.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Entity names can identify sole proprietors and licensed premises can be residences. The connector excludes owner, agent, billing, parcel-lot, and unusably rounded latitude/longitude fields at query time and keeps selected source and normalized record-level artifacts local.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-01"
+}
