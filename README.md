@@ -58,6 +58,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-sources/or-business-registry-active-registrations/` — governed Oregon active legal-entity and assumed-name registration evidence
 - `data/business-sources/ia-business-registry-active-entities/` — governed Iowa active-entity and home-office evidence with source geocodes
 - `data/business-sources/ny-business-registry-active-entities/` — governed New York monthly active-corporations extract and reported-location evidence under OPEN-NY terms
+- `data/business-sources/ny-retail-food-store-license-sites/` — governed New York licensed retail-food-store organizations and conditional physical sites with source geocodes and local-review-only record controls
 - `data/business-sources/fl-business-registry-quarterly-active-entities/` — governed, privacy-minimized Florida quarterly corporate archive with inactive rows explicitly excluded
 - `data/business-sources/pa-business-registry-active-registrations/` — governed, privacy-minimized Pennsylvania active-registration organizations with statutory-overcount and portal-geocode quality warnings
 - `data/business-sources/de-business-licenses-current/` — governed Delaware Division of Revenue current-license organizations with grouped trade names, quarantine, explicit non-site semantics, and record-level local-review-only controls

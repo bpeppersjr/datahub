@@ -1,0 +1,33 @@
+{
+  "connector_id": "ny-retail-food-stores",
+  "version": "1.0.0",
+  "description": "Publishes privacy-scoped license organizations and conditional provisional physical sites from the official New York Retail Food Stores snapshot.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/ny-retail-food-store-license-sites" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_rows": { "type": "integer", "minimum": 1, "default": 20000 },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.001 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["ny-open-data-retail-food-store-selected-field-api-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["ny-retail-food-stores-source-jsonl-gzip", "normalized-ny-retail-food-store-license-jsonl-gzip", "ny-retail-food-stores-quarantine-jsonl-gzip", "ny-retail-food-stores-zip-coverage-jsonl", "ny-retail-food-stores-source-summary", "ny-retail-food-stores-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.ny.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact metadata and 9a8c-vfzj JSON resource paths.",
+  "provider_budget_key": "ny-agriculture-markets-retail-food-stores-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": { "max_parallel_requests": 1, "maximum_page_records": 50000, "default_page_records": 25000, "maximum_response_bytes": 50000000, "minimum_source_rows": 20000, "maximum_quarantine_rate": 0.001 },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, duplicate identity, source refresh drift, count mismatch, ordering violations, or quality-gate failures.",
+  "checkpoint": "Acquire the selected fields in strictly increasing license-number order, hash the immutable internal snapshot, and recheck metadata and counts before publication. current.json changes only after replay verification.",
+  "idempotency": "The source rowsUpdatedAt timestamp and selected-source SHA-256 identify a source release; the source license number creates a stable provisional organization and conditional site identity.",
+  "cancellation": "Abort requests and local processing cooperatively, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/ny-retail-food-stores.json",
+  "retention_profile": "Retain immutable internal source and local-review-only normalized records until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "conditional-physical-site-candidate", "conditional-establishment-candidate", "retail-food-store-license-snapshot-assertion", "reported-physical-address-assertion", "platform-geocode-assertion"],
+  "produced_identifiers": ["ny-agriculture-markets-retail-food-store-license", "zip5", "zcta5"]
+}

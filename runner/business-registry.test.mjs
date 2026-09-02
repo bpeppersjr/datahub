@@ -29,6 +29,7 @@ import {
   reconcileChicagoActiveBusinessLicenseSite,
   reconcileDcBasicBusinessLicenseSite,
   reconcileCaAbcActiveLicenseSite,
+  reconcileNyRetailFoodStoreLicense,
   reconcileNycDcwpActiveLicenseSite,
   reconcileNcuaInstitution,
   reconcileNcuaLocation,
@@ -60,6 +61,7 @@ import { normalizePaBusinessOrganization } from "./pa-business-registry.mjs";
 import { normalizeChicagoLicensedSite } from "./chicago-active-business-licenses.mjs";
 import { normalizeDcBasicBusinessLicenseSite } from "./dc-basic-business-licenses.mjs";
 import { normalizeCaAbcActiveLicenseSite } from "./ca-abc-active-license-sites.mjs";
+import { normalizeNyRetailFoodStore } from "./ny-retail-food-stores.mjs";
 import { normalizeNycDcwpLicensedSite } from "./nyc-dcwp-active-premises.mjs";
 import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
@@ -2339,6 +2341,28 @@ test("reconciles grouped California ABC active issued-license activities into on
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => !/(mail|owner|agent|contact|phone|email|parent|network)/i.test(String(item.source.source_field))));
   assert.equal(result.locationAssertions.find((item) => item.predicate === "establishment.source-status").value.general_operating_status_inferred, false);
+});
+
+test("reconciles a New York retail-food license into organization and conditional site evidence", () => {
+  const record = normalizeNyRetailFoodStore({
+    county: "ALBANY", license_number: "010008", operation_type: "Store", estab_type: "ACY",
+    entity_name: "FIXTURE MARKET LLC", dba_name: "FIXTURE MARKET", street_number: "624",
+    street_name: "DELAWARE AVE", city: "DELMAR", state: "NY", zip_code: "12054",
+    square_footage: "2800", georeference: { type: "Point", coordinates: [-73.85206, 42.61512] },
+  }, {
+    runId: "ny-retail-fixture", retrievedAt: "2026-09-02T12:00:00.000Z",
+    sourceRowsUpdatedAt: "2025-09-30T15:15:15.000Z", sourceReleaseId: "ny-retail-fixture-source",
+    baselineByZip: new Map([["12054", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:12054", geoid: "12054" } }]]),
+  });
+  const result = reconcileNyRetailFoodStoreLicense(record);
+  assert.deepEqual(result.entities.map((entity) => entity.entity_type), ["organization", "physical_site", "establishment"]);
+  assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
+  assert(result.organizationAssertions.some((item) => item.predicate === "organization.source-reported-name"));
+  assert(result.locationAssertions.some((item) => item.predicate === "establishment.ny-retail-food-store-license-profile"));
+  assert(result.locationAssertions.some((item) => item.predicate === "site.location"));
+  assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
+  const profile = createLocationMatchProfile(record, result);
+  assert.equal(profile.normalized_address.match_key, "street|624 DELAWARE AVE||DELMAR|NY|12054");
 });
 
 test("reconciles grouped NYC DCWP active premise licenses into one organization, site, and establishment", () => {

@@ -228,6 +228,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       aggregate_distribution: "public-with-attribution-and-source-limitations",
       general_operating_status_inferred: false,
     },
+    ny_retail_food_store_license_sites: {
+      licensed_location_address_count: 1,
+      provisional_physical_site_count: 1,
+      source_release_id: "ny-retail-food-fixture",
+      source_rows_updated_at: "2025-09-30T15:15:15.000Z",
+      record_level_distribution: "local-review-only",
+      aggregate_distribution: "public-under-open-ny-terms-with-attribution-and-limitations",
+    },
     nyc_dcwp_active_license_sites: {
       licensed_site_count: 1,
       source_release_id: "nyc-dcwp-license-fixture",
@@ -241,8 +249,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       registry_coverage: {
         status: "record-level-source-contribution",
         complete_all_businesses: false,
-        physical_site_count: 8,
-        establishment_count: 8,
+        physical_site_count: 9,
+        establishment_count: 9,
       },
       source_contributions: sourceContribution,
       current_usps_validity: { status: "unverified" },
@@ -281,7 +289,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     {
       profile_id: "profile:1",
       normalized_address: { state: "AA" },
-      location: { type: "Point", coordinates: [-89.5, 30.5] },
+      location: {
+        longitude: -89.5,
+        latitude: 30.5,
+        precision: "open-data-platform-generated-address-component-centroid",
+        independently_verified: false,
+        premise_coordinate_claim_permitted: false,
+      },
       observed_at: "2026-08-01T00:00:00.000Z",
       source: { source_id: "usda-snap-current-retailers" },
     },
@@ -334,6 +348,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       observed_at: "2026-09-01T10:50:26.000Z",
       source: { source_id: "california-abc-daily-active-licenses" },
     },
+    {
+      profile_id: "profile:9",
+      normalized_address: { state: "AA" },
+      location: { type: "Point", coordinates: [-89.5, 30.5] },
+      observed_at: "2026-09-02T04:30:18.958Z",
+      source: { source_id: "new-york-agriculture-markets-retail-food-stores" },
+    },
   ];
   for (let partition = 0; partition < 100; partition += 1) {
     const rows = partition === 12 ? profiles : [];
@@ -345,13 +366,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     ));
   }
   const registry = await publishFixture(registryRoot, "national-business-registry", registryReleaseId, {
-    publisher: { id: "national-business-registry", version: "2.8.0" },
+    publisher: { id: "national-business-registry", version: "2.9.0" },
     status: "published-partial",
     complete_national_business_registry: false,
     coverage: {
-      resolution_location_profiles: 8,
-      physical_sites: 8,
-      establishments: 8,
+      resolution_location_profiles: 9,
+      physical_sites: 9,
+      establishments: 9,
       zip_union_records: 2,
       zips_with_record_level_contributions: 1,
       authoritative_current_usps_zip_denominator: null,
@@ -434,6 +455,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       ca_abc_quarantined_source_rows: 1,
       ca_abc_quarantined_file_groups: 1,
       ca_abc_source_active_rows_with_expiration_before_observation: 1,
+      ny_retail_food_store_source_license_records: 3,
+      ny_retail_food_store_organizations: 2,
+      ny_retail_food_store_provisional_physical_sites: 1,
+      ny_retail_food_store_zip_evidence_addresses: 1,
+      ny_retail_food_store_usable_platform_geocodes: 1,
+      ny_retail_food_store_rows_with_undocumented_establishment_codes: 1,
+      ny_retail_food_store_quarantined_source_records: 1,
       nyc_dcwp_active_license_source_records: 4,
       nyc_dcwp_active_license_accepted_records: 3,
       nyc_dcwp_active_license_normalized_sites: 1,
@@ -451,7 +479,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const resolution = await publishFixture(path.join(root, "resolution"), "national-business-entity-resolution", "resolution-fixture", {
     status: "published-reviewable-partial",
     dependency: { dataset_id: "national-business-registry", release_id: registryReleaseId },
-    coverage: { profiles: 8 },
+    coverage: { profiles: 9 },
   });
   const benchmark = await publishFixture(path.join(root, "benchmark"), "national-business-entity-resolution-benchmark", "benchmark-fixture", {
     status: "awaiting-independent-labels",
@@ -555,20 +583,20 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.5.0");
+  assert.equal(result.manifest.publisher.version, "2.6.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 13);
-  assert.equal(verification.coverage.location_profiles_assessed, 8);
-  assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
+  assert.equal(verification.coverage.source_views, 14);
+  assert.equal(verification.coverage.location_profiles_assessed, 9);
+  assert.equal(verification.coverage.coordinate_assigned_profiles, 2);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(states[0].registry_evidence.reported_address_profile_count, 8);
-  assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 1);
+  assert.equal(states[0].registry_evidence.reported_address_profile_count, 9);
+  assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 2);
   assert.equal(states[0].nonemployer_baseline.nonemployer_establishments, 5);
   const counties = (await readFile(path.join(result.releaseDirectory, "views/counties.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(counties[0].registry_evidence.coordinate_assigned_profile_count, 1);
+  assert.equal(counties[0].registry_evidence.coordinate_assigned_profile_count, 2);
   assert.equal(counties[0].zip_business_count_allocation, null);
   assert.equal(counties[0].nonemployer_baseline.nonemployer_establishments, 4);
   assert.equal(verification.coverage.national_nonemployer_establishments, 5);
@@ -621,6 +649,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.ca_abc_quarantined_source_rows, 1);
   assert.equal(verification.coverage.ca_abc_quarantined_file_groups, 1);
   assert.equal(verification.coverage.ca_abc_source_active_rows_with_expiration_before_observation, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_source_license_records, 3);
+  assert.equal(verification.coverage.ny_retail_food_store_organizations, 2);
+  assert.equal(verification.coverage.ny_retail_food_store_provisional_physical_sites, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_organizations_without_complete_physical_site, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_zip_evidence_addresses, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_usable_platform_geocodes, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_rows_with_undocumented_establishment_codes, 1);
+  assert.equal(verification.coverage.ny_retail_food_store_quarantined_source_records, 1);
   assert.equal(verification.coverage.nyc_dcwp_active_license_source_records, 4);
   assert.equal(verification.coverage.nyc_dcwp_active_license_normalized_sites, 1);
   assert.equal(verification.coverage.nyc_dcwp_active_license_unique_business_ids, 1);
@@ -676,6 +712,13 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(californiaAbc.zip_rows_with_contribution, 1);
   assert.equal(californiaAbc.location_profile_geography.profile_count, 1);
   assert.equal(californiaAbc.location_profile_geography.coordinate_missing_count, 1);
+  const nyRetailFood = sources.find((row) => row.source_key === "ny_retail_food_store_license_sites");
+  assert.equal(nyRetailFood.profile_source_id, "new-york-agriculture-markets-retail-food-stores");
+  assert.equal(nyRetailFood.zip_level_counts.licensed_location_address_count, 1);
+  assert.equal(nyRetailFood.zip_level_counts.provisional_physical_site_count, 1);
+  assert.equal(nyRetailFood.zip_rows_with_contribution, 1);
+  assert.equal(nyRetailFood.location_profile_geography.profile_count, 1);
+  assert.equal(nyRetailFood.location_profile_geography.coordinate_assigned_single_count, 1);
   const nycDcwp = sources.find((row) => row.source_key === "nyc_dcwp_active_license_sites");
   assert.equal(nycDcwp.profile_source_id, "nyc-dcwp-issued-licenses-active-premises");
   assert.equal(nycDcwp.zip_level_counts.licensed_site_count, 1);

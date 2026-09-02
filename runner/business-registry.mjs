@@ -9,7 +9,7 @@ import { createGunzip, createGzip } from "node:zlib";
 import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.8.0";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.9.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -693,6 +693,56 @@ export function reconcileCaAbcActiveLicenseSite(record) {
       relationship(registryRecord, "located_at", establishmentId, siteId),
     ],
   };
+}
+
+export function reconcileNyRetailFoodStoreLicense(record) {
+  const licenseNumber = record.external_identifiers?.find((item) => item.type === "ny_agriculture_markets_retail_food_store_license")?.value;
+  const organizationId = record.entity_candidates?.organization_id;
+  const siteId = record.entity_candidates?.physical_site_id;
+  const establishmentId = record.entity_candidates?.establishment_id;
+  const zipCode = record.physical_address?.zip_coverage_eligible ? record.physical_address.zip_code : null;
+  const hasSite = Boolean(siteId || establishmentId);
+  if (!/^[0-9]{6}$/.test(licenseNumber ?? "")
+    || organizationId !== `organization:ny_agm_retail_food_license_${licenseNumber}`
+    || (hasSite && (siteId !== `site:ny_agm_retail_food_license_${licenseNumber}` || establishmentId !== `establishment:ny_agm_retail_food_license_${licenseNumber}`))
+    || (!hasSite && (siteId || establishmentId))
+    || (zipCode !== null && !/^[0-9]{5}$/.test(zipCode))
+    || (hasSite && (!zipCode || !record.physical_address?.site_inference_eligible))
+    || !record.display_name || record.export_policy !== "local-review-only"
+    || record.source_status?.status_class !== "current-source-snapshot-membership") {
+    throw new Error(`Invalid New York retail-food-store license candidate ${record.normalized_record_id}.`);
+  }
+  const identifier = record.external_identifiers.find((item) => item.type === "ny_agriculture_markets_retail_food_store_license");
+  const organizationAssertions = [
+    assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", "license_number"),
+    assertion(record, organizationId, "organization.source-status", record.source_status, "object", "license_number|operation_type"),
+  ];
+  if (record.licensed_entity_name) organizationAssertions.push(assertion(record, organizationId, "organization.source-reported-name", record.licensed_entity_name, "string", "entity_name"));
+  if (record.doing_business_as_name) organizationAssertions.push(assertion(record, organizationId, "organization.other-name", { name: record.doing_business_as_name, name_type: "ny-agm-reported-dba" }, "object", "dba_name"));
+  const entities = [canonicalEntity(organizationId, "organization", record.observed_at)];
+  const locationAssertions = [];
+  const relationships = [];
+  if (hasSite) {
+    entities.push(canonicalEntity(siteId, "physical_site", record.observed_at), canonicalEntity(establishmentId, "establishment", record.observed_at));
+    locationAssertions.push(
+      assertion(record, siteId, "site.address", record.physical_address, "address", "street_number|street_name|address_line_2|address_line_3|city|state|zip_code|county"),
+      assertion(record, siteId, "site.zip-code", zipCode, "string", "zip_code"),
+      assertion(record, siteId, "site.zcta", record.geography, "object", "zip_code"),
+      assertion(record, establishmentId, "establishment.name", record.display_name, "string", record.doing_business_as_name ? "dba_name" : "entity_name"),
+      assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", "license_number"),
+      assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "license_number|operation_type"),
+      assertion(record, establishmentId, "establishment.ny-retail-food-store-license-profile", record.retail_food_store_license_profile, "object", "license_number|operation_type|estab_type|square_footage|county"),
+    );
+    if (record.reported_coordinate) locationAssertions.push(assertion(record, siteId, "site.location", record.reported_coordinate, "geometry", "georeference"));
+    relationships.push(relationship(record, "operates", organizationId, establishmentId), relationship(record, "located_at", establishmentId, siteId));
+  } else {
+    organizationAssertions.push(
+      assertion(record, organizationId, "organization.reported-licensed-physical-address", record.physical_address, "address", "street_number|street_name|address_line_2|address_line_3|city|state|zip_code|county"),
+      assertion(record, organizationId, "organization.ny-retail-food-store-license-profile", record.retail_food_store_license_profile, "object", "license_number|operation_type|estab_type|square_footage|county"),
+    );
+    if (record.reported_coordinate) organizationAssertions.push(assertion(record, organizationId, "organization.reported-address-coordinate", record.reported_coordinate, "geometry", "georeference"));
+  }
+  return { licenseNumber, zipCode, hasSite, entities, organizationAssertions, locationAssertions, relationships };
 }
 
 export function reconcileNycDcwpActiveLicenseSite(record) {
@@ -2062,6 +2112,40 @@ async function loadCaAbcActiveLicenseRelease(pointerPath) {
   return { manifest, manifestSha256: sha256Buffer(manifestBuffer), releaseDirectory, siteArtifacts, zipRows };
 }
 
+async function loadNyRetailFoodStoreRelease(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "New York retail-food-store manifest path");
+  const manifestBuffer = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (manifest.dataset_id !== "ny-retail-food-store-license-sites" || manifest.status !== "published"
+    || manifest.complete_selected_license_snapshot !== true
+    || manifest.policy?.record_level_distribution !== "local-review-only"
+    || manifest.coverage?.organizations_published + manifest.coverage?.quarantined_source_records !== manifest.coverage?.source_license_records
+    || manifest.coverage?.provisional_physical_sites !== manifest.coverage?.provisional_establishments
+    || manifest.coverage?.provisional_physical_sites > manifest.coverage?.organizations_published
+    || manifest.coverage?.zip_evidence_addresses < manifest.coverage?.provisional_physical_sites) {
+    throw new Error("A complete governed New York retail-food-store source release is required.");
+  }
+  const releaseDirectory = path.dirname(manifestPath);
+  const recordArtifacts = manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-ny-retail-food-store-license-jsonl-gzip").sort((a, b) => a.path.localeCompare(b.path));
+  if (recordArtifacts.length !== 1 || recordArtifacts.some((artifact) => artifact.export_policy !== "local-review-only")) {
+    throw new Error("New York retail-food-store source release has an incomplete or misclassified normalized artifact set.");
+  }
+  const zipArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "ny-retail-food-stores-zip-coverage-jsonl");
+  if (!zipArtifact || zipArtifact.export_policy !== "public-aggregate-open-ny-terms") throw new Error("New York retail-food-store source release has no governed ZIP artifact.");
+  for (const artifact of [...recordArtifacts, zipArtifact]) {
+    const filename = path.resolve(releaseDirectory, artifact.path);
+    assertContained(releaseDirectory, filename, `New York retail-food-store artifact ${artifact.path}`);
+    const actual = await hashFile(filename);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`New York retail-food-store artifact ${artifact.path} failed checksum validation.`);
+  }
+  const zipRows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+  if (zipRows.length !== zipArtifact.record_count || zipRows.length !== manifest.coverage.zip_union_records) throw new Error("New York retail-food-store ZIP coverage count does not match its manifest.");
+  return { manifest, manifestSha256: sha256Buffer(manifestBuffer), releaseDirectory, recordArtifacts, zipRows };
+}
+
 async function loadNycDcwpActiveLicenseRelease(pointerPath) {
   const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
   const pointerDirectory = path.dirname(pointerPath);
@@ -2159,7 +2243,7 @@ function jsonLines(records) {
   return `${records.map((record) => JSON.stringify(record)).join("\n")}\n`;
 }
 
-function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, deBusiness, akBusiness, coBusiness, waLniActiveContractors, orBusiness, iaBusiness, nyBusiness, flBusiness, paBusiness, laActiveBusinesses, txActiveSalesTax, chicagoActiveBusinessLicenses, dcBasicBusinessLicenses, caAbcActiveLicenses, nycDcwpActiveLicenses, uspsZips, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts, ctBusinessOrganizationCounts, deBusinessOrganizationCounts, akBusinessOrganizationCounts, akBusinessSiteCounts, coBusinessOrganizationCounts, waLniMailingAddressCounts, orBusinessRegistrationCounts, iaBusinessOrganizationCounts, nyBusinessOrganizationCounts, flBusinessOrganizationCounts, paBusinessOrganizationCounts, laActiveBusinessLocationCounts, txActiveSalesTaxOutletCounts, chicagoActiveBusinessLicenseSiteCounts, dcBasicBusinessLicenseSiteCounts, caAbcActiveLicenseSiteCounts, nycDcwpActiveLicenseSiteCounts }) {
+function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, deBusiness, akBusiness, coBusiness, waLniActiveContractors, orBusiness, iaBusiness, nyBusiness, flBusiness, paBusiness, laActiveBusinesses, txActiveSalesTax, chicagoActiveBusinessLicenses, dcBasicBusinessLicenses, caAbcActiveLicenses, nyRetailFoodStores, nycDcwpActiveLicenses, uspsZips, snapCounts, nppesPrimaryCounts, nppesSecondaryCounts, fdicLocationCounts, ncuaLocationCounts, fsisEstablishmentCounts, echoFacilityCounts, fmcsaRecordCounts, irsEoOrganizationCounts, ctBusinessOrganizationCounts, deBusinessOrganizationCounts, akBusinessOrganizationCounts, akBusinessSiteCounts, coBusinessOrganizationCounts, waLniMailingAddressCounts, orBusinessRegistrationCounts, iaBusinessOrganizationCounts, nyBusinessOrganizationCounts, flBusinessOrganizationCounts, paBusinessOrganizationCounts, laActiveBusinessLocationCounts, txActiveSalesTaxOutletCounts, chicagoActiveBusinessLicenseSiteCounts, dcBasicBusinessLicenseSiteCounts, caAbcActiveLicenseSiteCounts, nyRetailFoodStoreZipEvidenceCounts, nyRetailFoodStoreSiteCounts, nycDcwpActiveLicenseSiteCounts }) {
   const snapRows = new Map(snap.zipRows.map((row) => [row.zip_code, row]));
   const nppesRows = new Map((nppes?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const fdicRows = new Map((fdic?.zipRows ?? []).map((row) => [row.zip_code, row]));
@@ -2183,9 +2267,10 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
   const chicagoActiveBusinessLicenseRows = new Map((chicagoActiveBusinessLicenses?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const dcBasicBusinessLicenseRows = new Map((dcBasicBusinessLicenses?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const caAbcActiveLicenseRows = new Map((caAbcActiveLicenses?.zipRows ?? []).map((row) => [row.zip_code, row]));
+  const nyRetailFoodStoreRows = new Map((nyRetailFoodStores?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const nycDcwpActiveLicenseRows = new Map((nycDcwpActiveLicenses?.zipRows ?? []).map((row) => [row.zip_code, row]));
   const uspsRows = new Map((uspsZips?.zipRows ?? []).map((row) => [row.zip_code, row]));
-  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...ctBusinessRows.keys(), ...deBusinessRows.keys(), ...akBusinessRows.keys(), ...coBusinessRows.keys(), ...waLniActiveContractorRows.keys(), ...orBusinessRows.keys(), ...iaBusinessRows.keys(), ...nyBusinessRows.keys(), ...flBusinessRows.keys(), ...paBusinessRows.keys(), ...laActiveBusinessRows.keys(), ...txActiveSalesTaxRows.keys(), ...chicagoActiveBusinessLicenseRows.keys(), ...dcBasicBusinessLicenseRows.keys(), ...caAbcActiveLicenseRows.keys(), ...nycDcwpActiveLicenseRows.keys(), ...uspsRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys(), ...ctBusinessOrganizationCounts.keys(), ...deBusinessOrganizationCounts.keys(), ...akBusinessOrganizationCounts.keys(), ...akBusinessSiteCounts.keys(), ...coBusinessOrganizationCounts.keys(), ...waLniMailingAddressCounts.keys(), ...orBusinessRegistrationCounts.keys(), ...iaBusinessOrganizationCounts.keys(), ...nyBusinessOrganizationCounts.keys(), ...flBusinessOrganizationCounts.keys(), ...paBusinessOrganizationCounts.keys(), ...laActiveBusinessLocationCounts.keys(), ...txActiveSalesTaxOutletCounts.keys(), ...chicagoActiveBusinessLicenseSiteCounts.keys(), ...dcBasicBusinessLicenseSiteCounts.keys(), ...caAbcActiveLicenseSiteCounts.keys(), ...nycDcwpActiveLicenseSiteCounts.keys()])].sort();
+  const zipCodes = [...new Set([...snapRows.keys(), ...nppesRows.keys(), ...fdicRows.keys(), ...ncuaRows.keys(), ...fsisRows.keys(), ...echoRows.keys(), ...fmcsaRows.keys(), ...irsEoRows.keys(), ...ctBusinessRows.keys(), ...deBusinessRows.keys(), ...akBusinessRows.keys(), ...coBusinessRows.keys(), ...waLniActiveContractorRows.keys(), ...orBusinessRows.keys(), ...iaBusinessRows.keys(), ...nyBusinessRows.keys(), ...flBusinessRows.keys(), ...paBusinessRows.keys(), ...laActiveBusinessRows.keys(), ...txActiveSalesTaxRows.keys(), ...chicagoActiveBusinessLicenseRows.keys(), ...dcBasicBusinessLicenseRows.keys(), ...caAbcActiveLicenseRows.keys(), ...nyRetailFoodStoreRows.keys(), ...nycDcwpActiveLicenseRows.keys(), ...uspsRows.keys(), ...snapCounts.keys(), ...nppesPrimaryCounts.keys(), ...nppesSecondaryCounts.keys(), ...fdicLocationCounts.keys(), ...ncuaLocationCounts.keys(), ...fsisEstablishmentCounts.keys(), ...echoFacilityCounts.keys(), ...fmcsaRecordCounts.keys(), ...irsEoOrganizationCounts.keys(), ...ctBusinessOrganizationCounts.keys(), ...deBusinessOrganizationCounts.keys(), ...akBusinessOrganizationCounts.keys(), ...akBusinessSiteCounts.keys(), ...coBusinessOrganizationCounts.keys(), ...waLniMailingAddressCounts.keys(), ...orBusinessRegistrationCounts.keys(), ...iaBusinessOrganizationCounts.keys(), ...nyBusinessOrganizationCounts.keys(), ...flBusinessOrganizationCounts.keys(), ...paBusinessOrganizationCounts.keys(), ...laActiveBusinessLocationCounts.keys(), ...txActiveSalesTaxOutletCounts.keys(), ...chicagoActiveBusinessLicenseSiteCounts.keys(), ...dcBasicBusinessLicenseSiteCounts.keys(), ...caAbcActiveLicenseSiteCounts.keys(), ...nyRetailFoodStoreZipEvidenceCounts.keys(), ...nyRetailFoodStoreSiteCounts.keys(), ...nycDcwpActiveLicenseSiteCounts.keys()])].sort();
   return zipCodes.map((zipCode) => {
     const snapRow = snapRows.get(zipCode);
     const nppesRow = nppesRows.get(zipCode);
@@ -2210,9 +2295,10 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     const chicagoActiveBusinessLicenseRow = chicagoActiveBusinessLicenseRows.get(zipCode);
     const dcBasicBusinessLicenseRow = dcBasicBusinessLicenseRows.get(zipCode);
     const caAbcActiveLicenseRow = caAbcActiveLicenseRows.get(zipCode);
+    const nyRetailFoodStoreRow = nyRetailFoodStoreRows.get(zipCode);
     const nycDcwpActiveLicenseRow = nycDcwpActiveLicenseRows.get(zipCode);
     const uspsRow = uspsRows.get(zipCode);
-    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow ?? ctBusinessRow ?? deBusinessRow ?? akBusinessRow ?? coBusinessRow ?? waLniActiveContractorRow ?? orBusinessRow ?? iaBusinessRow ?? nyBusinessRow ?? flBusinessRow ?? paBusinessRow ?? laActiveBusinessRow ?? txActiveSalesTaxRow ?? chicagoActiveBusinessLicenseRow ?? dcBasicBusinessLicenseRow ?? caAbcActiveLicenseRow ?? nycDcwpActiveLicenseRow;
+    const foundation = nppesRow ?? snapRow ?? fdicRow ?? ncuaRow ?? fsisRow ?? echoRow ?? fmcsaRow ?? irsEoRow ?? ctBusinessRow ?? deBusinessRow ?? akBusinessRow ?? coBusinessRow ?? waLniActiveContractorRow ?? orBusinessRow ?? iaBusinessRow ?? nyBusinessRow ?? flBusinessRow ?? paBusinessRow ?? laActiveBusinessRow ?? txActiveSalesTaxRow ?? chicagoActiveBusinessLicenseRow ?? dcBasicBusinessLicenseRow ?? caAbcActiveLicenseRow ?? nyRetailFoodStoreRow ?? nycDcwpActiveLicenseRow;
     if (!foundation && !uspsRow) throw new Error(`Registry ZIP ${zipCode} has no source coverage row.`);
     const snapCount = snapCounts.get(zipCode) ?? 0;
     const primary = nppesPrimaryCounts.get(zipCode) ?? 0;
@@ -2240,6 +2326,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     const chicagoActiveBusinessLicenseSites = chicagoActiveBusinessLicenseSiteCounts.get(zipCode) ?? 0;
     const dcBasicBusinessLicenseSites = dcBasicBusinessLicenseSiteCounts.get(zipCode) ?? 0;
     const caAbcActiveLicenseSites = caAbcActiveLicenseSiteCounts.get(zipCode) ?? 0;
+    const nyRetailFoodStoreZipEvidence = nyRetailFoodStoreZipEvidenceCounts.get(zipCode) ?? 0;
+    const nyRetailFoodStoreSites = nyRetailFoodStoreSiteCounts.get(zipCode) ?? 0;
     const nycDcwpActiveLicenseSites = nycDcwpActiveLicenseSiteCounts.get(zipCode) ?? 0;
     if (snapCount !== (snapRow?.snap_retailer_snapshot?.retailer_count ?? 0)) throw new Error(`ZIP ${zipCode} USDA SNAP counts do not reconcile.`);
     if (nppes && (primary !== (nppesRow?.nppes_organization_provider_snapshot?.primary_practice_location_count ?? 0)
@@ -2292,11 +2380,14 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     if (caAbcActiveLicenses && caAbcActiveLicenseSites !== (caAbcActiveLicenseRow?.ca_abc_active_issued_license_snapshot?.physical_site_count ?? 0)) {
       throw new Error(`ZIP ${zipCode} California ABC active-license site counts do not reconcile.`);
     }
+    if (nyRetailFoodStores && nyRetailFoodStoreZipEvidence !== (nyRetailFoodStoreRow?.ny_retail_food_store_license_snapshot?.licensed_location_address_count ?? 0)) {
+      throw new Error(`ZIP ${zipCode} New York retail-food-store address counts do not reconcile.`);
+    }
     if (nycDcwpActiveLicenses && nycDcwpActiveLicenseSites !== (nycDcwpActiveLicenseRow?.nyc_dcwp_active_premise_license_snapshot?.licensed_site_count ?? 0)) {
       throw new Error(`ZIP ${zipCode} NYC DCWP active-license site counts do not reconcile.`);
     }
-    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords + akBusinessSites + laActiveBusinessLocations + txActiveSalesTaxOutlets + chicagoActiveBusinessLicenseSites + dcBasicBusinessLicenseSites + caAbcActiveLicenseSites + nycDcwpActiveLicenseSites;
-    const recordContributionCount = locationCount + irsEoOrganizations + ctBusinessOrganizations + deBusinessOrganizations + akBusinessOrganizations + coBusinessOrganizations + waLniMailingAddresses + orBusinessRegistrationTotal + iaBusinessOrganizations + nyBusinessOrganizations + flBusinessOrganizations + paBusinessOrganizations;
+    const locationCount = snapCount + primary + secondary + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords + akBusinessSites + laActiveBusinessLocations + txActiveSalesTaxOutlets + chicagoActiveBusinessLicenseSites + dcBasicBusinessLicenseSites + caAbcActiveLicenseSites + nyRetailFoodStoreSites + nycDcwpActiveLicenseSites;
+    const recordContributionCount = locationCount + irsEoOrganizations + ctBusinessOrganizations + deBusinessOrganizations + akBusinessOrganizations + coBusinessOrganizations + waLniMailingAddresses + orBusinessRegistrationTotal + iaBusinessOrganizations + nyBusinessOrganizations + flBusinessOrganizations + paBusinessOrganizations + (nyRetailFoodStoreZipEvidence - nyRetailFoodStoreSites);
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
@@ -2333,6 +2424,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
         chicago_active_business_license_site_count: chicagoActiveBusinessLicenseSites,
         dc_basic_business_license_site_count: dcBasicBusinessLicenseSites,
         ca_abc_active_issued_license_site_count: caAbcActiveLicenseSites,
+        ny_retail_food_store_license_address_evidence_count: nyRetailFoodStoreZipEvidence,
+        ny_retail_food_store_license_site_count: nyRetailFoodStoreSites,
         nyc_dcwp_active_license_site_count: nycDcwpActiveLicenseSites,
       },
       source_contributions: {
@@ -2514,6 +2607,16 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
             general_operating_status_inferred: false,
           },
         } : {}),
+        ...(nyRetailFoodStores ? {
+          ny_retail_food_store_license_sites: {
+            licensed_location_address_count: nyRetailFoodStoreZipEvidence,
+            provisional_physical_site_count: nyRetailFoodStoreSites,
+            source_release_id: nyRetailFoodStores.manifest.source_release_id,
+            source_rows_updated_at: nyRetailFoodStores.manifest.source_rows_updated_at,
+            record_level_distribution: "local-review-only",
+            aggregate_distribution: "public-under-open-ny-terms-with-attribution-and-limitations",
+          },
+        } : {}),
         ...(nycDcwpActiveLicenses ? {
           nyc_dcwp_active_license_sites: {
             licensed_site_count: nycDcwpActiveLicenseSites,
@@ -2570,6 +2673,7 @@ export async function buildNationalBusinessRegistry({
   chicagoActiveBusinessLicensesPointer = null,
   dcBasicBusinessLicensesPointer = null,
   caAbcActiveLicensesPointer = null,
+  nyRetailFoodStoresPointer = null,
   nycDcwpActiveLicensesPointer = null,
   uspsZipsPointer = null,
   logger = console.log,
@@ -2600,6 +2704,7 @@ export async function buildNationalBusinessRegistry({
   const chicagoActiveBusinessLicenses = chicagoActiveBusinessLicensesPointer ? await loadChicagoActiveBusinessLicenseRelease(chicagoActiveBusinessLicensesPointer) : null;
   const dcBasicBusinessLicenses = dcBasicBusinessLicensesPointer ? await loadDcBasicBusinessLicenseRelease(dcBasicBusinessLicensesPointer) : null;
   const caAbcActiveLicenses = caAbcActiveLicensesPointer ? await loadCaAbcActiveLicenseRelease(caAbcActiveLicensesPointer) : null;
+  const nyRetailFoodStores = nyRetailFoodStoresPointer ? await loadNyRetailFoodStoreRelease(nyRetailFoodStoresPointer) : null;
   const nycDcwpActiveLicenses = nycDcwpActiveLicensesPointer ? await loadNycDcwpActiveLicenseRelease(nycDcwpActiveLicensesPointer) : null;
   const uspsZips = uspsZipsPointer ? await loadUspsOperationalZipRelease(uspsZipsPointer) : null;
   const createdAt = now().toISOString();
@@ -2649,6 +2754,8 @@ export async function buildNationalBusinessRegistry({
   const dcBasicBusinessLicenseOrganizationAssertionWriters = new Map();
   const caAbcActiveLicenseOrganizationWriters = new Map();
   const caAbcActiveLicenseOrganizationAssertionWriters = new Map();
+  const nyRetailFoodStoreOrganizationWriters = new Map();
+  const nyRetailFoodStoreOrganizationAssertionWriters = new Map();
   const nycDcwpActiveLicenseOrganizationWriters = new Map();
   const nycDcwpActiveLicenseOrganizationAssertionWriters = new Map();
   const resolutionProfileWriters = new Map();
@@ -2688,6 +2795,10 @@ export async function buildNationalBusinessRegistry({
     if (caAbcActiveLicenses) {
       caAbcActiveLicenseOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/ca-abc-file-prefix=${prefix}.jsonl.gz`));
       caAbcActiveLicenseOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/ca-abc-file-prefix=${prefix}.jsonl.gz`));
+    }
+    if (nyRetailFoodStores) {
+      nyRetailFoodStoreOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/ny-retail-food-license-prefix=${prefix}.jsonl.gz`));
+      nyRetailFoodStoreOrganizationAssertionWriters.set(prefix, await openGzipWriter(stagingDirectory, `assertions/organizations/ny-retail-food-license-prefix=${prefix}.jsonl.gz`));
     }
     if (nycDcwpActiveLicenses) {
       nycDcwpActiveLicenseOrganizationWriters.set(prefix, await openGzipWriter(stagingDirectory, `entities/organizations/nyc-dcwp-business-prefix=${prefix}.jsonl.gz`));
@@ -2785,6 +2896,8 @@ export async function buildNationalBusinessRegistry({
   const chicagoActiveBusinessLicenseSiteCountsByZip = new Map();
   const dcBasicBusinessLicenseSiteCountsByZip = new Map();
   const caAbcActiveLicenseSiteCountsByZip = new Map();
+  const nyRetailFoodStoreZipEvidenceCountsByZip = new Map();
+  const nyRetailFoodStoreSiteCountsByZip = new Map();
   const nycDcwpActiveLicenseSiteCountsByZip = new Map();
   const normalizedIds = new Set();
   const nppesNpis = new Set();
@@ -2813,6 +2926,7 @@ export async function buildNationalBusinessRegistry({
   const chicagoActiveBusinessLicenseAccounts = new Set();
   const dcBasicBusinessLicenseCustomers = new Set();
   const caAbcFileNumbers = new Set();
+  const nyRetailFoodStoreLicenseNumbers = new Set();
   const nycDcwpBusinessIds = new Set();
   let snapRecords = 0;
   let nppesOrganizations = 0;
@@ -2849,6 +2963,8 @@ export async function buildNationalBusinessRegistry({
   let dcBasicBusinessLicenseOrganizationCount = 0;
   let caAbcActiveLicenseSiteCount = 0;
   let caAbcActiveLicenseOrganizationCount = 0;
+  let nyRetailFoodStoreOrganizations = 0;
+  let nyRetailFoodStorePhysicalSites = 0;
   let nycDcwpActiveLicenseSiteCount = 0;
   let nycDcwpActiveLicenseOrganizationCount = 0;
   let assertions = 0;
@@ -3581,6 +3697,46 @@ export async function buildNationalBusinessRegistry({
     if (allocated !== caAbcActiveLicenseSiteCount) throw new Error("Registry California ABC active-license ZIP allocation count does not match the source release.");
   }
 
+  if (nyRetailFoodStores) {
+    for (const artifact of nyRetailFoodStores.recordArtifacts) {
+      const count = await forEachGzipRecord(path.join(nyRetailFoodStores.releaseDirectory, artifact.path), async (record) => {
+        const reconciled = reconcileNyRetailFoodStoreLicense(record);
+        if (nyRetailFoodStoreLicenseNumbers.has(reconciled.licenseNumber)) throw new Error(`Duplicate New York retail-food-store license ${reconciled.licenseNumber}.`);
+        nyRetailFoodStoreLicenseNumbers.add(reconciled.licenseNumber);
+        const licensePrefix = reconciled.licenseNumber[0];
+        await writeGzipRecord(nyRetailFoodStoreOrganizationWriters.get(licensePrefix), reconciled.entities[0]);
+        for (const item of reconciled.organizationAssertions) await writeGzipRecord(nyRetailFoodStoreOrganizationAssertionWriters.get(licensePrefix), item);
+        assertions += reconciled.organizationAssertions.length;
+        if (reconciled.zipCode) nyRetailFoodStoreZipEvidenceCountsByZip.set(reconciled.zipCode, (nyRetailFoodStoreZipEvidenceCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+        if (reconciled.hasSite) {
+          const zipPrefix = reconciled.zipCode[0];
+          await writeGzipRecord(siteWriters.get(zipPrefix), reconciled.entities[1]);
+          await writeGzipRecord(establishmentWriters.get(zipPrefix), reconciled.entities[2]);
+          for (const item of reconciled.locationAssertions) await writeGzipRecord(assertionWriters.get(zipPrefix), item);
+          for (const item of reconciled.relationships) await writeGzipRecord(relationshipWriters.get(zipPrefix), item);
+          await writeLocationResolutionProfile(resolutionProfileWriters, record, reconciled);
+          resolutionLocationProfiles += 1;
+          nyRetailFoodStorePhysicalSites += 1;
+          nyRetailFoodStoreSiteCountsByZip.set(reconciled.zipCode, (nyRetailFoodStoreSiteCountsByZip.get(reconciled.zipCode) ?? 0) + 1);
+          assertions += reconciled.locationAssertions.length;
+          relationships += reconciled.relationships.length;
+        }
+      });
+      if (count !== artifact.record_count) throw new Error(`New York retail-food-store artifact ${artifact.path} record count mismatch.`);
+      nyRetailFoodStoreOrganizations += count;
+      logger(`Reconciled ${nyRetailFoodStoreOrganizations.toLocaleString("en-US")} New York retail-food-store license organizations.`);
+    }
+    if (nyRetailFoodStoreOrganizations !== nyRetailFoodStores.manifest.coverage.organizations_published
+      || nyRetailFoodStorePhysicalSites !== nyRetailFoodStores.manifest.coverage.provisional_physical_sites) {
+      throw new Error("Registry New York retail-food-store entity counts do not match the source release.");
+    }
+    const zipEvidenceAllocated = [...nyRetailFoodStoreZipEvidenceCountsByZip.values()].reduce((sum, count) => sum + count, 0);
+    const sitesAllocated = [...nyRetailFoodStoreSiteCountsByZip.values()].reduce((sum, count) => sum + count, 0);
+    if (zipEvidenceAllocated !== nyRetailFoodStores.manifest.coverage.zip_evidence_addresses || sitesAllocated !== nyRetailFoodStorePhysicalSites) {
+      throw new Error("Registry New York retail-food-store ZIP allocations do not match the source release.");
+    }
+  }
+
   if (nycDcwpActiveLicenses) {
     for (const artifact of nycDcwpActiveLicenses.siteArtifacts) {
       const count = await forEachGzipRecord(path.join(nycDcwpActiveLicenses.releaseDirectory, artifact.path), async (record) => {
@@ -3616,7 +3772,7 @@ export async function buildNationalBusinessRegistry({
     if (allocated !== nycDcwpActiveLicenseSiteCount) throw new Error("Registry NYC DCWP active-license ZIP allocation count does not match the source release.");
   }
 
-  const physicalSiteCount = snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords + akBusinessPhysicalSites + laActiveBusinessLocations + txActiveSalesTaxOutlets + chicagoActiveBusinessLicenseSiteCount + dcBasicBusinessLicenseSiteCount + caAbcActiveLicenseSiteCount + nycDcwpActiveLicenseSiteCount;
+  const physicalSiteCount = snapRecords + nppesPrimaryLocations + nppesSecondaryLocations + fdicLocations + ncuaLocations + fsisEstablishments + echoFacilities + fmcsaRecords + akBusinessPhysicalSites + laActiveBusinessLocations + txActiveSalesTaxOutlets + chicagoActiveBusinessLicenseSiteCount + dcBasicBusinessLicenseSiteCount + caAbcActiveLicenseSiteCount + nyRetailFoodStorePhysicalSites + nycDcwpActiveLicenseSiteCount;
   if (resolutionLocationProfiles !== physicalSiteCount) {
     throw new Error(`Entity-resolution profile count ${resolutionLocationProfiles} does not match physical-site count ${physicalSiteCount}.`);
   }
@@ -3643,6 +3799,7 @@ export async function buildNationalBusinessRegistry({
   if (chicagoActiveBusinessLicenses) artifacts.push(...await closeGzipWriters([...chicagoActiveBusinessLicenseOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (dcBasicBusinessLicenses) artifacts.push(...await closeGzipWriters([...dcBasicBusinessLicenseOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (caAbcActiveLicenses) artifacts.push(...await closeGzipWriters([...caAbcActiveLicenseOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
+  if (nyRetailFoodStores) artifacts.push(...await closeGzipWriters([...nyRetailFoodStoreOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   if (nycDcwpActiveLicenses) artifacts.push(...await closeGzipWriters([...nycDcwpActiveLicenseOrganizationWriters.values()], "canonical-organization-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...assertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nppes) artifacts.push(...await closeGzipWriters([...organizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
@@ -3663,6 +3820,7 @@ export async function buildNationalBusinessRegistry({
   if (chicagoActiveBusinessLicenses) artifacts.push(...await closeGzipWriters([...chicagoActiveBusinessLicenseOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (dcBasicBusinessLicenses) artifacts.push(...await closeGzipWriters([...dcBasicBusinessLicenseOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (caAbcActiveLicenses) artifacts.push(...await closeGzipWriters([...caAbcActiveLicenseOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
+  if (nyRetailFoodStores) artifacts.push(...await closeGzipWriters([...nyRetailFoodStoreOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   if (nycDcwpActiveLicenses) artifacts.push(...await closeGzipWriters([...nycDcwpActiveLicenseOrganizationAssertionWriters.values()], "business-assertion-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...relationshipWriters.values()], "business-relationship-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...resolutionProfileWriters.values()], "entity-resolution-location-profile-jsonl-gzip"));
@@ -3681,7 +3839,7 @@ export async function buildNationalBusinessRegistry({
     artifact_type: "canonical-service-jsonl",
   }));
 
-  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, deBusiness, akBusiness, coBusiness, waLniActiveContractors, orBusiness, iaBusiness, nyBusiness, flBusiness, paBusiness, laActiveBusinesses, txActiveSalesTax, chicagoActiveBusinessLicenses, dcBasicBusinessLicenses, caAbcActiveLicenses, nycDcwpActiveLicenses, uspsZips, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip, ctBusinessOrganizationCounts: ctBusinessOrganizationCountsByZip, deBusinessOrganizationCounts: deBusinessOrganizationCountsByZip, akBusinessOrganizationCounts: akBusinessOrganizationCountsByZip, akBusinessSiteCounts: akBusinessSiteCountsByZip, coBusinessOrganizationCounts: coBusinessOrganizationCountsByZip, waLniMailingAddressCounts: waLniMailingAddressCountsByZip, orBusinessRegistrationCounts: orBusinessRegistrationCountsByZip, iaBusinessOrganizationCounts: iaBusinessOrganizationCountsByZip, nyBusinessOrganizationCounts: nyBusinessOrganizationCountsByZip, flBusinessOrganizationCounts: flBusinessOrganizationCountsByZip, paBusinessOrganizationCounts: paBusinessOrganizationCountsByZip, laActiveBusinessLocationCounts: laActiveBusinessLocationCountsByZip, txActiveSalesTaxOutletCounts: txActiveSalesTaxOutletCountsByZip, chicagoActiveBusinessLicenseSiteCounts: chicagoActiveBusinessLicenseSiteCountsByZip, dcBasicBusinessLicenseSiteCounts: dcBasicBusinessLicenseSiteCountsByZip, caAbcActiveLicenseSiteCounts: caAbcActiveLicenseSiteCountsByZip, nycDcwpActiveLicenseSiteCounts: nycDcwpActiveLicenseSiteCountsByZip });
+  const zipCoverage = registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo, ctBusiness, deBusiness, akBusiness, coBusiness, waLniActiveContractors, orBusiness, iaBusiness, nyBusiness, flBusiness, paBusiness, laActiveBusinesses, txActiveSalesTax, chicagoActiveBusinessLicenses, dcBasicBusinessLicenses, caAbcActiveLicenses, nyRetailFoodStores, nycDcwpActiveLicenses, uspsZips, snapCounts: snapCountsByZip, nppesPrimaryCounts: nppesPrimaryCountsByZip, nppesSecondaryCounts: nppesSecondaryCountsByZip, fdicLocationCounts: fdicLocationCountsByZip, ncuaLocationCounts: ncuaLocationCountsByZip, fsisEstablishmentCounts: fsisEstablishmentCountsByZip, echoFacilityCounts: echoFacilityCountsByZip, fmcsaRecordCounts: fmcsaRecordCountsByZip, irsEoOrganizationCounts: irsEoOrganizationCountsByZip, ctBusinessOrganizationCounts: ctBusinessOrganizationCountsByZip, deBusinessOrganizationCounts: deBusinessOrganizationCountsByZip, akBusinessOrganizationCounts: akBusinessOrganizationCountsByZip, akBusinessSiteCounts: akBusinessSiteCountsByZip, coBusinessOrganizationCounts: coBusinessOrganizationCountsByZip, waLniMailingAddressCounts: waLniMailingAddressCountsByZip, orBusinessRegistrationCounts: orBusinessRegistrationCountsByZip, iaBusinessOrganizationCounts: iaBusinessOrganizationCountsByZip, nyBusinessOrganizationCounts: nyBusinessOrganizationCountsByZip, flBusinessOrganizationCounts: flBusinessOrganizationCountsByZip, paBusinessOrganizationCounts: paBusinessOrganizationCountsByZip, laActiveBusinessLocationCounts: laActiveBusinessLocationCountsByZip, txActiveSalesTaxOutletCounts: txActiveSalesTaxOutletCountsByZip, chicagoActiveBusinessLicenseSiteCounts: chicagoActiveBusinessLicenseSiteCountsByZip, dcBasicBusinessLicenseSiteCounts: dcBasicBusinessLicenseSiteCountsByZip, caAbcActiveLicenseSiteCounts: caAbcActiveLicenseSiteCountsByZip, nyRetailFoodStoreZipEvidenceCounts: nyRetailFoodStoreZipEvidenceCountsByZip, nyRetailFoodStoreSiteCounts: nyRetailFoodStoreSiteCountsByZip, nycDcwpActiveLicenseSiteCounts: nycDcwpActiveLicenseSiteCountsByZip });
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipCoverage), {
     record_count: zipCoverage.length,
     artifact_type: "registry-zip-coverage-jsonl",
@@ -4123,6 +4281,29 @@ export async function buildNationalBusinessRegistry({
         general_operating_status_inferred: false,
       },
     } : {}),
+    ...(nyRetailFoodStores ? {
+      ny_retail_food_store_license_sites: {
+        source_id: "new-york-agriculture-markets-retail-food-stores",
+        dataset_id: nyRetailFoodStores.manifest.dataset_id,
+        source_release_id: nyRetailFoodStores.manifest.source_release_id,
+        dataset_release_id: nyRetailFoodStores.manifest.release_id,
+        source_rows_updated_at: nyRetailFoodStores.manifest.source_rows_updated_at,
+        source_license_records: nyRetailFoodStores.manifest.coverage.source_license_records,
+        organizations_published: nyRetailFoodStoreOrganizations,
+        provisional_physical_sites_published: nyRetailFoodStorePhysicalSites,
+        provisional_establishments_published: nyRetailFoodStorePhysicalSites,
+        organizations_without_complete_site_address: nyRetailFoodStores.manifest.coverage.organizations_without_complete_site_address,
+        zip_evidence_addresses: nyRetailFoodStores.manifest.coverage.zip_evidence_addresses,
+        usable_platform_geocodes: nyRetailFoodStores.manifest.coverage.usable_platform_geocodes,
+        rows_with_undocumented_establishment_codes: nyRetailFoodStores.manifest.coverage.rows_with_undocumented_establishment_codes,
+        quarantined_source_records: nyRetailFoodStores.manifest.coverage.quarantined_source_records,
+        relationships_published: nyRetailFoodStorePhysicalSites * 2,
+        identity_resolution: "one provisional organization per retail-food-store license and one provisional site and establishment only for a complete numbered source-reported physical address; no legal-entity merge, parent, chain, network, public-access status, or cross-source identity inferred",
+        record_level_distribution: "local-review-only",
+        aggregate_distribution: "public-under-open-ny-terms-with-attribution-and-limitations",
+        general_operating_status_inferred: false,
+      },
+    } : {}),
     ...(nycDcwpActiveLicenses ? {
       nyc_dcwp_active_license_sites: {
         source_id: "nyc-dcwp-issued-licenses-active-premises",
@@ -4168,7 +4349,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "2.8.0" },
+    publisher: { id: "national-business-registry", version: "2.9.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -4198,10 +4379,11 @@ export async function buildNationalBusinessRegistry({
       ...(chicagoActiveBusinessLicenses ? ["City of Chicago BACP source-defined current active business-license accounts and sites, preserved as local-review-only provisional organizations, sites, and establishments"] : []),
       ...(dcBasicBusinessLicenses ? ["District of Columbia DLCP source-defined active Basic Business License customers and premises, preserved as local-review-only provisional organizations, sites, and establishments"] : []),
       ...(caAbcActiveLicenses ? ["California ABC source-defined active issued-license File Number premises, preserved as local-review-only provisional organizations, sites, and establishments"] : []),
+      ...(nyRetailFoodStores ? ["New York Agriculture and Markets licensed retail-food-store organizations and conditional physical sites from the annual current snapshot, preserved as local-review-only record evidence"] : []),
       ...(nycDcwpActiveLicenses ? ["NYC DCWP source-defined active Premises-license businesses and sites, preserved as local-review-only provisional organizations, sites, and establishments"] : []),
     ].join(", ")}, reconciled against the Census ZBP/ZCTA ZIP coverage union`,
     coverage: {
-      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + fmcsaRecords + irsEoOrganizations + ctBusinessOrganizations + (deBusiness?.manifest.coverage.source_current_license_rows ?? 0) + (akBusiness?.manifest.coverage.source_active_license_rows ?? 0) + coBusinessOrganizations + (coBusiness?.manifest.coverage.quarantined_source_records ?? 0) + (waLniActiveContractors?.manifest.coverage.source_active_contractor_license_rows ?? 0) + (orBusiness?.manifest.coverage.source_principal_place_rows ?? 0) + (iaBusiness?.manifest.coverage.source_rows ?? 0) + (nyBusiness?.manifest.coverage.source_active_extract_records ?? 0) + (flBusiness?.manifest.coverage.source_records ?? 0) + (paBusiness?.manifest.coverage.source_active_registration_rows ?? 0) + (laActiveBusinesses?.manifest.coverage.source_location_accounts ?? 0) + (txActiveSalesTax?.manifest.coverage.source_outlet_permits ?? 0) + (chicagoActiveBusinessLicenses?.manifest.coverage.source_active_license_records ?? 0) + (dcBasicBusinessLicenses?.manifest.coverage.source_active_business_license_rows ?? 0) + (caAbcActiveLicenses?.manifest.coverage.source_records ?? 0) + (nycDcwpActiveLicenses?.manifest.coverage.source_active_premise_license_records ?? 0),
+      source_records: snapRecords + nppesOrganizations + nppesSecondaryLocations + nppesOtherNames + fdicInstitutions + fdicLocations + ncuaInstitutions + ncuaLocations + ncuaTradeNames + fsisEstablishments + echoFacilities + fmcsaRecords + irsEoOrganizations + ctBusinessOrganizations + (deBusiness?.manifest.coverage.source_current_license_rows ?? 0) + (akBusiness?.manifest.coverage.source_active_license_rows ?? 0) + coBusinessOrganizations + (coBusiness?.manifest.coverage.quarantined_source_records ?? 0) + (waLniActiveContractors?.manifest.coverage.source_active_contractor_license_rows ?? 0) + (orBusiness?.manifest.coverage.source_principal_place_rows ?? 0) + (iaBusiness?.manifest.coverage.source_rows ?? 0) + (nyBusiness?.manifest.coverage.source_active_extract_records ?? 0) + (flBusiness?.manifest.coverage.source_records ?? 0) + (paBusiness?.manifest.coverage.source_active_registration_rows ?? 0) + (laActiveBusinesses?.manifest.coverage.source_location_accounts ?? 0) + (txActiveSalesTax?.manifest.coverage.source_outlet_permits ?? 0) + (chicagoActiveBusinessLicenses?.manifest.coverage.source_active_license_records ?? 0) + (dcBasicBusinessLicenses?.manifest.coverage.source_active_business_license_rows ?? 0) + (caAbcActiveLicenses?.manifest.coverage.source_records ?? 0) + (nyRetailFoodStores?.manifest.coverage.source_license_records ?? 0) + (nycDcwpActiveLicenses?.manifest.coverage.source_active_premise_license_records ?? 0),
       snap_source_records: snapRecords,
       nppes_organization_records: nppesOrganizations,
       nppes_non_primary_practice_location_records: nppesSecondaryLocations,
@@ -4312,6 +4494,13 @@ export async function buildNationalBusinessRegistry({
       ca_abc_quarantined_source_rows: caAbcActiveLicenses?.manifest.coverage.quarantined_source_rows ?? 0,
       ca_abc_quarantined_file_groups: caAbcActiveLicenses?.manifest.coverage.quarantined_file_groups ?? 0,
       ca_abc_source_active_rows_with_expiration_before_observation: caAbcActiveLicenses?.manifest.coverage.source_active_rows_with_expiration_before_observation ?? 0,
+      ny_retail_food_store_source_license_records: nyRetailFoodStores?.manifest.coverage.source_license_records ?? 0,
+      ny_retail_food_store_organizations: nyRetailFoodStoreOrganizations,
+      ny_retail_food_store_provisional_physical_sites: nyRetailFoodStorePhysicalSites,
+      ny_retail_food_store_zip_evidence_addresses: nyRetailFoodStores?.manifest.coverage.zip_evidence_addresses ?? 0,
+      ny_retail_food_store_usable_platform_geocodes: nyRetailFoodStores?.manifest.coverage.usable_platform_geocodes ?? 0,
+      ny_retail_food_store_rows_with_undocumented_establishment_codes: nyRetailFoodStores?.manifest.coverage.rows_with_undocumented_establishment_codes ?? 0,
+      ny_retail_food_store_quarantined_source_records: nyRetailFoodStores?.manifest.coverage.quarantined_source_records ?? 0,
       nyc_dcwp_active_license_source_records: nycDcwpActiveLicenses?.manifest.coverage.source_active_premise_license_records ?? 0,
       nyc_dcwp_active_license_accepted_records: nycDcwpActiveLicenses?.manifest.coverage.accepted_active_premise_license_records ?? 0,
       nyc_dcwp_active_license_normalized_sites: nycDcwpActiveLicenseSiteCount,
@@ -4321,7 +4510,7 @@ export async function buildNationalBusinessRegistry({
       nyc_dcwp_active_license_source_geocoded_sites: nycDcwpActiveLicenses?.manifest.coverage.source_geocoded_sites ?? 0,
       nyc_dcwp_active_license_in_nyc_borough_sites: nycDcwpActiveLicenses?.manifest.coverage.in_nyc_borough_sites ?? 0,
       nyc_dcwp_active_license_outside_or_unreported_nyc_borough_sites: nycDcwpActiveLicenses?.manifest.coverage.outside_or_unreported_nyc_borough_sites ?? 0,
-      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations + ctBusinessOrganizations + deBusinessOrganizations + akBusinessOrganizations + coBusinessOrganizations + waLniActiveContractorOrganizations + orBusinessLegalEntityRegistrations + iaBusinessOrganizations + nyBusinessOrganizations + flBusinessOrganizations + paBusinessOrganizations + txActiveSalesTaxOrganizations + chicagoActiveBusinessLicenseOrganizationCount + dcBasicBusinessLicenseOrganizationCount + caAbcActiveLicenseOrganizationCount + nycDcwpActiveLicenseOrganizationCount,
+      organizations: nppesOrganizations + fdicInstitutions + ncuaInstitutions + irsEoOrganizations + ctBusinessOrganizations + deBusinessOrganizations + akBusinessOrganizations + coBusinessOrganizations + waLniActiveContractorOrganizations + orBusinessLegalEntityRegistrations + iaBusinessOrganizations + nyBusinessOrganizations + flBusinessOrganizations + paBusinessOrganizations + txActiveSalesTaxOrganizations + chicagoActiveBusinessLicenseOrganizationCount + dcBasicBusinessLicenseOrganizationCount + caAbcActiveLicenseOrganizationCount + nyRetailFoodStoreOrganizations + nycDcwpActiveLicenseOrganizationCount,
       brands: orBusinessAssumedNameRegistrations,
       physical_sites: physicalSiteCount,
       establishments: physicalSiteCount,
@@ -4330,7 +4519,7 @@ export async function buildNationalBusinessRegistry({
       relationships,
       resolution_location_profiles: resolutionLocationProfiles,
       zip_union_records: zipCoverage.length,
-      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys(), ...ctBusinessOrganizationCountsByZip.keys(), ...deBusinessOrganizationCountsByZip.keys(), ...akBusinessOrganizationCountsByZip.keys(), ...akBusinessSiteCountsByZip.keys(), ...coBusinessOrganizationCountsByZip.keys(), ...waLniMailingAddressCountsByZip.keys(), ...orBusinessRegistrationCountsByZip.keys(), ...iaBusinessOrganizationCountsByZip.keys(), ...nyBusinessOrganizationCountsByZip.keys(), ...flBusinessOrganizationCountsByZip.keys(), ...paBusinessOrganizationCountsByZip.keys(), ...laActiveBusinessLocationCountsByZip.keys(), ...txActiveSalesTaxOutletCountsByZip.keys(), ...chicagoActiveBusinessLicenseSiteCountsByZip.keys(), ...dcBasicBusinessLicenseSiteCountsByZip.keys(), ...caAbcActiveLicenseSiteCountsByZip.keys(), ...nycDcwpActiveLicenseSiteCountsByZip.keys()]).size,
+      zips_with_record_level_contributions: new Set([...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys(), ...ctBusinessOrganizationCountsByZip.keys(), ...deBusinessOrganizationCountsByZip.keys(), ...akBusinessOrganizationCountsByZip.keys(), ...akBusinessSiteCountsByZip.keys(), ...coBusinessOrganizationCountsByZip.keys(), ...waLniMailingAddressCountsByZip.keys(), ...orBusinessRegistrationCountsByZip.keys(), ...iaBusinessOrganizationCountsByZip.keys(), ...nyBusinessOrganizationCountsByZip.keys(), ...flBusinessOrganizationCountsByZip.keys(), ...paBusinessOrganizationCountsByZip.keys(), ...laActiveBusinessLocationCountsByZip.keys(), ...txActiveSalesTaxOutletCountsByZip.keys(), ...chicagoActiveBusinessLicenseSiteCountsByZip.keys(), ...dcBasicBusinessLicenseSiteCountsByZip.keys(), ...caAbcActiveLicenseSiteCountsByZip.keys(), ...nyRetailFoodStoreZipEvidenceCountsByZip.keys(), ...nycDcwpActiveLicenseSiteCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: uspsZips ? {
         count: uspsZips.zipRows.length,
         evidence_scope: "current-usps-area-district-5-digit-zip-assignments",
@@ -4457,6 +4646,11 @@ export async function buildNationalBusinessRegistry({
         release_id: caAbcActiveLicenses.manifest.release_id,
         manifest_sha256: caAbcActiveLicenses.manifestSha256,
       }] : []),
+      ...(nyRetailFoodStores ? [{
+        dataset_id: nyRetailFoodStores.manifest.dataset_id,
+        release_id: nyRetailFoodStores.manifest.release_id,
+        manifest_sha256: nyRetailFoodStores.manifestSha256,
+      }] : []),
       ...(nycDcwpActiveLicenses ? [{
         dataset_id: nycDcwpActiveLicenses.manifest.dataset_id,
         release_id: nycDcwpActiveLicenses.manifest.release_id,
@@ -4490,6 +4684,7 @@ export async function buildNationalBusinessRegistry({
       ...(chicagoActiveBusinessLicenses?.manifest.dependencies ?? []),
       ...(dcBasicBusinessLicenses?.manifest.dependencies ?? []),
       ...(caAbcActiveLicenses?.manifest.dependencies ?? []),
+      ...(nyRetailFoodStores?.manifest.dependencies ?? []),
       ...(nycDcwpActiveLicenses?.manifest.dependencies ?? []),
     ],
     contracts: {
@@ -4498,11 +4693,11 @@ export async function buildNationalBusinessRegistry({
       relationship: "config/schemas/business-relationship.schema.json",
     },
     export_policy: uspsZips
-      ? (deBusiness || akBusiness || waLniActiveContractors || laActiveBusinesses || txActiveSalesTax || chicagoActiveBusinessLicenses || dcBasicBusinessLicenses || caAbcActiveLicenses || nycDcwpActiveLicenses)
-        ? "Mixed source policies: Alaska, California ABC, Delaware, Washington L&I, Los Angeles, Texas, Chicago, DC, and NYC license or permit record-level entities, assertions, relationships, and match profiles remain local-review-only when present; Alaska-derived aggregate fields additionally require terms review, Washington L&I aggregates require PDDL attribution and semantic limitations, California ABC aggregates require attribution and semantic limitations, DC aggregates require CC BY 4.0 attribution and semantic limitations, and ZIP coverage derived from USPS assignments inherits the USPS release export policy."
+      ? (deBusiness || akBusiness || waLniActiveContractors || laActiveBusinesses || txActiveSalesTax || chicagoActiveBusinessLicenses || dcBasicBusinessLicenses || caAbcActiveLicenses || nyRetailFoodStores || nycDcwpActiveLicenses)
+        ? "Mixed source policies: Alaska, California ABC, New York retail food, Delaware, Washington L&I, Los Angeles, Texas, Chicago, DC, and NYC license or permit record-level entities, assertions, relationships, and match profiles remain local-review-only when present; Alaska-derived aggregate fields additionally require terms review, Washington L&I aggregates require PDDL attribution and semantic limitations, California ABC aggregates require attribution and semantic limitations, New York retail-food aggregates require OPEN-NY terms, attribution, and source limitations, DC aggregates require CC BY 4.0 attribution and semantic limitations, and ZIP coverage derived from USPS assignments inherits the USPS release export policy."
         : "Business entity/assertion/relationship artifacts retain their source policies; ZIP coverage derived from USPS assignments inherits the USPS release export policy."
-      : (deBusiness || akBusiness || waLniActiveContractors || laActiveBusinesses || txActiveSalesTax || chicagoActiveBusinessLicenses || dcBasicBusinessLicenses || caAbcActiveLicenses || nycDcwpActiveLicenses)
-        ? "Mixed source policies: Alaska, California ABC, Delaware, Washington L&I, Los Angeles, Texas, Chicago, DC, and NYC license or permit record-level entities, assertions, relationships, and match profiles remain local-review-only when present; Alaska-derived aggregates require a separate terms review before redistribution, Washington L&I aggregates require PDDL attribution and semantic limitations, California ABC aggregates require attribution and semantic limitations, and DC aggregates require CC BY 4.0 attribution and semantic limitations."
+      : (deBusiness || akBusiness || waLniActiveContractors || laActiveBusinesses || txActiveSalesTax || chicagoActiveBusinessLicenses || dcBasicBusinessLicenses || caAbcActiveLicenses || nyRetailFoodStores || nycDcwpActiveLicenses)
+        ? "Mixed source policies: Alaska, California ABC, New York retail food, Delaware, Washington L&I, Los Angeles, Texas, Chicago, DC, and NYC license or permit record-level entities, assertions, relationships, and match profiles remain local-review-only when present; Alaska-derived aggregates require a separate terms review before redistribution, Washington L&I aggregates require PDDL attribution and semantic limitations, California ABC aggregates require attribution and semantic limitations, New York retail-food aggregates require OPEN-NY terms, attribution, and source limitations, and DC aggregates require CC BY 4.0 attribution and semantic limitations."
         : "public source layer only; restricted and licensed fields are not present",
     limitations: [
       "This is a partial registry release and must not be represented as all U.S. businesses.",
@@ -4649,6 +4844,14 @@ export async function buildNationalBusinessRegistry({
         "Licensee names may identify natural persons and licensed premises may be residences; record-level entities, assertions, relationships, and match profiles remain local-review-only while aggregate ZIP/source counts require California ABC attribution and limitations.",
         "Every mailing-address field is discarded before staging; no owner, parent company, network affiliation, public-access status, or cross-source identity merge is inferred, and source county or census tract values are not promoted to authoritative geocodes.",
       ] : []),
+      ...(nyRetailFoodStores ? [
+        "The New York retail-food layer covers stores in an annual Department license snapshot and may not reflect day-to-day operations, current hours, public access, continuous operation, or every grocery or food seller.",
+        "Each license number remains a provisional organization identity; repeated names are not merged and no legal entity, chain, network, parent company, ownership, or cross-source identity is inferred.",
+        "A provisional site and establishment require a complete numbered source-reported physical street address; a row missing street number can contribute ZIP evidence without creating a site.",
+        "Open Data platform geocodes are address-component centroids, can be shared by multiple records, and are not represented as independently verified premise coordinates.",
+        "Establishment code Y is present in the source but absent from the attached code reference, so it remains explicitly undocumented rather than interpreted.",
+        "Entity names and licensed addresses can identify individuals or residences; record-level entities, assertions, relationships, and match profiles remain local-review-only while aggregate ZIP/source counts require OPEN-NY terms, attribution, and limitations.",
+      ] : []),
       ...(nycDcwpActiveLicenses ? [
         "The NYC DCWP layer covers businesses with licenses marked Active and license type Premises in the Issued Licenses dataset; unlicensed, exempt, inactive, non-premises, and other businesses are absent, so it is not a complete NYC or national business denominator.",
         "DCWP Active and Premises values are source-defined municipal-license evidence, not independent proof of continuous operation, legality, solvency, public access, current hours, or compliance with every requirement.",
@@ -4658,7 +4861,7 @@ export async function buildNationalBusinessRegistry({
       ] : []),
       "SNAP authorization is source-specific evidence and does not independently prove that a business is open at retrieval time.",
       "Each source record creates provisional site and establishment identities; cross-record and cross-source entity resolution has not yet been applied.",
-      "Except for explicitly typed Oregon assumed-name registrations, Texas taxpayer-number organizations, Chicago license-account organizations, DC DLCP Customer Number organizations, California ABC File Number organizations, and NYC DCWP Business Unique ID organizations, no brand, legal organization, parent company, ownership, or general operating-status claim is inferred from a source name.",
+      "Except for explicitly typed Oregon assumed-name registrations, Texas taxpayer-number organizations, Chicago license-account organizations, DC DLCP Customer Number organizations, California ABC File Number organizations, New York retail-food license organizations, and NYC DCWP Business Unique ID organizations, no brand, legal organization, parent company, ownership, or general operating-status claim is inferred from a source name.",
       ...(uspsZips ? [
         "USPS evidence establishes membership in the current Area/District 5-digit ZIP assignment file, not address-level deliverability, delivery type, preferred city/state, ZIP+4 ranges, or ZCTA geography.",
         "ZIP coverage derived from USPS rows must not be exported beyond the recorded USPS use authorization and reviewed permission.",
@@ -4890,7 +5093,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   if (!hasEntityId(SNAP_SERVICE_ENTITY_ID)) failures.push({ path: "entities/services.jsonl", reason: "missing SNAP service entity" });
 
   let resolutionProfileCount = 0;
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
     failures.push({ path: "resolution/location-profiles", reason: `expected 100 match-profile partitions; found ${resolutionProfileArtifacts.length}` });
   }
   const profileIds = new Set();
@@ -4927,6 +5130,9 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (profile.source.policy_id === "ca-abc-active-license-sites" && profile.export_policy !== "local-review-only") {
           throw new Error(`California ABC active-license match profile lost local-review-only policy ${profile.profile_id}`);
         }
+        if (profile.source.policy_id === "ny-retail-food-stores" && profile.export_policy !== "local-review-only") {
+          throw new Error(`New York retail-food-store match profile lost local-review-only policy ${profile.profile_id}`);
+        }
         if (profile.source.policy_id === "nyc-dcwp-active-premises" && profile.export_policy !== "local-review-only") {
           throw new Error(`NYC DCWP active-license match profile lost local-review-only policy ${profile.profile_id}`);
         }
@@ -4938,7 +5144,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       failures.push({ path: artifact.path, reason: `match-profile validation failed: ${error.message}` });
     }
   }
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0"].includes(manifest.publisher?.version)
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version)
     && (resolutionProfileCount !== manifest.coverage?.resolution_location_profiles || resolutionProfileCount !== manifest.coverage?.physical_sites)) {
     failures.push({ path: "manifest.json", reason: "entity-resolution profile counts do not reconcile" });
   }
@@ -4969,6 +5175,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     "listed-in-city-of-chicago-current-active-business-license-view-as-of-source-refresh",
     "listed-as-active-business-license-in-official-dc-dlcp-feed-at-source-refresh",
     "listed-as-active-issued-license-in-california-abc-daily-export",
+    "included-in-current-new-york-retail-food-store-license-snapshot",
     "listed-as-active-nyc-dcwp-premise-license-as-of-source-refresh",
   ]);
   let assertionCount = 0;
@@ -5107,6 +5314,15 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
           if (sourceFields.some((field) => forbidden.some((excluded) => field.includes(excluded)))) throw new Error(`California ABC excluded mailing, person, contact, parent, or network field leaked for ${record.assertion_id}`);
           if (record.predicate === "site.location") throw new Error(`California ABC source without coordinates created a site.location assertion ${record.assertion_id}`);
         }
+        if (record.source.policy_id === "ny-retail-food-stores") {
+          const sourceFields = String(record.source.source_field ?? "").toLowerCase();
+          const supportedSubject = record.subject_entity_id.startsWith("organization:ny_agm_retail_food_license_")
+            || record.subject_entity_id.startsWith("site:ny_agm_retail_food_license_")
+            || record.subject_entity_id.startsWith("establishment:ny_agm_retail_food_license_");
+          if (!supportedSubject || record.export_policy !== "local-review-only") throw new Error(`New York retail-food-store assertion lost its subject or privacy policy ${record.assertion_id}`);
+          if (sourceFields.includes("computed_region") || /(owner|agent|phone|email|parent|network)/.test(sourceFields)) throw new Error(`New York retail-food-store excluded or unsupported field leaked for ${record.assertion_id}`);
+          if (record.predicate === "site.location" && record.value?.premise_coordinate_claim_permitted !== false) throw new Error(`New York retail-food-store coordinate overstates premise precision ${record.assertion_id}`);
+        }
         if (record.source.policy_id === "nyc-dcwp-active-premises") {
           const sourceFields = String(record.source.source_field ?? "").toLowerCase().split("|");
           const forbidden = ["owner", "officer", "agent", "contact", "phone", "email", "detail", "payment", "application_workflow"];
@@ -5153,6 +5369,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (record.source.policy_id === "chicago-active-business-licenses" && !["operates", "located_at"].includes(record.relationship_type)) throw new Error(`Chicago active-business-license record created an unsupported relationship ${record.relationship_id}`);
         if (record.source.policy_id === "dc-basic-business-licenses" && !["operates", "located_at"].includes(record.relationship_type)) throw new Error(`DC Basic Business License record created an unsupported relationship ${record.relationship_id}`);
         if (record.source.policy_id === "ca-abc-active-license-sites" && !["operates", "located_at"].includes(record.relationship_type)) throw new Error(`California ABC active-license record created an unsupported relationship ${record.relationship_id}`);
+        if (record.source.policy_id === "ny-retail-food-stores" && !["operates", "located_at"].includes(record.relationship_type)) throw new Error(`New York retail-food-store record created an unsupported relationship ${record.relationship_id}`);
         if (record.source.policy_id === "nyc-dcwp-active-premises" && !["operates", "located_at"].includes(record.relationship_type)) throw new Error(`NYC DCWP active-license record created an unsupported relationship ${record.relationship_id}`);
         if (record.source.policy_id === "or-business-registry") throw new Error(`Oregon principal-place-address record created a relationship ${record.relationship_id}`);
         if (record.source.policy_id === "ia-business-registry") throw new Error(`Iowa home-office-address record created a relationship ${record.relationship_id}`);
@@ -5188,6 +5405,10 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   if ((manifest.coverage?.wa_lni_active_contractor_organizations ?? 0) > 0
     && (!String(manifest.export_policy ?? "").includes("local-review-only") || !String(manifest.export_policy ?? "").includes("PDDL attribution"))) {
     failures.push({ path: "manifest.json", reason: "Washington L&I record-level privacy or aggregate-attribution policy is missing from the registry export policy" });
+  }
+  if ((manifest.coverage?.ny_retail_food_store_organizations ?? 0) > 0
+    && (!String(manifest.export_policy ?? "").includes("local-review-only") || !String(manifest.export_policy ?? "").includes("OPEN-NY"))) {
+    failures.push({ path: "manifest.json", reason: "New York retail-food-store privacy or aggregate OPEN-NY policy is missing from the registry export policy" });
   }
   if ((manifest.coverage?.tx_active_sales_tax_normalized_outlet_permits ?? 0) > 0
     && !String(manifest.export_policy ?? "").includes("local-review-only")) {
@@ -5254,10 +5475,14 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     if (dcBasicBusinessLicenseSiteTotal !== (manifest.coverage.dc_basic_business_license_normalized_sites ?? 0)) throw new Error("ZIP DC Basic Business License site counts do not reconcile");
     const caAbcActiveLicenseSiteTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.ca_abc_active_issued_license_site_count ?? 0), 0);
     if (caAbcActiveLicenseSiteTotal !== (manifest.coverage.ca_abc_active_issued_license_normalized_sites ?? 0)) throw new Error("ZIP California ABC active-license site counts do not reconcile");
+    const nyRetailFoodStoreZipEvidenceTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.ny_retail_food_store_license_address_evidence_count ?? 0), 0);
+    const nyRetailFoodStoreSiteTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.ny_retail_food_store_license_site_count ?? 0), 0);
+    if (nyRetailFoodStoreZipEvidenceTotal !== (manifest.coverage.ny_retail_food_store_zip_evidence_addresses ?? 0)
+      || nyRetailFoodStoreSiteTotal !== (manifest.coverage.ny_retail_food_store_provisional_physical_sites ?? 0)) throw new Error("ZIP New York retail-food-store counts do not reconcile");
     const nycDcwpActiveLicenseSiteTotal = rows.reduce((sum, row) => sum + (row.registry_coverage.nyc_dcwp_active_license_site_count ?? 0), 0);
     if (nycDcwpActiveLicenseSiteTotal !== (manifest.coverage.nyc_dcwp_active_license_normalized_sites ?? 0)) throw new Error("ZIP NYC DCWP active-license site counts do not reconcile");
     if (rows.some((row) => {
-      const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0) + (row.registry_coverage.ct_business_registry_organization_reported_business_address_count ?? 0) + (row.registry_coverage.de_business_license_organization_reported_business_address_count ?? 0) + (row.registry_coverage.ak_active_business_license_organization_reported_address_count ?? 0) + (row.registry_coverage.co_business_registry_organization_principal_office_address_count ?? 0) + (row.registry_coverage.wa_lni_active_contractor_organization_mailing_address_count ?? 0) + (row.registry_coverage.or_business_registry_active_registration_principal_place_address_count ?? 0) + (row.registry_coverage.ia_business_registry_organization_home_office_address_count ?? 0) + (row.registry_coverage.ny_business_registry_organization_reported_location_address_count ?? 0) + (row.registry_coverage.fl_business_registry_organization_reported_principal_address_count ?? 0) + (row.registry_coverage.pa_business_registry_organization_reported_business_address_count ?? 0);
+      const recordCount = row.registry_coverage.physical_site_count + (row.registry_coverage.irs_eo_organization_filing_address_count ?? 0) + (row.registry_coverage.ct_business_registry_organization_reported_business_address_count ?? 0) + (row.registry_coverage.de_business_license_organization_reported_business_address_count ?? 0) + (row.registry_coverage.ak_active_business_license_organization_reported_address_count ?? 0) + (row.registry_coverage.co_business_registry_organization_principal_office_address_count ?? 0) + (row.registry_coverage.wa_lni_active_contractor_organization_mailing_address_count ?? 0) + (row.registry_coverage.or_business_registry_active_registration_principal_place_address_count ?? 0) + (row.registry_coverage.ia_business_registry_organization_home_office_address_count ?? 0) + (row.registry_coverage.ny_business_registry_organization_reported_location_address_count ?? 0) + (row.registry_coverage.fl_business_registry_organization_reported_principal_address_count ?? 0) + (row.registry_coverage.pa_business_registry_organization_reported_business_address_count ?? 0) + (row.registry_coverage.ny_retail_food_store_license_address_evidence_count ?? 0);
       return row.registry_coverage.status !== (recordCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution");
     })) throw new Error("ZIP record-level contribution status does not reconcile");
     if (rows.some((row) => row.registry_coverage.complete_all_businesses !== false)) throw new Error("ZIP coverage overstates business completeness");

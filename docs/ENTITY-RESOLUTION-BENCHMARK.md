@@ -78,10 +78,10 @@ The build publishes an immutable `awaiting-independent-labels` sample and a null
 
 ## Validated live sample
 
-The independently verified sample `business-entity-resolution-benchmark-sample-20260902-041036722Z-c3da3315` is tied to resolution release `business-entity-resolution-20260902-040711971Z-4c961c26` and registry release `national-business-registry-20260902-015241441Z-d0aaeb62`. It sampled 425 candidates from each of these enumerated universes:
+The independently verified sample `business-entity-resolution-benchmark-sample-20260902-075956925Z-c5f3d239` is tied to resolution release `business-entity-resolution-20260902-075624674Z-881e778c` and registry release `national-business-registry-20260902-043657439Z-c1eab4dd`. It sampled 425 candidates from each of these enumerated universes:
 
-- 1,436,398 automatic physical-site membership pairs;
-- 71,786 automatic establishment membership pairs; and
-- 98,549 unapplied review candidates.
+- 1,449,139 automatic physical-site membership pairs;
+- 74,733 automatic establishment membership pairs; and
+- 106,011 unapplied review candidates.
 
-The 1,275-row packet contains 2,545 unique source-preserving profiles across three verified artifacts totaling 924,141 bytes. Its label template has 0 submitted labels, so both the precision gate and export authorization are correctly false. Washington L&I adds organization-only evidence and therefore does not change the benchmark universe.
+The 1,275-row packet contains 2,545 unique source-preserving profiles across three verified artifacts totaling 944,460 bytes. Its label template has 0 submitted labels, so both the precision gate and export authorization are correctly false. New York retail-food premises expand all three candidate universes; Washington L&I remains organization-only evidence and does not create candidates.

@@ -1,0 +1,34 @@
+{
+  "policy_id": "ny-retail-food-stores",
+  "version": "1.0.0",
+  "publisher": "New York State Department of Agriculture and Markets, Division of Food Safety & Inspection",
+  "ownership": "Official public licensed retail-food-store records published through OPEN-NY",
+  "source_home": "https://data.ny.gov/Economic-Development/Retail-Food-Stores/9a8c-vfzj/about",
+  "source_dataset": "https://data.ny.gov/resource/9a8c-vfzj.json",
+  "catalog_dataset_id": "9a8c-vfzj",
+  "catalog_license": "No dataset-specific license; governed by the OPEN-NY Terms of Use.",
+  "terms_url": "https://data.ny.gov/api/views/77gx-ii52/files/ef0c1840-ad54-4240-92fd-6397c49fde46?filename=OPEN-NY_20Terms_20of_20Use.pdf",
+  "source_access": "Public anonymous read-only HTTPS metadata and SODA API endpoints documented by OPEN-NY.",
+  "allowed_use": ["official HTTPS metadata and selected-field SODA API queries", "local processing", "immutable internal selected-field retention", "license-backed provisional organization and conditional physical-site normalization", "ZIP and source coverage analysis", "aggregate redistribution under OPEN-NY terms with attribution and limitations"],
+  "prohibited_use": [
+    "representing annual snapshot membership as independent proof of current hours, day-to-day operations, continuous operation, public access, or service quality",
+    "representing platform-generated coordinates as verified premise coordinates",
+    "representing this source as every grocery store, food seller, New York business, or United States business",
+    "inferring chain, network, parent-company, ownership, or cross-source identity without versioned evidence",
+    "interpreting undocumented establishment code Y without an authoritative definition",
+    "publishing record-level possible natural-person names or residential addresses without approved privacy review"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_addresses_sites_assertions_relationships_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-under-open-ny-terms-with-attribution-and-limitations",
+    "computed_region": "excluded-before-acquisition"
+  },
+  "attribution": "Source: New York State Department of Agriculture and Markets, Division of Food Safety & Inspection, Retail Food Stores, via OPEN-NY.",
+  "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule or OPEN-NY notice requires another treatment.",
+  "redistribution": "Only aggregate outputs are approved for redistribution under OPEN-NY terms in this version. Retain attribution, source refresh timestamp, checksum, provenance, and snapshot/address/geocode limitations.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Entity names can identify sole proprietors and licensed physical locations can be residences. Record-level source and normalized artifacts remain internal or local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-02"
+}

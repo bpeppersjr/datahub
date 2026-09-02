@@ -49,6 +49,8 @@
     "ia-business:verify": "node scripts/verify-ia-business-registry.mjs",
     "ny-business:build": "node scripts/build-ny-business-registry.mjs",
     "ny-business:verify": "node scripts/verify-ny-business-registry.mjs",
+    "ny-retail-food:build": "node scripts/build-ny-retail-food-stores.mjs",
+    "ny-retail-food:verify": "node scripts/verify-ny-retail-food-stores.mjs",
     "fl-business:build": "node scripts/build-fl-business-registry.mjs",
     "fl-business:verify": "node scripts/verify-fl-business-registry.mjs",
     "pa-business:build": "node scripts/build-pa-business-registry.mjs",

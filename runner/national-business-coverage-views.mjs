@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.5.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.6.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -25,6 +25,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   chicago_active_business_license_sites: "city-of-chicago-bacp-current-active-business-licenses",
   dc_basic_business_license_sites: "dc-dlcp-active-basic-business-licenses",
   california_abc_active_issued_license_sites: "california-abc-daily-active-licenses",
+  ny_retail_food_store_license_sites: "new-york-agriculture-markets-retail-food-stores",
   nyc_dcwp_active_license_sites: "nyc-dcwp-issued-licenses-active-premises",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
   wa_lni_active_contractor_organizations: null,
@@ -232,6 +233,14 @@ export function assignPointToCounty(coordinates, countySpatialIndex) {
   return { status: "assigned-single-county", county: matches[0] };
 }
 
+function profilePointCoordinates(location) {
+  if (Array.isArray(location?.coordinates)) return location.coordinates;
+  if (location && Object.hasOwn(location, "longitude") && Object.hasOwn(location, "latitude")) {
+    return [location.longitude, location.latitude];
+  }
+  return null;
+}
+
 function sourceContributionSummary(zipRows) {
   const summaries = new Map();
   for (const row of zipRows) {
@@ -431,9 +440,16 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? null,
       wa_lni_active_contractor_organizations: registry.manifest.coverage?.wa_lni_active_contractor_organizations ?? null,
       wa_lni_active_contractor_eligible_reported_us_mailing_addresses: registry.manifest.coverage?.wa_lni_active_contractor_eligible_reported_us_mailing_addresses ?? null,
+      ny_retail_food_store_organizations: registry.manifest.coverage?.ny_retail_food_store_organizations ?? null,
+      ny_retail_food_store_provisional_physical_sites: registry.manifest.coverage?.ny_retail_food_store_provisional_physical_sites ?? null,
+      ny_retail_food_store_organizations_without_complete_physical_site: Math.max(
+        0,
+        (registry.manifest.coverage?.ny_retail_food_store_organizations ?? 0)
+          - (registry.manifest.coverage?.ny_retail_food_store_provisional_physical_sites ?? 0),
+      ),
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-or-brand evidence such as IRS EO filing addresses; Connecticut, Delaware, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses; and Washington L&I contractor mailing addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses; Connecticut, Delaware, Colorado, Oregon, Iowa, New York corporate, Florida, or Pennsylvania registry-reported addresses; Washington L&I contractor mailing addresses; and New York retail-food licenses without a complete site address remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -738,7 +754,7 @@ export async function buildNationalBusinessCoverageViews({
         source.coordinate_missing_count += 1;
         continue;
       }
-      const assignment = assignPointToCounty(location.coordinates, countySpatialIndex);
+      const assignment = assignPointToCounty(profilePointCoordinates(location), countySpatialIndex);
       if (assignment.status === "invalid-coordinate") {
         profileSummary.coordinate_invalid_count += 1;
         source.coordinate_invalid_count += 1;
@@ -1221,6 +1237,18 @@ export async function buildNationalBusinessCoverageViews({
       ca_abc_quarantined_source_rows: registry.manifest.coverage?.ca_abc_quarantined_source_rows ?? 0,
       ca_abc_quarantined_file_groups: registry.manifest.coverage?.ca_abc_quarantined_file_groups ?? 0,
       ca_abc_source_active_rows_with_expiration_before_observation: registry.manifest.coverage?.ca_abc_source_active_rows_with_expiration_before_observation ?? 0,
+      ny_retail_food_store_source_license_records: registry.manifest.coverage?.ny_retail_food_store_source_license_records ?? 0,
+      ny_retail_food_store_organizations: registry.manifest.coverage?.ny_retail_food_store_organizations ?? 0,
+      ny_retail_food_store_provisional_physical_sites: registry.manifest.coverage?.ny_retail_food_store_provisional_physical_sites ?? 0,
+      ny_retail_food_store_organizations_without_complete_physical_site: Math.max(
+        0,
+        (registry.manifest.coverage?.ny_retail_food_store_organizations ?? 0)
+          - (registry.manifest.coverage?.ny_retail_food_store_provisional_physical_sites ?? 0),
+      ),
+      ny_retail_food_store_zip_evidence_addresses: registry.manifest.coverage?.ny_retail_food_store_zip_evidence_addresses ?? 0,
+      ny_retail_food_store_usable_platform_geocodes: registry.manifest.coverage?.ny_retail_food_store_usable_platform_geocodes ?? 0,
+      ny_retail_food_store_rows_with_undocumented_establishment_codes: registry.manifest.coverage?.ny_retail_food_store_rows_with_undocumented_establishment_codes ?? 0,
+      ny_retail_food_store_quarantined_source_records: registry.manifest.coverage?.ny_retail_food_store_quarantined_source_records ?? 0,
       nyc_dcwp_active_license_source_records: registry.manifest.coverage?.nyc_dcwp_active_license_source_records ?? 0,
       nyc_dcwp_active_license_accepted_records: registry.manifest.coverage?.nyc_dcwp_active_license_accepted_records ?? 0,
       nyc_dcwp_active_license_normalized_sites: registry.manifest.coverage?.nyc_dcwp_active_license_normalized_sites ?? 0,
@@ -1254,6 +1282,7 @@ export async function buildNationalBusinessCoverageViews({
       "City of Chicago BACP current-active license accounts and sites create source-preserving provisional organizations, sites, and establishments, but AAI status plus future expiration is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
       "DC DLCP Active Basic Business License Customer Number groups create source-preserving provisional organizations, sites, and establishments, but municipal-license status is not proof of continuous operations, public access, or complete business coverage; multiple activity rows do not inflate site counts, record-level data and linkage remain local-review-only, and aggregate redistribution requires CC BY 4.0 attribution plus the retained semantic limitations.",
       "California ABC ACTIVE/LIC File Number groups create source-preserving provisional organizations, premises, and establishments, but alcohol-license status is not proof of continuous operation, public access, current hours, solvency, compliance, or complete California business coverage; multiple license-type rows do not inflate site counts, source-active rows with a reported expiration before observation remain explicit, mailing fields are excluded, record-level data and linkage remain local-review-only, and aggregate redistribution requires California ABC attribution plus the retained semantic limitations.",
+      "New York Agriculture and Markets retail-food-license rows create source-preserving provisional organizations and conditional sites only from complete numbered physical addresses; annual-snapshot membership is not proof of day-to-day operation, public access, current hours, ownership, parent or network affiliation, drive-through or mail-order service, NABP registration, NPI enumeration, or complete business/pharmacy coverage. Platform geocodes remain address-component centroids, undocumented establishment codes remain uninterpreted, record-level data and linkage remain local-review-only, and aggregate redistribution requires OPEN-NY attribution plus retained limitations.",
       "NYC DCWP Active Premises-license Business Unique ID groups create source-preserving provisional organizations, sites, and establishments, but license status is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
       "Current USPS ZIP validity remains unverified because no governed authorized operational ZIP denominator is integrated.",
       "Census ZCTAs are statistical areas and are not exact USPS ZIP delivery boundaries.",

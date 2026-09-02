@@ -195,12 +195,13 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("declares registry publisher compatibility through 2.8.0 without dropping 2.7.0", async () => {
+test("declares registry publisher compatibility through 2.9.0 without dropping 2.8.0", async () => {
   const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
   assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.7.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.8.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.9.0"));
 });
 
 test("builds and independently verifies an immutable reviewable resolution release from registry publisher 2.7.0", async (t) => {

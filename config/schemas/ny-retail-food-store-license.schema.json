@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/ny-retail-food-store-license.schema.json",
+  "title": "Normalized New York Retail Food Store License",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "licensed_entity_name", "doing_business_as_name", "display_name", "physical_address", "reported_coordinate", "geography", "retail_food_store_license_profile", "source_status", "privacy", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^ny-retail-food-store-license:[0-9]{6}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:ny_agm_retail_food_license_[0-9]{6}$" },
+        "physical_site_id": { "type": "string", "pattern": "^site:ny_agm_retail_food_license_[0-9]{6}$" },
+        "establishment_id": { "type": "string", "pattern": "^establishment:ny_agm_retail_food_license_[0-9]{6}$" },
+        "identity_status": { "const": "provisional-license-record" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "object" } },
+    "licensed_entity_name": { "type": ["string", "null"] },
+    "doing_business_as_name": { "type": ["string", "null"] },
+    "display_name": { "type": "string", "minLength": 1 },
+    "physical_address": { "type": "object" },
+    "reported_coordinate": { "type": ["object", "null"] },
+    "geography": { "type": "object" },
+    "retail_food_store_license_profile": { "type": "object" },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status_class", "semantics"],
+      "properties": {
+        "value": { "const": "included-in-current-new-york-retail-food-store-license-snapshot" },
+        "status_class": { "const": "current-source-snapshot-membership" }
+      }
+    },
+    "privacy": { "type": "object" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}
