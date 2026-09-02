@@ -1,0 +1,32 @@
+{
+  "connector_id": "wa-lni-active-contractor-licenses",
+  "version": "1.0.0",
+  "description": "Publishes one governed provisional organization per Washington UBI from official L&I active contractor-license rows, retaining multiple source-reported names, mailing addresses, and license activities without inferring legal name, physical site, or general operating status.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/wa-lni-active-contractor-organizations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "page_size": { "type": "integer", "minimum": 1, "maximum": 50000, "default": 25000 },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 50000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["wa-lni-socrata-active-contractor-license-selected-query", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["wa-lni-active-contractor-licenses-source-jsonl-gzip", "normalized-wa-lni-active-contractor-organization-jsonl-gzip", "wa-lni-active-contractor-quarantine-jsonl-gzip", "wa-lni-active-contractor-licenses-zip-coverage-jsonl", "wa-lni-active-contractor-licenses-source-summary", "wa-lni-active-contractor-licenses-source-release-metadata", "dataset-manifest-json"],
+  "allowed_hosts": ["data.wa.gov"],
+  "redirect_policy": "Reject redirects and accept only HTTPS requests to the exact data.wa.gov metadata and m8qx-ubtq JSON resource paths.",
+  "provider_budget_key": "wa-lni-contractor-licenses-public-socrata",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": { "max_parallel_requests": 1, "maximum_page_records": 50000, "default_page_records": 25000, "maximum_response_bytes": 50000000, "minimum_active_contractor_organizations": 50000 },
+  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, schema drift, ordering failures, source refresh drift, count mismatch, or quality-gate failures.",
+  "checkpoint": "The 21-field active-license snapshot is acquired in UBI/license order and hashed before normalization. Metadata and count are rechecked before publication. A complete selected-field staging snapshot can be revalidated without reacquisition; current.json changes only after independent verification.",
+  "idempotency": "The source rowsUpdatedAt timestamp plus SHA-256 of the ordered selected-field source artifact identify a source release; the nine-digit UBI creates a stable provisional organization candidate.",
+  "cancellation": "Abort network and local processing cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "source_policy": "config/source-policies/wa-lni-active-contractor-licenses.json",
+  "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
+  "produced_entities": ["organization-candidate", "wa-lni-active-contractor-license-assertion", "contractor-reported-mailing-address-assertion", "source-reported-business-name-assertion"],
+  "produced_identifiers": ["wa-unified-business-identifier", "wa-lni-contractor-license-number", "zip5", "zip4", "zcta5"]
+}

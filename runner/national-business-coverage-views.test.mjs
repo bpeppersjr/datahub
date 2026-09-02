@@ -177,6 +177,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source_release_id: "pa-business-fixture",
       source_rows_updated_at: "2026-08-04T14:12:34.000Z",
     },
+    wa_lni_active_contractor_organizations: {
+      active_contractor_organization_mailing_address_count: 2,
+      source_release_id: "wa-lni-contractor-fixture",
+      source_rows_updated_at: "2026-09-01T19:35:41.000Z",
+      record_level_distribution: "local-review-only",
+      aggregate_distribution: "public-under-pddl-with-attribution-and-semantic-limitations",
+      general_operating_status_inferred: false,
+    },
     la_active_business_location_accounts: {
       registered_business_location_count: 1,
       source_release_id: "la-active-business-fixture",
@@ -337,7 +345,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     ));
   }
   const registry = await publishFixture(registryRoot, "national-business-registry", registryReleaseId, {
-    publisher: { id: "national-business-registry", version: "2.7.0" },
+    publisher: { id: "national-business-registry", version: "2.8.0" },
     status: "published-partial",
     complete_national_business_registry: false,
     coverage: {
@@ -376,6 +384,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       pa_business_registry_eligible_reported_us_business_addresses: 2,
       pa_business_registry_source_geocoded_reported_business_addresses: 2,
       pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: 1,
+      wa_lni_active_contractor_license_source_rows: 4,
+      wa_lni_active_contractor_organizations: 3,
+      wa_lni_active_contractor_license_activities: 4,
+      wa_lni_active_contractor_grouped_multi_license_organizations: 1,
+      wa_lni_active_contractor_reported_business_names: 3,
+      wa_lni_active_contractor_reported_mailing_addresses: 3,
+      wa_lni_active_contractor_eligible_reported_us_mailing_addresses: 2,
+      wa_lni_active_contractor_organizations_without_eligible_us_zip_address: 1,
       la_active_business_source_location_accounts: 2,
       la_active_business_normalized_us_location_accounts: 1,
       la_active_business_quarantined_source_records: 1,
@@ -539,12 +555,12 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.4.0");
+  assert.equal(result.manifest.publisher.version, "2.5.0");
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
-  assert.equal(verification.coverage.source_views, 12);
+  assert.equal(verification.coverage.source_views, 13);
   assert.equal(verification.coverage.location_profiles_assessed, 8);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 1);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
@@ -576,6 +592,14 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(verification.coverage.pa_business_registry_active_organization_records, 3);
   assert.equal(verification.coverage.pa_business_registry_duplicate_rows_collapsed, 1);
   assert.equal(verification.coverage.pa_business_registry_eligible_reported_us_business_addresses, 2);
+  assert.equal(verification.coverage.wa_lni_active_contractor_license_source_rows, 4);
+  assert.equal(verification.coverage.wa_lni_active_contractor_organizations, 3);
+  assert.equal(verification.coverage.wa_lni_active_contractor_license_activities, 4);
+  assert.equal(verification.coverage.wa_lni_active_contractor_grouped_multi_license_organizations, 1);
+  assert.equal(verification.coverage.wa_lni_active_contractor_reported_business_names, 3);
+  assert.equal(verification.coverage.wa_lni_active_contractor_reported_mailing_addresses, 3);
+  assert.equal(verification.coverage.wa_lni_active_contractor_eligible_reported_us_mailing_addresses, 2);
+  assert.equal(verification.coverage.wa_lni_active_contractor_organizations_without_eligible_us_zip_address, 1);
   assert.equal(verification.coverage.la_active_business_source_location_accounts, 2);
   assert.equal(verification.coverage.la_active_business_normalized_us_location_accounts, 1);
   assert.equal(verification.coverage.tx_active_sales_tax_source_outlet_permits, 3);
@@ -616,6 +640,11 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(pennsylvania.zip_level_counts.organization_reported_business_address_count, 2);
   assert.equal(pennsylvania.zip_rows_with_contribution, 1);
   assert.equal(pennsylvania.location_profile_geography.profile_count, 0);
+  const washington = sources.find((row) => row.source_key === "wa_lni_active_contractor_organizations");
+  assert.equal(washington.profile_source_id, null);
+  assert.equal(washington.zip_level_counts.active_contractor_organization_mailing_address_count, 2);
+  assert.equal(washington.zip_rows_with_contribution, 1);
+  assert.equal(washington.location_profile_geography.profile_count, 0);
   const losAngeles = sources.find((row) => row.source_key === "la_active_business_location_accounts");
   assert.equal(losAngeles.profile_source_id, "los-angeles-office-of-finance-active-businesses");
   assert.equal(losAngeles.zip_level_counts.registered_business_location_count, 1);

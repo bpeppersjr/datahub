@@ -79,6 +79,14 @@ type Overview = {
     pa_business_registry_eligible_reported_us_business_addresses: number;
     pa_business_registry_source_geocoded_reported_business_addresses: number;
     pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: number;
+    wa_lni_active_contractor_license_source_rows: number;
+    wa_lni_active_contractor_organizations: number;
+    wa_lni_active_contractor_license_activities: number;
+    wa_lni_active_contractor_grouped_multi_license_organizations: number;
+    wa_lni_active_contractor_reported_business_names: number;
+    wa_lni_active_contractor_reported_mailing_addresses: number;
+    wa_lni_active_contractor_eligible_reported_us_mailing_addresses: number;
+    wa_lni_active_contractor_organizations_without_eligible_us_zip_address: number;
     la_active_business_source_location_accounts: number;
     la_active_business_normalized_us_location_accounts: number;
     la_active_business_quarantined_source_records: number;
@@ -414,6 +422,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.ny_business_registry_active_organization_records)}</strong> NY active extract entities</span>
             <span><strong>{count(overview?.coverage?.fl_business_registry_active_organization_records)}</strong> FL active quarterly entities</span>
             <span><strong>{count(overview?.coverage?.pa_business_registry_active_organization_records)}</strong> PA active registrations</span>
+            <span><strong>{count(overview?.coverage?.wa_lni_active_contractor_organizations)}</strong> WA active contractor-license organizations · {count(overview?.coverage?.wa_lni_active_contractor_eligible_reported_us_mailing_addresses)} reported U.S. mailing addresses</span>
             <span><strong>{count(overview?.coverage?.la_active_business_normalized_us_location_accounts)}</strong> LA active location accounts</span>
             <span><strong>{count(overview?.coverage?.tx_active_sales_tax_normalized_outlet_permits)}</strong> TX active sales-tax outlets</span>
             <span><strong>{count(overview?.coverage?.chicago_active_business_license_normalized_sites)}</strong> Chicago active-license sites</span>

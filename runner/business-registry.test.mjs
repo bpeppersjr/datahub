@@ -18,6 +18,7 @@ import {
   reconcileDeBusinessLicense,
   reconcileAkActiveBusinessLicense,
   reconcileCoBusinessOrganization,
+  reconcileWaLniActiveContractorOrganization,
   reconcileOrBusinessRegistration,
   reconcileIaBusinessEntity,
   reconcileNyBusinessOrganization,
@@ -50,6 +51,7 @@ import { normalizeCtBusinessOrganization } from "./ct-business-registry.mjs";
 import { normalizeDeBusinessLicense } from "./de-business-licenses.mjs";
 import { normalizeAkBusinessLicense } from "./ak-active-business-licenses.mjs";
 import { normalizeCoBusinessOrganization } from "./co-business-registry.mjs";
+import { normalizeWaLniActiveContractorOrganization } from "./wa-lni-active-contractor-licenses.mjs";
 import { normalizeOrBusinessRegistration } from "./or-business-registry.mjs";
 import { normalizeIaBusinessEntity } from "./ia-business-registry.mjs";
 import { normalizeNyBusinessOrganization } from "./ny-business-registry.mjs";
@@ -1022,6 +1024,60 @@ function normalizedCoBusinessRecord(entityid = "20251665680", overrides = {}) {
     sourceRowsUpdatedAt: "2026-08-30T11:20:54.000Z",
     sourceReleaseId: "co-business-source-fixture",
     baselineByZip: new Map([["80014", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:80014", geoid: "80014" } }]]),
+  });
+}
+
+function normalizedWaLniActiveContractorRecord() {
+  return normalizeWaLniActiveContractorOrganization([{
+    businessname: "FIXTURE WASHINGTON CONTRACTOR LLC",
+    contractorlicensenumber: "FIXTUWC001Q1",
+    contractorlicensetypecode: "G",
+    contractorlicensetypecodedesc: "GENERAL",
+    address1: "100 PINE ST",
+    address2: null,
+    city: "SEATTLE",
+    state: "WA",
+    zip: "98101-1234",
+    licenseeffectivedate: "2020-01-02T00:00:00.000",
+    licenseexpirationdate: "2027-01-02T00:00:00.000",
+    businesstypecode: "LLC",
+    businesstypecodedesc: "LIMITED LIABILITY COMPANY",
+    specialtycode1: "01",
+    specialtycode1desc: "GENERAL CONTRACTOR",
+    specialtycode2: null,
+    specialtycode2desc: null,
+    ubi: "601000001",
+    statuscode: "A",
+    contractorlicensestatus: "ACTIVE",
+    contractorlicensesuspenddate: null,
+  }, {
+    businessname: "FIXTURE WASHINGTON CONTRACTOR",
+    contractorlicensenumber: "FIXTUWC002Q2",
+    contractorlicensetypecode: "S",
+    contractorlicensetypecodedesc: "SPECIALTY",
+    address1: "200 PINE ST",
+    address2: null,
+    city: "SEATTLE",
+    state: "WA",
+    zip: "98101",
+    licenseeffectivedate: "2021-01-02T00:00:00.000",
+    licenseexpirationdate: "2027-01-02T00:00:00.000",
+    businesstypecode: "LLC",
+    businesstypecodedesc: "LIMITED LIABILITY COMPANY",
+    specialtycode1: "02",
+    specialtycode1desc: "SPECIALTY CONTRACTOR",
+    specialtycode2: null,
+    specialtycode2desc: null,
+    ubi: "601000001",
+    statuscode: "A",
+    contractorlicensestatus: "ACTIVE",
+    contractorlicensesuspenddate: null,
+  }], {
+    runId: "wa-lni-source-fixture",
+    retrievedAt: "2026-09-01T20:00:00.000Z",
+    sourceRowsUpdatedAt: "2026-09-01T19:35:41.000Z",
+    sourceReleaseId: "wa-lni-source-fixture",
+    baselineByZip: new Map([["98101", { geography: { status: "2020-zcta-polygon-available", geo_id: "zcta:98101", geoid: "98101" } }]]),
   });
 }
 
@@ -2149,6 +2205,19 @@ test("reconciles Colorado registration evidence without creating physical sites 
   assert(result.assertions.some((item) => item.predicate === "organization.co-registration-status"));
   assert(result.assertions.every((item) => item.subject_entity_id === "organization:co_sos_record_20251665680"));
   assert(result.assertions.every((item) => !String(item.source.source_field).toLowerCase().includes("agent")));
+});
+
+test("reconciles Washington L&I contractor evidence as organization-only local-review records", () => {
+  const result = reconcileWaLniActiveContractorOrganization(normalizedWaLniActiveContractorRecord());
+  assert.equal(result.entity.entity_id, "organization:wa_ubi_601000001");
+  assert.equal(result.entity.entity_type, "organization");
+  assert.deepEqual(result.zipContributions, ["98101", "98101"]);
+  assert(result.assertions.some((item) => item.predicate === "organization.reported-business-name"));
+  assert(result.assertions.some((item) => item.predicate === "organization.reported-mailing-address"));
+  assert(result.assertions.some((item) => item.predicate === "organization.wa-lni-active-contractor-license-activity"));
+  assert(result.assertions.every((item) => item.subject_entity_id === "organization:wa_ubi_601000001" && item.export_policy === "local-review-only"));
+  assert(result.assertions.every((item) => !item.predicate.startsWith("site.") && !item.predicate.startsWith("establishment.")));
+  assert.equal(new Set(result.assertions.map((item) => item.assertion_id)).size, result.assertions.length);
 });
 
 test("reconciles Oregon legal entities and assumed names without inventing sites, owners, or relationships", () => {

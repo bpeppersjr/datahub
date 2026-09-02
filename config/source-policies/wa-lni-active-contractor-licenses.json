@@ -1,0 +1,35 @@
+{
+  "policy_id": "wa-lni-active-contractor-licenses",
+  "version": "1.0.0",
+  "publisher": "Washington State Department of Labor & Industries",
+  "ownership": "Official Washington contractor-license records published through the State of Washington open-data portal",
+  "source_home": "https://data.wa.gov/Labor/L-I-Contractor-License-Data-General/m8qx-ubtq",
+  "source_dataset": "https://data.wa.gov/resource/m8qx-ubtq.json",
+  "catalog_dataset_id": "m8qx-ubtq",
+  "catalog_license": "Public Domain Dedication and License (PDDL)",
+  "catalog_license_id": "PDDL",
+  "catalog_license_guidance": "https://data.wa.gov/stories/s/Open-Data-License-Metadata-Guidance/a9xy-d2e5/",
+  "source_access": "Public anonymous read-only HTTPS Socrata API.",
+  "allowed_use": ["official HTTPS metadata and selected-field API queries", "local privacy-minimized processing", "immutable internal selected-field source retention", "organization grouping by UBI", "contractor-license and reported-mailing-address normalization", "ZIP/ZCTA and source coverage analysis", "local-review-only record-level registry assertions", "redistribution of aggregate counts with publisher attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing ACTIVE contractor-license status as independent proof of continuous operations, current compliance, public access, or an open storefront",
+    "representing a contractor-reported mailing address as a verified physical site, establishment, storefront, or worksite",
+    "representing source-reported business names as verified legal names",
+    "representing this license dataset as every business or contractor operating in Washington or the United States",
+    "retaining or exporting source phone-number or named-principal fields",
+    "inferring parent company, ownership, network affiliation, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_names_mailing_addresses_and_license_activities": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-under-pddl-with-attribution-and-semantic-limitations",
+    "phone_number_and_primary_principal_name": "excluded-before-staging"
+  },
+  "attribution": "Source: Washington State Department of Labor & Industries, L&I Contractor License Data - General, via Data.WA.gov.",
+  "retention": "Retain immutable privacy-minimized selected-source and governed normalized releases unless an approved retention rule applies.",
+  "redistribution": "Aggregate counts may be redistributed under the catalog PDDL terms with L&I attribution, exact refresh/checksum, and license/address limitations. Record-level normalized artifacts remain local-review-only because business names can identify people and mailing addresses can be residences.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The connector requests neither phonenumber nor primaryprincipalname. Business names can identify natural persons and mailing addresses can be residences, so normalized record-level artifacts remain local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-01"
+}

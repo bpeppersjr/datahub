@@ -1,0 +1,33 @@
+{
+  "dataset_id": "wa-lni-active-contractor-organizations",
+  "schema_version": "1.0.0",
+  "title": "Washington L&I Active Contractor Organizations",
+  "status": "published-verified-local-review-only",
+  "description": "Governed official Washington State Department of Labor & Industries organization layer grouped by UBI from active contractor-license rows, with multiple names, mailing addresses, license activities, provenance, and explicit non-site semantics.",
+  "output": "data/business-sources/wa-lni-active-contractor-organizations/current.json",
+  "connector": "config/connectors/wa-lni-active-contractor-licenses.json",
+  "source_policy": "config/source-policies/wa-lni-active-contractor-licenses.json",
+  "record_schema": "config/schemas/wa-lni-active-contractor-organization.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Organizations represented by one or more source rows whose status is exactly A/ACTIVE in the official L&I Contractor License Data - General snapshot. This is active contractor-license evidence, not a census of every operating business, contractor worksite, storefront, or physical site.",
+  "current_verified_release": {
+    "release_id": "wa-lni-active-contractor-licenses-20260901-232717159Z-3cfc4905",
+    "source_release_id": "wa-lni-active-contractor-licenses-2026-09-01-3584fe6581bbcd4a",
+    "source_rows_updated_at": "2026-09-01T19:35:41Z",
+    "source_active_contractor_license_rows": 75796,
+    "organizations": 72783,
+    "active_contractor_license_activities": 75796,
+    "grouped_multi_license_organizations": 2590,
+    "reported_business_names": 73722,
+    "reported_mailing_addresses": 74116,
+    "eligible_reported_us_mailing_addresses": 74005,
+    "organizations_without_eligible_us_zip_address": 105,
+    "source_zip_codes": 3138,
+    "physical_sites": null,
+    "establishments": null,
+    "verified_artifact_count": 21,
+    "verified_bytes": 62165677,
+    "complete_all_businesses": false
+  },
+  "documentation": "docs/WA-LNI-ACTIVE-CONTRACTOR-LICENSES.md"
+}

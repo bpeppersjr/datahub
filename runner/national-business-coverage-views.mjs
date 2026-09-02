@@ -9,7 +9,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
-export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.4.0";
+export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.5.0";
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -27,6 +27,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   california_abc_active_issued_license_sites: "california-abc-daily-active-licenses",
   nyc_dcwp_active_license_sites: "nyc-dcwp-issued-licenses-active-premises",
   irs_eo_bmf_organizations: "irs-eo-bmf-organizations",
+  wa_lni_active_contractor_organizations: null,
 });
 
 function sha256(value) {
@@ -428,9 +429,11 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
       fl_business_registry_eligible_reported_us_principal_addresses: registry.manifest.coverage?.fl_business_registry_eligible_reported_us_principal_addresses ?? null,
       pa_business_registry_active_organization_records: registry.manifest.coverage?.pa_business_registry_active_organization_records ?? null,
       pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? null,
+      wa_lni_active_contractor_organizations: registry.manifest.coverage?.wa_lni_active_contractor_organizations ?? null,
+      wa_lni_active_contractor_eligible_reported_us_mailing_addresses: registry.manifest.coverage?.wa_lni_active_contractor_eligible_reported_us_mailing_addresses ?? null,
       state_and_county_view_basis: "physical-site location profiles",
     },
-    consequence: "Organization-or-brand evidence such as IRS EO filing addresses and Connecticut, Delaware, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
+    consequence: "Organization-or-brand evidence such as IRS EO filing addresses; Connecticut, Delaware, Colorado, Oregon, Iowa, New York, Florida, or Pennsylvania registry-reported addresses; and Washington L&I contractor mailing addresses remains visible in national, ZIP, and source views but is not mixed into physical-site state or county counts.",
   });
   add({
     gap_id: "gap:entity-resolution-precision-approval",
@@ -1168,6 +1171,14 @@ export async function buildNationalBusinessCoverageViews({
       pa_business_registry_eligible_reported_us_business_addresses: registry.manifest.coverage?.pa_business_registry_eligible_reported_us_business_addresses ?? 0,
       pa_business_registry_source_geocoded_reported_business_addresses: registry.manifest.coverage?.pa_business_registry_source_geocoded_reported_business_addresses ?? 0,
       pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds: registry.manifest.coverage?.pa_business_registry_reported_pa_address_geocodes_outside_broad_pa_bounds ?? 0,
+      wa_lni_active_contractor_license_source_rows: registry.manifest.coverage?.wa_lni_active_contractor_license_source_rows ?? 0,
+      wa_lni_active_contractor_organizations: registry.manifest.coverage?.wa_lni_active_contractor_organizations ?? 0,
+      wa_lni_active_contractor_license_activities: registry.manifest.coverage?.wa_lni_active_contractor_license_activities ?? 0,
+      wa_lni_active_contractor_grouped_multi_license_organizations: registry.manifest.coverage?.wa_lni_active_contractor_grouped_multi_license_organizations ?? 0,
+      wa_lni_active_contractor_reported_business_names: registry.manifest.coverage?.wa_lni_active_contractor_reported_business_names ?? 0,
+      wa_lni_active_contractor_reported_mailing_addresses: registry.manifest.coverage?.wa_lni_active_contractor_reported_mailing_addresses ?? 0,
+      wa_lni_active_contractor_eligible_reported_us_mailing_addresses: registry.manifest.coverage?.wa_lni_active_contractor_eligible_reported_us_mailing_addresses ?? 0,
+      wa_lni_active_contractor_organizations_without_eligible_us_zip_address: registry.manifest.coverage?.wa_lni_active_contractor_organizations_without_eligible_us_zip_address ?? 0,
       la_active_business_source_location_accounts: registry.manifest.coverage?.la_active_business_source_location_accounts ?? 0,
       la_active_business_normalized_us_location_accounts: registry.manifest.coverage?.la_active_business_normalized_us_location_accounts ?? 0,
       la_active_business_quarantined_source_records: registry.manifest.coverage?.la_active_business_quarantined_source_records ?? 0,
@@ -1238,6 +1249,7 @@ export async function buildNationalBusinessCoverageViews({
       "New York monthly active-extract membership and reported locations remain organization-only registration evidence without inferred owners, physical sites, establishments, or relationships.",
       "Florida quarterly corporate records coded A and their principal addresses remain organization-only registration evidence without inferred owners, agents, officers, physical sites, establishments, or relationships.",
       "Pennsylvania active-registration dataset inclusion and reported business addresses remain organization-only evidence; the publisher's statutory-overcount warning is retained, officer/person fields are excluded, portal geocodes are not treated as verified premises, and no owner, physical site, establishment, or relationship is inferred.",
+      "Washington L&I A/ACTIVE contractor-license rows are grouped by canonical nine-digit UBI; reported business names, license activities, and mailing addresses remain organization-only evidence, person/contact fields are excluded, and no owner, parent, network, physical site, establishment, storefront, worksite, or general operating status is inferred.",
       "Los Angeles Office of Finance location accounts create source-preserving provisional sites and establishments, but source-defined active status is not proof of continuous operations or public access; person/home-address risk keeps record-level data and linkage local-review-only.",
       "City of Chicago BACP current-active license accounts and sites create source-preserving provisional organizations, sites, and establishments, but AAI status plus future expiration is not proof of continuous operations, public access, or complete business coverage; multiple licenses do not inflate site counts and person/home-address risk keeps record-level data and linkage local-review-only.",
       "DC DLCP Active Basic Business License Customer Number groups create source-preserving provisional organizations, sites, and establishments, but municipal-license status is not proof of continuous operations, public access, or complete business coverage; multiple activity rows do not inflate site counts, record-level data and linkage remain local-review-only, and aggregate redistribution requires CC BY 4.0 attribution plus the retained semantic limitations.",

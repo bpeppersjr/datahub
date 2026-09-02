@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/wa-lni-active-contractor-organization.schema.json",
+  "title": "Washington L&I active-contractor organization",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidates", "external_identifiers", "reported_business_names", "deterministic_display_name", "reported_mailing_addresses", "reported_address_coordinate", "active_contractor_license_activities", "source_status", "observed_at", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^wa-lni-active-contractor-licenses:organization:[0-9]{9}$" },
+    "entity_candidates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:wa_ubi_[0-9]{9}$" },
+        "identity_status": { "const": "provisional" }
+      }
+    },
+    "external_identifiers": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "type": "object" } },
+    "reported_business_names": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "deterministic_display_name": { "type": "string", "minLength": 1 },
+    "reported_mailing_addresses": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "object", "required": ["address_scope", "eligible_for_us_zip_coverage", "geography"] } },
+    "reported_address_coordinate": { "type": "null" },
+    "active_contractor_license_activities": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "object", "required": ["contractor_license_number", "status_code", "status"] } },
+    "source_status": {
+      "type": "object",
+      "required": ["value", "status", "status_code", "general_operating_status_inferred", "semantics"],
+      "properties": {
+        "value": { "const": "one-or-more-licenses-listed-active-in-washington-lni-dataset-as-of-source-refresh" },
+        "status": { "const": "ACTIVE" },
+        "status_code": { "const": "A" },
+        "general_operating_status_inferred": { "const": false },
+        "semantics": { "const": "source-contractor-license-status-not-independent-proof-of-continuous-operations-public-access-current-worksite-or-complete-legal-compliance" }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

@@ -25,6 +25,7 @@ Options:
   --de-business <path> Delaware current Business Licenses current.json prerequisite
   --ak-business <path> Alaska DCCED active Business License current.json prerequisite
   --co-business <path> Colorado Good Standing or Delinquent Business Registry current.json prerequisite
+  --wa-lni-contractors <path> Washington L&I active-contractor organizations current.json prerequisite
   --or-business <path> Oregon active Business Registry registrations current.json prerequisite
   --ia-business <path> Iowa active Business Registry entities current.json prerequisite
   --ny-business <path> New York Active Corporations current.json prerequisite
@@ -56,6 +57,7 @@ function parseArguments(args) {
     deBusiness: "data/business-sources/de-business-licenses-current/current.json",
     akBusiness: "data/business-sources/ak-active-business-licenses/current.json",
     coBusiness: "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json",
+    waLniActiveContractors: "data/business-sources/wa-lni-active-contractor-organizations/current.json",
     orBusiness: "data/business-sources/or-business-registry-active-registrations/current.json",
     iaBusiness: "data/business-sources/ia-business-registry-active-entities/current.json",
     nyBusiness: "data/business-sources/ny-business-registry-active-entities/current.json",
@@ -72,7 +74,7 @@ function parseArguments(args) {
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -89,6 +91,7 @@ function parseArguments(args) {
       if (argument === "--de-business") options.deBusiness = value;
       if (argument === "--ak-business") options.akBusiness = value;
       if (argument === "--co-business") options.coBusiness = value;
+      if (argument === "--wa-lni-contractors") options.waLniActiveContractors = value;
       if (argument === "--or-business") options.orBusiness = value;
       if (argument === "--ia-business") options.iaBusiness = value;
       if (argument === "--ny-business") options.nyBusiness = value;
@@ -128,6 +131,7 @@ try {
     deBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.deBusiness)),
     akBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.akBusiness)),
     coBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.coBusiness)),
+    waLniActiveContractorsPointer: assertInsideApp(path.resolve(APP_ROOT, options.waLniActiveContractors)),
     orBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.orBusiness)),
     iaBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.iaBusiness)),
     nyBusinessPointer: assertInsideApp(path.resolve(APP_ROOT, options.nyBusiness)),
