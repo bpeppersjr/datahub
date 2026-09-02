@@ -1,6 +1,6 @@
 {
   "connector_id": "ny-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a privacy-minimized snapshot of entities in the official monthly New York Active Corporations dataset, preserving business identity, filing profile, reported location-address evidence, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

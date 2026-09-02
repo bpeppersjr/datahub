@@ -1,6 +1,6 @@
 {
   "connector_id": "wa-lni-active-contractor-licenses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes one governed provisional organization per Washington UBI from official L&I active contractor-license rows, retaining multiple source-reported names, mailing addresses, and license activities without inferring legal name, physical site, or general operating status.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

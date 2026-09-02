@@ -1,6 +1,6 @@
 {
   "connector_id": "pa-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a selected-field snapshot of the official Pennsylvania Department of State distinct active-registration view, preserving filing identity, registration type, reported business address, county, portal geocode, provenance, statutory-overcount warning, deterministic duplicate handling, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

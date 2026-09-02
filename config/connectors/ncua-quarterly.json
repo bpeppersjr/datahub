@@ -1,6 +1,6 @@
 {
   "connector_id": "ncua-quarterly",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Discovers and acquires the newest final NCUA quarterly Call Report ZIP, then normalizes federally insured credit unions, reported U.S. locations, trade names, ZIP coverage, provenance, and explicit exclusions.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

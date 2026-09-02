@@ -120,7 +120,8 @@ test("groups license evidence, preserves trade names, and never infers a physica
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
   assert.deepEqual(normalized.other_names.map((item) => item.name), ["Fixture Market", "Fixture Pharmacy"]);
   assert.deepEqual(normalized.license_profile.business_activities, ["RETAILER  GENERAL"]);
-  assert.equal(normalized.reported_business_address.postal_code, "19801-1234");
+  assert.equal(normalized.reported_business_address.postal_code, "19801");
+  assert.equal(normalized.reported_business_address.zip4, "1234");
   assert.equal(normalized.reported_business_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.reported_address_coordinate.plausibility, "within-broad-delaware-bounds");
   assert.equal(normalized.export_policy, "local-review-only");

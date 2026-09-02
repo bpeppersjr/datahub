@@ -1,6 +1,6 @@
 {
   "connector_id": "epa-echo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Streams the official EPA ECHO Exporter and publishes source-designated active regulated-facility site and establishment candidates with address, ZIP, coordinates and precision metadata, classifications, program associations, provenance, exclusions, and explicit semantic limitations.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

@@ -14,6 +14,20 @@
     "national-business-entity-resolution-benchmark",
     "census-nonemployer-baseline"
   ],
+  "spatial_zip_polygon_denominator": {
+    "dataset_id": "us-census-geography",
+    "role": "authoritative-spatial-denominator-within-declared-census-zcta-scope",
+    "geography_type": "census-zcta5",
+    "selection_scope": "complete selected Census-published ZCTA5 polygon set from the pinned verified geography release",
+    "required": true,
+    "zip4_polygon_applicability": "not-applicable"
+  },
+  "usps_operational_zip_evidence": {
+    "dataset_id": "usps-operational-zip-assignments",
+    "role": "optional-supplemental-routing-evidence",
+    "required": false,
+    "provides_polygon_geometry": false
+  },
   "views": {
     "national": "views/national.jsonl",
     "states": "views/states.jsonl",
@@ -28,6 +42,7 @@
   "count_semantics": {
     "national_state_zip": "source-preserving provisional registry evidence; not deduplicated businesses",
     "county": "source-preserving profiles with one valid point assigned to a generalized Census county polygon",
+    "spatial_zip_polygon_denominator": "complete selected Census ZCTA5 polygon set for the pinned layer and vintage; not a USPS ZIP or delivery denominator",
     "zcta_relationships": "polygon-area-only-not-business-location",
     "nonemployer": "annual aggregate for businesses with no paid employees; no ZIP allocation and no current named-business assertion"
   },
@@ -35,17 +50,22 @@
   "entity_resolution_applied": false,
   "export_policy": "local-aggregate-review-required",
   "current_verified_release": {
-    "release_id": "national-business-coverage-views-20260902-080801627Z-c56ecd90",
+    "release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+    "publisher_version": "2.7.0",
     "national_views": 3,
     "state_views": 56,
     "county_views": 3235,
     "zip_views": 48217,
     "source_views": 26,
-    "coverage_gap_views": 28128,
+    "coverage_gap_views": 28127,
     "location_profiles_assessed": 8011827,
     "reported_state_assigned_profiles": 8011436,
     "coordinate_assigned_profiles": 995268,
     "profiles_without_valid_coordinate_assignment": 7016559,
+    "spatial_zip_polygon_denominator_count": 33791,
+    "normalized_postal_field_migration_status": "pre-migration-registry-release",
+    "registry_publisher_version": "2.9.0",
+    "required_registry_publisher_version_for_split_fields": "2.10.0",
     "zip_views_with_zcta_polygon": 33791,
     "zip_views_without_zcta_polygon": 14426,
     "zip_views_with_record_level_source_contribution": 48018,
@@ -172,7 +192,7 @@
     "county_views_with_published_nonemployer_baseline": 3143,
     "county_views_without_published_nonemployer_baseline": 92,
     "verified_artifact_count": 7,
-    "verified_bytes": 565430324
+    "verified_bytes": 583847348
   },
   "documentation": "docs/NATIONAL-BUSINESS-COVERAGE-VIEWS.md",
   "source_policy": "config/source-policies/national-business-coverage-views.json"

@@ -52,10 +52,11 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     zip_code: "12345",
     registry_coverage: { status: "record-level-source-contribution", physical_site_count: 2, establishment_count: 2, organization_primary_location_count: 1 },
     geography: { status: "2020-zcta-polygon-available", geoid: "12345" },
+    spatial_zip_polygon_membership: { status: "included" },
     employer_baseline: { status: "published", establishments: 4 },
     jurisdiction_overlay: { relationships: [{ material_intersection: true }] },
     current_usps_validity: { status: "unverified" },
-    coverage_gap_codes: ["authoritative-current-usps-validity-unverified"],
+    coverage_gap_codes: [],
   }]);
   await artifact("source-coverage-view-jsonl", "sources", [{
     view_id: "source:snap",
@@ -154,8 +155,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     }
   }]);
   await artifact("coverage-gap-view-jsonl", "coverage-gaps", [{
-    gap_id: "gap:zip-no-zcta:54321",
-    gap_type: "zip-without-2020-zcta-polygon",
+    gap_id: "gap:reported-zip5-outside-zcta:54321",
+    gap_type: "reported-zip5-not-in-census-zcta5-polygon-denominator",
     scope_type: "zip",
     scope_id: "54321",
     severity: "geography",
@@ -170,6 +171,9 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     export_policy: "local-aggregate-review-required",
     complete_all_businesses: false,
     entity_resolution_applied: false,
+    spatial_zip_polygon_denominator: { count: 1, geography_type: "census-zcta5", zip4_polygon_applicability: "not-applicable" },
+    normalized_postal_field_migration: { status: "pre-migration-registry-release", registry_publisher_version: "2.9.0", required_registry_publisher_version: "2.10.0" },
+    usps_operational_zip_evidence: null,
     authoritative_current_usps_zip_denominator: null,
     coverage: { state_views: 1, county_views: 1, zip_views: 1, source_views: 5, gap_views: 1 },
     count_semantics: {},
@@ -187,6 +191,9 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const overview = await store.getOverview();
   assert.equal(overview.available, true);
   assert.equal(overview.release_id, releaseId);
+  assert.equal(overview.spatial_zip_polygon_denominator.count, 1);
+  assert.equal(overview.normalized_postal_field_migration.status, "pre-migration-registry-release");
+  assert.equal(overview.usps_operational_zip_evidence, null);
   assert.equal(overview.sources[0].profile_count, 2);
   const states = await store.listDimension("states", { query: "fixture" });
   assert.equal(states.total, 1);
@@ -215,7 +222,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);
   assert.equal(zips.records[0].material_county_count, 1);
-  const gaps = await store.listDimension("gaps", { gapType: "zip-without-2020-zcta-polygon" });
+  assert.equal(zips.records[0].spatial_zip_polygon_membership_status, "included");
+  const gaps = await store.listDimension("gaps", { gapType: "reported-zip5-not-in-census-zcta5-polygon-denominator" });
   assert.equal(gaps.total, 1);
   await assert.rejects(store.listDimension("unsupported"), /Unsupported coverage dimension/);
 });

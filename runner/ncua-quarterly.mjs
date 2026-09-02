@@ -8,9 +8,10 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse/sync";
 import unzipper from "unzipper";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NCUA_SCHEMA_VERSION = "1.0.0";
-export const NCUA_TRANSFORMATION_VERSION = "ncua-quarterly@1.0.0";
+export const NCUA_TRANSFORMATION_VERSION = "ncua-quarterly@1.0.1";
 export const NCUA_QUARTERLY_PAGE_URL = "https://ncua.gov/analysis/credit-union-corporate-call-report-data/quarterly-data";
 
 const REQUIRED_ENTRIES = ["FOICU.txt", "FOICUDES.txt", "Credit Union Branch Information.txt", "TradeNames.txt", "Report1.txt", "Readme.txt"];
@@ -61,7 +62,7 @@ function sourceDate(value) {
 function postalCode(value) {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(\d{5})(?:-(\d{4}))?$/);
-  return match ? { zip_code: match[1], postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1], zip4: match[2] ?? null } : null;
+  return match ? { zip_code: match[1], postal_code: match[1], zip4: match[2] ?? null } : null;
 }
 
 function physicalAddress(source) {
@@ -495,6 +496,7 @@ export async function buildNcuaQuarterly({
   for (const source of tables.institutions) {
     try {
       const normalized = normalizeNcuaInstitution(source, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       const charter = normalized.external_identifiers[0].value;
       if (institutionIds.has(normalized.normalized_record_id)) throw new Error("duplicate-institution-id");
       institutionIds.add(normalized.normalized_record_id);
@@ -514,6 +516,7 @@ export async function buildNcuaQuarterly({
   for (const source of tables.branches) {
     try {
       const normalized = normalizeNcuaBranch(source, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       if (branchIds.has(normalized.normalized_record_id)) throw new Error("duplicate-branch-id");
       branchIds.add(normalized.normalized_record_id);
       const zipCode = normalized.address.zip_code;
@@ -582,7 +585,7 @@ export async function buildNcuaQuarterly({
   const manifest = {
     schema_version: NCUA_SCHEMA_VERSION,
     dataset_id: "ncua-quarterly-credit-unions",
-    connector: { id: "ncua-quarterly", version: "1.0.0" },
+    connector: { id: "ncua-quarterly", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

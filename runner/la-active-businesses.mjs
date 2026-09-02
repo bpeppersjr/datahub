@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const LA_ACTIVE_BUSINESS_SCHEMA_VERSION = "1.0.0";
-export const LA_ACTIVE_BUSINESS_TRANSFORMATION_VERSION = "la-active-businesses@1.0.0";
+export const LA_ACTIVE_BUSINESS_TRANSFORMATION_VERSION = "la-active-businesses@1.0.1";
 export const LA_ACTIVE_BUSINESS_DATASET_ID = "6rrh-rzua";
 export const LA_ACTIVE_BUSINESS_METADATA_URL = `https://data.lacity.org/api/views/${LA_ACTIVE_BUSINESS_DATASET_ID}`;
 export const LA_ACTIVE_BUSINESS_API_URL = `https://data.lacity.org/resource/${LA_ACTIVE_BUSINESS_DATASET_ID}.json`;
@@ -86,7 +87,7 @@ function postalCode(value) {
     return {
       source: raw,
       zip_code: exact[1],
-      postal_code: exact[2] ? `${exact[1]}-${exact[2]}` : exact[1],
+      postal_code: exact[1],
       zip4: exact[2] ?? null,
       status: exact[2] ? "normalized-zip-plus-4" : "normalized-zip5",
     };
@@ -525,6 +526,7 @@ export async function buildLaActiveBusinesses({
       locationAccounts.add(account);
       try {
         const normalized = normalizeLaActiveBusinessLocation(source, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
         const prefix = sha256(account)[0];
         await writeGzipRecord(normalizedWriters.get(prefix), normalized);
         normalizedCount += 1;

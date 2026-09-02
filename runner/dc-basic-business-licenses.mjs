@@ -7,9 +7,10 @@ import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import proj4 from "proj4";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const DC_BASIC_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
-export const DC_BASIC_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "dc-basic-business-licenses@1.0.0";
+export const DC_BASIC_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "dc-basic-business-licenses@1.0.1";
 export const DC_BASIC_BUSINESS_LICENSE_LAYER_URL = "https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/0";
 export const DC_BASIC_BUSINESS_LICENSE_QUERY_URL = `${DC_BASIC_BUSINESS_LICENSE_LAYER_URL}/query`;
 export const DC_BASIC_BUSINESS_LICENSE_PAGE_URL = "https://opendata.dc.gov/datasets/DCGIS::basic-business-licenses";
@@ -172,7 +173,7 @@ function parsePremiseAddress(value, premiseInDc, baselineByZip) {
     state,
     zip_code: zipCode,
     zip4,
-    postal_code: zip4 ? `${zipCode}-${zip4}` : zipCode,
+    postal_code: zipCode,
     country: "US",
     source_value: raw,
     source_premise_in_dc: inDc === "yes",
@@ -642,6 +643,7 @@ export async function buildDcBasicBusinessLicenses({
     for (const [customer, records] of [...groups.entries()].sort(([left], [right]) => compareText(left, right))) {
       try {
         const normalized = normalizeDcBasicBusinessLicenseSite(records, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
         await writeGzipRecord(normalizedWriters.get(sha256(normalized.normalized_record_id)[0]), normalized);
         normalizedSiteCount += 1;
         acceptedLicenseRowCount += normalized.active_license_activities.length;

@@ -187,6 +187,8 @@ test("normalizes federally insured institutions, composite branch identities, an
   assert.equal(organization.source_status.value, "ncua-federally-insured-credit-union-in-final-quarterly-call-report");
   const location = normalizeNcuaBranch(branch(), context());
   assert.equal(location.entity_candidates.physical_site_id, "site:ncua_charter_100_site_700");
+  assert.equal(location.address.zip_code, "60601");
+  assert.equal(location.address.postal_code, "60601");
   assert.equal(location.address.zip4, "1234");
   assert.deepEqual(location.reported_services, { member_services: true, atm: true, drive_through: false, shared_service_center_network: true });
   const otherName = normalizeNcuaTradeName({ CU_NUMBER: "100", CycleDate: cycle, TradeNamesId: "1", TradeName: "FIXTURE CU" }, context());

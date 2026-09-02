@@ -7,9 +7,10 @@ import { finished } from 'node:stream/promises';
 import { createInterface } from 'node:readline';
 import { createGunzip, createGzip } from 'node:zlib';
 import { parse } from 'csv-parse';
+import { assertNormalizedUsPostalFieldsDeep } from './normalized-us-postal-code.mjs';
 
 export const NPPES_ORGANIZATION_SCHEMA_VERSION = '1.0.0';
-export const NPPES_ORGANIZATION_TRANSFORMATION = 'cms-nppes-organizations@1.0.0';
+export const NPPES_ORGANIZATION_TRANSFORMATION = 'cms-nppes-organizations@1.0.1';
 
 const REQUIRED_SOURCE_KINDS = ['main', 'other-names', 'practice-locations', 'endpoints'];
 const OTHER_NAME_TYPES = {
@@ -64,7 +65,7 @@ function postalAddress(fields) {
     state,
     zip_code: zipCode,
     zip4,
-    postal_code: zip4 ? `${zipCode}-${zip4}` : zipCode,
+    postal_code: zipCode,
     country: 'US',
   };
 }
@@ -527,6 +528,7 @@ export async function buildCmsNppesOrganizations({
 
   counts.source_main_rows = await scanCsv(source.byKind.get('main').absolutePath, mainColumns, async (row, indexes, rowNumber) => {
     const normalized = normalizeNppesOrganization(mainFields(row, indexes), context);
+    assertNormalizedUsPostalFieldsDeep(normalized.record);
     if (normalized.kind === 'deactivated') {
       await writeGzipRecord(deactivatedWriters.get(normalized.record.npi[0]), normalized.record);
       counts.deactivated_npis_limited += 1;
@@ -579,6 +581,7 @@ export async function buildCmsNppesOrganizations({
         counts.excluded_practice_locations += 1;
       } else {
         const normalized = normalizeNppesPracticeLocation(Object.fromEntries(Object.entries(indexes).map(([key, index]) => [key, value(row, index)])), context);
+        if (normalized.record) assertNormalizedUsPostalFieldsDeep(normalized.record);
         if (normalized.kind !== 'practice-location') counts.rejected_practice_locations += 1;
         else if (!practiceRecordIds.has(normalized.record.normalized_record_id)) {
           practiceRecordIds.add(normalized.record.normalized_record_id);
@@ -639,7 +642,7 @@ export async function buildCmsNppesOrganizations({
   const manifest = {
     schema_version: NPPES_ORGANIZATION_SCHEMA_VERSION,
     dataset_id: 'cms-nppes-organizations',
-    connector: { id: 'cms-nppes-organizations', version: '1.0.0' },
+    connector: { id: 'cms-nppes-organizations', version: '1.0.1' },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: source.metadata.fetchedAt,

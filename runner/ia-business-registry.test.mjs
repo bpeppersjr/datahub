@@ -56,7 +56,7 @@ function row(overrides = {}) {
     ho_address_2: "Suite 200",
     ho_city: "Des Moines",
     ho_state: "IA",
-    ho_zip: "50309",
+    ho_zip: "50309-1234",
     ho_country: "USA",
     ho_latitude: "41.5898",
     ho_longitude: "-93.6153",
@@ -127,6 +127,9 @@ test("normalizes Iowa registration evidence without inferring a site, establishm
   assert.equal(normalized.entity_candidates.physical_site_id, null);
   assert.equal(normalized.entity_candidates.establishment_id, null);
   assert.equal(normalized.home_office_address.eligible_for_us_zip_coverage, true);
+  assert.equal(normalized.home_office_address.zip_code, "50309");
+  assert.equal(normalized.home_office_address.postal_code, "50309");
+  assert.equal(normalized.home_office_address.zip4, "1234");
   assert.equal(normalized.home_office_address.coordinate_status, "source-geocoded-coordinate-pair");
   assert.equal(normalized.home_office_address.geography.zcta_geoid, "50309");
   assert.equal(JSON.stringify(normalized).includes("Excluded Person"), false);

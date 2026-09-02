@@ -6,6 +6,7 @@ import path from "node:path";
 import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const SNAP_SCHEMA_VERSION = "1.0.0";
 export const SNAP_ITEM_ID = "8b260f9a10b0459aa441ad8588c2251c";
@@ -75,7 +76,7 @@ export function normalizeSnapFeature(feature, context) {
     source_release_id: context.sourceReleaseId,
     source_record_id: sourceRecordId,
     ingest_run_id: context.runId,
-    transformation_version: "usda-snap-retailers@1.0.0",
+    transformation_version: "usda-snap-retailers@1.0.1",
     policy_id: "usda-snap-retailers",
   };
   return {
@@ -97,7 +98,7 @@ export function normalizeSnapFeature(feature, context) {
       state,
       zip_code: postalCode,
       zip4: plus4,
-      postal_code: plus4 ? `${postalCode}-${plus4}` : postalCode,
+      postal_code: postalCode,
       county_name: textOrNull(source.County),
     },
     location: {
@@ -420,6 +421,7 @@ export async function buildUsdaSnapRetailers({
             sourceReleaseId: approvedSourceReleaseId,
             zipCoverage: baselineByZip.get(sourceZip),
           });
+          assertNormalizedUsPostalFieldsDeep(normalized);
           await writeGzipRecord(partitionWriters.get(sourceZip[0]), normalized);
           snapCountsByZip.set(sourceZip, (snapCountsByZip.get(sourceZip) ?? 0) + 1);
           const state = normalized.address.state;
@@ -481,7 +483,7 @@ export async function buildUsdaSnapRetailers({
   const manifest = {
     schema_version: SNAP_SCHEMA_VERSION,
     dataset_id: "usda-snap-retailers",
-    connector: { id: "usda-snap-retailers", version: "1.0.0" },
+    connector: { id: "usda-snap-retailers", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

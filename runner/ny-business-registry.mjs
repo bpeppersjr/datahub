@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NY_BUSINESS_REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const NY_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "ny-business-registry@1.0.0";
+export const NY_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "ny-business-registry@1.0.1";
 export const NY_BUSINESS_REGISTRY_DATASET_ID = "n9v6-gdp6";
 export const NY_BUSINESS_REGISTRY_METADATA_URL = `https://data.ny.gov/api/views/${NY_BUSINESS_REGISTRY_DATASET_ID}`;
 export const NY_BUSINESS_REGISTRY_API_URL = `https://data.ny.gov/resource/${NY_BUSINESS_REGISTRY_DATASET_ID}.json`;
@@ -95,7 +96,7 @@ function postalCode(value) {
   return {
     raw,
     zip_code: match[1],
-    postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1],
+    postal_code: match[1],
     zip4: match[2] ?? null,
     status: match[2] ? "normalized-zip-plus-4" : "normalized-zip5",
   };
@@ -519,6 +520,7 @@ export async function buildNyBusinessRegistry({
       let normalized;
       try {
         normalized = normalizeNyBusinessOrganization(source, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
       } catch (error) {
         if (error.message !== "missing-or-invalid-organization-identity") throw error;
         await writeGzipRecord(quarantineWriter, {
@@ -590,7 +592,7 @@ export async function buildNyBusinessRegistry({
   const manifest = {
     schema_version: NY_BUSINESS_REGISTRY_SCHEMA_VERSION,
     dataset_id: "ny-business-registry-active-entities",
-    connector: { id: "ny-business-registry", version: "1.0.0" },
+    connector: { id: "ny-business-registry", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

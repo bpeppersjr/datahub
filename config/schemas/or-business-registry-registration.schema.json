@@ -35,7 +35,12 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["source_row_id", "street", "unit_or_additional", "city", "state_source", "state_code", "postal_code_source", "zip_code", "postal_code", "zip4", "postal_code_status", "address_scope", "eligible_for_us_zip_coverage", "geography"]
+        "required": ["source_row_id", "street", "unit_or_additional", "city", "state_source", "state_code", "postal_code_source", "zip_code", "postal_code", "zip4", "postal_code_status", "address_scope", "eligible_for_us_zip_coverage", "geography"],
+        "properties": {
+          "zip_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+          "postal_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+          "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" }
+        }
       }
     },
     "source_status": {

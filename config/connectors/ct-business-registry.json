@@ -1,6 +1,6 @@
 {
   "connector_id": "ct-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a selected-field snapshot of records whose source status is exactly Active in the official Connecticut Business Registry Business Master dataset, preserving source-specific status, ALEI and record identifiers, reported business addresses, classifications, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

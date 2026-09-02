@@ -1,6 +1,6 @@
 {
   "connector_id": "fmcsa-company-census",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pins the official daily FMCSA Company Census metadata, streams a server-side minimized STATUS_CODE=A and PHY_COUNTRY=US export, and publishes source-specific active regulatory registration candidates with principal-office geography and no inferred legal organization.",
   "lifecycle": ["preflight", "discover", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

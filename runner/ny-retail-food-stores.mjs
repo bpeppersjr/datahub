@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NY_RETAIL_FOOD_SCHEMA_VERSION = "1.0.0";
-export const NY_RETAIL_FOOD_TRANSFORMATION_VERSION = "ny-retail-food-stores@1.0.0";
+export const NY_RETAIL_FOOD_TRANSFORMATION_VERSION = "ny-retail-food-stores@1.0.1";
 export const NY_RETAIL_FOOD_DATASET_ID = "9a8c-vfzj";
 export const NY_RETAIL_FOOD_METADATA_URL = `https://data.ny.gov/api/views/${NY_RETAIL_FOOD_DATASET_ID}`;
 export const NY_RETAIL_FOOD_API_URL = `https://data.ny.gov/resource/${NY_RETAIL_FOOD_DATASET_ID}.json`;
@@ -203,6 +204,9 @@ export function normalizeNyRetailFoodStore(source, context) {
       state: "NY",
       postal_code_source: postal.source,
       zip_code: postal.zip_code,
+      postal_code: postal.zip_code,
+      zip4: null,
+      country: "US",
       postal_code_status: postal.status,
       county_source: textValue(source.county),
       source_scope: "department-reported-physical-location-for-this-license-snapshot",
@@ -531,6 +535,7 @@ export async function buildNyRetailFoodStores({
       let normalized;
       try {
         normalized = normalizeNyRetailFoodStore(source, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
       } catch (error) {
         if (!QUARANTINE_REASONS.has(error.message)) throw error;
         await writeGzipRecord(quarantineWriter, { schema_version: NY_RETAIL_FOOD_SCHEMA_VERSION, source_record_id: textValue(source.license_number), reason: error.message, source_release_id: sourceReleaseId, ingest_run_id: runId, export_policy: "internal" });
@@ -723,7 +728,9 @@ export async function verifyNyRetailFoodStores(manifestPath) {
         if (!/^[0-9]{6}$/.test(id ?? "") || (previousId && id <= previousId)) throw new Error(`invalid source ordering at ${id}`);
         previousId = id;
         try {
-          expectedHash.update(json(replayRecord(normalizeNyRetailFoodStore(source, replayContext))));
+          const normalized = normalizeNyRetailFoodStore(source, replayContext);
+          assertNormalizedUsPostalFieldsDeep(normalized);
+          expectedHash.update(json(replayRecord(normalized)));
         } catch (error) {
           if (!QUARANTINE_REASONS.has(error.message)) throw error;
           expectedQuarantineHash.update(json({ schema_version: NY_RETAIL_FOOD_SCHEMA_VERSION, source_record_id: id, reason: error.message, source_release_id: manifest.source_release_id, ingest_run_id: manifest.run_id, export_policy: "internal" }));

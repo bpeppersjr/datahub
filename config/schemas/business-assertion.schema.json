@@ -46,5 +46,26 @@
         "source_field": { "type": ["string", "null"] }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "value_type": { "const": "address" } },
+        "required": ["value_type"]
+      },
+      "then": {
+        "properties": {
+          "value": {
+            "type": "object",
+            "required": ["zip_code", "postal_code", "zip4"],
+            "properties": {
+              "zip_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+              "postal_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+              "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

@@ -47,7 +47,7 @@
         "entity_resolution_release_id": { "type": "string", "minLength": 1 },
         "entity_resolution_benchmark_release_id": { "type": "string", "minLength": 1 },
         "census_nonemployer_release_id": { "type": "string", "minLength": 1 },
-        "transformation_version": { "const": "national-business-coverage-views@1.1.0" }
+        "transformation_version": { "const": "national-business-coverage-views@2.7.0" }
       }
     }
   }

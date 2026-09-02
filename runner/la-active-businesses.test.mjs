@@ -114,7 +114,8 @@ test("normalizes a source-defined active location, ZIP+4, DBAs, NAICS, and coord
   const normalized = normalizeLaActiveBusinessLocation(locationAccount({ mailing_address: "PRIVATE" }), context());
   assert.equal(normalized.entity_candidates.physical_site_id, "site:la_finance_location_0000000108_0001_3");
   assert.equal(normalized.entity_candidates.establishment_id, "establishment:la_finance_location_0000000108_0001_3");
-  assert.equal(normalized.address.postal_code, "90019-6037");
+  assert.equal(normalized.address.postal_code, "90019");
+  assert.equal(normalized.address.zip4, "6037");
   assert.equal(normalized.address.state, "CA");
   assert.deepEqual(normalized.other_names, ["Fixture Market", "Fixture Shop"]);
   assert.equal(normalized.industry_profile.naics_code, "445110");

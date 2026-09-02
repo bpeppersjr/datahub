@@ -2,7 +2,14 @@
   "connector_id": "usps-operational-zip-assignments",
   "version": "1.0.0",
   "implementation_status": "implemented-and-offline-verified-awaiting-explicit-authorized-use-basis-for-live-publication",
-  "description": "Acquires and reconciles the current USPS PostalPro Area/District and AISU ZIP files into a governed local operational ZIP assignment denominator.",
+  "description": "Acquires and reconciles current USPS PostalPro Area/District and AISU ZIP files as governed optional supplemental routing evidence.",
+  "usps_operational_zip_evidence": {
+    "role": "optional-supplemental-routing-evidence",
+    "required_for_spatial_zip_polygon_denominator": false,
+    "provides_polygon_geometry": false,
+    "zip4_polygon_applicability": "not-applicable",
+    "included_semantics": "ZIP5 appears in the current USPS Area/District assignment file; this is routing evidence, not polygon geometry or address-level deliverability."
+  },
   "lifecycle": [
     "preflight",
     "plan",

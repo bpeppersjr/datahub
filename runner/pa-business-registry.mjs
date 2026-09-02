@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const PA_BUSINESS_REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const PA_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "pa-business-registry@1.0.0";
+export const PA_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "pa-business-registry@1.0.1";
 export const PA_BUSINESS_REGISTRY_DATASET_ID = "3urc-uaba";
 export const PA_BUSINESS_REGISTRY_METADATA_URL = `https://data.pa.gov/api/views/${PA_BUSINESS_REGISTRY_DATASET_ID}`;
 export const PA_BUSINESS_REGISTRY_API_URL = `https://data.pa.gov/resource/${PA_BUSINESS_REGISTRY_DATASET_ID}.json`;
@@ -83,7 +84,7 @@ function postalCode(value) {
     return {
       raw,
       zip_code: exact[1],
-      postal_code: exact[2] ? `${exact[1]}-${exact[2]}` : exact[1],
+      postal_code: exact[1],
       zip4: exact[2] ?? null,
       status: exact[2] ? "normalized-zip-plus-4" : "normalized-zip5",
     };
@@ -539,6 +540,7 @@ export async function buildPaBusinessRegistry({
     }
     const source = preferredDuplicateRow(group);
     const normalized = normalizePaBusinessOrganization(source, context);
+    assertNormalizedUsPostalFieldsDeep(normalized);
     const filing = normalized.external_identifiers[0].value;
     if (filingIds.has(filing)) throw new Error(`Duplicate Pennsylvania filing number ${filing}.`);
     filingIds.add(filing);
@@ -609,7 +611,7 @@ export async function buildPaBusinessRegistry({
   const manifest = {
     schema_version: PA_BUSINESS_REGISTRY_SCHEMA_VERSION,
     dataset_id: "pa-business-registry-active-registrations",
-    connector: { id: "pa-business-registry", version: "1.0.0" },
+    connector: { id: "pa-business-registry", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

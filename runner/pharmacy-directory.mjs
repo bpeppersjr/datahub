@@ -42,8 +42,8 @@ function formatPostalCode(value) {
   const valueDigits = digits(value);
   if (valueDigits.length < 5) return null;
   const zipCode = valueDigits.slice(0, 5);
-  const plus4 = valueDigits.length >= 9 ? valueDigits.slice(5, 9) : '';
-  return { zipCode, postalCodePlus4: plus4 ? `${zipCode}-${plus4}` : zipCode, plus4Complete: Boolean(plus4) };
+  const zip4 = valueDigits.length >= 9 ? valueDigits.slice(5, 9) : null;
+  return { zipCode, postalCode: zipCode, zip4, plus4Complete: Boolean(zip4) };
 }
 
 function booleanValue(value) {
@@ -130,7 +130,7 @@ function taxonomyColumns(headers) {
 }
 
 function buildAddress(row) {
-  return [row.address1, row.address2, `${row.city}, ${row.state} ${row.postalCodePlus4}`]
+  return [row.address1, row.address2, `${row.city}, ${row.state} ${row.zipCode}`]
     .filter(Boolean)
     .join(', ');
 }
@@ -204,7 +204,8 @@ export async function buildRetailPharmacyDirectory({
       address2: columns.address2 ? String(record[columns.address2] ?? '').trim() : '',
       city: String(record[columns.city] ?? '').trim(),
       state: String(record[columns.state] ?? '').trim(),
-      postalCodePlus4: postal.postalCodePlus4,
+      postalCode: postal.postalCode,
+      zip4: postal.zip4,
       plus4Complete: postal.plus4Complete,
       driveThroughFlag: extra?.driveThroughFlag ?? null,
       mailOrderFlag: extra?.mailOrderFlag ?? taxonomyCodes.includes(MAIL_ORDER_TAXONOMY),
@@ -238,7 +239,7 @@ export async function buildRetailPharmacyDirectory({
   const jsonlStream = createWriteStream(temporaryJsonl, { encoding: 'utf8' });
   const coverageStream = createWriteStream(temporaryCoverage, { encoding: 'utf8' });
   const headers = [
-    'zip_code', 'name', 'physical_address', 'address_line_1', 'address_line_2', 'city', 'state', 'postal_code_plus4',
+    'zip_code', 'name', 'physical_address', 'address_line_1', 'address_line_2', 'city', 'state', 'postal_code', 'zip4',
     'plus4_complete', 'drive_through_flag', 'mail_order_flag', 'nabp_nbr', 'npi_nbr', 'network_affiliation',
     'parent_company', 'legal_business_name', 'taxonomy_codes',
   ];
@@ -253,7 +254,7 @@ export async function buildRetailPharmacyDirectory({
     await writeChunk(coverageStream, csvLine([zipCode, rows.length]));
     for (const row of rows) {
       await writeChunk(csvStream, csvLine([
-        row.zipCode, row.name, row.physicalAddress, row.address1, row.address2, row.city, row.state, row.postalCodePlus4,
+        row.zipCode, row.name, row.physicalAddress, row.address1, row.address2, row.city, row.state, row.postalCode, row.zip4,
         row.plus4Complete, row.driveThroughFlag, row.mailOrderFlag, row.nabpNbr, row.npiNbr, row.networkAffiliation,
         row.parentCompany, row.legalBusinessName, row.taxonomyCodes.join('|'),
       ]));

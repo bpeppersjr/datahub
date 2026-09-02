@@ -1,6 +1,6 @@
 {
   "connector_id": "fsis-mpi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Validates explicitly supplied current USDA FSIS active MPI directory and demographic CSV files, then normalizes regulated establishments, activities, grants, names, addresses, coordinates, ZIP coverage, provenance, and explicit limitations.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

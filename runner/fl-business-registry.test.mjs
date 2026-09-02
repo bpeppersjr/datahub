@@ -116,7 +116,8 @@ test("normalizes Florida active source evidence without inferring a site, owner,
   const normalized = normalizeFlBusinessOrganization(parseFlCorporateLine(fixedWidthRow()), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:fl_document_l26000451320");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_principal_address.postal_code, "33101-1234");
+  assert.equal(normalized.reported_principal_address.postal_code, "33101");
+  assert.equal(normalized.reported_principal_address.zip4, "1234");
   assert.equal(normalized.reported_principal_address.state_code, null);
   assert.equal(normalized.reported_principal_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.reported_address_coordinate, null);

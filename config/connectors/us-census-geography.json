@@ -2,6 +2,19 @@
   "connector_id": "us-census-geography",
   "version": "1.0.0",
   "description": "Builds versioned nationwide state, county, and ZCTA polygon releases from U.S. Census TIGERweb.",
+  "spatial_zip_polygon_denominator": {
+    "role": "authoritative-spatial-denominator-within-declared-census-zcta-scope",
+    "geography_type": "census-zcta5",
+    "selection_scope": "complete selected Census-published ZCTA5 polygon set for the declared source layer and vintage",
+    "completeness_gate": "complete_national_release must be true, every selected ZCTA artifact must verify, and coverage.zctas must equal coverage.source_available_counts.zctas",
+    "zip4_polygon_applicability": "not-applicable",
+    "not_asserted": ["current USPS ZIP assignment", "USPS delivery-route boundary", "address-level deliverability"]
+  },
+  "usps_operational_zip_evidence": {
+    "role": "optional-supplemental-routing-evidence",
+    "required_for_spatial_zip_polygon_denominator": false,
+    "provides_polygon_geometry": false
+  },
   "lifecycle": [
     "preflight",
     "plan",

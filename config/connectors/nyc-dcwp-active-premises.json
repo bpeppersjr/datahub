@@ -1,6 +1,6 @@
 {
   "connector_id": "nyc-dcwp-active-premises",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized, source-defined active NYC DCWP premise-license sites while grouping multiple license rows by the publisher's Business Unique ID.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

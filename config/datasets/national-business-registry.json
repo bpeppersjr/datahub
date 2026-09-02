@@ -9,6 +9,28 @@
   "relationship_schema": "config/schemas/business-relationship.schema.json",
   "location_match_profile_schema": "config/schemas/business-location-match-profile.schema.json",
   "required_foundations": ["us-census-geography", "census-zbp-baseline"],
+  "spatial_zip_polygon_denominator": {
+    "dataset_id": "us-census-geography",
+    "role": "authoritative-spatial-denominator-within-declared-census-zcta-scope",
+    "geography_type": "census-zcta5",
+    "selection_scope": "complete selected Census-published ZCTA5 polygon set pinned by release ID, manifest SHA-256, source layer, and vintage",
+    "required": true,
+    "zip4_polygon_applicability": "not-applicable",
+    "not_a_claim_of": ["USPS ZIP validity", "USPS delivery-route geometry", "address-level deliverability"]
+  },
+  "usps_operational_zip_evidence": {
+    "dataset_id": "usps-operational-zip-assignments",
+    "role": "optional-supplemental-routing-evidence",
+    "required": false,
+    "provides_polygon_geometry": false,
+    "absence_effect": "Does not block publication or use of the Census ZCTA5 spatial polygon denominator."
+  },
+  "next_release_contract": {
+    "publisher_version": "2.10.0",
+    "normalized_us_postal_fields": "zip_code and postal_code contain ZIP5 only; zip4 is a separate four-digit-or-null field",
+    "central_publication_gate": true,
+    "migration_sequence": "rebuild corrected source releases, then registry, entity resolution, benchmark, and coverage"
+  },
   "implemented_source_layers": [
     {
       "dataset_id": "usda-snap-retailers",
@@ -142,13 +164,15 @@
     },
     {
       "dataset_id": "usps-operational-zip-assignments",
-      "scope": "current PostalPro Area/District 5-digit ZIP assignment denominator reconciled against AISU routing rows",
+      "scope": "optional current PostalPro Area/District 5-digit ZIP routing evidence reconciled against AISU routing rows; not a spatial polygon denominator",
       "layer": "local-restricted-connector-awaiting-explicit-authorized-use-basis-for-live-release"
     }
   ],
   "required_coverage_dimensions": [
-    "authoritative ZIP validity evidence",
-    "ZIP/ZCTA polygon or explicit no-polygon status",
+    "authoritative complete-selected-set Census ZCTA5 spatial polygon denominator",
+    "optional supplemental USPS operational ZIP routing evidence",
+    "ZIP5-to-ZCTA5 polygon or explicit no-polygon status",
+    "ZIP+4 as a non-polygon postal identifier",
     "employer-establishment denominator",
     "record-level source contribution",
     "industry coverage",
@@ -161,6 +185,7 @@
     "scope": "USDA SNAP retailers, CMS NPPES organization providers, FDIC insured institutions and locations, NCUA federally insured credit unions and reported U.S. locations, USDA FSIS active MPI establishments, EPA ECHO source-designated active regulated facilities, FMCSA source-designated active registrations and principal offices, current IRS EO BMF organizations and filing addresses, Connecticut, Delaware, Alaska, Colorado, Washington L&I, Iowa, New York, Florida, and Pennsylvania registration or current-license organizations, Oregon active legal-entity and assumed-name registrations, and local-review-only Los Angeles Office of Finance active-business locations, Texas Comptroller active sales-tax permit taxpayers/outlets, City of Chicago BACP current active-license accounts/sites, DC DLCP Active Basic Business License customer/site groups, California ABC Active issued-license File Number premises, New York Agriculture and Markets retail-food-store licenses and conditional premises, and NYC DCWP Active Premises-license Business Unique ID groups",
     "release_id": "national-business-registry-20260902-043657439Z-c1eab4dd",
     "publisher_version": "2.9.0",
+    "normalized_postal_field_migration_status": "pre-correction-immutable-release",
     "source_records": 33971168,
     "organizations": 19239072,
     "brands": 116332,

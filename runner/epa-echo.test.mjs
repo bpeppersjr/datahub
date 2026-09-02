@@ -144,7 +144,8 @@ test("pins the documented 133-column EPA ECHO Exporter schema", () => {
 test("normalizes an ECHO-active facility without inferring an organization", () => {
   const normalized = normalizeEchoFacility(facility(), context());
   assert.equal(normalized.entity_candidates.organization_id, undefined);
-  assert.equal(normalized.address.postal_code, "60601-1234");
+  assert.equal(normalized.address.postal_code, "60601");
+  assert.equal(normalized.address.zip4, "1234");
   assert.equal(normalized.reported_location.precision_warning, "source-coordinate-is-a-centroid-not-a-premise-level-location");
   assert.deepEqual(normalized.source_classifications.naics_codes, ["311111", "311119"]);
   assert.deepEqual(normalized.program_associations.air.identifiers, ["IL0001", "IL0002"]);

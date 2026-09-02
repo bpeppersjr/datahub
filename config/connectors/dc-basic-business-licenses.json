@@ -1,6 +1,6 @@
 {
   "connector_id": "dc-basic-business-licenses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized, source-defined active District of Columbia Basic Business License customer/premise groups while preserving activity rows and official geocodes.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

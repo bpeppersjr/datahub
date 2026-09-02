@@ -8,9 +8,10 @@ import { finished, pipeline } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const IRS_EO_BMF_SCHEMA_VERSION = "1.0.0";
-export const IRS_EO_BMF_TRANSFORMATION_VERSION = "irs-eo-bmf@1.0.0";
+export const IRS_EO_BMF_TRANSFORMATION_VERSION = "irs-eo-bmf@1.0.1";
 export const IRS_EO_BMF_PAGE_URL = "https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf";
 export const IRS_EO_BMF_DICTIONARY_URL = "https://www.irs.gov/pub/foia/ig/tege/eo-info.pdf";
 
@@ -87,7 +88,7 @@ function postalCode(value) {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(\d{5})(?:-(\d{4}))?$/);
   if (!match || match[1] === "00000") return null;
-  return { zip_code: match[1], postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1], zip4: match[2] ?? null };
+  return { zip_code: match[1], postal_code: match[1], zip4: match[2] ?? null };
 }
 
 function yearMonth(value) {
@@ -527,6 +528,7 @@ export async function buildIrsEoBmf({
         }
         try {
           const normalized = normalizeIrsEoOrganization(source, context);
+          assertNormalizedUsPostalFieldsDeep(normalized);
           await writeGzipRecord(writers.get(ein[0]), normalized);
           const zipCode = normalized.reported_filing_address.zip_code;
           countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
@@ -610,7 +612,7 @@ export async function buildIrsEoBmf({
   const manifest = {
     schema_version: IRS_EO_BMF_SCHEMA_VERSION,
     dataset_id: "irs-eo-bmf-organizations",
-    connector: { id: "irs-eo-bmf", version: "1.0.0" },
+    connector: { id: "irs-eo-bmf", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

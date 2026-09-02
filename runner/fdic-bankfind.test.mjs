@@ -82,10 +82,16 @@ test("normalizes active FDIC institutions and current locations with scoped stat
   assert.equal(normalizedInstitution.source_status.value, "fdic-active-insured-institution-as-of-index");
   assert.match(normalizedInstitution.source_status.scope, /not a general statement/);
   assert.deepEqual(normalizedInstitution.headquarters.location.coordinates, [-73, 42]);
+  assert.equal(normalizedInstitution.headquarters.address.zip_code, "00100");
+  assert.equal(normalizedInstitution.headquarters.address.postal_code, "00100");
+  assert.equal(normalizedInstitution.headquarters.address.zip4, null);
   assert.equal(normalizeFdicInstitution({ ...institution, LATITUDE: null, LONGITUDE: "" }, context).headquarters.location, null);
   const normalizedLocation = normalizeFdicLocation(location, context);
   assert.equal(normalizedLocation.entity_candidates.physical_site_id, "site:fdic_location_501");
   assert.equal(normalizedLocation.service_type.code, 11);
+  assert.equal(normalizedLocation.address.zip_code, "00100");
+  assert.equal(normalizedLocation.address.postal_code, "00100");
+  assert.equal(normalizedLocation.address.zip4, null);
   assert.match(normalizedLocation.source_status.scope, /not independent confirmation of public access/);
 });
 

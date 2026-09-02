@@ -10,10 +10,14 @@
     "local processing",
     "analysis",
     "derived datasets",
+    "use of the complete selected Census ZCTA5 polygon set as the authoritative spatial denominator for analyses explicitly scoped to that Census layer and vintage",
     "redistribution with source and vintage metadata"
   ],
   "prohibited_use": [
     "representing ZCTAs as exact USPS delivery-route boundaries",
+    "representing the ZCTA5 polygon denominator as the universe of current or deliverable USPS ZIP Codes",
+    "assigning a polygon to a ZIP+4 or to a USPS ZIP5 that has no corresponding Census ZCTA5 polygon",
+    "adding a probabilistic confidence percentage to direct Census-published geometry",
     "removing source, vintage, or generalization metadata from published derivatives"
   ],
   "attribution": "Source: U.S. Census Bureau TIGERweb/TIGER/Line.",

@@ -11,6 +11,12 @@
     "operational_zip_assignments": "derived/operational-zip-assignments.jsonl",
     "routing_only_summary": "derived/routing-only-summary.json"
   },
+  "usps_operational_zip_evidence": {
+    "role": "optional-supplemental-routing-evidence",
+    "required_for_spatial_zip_polygon_denominator": false,
+    "provides_polygon_geometry": false,
+    "zip4_polygon_applicability": "not-applicable"
+  },
   "coverage_semantics": {
     "included": "ZIP appears in the current USPS AREADIST_ZIP5 Area/District assignment file.",
     "excluded": "AISUZIPS-only routing rows are not counted as operational Area/District assignments.",

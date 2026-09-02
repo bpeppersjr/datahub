@@ -8,9 +8,10 @@ import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const AK_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
-export const AK_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "ak-active-business-licenses@1.0.0";
+export const AK_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "ak-active-business-licenses@1.0.1";
 export const AK_BUSINESS_LICENSE_URL = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
 export const AK_BUSINESS_NAICS_URL = "https://www.commerce.alaska.gov/cbp/main/DbDownload/NaicsDownload";
 export const AK_BUSINESS_LICENSE_PAGE_URL = "https://www.commerce.alaska.gov/cbp/main/";
@@ -175,7 +176,7 @@ function postalCode(zipValue, plusValue) {
   const sourceZip = textValue(zipValue);
   const sourcePlus = textValue(plusValue);
   if (!/^[0-9]{5}$/.test(sourceZip ?? "") || sourceZip === "00000") {
-    return { source_zip: sourceZip, source_zip_plus: sourcePlus, zip_code: null, zip4: null, postal_code: sourceZip, status: "invalid-or-non-us-postal-code" };
+    return { source_zip: sourceZip, source_zip_plus: sourcePlus, zip_code: null, zip4: null, postal_code: null, status: "invalid-or-non-us-postal-code" };
   }
   if (sourcePlus !== null && !/^[0-9]{4}$/.test(sourcePlus)) {
     return { source_zip: sourceZip, source_zip_plus: sourcePlus, zip_code: sourceZip, zip4: null, postal_code: sourceZip, status: "valid-zip5-invalid-extension-excluded" };
@@ -185,7 +186,7 @@ function postalCode(zipValue, plusValue) {
     source_zip_plus: sourcePlus,
     zip_code: sourceZip,
     zip4: sourcePlus,
-    postal_code: sourcePlus ? `${sourceZip}-${sourcePlus}` : sourceZip,
+    postal_code: sourceZip,
     status: sourcePlus ? "valid-zip5-plus4-source-reported" : "valid-zip5-source-reported",
   };
 }
@@ -685,6 +686,7 @@ export async function buildAkActiveBusinessLicenses({
       signal?.throwIfAborted?.();
       try {
         const normalized = normalizeAkBusinessLicense(source, classificationsByLicense.get(source.license_number) ?? [], context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
         await writeGzipRecord(writers.get(sha256(normalized.license_profile.license_number)[0]), normalized);
         organizations += 1;
         acceptedNaicsPairs += normalized.license_profile.distinct_naics_count;
@@ -773,7 +775,7 @@ export async function buildAkActiveBusinessLicenses({
   const manifest = {
     schema_version: AK_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "ak-active-business-licenses",
-    connector: { id: "ak-active-business-licenses", version: "1.0.0" },
+    connector: { id: "ak-active-business-licenses", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

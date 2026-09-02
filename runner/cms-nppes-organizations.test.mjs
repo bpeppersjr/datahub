@@ -51,7 +51,8 @@ test('normalizes an active organization NPI without claiming licensure or an ope
   const result = normalizeNppesOrganization(organization(), context);
   assert.equal(result.kind, 'active-organization');
   assert.equal(result.record.entity_candidates.organization_id, 'organization:cms_npi_1234567890');
-  assert.equal(result.record.primary_practice_location.address.postal_code, '60601-1234');
+  assert.equal(result.record.primary_practice_location.address.postal_code, '60601');
+  assert.equal(result.record.primary_practice_location.address.zip4, '1234');
   assert.equal(result.record.other_organization_name_type, 'doing-business-as');
   assert.equal(result.record.npi_status.value, 'npi-active-as-of-source-release');
   assert.match(result.record.npi_status.scope, /does not prove a practice location is open/);

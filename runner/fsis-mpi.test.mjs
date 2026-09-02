@@ -92,7 +92,8 @@ async function gunzipRecords(filename) {
 test("normalizes FSIS establishment identity, ZIP+4, activities, grants, and demographics", () => {
   const normalized = normalizeFsisEstablishment(directory(), demographic(), context());
   assert.equal(normalized.entity_candidates.establishment_id, "establishment:fsis_establishment_100");
-  assert.equal(normalized.address.postal_code, "60601-1234");
+  assert.equal(normalized.address.postal_code, "60601");
+  assert.equal(normalized.address.zip4, "1234");
   assert.deepEqual(normalized.activities, ["Meat Processing", "Poultry Processing"]);
   assert.deepEqual(normalized.active_grants.active, ["meat", "poultry"]);
   assert(normalized.reported_demographics.active_flags.includes("processing"));

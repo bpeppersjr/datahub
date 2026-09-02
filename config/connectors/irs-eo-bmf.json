@@ -1,6 +1,6 @@
 {
   "connector_id": "irs-eo-bmf",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Discovers and streams the four official monthly IRS EO Business Master File regional CSVs, then publishes current-extract exempt-organization candidates with EINs, public names, filing addresses, tax-status classifications, ZIP/ZCTA context, provenance, exclusions, and explicit semantic limitations.",
   "lifecycle": ["preflight", "discover", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

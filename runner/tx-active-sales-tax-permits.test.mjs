@@ -108,7 +108,9 @@ test("normalizes a permit outlet without overstating business status", () => {
   assert.equal(normalized.entity_candidates.organization_id, "organization:tx_cpa_taxpayer_32089812484");
   assert.equal(normalized.entity_candidates.physical_site_id, "site:tx_cpa_sales_tax_outlet_32089812484_1");
   assert.equal(normalized.entity_candidates.establishment_id, "establishment:tx_cpa_sales_tax_outlet_32089812484_1");
+  assert.equal(normalized.physical_address.zip_code, "78701");
   assert.equal(normalized.physical_address.postal_code, "78701");
+  assert.equal(normalized.physical_address.zip4, null);
   assert.equal(normalized.geography.zcta_geo_id, "zcta:78701");
   assert.equal(normalized.taxpayer_profile.organization_type_code, "CL");
   assert.equal(normalized.permit_profile.naics_code, "445110");

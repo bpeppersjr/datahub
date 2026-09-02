@@ -8,11 +8,12 @@ import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import ssh2 from "ssh2";
 import unzipper from "unzipper";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 const { Client } = ssh2;
 
 export const FL_BUSINESS_REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const FL_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "fl-business-registry@1.0.0";
+export const FL_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "fl-business-registry@1.0.1";
 export const FL_BUSINESS_REGISTRY_HOST = "sftp.floridados.gov";
 export const FL_BUSINESS_REGISTRY_USERNAME = "Public";
 export const FL_BUSINESS_REGISTRY_REMOTE_PATH = "/Public/doc/quarterly/cor/cordata.zip";
@@ -126,7 +127,7 @@ function postalCode(value) {
   return {
     raw,
     zip_code: match[1],
-    postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1],
+    postal_code: match[1],
     zip4: match[2] ?? null,
     status: match[2] ? "normalized-zip-plus-4" : "normalized-zip5",
   };
@@ -743,6 +744,7 @@ export async function buildFlBusinessRegistry({
         activeSourceRecords += 1;
         try {
           const normalized = normalizeFlBusinessOrganization(source, context);
+          assertNormalizedUsPostalFieldsDeep(normalized);
           const id = normalized.external_identifiers[0].value;
           await writeGzipRecord(partitions.get(sha256(id)[0]), normalized);
           organizations += 1;
@@ -818,7 +820,7 @@ export async function buildFlBusinessRegistry({
     const manifest = {
       schema_version: FL_BUSINESS_REGISTRY_SCHEMA_VERSION,
       dataset_id: "fl-business-registry-quarterly-active-entities",
-      connector: { id: "fl-business-registry", version: "1.0.0" },
+      connector: { id: "fl-business-registry", version: "1.0.1" },
       release_id: releaseId,
       run_id: runId,
       retrieved_at: retrievedAt,

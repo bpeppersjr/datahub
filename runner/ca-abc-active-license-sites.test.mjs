@@ -112,7 +112,8 @@ test("groups active issued license types into one source-preserving premise", ()
   assert.equal(normalized.entity_candidates.physical_site_id, "physical_site:ca_abc_file_00123456");
   assert.equal(normalized.license_activities.length, 3);
   assert.deepEqual(normalized.names.dba_names, ["FIXTURE MARKET", "FIXTURE MARKET CAFE"]);
-  assert.equal(normalized.premise_address.postal_code, "90001-1234");
+  assert.equal(normalized.premise_address.postal_code, "90001");
+  assert.equal(normalized.premise_address.zip4, "1234");
   assert.equal(normalized.export_policy, "local-review-only");
 });
 

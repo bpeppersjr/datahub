@@ -154,7 +154,8 @@ test("normalizes active license, address, dates, and NAICS without inferring own
   assert.equal(normalized.entity_candidates.organization_id, "organization:ak_dcced_business_license_1001");
   assert.equal(normalized.entity_candidates.physical_site_id, "site:ak_dcced_business_license_1001");
   assert.equal(normalized.entity_candidates.establishment_id, "establishment:ak_dcced_business_license_1001");
-  assert.equal(normalized.physical_address.postal_code, "99501-1234");
+  assert.equal(normalized.physical_address.postal_code, "99501");
+  assert.equal(normalized.physical_address.zip4, "1234");
   assert.equal(normalized.license_profile.naics_classifications.length, 2);
   assert.equal(normalized.license_profile.naics_classifications[0].naics_code, "445110");
   assert.equal(normalized.license_profile.has_telemedicine, false);
@@ -171,6 +172,7 @@ test("retains active organization evidence but refuses foreign and P.O. Box site
   const foreign = normalizeAkBusinessLicense(selectedLicense({ physical_country: "CANADA", physical_state: "BC", physical_zip: "V6B 1A1", physical_zip_plus: null }), [], context());
   assert.equal(foreign.entity_candidates.physical_site_id, undefined);
   assert.equal(foreign.physical_address.site_inference_eligible, false);
+  assert.equal(foreign.physical_address.postal_code, null);
   const poBox = normalizeAkBusinessLicense(selectedLicense({ physical_line_1: "PO Box 100", physical_unit: null, physical_line_2_disposition: "blank" }), [], context());
   assert.equal(poBox.entity_candidates.physical_site_id, undefined);
   assert.equal(poBox.physical_address.site_inference_reason, "nonphysical-post-office-box");

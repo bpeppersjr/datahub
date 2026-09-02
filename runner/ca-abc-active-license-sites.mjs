@@ -8,9 +8,10 @@ import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import unzipper from "unzipper";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const CA_ABC_SCHEMA_VERSION = "1.0.0";
-export const CA_ABC_TRANSFORMATION_VERSION = "ca-abc-active-license-sites@1.0.0";
+export const CA_ABC_TRANSFORMATION_VERSION = "ca-abc-active-license-sites@1.0.1";
 export const CA_ABC_ARCHIVE_URL = "https://www.abc.ca.gov/wp-content/uploads/DailyExport-CSV.zip";
 export const CA_ABC_PAGE_URL = "https://www.abc.ca.gov/licensing/licensing-reports/";
 export const CA_ABC_LAYOUT_URL = "https://www.abc.ca.gov/licensing/licensing-reports/weekly-data-export-fixed-width-layout-definition/";
@@ -149,7 +150,7 @@ function postalAddress(records, baselineByZip) {
     state,
     zip_code: match[1],
     zip4: match[2] ?? null,
-    postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1],
+    postal_code: match[1],
     country: "US",
     source_premise_county: counties[0] ?? null,
     source_premise_census_tract: tracts[0] ?? null,
@@ -587,6 +588,7 @@ export async function buildCaAbcActiveLicenseSites({
       signal?.throwIfAborted?.();
       try {
         const normalized = normalizeCaAbcActiveLicenseSite(records, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
         await writeGzipRecord(partitions.get(sha256(normalized.source_record_id)[0]), normalized);
         sites += 1;
         licenseActivities += normalized.license_activities.length;
@@ -637,7 +639,7 @@ export async function buildCaAbcActiveLicenseSites({
     source_archive_sha256: metadata.archiveSha256, source_archive_bytes: metadata.bytes, source_updated_label: metadata.sourceUpdatedLabel,
     status: "published", complete_selected_active_issued_license_snapshot: true, raw_archive_retained: false,
     selection: { type_status: "ACTIVE", license_or_application: "LIC" },
-    publisher: { id: "ca-abc-active-license-sites", version: "1.0.0" },
+    publisher: { id: "ca-abc-active-license-sites", version: "1.0.1" },
     dependencies: [baseline.dependency],
     source: {
       publisher: "California Department of Alcoholic Beverage Control", archive_url: CA_ABC_ARCHIVE_URL, page_url: CA_ABC_PAGE_URL,

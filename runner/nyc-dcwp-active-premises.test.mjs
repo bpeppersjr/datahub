@@ -58,7 +58,7 @@ function license(overrides = {}) {
     apt_suite: "101",
     address_city: "NEW YORK",
     address_state: "NY",
-    address_zip: "10018",
+    address_zip: "10018-1234",
     address_borough: "Manhattan",
     community_board: "104",
     council_district: "03",
@@ -141,6 +141,8 @@ test("groups multiple active premise licenses by Business Unique ID", () => {
   assert.equal(normalized.entity_candidates.physical_site_id, "site:nyc_dcwp_business_ba_1305489_2022");
   assert.equal(normalized.active_licenses.length, 2);
   assert.equal(normalized.address.zip_code, "10018");
+  assert.equal(normalized.address.postal_code, "10018");
+  assert.equal(normalized.address.zip4, "1234");
   assert.deepEqual(normalized.location.coordinates, [-73.99056478174674, 40.7561920718278]);
   assert.equal(normalized.source_status.status, "Active premise license (source-defined)");
   assert.equal(normalized.export_policy, "local-review-only");

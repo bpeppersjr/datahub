@@ -1,6 +1,6 @@
 {
   "connector_id": "ak-active-business-licenses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized organization candidates and conditional provisional physical sites from Alaska DCCED's full active Business License and NAICS downloads.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

@@ -21,10 +21,11 @@
     },
     "premise_address": {
       "type": "object",
-      "required": ["address_line_1", "city", "state", "zip_code", "postal_code", "country", "validation_status"],
+      "required": ["address_line_1", "city", "state", "zip_code", "postal_code", "zip4", "country", "validation_status"],
       "properties": {
         "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" },
-        "postal_code": { "type": "string", "pattern": "^[0-9]{5}(?:-[0-9]{4})?$" },
+        "postal_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+        "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
         "country": { "const": "US" }
       }
     },

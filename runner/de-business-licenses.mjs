@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const DE_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
-export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.0";
+export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.1";
 export const DE_BUSINESS_LICENSE_DATASET_ID = "5zy2-grhr";
 export const DE_BUSINESS_LICENSE_METADATA_URL = `https://data.delaware.gov/api/views/${DE_BUSINESS_LICENSE_DATASET_ID}`;
 export const DE_BUSINESS_LICENSE_API_URL = `https://data.delaware.gov/resource/${DE_BUSINESS_LICENSE_DATASET_ID}.json`;
@@ -91,7 +92,7 @@ function postalCode(value) {
     return {
       raw,
       zip_code: exact[1],
-      postal_code: exact[2] ? `${exact[1]}-${exact[2]}` : exact[1],
+      postal_code: exact[1],
       zip4: exact[2] ?? null,
       status: exact[2] ? "normalized-zip-plus-4" : "normalized-zip5",
     };
@@ -573,6 +574,7 @@ export async function buildDeBusinessLicenses({
     if (group.length > 1) repeatedLicenseGroups += 1;
     try {
       const normalized = normalizeDeBusinessLicense(group, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       const licenseNumber = normalized.external_identifiers[0].value;
       if (licenseIds.has(licenseNumber)) throw new Error(`Duplicate Delaware license number ${licenseNumber}.`);
       licenseIds.add(licenseNumber);
@@ -668,7 +670,7 @@ export async function buildDeBusinessLicenses({
   const manifest = {
     schema_version: DE_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "de-business-licenses-current",
-    connector: { id: "de-business-licenses", version: "1.0.0" },
+    connector: { id: "de-business-licenses", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

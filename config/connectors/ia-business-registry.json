@@ -1,6 +1,6 @@
 {
   "connector_id": "ia-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a privacy-minimized snapshot of active Iowa Secretary of State entities from the official monthly Iowa Data Hub archive, preserving source-defined home-office evidence, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

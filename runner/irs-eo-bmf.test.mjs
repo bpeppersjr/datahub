@@ -147,7 +147,8 @@ test("normalizes an IRS exempt organization without inferring a physical site or
   const normalized = normalizeIrsEoOrganization(organization(), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:irs_ein_123456789");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_filing_address.postal_code, "60601-1234");
+  assert.equal(normalized.reported_filing_address.postal_code, "60601");
+  assert.equal(normalized.reported_filing_address.zip4, "1234");
   assert.equal(normalized.reported_filing_address.address_scope, "irs-filing-or-headquarters-address-not-verified-physical-operating-site");
   assert.equal(normalized.tax_exempt_profile.exempt_status.code, "01");
   assert.deepEqual(normalized.other_names, [{ name: "Fixture Foundation", name_type: "irs-sort-name-secondary-name-line" }]);

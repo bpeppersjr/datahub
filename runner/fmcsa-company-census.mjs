@@ -8,9 +8,10 @@ import { finished, pipeline } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const FMCSA_SCHEMA_VERSION = "1.0.0";
-export const FMCSA_TRANSFORMATION_VERSION = "fmcsa-company-census@1.0.1";
+export const FMCSA_TRANSFORMATION_VERSION = "fmcsa-company-census@1.0.2";
 export const FMCSA_DATASET_ID = "az4n-8mr2";
 export const FMCSA_METADATA_URL = `https://data.transportation.gov/api/views/${FMCSA_DATASET_ID}`;
 export const FMCSA_RESOURCE_URL = `https://data.transportation.gov/resource/${FMCSA_DATASET_ID}`;
@@ -115,7 +116,7 @@ function postalCode(value) {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(\d{5})(?:-?(\d{4}))?$/);
   if (!match || match[1] === "00000") return null;
-  return { zip_code: match[1], postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1], zip4: match[2] ?? null };
+  return { zip_code: match[1], postal_code: match[1], zip4: match[2] ?? null };
 }
 
 function sourceDate(value, withOptionalTime = false) {
@@ -607,6 +608,7 @@ export async function buildFmcsaCompanyCensus({
       const sourceId = text(source.dot_number);
       try {
         const normalized = normalizeFmcsaCompany(source, context);
+        assertNormalizedUsPostalFieldsDeep(normalized);
         const zipCode = normalized.address.zip_code;
         await writeGzipRecord(writers.get(zipCode[0]), normalized);
         countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
@@ -681,7 +683,7 @@ export async function buildFmcsaCompanyCensus({
   const manifest = {
     schema_version: FMCSA_SCHEMA_VERSION,
     dataset_id: "fmcsa-active-us-company-census",
-    connector: { id: "fmcsa-company-census", version: "1.0.1" },
+    connector: { id: "fmcsa-company-census", version: "1.0.2" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

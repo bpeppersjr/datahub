@@ -1,6 +1,6 @@
 {
   "connector_id": "usda-snap-retailers",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Acquires the public USDA SNAP current-authorized retailer point snapshot and normalizes source-anchored establishment candidates.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -33,5 +33,5 @@
   "source_policy": "config/source-policies/usda-snap-retailers.json",
   "retention_profile": "Retain immutable public source snapshots and derived records until an approved retention operation removes them.",
   "produced_entities": ["physical-site-candidate", "establishment-candidate", "snap-service-assertion"],
-  "produced_identifiers": ["usda-snap-record-id", "zip5", "zip9", "zcta5"]
+  "produced_identifiers": ["usda-snap-record-id", "zip5", "zip4", "zcta5"]
 }

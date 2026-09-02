@@ -1,6 +1,6 @@
 {
   "connector_id": "fdic-bankfind",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Acquires the pinned current FDIC BankFind active-institution and location indexes and normalizes institution, office, address, point, service-type, status, and temporal evidence.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

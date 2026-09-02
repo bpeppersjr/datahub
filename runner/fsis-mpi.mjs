@@ -7,9 +7,10 @@ import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse/sync";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const FSIS_MPI_SCHEMA_VERSION = "1.0.0";
-export const FSIS_MPI_TRANSFORMATION_VERSION = "fsis-mpi@1.0.0";
+export const FSIS_MPI_TRANSFORMATION_VERSION = "fsis-mpi@1.0.1";
 export const FSIS_MPI_PAGE_URL = "https://www.fsis.usda.gov/inspection/establishments/meat-poultry-and-egg-product-inspection-directory";
 export const FSIS_MPI_DIRECTORY_URL = "https://www.fsis.usda.gov/sites/default/files/media_file/documents/MPI_Directory_by_Establishment_Name.csv";
 export const FSIS_MPI_DEMOGRAPHIC_URL = "https://www.fsis.usda.gov/sites/default/files/media_file/documents/Dataset_Establishment_Demographic_Data.csv";
@@ -93,7 +94,7 @@ function postalCode(value) {
   const match = raw.match(/^(\d{3,5})(?:-(\d{4}))?$/);
   if (!match) return null;
   const zipCode = match[1].padStart(5, "0");
-  return { zip_code: zipCode, postal_code: match[2] ? `${zipCode}-${match[2]}` : zipCode, zip4: match[2] ?? null };
+  return { zip_code: zipCode, postal_code: zipCode, zip4: match[2] ?? null };
 }
 
 function fipsCode(value) {
@@ -411,6 +412,7 @@ export async function buildFsisMpi({
       const demographicRow = demographicById.get(id);
       if (!demographicRow) throw new Error("missing-demographic-row");
       const normalized = normalizeFsisEstablishment(source, demographicRow, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       ids.add(id);
       const zipCode = normalized.address.zip_code;
       await writeGzipRecord(writers.get(zipCode[0]), normalized);
@@ -450,7 +452,7 @@ export async function buildFsisMpi({
   const manifest = {
     schema_version: FSIS_MPI_SCHEMA_VERSION,
     dataset_id: "fsis-active-mpi-establishments",
-    connector: { id: "fsis-mpi", version: "1.0.0" },
+    connector: { id: "fsis-mpi", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

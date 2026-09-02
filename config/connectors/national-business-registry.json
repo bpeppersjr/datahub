@@ -1,6 +1,6 @@
 {
   "connector_id": "national-business-registry",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "description": "Reconciles governed record-level source releases into canonical business entities, assertions, relationships, and ZIP coverage without overstating completeness.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -33,7 +33,7 @@
       "ca_abc_active_licenses_pointer": { "type": "string", "default": "data/business-sources/ca-abc-active-license-sites/current.json" },
       "ny_retail_food_stores_pointer": { "type": "string", "default": "data/business-sources/ny-retail-food-store-license-sites/current.json" },
       "nyc_dcwp_active_licenses_pointer": { "type": "string", "default": "data/business-sources/nyc-dcwp-active-license-sites/current.json" },
-      "usps_zips_pointer": { "type": ["string", "null"], "default": null, "description": "Optional governed local USPS operational ZIP assignment release." }
+      "usps_zips_pointer": { "type": ["string", "null"], "default": null, "description": "Optional governed local USPS operational ZIP routing-evidence release; it is not required for the Census ZCTA5 spatial polygon denominator." }
     }
   },
   "named_secret_references": [],

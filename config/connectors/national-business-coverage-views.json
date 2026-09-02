@@ -1,8 +1,19 @@
 {
   "connector_id": "national-business-coverage-views",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "implementation_status": "implemented-and-live-verified-against-registry-2.9",
   "description": "Publishes governed national through ZIP coverage views and explicit gaps from immutable registry and geography dependencies.",
+  "spatial_zip_polygon_denominator": {
+    "role": "authoritative-spatial-denominator-within-declared-census-zcta-scope",
+    "geography_type": "census-zcta5",
+    "required_dependency": "us-census-geography",
+    "zip4_polygon_applicability": "not-applicable"
+  },
+  "usps_operational_zip_evidence": {
+    "role": "optional-supplemental-routing-evidence",
+    "required": false,
+    "provides_polygon_geometry": false
+  },
   "lifecycle": ["preflight", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",

@@ -97,6 +97,8 @@ test("normalizes license, site, source geocode, and documented and undocumented 
   assert.equal(normalized.entity_candidates.organization_id, "organization:ny_agm_retail_food_license_010008");
   assert.equal(normalized.entity_candidates.physical_site_id, "site:ny_agm_retail_food_license_010008");
   assert.equal(normalized.physical_address.zip_coverage_eligible, true);
+  assert.equal(normalized.physical_address.postal_code, normalized.physical_address.zip_code);
+  assert.equal(normalized.physical_address.zip4, null);
   assert.equal(normalized.geography.zcta_geoid, "12054");
   assert.equal(normalized.reported_coordinate.premise_coordinate_claim_permitted, false);
   assert.equal(normalized.retail_food_store_license_profile.square_footage_source_reported, 2800);

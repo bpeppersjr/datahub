@@ -1,6 +1,6 @@
 {
   "connector_id": "fl-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes rows explicitly coded A from Florida's official quarterly corporate data, retaining a privacy-minimized all-status source snapshot plus active organization identity, filing profile, reported principal address, temporal evidence, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "privacy-minimize", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

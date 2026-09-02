@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const OR_BUSINESS_REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const OR_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "or-business-registry@1.0.0";
+export const OR_BUSINESS_REGISTRY_TRANSFORMATION_VERSION = "or-business-registry@1.0.1";
 export const OR_BUSINESS_REGISTRY_DATASET_ID = "tckn-sxa6";
 export const OR_BUSINESS_REGISTRY_METADATA_URL = `https://data.oregon.gov/api/views/${OR_BUSINESS_REGISTRY_DATASET_ID}`;
 export const OR_BUSINESS_REGISTRY_API_URL = `https://data.oregon.gov/resource/${OR_BUSINESS_REGISTRY_DATASET_ID}.json`;
@@ -105,7 +106,7 @@ function postalCode(value) {
   return {
     raw,
     zip_code: match[1],
-    postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1],
+    postal_code: match[1],
     zip4: match[2] ?? null,
     status: match[2] ? "normalized-zip-plus-4" : "normalized-zip5",
   };
@@ -577,6 +578,7 @@ export async function buildOrBusinessRegistry({
     let normalized;
     try {
       normalized = normalizeOrBusinessRegistration(group, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
     } catch (error) {
       if (!["missing-or-invalid-registration-identity", "inconsistent-registration-group"].includes(error.message)) throw error;
       await writeGzipRecord(quarantineWriter, {
@@ -683,7 +685,7 @@ export async function buildOrBusinessRegistry({
   const manifest = {
     schema_version: OR_BUSINESS_REGISTRY_SCHEMA_VERSION,
     dataset_id: "or-business-registry-active-registrations",
-    connector: { id: "or-business-registry", version: "1.0.0" },
+    connector: { id: "or-business-registry", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

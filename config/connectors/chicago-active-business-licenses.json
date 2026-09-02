@@ -1,6 +1,6 @@
 {
   "connector_id": "chicago-active-business-licenses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized, source-defined current active City of Chicago business-license sites while preserving every license row and avoiding one-license-equals-one-business overcounting.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

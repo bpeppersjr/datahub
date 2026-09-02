@@ -121,7 +121,8 @@ test("pins the minimized FMCSA selected schema", () => {
 test("normalizes source-specific active registration and does not infer an organization", () => {
   const normalized = normalizeFmcsaCompany(company({ docket2prefix: "MC", docket2: "12345", docket2_status_code: "A" }), context());
   assert.equal(normalized.external_identifiers[0].value, "100");
-  assert.equal(normalized.address.postal_code, "60601-1234");
+  assert.equal(normalized.address.postal_code, "60601");
+  assert.equal(normalized.address.zip4, "1234");
   assert.equal(normalized.entity_candidates.organization_id, undefined);
   assert.equal(normalized.registration_profile.business_organization_type.completeness_warning, "source-dictionary-identifies-this-as-review-only-and-the-field-is-not-complete");
   assert.deepEqual(normalized.registration_profile.entity_roles.map((item) => item.label), ["carrier", "shipper"]);

@@ -51,6 +51,14 @@ data/geography/
 
 The source GeoJSON keeps Census-native fields. Normalized JSON Lines indexes add stable typed IDs, numeric area fields, Census centroid and internal-point coordinates, bounding boxes, source feature IDs, and the file containing each geometry.
 
+## Spatial ZIP polygon denominator
+
+For ZIP-shaped spatial coverage, Co*Tive Collector uses the complete selected Census-published ZCTA5 polygon set as its authoritative spatial denominator. This authority is deliberately narrow: it applies to the declared Census ZCTA layer and vintage, not to the universe of USPS ZIP Codes or to delivery geography.
+
+A release qualifies as the denominator only after independent verification confirms `complete_national_release: true`, validates every selected ZCTA artifact, and reconciles `coverage.zctas` exactly to `coverage.source_available_counts.zctas`. Consumers pin the geography release and manifest checksum and label percentages with that exact Census ZCTA5 denominator and vintage. The polygons are direct Census-published geometry, so no probabilistic confidence percentage is attached.
+
+USPS operational ZIP evidence is optional supplemental routing evidence. Its absence does not block the Census ZCTA5 spatial denominator, and its presence does not create or change polygon geometry. ZIP+4 is a routing/address refinement and has no polygon in this contract.
+
 ## Boundary semantics
 
 - States and counties use the TIGERweb **Current** layers as of retrieval.

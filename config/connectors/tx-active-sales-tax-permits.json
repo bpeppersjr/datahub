@@ -1,6 +1,6 @@
 {
   "connector_id": "tx-active-sales-tax-permits",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized Texas Comptroller active sales-tax permit taxpayers and physical outlets without converting permit status into a general operating-status claim.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

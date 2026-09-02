@@ -7,8 +7,10 @@ import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+
 export const FDIC_SCHEMA_VERSION = "1.0.0";
-export const FDIC_TRANSFORMATION_VERSION = "fdic-bankfind@1.0.0";
+export const FDIC_TRANSFORMATION_VERSION = "fdic-bankfind@1.0.1";
 export const FDIC_API_ROOT = "https://api.fdic.gov/banks";
 
 const INSTITUTION_FIELDS = [
@@ -82,6 +84,7 @@ function address(source) {
     state,
     zip_code: zipCode,
     postal_code: zipCode,
+    zip4: null,
     county_name: text(source.COUNTY),
     state_county_fips: stateCountyFips ? stateCountyFips.padStart(5, "0") : null,
     country: "US",
@@ -426,6 +429,7 @@ export async function buildFdicBankfind({
   for (const source of pendingInstitutionRecords) {
     try {
       const normalized = normalizeFdicInstitution(source, context);
+      assertNormalizedUsPostalFieldsDeep(normalized, "fdic institution");
       const certificate = normalized.external_identifiers[0].value;
       if (institutionIds.has(normalized.normalized_record_id)) throw new Error("duplicate-institution-id");
       institutionIds.add(normalized.normalized_record_id);
@@ -452,6 +456,7 @@ export async function buildFdicBankfind({
       await writeGzipRecord(rawLocationWriter, wrapper);
       try {
         const normalized = normalizeFdicLocation(wrapper.data, context);
+        assertNormalizedUsPostalFieldsDeep(normalized, "fdic location");
         if (locationIds.has(normalized.normalized_record_id)) throw new Error("duplicate-location-id");
         locationIds.add(normalized.normalized_record_id);
         const zipCode = normalized.address.zip_code;
@@ -502,7 +507,7 @@ export async function buildFdicBankfind({
   const manifest = {
     schema_version: FDIC_SCHEMA_VERSION,
     dataset_id: "fdic-bankfind",
-    connector: { id: "fdic-bankfind", version: "1.0.0" },
+    connector: { id: "fdic-bankfind", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

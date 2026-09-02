@@ -125,7 +125,8 @@ test("normalizes registration evidence without inferring a physical site", () =>
   }), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:ct_sots_record_0018y000008a1JIAAY");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_business_address.postal_code, "06850-3910");
+  assert.equal(normalized.reported_business_address.postal_code, "06850");
+  assert.equal(normalized.reported_business_address.zip4, "3910");
   assert.equal(normalized.reported_business_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.reported_address_coordinate.coordinate_scope, "source-geocoded-reported-business-address-not-verified-physical-operating-site");
   assert.equal(normalized.registration_profile.naics.code, "812930");

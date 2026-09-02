@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -39,31 +40,37 @@ function jsonLines(values) {
   return values.length ? `${values.map((value) => JSON.stringify(value)).join("\n")}\n` : "";
 }
 
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
 async function writeArtifact(releaseDirectory, relativePath, value, metadata = {}) {
   const filePath = path.join(releaseDirectory, relativePath);
   await mkdir(path.dirname(filePath), { recursive: true });
   await writeFile(filePath, value);
-  return { path: relativePath.replaceAll("\\", "/"), bytes: Buffer.byteLength(value), ...metadata };
+  return { path: relativePath.replaceAll("\\", "/"), bytes: Buffer.byteLength(value), sha256: sha256(value), ...metadata };
 }
 
 async function publishFixture(root, datasetId, releaseId, manifest) {
   const releaseDirectory = path.join(root, "releases", releaseId);
   await mkdir(releaseDirectory, { recursive: true });
-  await writeFile(path.join(releaseDirectory, "manifest.json"), json({
+  const manifestValue = {
     schema_version: "1.0.0",
     dataset_id: datasetId,
     release_id: releaseId,
     status: "published",
     artifacts: [],
     ...manifest,
-  }));
+  };
+  const manifestBuffer = json(manifestValue);
+  await writeFile(path.join(releaseDirectory, "manifest.json"), manifestBuffer);
   await mkdir(root, { recursive: true });
   await writeFile(path.join(root, "current.json"), json({
     dataset_id: datasetId,
     release_id: releaseId,
     manifest: `releases/${releaseId}/manifest.json`,
   }));
-  return { releaseDirectory, pointerPath: path.join(root, "current.json") };
+  return { releaseDirectory, pointerPath: path.join(root, "current.json"), manifestSha256: sha256(manifestBuffer) };
 }
 
 test("assigns an interior point and refuses a point matching multiple counties", () => {
@@ -113,9 +120,17 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     bbox: [-90, 30, -89, 31],
     geometry_file: "source/counties/state=01.geojson",
   }];
+  const zctaIndex = [{
+    geo_id: "zcta:12345",
+    geo_type: "zcta",
+    geoid: "12345",
+    zcta: "12345",
+    geometry_file: "source/zctas/prefix=1.geojson",
+  }];
   const geographyArtifacts = [
     await writeArtifact(geographyRelease, "derived/index/states.jsonl", jsonLines(stateIndex)),
     await writeArtifact(geographyRelease, "derived/index/counties.jsonl", jsonLines(countyIndex)),
+    await writeArtifact(geographyRelease, "derived/index/zctas.jsonl", jsonLines(zctaIndex)),
     await writeArtifact(
       geographyRelease,
       "source/counties/state=01.geojson",
@@ -125,6 +140,8 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   ];
   const geography = await publishFixture(geographyRoot, "us-census-geography", geographyReleaseId, {
     complete_national_release: true,
+    coverage: { zctas: 1 },
+    sources: [{ source_id: "us-census-tigerweb-zcta-2020", source_vintage: "2020 Census", layers: { zctas: 1 } }],
     artifacts: geographyArtifacts,
   });
 
@@ -583,14 +600,44 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.6.0");
+  assert.equal(result.manifest.publisher.version, "2.7.0");
+  assert.deepEqual(result.manifest.spatial_zip_polygon_denominator, {
+    count: 1,
+    geography_type: "census-zcta5",
+    evidence_scope: "complete-selected-census-zcta5-polygon-release",
+    dataset_id: "us-census-geography",
+    release_id: geographyReleaseId,
+    geography_manifest_sha256: geography.manifestSha256,
+    zcta_index_artifact_path: "derived/index/zctas.jsonl",
+    zcta_index_artifact_sha256: geographyArtifacts[2].sha256,
+    zcta_member_set_sha256: sha256("12345\n"),
+    source_id: "us-census-tigerweb-zcta-2020",
+    source_vintage: "2020 Census",
+    match_key: "exact-five-digit-zcta-code",
+    zip4_polygon_applicability: "not-applicable",
+  });
+  assert.equal(result.manifest.usps_operational_zip_evidence, null);
+  assert.deepEqual(result.manifest.normalized_postal_field_migration, {
+    status: "pre-migration-registry-release",
+    registry_publisher_version: "2.9.0",
+    required_registry_publisher_version: "2.10.0",
+    normalized_output_contract: "zip_code-and-postal_code-are-zip5;zip4-is-separate-or-null",
+    joined_zip4_allowed_in_new_normalized_output: false,
+  });
   assert.equal(verification.coverage.national_views, 3);
   assert.equal(verification.coverage.state_views, 1);
   assert.equal(verification.coverage.county_views, 1);
   assert.equal(verification.coverage.zip_views, 2);
+  assert.equal(verification.coverage.spatial_zip_polygon_denominator_count, 1);
   assert.equal(verification.coverage.source_views, 14);
   assert.equal(verification.coverage.location_profiles_assessed, 9);
   assert.equal(verification.coverage.coordinate_assigned_profiles, 2);
+  const zips = (await readFile(path.join(result.releaseDirectory, "views/zips.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(zips[0].spatial_zip_polygon_membership.status, "included");
+  assert.equal(zips[0].spatial_zip_polygon_membership.zip4_polygon_applicability, "not-applicable");
+  assert.equal(zips[0].coverage_gap_codes.includes("authoritative-current-usps-validity-unverified"), false);
+  assert.equal(zips[1].spatial_zip_polygon_membership.status, "not-in-denominator");
+  assert.equal(zips[1].coverage_gap_codes.includes("not-in-census-zcta5-polygon-denominator"), true);
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(states[0].registry_evidence.reported_address_profile_count, 9);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 2);
@@ -726,4 +773,63 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   assert.equal(nycDcwp.location_profile_geography.profile_count, 1);
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
+
+  const manifestPath = path.join(result.releaseDirectory, "manifest.json");
+  const zipPath = path.join(result.releaseDirectory, "views/zips.jsonl");
+  const gapPath = path.join(result.releaseDirectory, "views/coverage-gaps.jsonl");
+  const originalManifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const originalZipText = await readFile(zipPath, "utf8");
+  const originalGapText = await readFile(gapPath, "utf8");
+  const writeMutation = async ({ zipText = originalZipText, gapText = originalGapText, mutateManifest = () => {} } = {}) => {
+    const mutatedManifest = structuredClone(originalManifest);
+    for (const [artifactType, artifactText] of [
+      ["zip-coverage-view-jsonl", zipText],
+      ["coverage-gap-view-jsonl", gapText],
+    ]) {
+      const artifact = mutatedManifest.artifacts.find((item) => item.artifact_type === artifactType);
+      artifact.bytes = Buffer.byteLength(artifactText);
+      artifact.sha256 = sha256(artifactText);
+    }
+    mutateManifest(mutatedManifest);
+    await Promise.all([
+      writeFile(zipPath, zipText),
+      writeFile(gapPath, gapText),
+      writeFile(manifestPath, json(mutatedManifest)),
+    ]);
+  };
+
+  try {
+    const duplicateZips = originalZipText.trim().split("\n").map(JSON.parse);
+    duplicateZips[1].zip_code = duplicateZips[0].zip_code;
+    duplicateZips[1].view_id = duplicateZips[0].view_id;
+    await writeMutation({ zipText: jsonLines(duplicateZips) });
+    await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /duplicates ZIP5 key/);
+
+    await writeMutation({
+      mutateManifest: (manifest) => {
+        manifest.spatial_zip_polygon_denominator.geography_manifest_sha256 = "0".repeat(64);
+      },
+    });
+    await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /does not match the Census geography dependency/);
+
+    const wrongGapScope = originalGapText.trim().split("\n").map(JSON.parse);
+    const excludedGap = wrongGapScope.find((row) => row.gap_type === "reported-zip5-not-in-census-zcta5-polygon-denominator");
+    excludedGap.scope_id = "99999";
+    excludedGap.gap_id = "gap:reported-zip5-outside-zcta:99999";
+    await writeMutation({ gapText: jsonLines(wrongGapScope) });
+    await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /do not exactly match their coverage-gap scopes/);
+
+    await writeMutation({
+      mutateManifest: (manifest) => {
+        manifest.spatial_zip_polygon_denominator.zcta_member_set_sha256 = "0".repeat(64);
+      },
+    });
+    await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /member set does not match/);
+  } finally {
+    await Promise.all([
+      writeFile(zipPath, originalZipText),
+      writeFile(gapPath, originalGapText),
+      writeFile(manifestPath, json(originalManifest)),
+    ]);
+  }
 });

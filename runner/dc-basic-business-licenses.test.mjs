@@ -46,7 +46,7 @@ function license(overrides = {}) {
     LICENSEENDDATE: Date.parse("2028-07-31T04:00:00.000Z"),
     INITIALISSUEDATE: Date.parse("2020-08-01T04:00:00.000Z"),
     BUSINESSACTIVITY: "Grocery Store",
-    PREMISEADDRESS: "100 TEST ST NW, STE 200, Washington, DC, 20001, USA",
+    PREMISEADDRESS: "100 TEST ST NW, STE 200, Washington, DC, 20001-1234, USA",
     PREMISEINDC: "Yes",
     ENTITYNAME: "FIXTURE DC MARKET LLC",
     ENTITYTRADENAME: "FIXTURE MARKET",
@@ -151,6 +151,8 @@ test("groups active activity rows into one privacy-restricted licensed site", ()
   assert.equal(normalized.entity_candidates.physical_site_id, "site:dc_dlcp_customer_500526000983");
   assert.equal(normalized.active_license_activities.length, 2);
   assert.equal(normalized.address.zip_code, "20001");
+  assert.equal(normalized.address.postal_code, "20001");
+  assert.equal(normalized.address.zip4, "1234");
   assert.equal(normalized.location.coordinates.length, 2);
   assert.equal(normalized.source_status.status, "Active Basic Business License (source-defined)");
   assert.equal(normalized.privacy.owner_agent_and_billing_fields, "excluded-at-query-time");

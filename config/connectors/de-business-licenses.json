@@ -1,6 +1,6 @@
 {
   "connector_id": "de-business-licenses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes privacy-minimized organization candidates from the official Delaware current business-license dataset, grouping consistent repeated license rows while preserving trade names, business activities, validity dates, reported business-address evidence, provenance, quarantine, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

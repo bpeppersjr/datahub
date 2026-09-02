@@ -112,7 +112,8 @@ test("normalizes registration evidence without inferring a physical site", () =>
   }), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:co_sos_record_18881009142");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_business_address.postal_code, "81416-3910");
+  assert.equal(normalized.reported_business_address.postal_code, "81416");
+  assert.equal(normalized.reported_business_address.zip4, "3910");
   assert.equal(normalized.reported_business_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.reported_address_coordinate, null);
   assert.equal(normalized.registration_profile.entity_type, "DLLC");

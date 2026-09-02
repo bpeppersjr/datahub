@@ -42,7 +42,8 @@ test("normalizes a SNAP retailer as a source-anchored site and establishment can
   const record = normalizeSnapFeature(feature, context);
   assert.equal(record.normalized_record_id, "usda-snap:1687910");
   assert.equal(record.entity_candidates.physical_site_id, "site:usda_snap_1687910");
-  assert.equal(record.address.postal_code, "01760-4944");
+  assert.equal(record.address.postal_code, "01760");
+  assert.equal(record.address.zip4, "4944");
   assert.deepEqual(record.location.coordinates, [-71.346771, 42.283337]);
   assert.equal(record.operating_status.value, "snap-authorized-as-of-source-update");
   assert.match(record.operating_status.scope, /not a general operating-status guarantee/);

@@ -7,8 +7,10 @@ import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+
 export const TX_ACTIVE_SALES_TAX_SCHEMA_VERSION = "1.0.0";
-export const TX_ACTIVE_SALES_TAX_TRANSFORMATION_VERSION = "tx-active-sales-tax-permits@1.0.0";
+export const TX_ACTIVE_SALES_TAX_TRANSFORMATION_VERSION = "tx-active-sales-tax-permits@1.0.1";
 export const TX_ACTIVE_SALES_TAX_DATASET_ID = "jrea-zgmq";
 export const TX_ACTIVE_SALES_TAX_METADATA_URL = `https://data.texas.gov/api/views/${TX_ACTIVE_SALES_TAX_DATASET_ID}`;
 export const TX_ACTIVE_SALES_TAX_API_URL = `https://data.texas.gov/resource/${TX_ACTIVE_SALES_TAX_DATASET_ID}.json`;
@@ -184,6 +186,7 @@ export function normalizeTxActiveSalesTaxOutlet(source, context) {
       state,
       postal_code: zipCode,
       zip_code: zipCode,
+      zip4: null,
       country: "US",
       source_scope: "source-described-physical-outlet-address",
       independently_verified: false,
@@ -507,6 +510,7 @@ export async function buildTxActiveSalesTaxPermits({
       outletIdentities.add(identity);
       try {
         const normalized = normalizeTxActiveSalesTaxOutlet(source, context);
+        assertNormalizedUsPostalFieldsDeep(normalized, "Texas active sales-tax outlet");
         const prefix = sha256(identity)[0];
         await writeGzipRecord(normalizedWriters.get(prefix), normalized);
         normalizedCount += 1;

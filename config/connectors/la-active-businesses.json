@@ -1,6 +1,6 @@
 {
   "connector_id": "la-active-businesses",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a privacy-minimized selected-field snapshot of the City of Los Angeles Office of Finance monthly active-business listing and provisional registered-location/establishment records without inferring ownership or continuous operations.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

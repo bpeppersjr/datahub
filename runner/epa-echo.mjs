@@ -9,9 +9,10 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import unzipper from "unzipper";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const EPA_ECHO_SCHEMA_VERSION = "1.0.0";
-export const EPA_ECHO_TRANSFORMATION_VERSION = "epa-echo@1.0.0";
+export const EPA_ECHO_TRANSFORMATION_VERSION = "epa-echo@1.0.1";
 export const EPA_ECHO_DOWNLOADS_URL = "https://echo.epa.gov/tools/data-downloads";
 export const EPA_ECHO_EXPORTER_URL = "https://echo.epa.gov/files/echodownloads/echo_exporter.zip";
 export const EPA_ECHO_COLUMNS_URL = "https://echo.epa.gov/system/files/echo_exporter_columns_7-16-2025_0.xlsx";
@@ -80,7 +81,7 @@ function postalCode(value) {
   const raw = String(value ?? "").trim();
   const match = raw.match(/^(\d{5})(?:-(\d{4}))?$/);
   if (!match || match[1] === "00000") return null;
-  return { zip_code: match[1], postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1], zip4: match[2] ?? null };
+  return { zip_code: match[1], postal_code: match[1], zip4: match[2] ?? null };
 }
 
 function fipsCode(value) {
@@ -517,6 +518,7 @@ export async function buildEpaEcho({
       if (missingRegistryId) throw new Error("missing-registry-id");
       if (duplicateRegistryId) throw new Error("duplicate-registry-id");
       const normalized = normalizeEchoFacility(source, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       const zipCode = normalized.address.zip_code;
       await writeGzipRecord(writers.get(zipCode[0]), normalized);
       countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
@@ -584,7 +586,7 @@ export async function buildEpaEcho({
   const manifest = {
     schema_version: EPA_ECHO_SCHEMA_VERSION,
     dataset_id: "epa-echo-active-facilities",
-    connector: { id: "epa-echo", version: "1.0.0" },
+    connector: { id: "epa-echo", version: "1.0.1" },
     release_id: releaseId,
     run_id: runId,
     retrieved_at: retrievedAt,

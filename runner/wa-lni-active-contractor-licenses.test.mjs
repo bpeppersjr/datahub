@@ -126,6 +126,9 @@ test("groups active licenses by UBI without inferring sites, legal names, or ope
   assert.equal(normalized.entity_candidates.establishment_id, undefined);
   assert.deepEqual(normalized.reported_business_names, ["Alpha Builders", "Alpha Builders LLC"]);
   assert.equal(normalized.reported_mailing_addresses.length, 2);
+  assert.equal(normalized.reported_mailing_addresses[0].zip_code, "98101");
+  assert.equal(normalized.reported_mailing_addresses[0].postal_code, "98101");
+  assert.equal(normalized.reported_mailing_addresses[0].zip4, "1234");
   assert.equal(normalized.active_contractor_license_activities.length, 2);
   assert.equal(normalized.source_status.general_operating_status_inferred, false);
   assert.equal(normalized.export_policy, "local-review-only");

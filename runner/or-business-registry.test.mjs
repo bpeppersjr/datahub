@@ -46,7 +46,7 @@ function row(overrides = {}) {
     address_continued: "Unit 204",
     city: "Portland",
     state: "OR",
-    zip: "97206",
+    zip: "97206-1234",
     jurisdiction: "OR",
     ...overrides,
   };
@@ -116,6 +116,9 @@ test("normalizes legal entities and assumed names without inferring sites or own
   assert.equal(legal.entity_candidates.brand_id, null);
   assert.equal(legal.entity_candidates.physical_site_id, null);
   assert.equal(legal.principal_place_addresses[0].eligible_for_us_zip_coverage, true);
+  assert.equal(legal.principal_place_addresses[0].zip_code, "97206");
+  assert.equal(legal.principal_place_addresses[0].postal_code, "97206");
+  assert.equal(legal.principal_place_addresses[0].zip4, "1234");
   assert.equal(JSON.stringify(legal).includes("Private"), false);
 
   const assumedName = normalizeOrBusinessRegistration([row({ registry_number: "101", ":id": "row-101-a", entity_type: "ASSUMED BUSINESS NAME", business_name: "Fixture DBA" })], context());

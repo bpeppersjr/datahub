@@ -2197,6 +2197,15 @@ test("reconciles Alaska active-license evidence with conditional provisional sit
   assert.equal(foreign.zipCode, null);
 });
 
+test("registry publication rejects a joined ZIP+4 alias in an address assertion", () => {
+  const record = normalizedAkBusinessRecord();
+  record.physical_address.postal_code = `${record.physical_address.zip_code}-${record.physical_address.zip4}`;
+  assert.throws(
+    () => reconcileAkActiveBusinessLicense(record),
+    /postal_code.*must equal the normalized ZIP5/,
+  );
+});
+
 test("reconciles Colorado registration evidence without creating physical sites or relationships", () => {
   const source = normalizedCoBusinessRecord();
   const result = reconcileCoBusinessOrganization(source);

@@ -6,9 +6,10 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
+import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NYC_DCWP_ACTIVE_PREMISE_SCHEMA_VERSION = "1.0.0";
-export const NYC_DCWP_ACTIVE_PREMISE_TRANSFORMATION_VERSION = "nyc-dcwp-active-premises@1.0.0";
+export const NYC_DCWP_ACTIVE_PREMISE_TRANSFORMATION_VERSION = "nyc-dcwp-active-premises@1.0.1";
 export const NYC_DCWP_ACTIVE_PREMISE_DATASET_ID = "w7w3-xahh";
 export const NYC_DCWP_ACTIVE_PREMISE_METADATA_URL = `https://data.cityofnewyork.us/api/views/${NYC_DCWP_ACTIVE_PREMISE_DATASET_ID}`;
 export const NYC_DCWP_ACTIVE_PREMISE_API_URL = `https://data.cityofnewyork.us/resource/${NYC_DCWP_ACTIVE_PREMISE_DATASET_ID}.json`;
@@ -124,7 +125,7 @@ function postalCode(value) {
   return {
     source: raw,
     zip_code: match[1],
-    postal_code: match[2] ? `${match[1]}-${match[2]}` : match[1],
+    postal_code: match[1],
     zip4: match[2] ?? null,
     status: match[2] ? "normalized-zip-plus-4" : "normalized-zip5",
   };
@@ -610,6 +611,7 @@ export async function buildNycDcwpActivePremises({
     const businessUniqueId = textValue(currentGroup[0].business_unique_id);
     try {
       const normalized = normalizeNycDcwpLicensedSite(currentGroup, context);
+      assertNormalizedUsPostalFieldsDeep(normalized);
       const prefix = sha256(normalized.normalized_record_id)[0];
       await writeGzipRecord(normalizedWriters.get(prefix), normalized);
       normalizedSiteCount += 1;

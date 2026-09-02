@@ -108,7 +108,7 @@ test("normalizes registration evidence, ZIP+4, malformed extensions, and suspect
   const normalized = normalizePaBusinessOrganization(organization({ first_name: "PRIVATE" }), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:pa_dos_filing_0000000001");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_business_address.postal_code, "17101-1234");
+  assert.equal(normalized.reported_business_address.postal_code, "17101");
   assert.equal(normalized.reported_business_address.zip4, "1234");
   assert.equal(normalized.reported_business_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.registration_profile.county_code_semantics, "source-alphabetical-01-through-67-code-not-county-fips");

@@ -1,6 +1,6 @@
 {
   "connector_id": "or-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a selected-field snapshot of active Oregon business registrations using only principal-place-of-business rows, preserving legal-entity versus assumed-business-name semantics, one-to-many address observations, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {

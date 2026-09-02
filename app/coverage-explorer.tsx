@@ -13,6 +13,18 @@ type Overview = {
   export_policy?: string;
   complete_all_businesses?: boolean;
   entity_resolution_applied?: boolean;
+  spatial_zip_polygon_denominator?: {
+    count: number;
+    geography_type: 'census-zcta5';
+    source_vintage: string;
+    zip4_polygon_applicability: 'not-applicable';
+  };
+  normalized_postal_field_migration?: {
+    status: 'enforced-in-registry-release' | 'pre-migration-registry-release';
+    registry_publisher_version: string | null;
+    required_registry_publisher_version: string;
+  };
+  usps_operational_zip_evidence?: unknown;
   authoritative_current_usps_zip_denominator?: unknown;
   coverage?: {
     state_views: number;
@@ -23,6 +35,7 @@ type Overview = {
     location_profiles_assessed: number;
     coordinate_assigned_profiles: number;
     profiles_without_valid_coordinate_assignment: number;
+    spatial_zip_polygon_denominator_count: number;
     zip_views_with_record_level_source_contribution: number;
     zip_views_without_record_level_source_contribution: number;
     zip_views_with_zcta_polygon: number;
@@ -184,6 +197,7 @@ type ZipRow = {
   establishment_count: number;
   organization_primary_location_count: number;
   zcta_geoid: string | null;
+  spatial_zip_polygon_membership_status: 'included' | 'not-in-denominator' | 'unknown';
   employer_baseline_status: string;
   employer_establishments: number | null;
   material_county_count: number;
@@ -284,7 +298,7 @@ function CountyRows({ records }: { records: CountyRow[] }) {
 function ZipRows({ records }: { records: ZipRow[] }) {
   return records.map((row) => (
     <div className="coverage-table-row zip-row" key={row.view_id}>
-      <div><strong>{row.zip_code}</strong><span>{row.zcta_geoid ? `ZCTA ${row.zcta_geoid} · ${row.material_county_count} material count${row.material_county_count === 1 ? 'y' : 'ies'}` : 'No ZCTA polygon'}</span></div>
+      <div><strong>{row.zip_code}</strong><span>{row.spatial_zip_polygon_membership_status === 'included' && row.zcta_geoid ? `Census ZCTA5 ${row.zcta_geoid} · ${row.material_county_count} material count${row.material_county_count === 1 ? 'y' : 'ies'}` : 'Reported ZIP5 · outside Census polygon set'}</span></div>
       <span>{count(row.physical_site_count)}</span>
       <span>{count(row.establishment_count)}</span>
       <span className={row.coverage_status === 'record-level-source-contribution' ? 'coverage-ok' : 'coverage-warn'}>{row.coverage_status === 'record-level-source-contribution' ? 'Evidence' : 'Gap'}</span>
@@ -404,13 +418,15 @@ export default function CoverageExplorer() {
             <div><span>Location profiles assessed</span><strong>{count(overview?.coverage?.location_profiles_assessed)}</strong><small>Source-preserving, not deduplicated businesses</small></div>
             <div><span>ZIP rows with evidence</span><strong>{count(overview?.coverage?.zip_views_with_record_level_source_contribution)}</strong><small>{count(overview?.coverage?.zip_views_without_record_level_source_contribution)} denominator-only gaps</small></div>
             <div><span>County-assigned profiles</span><strong>{count(overview?.coverage?.coordinate_assigned_profiles)}</strong><small>{count(overview?.coverage?.profiles_without_valid_coordinate_assignment)} remain unallocated</small></div>
-            <div><span>Explicit coverage gaps</span><strong>{count(overview?.coverage?.gap_views)}</strong><small>USPS denominator and resolution gates remain open</small></div>
+            <div><span>Explicit coverage gaps</span><strong>{count(overview?.coverage?.gap_views)}</strong><small>Census polygon denominator active; identity gate remains open</small></div>
           </div>
 
           <div className="coverage-scope-strip">
             <span><strong>{count(states)}</strong> state equivalents</span>
             <span><strong>{count(overview?.coverage?.county_views)}</strong> county equivalents</span>
-            <span><strong>{count(overview?.coverage?.zip_views_with_zcta_polygon)}</strong> ZCTA-linked ZIPs</span>
+            <span><strong>{count(overview?.spatial_zip_polygon_denominator?.count ?? overview?.coverage?.spatial_zip_polygon_denominator_count)}</strong> Census ZCTA5 polygons</span>
+            <span><strong>{count(overview?.coverage?.zip_views_without_zcta_polygon)}</strong> reported ZIP5 values outside polygon set</span>
+            <span><strong>{overview?.normalized_postal_field_migration?.status === 'enforced-in-registry-release' ? 'Enforced' : 'Pending rebuild'}</strong> ZIP5 / ZIP4 split · registry {overview?.normalized_postal_field_migration?.registry_publisher_version ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>

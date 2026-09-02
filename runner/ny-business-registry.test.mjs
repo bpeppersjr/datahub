@@ -119,7 +119,8 @@ test("normalizes active-extract evidence without inferring a physical site, lega
   }), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:ny_dos_id_1000006");
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);
-  assert.equal(normalized.reported_location_address.postal_code, "10001-1234");
+  assert.equal(normalized.reported_location_address.postal_code, "10001");
+  assert.equal(normalized.reported_location_address.zip4, "1234");
   assert.equal(normalized.reported_location_address.eligible_for_us_zip_coverage, true);
   assert.equal(normalized.reported_address_coordinate, null);
   assert.equal(normalized.registration_profile.entity_type, "FOREIGN BUSINESS CORPORATION");

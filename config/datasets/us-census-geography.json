@@ -9,6 +9,24 @@
   "geography_types": ["nation", "state", "county", "zcta"],
   "identifiers": ["census-geoid", "state-fips", "county-fips", "zcta5"],
   "coordinate_reference_system": "EPSG:4326",
+  "spatial_zip_polygon_denominator": {
+    "role": "authoritative-spatial-denominator-within-declared-census-zcta-scope",
+    "geography_type": "census-zcta5",
+    "selection_scope": "complete selected Census-published ZCTA5 polygon set for the declared source layer and vintage",
+    "completeness_gate": {
+      "complete_national_release": true,
+      "selected_zcta_count_must_equal_source_available_count": true,
+      "all_selected_zcta_artifacts_must_verify": true
+    },
+    "zip4_polygon_applicability": "not-applicable",
+    "not_authoritative_for": ["USPS ZIP validity", "USPS delivery routes", "address-level deliverability"]
+  },
+  "usps_operational_zip_evidence": {
+    "role": "optional-supplemental-routing-evidence",
+    "required": false,
+    "provides_polygon_geometry": false,
+    "relationship": "A same-code USPS ZIP5 assignment may supplement routing status but does not create, replace, or alter a Census ZCTA5 polygon."
+  },
   "partitioning": {
     "states": "single source GeoJSON",
     "counties": "state FIPS",

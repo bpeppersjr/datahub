@@ -57,15 +57,23 @@ test('builds ZIP-sorted retail pharmacy outputs and applies NPI enrichment', asy
     const files = await readdir(outputDirectory);
     const jsonlFile = files.find((file) => file.endsWith('.jsonl'));
     const coverageFile = files.find((file) => file.startsWith('zip-coverage-'));
+    const csvFile = files.find((file) => file.startsWith('retail-pharmacies-') && file.endsWith('.csv'));
     const rows = (await readFile(path.join(outputDirectory, jsonlFile), 'utf8')).trim().split('\n').map(JSON.parse);
     assert.equal(rows[0].name, 'ALPHA RX');
-    assert.equal(rows[0].postalCodePlus4, '00100-1234');
+    assert.equal(rows[0].zipCode, '00100');
+    assert.equal(rows[0].postalCode, '00100');
+    assert.equal(rows[0].zip4, '1234');
+    assert.equal(Object.hasOwn(rows[0], 'postalCodePlus4'), false);
     assert.equal(rows[0].driveThroughFlag, null);
     assert.equal(rows[1].nabpNbr, '7654321');
     assert.equal(rows[1].driveThroughFlag, true);
     assert.equal(rows[1].mailOrderFlag, false);
     assert.equal(rows[1].networkAffiliation, 'NETWORK A');
     assert.equal(rows[1].parentCompany, 'PARENT COMPANY');
+    const csv = await readFile(path.join(outputDirectory, csvFile), 'utf8');
+    assert.match(csv.split('\n')[0], /,postal_code,zip4,/);
+    assert.doesNotMatch(csv.split('\n')[0], /postal_code_plus4/);
+    assert.match(csv, /,00100,1234,true,/);
     const coverage = await readFile(path.join(outputDirectory, coverageFile), 'utf8');
     assert.match(coverage, /00101,0/);
   } finally {

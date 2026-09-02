@@ -48,7 +48,7 @@ function license(overrides = {}) {
     address: "100 N STATE ST",
     city: "CHICAGO",
     state: "IL",
-    zip_code: "60601",
+    zip_code: "60601-1234",
     ward: "42",
     precinct: "1",
     police_district: "1",
@@ -142,6 +142,8 @@ test("groups multiple active license rows into one provisional licensed site", (
   assert.equal(normalized.entity_candidates.physical_site_id, "site:chicago_bacp_account_100100_site_1");
   assert.equal(normalized.active_licenses.length, 2);
   assert.equal(normalized.address.zip_code, "60601");
+  assert.equal(normalized.address.postal_code, "60601");
+  assert.equal(normalized.address.zip4, "1234");
   assert.deepEqual(normalized.location.coordinates, [-87.6278, 41.8837]);
   assert.equal(normalized.source_status.status, "Active license (source-defined)");
   assert.equal(normalized.export_policy, "local-review-only");

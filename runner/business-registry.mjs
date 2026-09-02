@@ -7,9 +7,10 @@ import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
+import { assertNormalizedUsPostalFields } from "./normalized-us-postal-code.mjs";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
-export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.9.0";
+export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.10.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 
 function digest(value) {
@@ -45,6 +46,7 @@ function relationshipSource(record) {
 function assertion(record, subjectEntityId, predicate, value, valueType, sourceField) {
   const observedAt = record.observed_at;
   if (!observedAt) throw new Error(`Source record ${record.normalized_record_id} has no observation timestamp.`);
+  if (valueType === "address") assertNormalizedUsPostalFields(value, `${predicate}.value`);
   const source = sourceFor(record, sourceField);
   return {
     schema_version: REGISTRY_SCHEMA_VERSION,
@@ -4349,7 +4351,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: "2.9.0" },
+    publisher: { id: "national-business-registry", version: "2.10.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -4893,6 +4895,17 @@ function validateProvenance(source) {
   return Boolean(source?.source_id && source.source_release_id && source.source_record_id && source.ingest_run_id && source.transformation_version && source.policy_id);
 }
 
+function versionAtLeast(version, minimum) {
+  const parse = (value) => String(value ?? "").split(".").map((part) => Number(part));
+  const actual = parse(version);
+  const required = parse(minimum);
+  if (actual.length !== 3 || required.length !== 3 || [...actual, ...required].some((part) => !Number.isInteger(part) || part < 0)) return false;
+  for (let index = 0; index < 3; index += 1) {
+    if (actual[index] !== required[index]) return actual[index] > required[index];
+  }
+  return true;
+}
+
 const NUMERIC_ENTITY_ID_PATTERNS = Object.freeze({
   organization: Object.freeze([
     Object.freeze({ prefix: "organization:cms_npi_", suffix: "" }),
@@ -5025,6 +5038,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
+  const separatedPostalFieldsRequired = versionAtLeast(manifest.publisher?.version, "2.10.0");
   if (manifest.dataset_id !== "national-business-registry") failures.push({ path: "manifest.json", reason: "unexpected dataset ID" });
   if (manifest.complete_national_business_registry !== false || manifest.status !== "published-partial") {
     failures.push({ path: "manifest.json", reason: "release is not explicitly marked partial" });
@@ -5093,7 +5107,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   if (!hasEntityId(SNAP_SERVICE_ENTITY_ID)) failures.push({ path: "entities/services.jsonl", reason: "missing SNAP service entity" });
 
   let resolutionProfileCount = 0;
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
     failures.push({ path: "resolution/location-profiles", reason: `expected 100 match-profile partitions; found ${resolutionProfileArtifacts.length}` });
   }
   const profileIds = new Set();
@@ -5103,6 +5117,12 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       if (!zip2) throw new Error("missing ZIP2 partition");
       const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (profile) => {
         const matchKey = profile.normalized_address?.match_key;
+        if (separatedPostalFieldsRequired) {
+          assertNormalizedUsPostalFields(profile.address, `${profile.profile_id ?? "<unknown>"}.address`);
+          if (profile.address.zip_code !== profile.zip_code || profile.normalized_address?.zip_code !== profile.zip_code) {
+            throw new Error(`profile ${profile.profile_id ?? "<unknown>"} has inconsistent ZIP5 fields`);
+          }
+        }
         if (profileIds.has(profile.profile_id)) throw new Error(`duplicate profile ${profile.profile_id}`);
         if (profile.schema_version !== "1.0.0" || profile.profile_version !== "business-location-match-profile@1.0.0"
           || profile.zip_code?.slice(0, 2) !== zip2 || !hasEntityId(profile.site_entity_id)
@@ -5144,7 +5164,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       failures.push({ path: artifact.path, reason: `match-profile validation failed: ${error.message}` });
     }
   }
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version)
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0"].includes(manifest.publisher?.version)
     && (resolutionProfileCount !== manifest.coverage?.resolution_location_profiles || resolutionProfileCount !== manifest.coverage?.physical_sites)) {
     failures.push({ path: "manifest.json", reason: "entity-resolution profile counts do not reconcile" });
   }
@@ -5188,6 +5208,9 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         if (!hasEntityId(record.subject_entity_id)) throw new Error(`missing assertion subject ${record.subject_entity_id}`);
         if (!validateProvenance(record.source) || !["public", "public-open-ny-terms", "public-factual-fields-with-source-limitations", "local-review-only"].includes(record.export_policy)) throw new Error(`invalid provenance or policy for ${record.assertion_id}`);
         if (!record.observed_at || !record.first_seen || !record.last_seen) throw new Error(`missing temporal scope for ${record.assertion_id}`);
+        if (separatedPostalFieldsRequired && record.value_type === "address") {
+          assertNormalizedUsPostalFields(record.value, `${record.assertion_id}.value`);
+        }
         if (["establishment.source-status", "establishment.la-active-business-status", "organization.irs-eo-source-status", "organization.ct-registration-status", "organization.de-current-license-status", "organization.co-registration-status", "organization.wa-lni-active-contractor-status", "organization.or-registration-status", "brand.or-registration-status", "organization.ia-registration-status", "organization.ny-active-extract-status", "organization.fl-active-quarterly-status", "organization.pa-active-registration-dataset-status"].includes(record.predicate) && !allowedSourceStatuses.has(record.value?.value)) {
           throw new Error(`invalid source-specific status for ${record.assertion_id}`);
         }
@@ -5435,6 +5458,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   try {
     const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
     if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage.zip_union_records) throw new Error("ZIP row count mismatch");
+    if (rows.some((row) => !/^\d{5}$/.test(row.zip_code ?? ""))) throw new Error("invalid ZIP5 coverage row");
     if (new Set(rows.map((row) => row.zip_code)).size !== rows.length) throw new Error("duplicate ZIP coverage row");
     const siteTotal = rows.reduce((sum, row) => sum + row.registry_coverage.physical_site_count, 0);
     if (siteTotal !== manifest.coverage.physical_sites) throw new Error("ZIP physical-site counts do not reconcile");

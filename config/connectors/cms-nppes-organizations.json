@@ -1,6 +1,6 @@
 {
   "connector_id": "cms-nppes-organizations",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Acquires the public CMS NPPES monthly V2 replacement and normalizes organization NPIs, reported U.S. practice locations, taxonomies, and organization other names with strict status and export semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -34,5 +34,5 @@
   "source_policy": "config/source-policies/cms-nppes-organizations.json",
   "retention_profile": "Retain immutable source snapshots internally and public normalized releases until an approved retention operation removes them.",
   "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "healthcare-taxonomy-assertion", "npi-status-assertion"],
-  "produced_identifiers": ["npi", "zip5", "zip9", "zcta5"]
+  "produced_identifiers": ["npi", "zip5", "zip4", "zcta5"]
 }

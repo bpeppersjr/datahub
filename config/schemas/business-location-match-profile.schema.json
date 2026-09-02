@@ -13,7 +13,15 @@
     "site_entity_id": { "type": "string", "pattern": "^site:[A-Za-z0-9_-]+$" },
     "establishment_entity_id": { "type": "string", "pattern": "^establishment:[A-Za-z0-9_-]+$" },
     "organization_entity_id": { "type": ["string", "null"] },
-    "address": { "type": "object" },
+    "address": {
+      "type": "object",
+      "required": ["zip_code", "postal_code", "zip4"],
+      "properties": {
+        "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+        "postal_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+        "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" }
+      }
+    },
     "normalized_address": {
       "type": "object",
       "additionalProperties": false,
@@ -24,7 +32,7 @@
         "unit": { "type": ["string", "null"] },
         "city": { "type": ["string", "null"] },
         "state": { "type": ["string", "null"] },
-        "zip_code": { "type": ["string", "null"] },
+        "zip_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
         "complete": { "type": "boolean" },
         "match_key": { "type": ["string", "null"] }
       }

@@ -33,6 +33,16 @@ The JSON Lines indexes contain one object per geography. Fields are:
 
 Additive fields are backward compatible within schema version 1. Removing fields, changing meanings, changing coordinate order, or changing typed-ID construction requires a major schema version.
 
+## Spatial ZIP polygon denominator
+
+The tracked dataset and consuming release manifests use `spatial_zip_polygon_denominator` for the spatial coverage denominator. Its `geography_type` is `census-zcta5`, and `zip4_polygon_applicability` is `not-applicable`.
+
+A geography release qualifies only when `complete_national_release` is `true`, every selected ZCTA artifact passes its size and SHA-256 checks, and `coverage.zctas` exactly equals `coverage.source_available_counts.zctas`. The resulting complete selected Census-published ZCTA5 set is authoritative within the declared Census layer and vintage for ZCTA polygon coverage. This direct Census geometry is not assigned a confidence percentage.
+
+The denominator does not assert USPS ZIP validity, delivery-route boundaries, or address-level deliverability. A same-code USPS ZIP5 can lack a ZCTA polygon, and a Census ZCTA can differ from postal routing geography. ZIP+4 is an address/routing refinement and has no polygon in this contract.
+
+`usps_operational_zip_evidence`, when supplied under an authorized use basis, is an optional supplemental routing-evidence object. It never creates or alters geometry and is not required for the ZCTA5 spatial denominator.
+
 ## ZCTA jurisdiction overlay
 
 The separate `us-census-zcta-jurisdiction-crosswalk` release consumes this geography release. Its relationship records use stable `zcta-county-area:<zcta>:<county-geoid>` IDs and publish `intersection_area_m2`, `raw_share_of_zcta_polygon_area`, and `normalized_share_of_matched_zcta_area`.

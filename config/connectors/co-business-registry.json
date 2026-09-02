@@ -1,6 +1,6 @@
 {
   "connector_id": "co-business-registry",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publishes a selected-field snapshot of Good Standing and Delinquent records from the official Business Entities in Colorado dataset, preserving source-specific status, entity ID, principal-office address, formation profile, provenance, and explicit non-site semantics.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
