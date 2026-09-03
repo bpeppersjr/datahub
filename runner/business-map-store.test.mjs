@@ -146,8 +146,8 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
   await writeFile(path.join(geographyRoot, "current.json"), json({ dataset_id: "us-census-geography", release_id: "geography-1", manifest: "releases/geography-1/manifest.json" }));
 
   const profiles = [
-    { zip_code: "12345", names: [{ raw: "Main Street Market" }], address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" }, source: { source_id: "usda-snap-current-retailers" }, observed_at: "2026-01-01T00:00:00.000Z", export_policy: "public" },
-    { zip_code: "12345", names: [{ raw: "Alpha Clinic" }], address: { street: "2 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, source: { source_id: "cms-nppes-monthly-v2" }, observed_at: "2026-01-02T00:00:00.000Z", export_policy: "public" },
+    { zip_code: "12345", names: [{ raw: "Main Street Market" }], address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" }, location: { type: "Point", coordinates: [-86.1234, 32.5678] }, source: { source_id: "usda-snap-current-retailers" }, observed_at: "2026-01-01T00:00:00.000Z", export_policy: "public" },
+    { zip_code: "12345", names: [{ raw: "Alpha Clinic" }], address: { street: "2 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: { latitude: " ", longitude: false }, source: { source_id: "cms-nppes-monthly-v2" }, observed_at: "2026-01-02T00:00:00.000Z", export_policy: "public" },
   ];
   const profilePath = path.join(registryRelease, "resolution", "location-profiles", "zip2=12.jsonl.gz");
   await pipeline(Readable.from([profiles.map(json).join("")]), createGzip(), await import("node:fs").then(({ createWriteStream }) => createWriteStream(profilePath)));
@@ -210,12 +210,14 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_business_units, 5);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_physical_sites, 5);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_percent, 100);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_peer_scope, "50 states and District of Columbia peer");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_current_dollars, 1_234_000_000);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_reference_year, 2024);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_units, "current dollars");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_source_release_id, "bea-cagdp1-2024-fixture");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_status, "available-direct-bea-estimate");
   assert.match(states.meta.relative_coverage_alignment_semantics, /values may exceed 100%.*not measured completeness/);
+  assert.equal(states.meta.relative_coverage_alignment_peer_scope, "50 states and District of Columbia peer");
   assert.equal(states.meta.excluded_ambiguous_zcta_count, 1);
 
   const filteredStates = await store.getFeatures({
@@ -235,6 +237,7 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(counties.features[0].properties.population_2020, 1000);
   assert.equal(counties.features[0].properties.heat_value, 5);
   assert.equal(counties.features[0].properties.relative_coverage_alignment_percent, 100);
+  assert.equal(counties.features[0].properties.relative_coverage_alignment_peer_scope, "county peers within state 01");
   assert.equal(counties.features[0].properties.gdp_current_dollars, 321_000_000);
 
   const gdpCounties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "gdp_current_dollars" });
@@ -246,6 +249,8 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.scope_assignment, "direct-zcta-evidence-not-county-allocated");
   assert.equal(zips.features[0].properties.gdp_current_dollars, null);
   assert.equal(zips.features[0].properties.gdp_status, "unavailable-no-official-zip-gdp-do-not-allocate");
+  assert.equal(zips.features[0].properties.relative_coverage_alignment_peer_scope, "uniquely state-assigned ZCTA peers within state 01");
+  assert.equal(zips.meta.relative_coverage_alignment_peer_scope, "uniquely state-assigned ZCTA peers within state 01");
 
   const summary = await store.getStateSummary({ includeTerritories: false });
   const alpha = summary.states.find((state) => state.state_fips === "01");
@@ -262,6 +267,7 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   assert.deepEqual(names.records[0], {
     business_name: "Main Street Market",
     address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" },
+    geocode: { latitude: 32.5678, longitude: -86.1234 },
     category_id: "retail-consumer",
     source_id: "usda-snap-current-retailers",
     source_release_id: null,
@@ -272,6 +278,8 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
     export_policy: "public",
   });
   assert(!Object.hasOwn(names.records[0].address, "postal_code"));
+  const malformedGeocode = await store.listBusinessNames({ zipCode: "12345", categoryId: "health-care", query: "clinic", limit: 10 });
+  assert.equal(malformedGeocode.records[0].geocode, null);
   await assert.rejects(() => store.listBusinessNames({ zipCode: "1234", categoryId: "all" }), /five-digit ZIP/);
   await assert.rejects(() => store.getFeatures({ level: "counties", stateFips: "../" }), /state_fips/);
   await assert.rejects(() => store.getFeatures({ level: "states", minPopulation: "1e3" }), /min_population/);

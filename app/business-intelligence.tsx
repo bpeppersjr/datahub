@@ -31,6 +31,7 @@ type MapProperties = {
   population_density: number | null;
   evidence_per_employer_establishment: number | null;
   relative_coverage_alignment_percent: number | null;
+  relative_coverage_alignment_peer_scope: string;
   relative_coverage_alignment_basis: string;
   gdp_current_dollars: number | null;
   gdp_reference_year: number | null;
@@ -62,6 +63,7 @@ type NameResponse = {
   records: Array<{
     business_name: string;
     address: { street: string | null; city: string | null; state: string | null; zip_code: string; zip4: string | null };
+    geocode: { latitude: number; longitude: number } | null;
     category_id: string;
     source_id: string;
     source_release_id: string | null;
@@ -116,6 +118,12 @@ function gdpNote(properties: MapProperties) {
   if (properties.gdp_status.includes('no-direct-bea')) return 'No direct BEA geography match';
   if (properties.gdp_status === 'unavailable-bea-value-not-published') return 'BEA value not published';
   return 'No governed BEA GDP release';
+}
+
+function alignmentLabel(properties: MapProperties) {
+  if (properties.level === 'state') return 'Relative completeness proxy vs peer states';
+  if (properties.level === 'county') return 'Relative completeness proxy vs in-state counties';
+  return 'Relative completeness proxy vs in-state ZIP peers';
 }
 
 function shortRelease(value?: string) {
@@ -181,14 +189,13 @@ function heatColor(value: number | null, maximum: number, selected: boolean) {
   return `hsl(${hue} 78% ${lightness}%)`;
 }
 
-function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLabel, onSelect, onHover }: {
+function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLabel, onSelect }: {
   data: MapResponse;
   selectedGeoid: string;
   categoryLabel: string;
   enhancerId: string;
   enhancerLabel: string;
   onSelect: (feature: MapFeature) => void;
-  onHover: (feature: MapFeature | null) => void;
 }) {
   const [zoom, setZoom] = useState(selectedGeoid ? 1.8 : 1);
   const [hovered, setHovered] = useState<MapProperties | null>(null);
@@ -223,13 +230,13 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
               tabIndex={0}
               role="button"
               aria-pressed={selectedGeoid === feature.properties.geoid}
-              aria-label={`${feature.properties.name}; ${count(feature.properties.observed_business_units)} observed provisional business units; ${count(feature.properties.business_count)} selected-category evidence records; relative coverage alignment proxy ${percent(feature.properties.relative_coverage_alignment_percent)}`}
+              aria-label={`${feature.properties.name}; ${count(feature.properties.observed_business_units)} observed provisional business units; ${count(feature.properties.business_count)} selected-category evidence records; ${alignmentLabel(feature.properties)} ${percent(feature.properties.relative_coverage_alignment_percent)}`}
               onClick={() => onSelect(feature)}
               onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(feature); } }}
-              onMouseEnter={() => { setHovered(feature.properties); onHover(feature); }}
-              onMouseLeave={() => { setHovered(null); onHover(null); }}
-              onFocus={() => { setHovered(feature.properties); onHover(feature); }}
-              onBlur={() => { setHovered(null); onHover(null); }}
+              onMouseEnter={() => setHovered(feature.properties)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(feature.properties)}
+              onBlur={() => setHovered(null)}
             />
           ))}
         </g>
@@ -239,7 +246,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
         <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>Population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>Relative alignment (proxy)</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div></dl>
+        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>2020 population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>2020 housing units</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
@@ -274,7 +281,7 @@ function BusinessNames({ selectedZip, categoryId, canDrill }: { selectedZip: str
       {data?.local_review_only && <small className="local-review-label">Local review only — record-level redistribution policies still apply.</small>}
       {data && !loading && canDrill && <div className="business-name-list">
         {!data.records.length && <p>No matching physical-location names in this category.</p>}
-        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'} · {record.address.city}, {record.address.state} {record.address.zip_code}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span></div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
+        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'} · {record.address.city}, {record.address.state} {record.address.zip_code}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
         {data.total > data.records.length && <small>Showing {data.records.length} of {count(data.total)} distinct names.</small>}
       </div>}
     </section>
@@ -299,7 +306,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
-      <div className="entity-summary-heading"><span>Entity summary</span><strong>{properties?.name ?? 'Hover or select a map entity'}</strong><small>{properties ? `${properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or ZIP details appear here.'}</small></div>
+      <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or ZIP details appear here after selection.'}</small></div>
       {properties ? <>
         <div className="entity-stat-grid">
           <div><span>Observed business units</span><strong>{count(properties.observed_business_units)}</strong><small>Provisional establishments</small></div>
@@ -308,12 +315,12 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>Census business units</span><strong>{count(properties.employer_establishments)}</strong><small>Employer establishments baseline</small></div>
           <div><span>Population</span><strong>{count(properties.population_2020)}</strong><small>2020 Census</small></div>
           <div><span>Housing units</span><strong>{count(properties.housing_units_2020)}</strong><small>2020 Census</small></div>
-          <div><span>Relative coverage alignment (proxy)</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals displayed peer median</small></div>
+          <div><span>{alignmentLabel(properties)}</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals the governed peer median</small></div>
           <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>
         <div className="entity-ratios"><span><b>{count(properties.businesses_per_1000_people)}</b> evidence / 1K people</span><span><b>{count(properties.population_density)}</b> people / sq. mile</span></div>
-        <p className="entity-method-note">Relative alignment compares selected-category evidence per Census employer establishment with the median of the currently displayed peer entities. Values can exceed 100%; this is a comparison proxy, not measured completeness of all businesses.</p>
-      </> : <div className="entity-summary-empty">Move across the map to compare business evidence, Census baselines, and relative coverage. Click to drill from state to county to ZIP.</div>}
+        <p className="entity-method-note">Relative completeness is a coverage proxy: selected-category evidence per Census employer establishment compared with the median for {properties.relative_coverage_alignment_peer_scope}. Values can exceed 100%; it is not measured completeness of all businesses.</p>
+      </> : <div className="entity-summary-empty">Select a map entity to pin its business evidence, Census baselines, GDP, and state-relative coverage summary here. Hover details remain on the map.</div>}
       {state && <section className="state-alignment-card">
         <div><span>State alignment</span><strong>{state.postal_abbreviation} · {state.state_name}</strong></div>
         <dl><div><dt>Category evidence</dt><dd>{count(stateEvidence)}</dd></div><div><dt>Within state</dt><dd>{percent(withinState)}</dd></div><div><dt>Across displayed states</dt><dd>{percent(acrossNation)}</dd></div><div><dt>Assigned ZCTAs</dt><dd>{count(state.uniquely_assigned_zcta_count)}</dd></div></dl>
@@ -327,7 +334,6 @@ export default function BusinessIntelligence() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [data, setData] = useState<MapResponse | null>(null);
   const [stateSummary, setStateSummary] = useState<StateSummary | null>(null);
-  const [hoveredFeature, setHoveredFeature] = useState<MapFeature | null>(null);
   const [stateFeature, setStateFeature] = useState<MapFeature | null>(null);
   const [countyFeature, setCountyFeature] = useState<MapFeature | null>(null);
   const [zipFeature, setZipFeature] = useState<MapFeature | null>(null);
@@ -368,10 +374,8 @@ export default function BusinessIntelligence() {
   const activeCategory = catalog?.categories?.find(({ id }) => id === categoryId);
   const activeEnhancer = catalog?.enhancers?.find(({ id }) => id === enhancerId);
   const selectedFeature = zipFeature ?? countyFeature ?? stateFeature;
-  const inspectedFeature = hoveredFeature ?? selectedFeature;
 
   function choose(feature: MapFeature) {
-    setHoveredFeature(null);
     if (level === 'states') {
       setStateFeature(feature); setCountyFeature(null); setZipFeature(null); setStateFips(feature.properties.geoid); setStateName(feature.properties.name); setCountyGeoid(''); setCountyName(''); setSelectedZip(''); setLevel('counties');
     } else if (level === 'counties') {
@@ -380,20 +384,20 @@ export default function BusinessIntelligence() {
   }
 
   function national() {
-    setLevel('states'); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setHoveredFeature(null); setStateFips(''); setStateName(''); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
+    setLevel('states'); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setStateFips(''); setStateName(''); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
   }
 
   function state() {
-    setLevel('counties'); setCountyFeature(null); setZipFeature(null); setHoveredFeature(null); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
+    setLevel('counties'); setCountyFeature(null); setZipFeature(null); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
   }
 
   function county() {
-    setLevel('zips'); setZipFeature(null); setHoveredFeature(null); setSelectedZip('');
+    setLevel('zips'); setZipFeature(null); setSelectedZip('');
   }
 
   return (
     <section id="business-intelligence" className="panel intelligence-panel">
-      <div className="panel-heading intelligence-heading"><div><span className="section-kicker">Spatial intelligence agent</span><h2>Heatmap Builder <em>{shortRelease(catalog?.coverage_release_id)}</em></h2></div><div className="governed-chip"><i /> Governed local view</div></div>
+      <div className="panel-heading intelligence-heading"><div><span className="section-kicker">Heatmap Builder agent</span><h2>Heatmap Builder <em>{shortRelease(catalog?.coverage_release_id)}</em></h2></div><div className="governed-chip"><i /> Governed local view</div></div>
       <div className="heatmap-intro-bar"><span>Business evidence</span><span>Census context</span><span>State alignment</span><small>Hover for a fast comparison · click to drill down</small></div>
       {!catalog && !error && <div className="map-loading">Indexing the current governed coverage release…</div>}
       {error && <div className="map-error">{error}</div>}
@@ -413,11 +417,11 @@ export default function BusinessIntelligence() {
         <div className="map-stage">
           <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>ZIP {selectedZip}</strong></>}</nav>
           {loading && <div className="map-loading overlay">Loading {level} polygons and evidence…</div>}
-          {data && <FeatureMap key={`${data.level}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerId={enhancerId} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} onHover={setHoveredFeature} />}
+          {data && <FeatureMap key={`${data.level}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerId={enhancerId} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed ZCTAs materially intersect the selected county; their direct ZIP values are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
         </div>
-        <EntitySummary feature={inspectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} />
+        <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} />
       </div>}
     </section>
   );

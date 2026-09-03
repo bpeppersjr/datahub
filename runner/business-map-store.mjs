@@ -166,6 +166,23 @@ function finiteOrNull(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function coordinateOrNull(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string" || !value.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim())) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function geocodeForLocation(location) {
+  const coordinates = location?.type === "Point" && Array.isArray(location.coordinates)
+    ? location.coordinates
+    : [location?.longitude, location?.latitude];
+  const longitude = coordinateOrNull(coordinates[0]);
+  const latitude = coordinateOrNull(coordinates[1]);
+  if (latitude === null || longitude === null || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  return { latitude, longitude };
+}
+
 function gdpProperties(release, record, geographyType) {
   if (geographyType === "zip") {
     return {
@@ -320,18 +337,28 @@ function median(values) {
   return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
 }
 
-function addRelativeCoverageAlignment(features) {
-  const peerMedian = median(features
+function peerMedianForFeatures(features) {
+  return median(features
     .filter((feature) => feature.properties.employer_establishments > 0)
     .map((feature) => feature.properties.business_count / feature.properties.employer_establishments));
+}
+
+function peerMedianForAggregates(aggregates, categoryId) {
+  return median(aggregates
+    .filter((aggregate) => aggregate.employer_establishments > 0)
+    .map((aggregate) => (aggregate.category_counts[categoryId] ?? 0) / aggregate.employer_establishments));
+}
+
+function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displayed peer geographies" } = {}) {
+  const resolvedPeerMedian = peerMedian === undefined ? peerMedianForFeatures(features) : peerMedian;
   return {
-    peerMedian,
+    peerMedian: resolvedPeerMedian,
     features: features.map((feature) => {
       const evidencePerEmployerEstablishment = feature.properties.employer_establishments > 0
         ? feature.properties.business_count / feature.properties.employer_establishments
         : null;
-      const relativeCoverageAlignmentPercent = peerMedian && evidencePerEmployerEstablishment !== null
-        ? Number(((evidencePerEmployerEstablishment / peerMedian) * 100).toFixed(2))
+      const relativeCoverageAlignmentPercent = resolvedPeerMedian && evidencePerEmployerEstablishment !== null
+        ? Number(((evidencePerEmployerEstablishment / resolvedPeerMedian) * 100).toFixed(2))
         : null;
       return {
         ...feature,
@@ -339,7 +366,8 @@ function addRelativeCoverageAlignment(features) {
           ...feature.properties,
           evidence_per_employer_establishment: evidencePerEmployerEstablishment,
           relative_coverage_alignment_percent: relativeCoverageAlignmentPercent,
-          relative_coverage_alignment_basis: "selected-category evidence per Census employer establishment versus the unfiltered geography-scope peer median; 100 equals the median and this is not true business-universe completeness",
+          relative_coverage_alignment_peer_scope: peerScope,
+          relative_coverage_alignment_basis: `selected-category evidence per Census employer establishment versus the ${peerScope} median; 100 equals the median and this is not true business-universe completeness`,
           gdp_current_dollars: feature.properties.gdp_current_dollars ?? null,
           gdp_reference_year: feature.properties.gdp_reference_year ?? null,
           gdp_status: feature.properties.gdp_status ?? "unavailable-no-governed-bea-gdp-release",
@@ -545,6 +573,8 @@ export function createBusinessMapStore({
     let collection;
     let features;
     let meta;
+    let alignmentPeerMedian;
+    let alignmentPeerScope;
     if (level === "states") {
       collection = await geoJson(index, "source/states.geojson");
       features = collection.features.filter((feature) => index.states.get(String(feature.properties?.GEOID ?? ""))?.is_50_states_or_dc).map((feature) => {
@@ -563,6 +593,7 @@ export function createBusinessMapStore({
         excluded_unmatched_business_evidence: index.excluded.state.unmatched_business_evidence,
         excluded_territory_state_equivalents: [...index.states.values()].filter((row) => !row.is_50_states_or_dc).length,
       };
+      alignmentPeerScope = "50 states and District of Columbia peer";
     } else if (level === "counties") {
       const state = fips(stateFips, 2, "state_fips");
       collection = await geoJson(index, `source/counties/state=${state}.geojson`);
@@ -583,6 +614,7 @@ export function createBusinessMapStore({
         excluded_ambiguous_business_evidence: index.excluded.county.ambiguous_business_evidence,
         excluded_unmatched_business_evidence: index.excluded.county.unmatched_business_evidence,
       };
+      alignmentPeerScope = `county peers within state ${state}`;
     } else if (level === "zips") {
       const state = fips(stateFips, 2, "state_fips");
       const county = fips(countyGeoid, 5, "county_geoid");
@@ -610,10 +642,18 @@ export function createBusinessMapStore({
         assignment_semantics: "ZCTA-materially-intersects-selected-county; direct-ZIP-values-are-not-county-allocated",
         cross_boundary_zctas: features.filter((feature) => (index.zips.get(feature.properties.geoid)?.county_ids.length ?? 0) > 1).length,
       };
+      const statePeerAggregates = [...(index.zipsByState.get(state) ?? new Set())]
+        .map((code) => index.zips.get(code))
+        .filter((zip) => zip?.has_zcta && zip.state_ids.length === 1 && zip.state_ids[0] === state);
+      alignmentPeerMedian = peerMedianForAggregates(statePeerAggregates, categoryId);
+      alignmentPeerScope = `uniquely state-assigned ZCTA peers within state ${state}`;
     } else {
       throw Object.assign(new Error("Unsupported heat-map geography level."), { statusCode: 400 });
     }
-    const aligned = addRelativeCoverageAlignment(features);
+    const aligned = addRelativeCoverageAlignment(features, {
+      peerMedian: alignmentPeerMedian,
+      peerScope: alignmentPeerScope,
+    });
     features = aligned.features;
     const unfilteredFeatureCount = features.length;
     if (populationFloor !== null) features = features.filter((feature) => feature.properties.population_2020 >= populationFloor);
@@ -635,7 +675,8 @@ export function createBusinessMapStore({
         filtered_out_feature_count: unfilteredFeatureCount - features.length,
         demographic_filters: { min_population: populationFloor, min_housing_units: housingFloor },
         peer_median_evidence_per_employer_establishment: aligned.peerMedian,
-        relative_coverage_alignment_semantics: "100% equals the selected-category evidence density of the unfiltered geography-scope peer median; values may exceed 100%. This is not measured completeness of the business universe.",
+        relative_coverage_alignment_peer_scope: alignmentPeerScope,
+        relative_coverage_alignment_semantics: `100% equals the selected-category evidence density of the ${alignmentPeerScope} median; values may exceed 100%. This is not measured completeness of the business universe.`,
         gdp_status: level === "zips"
           ? "unavailable-no-official-zip-gdp-do-not-allocate"
           : index.gdp
@@ -738,6 +779,7 @@ export function createBusinessMapStore({
         if (records.length < cappedLimit) records.push({
           business_name: businessName,
           address,
+          geocode: geocodeForLocation(row.location),
           category_id: categoryId === "all" ? categoryBySource.get(sourceId) ?? "all" : categoryId,
           source_id: sourceId,
           source_release_id: row.source?.source_release_id ?? null,

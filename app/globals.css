@@ -148,6 +148,7 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .business-name-drill > p, .business-name-list > p { margin: 12px 0 0; color: #6f7a85; font-size: 9px; line-height: 1.5; }
 .local-review-label { display: block; margin-top: 10px; color: var(--amber); font-size: 8px; line-height: 1.45; }
 .business-name-list { max-height: 285px; overflow: auto; margin-top: 10px; padding-right: 3px; }
+.business-geocode { display: block; margin-top: 3px; color: #6f9a93; font-size: 7px; font-variant-numeric: tabular-nums; }
 .business-name-list article { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; padding: 9px 2px; border-bottom: 1px solid #202832; }
 .business-name-list article strong, .business-name-list article span { display: block; }
 .business-name-list article strong { overflow: hidden; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }

@@ -16,16 +16,16 @@ The category control is one hierarchy of source-preserving evidence:
 
 These are analytical source groups, not inferred NAICS classifications. One real business can occur in more than one source because the current coverage release deliberately does not apply entity-resolution aliases.
 
-Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. Record-level local-review restrictions remain visible.
+Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. When the governed location profile has a point, the response projects it to separate nullable `latitude` and `longitude` values; it does not expose a business geometry. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. Record-level local-review restrictions remain visible.
 
 The persistent entity-summary section to the right of the map provides selected entity values and two state-alignment percentages for the active category:
 
 - **Within state**: the category's share of all relevant source-category evidence assigned to that state; and
 - **Across U.S.**: the state's share of that category across the displayed states.
 
-The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that no official ZIP GDP is available; no state or county value is allocated downward. Business-name records appear in this same section after a ZIP selection.
+The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that no official ZIP GDP is available; no state or county value is allocated downward. Business-name records and their available latitude/longitude appear in this same section after a ZIP selection. Map hover uses an on-map business tooltip and does not replace the entity pinned in the right-hand summary.
 
-**Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the median value for the unfiltered peers at the current geography level. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
+**Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the applicable governed peer median. States compare with the 50-state-and-DC state set, counties compare with counties in the selected state, and ZIP/ZCTA rows compare with uniquely state-assigned ZCTA peers across the selected state. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
 
 ## Population and demographic enhancers
 
