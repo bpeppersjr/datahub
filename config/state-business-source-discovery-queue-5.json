@@ -1,0 +1,287 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-5-wave-1-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["OH", "NC", "NJ", "VA"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_level_data_requested": false,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "parallel_execution": {
+    "non_overlapping_state_assignments": true,
+    "maximum_active_workstreams": 4,
+    "assignments": [
+      { "state_abbreviation": "OH", "worker": "Confucius", "ran_in_parallel": true },
+      { "state_abbreviation": "NC", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "NJ", "worker": "Gauss", "ran_in_parallel": true },
+      { "state_abbreviation": "VA", "worker": "root", "ran_in_parallel": true }
+    ],
+    "waves": [
+      {
+        "wave_id": "queue-5-wave-1",
+        "concurrent_state_abbreviations": ["OH", "NC", "NJ", "VA"],
+        "overlap_evidence": "Ohio, North Carolina, and New Jersey agents were active while the root Virginia workstream inspected official sources."
+      }
+    ]
+  },
+  "forbidden_operations": [
+    "account-creation",
+    "terms-acceptance",
+    "purchase",
+    "record-level-request",
+    "record-enumeration",
+    "portal-automation",
+    "complete-bulk-download",
+    "connector-implementation",
+    "source-release-publication",
+    "registry-rebuild",
+    "coverage-publication",
+    "heatmap-admission",
+    "production-pointer-change"
+  ],
+  "required_excluded_data_classes": [
+    "registered-agent-and-service-address",
+    "natural-person-name-role-and-address",
+    "direct-contact-and-signature",
+    "tax-payment-financial-and-government-identifiers",
+    "filing-image-document-and-free-text"
+  ],
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "OH",
+      "state_name": "Ohio",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Ohio Secretary of State",
+        "product": "Business Filing Data",
+        "availability": "paid one-time FTP order; recurring delivery requires a separate unpublished contract",
+        "price": "$62.50 one-time FTP; weekly or monthly price is unpublished"
+      },
+      "current_coverage": {
+        "reported_profiles": 163604,
+        "coordinate_profiles": 12926,
+        "nonemployer_baseline_2023": 909227,
+        "baseline_minus_profiles": 745623,
+        "diagnostic_profile_percent": 18.0,
+        "material_zctas": 1234,
+        "zctas_with_record_level_evidence": 1220
+      },
+      "official_urls": [
+        "https://www.ohiosos.gov/business/business-filing-forms",
+        "https://www.ohiosos.gov/assets/200.pdf",
+        "https://www.ohiosos.gov/business/business-reports",
+        "https://www.ohiosos.gov/business/ohio-business-roadmap/frequently-asked-questions",
+        "https://codes.ohio.gov/ohio-revised-code/section-1706.161",
+        "https://codes.ohio.gov/ohio-revised-code/section-149.43/9-30-2025",
+        "https://www.ohiosos.gov/privacy-statement"
+      ],
+      "observed_evidence": [
+        "Current Form 200 offers one Business Filing Data FTP download for $62.50 and directs recurring weekly or monthly customers to obtain a separate contract.",
+        "The paid product has no published current schema, sample, exact entity population, status codebook, address-role dictionary, row count, byte count, checksum, or control total.",
+        "The free monthly reports are filing-event reports rather than a current entity master and expose statutory-agent, filer, incorporator, and address fields that are outside the retained projection.",
+        "The official status FAQ describes registry and name-availability standing; Active cannot be treated as proof of a currently operating business or physical site.",
+        "Public-record access does not by itself establish unattended FTP retrieval, indefinite retention, commercial derived publication, or redistribution rights for the paid product."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "statutory-agent names, addresses, and service-of-process fields",
+        "filers, incorporators, organizers, signers, members, managers, partners, officers, and other natural-person fields",
+        "residential addresses, phones, emails, signatures, payment contacts, and order data",
+        "tax, Social Security, financial, and other government identifiers",
+        "document images, filing text, and other unbounded free text"
+      ],
+      "strongest_bounded_next_action": "Request a no-order schema-only and person-free sample plus written answers on current-master scope, active selection, identifier lifecycle, status and address roles, full-versus-delta and tombstone semantics, counts, bytes, checksums, supported unattended FTP retrieval, current recurring price, retention, commercial derived publication, and redistribution. Do not submit Form 200, pay, contract, access FTP, or build a connector before those gates clear."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "NC",
+      "state_name": "North Carolina",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "North Carolina Secretary of State",
+        "product": "Business Registration Division Master Files Subscription — Core export",
+        "availability": "paid weekly relational CSV snapshot over FTP; current contract and data contract are unpublished",
+        "price": "$750 setup plus $2,000 per North Carolina state fiscal year"
+      },
+      "current_coverage": {
+        "reported_profiles": 175876,
+        "coordinate_profiles": 11346,
+        "nonemployer_baseline_2023": 920236,
+        "baseline_minus_profiles": 744360,
+        "diagnostic_profile_percent": 19.1,
+        "material_zctas": 853,
+        "zctas_with_record_level_evidence": 849
+      },
+      "official_urls": [
+        "https://www.sosnc.gov/online_services/data_subscriptions/about_the_data",
+        "https://www.sosnc.gov/manual/assets/sos/pdf/data_subscriptions.pdf",
+        "https://www.sosnc.gov/documents/forms/Data_Subcriptions/Business_Registration_layout.pdf",
+        "https://www.sosnc.gov/fees/by_title/_data_subscriptions?area=Divisions",
+        "https://www.sosnc.gov/manual/launching_a_business/register_your_business",
+        "https://www.sosnc.gov/manual/General_Counsel/Page21",
+        "https://www.sosnc.gov/divisions/business_registration",
+        "https://www.ncleg.gov/enactedlegislation/statutes/html/bysection/chapter_132/gs_132-1.html",
+        "https://www.ncleg.gov/enactedlegislation/statutes/html/bysection/chapter_132/gs_132-6.html",
+        "https://www.nc.gov/terms"
+      ],
+      "observed_evidence": [
+        "The official subscription page describes a weekly FTP-delivered relational CSV Core export and the fee schedule lists a $750 setup fee plus $2,000 per state fiscal year.",
+        "The public layout calls Core a complete point-in-time set, but it is dated 2012 with revisions only through 2015 and cannot pin the current schema.",
+        "The layout calls PItemID the unique corporation or profile identity and says CorpNum is not unique, but it does not guarantee PItemID persistence or non-reuse across lifecycle events.",
+        "Official status definitions distinguish several active and inactive registry states; none independently proves current operation at a physical site.",
+        "FTP is the intended bulk route, but current terms do not expressly define unattended retrieval, replacement atomicity, correction, deletion, tombstone, replay, checksum, retention, or commercial redistribution."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents and every agent-linked address",
+        "officers, partners, directors, company officials, members, managers, incorporators, and every natural-person role or address",
+        "telephone, email, signature, direct-contact, tax, payment, banking, identity, and other government identifiers",
+        "stock, name reservations, filing detail, pending events, document images, Purpose, Profession, and other free text",
+        "former, home-state, or non-legal names unless a separately governed assertion requires them"
+      ],
+      "strongest_bounded_next_action": "Request the current unsigned contract and terms, manifest, schema-only header or person-free sample, status and type lookups, PItemID lifecycle guarantee, exact office-address roles, publication and correction schedule, full-versus-delta and tombstone semantics, current counts and sizes, checksums, supported unattended FTP retrieval, and written retention, attribution, commercial derived-use, aggregation, and redistribution rights. Do not subscribe, pay, obtain credentials, download rows, or build a connector before those gates clear."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "NJ",
+      "state_name": "New Jersey",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "New Jersey Division of Revenue and Enterprise Services",
+        "product": "Bulk Access Status Reports — line item 01000000",
+        "availability": "written paid bulk request with quoted FTP, email, disk, or paper delivery and optional ongoing updates",
+        "price": "$0.0185 per record plus any quoted media or payment charges"
+      },
+      "current_coverage": {
+        "reported_profiles": 156337,
+        "coordinate_profiles": 8251,
+        "nonemployer_baseline_2023": 883628,
+        "baseline_minus_profiles": 727291,
+        "diagnostic_profile_percent": 17.7,
+        "material_zctas": 603,
+        "zctas_with_record_level_evidence": 603
+      },
+      "official_urls": [
+        "https://www.nj.gov/treasury/revenue/fees.shtml",
+        "https://nj.gov/treasury/proposed_rules/PRN%202015-154%20(47%20NJR%202912(a)).pdf",
+        "https://www.nj.gov/treasury/proposed_rules/NoR17_3455NJR1741a.pdf",
+        "https://www.nj.gov/treasury/revenue/guiderequest.shtml",
+        "https://www.njportal.com/dor/businessrecords/EntityDocs/BusinessStatCopies.aspx",
+        "https://www.njportal.com/DOR/businessrecords/Samples/SampleStatusReports.pdf",
+        "https://www1.nj.gov/TYTR_BRC/jsp/BRCLoginJsp.jsp",
+        "https://www.njportal.com/dor/businessrecords/EntityDocs/BusinessList.aspx",
+        "https://www.njportal.com/errorpages/disclaimer.aspx",
+        "https://www.nj.gov/treasury/revenue/revgencode.shtml"
+      ],
+      "observed_evidence": [
+        "The current fee schedule lists line item 01000000 at $0.0185 per record with legal status, registered-agent or office, annual-report dates, business addresses, and associated names.",
+        "N.J.A.C. 17:34 treats at least 500 records as bulk, requires a written request and payment after a quote, and permits ongoing additions and modifications without documenting deletions.",
+        "The official sample is an individual status report rather than a current bulk schema; the candidate 10-digit Business Entity ID lacks a published bulk-file lifecycle and non-reuse guarantee.",
+        "No public bulk dictionary, machine sample, complete status vocabulary, active-only selector, row or byte count, checksum, snapshot watermark, cadence, correction, tombstone, replay, or FTP automation contract was found.",
+        "The portal disclaimer does not clearly grant indefinite retention, commercial derived publication, redistribution, or sublicensing rights for paid bulk output."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered-agent, registered-office, and service-of-process fields",
+        "principals, officers, directors, managers, members, partners, trustees, incorporators, and every natural-person role or address",
+        "phones, emails, signatures, and every other natural-person or direct-contact field",
+        "tax returns, tax identifiers, payment information, and other government or financial identifiers",
+        "filing images, document text, and unbounded free text"
+      ],
+      "strongest_bounded_next_action": "Request a no-purchase machine schema or sample and person-free projection plus exact entity and status dictionaries, an active subset definition, Business Entity ID lifecycle, current count and byte quote, snapshot cadence, watermarks, delta, deletion, tombstone, replay, checksum, and correction rules, supported unattended FTP retrieval, and written commercial retention, derived-publication, redistribution, and attribution terms. Do not authorize payment, request records, obtain delivery credentials, automate the portal, or build a connector before those gates clear."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "VA",
+      "state_name": "Virginia",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Virginia State Corporation Commission Office of the Clerk",
+        "product": "requested business-entity structured-data extract",
+        "availability": "discretionary structured-data request with reasonable fees; no documented recurring product or public bulk file",
+        "price": "Unknown; reasonable database or structured-data fees may be quoted"
+      },
+      "current_coverage": {
+        "reported_profiles": 116537,
+        "coordinate_profiles": 8316,
+        "nonemployer_baseline_2023": 740321,
+        "baseline_minus_profiles": 623784,
+        "diagnostic_profile_percent": 15.7,
+        "material_zctas": 908,
+        "zctas_with_record_level_evidence": 902
+      },
+      "official_urls": [
+        "https://www.scc.virginia.gov/businesses/about-the-clerks-office/",
+        "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-19/",
+        "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-21.2/",
+        "https://law.lis.virginia.gov/admincode/title5/agency5/chapter40/section10/",
+        "https://www.scc.virginia.gov/accessibility-and-web-policy/",
+        "https://appspre.scc.virginia.gov/procure/rfp_scc12020_scc.pdf",
+        "https://appspre.scc.virginia.gov/clk/files/cismanual.pdf",
+        "https://cis.scc.virginia.gov/EntitySearch/Index",
+        "https://www.scc.virginia.gov/about-the-scc/contact-us/"
+      ],
+      "observed_evidence": [
+        "The Office of the Clerk is Virginia's central filing office for corporations, partnerships, limited liability companies, and business trusts, and its business-entity records are generally open to examination.",
+        "Virginia law and regulation permit the Commission to provide records from a computer database or structured data collection and to charge reasonable fees, but do not publish a recurring business-entity product contract.",
+        "An official system procurement document describes a candidate unique SCC-ID and principal-office information, while also contemplating possible reassignment if a new identifier scheme is adopted; it is not a current extract schema.",
+        "The public CIS route is an interactive entity search with cookie consent, not a documented bulk API or static file, and must not be enumerated or automated.",
+        "The SCC web policy limits commercial use beyond intended public availability and grants only fair use of website contents; requested extract retention, derived-publication, and redistribution rights remain unresolved."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices, service-of-process parties, and related addresses",
+        "officers, directors, members, managers, general partners, organizers, incorporators, signers, and every natural-person role or address",
+        "phones, emails, signatures, filer, courier, payor, account, and payment information",
+        "tax, Social Security, financial, identity, and other government identifiers",
+        "filing images, documents, comments, and unbounded free text"
+      ],
+      "strongest_bounded_next_action": "Request a no-record, no-payment written response on whether an existing recurring person-free business-entity database extract is available, together with a schema-only sample, exact population and active count, SCC-ID lifecycle, status and address codebooks, change and tombstone semantics, delivery automation, current price, checksums, retention, commercial derived publication, redistribution, and attribution terms. Do not accept CIS cookie or account terms, request record production, pay, enumerate the public search, or build a connector before those gates clear."
+    }
+  ]
+}

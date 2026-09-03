@@ -233,9 +233,10 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       };
     },
   };
+  let currentNow = new Date("2026-09-03T12:00:00.000Z");
   const store = createBusinessCoverageViewStore({
     pointerPath,
-    now: () => new Date("2026-09-03T12:00:00.000Z"),
+    now: () => currentNow,
     stateSourceRevalidationPath: "fixture",
     stateSourceRevalidationProvider,
   });
@@ -286,6 +287,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     autonomous_acquisitions_authorized: 0,
     production_ready_jurisdictions: 0,
   });
+  assert.deepEqual(overview.state_source_assessment_summary, overview.state_source_revalidation_summary);
   const states = await store.listDimension("states", { query: "fixture" });
   assert.equal(states.total, 1);
   assert.equal(states.records[0].reported_address_profile_count, 2);
@@ -294,6 +296,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(states.records[0].latest_source_revalidation.decision, "hold");
   assert.equal(states.records[0].latest_source_revalidation.candidate.product, "Fixture source candidate");
   assert.equal(states.records[0].latest_source_revalidation.coverage_release_matches_current, false);
+  assert.equal(states.records[0].latest_source_assessment.assessment_kind, "revalidation");
+  assert.equal(states.records[0].latest_source_assessment.candidate.product, "Fixture source candidate");
   states.records[0].latest_source_revalidation.candidate.product = "mutated caller value";
   assert.equal((await store.listDimension("states", { query: "Fixture source candidate" })).total, 1);
   assert.equal((await store.listDimension("states", { query: "mutated caller value" })).total, 0);
@@ -318,6 +322,30 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(californiaSources.records[0].coordinate_missing_count, 1);
   assert.equal(californiaSources.records[0].temporal_status.status, "within-review-window");
   assert.equal(californiaSources.records[0].temporal_status.source_reference_date, "2026-09-01");
+  currentNow = new Date("2026-10-20T12:00:00.000Z");
+  const californiaSourcesAfterReviewWindow = await store.listDimension("sources", { query: "California ABC" });
+  assert.equal(californiaSourcesAfterReviewWindow.records[0].temporal_status.status, "review-due");
+  assert.equal(californiaSourcesAfterReviewWindow.records[0].temporal_status.age_days > 45, true);
+
+  const discoveryDocument = structuredClone(revalidationDocument);
+  discoveryDocument.assessment_catalog_id = "assessment-catalog-fixture";
+  discoveryDocument.states[0].assessment_id = "source-discovery-fixture";
+  discoveryDocument.states[0].assessment_kind = "source-discovery";
+  const discoveryStore = createBusinessCoverageViewStore({
+    pointerPath,
+    stateSourceRevalidationPath: "fixture",
+    stateSourceRevalidationProvider: {
+      ...stateSourceRevalidationProvider,
+      async load() {
+        return structuredClone(discoveryDocument);
+      },
+    },
+  });
+  const discoveryState = (await discoveryStore.listDimension("states")).records[0];
+  assert.equal(discoveryState.latest_source_assessment.assessment_id, "source-discovery-fixture");
+  assert.equal(discoveryState.latest_source_assessment.assessment_kind, "source-discovery");
+  assert.equal(discoveryState.latest_source_assessment.revalidation_id, null);
+  assert.equal(discoveryState.latest_source_revalidation, null);
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

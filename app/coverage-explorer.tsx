@@ -114,6 +114,23 @@ type Overview = {
     autonomous_acquisitions_authorized: number;
     production_ready_jurisdictions: number;
   } | null;
+  state_source_assessment_summary?: {
+    schema_version: string;
+    assessment_catalog_id: string;
+    observed_at: string;
+    coverage_release_id: string;
+    current_coverage_release_id: string | null;
+    coverage_release_matches_current: boolean | null;
+    source_artifact_ids: string[];
+    jurisdictions_assessed: number;
+    jurisdictions_revalidated: number;
+    jurisdictions_discovered: number;
+    hold_decisions: number;
+    bounded_connector_decisions: number;
+    changed_decisions: number;
+    autonomous_acquisitions_authorized: number;
+    production_ready_jurisdictions: number;
+  } | null;
   coverage?: {
     state_views: number;
     county_views: number;
@@ -253,6 +270,26 @@ type Page<T = Record<string, unknown>> = {
   records: T[];
 };
 
+type StateSourceAssessment = {
+  assessment_id: string;
+  assessment_kind: 'revalidation' | 'source-discovery';
+  revalidation_id: string | null;
+  observed_at: string;
+  coverage_release_id: string;
+  coverage_release_matches_current: boolean;
+  prior_decision: 'hold' | 'proceed-to-bounded-connector' | null;
+  decision: 'hold' | 'proceed-to-bounded-connector';
+  changed_since_prior_review: boolean;
+  candidate: { publisher: string; product: string; availability: string; price: string };
+  bounded_connector_implementation_authorized: boolean;
+  autonomous_acquisition_authorized: false;
+  complete_source_acquisition_authorized: false;
+  production_ready: false;
+  unresolved_gates: string[];
+  strongest_bounded_next_action: string;
+  official_urls: string[];
+};
+
 type StateRow = {
   view_id: string;
   state_fips: string;
@@ -274,23 +311,8 @@ type StateRow = {
     coordinate_assignment_percent: number | null;
     complete_all_active_businesses: false;
   };
-  latest_source_revalidation: {
-    revalidation_id: string;
-    observed_at: string;
-    coverage_release_id: string;
-    coverage_release_matches_current: boolean;
-    prior_decision: 'hold' | 'proceed-to-bounded-connector';
-    decision: 'hold' | 'proceed-to-bounded-connector';
-    changed_since_prior_review: boolean;
-    candidate: { publisher: string; product: string; availability: string; price: string };
-    bounded_connector_implementation_authorized: boolean;
-    autonomous_acquisition_authorized: false;
-    complete_source_acquisition_authorized: false;
-    production_ready: false;
-    unresolved_gates: string[];
-    strongest_bounded_next_action: string;
-    official_urls: string[];
-  } | null;
+  latest_source_assessment: StateSourceAssessment | null;
+  latest_source_revalidation: StateSourceAssessment | null;
 };
 
 type CountyRow = {
@@ -397,16 +419,16 @@ async function request<T>(path: string): Promise<T> {
 
 function StateRows({ records }: { records: StateRow[] }) {
   return records.map((row) => {
-    const revalidation = row.latest_source_revalidation;
+    const assessment = row.latest_source_assessment ?? row.latest_source_revalidation;
     return (
     <div className="coverage-table-row state-row" key={row.view_id}>
       <div><strong>{row.postal_abbreviation}</strong><span>{row.state_name} · {label(row.state_source_readiness.source_scope_status)}</span></div>
       <div className="state-source-gate">
-        {revalidation ? <>
-          <strong className={revalidation.decision === 'hold' ? 'coverage-warn' : 'coverage-ok'}>Source gate: {label(revalidation.decision)}</strong>
-          <span>{revalidation.candidate.product}</span>
-          <details><summary>Review gate</summary><p>{!revalidation.coverage_release_matches_current && <b>Source review pinned to prior coverage release. </b>}{revalidation.strongest_bounded_next_action} Unresolved: {revalidation.unresolved_gates.map(label).join(', ')}.</p></details>
-        </> : <><strong>Source review unavailable</strong><span>Not included in the current revalidation pass</span></>}
+        {assessment ? <>
+          <strong className={assessment.decision === 'hold' ? 'coverage-warn' : 'coverage-ok'}>{assessment.assessment_kind === 'source-discovery' ? 'First-pass source discovery' : 'Source revalidation'}: {label(assessment.decision)}</strong>
+          <span>{assessment.candidate.product}</span>
+          <details><summary>{assessment.assessment_kind === 'source-discovery' ? 'Discovery gate' : 'Revalidation gate'}</summary><p>{!assessment.coverage_release_matches_current && <b>Source assessment pinned to prior coverage release. </b>}{assessment.strongest_bounded_next_action} Unresolved: {assessment.unresolved_gates.map(label).join(', ')}.</p></details>
+        </> : <><strong>Source assessment unavailable</strong><span>Not included in the current governed assessment catalog</span></>}
       </div>
       <span>{count(row.reported_address_profile_count)}</span>
       <span>{count(row.coordinate_assigned_profile_count)}</span>
@@ -525,6 +547,7 @@ export default function CoverageExplorer() {
   const visiblePage = page?.dimension === dimension ? page : null;
   const maxOffset = visiblePage ? Math.max(0, Math.floor(Math.max(0, visiblePage.total - 1) / visiblePage.limit) * visiblePage.limit) : 0;
   const unavailable = overview && !overview.available;
+  const sourceAssessmentSummary = overview?.state_source_assessment_summary ?? overview?.state_source_revalidation_summary;
 
   function chooseDimension(next: Dimension) {
     setDimension(next);
@@ -571,9 +594,9 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.state_source_readiness_summary?.broad_jurisdiction_organization_layers)} / {count(overview?.state_source_readiness_summary?.jurisdictions_in_scope)}</strong> broad state organization layers · {count(overview?.state_source_readiness_summary?.missing_broad_jurisdiction_organization_layers)} gaps</span>
             <span><strong>{overview?.state_source_readiness_summary?.coordinate_assignment_percent?.toFixed(2) ?? '—'}%</strong> state-profile coordinate assignment · address latitude/longitude only</span>
-            {overview?.state_source_revalidation_summary
-              ? <span><strong>{count(overview.state_source_revalidation_summary.jurisdictions_revalidated)}</strong> source contracts revalidated · {count(overview.state_source_revalidation_summary.hold_decisions)} hold · {count(overview.state_source_revalidation_summary.bounded_connector_decisions)} bounded connector</span>
-              : <span><strong>Unavailable</strong> no current source-contract revalidation</span>}
+            {sourceAssessmentSummary
+              ? <span><strong>{count('jurisdictions_assessed' in sourceAssessmentSummary ? sourceAssessmentSummary.jurisdictions_assessed : sourceAssessmentSummary.jurisdictions_revalidated)}</strong> source contracts assessed · {'jurisdictions_discovered' in sourceAssessmentSummary ? `${count(sourceAssessmentSummary.jurisdictions_revalidated)} revalidated · ${count(sourceAssessmentSummary.jurisdictions_discovered)} first-pass discoveries · ` : ''}{count(sourceAssessmentSummary.hold_decisions)} hold · {count(sourceAssessmentSummary.bounded_connector_decisions)} bounded connector</span>
+              : <span><strong>Unavailable</strong> no current source-contract assessment catalog</span>}
             <span><strong>{count(overview?.source_temporal_summary?.within_review_window)} / {count(overview?.source_temporal_summary?.total_sources)}</strong> sources within review window · {count(overview?.source_temporal_summary?.review_due)} due · {count(overview?.source_temporal_summary?.missing_source_reference)} missing date</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.de_business_license_current_organization_records)}</strong> DE current licenses · {count(overview?.coverage?.de_business_license_eligible_reported_us_business_addresses)} reported U.S. addresses</span>

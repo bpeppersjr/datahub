@@ -12,6 +12,7 @@
     "runner": "node runner/server.mjs",
     "connectors:check": "node scripts/check-connector-registry.mjs",
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
+    "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
     "usda-organic-integrity:preflight": "node scripts/preflight-usda-organic-integrity.mjs",
     "usda-organic-integrity:build-offline": "node scripts/build-usda-organic-integrity-offline.mjs",
     "usda-organic-integrity:verify-offline": "node scripts/verify-usda-organic-integrity.mjs",
@@ -119,7 +120,7 @@
     "start": "npm run desktop",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
     "test": "node --test runner/*.test.mjs",
-    "check": "npm run state-source-discovery:check && npm run connectors:check && npm run test && npm run lint && npm run build && npm run test:desktop"
+    "check": "npm run state-source-discovery:check && npm run state-source-assessments:check && npm run connectors:check && npm run test && npm run lint && npm run build && npm run test:desktop"
   },
   "dependencies": {
     "@duckdb/node-api": "^1.5.5-r.4",
