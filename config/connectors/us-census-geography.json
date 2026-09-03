@@ -21,6 +21,7 @@
     "acquire",
     "validate",
     "normalize",
+    "reconcile",
     "quality gate",
     "publish",
     "finalize"
@@ -34,6 +35,7 @@
       "page_size": { "type": "integer", "minimum": 1, "maximum": 2000, "default": 500 }
     }
   },
+  "input_artifact_types": [],
   "output_artifact_types": [
     "source-geojson",
     "normalized-geography-index-jsonl",

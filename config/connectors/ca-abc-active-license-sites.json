@@ -2,7 +2,7 @@
   "connector_id": "ca-abc-active-license-sites",
   "version": "1.0.1",
   "description": "Publishes privacy-minimized California ABC source-defined active issued-license premise groups from the official daily export.",
-  "lifecycle": ["preflight", "plan", "acquire", "validate", "minimize", "normalize", "quality gate", "publish", "finalize"],
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "minimize", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,

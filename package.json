@@ -10,6 +10,7 @@
     "dev:web": "node scripts/start-dev-web.mjs",
     "dev:ui": "vinext dev",
     "runner": "node runner/server.mjs",
+    "connectors:check": "node scripts/check-connector-registry.mjs",
     "geography:build": "node scripts/build-us-geography.mjs",
     "geography:verify": "node scripts/verify-us-geography.mjs",
     "zcta-crosswalk:build": "node scripts/build-zcta-jurisdiction-crosswalk.mjs",
@@ -101,7 +102,7 @@
     "start": "npm run desktop",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
     "test": "node --test runner/*.test.mjs",
-    "check": "npm run test && npm run lint && npm run build && npm run test:desktop"
+    "check": "npm run connectors:check && npm run test && npm run lint && npm run build && npm run test:desktop"
   },
   "dependencies": {
     "@turf/area": "^7.4.0",

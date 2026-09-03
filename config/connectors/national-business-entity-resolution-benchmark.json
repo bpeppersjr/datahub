@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "implementation_status": "implemented-and-live-sample-verified-awaiting-independent-labels",
   "description": "Builds deterministic stratified review packets and evaluates independently supplied labels without changing entity-resolution decisions.",
-  "lifecycle": ["preflight", "plan", "validate dependencies", "sample", "enrich", "quality gate", "publish", "verify"],
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "validate dependencies", "sample", "normalize", "enrich", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
@@ -31,7 +31,12 @@
   },
   "sampling": "Deterministic minimum SHA-256 priority within automatic-site, automatic-establishment, and review-candidate strata.",
   "precision_gate": "Each automatic stratum requires all 425 labels submitted, at least 384 conclusive labels, no more than 10% exclusions, and a 95% Wilson lower bound of at least 0.99.",
+  "retry": "Rerun deterministically from the same immutable resolution and registry pointers; no partial sample is published.",
+  "checkpoint": "Run-scoped sample artifacts remain staged until all strata and hashes verify.",
+  "idempotency": "The configured seed, source release hashes, and minimum SHA-256 priority rule produce the same review sample.",
   "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json",
   "retention_profile": "Keep review packets and labels local; publish aggregate metrics only after privacy and contributing-source policy review.",
-  "cancellation": "Stop after the current partition; no current pointer changes until the complete sample passes verification."
+  "cancellation": "Stop after the current partition; no current pointer changes until the complete sample passes verification.",
+  "produced_entities": ["entity-resolution-benchmark-candidate", "entity-resolution-benchmark-label-template", "entity-resolution-benchmark-sample-summary"],
+  "produced_identifiers": ["entity-resolution-decision-id", "entity-resolution-location-profile-id", "benchmark-candidate-id"]
 }

@@ -147,6 +147,9 @@ test("protects every live management endpoint while leaving only narrow liveness
   const protectedEndpoints = [
     ["GET", "/api/status"],
     ["GET", "/api/templates"],
+    ["GET", "/api/connectors"],
+    ["GET", "/api/connectors/us-census-geography"],
+    ["POST", "/api/connectors/us-census-geography/validate", "{}"],
     ["GET", "/api/business-coverage"],
     ["GET", "/api/business-coverage/states"],
     ["GET", "/api/business-map/catalog"],
@@ -211,6 +214,50 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(authorized.status, 200);
   assert(Array.isArray(JSON.parse(authorized.body)));
+
+  const connectorCatalog = await rawRequest({
+    port,
+    hostHeader,
+    origin: "http://localhost:3999",
+    pathname: "/api/connectors",
+    authorization: `Bearer ${CONTROL_TOKEN}`,
+  });
+  assert.equal(connectorCatalog.status, 200);
+  const connectorCatalogBody = JSON.parse(connectorCatalog.body);
+  assert.equal(connectorCatalogBody.connector_count, 36);
+  assert.equal(connectorCatalogBody.policy_profile_count, 34);
+  assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
+
+  const connectorDetail = await rawRequest({
+    port,
+    hostHeader,
+    pathname: "/api/connectors/us-census-geography",
+    authorization: `Bearer ${CONTROL_TOKEN}`,
+  });
+  assert.equal(connectorDetail.status, 200);
+  assert.equal(JSON.parse(connectorDetail.body).connector_id, "us-census-geography");
+
+  const validConfiguration = await rawRequest({
+    port,
+    hostHeader,
+    method: "POST",
+    pathname: "/api/connectors/us-census-geography/validate",
+    authorization: `Bearer ${CONTROL_TOKEN}`,
+    body: JSON.stringify({ configuration: { page_size: 1000 } }),
+  });
+  assert.equal(validConfiguration.status, 200);
+  assert.equal(JSON.parse(validConfiguration.body).configuration.page_size, 1000);
+
+  const invalidConfiguration = await rawRequest({
+    port,
+    hostHeader,
+    method: "POST",
+    pathname: "/api/connectors/us-census-geography/validate",
+    authorization: `Bearer ${CONTROL_TOKEN}`,
+    body: JSON.stringify({ configuration: { page_size: 9999, secret: "must-not-be-echoed" } }),
+  });
+  assert.equal(invalidConfiguration.status, 422);
+  assert.equal(invalidConfiguration.body.includes("must-not-be-echoed"), false);
 
   const created = await rawRequest({
     port,

@@ -14,7 +14,7 @@
     "required": false,
     "provides_polygon_geometry": false
   },
-  "lifecycle": ["preflight", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "quality gate", "publish", "finalize"],
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "validate dependencies", "normalize", "spatially assign coordinate subset", "aggregate", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
@@ -64,7 +64,8 @@
   "checkpoint": "Output remains in run-scoped staging until every view and manifest check passes.",
   "idempotency": "View IDs and row semantics are deterministic for the same immutable dependency releases; release IDs identify publication runs.",
   "cancellation": "Stop after the current profile partition; staged artifacts remain unpublished.",
-  "source_policy": "config/source-policies/national-business-coverage-views.json; Alaska-derived source and ZIP aggregates retain local-aggregate-review-required semantics, Washington L&I-derived aggregates require PDDL attribution and retained semantic limitations, DC-derived aggregates require CC BY 4.0 attribution and retained semantic limitations, California ABC-derived aggregates require publisher attribution plus retained license-scope and privacy limitations, and New York retail-food-derived aggregates require OPEN-NY attribution plus retained snapshot and geocode limitations.",
+  "source_policy": "config/source-policies/national-business-coverage-views.json",
+  "policy_inheritance_note": "Alaska-derived source and ZIP aggregates retain local-aggregate-review-required semantics, Washington L&I-derived aggregates require PDDL attribution and retained semantic limitations, DC-derived aggregates require CC BY 4.0 attribution and retained semantic limitations, California ABC-derived aggregates require publisher attribution plus retained license-scope and privacy limitations, and New York retail-food-derived aggregates require OPEN-NY attribution plus retained snapshot and geocode limitations.",
   "retention_profile": "Retain immutable aggregate releases with their exact dependency hashes until explicitly approved removal; Alaska-derived aggregates require terms review, Washington L&I-derived aggregates require PDDL attribution plus semantic limitations, DC-derived aggregates require CC BY 4.0 attribution plus semantic limitations, California ABC-derived aggregates require source attribution plus license-scope and privacy limitations, and New York retail-food-derived aggregates require OPEN-NY attribution plus source limitations before redistribution.",
   "produced_entities": ["national-coverage-view", "state-coverage-view", "county-coverage-view", "zip-coverage-view", "source-coverage-view", "coverage-gap"],
   "produced_identifiers": ["coverage-view-id", "coverage-gap-id", "census-geoid", "state-fips", "county-fips", "zcta5", "zip5"]

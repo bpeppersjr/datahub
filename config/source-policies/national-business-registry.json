@@ -1,0 +1,25 @@
+{
+  "policy_id": "national-business-registry",
+  "version": "1.0.0",
+  "source_kind": "derived governed record-level registry over policy-controlled source releases",
+  "ownership": "Every assertion, identifier, relationship, address, and coverage fact remains governed by its named upstream source and policy; this publisher owns only the registry transformation and contract.",
+  "allowed_use": [
+    "local governed reconciliation",
+    "source-preserving business coverage analysis",
+    "entity-resolution review",
+    "quality and provenance auditing",
+    "planning additional authorized source acquisition"
+  ],
+  "prohibited_use": [
+    "representing source-preserving profiles as a complete or deduplicated census of active U.S. businesses",
+    "representing source-specific status as universal current operating status",
+    "discarding upstream provenance, observation dates, or policy restrictions",
+    "joining ZIP5 and ZIP+4 into one canonical field",
+    "public export before every contributing source policy and quality gate authorizes it"
+  ],
+  "attribution": "Retain every contributing dataset ID, release ID, record identifier, source policy, manifest SHA-256 digest, transformation version, observation date or range, and source-specific status semantics.",
+  "retention": "Retain immutable registry releases under the most restrictive contributing artifact policy; corrections publish a later release rather than modifying a published release.",
+  "redistribution": "Local review only. No public redistribution is authorized by this derived policy; each exported field must independently satisfy its upstream policy.",
+  "personal_data_handling": "Minimize personal data, preserve source-level access restrictions, and do not infer sensitive facts or services from names, addresses, licenses, or category codes.",
+  "export_policy": "local-record-review-required"
+}

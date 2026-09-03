@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "implementation_status": "implemented-awaiting-independent-labels",
   "description": "Publishes submitted human benchmark labels and recomputed rule/source-pair assessments as immutable local releases.",
-  "lifecycle": ["preflight", "validate sample", "validate labels", "evaluate", "quality gate", "publish", "verify"],
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "validate sample", "validate labels", "normalize", "evaluate", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
@@ -20,9 +20,19 @@
   "redirect_policy": "deny",
   "provider_budget_key": "local-entity-resolution-benchmark-label-publication",
   "resource_class": "cpu-disk-human-review",
+  "execution_limits": {
+    "network_requests": 0,
+    "parallel_partitions": 1,
+    "maximum_label_files": 1
+  },
   "minimum_input": "At least one independently completed label; empty or fabricated label releases are prohibited.",
   "quality_gate": "Recompute automatic-rule precision and source-pair diagnostics; statistical success never sets export_authorized=true.",
+  "retry": "Correct invalid labels in a new input snapshot and rerun; published immutable label releases are never modified.",
+  "checkpoint": "Validated labels and assessments remain run-scoped until the complete immutable snapshot verifies.",
+  "idempotency": "The same benchmark release and normalized label input produce the same assessments and label identifiers.",
   "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json",
   "retention_profile": "Retain immutable local label snapshots and assessments; corrections publish a later release.",
-  "cancellation": "No pointer changes until the complete immutable snapshot verifies."
+  "cancellation": "No pointer changes until the complete immutable snapshot verifies.",
+  "produced_entities": ["entity-resolution-benchmark-label", "entity-resolution-benchmark-assessment"],
+  "produced_identifiers": ["benchmark-candidate-id", "benchmark-label-id", "benchmark-assessment-id"]
 }

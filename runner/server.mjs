@@ -13,6 +13,7 @@ import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migra
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
+import { createConnectorRegistry } from './connector-registry.mjs';
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -119,6 +120,7 @@ const templates = {
 };
 
 const store = await createStore();
+const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
 const pool = new RunnerPool(store.getSettings());
@@ -257,6 +259,37 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && url.pathname === '/api/templates') {
       json(response, 200, templates);
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/connectors') {
+      json(response, 200, {
+        registry_version: connectorRegistry.version,
+        connector_count: connectorRegistry.connectorCount,
+        policy_profile_count: connectorRegistry.policyProfileCount,
+        connectors: connectorRegistry.list(),
+      });
+      return;
+    }
+
+    if (segments[0] === 'api' && segments[1] === 'connectors' && segments[2] && segments.length === 3 && request.method === 'GET') {
+      const connector = connectorRegistry.get(segments[2]);
+      json(response, connector ? 200 : 404, connector ?? { error: 'Connector not found.' });
+      return;
+    }
+
+    if (segments[0] === 'api' && segments[1] === 'connectors' && segments[2]
+      && segments[3] === 'validate' && segments.length === 4 && request.method === 'POST') {
+      const input = await bodyJson(request);
+      const result = connectorRegistry.validateConfiguration(segments[2], input.configuration);
+      if (!result.valid) {
+        json(response, result.errors.some((failure) => failure.code === 'unknown') ? 404 : 422, {
+          valid: false,
+          errors: result.errors,
+        });
+        return;
+      }
+      json(response, 200, result);
       return;
     }
 

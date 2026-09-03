@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "implementation_status": "implemented-and-live-verified",
   "description": "Builds a governed local polygon overlay between the published Census ZCTA and county/state-equivalent layers.",
-  "lifecycle": ["preflight", "validate", "spatial overlay", "quality gate", "publish", "finalize"],
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "spatial overlay", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,

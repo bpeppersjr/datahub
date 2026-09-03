@@ -41,6 +41,8 @@ The **U.S. business coverage** panel is the management view over the current gov
 
 The **Business heat maps** panel adds interactive state → county → ZCTA navigation, `Ctrl`+scroll zoom, source-category selectors with ZIP-level business-name drill-down, Census population/housing filters and enhancers, and a state category-alignment view with both within-state and nationwide percentages. Cross-boundary ZCTAs are disclosed and excluded from jurisdiction percentage aggregation rather than area-weighted. See [the heat-map operator and API contract](docs/BUSINESS-HEAT-MAPS.md).
 
+The **Connector registry** panel exposes the common governed contract for every acquisition and processing connector: versions, source policies, network boundaries, configuration requirements, artifact types, record types, and manifest proofs. The runner validates all manifests and policies before listening, and the catalog shows secret reference names without exposing values. Run `npm run connectors:check` for the standalone gate. Existing job adapters are being migrated to this registry incrementally. See [the connector registry contract](docs/CONNECTOR-REGISTRY.md).
+
 ## Data locations
 
 All local files remain inside the `datahub` repository:

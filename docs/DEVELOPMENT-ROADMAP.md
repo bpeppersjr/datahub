@@ -80,6 +80,8 @@ Owner: platform architecture and connector engineering
 - Generate typed UI configuration from the same schema where practical.
 - Port one low-risk connector first, then Google Places and pharmacy without changing their observable outputs.
 
+Foundation implementation evidence: registry contract `1.0.0` now fail-closes runner startup unless all 36 existing connector manifests and their 34 exact source-policy profiles validate. The shared loader enforces connector identity/version, canonical lifecycle order, closed configuration schemas and defaults, named secret references without values, artifact types, allowed hosts, execution limits, recovery semantics, retention, and produced entities/identifiers. Authenticated catalog/detail/configuration-validation endpoints and a searchable operator catalog consume the same sanitized registry, and `npm run connectors:check` runs before the full verification suite. Existing job execution adapters and schema-generated editors still need to be migrated before DH-004 is complete; this foundation does not change dataset or production pointers. See [the connector registry contract](CONNECTOR-REGISTRY.md).
+
 ### DH-005 — Durable SQLite control metadata
 
 Owner: orchestration platform
