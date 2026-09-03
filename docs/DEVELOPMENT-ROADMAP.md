@@ -37,6 +37,8 @@ Large artifacts stay on the filesystem; SQLite owns transactional metadata and c
 
 This is the first implementation milestone. New nationwide connectors should wait until its P0 items are complete.
 
+State-source discovery is tracked separately from implementation. The first ten-candidate official-source queue and its acquisition gates are recorded in [the 2026-09-03 state business-source discovery report](STATE-BUSINESS-SOURCE-DISCOVERY-2026-09-03.md); no candidate in that report changes a production release pointer.
+
 ### DH-001 — Run-scoped ownership and overlap control
 
 Owner: orchestration platform
