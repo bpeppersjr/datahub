@@ -46,6 +46,8 @@ The separate cutover controller documented in [NORMALIZED-US-POSTAL-CUTOVER.md](
 
 Downstream manifests must pin exact dependency release IDs and manifest hashes. A failure before cutover must leave production pointers byte-identical. A rollback restores pointers only and must never delete or rewrite immutable releases.
 
+The isolated downstream candidate chain is now green. Independent verification passed for registry 2.10.0 release `national-business-registry-20260903-021524671Z-a2e5159b` (manifest SHA-256 `45798c553518a9e7d6936694ac1d63355f0c31be350c3ae32bd883395c2aaa4e`), resolution release `business-entity-resolution-20260903-033133580Z-a2a63b18` (`a88f2db1b9159ff6cf5af5e73adf6ba9296851032b6547a534c4783f3e679ba2`), benchmark sample `business-entity-resolution-benchmark-sample-20260903-033507194Z-a2de26e7` (`64e65b43f14ff412a7c85edb3ba82318f3f7e6f220318e8dc53e8c16bdaf93cc`), and coverage release `national-business-coverage-views-20260903-033707562Z-1e1a04b8` (`dd755c9775a5aecedd99e5e37d74828800d29721e6efe7cfbaff251c455c96f5`). The benchmark still has zero independent labels and its quality gate remains false; the chain's technical verification is not a quality-gate waiver. All four pointers remain isolated under the migration directory, and all production pointers remain unchanged.
+
 ## Spatial meaning
 
 This migration does not alter the spatial denominator. Census ZCTA5 polygons remain the complete selected polygon set. ZIP+4 remains address-level routing evidence only, has no polygon, and never participates in ZIP geography joins or partitions.

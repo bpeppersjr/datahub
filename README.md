@@ -39,6 +39,8 @@ Open `http://localhost:3000`. The runner API listens only on `127.0.0.1:4300` un
 
 The **U.S. business coverage** panel is the management view over the current governed aggregate release. It provides paged state, county, ZIP, source, and explicit-gap visibility, including state-FIPS, ZIP-prefix, and gap-type filters. Annual Census Nonemployer baselines appear separately from record-level profiles and are never allocated to ZIPs. The panel is deliberately source-preserving: it does not claim a complete or deduplicated census of U.S. businesses. See [the national coverage-view contract](docs/NATIONAL-BUSINESS-COVERAGE-VIEWS.md).
 
+The **Business heat maps** panel adds interactive state → county → ZCTA navigation, `Ctrl`+scroll zoom, source-category selectors with ZIP-level business-name drill-down, Census population/housing filters and enhancers, and a state category-alignment view with both within-state and nationwide percentages. Cross-boundary ZCTAs are disclosed and excluded from jurisdiction percentage aggregation rather than area-weighted. See [the heat-map operator and API contract](docs/BUSINESS-HEAT-MAPS.md).
+
 ## Data locations
 
 All local files remain inside the `datahub` repository:

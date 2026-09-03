@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react';
 import BenchmarkReview from './benchmark-review';
+import BusinessIntelligence from './business-intelligence';
 import CoverageExplorer from './coverage-explorer';
 
 const RUNNER_URL = 'http://127.0.0.1:4300';
@@ -314,6 +315,7 @@ export default function Home() {
           <a className="rail-link" href="#queue" aria-label="Jobs">▦</a>
           <a className="rail-link" href="#activity" aria-label="Activity">↺</a>
           <a className="rail-link" href="#coverage" aria-label="National business coverage">◎</a>
+          <a className="rail-link" href="#business-intelligence" aria-label="Business heat maps and state comparisons">◉</a>
           <a className="rail-link" href="#benchmark" aria-label="Entity-resolution benchmark">≋</a>
         </nav>
         <div className="rail-spacer" />
@@ -406,6 +408,7 @@ export default function Home() {
             </section>
 
             <CoverageExplorer />
+            <BusinessIntelligence />
             <BenchmarkReview />
           </section>
 

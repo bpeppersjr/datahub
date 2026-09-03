@@ -7,6 +7,7 @@ import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
+import { createBusinessMapStore } from './business-map-store.mjs';
 import { inspectNormalizedUsPostalCutoverControl } from './normalized-us-postal-cutover.mjs';
 import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
 import { RunnerPool } from './pool.mjs';
@@ -113,6 +114,7 @@ const templates = {
 
 const store = await createStore();
 const businessCoverageViews = createBusinessCoverageViewStore();
+const businessMap = createBusinessMapStore();
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
 const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
@@ -290,6 +292,41 @@ const server = http.createServer(async (request, response) => {
         },
         normalized_postal_cutover: postalCutover,
       });
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-map/catalog') {
+      json(response, 200, await businessMap.getCatalog());
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-map/features') {
+      json(response, 200, await businessMap.getFeatures({
+        level: url.searchParams.get('level') || 'states',
+        stateFips: url.searchParams.get('state_fips'),
+        countyGeoid: url.searchParams.get('county_geoid'),
+        categoryId: url.searchParams.get('category') || 'all',
+        enhancerId: url.searchParams.get('enhancer') || 'business_count',
+        minPopulation: url.searchParams.get('min_population'),
+        minHousingUnits: url.searchParams.get('min_housing_units'),
+      }));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-map/state-summary') {
+      json(response, 200, await businessMap.getStateSummary({
+        includeTerritories: url.searchParams.get('include_territories') === 'true',
+      }));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-map/names') {
+      json(response, 200, await businessMap.listBusinessNames({
+        zipCode: url.searchParams.get('zip'),
+        categoryId: url.searchParams.get('category') || 'all',
+        query: url.searchParams.get('query'),
+        limit: url.searchParams.get('limit'),
+      }));
       return;
     }
 
