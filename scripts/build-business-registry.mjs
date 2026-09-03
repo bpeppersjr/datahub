@@ -3,6 +3,7 @@
 import path from "node:path";
 import process from "node:process";
 import { buildNationalBusinessRegistry } from "../runner/business-registry.mjs";
+import { assertNoNormalizedUsPostalCutoverInProgress } from "../runner/normalized-us-postal-cutover.mjs";
 import { assertNormalizedUsPostalMigrationReady } from "../runner/normalized-us-postal-migration.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
 
@@ -148,6 +149,7 @@ try {
     nyRetailFoodStores: assertInsideApp(path.resolve(APP_ROOT, options.nyRetailFoodStores)),
     nycDcwpActiveLicenses: assertInsideApp(path.resolve(APP_ROOT, options.nycDcwpActiveLicenses)),
   };
+  await assertNoNormalizedUsPostalCutoverInProgress();
   await assertNormalizedUsPostalMigrationReady({ pointerOverrides: sourcePointers });
   const result = await buildNationalBusinessRegistry({
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),

@@ -55,6 +55,26 @@ type Overview = {
       verify_command: string;
     }>;
   };
+  normalized_postal_cutover?: {
+    lock_present: boolean;
+    lock: null | {
+      readable: boolean;
+      cutover_id: string | null;
+      pid: number | null;
+      hostname: string | null;
+      operation: string | null;
+      acquired_at: string | null;
+      owner_alive: boolean | null;
+    };
+    run_count: number;
+    latest_run: null | {
+      cutover_id: string;
+      status: string;
+      plan_sha256: string | null;
+      state_revision: number | null;
+      updated_at: string | null;
+    };
+  };
   usps_operational_zip_evidence?: unknown;
   authoritative_current_usps_zip_denominator?: unknown;
   coverage?: {
@@ -459,6 +479,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.zip_views_without_zcta_polygon)}</strong> reported ZIP5 values outside polygon set</span>
             <span><strong>{overview?.normalized_postal_field_migration?.status === 'enforced-in-registry-release' ? 'Enforced' : 'Pending rebuild'}</strong> ZIP5 / ZIP4 split · registry {overview?.normalized_postal_field_migration?.registry_publisher_version ?? '—'}</span>
             <span><strong>{count(overview?.normalized_postal_source_migration?.candidate_counts.ready)} / {count(overview?.normalized_postal_source_migration?.candidate_counts.total)}</strong> isolated candidates ready · {count(overview?.normalized_postal_source_migration?.counts.ready)} production migrated · {count(overview?.normalized_postal_source_migration?.candidate_counts.blocked)} blocked</span>
+            <span><strong>{overview?.normalized_postal_cutover?.lock_present ? 'Locked' : 'Unlocked'}</strong> postal cutover · {overview?.normalized_postal_cutover?.latest_run?.status ?? 'not started'}</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>

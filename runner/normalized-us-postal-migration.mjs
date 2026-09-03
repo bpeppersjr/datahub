@@ -349,6 +349,7 @@ export async function inspectNormalizedUsPostalMigration({
   return {
     migration_id: loadedDefinition.migration_id,
     contract_version: loadedDefinition.contract_version,
+    candidate_root: loadedDefinition.candidate_root ?? null,
     definition_sha256: definitionSha256,
     plan_sha256: planSha256,
     ready_for_registry_2_10: counts.ready === counts.total,

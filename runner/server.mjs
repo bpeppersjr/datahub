@@ -7,6 +7,7 @@ import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
+import { inspectNormalizedUsPostalCutoverControl } from './normalized-us-postal-cutover.mjs';
 import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
@@ -260,10 +261,11 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
-      const [overview, postalMigration, postalCandidates] = await Promise.all([
+      const [overview, postalMigration, postalCandidates, postalCutover] = await Promise.all([
         businessCoverageViews.getOverview(),
         inspectNormalizedUsPostalMigration(),
         inspectNormalizedUsPostalMigration({ useCandidatePointers: true }),
+        inspectNormalizedUsPostalCutoverControl(),
       ]);
       json(response, 200, {
         ...overview,
@@ -286,6 +288,7 @@ const server = http.createServer(async (request, response) => {
             verify_command: source.verify_command,
           })),
         },
+        normalized_postal_cutover: postalCutover,
       });
       return;
     }

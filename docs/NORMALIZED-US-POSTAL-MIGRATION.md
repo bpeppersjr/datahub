@@ -34,9 +34,9 @@ By 2026-09-03, the isolated candidate pass had completed and independently verif
 
 ## Cutover boundary
 
-The current tooling intentionally does not offer an `--execute-all` mode. Existing connector CLIs publish their own `current.json` independently, so invoking every command as one unattended loop would not be a migration-wide transaction.
+The tooling intentionally does not offer an `--execute-all` connector mode. Existing connector CLIs publish their own `current.json` independently, so invoking every command as one unattended loop would not be a migration-wide transaction.
 
-Before automating the final cutover, add an exclusive migration lock, isolated candidate roots or stage-only publishers, frozen input and code/config hashes, artifact verification receipts, current-pointer compare-and-swap, deterministic recovery, and guarded pointer-only rollback. The full candidate dependency chain must be green before promotion:
+The separate cutover controller documented in [NORMALIZED-US-POSTAL-CUTOVER.md](NORMALIZED-US-POSTAL-CUTOVER.md) supplies the exclusive migration lock, frozen source/configuration hashes, complete manifest-artifact verification, current-pointer compare-and-swap, durable recovery journal, and guarded pointer-only rollback. Planning still fails closed until every source has a ready isolated candidate. Execution additionally requires the exact cutover-plan SHA-256 and explicit operator confirmation. The full candidate dependency chain must be green before promotion:
 
 1. all 25 corrected source releases;
 2. national business registry 2.10.0;
