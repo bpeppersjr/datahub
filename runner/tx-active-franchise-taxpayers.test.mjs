@@ -177,17 +177,25 @@ test("writes a checksummed immutable receipt and refuses overwrite", async (t) =
 test("keeps ZIP5 and ZIP4 separate for any future normalization", () => {
   assert.deepEqual(splitTxActiveFranchisePostcode("78701-1234"), {
     zip_code: "78701",
+    postal_code: "78701",
     zip4: "1234",
     source_postcode: "78701-1234",
     status: "normalized-us-zip-plus-4-separated",
   });
   assert.deepEqual(splitTxActiveFranchisePostcode("787011234"), {
     zip_code: "78701",
+    postal_code: "78701",
     zip4: "1234",
     source_postcode: "787011234",
     status: "normalized-us-zip-plus-4-separated",
   });
-  assert.equal(splitTxActiveFranchisePostcode("invalid").zip_code, null);
+  assert.deepEqual(splitTxActiveFranchisePostcode("invalid"), {
+    zip_code: null,
+    postal_code: null,
+    zip4: null,
+    source_postcode: "invalid",
+    status: "unusable-source-postcode",
+  });
 });
 
 test("large acquisition is default-denied, exact-acknowledgement gated, and unimplemented", async () => {

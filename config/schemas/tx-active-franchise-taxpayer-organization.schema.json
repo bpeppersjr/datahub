@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://datahub.local/schemas/tx-active-franchise-taxpayer-organization.schema.json",
-  "title": "Future normalized Texas Active Franchise Taxpayer organization",
-  "description": "Record-level contract for a future separately authorized acquisition. The metadata-only connector does not currently produce records conforming to this schema.",
+  "title": "Staged normalized Texas Active Franchise Taxpayer organization",
+  "description": "Local-review-only record contract for an explicitly approved offline file build. Records are provisional organization and administrative-address evidence, never physical sites, establishments, operating-status proof, geometry, or geocodes.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "normalized_record_id", "entity_candidate", "external_identifiers", "taxpayer_name", "administrative_address", "tax_profile", "source_status", "identity_resolution", "observed_at", "provenance", "privacy", "export_policy"],
   "properties": {
-    "schema_version": { "const": "1.0.0" },
+    "schema_version": { "const": "1.1.0" },
     "normalized_record_id": { "type": "string", "pattern": "^tx-active-franchise-taxpayer:[0-9]{11}$" },
     "entity_candidate": {
       "type": "object",
@@ -38,12 +38,13 @@
     "administrative_address": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["address_line", "city", "state", "zip_code", "zip4", "source_postcode", "source_county_code", "scope", "physical_site_asserted", "geocoded"],
+      "required": ["address_line", "city", "state", "zip_code", "postal_code", "zip4", "source_postcode", "source_county_code", "scope", "physical_site_asserted", "geocoded"],
       "properties": {
         "address_line": { "type": ["string", "null"] },
         "city": { "type": ["string", "null"] },
         "state": { "type": ["string", "null"], "pattern": "^[A-Z]{2}$" },
         "zip_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+        "postal_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
         "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
         "source_postcode": { "type": ["string", "null"] },
         "source_county_code": { "type": ["string", "null"] },

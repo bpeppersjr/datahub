@@ -1,22 +1,28 @@
 {
   "connector_id": "tx-active-franchise-taxpayers",
-  "version": "1.0.0",
-  "implementation_status": "metadata-count-preflight-only-large-acquisition-default-denied",
-  "description": "Performs a metadata-and-count-only preflight of the official Texas Active Franchise Taxpayers dataset; row acquisition and publication remain default-denied and unimplemented.",
+  "version": "1.1.0",
+  "implementation_status": "metadata-count-preflight-and-explicit-offline-staging-live-acquisition-default-denied",
+  "description": "Preflights the official Texas Active Franchise Taxpayers dataset and can transform an explicitly approved operator-supplied file into immutable local-review-only staging artifacts. Network row acquisition and publication remain default-denied and unimplemented.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
     "properties": {
       "output": { "type": "string", "default": "data/business-sources/tx-active-franchise-taxpayers/preflights" },
+      "offline_output": { "type": "string", "default": "data/business-sources/tx-active-franchise-taxpayers" },
+      "offline_source": { "type": "string" },
+      "preflight_receipt": { "type": "string" },
+      "tx_sales_tax_pointer": { "type": "string" },
+      "maximum_quarantine_rate": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.005 },
+      "maximum_preflight_age_hours": { "type": "number", "minimum": 0.01, "maximum": 168, "default": 48 },
       "write_receipt": { "type": "boolean", "default": true },
       "maximum_metadata_response_bytes": { "type": "integer", "minimum": 1024, "maximum": 5000000, "default": 2000000 },
       "maximum_count_response_bytes": { "type": "integer", "minimum": 128, "maximum": 100000, "default": 16384 }
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["texas-socrata-dataset-metadata-json", "texas-socrata-count-only-json"],
-  "output_artifact_types": ["tx-active-franchise-taxpayers-immutable-preflight-receipt-json"],
+  "input_artifact_types": ["texas-socrata-dataset-metadata-json", "texas-socrata-count-only-json", "tx-active-franchise-taxpayers-immutable-preflight-receipt-json", "operator-supplied-texas-active-franchise-taxpayers-csv-or-jsonl", "optional-corrected-tx-active-sales-tax-pointer-json"],
+  "output_artifact_types": ["tx-active-franchise-taxpayers-immutable-preflight-receipt-json", "tx-active-franchise-taxpayer-selected-source-jsonl-gzip", "normalized-tx-active-franchise-taxpayer-organization-jsonl-gzip", "tx-active-franchise-taxpayer-quarantine-jsonl-gzip", "tx-franchise-sales-tax-exact-taxpayer-link-jsonl-gzip", "tx-active-franchise-taxpayer-administrative-zip-count-jsonl", "tx-active-franchise-taxpayer-source-summary-json", "dataset-manifest-json"],
   "allowed_hosts": ["data.texas.gov"],
   "redirect_policy": "Reject redirects. Permit only exact HTTPS requests to /api/views/9cir-efmm with no query and /resource/9cir-efmm.json with the sole count(*) query; row-returning queries are forbidden.",
   "provider_budget_key": "texas-active-franchise-taxpayers-metadata-count-only",
@@ -28,14 +34,18 @@
     "maximum_count_response_bytes": 16384,
     "row_data_requests_permitted": false,
     "large_acquisition_requires_exact_acknowledgement": true,
-    "large_acquisition_implemented": false
+    "large_acquisition_implemented": false,
+    "offline_file_processing_requires_exact_acknowledgement": true,
+    "offline_file_processing_implemented": true,
+    "offline_output_staging_only": true,
+    "offline_publication_permitted": false
   },
   "retry": "Retry only transient transport failures, HTTP 429, and HTTP 5xx with bounded backoff. Do not retry redirects, other 4xx responses, host/path/query drift, schema drift, identity drift, missing license status, invalid counts, cancellation, or an absent/incorrect large-acquisition acknowledgement.",
-  "checkpoint": "Persist an optional immutable preflight receipt containing only validated metadata, exact schema, count, fingerprints, observation time, and explicit not-acquired status. Do not create a dataset release, row snapshot, normalized artifact, or current.json pointer. A future row acquisition requires a fresh preflight and a separate implemented and approved acquisition workflow.",
+  "checkpoint": "Persist an optional immutable preflight receipt. For an explicitly acknowledged operator-supplied offline file, create a collision-safe UUID run only under .staging with an internal selected-source snapshot, 16 normalized organization partitions, quarantine, optional exact-ID links, administrative ZIP evidence, summary, and verified manifest. Never create current.json, a releases entry, registry/coverage output, or Heatmap input.",
   "idempotency": "The dataset ID, catalog rowsUpdatedAt timestamp, exact 18-field schema fingerprint, and count-only result identify one observed preflight state; the receipt also carries its independent SHA-256 digest.",
-  "cancellation": "Abort the current metadata or count request cooperatively. Do not start any row request, leave partial receipts, create a release pointer, or publish an artifact after cancellation.",
+  "cancellation": "Abort metadata/count requests and offline parsing/reconciliation/verification cooperatively. A cancelled offline run may retain incomplete files only inside its uniquely named .staging diagnostic directory; it never creates a release pointer or publishes an artifact.",
   "source_policy": "config/source-policies/tx-active-franchise-taxpayers.json",
   "retention_profile": "Retain immutable metadata/count preflight receipts. If a future separately authorized row acquisition is implemented, raw records remain internal and normalized record-level records remain local-review-only until explicit rights and privacy review permits broader use.",
-  "produced_entities": ["future-organization-candidate-after-separately-authorized-row-acquisition"],
-  "produced_identifiers": ["texas-comptroller-taxpayer-number", "zip5", "zip-plus-4"]
+  "produced_entities": ["staged-provisional-organization-candidate-from-explicitly-approved-offline-file"],
+  "produced_identifiers": ["texas-comptroller-taxpayer-number", "zip5", "postal-code-zip5-alias", "separate-zip-plus-4"]
 }

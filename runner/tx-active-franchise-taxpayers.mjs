@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export const TX_ACTIVE_FRANCHISE_SCHEMA_VERSION = "1.0.0";
-export const TX_ACTIVE_FRANCHISE_CONNECTOR_VERSION = "tx-active-franchise-taxpayers@1.0.0";
+export const TX_ACTIVE_FRANCHISE_SCHEMA_VERSION = "1.1.0";
+export const TX_ACTIVE_FRANCHISE_CONNECTOR_VERSION = "tx-active-franchise-taxpayers@1.1.0";
 export const TX_ACTIVE_FRANCHISE_DATASET_ID = "9cir-efmm";
 export const TX_ACTIVE_FRANCHISE_METADATA_URL = `https://data.texas.gov/api/views/${TX_ACTIVE_FRANCHISE_DATASET_ID}`;
 export const TX_ACTIVE_FRANCHISE_COUNT_URL = `https://data.texas.gov/resource/${TX_ACTIVE_FRANCHISE_DATASET_ID}.json?$select=count(*)`;
@@ -230,10 +230,11 @@ export function splitTxActiveFranchisePostcode(value) {
   const sourcePostcode = String(value ?? "").trim() || null;
   const match = sourcePostcode?.match(/^(\d{5})(?:-?(\d{4}))?$/);
   if (!match || match[1] === "00000") {
-    return { zip_code: null, zip4: null, source_postcode: sourcePostcode, status: sourcePostcode ? "unusable-source-postcode" : "source-postcode-unreported" };
+    return { zip_code: null, postal_code: null, zip4: null, source_postcode: sourcePostcode, status: sourcePostcode ? "unusable-source-postcode" : "source-postcode-unreported" };
   }
   return {
     zip_code: match[1],
+    postal_code: match[1],
     zip4: match[2] ?? null,
     source_postcode: sourcePostcode,
     status: match[2] ? "normalized-us-zip-plus-4-separated" : "normalized-us-zip5",
@@ -348,6 +349,11 @@ function assertMetadataOnlyPreflight(preflight) {
     schema_fingerprint: TX_ACTIVE_FRANCHISE_SCHEMA_FINGERPRINT,
   }));
   if (fingerprint !== preflight.source_observation_fingerprint) throw new Error("Texas franchise preflight observation fingerprint is invalid.");
+}
+
+export function validateTxActiveFranchisePreflightReceipt(preflight) {
+  assertMetadataOnlyPreflight(preflight);
+  return preflight;
 }
 
 export async function writeTxActiveFranchisePreflightReceipt({ receipt, outputRoot } = {}) {

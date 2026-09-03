@@ -79,6 +79,8 @@
     "tx-sales-tax:build": "node scripts/build-tx-active-sales-tax-permits.mjs",
     "tx-sales-tax:verify": "node scripts/verify-tx-active-sales-tax-permits.mjs",
     "tx-franchise:preflight": "node scripts/preflight-tx-active-franchise-taxpayers.mjs",
+    "tx-franchise:build-offline": "node scripts/build-tx-active-franchise-offline.mjs",
+    "tx-franchise:verify-offline": "node scripts/verify-tx-active-franchise-offline.mjs",
     "chicago-licenses:build": "node scripts/build-chicago-active-business-licenses.mjs",
     "chicago-licenses:verify": "node scripts/verify-chicago-active-business-licenses.mjs",
     "nyc-dcwp:build": "node scripts/build-nyc-dcwp-active-premises.mjs",
