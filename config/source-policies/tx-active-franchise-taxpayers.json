@@ -1,0 +1,49 @@
+{
+  "policy_id": "tx-active-franchise-taxpayers",
+  "version": "1.0.0",
+  "publisher": "Texas Comptroller of Public Accounts",
+  "ownership": "Official Texas Active Franchise Taxpayers administrative records published by the Texas Comptroller of Public Accounts through the State of Texas Open Data Portal",
+  "source_home": "https://data.texas.gov/dataset/Active-Franchise-Taxpayers/9cir-efmm",
+  "source_metadata": "https://data.texas.gov/api/views/9cir-efmm",
+  "source_count": "https://data.texas.gov/resource/9cir-efmm.json?$select=count(*)",
+  "catalog_dataset_id": "9cir-efmm",
+  "catalog_license": null,
+  "license_status": "The catalog metadata does not state a license. Record-level use and redistribution require an explicit rights review before any broader publication.",
+  "publisher_tax_files_page": "https://comptroller.texas.gov/data/openrec/requests/taxfiles.php",
+  "source_access": "Public anonymous read-only HTTPS Socrata metadata and count endpoints. This connector does not request row data.",
+  "allowed_use": [
+    "read-only retrieval of exact official dataset metadata",
+    "read-only count(*) query that returns no taxpayer records",
+    "immutable local retention of metadata/count preflight receipts",
+    "schema-drift and scale assessment before a separately authorized acquisition",
+    "after a separate rights review, implemented large-acquisition approval, and exact acknowledgement: local organization and franchise-tax-status normalization",
+    "after a separately governed row acquisition: exact taxpayer-number reconciliation only"
+  ],
+  "prohibited_use": [
+    "requesting taxpayer rows through this metadata-only connector",
+    "initiating a large acquisition without the exact operator acknowledgement and a separately implemented acquisition workflow",
+    "representing a taxpayer administrative address as a physical site, storefront, service location, or geocoded operating location",
+    "creating business-entity geometry or latitude/longitude from an administrative taxpayer address",
+    "representing franchise-tax, SOS, exemption, or right-to-transact fields as independent proof of current business operation",
+    "automatically reconciling records by name, address, SOS/COA number, NAICS, or fuzzy similarity",
+    "joining ZIP5 and ZIP+4 into one canonical postal field",
+    "treating the anomalous _621111 source field name as a literal NAICS value rather than preserving and validating its NAICS Code label",
+    "record-level redistribution before an explicit license and privacy determination"
+  ],
+  "field_export_policy": {
+    "metadata_and_count_preflight_receipt": "internal",
+    "future_raw_record_level_snapshot": "internal",
+    "future_normalized_record_level_organizations_statuses_addresses_and_identifiers": "local-review-only",
+    "future_aggregate_statistics": "rights-review-required-before-publication",
+    "future_taxpayer_address": "administrative-address-evidence-only-never-physical-site-or-geocode",
+    "zip5_and_zip4": "separate-fields",
+    "geometry_and_geocode": "not-produced"
+  },
+  "attribution": "Source: Texas Comptroller of Public Accounts, Active Franchise Taxpayers, via data.texas.gov.",
+  "retention": "Retain immutable metadata/count preflight receipts. Future raw and normalized record-level artifacts, if separately authorized, remain local and versioned under their approved retention plan.",
+  "redistribution": "The catalog license is null/unreported. Do not redistribute taxpayer-level source or normalized records; both remain internal or local-review-only until an explicit source-rights and privacy review authorizes a different policy.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Taxpayer names and administrative addresses can identify natural persons or residences. No rows are acquired by this connector. Any future record-level artifacts must remain local-review-only, preserve administrative-address semantics, and undergo privacy review.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03"
+}

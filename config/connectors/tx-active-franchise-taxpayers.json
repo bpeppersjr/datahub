@@ -1,0 +1,41 @@
+{
+  "connector_id": "tx-active-franchise-taxpayers",
+  "version": "1.0.0",
+  "implementation_status": "metadata-count-preflight-only-large-acquisition-default-denied",
+  "description": "Performs a metadata-and-count-only preflight of the official Texas Active Franchise Taxpayers dataset; row acquisition and publication remain default-denied and unimplemented.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/tx-active-franchise-taxpayers/preflights" },
+      "write_receipt": { "type": "boolean", "default": true },
+      "maximum_metadata_response_bytes": { "type": "integer", "minimum": 1024, "maximum": 5000000, "default": 2000000 },
+      "maximum_count_response_bytes": { "type": "integer", "minimum": 128, "maximum": 100000, "default": 16384 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["texas-socrata-dataset-metadata-json", "texas-socrata-count-only-json"],
+  "output_artifact_types": ["tx-active-franchise-taxpayers-immutable-preflight-receipt-json"],
+  "allowed_hosts": ["data.texas.gov"],
+  "redirect_policy": "Reject redirects. Permit only exact HTTPS requests to /api/views/9cir-efmm with no query and /resource/9cir-efmm.json with the sole count(*) query; row-returning queries are forbidden.",
+  "provider_budget_key": "texas-active-franchise-taxpayers-metadata-count-only",
+  "resource_class": "small-network-metadata-only",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_requests_per_preflight": 2,
+    "maximum_metadata_response_bytes": 2000000,
+    "maximum_count_response_bytes": 16384,
+    "row_data_requests_permitted": false,
+    "large_acquisition_requires_exact_acknowledgement": true,
+    "large_acquisition_implemented": false
+  },
+  "retry": "Retry only transient transport failures, HTTP 429, and HTTP 5xx with bounded backoff. Do not retry redirects, other 4xx responses, host/path/query drift, schema drift, identity drift, missing license status, invalid counts, cancellation, or an absent/incorrect large-acquisition acknowledgement.",
+  "checkpoint": "Persist an optional immutable preflight receipt containing only validated metadata, exact schema, count, fingerprints, observation time, and explicit not-acquired status. Do not create a dataset release, row snapshot, normalized artifact, or current.json pointer. A future row acquisition requires a fresh preflight and a separate implemented and approved acquisition workflow.",
+  "idempotency": "The dataset ID, catalog rowsUpdatedAt timestamp, exact 18-field schema fingerprint, and count-only result identify one observed preflight state; the receipt also carries its independent SHA-256 digest.",
+  "cancellation": "Abort the current metadata or count request cooperatively. Do not start any row request, leave partial receipts, create a release pointer, or publish an artifact after cancellation.",
+  "source_policy": "config/source-policies/tx-active-franchise-taxpayers.json",
+  "retention_profile": "Retain immutable metadata/count preflight receipts. If a future separately authorized row acquisition is implemented, raw records remain internal and normalized record-level records remain local-review-only until explicit rights and privacy review permits broader use.",
+  "produced_entities": ["future-organization-candidate-after-separately-authorized-row-acquisition"],
+  "produced_identifiers": ["texas-comptroller-taxpayer-number", "zip5", "zip-plus-4"]
+}

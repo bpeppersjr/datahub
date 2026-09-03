@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/tx-active-franchise-taxpayer-organization.schema.json",
+  "title": "Future normalized Texas Active Franchise Taxpayer organization",
+  "description": "Record-level contract for a future separately authorized acquisition. The metadata-only connector does not currently produce records conforming to this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidate", "external_identifiers", "taxpayer_name", "administrative_address", "tax_profile", "source_status", "identity_resolution", "observed_at", "provenance", "privacy", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^tx-active-franchise-taxpayer:[0-9]{11}$" },
+    "entity_candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organization_id", "identity_status", "physical_site_created", "establishment_created"],
+      "properties": {
+        "organization_id": { "type": "string", "pattern": "^organization:tx_cpa_taxpayer_[0-9]{11}$" },
+        "identity_status": { "const": "provisional" },
+        "physical_site_created": { "const": false },
+        "establishment_created": { "const": false }
+      }
+    },
+    "external_identifiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "value", "source_field"],
+        "properties": {
+          "type": { "enum": ["texas_comptroller_taxpayer_number", "texas_sos_or_coa_file_number"] },
+          "value": { "type": "string", "minLength": 1 },
+          "source_field": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "taxpayer_name": { "type": "string", "minLength": 1 },
+    "administrative_address": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address_line", "city", "state", "zip_code", "zip4", "source_postcode", "source_county_code", "scope", "physical_site_asserted", "geocoded"],
+      "properties": {
+        "address_line": { "type": ["string", "null"] },
+        "city": { "type": ["string", "null"] },
+        "state": { "type": ["string", "null"], "pattern": "^[A-Z]{2}$" },
+        "zip_code": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+        "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
+        "source_postcode": { "type": ["string", "null"] },
+        "source_county_code": { "type": ["string", "null"] },
+        "scope": { "const": "taxpayer-administrative-address-not-physical-site" },
+        "physical_site_asserted": { "const": false },
+        "geocoded": { "const": false }
+      }
+    },
+    "tax_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["organizational_type", "record_type_code", "responsibility_beginning_date", "sos_charter_date", "sos_status_date", "sos_status_code", "right_to_transact_business_code", "current_exempt_reason_code", "exempt_begin_date", "naics_source"],
+      "properties": {
+        "organizational_type": { "type": ["string", "null"] },
+        "record_type_code": { "type": ["string", "null"] },
+        "responsibility_beginning_date": { "type": ["string", "null"], "format": "date" },
+        "sos_charter_date": { "type": ["string", "null"], "format": "date" },
+        "sos_status_date": { "type": ["string", "null"], "format": "date" },
+        "sos_status_code": { "type": ["string", "null"] },
+        "right_to_transact_business_code": { "type": ["string", "null"] },
+        "current_exempt_reason_code": { "type": ["string", "null"] },
+        "exempt_begin_date": { "type": ["string", "null"], "format": "date" },
+        "naics_source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_field", "source_label", "source_value", "semantics"],
+          "properties": {
+            "source_field": { "const": "_621111" },
+            "source_label": { "const": "NAICS Code" },
+            "source_value": { "type": ["string", "null"] },
+            "semantics": { "const": "source-value-preserved-field-name-is-not-an-inferred-value" }
+          }
+        }
+      }
+    },
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["listed_in_source", "current_operation_asserted", "semantics"],
+      "properties": {
+        "listed_in_source": { "const": true },
+        "current_operation_asserted": { "const": false },
+        "semantics": { "const": "franchise-tax-and-administrative-status-evidence-not-independent-proof-of-current-operation" }
+      }
+    },
+    "identity_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["automatic_match_key", "automatic_match_requires_exact_value", "fuzzy_match_authoritative"],
+      "properties": {
+        "automatic_match_key": { "const": "texas_comptroller_taxpayer_number" },
+        "automatic_match_requires_exact_value": { "const": true },
+        "fuzzy_match_authoritative": { "const": false }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "provenance": { "type": "object" },
+    "privacy": { "type": "object" },
+    "export_policy": { "const": "local-review-only" }
+  }
+}

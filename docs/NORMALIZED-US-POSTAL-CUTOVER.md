@@ -26,13 +26,13 @@ Registry 2.10.0 is separately blocked while the cutover lock exists and remains 
 Planning is read-only except for exclusive creation of the requested plan file:
 
 ```powershell
-npm run postal-cutover:plan -- --write-plan data/migrations/normalized-us-postal-fields-v1/cutover-plan.json
+npm run postal-cutover:plan -- --write-plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260903-refresh.json
 ```
 
 Execution is intentionally verbose and cannot be implied by planning:
 
 ```powershell
-npm run postal-cutover:execute -- --plan data/migrations/normalized-us-postal-fields-v1/cutover-plan.json --expected-plan-sha256 <sha256> --confirm
+npm run postal-cutover:execute -- --plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260903-refresh.json --expected-plan-sha256 <sha256> --confirm
 ```
 
 Inspect or recover one durable run using the cutover ID printed by execution:
@@ -52,4 +52,4 @@ No command deletes an immutable candidate or production release.
 
 ## Current prepared plan
 
-The 2026-09-03 plan verified all 25 complete candidate artifact sets and binds candidate-readiness hash `8642a111b8362faa4311d56674e112870142c05d9a2ef4b6be8af2681e616dd2`. Its cutover-plan SHA-256 is `505c1039cbd95d7cc3249ca105c9a8e32bc6802b17fa6a7c2173d58fdfc97c1a`. The isolated registry 2.10.0, entity-resolution, benchmark, and national-coverage candidates have also passed their independent verifiers. The benchmark has no independent labels and does not pass its statistical quality gate, so cutover remains an operator decision rather than an automatic consequence of technical readiness. The plan file is local governed state under `data/migrations/normalized-us-postal-fields-v1`; it is ignored by Git and has not been executed. Production remains at 0 of 25 promoted source pointers.
+The refreshed 2026-09-03 plan reverified all 25 complete candidate releases: 539 declared artifacts totaling 18,769,192,318 bytes. It binds live production-readiness hash `c7028b4aebf3d77b9f43c9d8357b79ff83fc224a12cbc9bb6aa4dfcc33bafdce` and candidate-readiness hash `8fa892b1c3448c9e6e0f69ee7cc4be67575339159667ce9a4e15d76751d576c3`; its canonical cutover-plan SHA-256 is `62aae9436c0a91b8d930caa766f1b7b6603916612fa4bf82e432e61680ef4d79`. The older `cutover-plan.json` is retained as audit history but is stale and must not be executed. The isolated registry 2.10.0, entity-resolution, benchmark, and national-coverage candidates previously passed their independent verifiers. The benchmark has no independent labels and does not pass its statistical quality gate, so cutover remains an operator decision rather than an automatic consequence of technical readiness. The refreshed plan file is local governed state under `data/migrations/normalized-us-postal-fields-v1`; it is ignored by Git and has not been executed. Production remains at 0 of 25 promoted source pointers.

@@ -1,5 +1,7 @@
 # Texas Active Franchise Taxpayers — source preflight
 
+The bounded implementation of this contract is documented in [Texas Active Franchise Taxpayers metadata-only connector](TX-ACTIVE-FRANCHISE-TAXPAYERS.md).
+
 ## Acquisition status
 
 **NOT ACQUIRED.** This document records a source contract and a count-only preflight. No taxpayer rows, bulk export, or derived business records have been downloaded or published by this work.
