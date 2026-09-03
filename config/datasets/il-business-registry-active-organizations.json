@@ -1,0 +1,16 @@
+{
+  "dataset_id": "il-business-registry-active-organizations",
+  "schema_version": "1.0.0",
+  "title": "Illinois Business Registry Active Organizations",
+  "status": "implemented-offline-awaiting-operator-supplied-official-files",
+  "description": "Governed privacy-minimized Illinois SOS Goodstanding/Reinstated corporation and LLC organization layer built only from operator-supplied official daily files.",
+  "output": "data/business-sources/il-business-registry-active-organizations/current.json",
+  "connector": "config/connectors/il-business-registry.json",
+  "source_policy": "config/source-policies/il-business-registry.json",
+  "record_schema": "config/schemas/il-business-registry-organization.schema.json",
+  "zip_coverage_schema": "config/schemas/il-business-registry-zip-coverage.schema.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "Corporations of documented types 4, 5, or 6 and LLCs whose source status is Goodstanding or Reinstated in one complete common-run-date five-file Illinois SOS snapshot; this is registration evidence, not a census of operating businesses or physical sites.",
+  "current_verified_release": null,
+  "documentation": "docs/IL-BUSINESS-REGISTRY.md"
+}

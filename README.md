@@ -58,6 +58,7 @@ All local files remain inside the `datahub` repository:
 - `data/business-coverage-views/` — governed national, state, county, ZIP, source, and coverage-gap views
 - `data/business-baselines/census-nonemployer/` — governed national, state, county, and industry aggregates for businesses with no paid employees
 - `data/business-sources/ct-business-registry-active-organizations/` — governed Connecticut active-registration organizations and reported business-address evidence
+- `data/business-sources/il-business-registry-active-organizations/` — offline, local-review-only Illinois SOS Goodstanding/Reinstated corporation and LLC evidence; awaiting operator-supplied official files
 - `data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/` — governed Colorado Good Standing/Delinquent organizations, principal-office-address evidence, and explicit source-quality quarantine
 - `data/business-sources/or-business-registry-active-registrations/` — governed Oregon active legal-entity and assumed-name registration evidence
 - `data/business-sources/ia-business-registry-active-entities/` — governed Iowa active-entity and home-office evidence with source geocodes

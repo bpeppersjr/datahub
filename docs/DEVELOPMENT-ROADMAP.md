@@ -37,7 +37,7 @@ Large artifacts stay on the filesystem; SQLite owns transactional metadata and c
 
 This is the first implementation milestone. New nationwide connectors should wait until its P0 items are complete.
 
-State-source discovery is tracked separately from implementation. The first ten-candidate official-source queue and its acquisition gates are recorded in [the 2026-09-03 state business-source discovery report](STATE-BUSINESS-SOURCE-DISCOVERY-2026-09-03.md); no candidate in that report changes a production release pointer.
+State-source discovery is tracked separately from implementation. The first ten-candidate official-source queue and its acquisition gates are recorded in [the 2026-09-03 state business-source discovery report](STATE-BUSINESS-SOURCE-DISCOVERY-2026-09-03.md). A parallel data-gathering-manager run evaluated [a second exact ten-state queue](STATE-BUSINESS-SOURCE-DISCOVERY-QUEUE-2-2026-09-03.md), recommending a bounded California rights-and-sample preflight with Kentucky as the contract-gated fallback. Neither report changes a production release pointer. The first resulting implementation is the [offline Illinois Business Registry connector](IL-BUSINESS-REGISTRY.md): it accepts five operator-supplied official daily files, performs zero network requests, publishes only local-review artifacts, and is not yet a national-registry dependency.
 
 ### DH-001 — Run-scoped ownership and overlap control
 
@@ -82,7 +82,7 @@ Owner: platform architecture and connector engineering
 - Generate typed UI configuration from the same schema where practical.
 - Port one low-risk connector first, then Google Places and pharmacy without changing their observable outputs.
 
-Foundation implementation evidence: registry contract `1.0.0` now fail-closes runner startup unless all 36 existing connector manifests and their 34 exact source-policy profiles validate. The shared loader enforces connector identity/version, canonical lifecycle order, closed configuration schemas and defaults, named secret references without values, artifact types, allowed hosts, execution limits, recovery semantics, retention, and produced entities/identifiers. Authenticated catalog/detail/configuration-validation endpoints and a searchable operator catalog consume the same sanitized registry, and `npm run connectors:check` runs before the full verification suite. Existing job execution adapters and schema-generated editors still need to be migrated before DH-004 is complete; this foundation does not change dataset or production pointers. See [the connector registry contract](CONNECTOR-REGISTRY.md).
+Foundation implementation evidence: registry contract `1.0.0` now fail-closes runner startup unless all 37 existing connector manifests and their 35 exact source-policy profiles validate. The shared loader enforces connector identity/version, canonical lifecycle order, closed configuration schemas and defaults, named secret references without values, artifact types, allowed hosts, execution limits, recovery semantics, retention, and produced entities/identifiers. Authenticated catalog/detail/configuration-validation endpoints and a searchable operator catalog consume the same sanitized registry, and `npm run connectors:check` runs before the full verification suite. Existing job execution adapters and schema-generated editors still need to be migrated before DH-004 is complete; this foundation does not change dataset or production pointers. See [the connector registry contract](CONNECTOR-REGISTRY.md).
 
 ### DH-005 — Durable SQLite control metadata
 

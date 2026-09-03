@@ -1,0 +1,32 @@
+{
+  "policy_id": "il-business-registry",
+  "version": "1.0.0",
+  "publisher": "Illinois Secretary of State, Business Services",
+  "ownership": "Official Illinois corporation and limited-liability-company bulk records published through the Illinois Secretary of State Data Transparency page",
+  "source_home": "https://www.ilsos.gov/data/bus-serv-home.html",
+  "source_access": "Offline operator-supplied official files only. The connector performs no automated queries or downloads because the source page expressly prohibits automated queries.",
+  "allowed_use": ["manual placement of official daily files inside datahub", "offline validation and privacy minimization", "local processing", "immutable run-scoped local-review artifacts", "organization registration analysis", "aggregate ZIP coverage analysis with explicit records-office and non-site semantics"],
+  "prohibited_use": [
+    "automated queries, scraping, crawling, or unattended download from the Illinois Secretary of State website without written authorization",
+    "public or customer redistribution before written source confirmation and a completed reuse review",
+    "retaining or exporting corporation president or secretary names and addresses, registered agents, LLC managers or members, or stock and finance fields",
+    "representing Goodstanding or Reinstated status as independent proof of current operations, licensure, solvency, public access, or an open storefront",
+    "representing an LLC records-office address as a verified physical operating site or establishment",
+    "claiming independent modified-modulus-11 check-digit validation when the source algorithm has not been published",
+    "guessing the ambiguous month condition in the corporation not-goodstanding annual-report rule"
+  ],
+  "field_export_policy": {
+    "privacy_minimized_source_artifacts": "local-review-only",
+    "normalized_organization_records": "local-review-only",
+    "aggregate_zip_coverage": "local-review-only",
+    "officer_agent_manager_member_and_person_addresses": "excluded",
+    "stock_and_finance_fields": "excluded"
+  },
+  "attribution": "Source: Illinois Secretary of State, Business Services, Corporation and LLC Data Transparency files.",
+  "retention": "Retain privacy-minimized, checksummed, immutable local-review releases until a reviewed retention operation removes them; do not retain excluded source fields.",
+  "redistribution": "No redistribution is authorized by this profile. All outputs remain local-review-only pending written Illinois SOS confirmation and a separate reuse/redistribution review.",
+  "contains_personal_data": false,
+  "personal_data_handling": "The connector reads fixed-width rows only to select approved fields and never persists corporation officer regions. It does not ingest agent, manager/member, assumed-name, stock, or other person-linked datasets. Organization names can incidentally contain a person's name because they are registered legal names.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03"
+}

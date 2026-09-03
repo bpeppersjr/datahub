@@ -224,8 +224,8 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(connectorCatalog.status, 200);
   const connectorCatalogBody = JSON.parse(connectorCatalog.body);
-  assert.equal(connectorCatalogBody.connector_count, 36);
-  assert.equal(connectorCatalogBody.policy_profile_count, 34);
+  assert.equal(connectorCatalogBody.connector_count, 37);
+  assert.equal(connectorCatalogBody.policy_profile_count, 35);
   assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
 
   const connectorDetail = await rawRequest({

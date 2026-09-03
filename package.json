@@ -42,6 +42,8 @@
     "irs-eo:verify": "node scripts/verify-irs-eo-bmf.mjs",
     "ct-business:build": "node scripts/build-ct-business-registry.mjs",
     "ct-business:verify": "node scripts/verify-ct-business-registry.mjs",
+    "il-business:build": "node scripts/build-il-business-registry.mjs",
+    "il-business:verify": "node scripts/verify-il-business-registry.mjs",
     "co-business:build": "node scripts/build-co-business-registry.mjs",
     "co-business:verify": "node scripts/verify-co-business-registry.mjs",
     "or-business:build": "node scripts/build-or-business-registry.mjs",

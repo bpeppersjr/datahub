@@ -25,13 +25,13 @@ Current broad organization layers cover Connecticut, Delaware, Colorado, Oregon,
 
 ## Recommended authorized path
 
-First, request written Illinois SOS confirmation that scheduled direct downloads of the expressly published static bulk ZIPs are permitted despite the automated-query clause. In parallel, implement an offline `il-business-registry` connector that accepts operator-supplied official ZIPs and cannot perform network acquisition:
+First, request written Illinois SOS confirmation that scheduled direct downloads of the expressly published static bulk ZIPs are permitted despite the automated-query clause. The offline `il-business-registry` connector is now implemented for operator-supplied official ZIPs and cannot perform network acquisition:
 
 - accept Corporation Master, Name, and Annual Report plus LLC Master and Name;
 - select documented status `00/01` while preserving the corporation NGS overlay;
 - exclude agents, officers, managers, members, and personal addresses;
 - publish organizations and administrative-address assertions only, never physical sites;
-- validate run dates, fixed widths, trailers/counts, check digits, uniqueness, joins, checksums, and schema drift;
+- validate run dates, fixed widths, trailers/counts, file-number syntax, uniqueness, joins, checksums, and schema drift; the unpublished modified-modulus-11 algorithm is not guessed;
 - keep raw and record-level artifacts internal/local-review-only until export policy approval.
 
 Minnesota Active Business Data is the second choice only after explicit spend authorization and written redistribution clarification. Wisconsin is third after DFI supplies the layout, Entity-ID/status contract, and usage terms.
@@ -40,11 +40,13 @@ Minnesota Active Business Data is the second choice only after explicit spend au
 
 - North Carolina: [data subscription](https://www.sosnc.gov/online_services/data_subscriptions/business_registration_data_subscriptions), [data dictionary](https://www.sosnc.gov/webfiles/documents/forms/Data_Subscriptions/Business_Registration_layout.pdf)
 - Hawaii: [dataset](https://data.honolulu.gov/d/9k54-ztb8), [portal terms](https://data.honolulu.gov/terms-of-use)
-- Illinois: [bulk-data landing page](https://www.ilsos.gov/data/bus-serv-home.html), [corporation specification](https://www.ilsos.gov/content/dam/data/bs/proc_corp_data.pdf), [LLC open-data statute](https://www.ilga.gov/documents/legislation/ilcs/documents/080501800K50-5.htm)
+- Illinois: [bulk-data landing page](https://www.ilsos.gov/data/bus-serv-home.html), [corporation specification](https://www.ilsos.gov/content/dam/data/bs/proc_corp_data.pdf), [LLC specification](https://www.ilsos.gov/content/dam/data/bs/proc_llc_data.pdf), [LLC open-data statute](https://www.ilga.gov/documents/legislation/ilcs/documents/080501800K50-5.htm)
 - Minnesota: [official data products](https://sos.mn.gov/business-liens/business-liens-data/business-data-available/), [commercial bulk license](https://www.sos.mn.gov/media/5125/business-bulk-la.pdf)
 - Wisconsin: [corporate data services](https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx), [order form](https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf)
 - Massachusetts: [950 CMR 113.15](https://www.sec.state.ma.us/divisions/corporations/download/950113.pdf)
 - New Jersey: [DORES fee schedule](https://www.nj.gov/treasury/revenue/fees.shtml)
 - Utah: [business-list order service](https://secure.utah.gov/datarequest/businesses/index.html), [layout example](https://secure.utah.gov/datarequest/businesses/listExample.html)
+
+Implementation evidence: [Illinois Business Registry offline connector](IL-BUSINESS-REGISTRY.md). No official source release has been supplied or published, all outputs remain local-review-only, and no production pointer or national-registry dependency was changed.
 - Maryland: [SDAT service description](https://dat.maryland.gov/pages/services.aspx)
 - Arizona: [database-extraction form](https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6), [commercial-use statute](https://www.azleg.gov/ars/39/00121-03.htm)

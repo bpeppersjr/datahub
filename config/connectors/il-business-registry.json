@@ -1,0 +1,45 @@
+{
+  "connector_id": "il-business-registry",
+  "version": "1.0.0",
+  "implementation_status": "implemented-offline-awaiting-operator-supplied-official-files",
+  "description": "Builds a privacy-minimized local-review release of Illinois SOS Goodstanding/Reinstated corporations and LLCs from one common-run-date set of five operator-supplied official fixed-width files, with no network acquisition and no physical-site inference.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/il-business-registry-active-organizations" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "corporation_master": { "type": "string", "default": "downloads/illinois/corporation-master.zip" },
+      "corporation_name": { "type": "string", "default": "downloads/illinois/corporation-name.zip" },
+      "corporation_annual": { "type": "string", "default": "downloads/illinois/corporation-annual-report.zip" },
+      "llc_master": { "type": "string", "default": "downloads/illinois/llc-master.zip" },
+      "llc_name": { "type": "string", "default": "downloads/illinois/llc-name.zip" },
+      "minimum_organizations": { "type": "integer", "minimum": 1, "default": 500000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["il-sos-corporation-master-fixed-width", "il-sos-corporation-name-fixed-width", "il-sos-corporation-annual-fixed-width", "il-sos-llc-master-fixed-width", "il-sos-llc-name-fixed-width", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["il-sos-corporation-master-selected-source-jsonl-gzip", "il-sos-corporation-name-selected-source-jsonl-gzip", "il-sos-corporation-annual-selected-source-jsonl-gzip", "il-sos-llc-master-selected-source-jsonl-gzip", "il-sos-llc-name-selected-source-jsonl-gzip", "normalized-il-business-organization-jsonl-gzip", "il-business-registry-zip-coverage-jsonl", "il-business-registry-source-summary", "il-business-registry-source-release-metadata", "dataset-manifest-json"],
+  "output_schemas": ["config/schemas/il-business-registry-organization.schema.json", "config/schemas/il-business-registry-zip-coverage.schema.json"],
+  "allowed_hosts": [],
+  "redirect_policy": "No HTTP requests or redirects are permitted. Inputs must be operator-supplied files whose resolved real paths remain inside datahub.",
+  "provider_budget_key": "il-sos-offline-operator-supplied-files",
+  "resource_class": "cpu-memory-disk",
+  "execution_limits": {
+    "max_parallel_requests": 0,
+    "maximum_input_bytes_per_file": 2000000000,
+    "maximum_uncompressed_bytes_per_archive": 2000000000,
+    "required_source_files": 5,
+    "normalized_partitions": 16,
+    "minimum_organizations": 500000
+  },
+  "retry": "Do not retry validation, schema, join, run-date, path, archive, duplicate-identity, count, or quality-gate failures. A failed operator-supplied file set must be replaced or corrected explicitly.",
+  "checkpoint": "Validate and minimize all five complete daily files into one unpublished run-scoped staging release. Publish only after common run-date, exact-count, exact-join, privacy, postal, provenance, and checksum verification; current.json changes atomically after independent verification.",
+  "idempotency": "The common source RUN DATE and ordered SHA-256 values of all five exact operator inputs identify the source release. Entity kind plus the exact eight-digit Illinois SOS file number identifies a provisional organization candidate.",
+  "cancellation": "Stop parsing and normalization cooperatively, close writers, retain no claim of a publishable release, and leave the prior current.json pointer unchanged.",
+  "source_policy": "config/source-policies/il-business-registry.json",
+  "retention_profile": "Retain only privacy-minimized source fields and normalized artifacts as local-review-only. Do not retain officer, agent, manager/member, stock, finance, or other excluded person-linked fields.",
+  "produced_entities": ["organization-candidate", "il-registration-status-assertion", "llc-records-office-address-assertion"],
+  "produced_identifiers": ["il-sos-file-number", "zip5", "zip4", "zcta5"]
+}

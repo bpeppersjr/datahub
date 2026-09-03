@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/il-business-registry-zip-coverage.schema.json",
+  "title": "Illinois Business Registry ZIP Coverage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["zip_code", "current_usps_validity", "geography", "census_zbp_coverage_status", "il_business_registry_active_snapshot"],
+  "properties": {
+    "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+    "current_usps_validity": { "type": "object" },
+    "geography": { "type": "object" },
+    "census_zbp_coverage_status": { "type": "string" },
+    "il_business_registry_active_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "organization_records_office_address_count", "source_release_id", "source_run_date", "physical_site_count", "physical_site_inference_permitted"],
+      "properties": {
+        "status": { "type": "string" },
+        "organization_records_office_address_count": { "type": "integer", "minimum": 0 },
+        "source_release_id": { "type": "string" },
+        "source_run_date": { "type": "string", "format": "date" },
+        "physical_site_count": { "type": "null" },
+        "physical_site_inference_permitted": { "const": false }
+      }
+    }
+  }
+}
