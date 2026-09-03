@@ -14,6 +14,8 @@ The command reads the 25 governed source pointers, their exact release manifests
 
 `npm run postal-migration:check` uses the same inspection but exits unsuccessfully until every current source release satisfies the migration floor. `npm run registry:build` runs that assertion before loading source artifacts or creating registry staging files, so registry 2.10.0 cannot accidentally depend on a mixed or legacy source set.
 
+`npm run postal-migration:candidates` prefers a source's isolated pointer under `data/migrations/normalized-us-postal-fields-v1/sources/<source-key>/current.json` when it exists and otherwise falls back to the unchanged production pointer. Its counts and plan hash therefore describe candidate-chain progress without claiming that production was migrated. The management API exposes production and isolated-candidate counts separately.
+
 An operator can exclusively create a local frozen report without overwriting an existing file:
 
 ```powershell
@@ -27,6 +29,8 @@ The plan records the exact SHA-256 of every readable current pointer, source man
 The initial 2026-09-02 audit found 0 of 25 source pointers at the corrected floor. Twenty-four require a rebuild and Florida is blocked because `FL_SUNBIZ_PUBLIC_PASSWORD` is not present and there is no retained `cordata.zip` or supported published-release replay path. The status checker tests only whether the environment variable exists and never reads its value into the report.
 
 The planned execution order starts with cheap proof cases (FSIS, New York retail food, FDIC, Delaware), then deterministic local-input reuse, then small and medium live acquisitions, the heavy New York/Pennsylvania/NPPES jobs, and finally credential-gated Florida. Six entries use retained governed inputs to avoid unnecessary downloads. Every source still requires its independent verifier.
+
+By 2026-09-03, the isolated candidate pass had completed and independently verified every currently rebuildable corrected release without changing any production pointer. `npm run postal-migration:candidates` reports 24/25 ready, zero remaining rebuilds, and one blocked prerequisite; its frozen candidate-plan hash is `f8213d3d182b7bc402abccb7ae68613889743432d71ee7a2bbd6ebe4e33044ef`. The last two large candidates contain 2,360,829 Pennsylvania active registered organizations and 1,959,633 active NPPES organization NPIs. Florida remains outside the ready set until an operator supplies the supported `FL_SUNBIZ_PUBLIC_PASSWORD` environment variable; the readiness report checks only whether that variable exists and never reads or records its value.
 
 ## Cutover boundary
 

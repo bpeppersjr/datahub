@@ -15,6 +15,7 @@ import {
 const definition = {
   migration_id: "normalized-us-postal-fields-v1",
   contract_version: "1.0.0",
+  candidate_root: "data/migrations/normalized-us-postal-fields-v1",
   sources: [{
     source_key: "fixture",
     dataset_id: "fixture-businesses",
@@ -27,17 +28,18 @@ const definition = {
   downstream_order: ["npm run registry:build"],
 };
 
-async function writeFixture(root, { version = "1.0.1", evidence = "connector", connectorConfigVersion = "1.0.1" } = {}) {
+async function writeFixture(root, { version = "1.0.1", evidence = "connector", connectorConfigVersion = "1.0.1", sourcePath = "data/fixture" } = {}) {
   const releaseId = "fixture-release";
+  const sourceRoot = path.join(root, sourcePath);
   await mkdir(path.join(root, "config/connectors"), { recursive: true });
-  await mkdir(path.join(root, "data/fixture/releases", releaseId), { recursive: true });
+  await mkdir(path.join(sourceRoot, "releases", releaseId), { recursive: true });
   await writeFile(path.join(root, "config/connectors/fixture.json"), `${JSON.stringify({ connector_id: "fixture-connector", version: connectorConfigVersion })}\n`);
   const manifest = { dataset_id: "fixture-businesses", release_id: releaseId, status: "published" };
   if (evidence === "connector") manifest.connector = { id: "fixture-connector", version };
   if (evidence === "publisher") manifest.publisher = { id: "fixture-connector", version };
   if (evidence === "transformation") manifest.transformation_version = `fixture-connector@${version}`;
-  await writeFile(path.join(root, "data/fixture/releases", releaseId, "manifest.json"), `${JSON.stringify(manifest)}\n`);
-  await writeFile(path.join(root, "data/fixture/current.json"), `${JSON.stringify({
+  await writeFile(path.join(sourceRoot, "releases", releaseId, "manifest.json"), `${JSON.stringify(manifest)}\n`);
+  await writeFile(path.join(sourceRoot, "current.json"), `${JSON.stringify({
     dataset_id: "fixture-businesses",
     release_id: releaseId,
     manifest: `releases/${releaseId}/manifest.json`,
@@ -71,7 +73,7 @@ test("migration inspector accepts a current release at or above the correction f
     await writeFixture(root, { version: "1.1.0" });
     const report = await inspectNormalizedUsPostalMigration({ appRoot: root, definition });
     assert.equal(report.ready_for_registry_2_10, true);
-    assert.deepEqual(report.counts, { total: 1, ready: 1, rebuild_required: 0, blocked: 0 });
+    assert.deepEqual(report.counts, { total: 1, ready: 1, rebuild_required: 0, blocked: 0, candidate_pointers_used: 0 });
     assert.equal(report.sources[0].version_evidence, "manifest.connector");
     await assertNormalizedUsPostalMigrationReady({ appRoot: root, definition });
   } finally {
@@ -141,6 +143,27 @@ test("migration inspector reports missing rebuild secrets without exposing value
     const readyToRebuild = await inspectNormalizedUsPostalMigration({ appRoot: root, definition: gated, environment: { FIXTURE_SECRET: "secret-value" } });
     assert.equal(readyToRebuild.sources[0].status, "rebuild-required");
     assert.doesNotMatch(JSON.stringify(readyToRebuild), /secret-value/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("migration inspector prefers an isolated candidate without changing production readiness", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "postal-migration-candidate-"));
+  try {
+    await writeFixture(root, { version: "1.0.0" });
+    await writeFixture(root, {
+      version: "1.0.1",
+      sourcePath: "data/migrations/normalized-us-postal-fields-v1/sources/fixture",
+    });
+    const production = await inspectNormalizedUsPostalMigration({ appRoot: root, definition });
+    const candidates = await inspectNormalizedUsPostalMigration({ appRoot: root, definition, useCandidatePointers: true });
+    assert.equal(production.counts.ready, 0);
+    assert.equal(production.sources[0].pointer_scope, "production");
+    assert.equal(candidates.counts.ready, 1);
+    assert.equal(candidates.counts.candidate_pointers_used, 1);
+    assert.equal(candidates.sources[0].pointer_scope, "candidate");
+    assert.notEqual(candidates.plan_sha256, production.plan_sha256);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

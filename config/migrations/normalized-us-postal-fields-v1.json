@@ -2,6 +2,7 @@
   "migration_id": "normalized-us-postal-fields-v1",
   "contract_version": "1.0.0",
   "description": "Require ZIP5 and ZIP+4 to be published as separate normalized fields before registry publisher 2.10.0 can run.",
+  "candidate_root": "data/migrations/normalized-us-postal-fields-v1",
   "execution_order": [
     "fsis",
     "nyRetailFoodStores",

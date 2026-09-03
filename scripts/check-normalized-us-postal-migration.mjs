@@ -20,6 +20,7 @@ Usage:
 Options:
   --json               Emit the machine-readable report.
   --allow-pending      Return success when rebuilds are still required.
+  --candidates         Prefer existing isolated candidate pointers over production pointers.
   --definition <path>  Migration definition inside datahub.
   --pointer <key=path> Inspect an alternate current.json for one source key.
   --write-plan <path>  Exclusively create a frozen JSON readiness plan inside datahub.
@@ -31,6 +32,7 @@ function parseArguments(args) {
   const options = {
     allowPending: false,
     json: false,
+    candidates: false,
     definitionPath: DEFAULT_NORMALIZED_US_POSTAL_MIGRATION_DEFINITION,
     pointerOverrides: {},
     writePlan: null,
@@ -44,6 +46,10 @@ function parseArguments(args) {
     }
     if (argument === "--allow-pending") {
       options.allowPending = true;
+      continue;
+    }
+    if (argument === "--candidates") {
+      options.candidates = true;
       continue;
     }
     if (argument === "--definition") {
@@ -93,6 +99,7 @@ try {
   const report = await inspectNormalizedUsPostalMigration({
     definitionPath: options.definitionPath,
     pointerOverrides: options.pointerOverrides,
+    useCandidatePointers: options.candidates,
   });
   if (options.writePlan) {
     await assertWriteParentInsideApp(options.writePlan);

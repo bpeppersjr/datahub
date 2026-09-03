@@ -260,9 +260,10 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
-      const [overview, postalMigration] = await Promise.all([
+      const [overview, postalMigration, postalCandidates] = await Promise.all([
         businessCoverageViews.getOverview(),
         inspectNormalizedUsPostalMigration(),
+        inspectNormalizedUsPostalMigration({ useCandidatePointers: true }),
       ]);
       json(response, 200, {
         ...overview,
@@ -271,10 +272,13 @@ const server = http.createServer(async (request, response) => {
           contract_version: postalMigration.contract_version,
           ready_for_registry_2_10: postalMigration.ready_for_registry_2_10,
           counts: postalMigration.counts,
-          sources: postalMigration.sources.map((source) => ({
+          candidate_plan_sha256: postalCandidates.plan_sha256,
+          candidate_counts: postalCandidates.counts,
+          sources: postalCandidates.sources.map((source) => ({
             source_key: source.source_key,
             dataset_id: source.dataset_id,
             status: source.status,
+            pointer_scope: source.pointer_scope,
             current_connector_version: source.current_connector_version,
             minimum_connector_version: source.minimum_connector_version,
             reason: source.reason,

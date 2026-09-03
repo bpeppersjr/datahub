@@ -33,11 +33,21 @@ type Overview = {
       ready: number;
       rebuild_required: number;
       blocked: number;
+      candidate_pointers_used: number;
+    };
+    candidate_plan_sha256: string;
+    candidate_counts: {
+      total: number;
+      ready: number;
+      rebuild_required: number;
+      blocked: number;
+      candidate_pointers_used: number;
     };
     sources: Array<{
       source_key: string;
       dataset_id: string;
       status: 'ready' | 'rebuild-required' | 'blocked';
+      pointer_scope: 'production' | 'candidate' | 'override';
       current_connector_version: string | null;
       minimum_connector_version: string;
       reason: string;
@@ -448,7 +458,7 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.spatial_zip_polygon_denominator?.count ?? overview?.coverage?.spatial_zip_polygon_denominator_count)}</strong> Census ZCTA5 polygons</span>
             <span><strong>{count(overview?.coverage?.zip_views_without_zcta_polygon)}</strong> reported ZIP5 values outside polygon set</span>
             <span><strong>{overview?.normalized_postal_field_migration?.status === 'enforced-in-registry-release' ? 'Enforced' : 'Pending rebuild'}</strong> ZIP5 / ZIP4 split · registry {overview?.normalized_postal_field_migration?.registry_publisher_version ?? '—'}</span>
-            <span><strong>{count(overview?.normalized_postal_source_migration?.counts.ready)} / {count(overview?.normalized_postal_source_migration?.counts.total)}</strong> source releases migrated · {count(overview?.normalized_postal_source_migration?.counts.blocked)} blocked</span>
+            <span><strong>{count(overview?.normalized_postal_source_migration?.candidate_counts.ready)} / {count(overview?.normalized_postal_source_migration?.candidate_counts.total)}</strong> isolated candidates ready · {count(overview?.normalized_postal_source_migration?.counts.ready)} production migrated · {count(overview?.normalized_postal_source_migration?.candidate_counts.blocked)} blocked</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>

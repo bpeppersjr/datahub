@@ -285,21 +285,48 @@ export async function inspectNormalizedUsPostalMigration({
   definition = null,
   definitionPath = DEFAULT_NORMALIZED_US_POSTAL_MIGRATION_DEFINITION,
   pointerOverrides = {},
+  useCandidatePointers = false,
   environment = process.env,
 } = {}) {
   const resolvedRoot = path.resolve(appRoot);
   const loadedDefinition = validateDefinition(definition ?? await readJson(await resolveExistingInside(resolvedRoot, definitionPath), "Postal migration definition"));
   const sourceByKey = new Map(loadedDefinition.sources.map((source) => [source.source_key, source]));
   const orderedSources = loadedDefinition.execution_order?.map((key) => sourceByKey.get(key)) ?? loadedDefinition.sources;
+  const effectivePointerOverrides = { ...pointerOverrides };
+  const pointerScopes = new Map();
+  if (useCandidatePointers) {
+    if (typeof loadedDefinition.candidate_root !== "string" || loadedDefinition.candidate_root.length === 0) {
+      throw new Error("Postal migration definition is missing candidate_root.");
+    }
+    for (const source of orderedSources) {
+      if (Object.hasOwn(effectivePointerOverrides, source.source_key)) continue;
+      const candidate = path.join(loadedDefinition.candidate_root, "sources", source.source_key, "current.json");
+      try {
+        effectivePointerOverrides[source.source_key] = await resolveExistingInside(resolvedRoot, candidate);
+        pointerScopes.set(source.source_key, "candidate");
+      } catch (error) {
+        if (error.code !== "ENOENT") throw error;
+      }
+    }
+  }
+  for (const source of orderedSources) {
+    if (!pointerScopes.has(source.source_key)) {
+      pointerScopes.set(source.source_key, Object.hasOwn(pointerOverrides, source.source_key) ? "override" : "production");
+    }
+  }
   const sources = [];
   for (const source of orderedSources) {
-    sources.push(await inspectSource(source, { appRoot: resolvedRoot, pointerOverrides, environment }));
+    sources.push({
+      ...await inspectSource(source, { appRoot: resolvedRoot, pointerOverrides: effectivePointerOverrides, environment }),
+      pointer_scope: pointerScopes.get(source.source_key),
+    });
   }
   const counts = {
     total: sources.length,
     ready: sources.filter((source) => source.status === "ready").length,
     rebuild_required: sources.filter((source) => source.status === "rebuild-required").length,
     blocked: sources.filter((source) => source.status === "blocked").length,
+    candidate_pointers_used: sources.filter((source) => source.pointer_scope === "candidate").length,
   };
   const definitionSha256 = sha256Json(loadedDefinition);
   const frozenInputs = sources.map((source) => ({
@@ -310,6 +337,7 @@ export async function inspectNormalizedUsPostalMigration({
     manifest_sha256: source.manifest_sha256 ?? null,
     connector_config_sha256: source.connector_config_sha256 ?? null,
     minimum_connector_version: source.minimum_connector_version,
+    pointer_scope: source.pointer_scope,
   }));
   const planSha256 = sha256Json({
     migration_id: loadedDefinition.migration_id,
@@ -354,12 +382,13 @@ export function formatNormalizedUsPostalMigrationReport(report, { appRoot = APP_
     `Normalized U.S. postal migration: ${report.migration_id}`,
     `Ready for registry 2.10: ${report.ready_for_registry_2_10 ? "yes" : "no"}`,
     `Sources: ${report.counts.ready}/${report.counts.total} ready; ${report.counts.rebuild_required} rebuild required; ${report.counts.blocked} blocked`,
+    `Pointer scope: ${report.counts.candidate_pointers_used} isolated candidate; ${report.counts.total - report.counts.candidate_pointers_used} production or explicit override`,
     `Frozen-plan SHA-256: ${report.plan_sha256}`,
     "",
   ];
   for (const source of report.sources) {
     const version = source.current_connector_version ? `${source.current_connector_version} -> ${source.minimum_connector_version}` : `unknown -> ${source.minimum_connector_version}`;
-    lines.push(`[${source.status}] ${source.source_key} (${version})`);
+    lines.push(`[${source.status}] ${source.source_key} (${version}; ${source.pointer_scope})`);
     lines.push(`  pointer: ${displayPath(source.pointer, appRoot)}`);
     lines.push(`  reason: ${source.reason}`);
     if (source.status !== "ready") {
