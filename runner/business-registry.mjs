@@ -12,6 +12,22 @@ import { assertNormalizedUsPostalFields } from "./normalized-us-postal-code.mjs"
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
 export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.10.0";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
+export const UNVERIFIED_USPS_OPERATIONAL_STATUS_REASON = "No governed authoritative current USPS operational ZIP evidence is integrated for this row; Census or source-reported ZIP5 evidence does not establish current USPS operational status.";
+
+export function withExplicitUnverifiedUspsReason(value) {
+  const evidence = value && typeof value === "object" ? value : { status: "unverified" };
+  if (evidence.status !== "unverified") return evidence;
+  const reason = typeof evidence.reason === "string" ? evidence.reason.trim() : "";
+  return {
+    ...evidence,
+    reason: reason || UNVERIFIED_USPS_OPERATIONAL_STATUS_REASON,
+  };
+}
+
+export function isValidUnverifiedUspsEvidence(value, { reasonRequired = true } = {}) {
+  return value?.status === "unverified"
+    && (!reasonRequired || (typeof value.reason === "string" && value.reason.trim().length > 0));
+}
 
 function digest(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -2393,6 +2409,8 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
     return {
       schema_version: REGISTRY_SCHEMA_VERSION,
       zip_code: zipCode,
+      postal_code: zipCode,
+      zip4: null,
       registry_coverage: {
         status: recordContributionCount > 0 ? "record-level-source-contribution" : "denominator-only-no-record-level-contribution",
         complete_all_businesses: false,
@@ -2642,7 +2660,7 @@ function registryZipCoverage({ snap, nppes, fdic, ncua, fsis, echo, fmcsa, irsEo
         source_month: uspsZips.manifest.source_month,
         source_release_id: `usps-postalpro-area-district-zip5-${uspsZips.manifest.source_month}`,
         export_policy: uspsZips.manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted",
-      }) : foundation?.current_usps_validity ?? { status: "unverified" },
+      }) : withExplicitUnverifiedUspsReason(foundation?.current_usps_validity),
       geography: foundation?.geography ?? { status: "not-observed-in-integrated-census-coverage-union" },
       employer_baseline: foundation?.employer_baseline ?? null,
       baseline_coverage_status: foundation?.baseline_coverage_status ?? "not-observed-in-integrated-census-coverage-union",
@@ -5457,6 +5475,10 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const zipArtifact = manifest.artifacts?.find((artifact) => artifact.artifact_type === "registry-zip-coverage-jsonl");
   try {
     const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+    if (separatedPostalFieldsRequired && rows.some((row) => !Object.hasOwn(row, "postal_code")
+      || row.postal_code !== row.zip_code || !Object.hasOwn(row, "zip4") || row.zip4 !== null)) {
+      throw new Error("ZIP coverage rows do not preserve the required equal ZIP5 postal alias and separate null ZIP+4 field");
+    }
     if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage.zip_union_records) throw new Error("ZIP row count mismatch");
     if (rows.some((row) => !/^\d{5}$/.test(row.zip_code ?? ""))) throw new Error("invalid ZIP5 coverage row");
     if (new Set(rows.map((row) => row.zip_code)).size !== rows.length) throw new Error("duplicate ZIP coverage row");
@@ -5520,8 +5542,10 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
         throw new Error("ZIP coverage overstates or mislabels USPS assignment evidence");
       }
       if (zipArtifact.distribution_policy !== uspsDenominator.distribution_policy) throw new Error("ZIP artifact does not inherit USPS distribution policy");
-    } else if (rows.some((row) => row.current_usps_validity?.status !== "unverified")) {
-      throw new Error("ZIP coverage overstates USPS validity without a governed dependency");
+    } else if (rows.some((row) => !isValidUnverifiedUspsEvidence(row.current_usps_validity, {
+      reasonRequired: separatedPostalFieldsRequired,
+    }))) {
+      throw new Error("ZIP coverage overstates USPS validity or omits the required unverified reason without a governed dependency");
     }
   } catch (error) {
     failures.push({ path: zipArtifact?.path ?? "derived/zip-coverage.jsonl", reason: `ZIP coverage validation failed: ${error.message}` });

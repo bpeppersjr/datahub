@@ -1,0 +1,46 @@
+{
+  "policy_id": "usda-organic-integrity",
+  "version": "1.0.0",
+  "publisher": "USDA Agricultural Marketing Service, National Organic Program",
+  "ownership": "Official Organic INTEGRITY certified-operation information supplied by USDA-accredited certifying agents and published by USDA AMS",
+  "source_home": "https://organic.ams.usda.gov/integrity/Default",
+  "source_history": "https://organic.ams.usda.gov/integrity/Reports/DataHistory",
+  "catalog_record": "https://agdatacommons.nal.usda.gov/articles/dataset/The_Organic_INTEGRITY_Database/24661722",
+  "public_access_level": "public",
+  "license_status": "The USDA Ag Data Commons catalog record labels this dataset U.S. Public Domain, but this connector does not treat that catalog label as a standalone production-redistribution approval. API terms, attribution, and an explicit governance admission remain required.",
+  "source_access": "This version makes one bounded GET of the official history HTML and extracts an exact official monthly-workbook link from that response. It makes zero requests to the workbook URL because the publisher currently ignores byte ranges. A separately acknowledged offline path accepts an operator-supplied SHA-256-pinned XLSX inside datahub; the live workbook schema is unverified and the exact sheet/header profile is conformance-only.",
+  "allowed_use": [
+    "bounded validation of the exact official history page and extraction of an exact monthly workbook link without requesting the workbook",
+    "immutable local retention of metadata-only preflight receipts",
+    "local-review-only normalization of an operator-supplied conformance-profile workbook after exact acknowledgement and source hash pinning",
+    "selection of Certified operations whose country identity is exact code USA and source label UNITED STATES OF AMERICA (THE), from a USDA NOP-scoped snapshot",
+    "preservation of certification effective date, certifier, NOP scope, service vocabulary, structured product taxonomy, and source-designated physical versus mailing address provenance",
+    "internal schema, foreign-key, privacy, temporal-semantics, and data-quality review"
+  ],
+  "prohibited_use": [
+    "live workbook body acquisition or claiming a verified official workbook sheet/header layout in this connector version",
+    "publication of current.json, registry admission, coverage admission, Heatmap admission, or production release",
+    "exporting contacts, phone numbers, email addresses, client identifiers, agents, people, websites, additional information, other-item free text, or varieties",
+    "accepting formulas, macros, ActiveX, embedded objects, external links, external relationships, merged cells, or workbook-defined names",
+    "joining ZIP5 and ZIP+4 into one canonical postal field",
+    "inventing coordinates, business geometry, physical sites, establishments, or general operating status",
+    "representing organic certification as independent proof of current sales, establishment activity, or general business operation",
+    "automatic entity resolution by name or address"
+  ],
+  "field_export_policy": {
+    "metadata_preflight": "internal",
+    "operator_supplied_source_workbook": "internal-not-copied",
+    "operation_id_name_certification_certifier_scope_service_product_taxonomy_address_evidence": "local-review-only",
+    "contact_phone_email_client_agent_person_free_text": "excluded",
+    "physical_and_mailing_address": "preserve-source-designation-never-promote-to-verified-site",
+    "zip5_and_zip4": "separate-fields",
+    "coordinates_and_geometry": "not-produced"
+  },
+  "attribution": "Source: USDA Agricultural Marketing Service, National Organic Program, Organic INTEGRITY Database. This product is not endorsed or certified by USDA; do not use USDA names or logos to imply endorsement.",
+  "retention": "Retain immutable metadata receipts and explicitly acknowledged run-scoped staging artifacts inside datahub until an approved retention operation. The operator source workbook is referenced by hash and not copied into staging.",
+  "redistribution": "The authoritative catalog labels the dataset U.S. Public Domain, but this bounded connector exports records only for local review until source terms, required attribution, production admission, and field-level governance are separately approved.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The raw official workbook can contain contact names, phone/email, client identifiers, and residential addresses. The conformance input profile and normalized export exclude direct contact, phone, email, client, agent/person, website, additional-information, Other Item, and variety fields, but operation names and source addresses can still identify a person or residence. All normalized records remain local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03"
+}

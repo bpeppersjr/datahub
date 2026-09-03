@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotivemarket.com/schemas/usda-organic-integrity-certified-operation.schema.json",
+  "title": "USDA Organic INTEGRITY selected certified operation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "entity_candidate", "external_identifiers", "name", "certification", "addresses", "certified_scopes", "certified_services", "product_taxonomy", "temporal_status", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^usda-organic-integrity:[0-9]{10}$" },
+    "entity_candidate": {
+      "type": "object", "additionalProperties": false, "required": ["organization_id", "identity_status"],
+      "properties": { "organization_id": { "type": "string", "pattern": "^organization:usda_organic_integrity_[0-9]{10}$" }, "identity_status": { "const": "provisional" } }
+    },
+    "external_identifiers": {
+      "type": "array", "minItems": 1, "maxItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["type", "value", "source_field", "format"],
+        "properties": { "type": { "const": "usda_nop_operation_id" }, "value": { "type": "string", "pattern": "^[0-9]{10}$" }, "source_field": { "const": "Operation ID" }, "format": { "const": "10-digit" } }
+      }
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "certification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["program", "country", "status", "effective_date", "certifier_name", "meaning"],
+      "properties": {
+        "program": { "const": "USDA NOP" },
+        "country": {
+          "type": "object", "additionalProperties": false, "required": ["code", "source_name", "normalized_name"],
+          "properties": { "code": { "const": "USA" }, "source_name": { "const": "UNITED STATES OF AMERICA (THE)" }, "normalized_name": { "const": "United States of America" } }
+        },
+        "status": { "const": "Certified" },
+        "effective_date": { "type": "string", "format": "date" }, "certifier_name": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "meaning": { "const": "Certification evidence only; not independent proof of current sales, establishment activity, or general business operation." }
+      }
+    },
+    "addresses": {
+      "type": "object", "additionalProperties": false, "required": ["physical", "mailing", "meaning"],
+      "anyOf": [
+        { "properties": { "physical": { "type": "object" } } },
+        { "properties": { "mailing": { "type": "object" } } }
+      ],
+      "properties": {
+        "physical": { "$ref": "#/$defs/address" }, "mailing": { "$ref": "#/$defs/address" },
+        "meaning": { "const": "Source address designations are preserved; neither address is promoted to a verified operating establishment or geocode." }
+      }
+    },
+    "certified_scopes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["Crops", "Livestock", "Wild Crops", "Handling"] } },
+    "certified_services": { "type": "array", "uniqueItems": true, "items": { "enum": ["Broker", "Community Supported Agriculture (CSA)", "Co-Packer", "Dairy", "Distributor", "Grower Group", "Marketer/Trader", "Poultry", "Private Labeler", "Restaurant", "Retail Food Establishment", "Slaughterhouse", "Storage"] } },
+    "product_taxonomy": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["nop_scope", "nop_category_id", "nop_category", "nop_item_id", "nop_item_name"],
+        "properties": { "nop_scope": { "enum": ["Crops", "Livestock", "Wild Crops", "Handling"] }, "nop_category_id": { "type": "string", "pattern": "^[0-9]+$" }, "nop_category": { "type": "string", "minLength": 1, "maxLength": 128 }, "nop_item_id": { "type": "string", "pattern": "^[0-9]+$" }, "nop_item_name": { "type": "string", "minLength": 1, "maxLength": 128 } }
+      }
+    },
+    "temporal_status": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_snapshot_observed_at", "source_snapshot_reference_date", "source_workbook_linkage_status", "first_seen", "last_seen", "valid_from", "valid_to", "certification_effective_date", "current_sales_or_operation_asserted"],
+      "properties": {
+        "source_snapshot_observed_at": { "type": "string", "format": "date-time" },
+        "source_snapshot_reference_date": { "type": "string", "format": "date", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-01$" },
+        "source_workbook_linkage_status": { "const": "unverified-operator-supplied-conformance" },
+        "first_seen": { "type": "string", "format": "date-time" },
+        "last_seen": { "type": "string", "format": "date-time" },
+        "valid_from": { "type": "string", "format": "date" },
+        "valid_to": { "type": "null" },
+        "certification_effective_date": { "type": "string", "format": "date" },
+        "current_sales_or_operation_asserted": { "const": false }
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_id", "source_release_id", "source_record_id", "source_workbook_sha256", "ingest_run_id", "transformation_version", "policy_id", "preflight_receipt_fingerprint"],
+      "properties": {
+        "source_id": { "const": "usda-organic-integrity" },
+        "source_release_id": { "type": "string", "minLength": 1 },
+        "source_record_id": { "type": "string", "pattern": "^[0-9]{10}$" },
+        "source_workbook_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "ingest_run_id": { "type": "string", "format": "uuid" },
+        "transformation_version": { "const": "usda-organic-integrity-certified-operations@1.0.0" },
+        "policy_id": { "const": "usda-organic-integrity" },
+        "preflight_receipt_fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "export_policy": { "const": "local-review-only" }
+  },
+  "$defs": {
+    "address": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["address_line_1", "address_line_2", "city", "state", "zip_code", "postal_code", "zip4", "source_postcode", "source_designation", "physical_site_asserted", "geocoded", "latitude", "longitude"],
+          "properties": {
+            "address_line_1": { "type": "string", "minLength": 1, "maxLength": 256 }, "address_line_2": { "type": ["string", "null"], "maxLength": 256 }, "city": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "state": { "type": "string", "pattern": "^[A-Z]{2}$" }, "zip_code": { "type": "string", "pattern": "^[0-9]{5}$" }, "postal_code": { "type": "string", "pattern": "^[0-9]{5}$" },
+            "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" }, "source_postcode": { "type": "string" },
+            "source_designation": { "enum": ["source-designated-physical-address", "source-designated-mailing-address"] },
+            "physical_site_asserted": { "const": false }, "geocoded": { "const": false }, "latitude": { "type": "null" }, "longitude": { "type": "null" }
+          }
+        }
+      ]
+    }
+  }
+}

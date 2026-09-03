@@ -1,0 +1,61 @@
+{
+  "connector_id": "usda-organic-integrity",
+  "version": "1.0.0",
+  "description": "Metadata-only preflight and offline local-review staging for selected USDA Organic INTEGRITY certified operations.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "lifecycle_status": {
+    "preflight": "implemented-and-fixture-tested-live-history-link-not-server-rendered",
+    "plan": "implemented-offline-only",
+    "acquire": "default-denied-not-implemented",
+    "validate": "implemented-guarded-fixture-xlsx",
+    "normalize": "implemented-local-review-only",
+    "reconcile": "foreign-key-integrity-only-no-entity-resolution",
+    "quality_gate": "implemented-independent-verifier",
+    "publish": "disabled-no-current-pointer",
+    "finalize": "verified-staging-only"
+  },
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["workbook_url", "source_path", "source_sha256", "acknowledgement"],
+    "properties": {
+      "workbook_url": { "type": "string", "format": "uri", "pattern": "^https://organic\\.ams\\.usda\\.gov/Integrity/MonthlyReports/INTEGRITY_Data_[0-9]{6}01\\.xlsx$" },
+      "source_path": { "type": "string", "description": "Operator-supplied .xlsx path inside datahub." },
+      "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+      "acknowledgement": { "const": "I-APPROVE-USDA-INTEGRITY-OFFLINE-LOCAL-REVIEW-BUILD" },
+      "output": { "type": "string", "default": "data/business-sources/usda-organic-integrity" },
+      "maximum_workbook_bytes": { "type": "integer", "minimum": 1, "maximum": 134217728, "default": 134217728 }
+    }
+  },
+  "output_schema": "config/schemas/usda-organic-integrity-certified-operation.schema.json",
+  "named_secret_references": [],
+  "input_artifact_types": ["official-bounded-history-html-metadata", "official-monthly-workbook-link-identity", "operator-supplied-sha256-pinned-xlsx"],
+  "output_artifact_types": ["metadata-only-preflight-receipt-json", "normalized-usda-organic-integrity-certified-operation-jsonl-gzip", "verified-staging-manifest-json"],
+  "allowed_hosts": ["organic.ams.usda.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "usda-organic-integrity-metadata-only",
+  "resource_class": "metadata-network-offline-cpu-disk",
+  "execution_limits": {
+    "metadata_requests": 1,
+    "metadata_request_methods": ["GET"],
+    "workbook_network_requests": 0,
+    "full_workbook_body_requests": 0,
+    "workbook_response_bytes": 0,
+    "maximum_offline_workbook_bytes": 134217728,
+    "maximum_xlsx_part_bytes": 536870912,
+    "maximum_xlsx_expanded_bytes": 1073741824,
+    "maximum_xlsx_part_count": 2048,
+    "maximum_normalized_artifact_expanded_bytes": 536870912,
+    "maximum_parallel_requests": 1,
+    "retries": 0
+  },
+  "retry": "No automatic retry in this bounded version; rerun metadata preflight explicitly.",
+  "checkpoint": "No live acquisition checkpoint exists. The public live workbook schema remains unverified pending separately authorized source inspection. Offline output is isolated under an immutable run-ID .staging directory; pinned sheets and headers are a conformance profile rather than a claim about the uninspected official workbook layout.",
+  "idempotency": "Source SHA-256, preflight receipt fingerprint, and run ID are recorded; a run-ID directory cannot be reused.",
+  "cancellation": "Abort is checked before metadata requests, workbook parsing, and every operation normalization; no pointer or lock is written.",
+  "source_policy": "config/source-policies/usda-organic-integrity.json",
+  "retention_profile": "Metadata receipts may be retained; source and normalized records remain local and governed until an explicit retention decision.",
+  "produced_entities": ["provisional-certified-organization-candidate", "certification-assertion", "address-evidence", "product-taxonomy-assertion"],
+  "produced_identifiers": ["usda-nop-operation-id", "zip5", "zip4"],
+  "production_admission": "disabled"
+}
