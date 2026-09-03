@@ -2,12 +2,19 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH,
+  loadStateBusinessSourceRevalidation,
+  summarizeStateBusinessSourceRevalidation,
+} from "../runner/state-business-source-revalidation.mjs";
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const QUEUE_PATHS = [
   path.join(ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-4-wave-3.json"),
 ];
+const CURRENT_COVERAGE_POINTER_PATH = path.join(ROOT, "data", "business-coverage-views", "current.json");
 const QUEUE_SCOPES = new Map([
   ["state-business-source-discovery-queue-4-wave-1-2026-09-03", { scope: ["ID", "NM", "ME", "WY"] }],
   ["state-business-source-discovery-queue-4-wave-2-2026-09-03", { scope: ["NH", "MT", "RI", "SD"] }],
@@ -89,4 +96,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (const queue of queues) console.log(`State-source discovery ${queue.queue_id}: PASS`);
   const states = queues.flatMap((queue) => queue.states);
   console.log(`Waves: ${queues.length}; states: ${states.length}; autonomous acquisitions authorized: ${states.filter((state) => state.autonomous_acquisition_authorized).length}; production-ready broad layers: ${states.filter((state) => state.broad_layer_production_ready).length}`);
+  const revalidation = await loadStateBusinessSourceRevalidation(DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH);
+  const currentCoveragePointer = JSON.parse(await readFile(CURRENT_COVERAGE_POINTER_PATH, "utf8"));
+  if (currentCoveragePointer.dataset_id !== "national-business-coverage-views" || !/^national-business-coverage-views-/.test(currentCoveragePointer.release_id ?? "")) fail("current coverage pointer is invalid");
+  const summary = summarizeStateBusinessSourceRevalidation(revalidation, currentCoveragePointer.release_id);
+  if (summary.coverage_release_matches_current !== true) fail("revalidation coverage release does not match the current production pointer");
+  console.log(`State-source revalidation ${summary.revalidation_id}: PASS`);
+  console.log(`Revalidated: ${summary.jurisdictions_revalidated}; holds: ${summary.hold_decisions}; bounded connectors: ${summary.bounded_connector_decisions}; autonomous acquisitions authorized: ${summary.autonomous_acquisitions_authorized}; production-ready: ${summary.production_ready_jurisdictions}`);
 }

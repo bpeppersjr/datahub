@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -27,10 +27,10 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   }
   await artifact("national-coverage-view-jsonl", "national", [{ view_id: "national:registry-union", scope: "registry-union" }]);
   await artifact("state-coverage-view-jsonl", "states", [{
-    view_id: "state:01",
-    state_fips: "01",
+    view_id: "state:06",
+    state_fips: "06",
     state_name: "Fixture State",
-    postal_abbreviation: "AA",
+    postal_abbreviation: "CA",
     state_equivalent_kind: "state",
     is_50_states_or_dc: true,
     geography: { county_equivalent_count: 1 },
@@ -187,7 +187,60 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     manifest: `releases/${releaseId}/manifest.json`,
   }));
 
-  const store = createBusinessCoverageViewStore({ pointerPath, now: () => new Date("2026-09-03T12:00:00.000Z") });
+  let revalidationReady = false;
+  const revalidationDocument = {
+    schema_version: "fixture",
+    revalidation_id: "state-source-revalidation-fixture",
+    observed_at: "2026-09-03",
+    coverage_release_id: "fixture-source-coverage-release",
+    states: [{
+      state_abbreviation: "CA",
+      prior_decision: "hold",
+      decision: "hold",
+      changed_since_prior_review: false,
+      candidate: { publisher: "Fixture publisher", product: "Fixture source candidate", availability: "fixture", price: "$0" },
+      bounded_connector_implementation_authorized: false,
+      autonomous_acquisition_authorized: false,
+      complete_source_acquisition_authorized: false,
+      production_ready: false,
+      unresolved_gates: ["schema", "rights"],
+      strongest_bounded_next_action: "Obtain the fixture contract. Do not acquire before approval.",
+      official_urls: ["https://example.gov/source"],
+    }],
+  };
+  const stateSourceRevalidationProvider = {
+    async load() {
+      if (!revalidationReady) throw Object.assign(new Error("fixture revalidation missing"), { code: "ENOENT" });
+      return structuredClone(revalidationDocument);
+    },
+    index(document) {
+      return new Map(document.states.map((state) => [state.state_abbreviation, state]));
+    },
+    summarize(document, currentCoverageReleaseId) {
+      return {
+        schema_version: document.schema_version,
+        revalidation_id: document.revalidation_id,
+        observed_at: document.observed_at,
+        coverage_release_id: document.coverage_release_id,
+        current_coverage_release_id: currentCoverageReleaseId,
+        coverage_release_matches_current: document.coverage_release_id === currentCoverageReleaseId,
+        jurisdictions_revalidated: document.states.length,
+        hold_decisions: document.states.filter((state) => state.decision === "hold").length,
+        bounded_connector_decisions: 0,
+        changed_decisions: 0,
+        autonomous_acquisitions_authorized: 0,
+        production_ready_jurisdictions: 0,
+      };
+    },
+  };
+  const store = createBusinessCoverageViewStore({
+    pointerPath,
+    now: () => new Date("2026-09-03T12:00:00.000Z"),
+    stateSourceRevalidationPath: "fixture",
+    stateSourceRevalidationProvider,
+  });
+  await assert.rejects(store.getOverview(), (error) => error?.code === "ENOENT");
+  revalidationReady = true;
   const overview = await store.getOverview();
   assert.equal(overview.available, true);
   assert.equal(overview.release_id, releaseId);
@@ -207,23 +260,43 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   });
   assert.deepEqual(overview.state_source_readiness_summary, {
     policy_version: "1.0.0",
-    jurisdictions_in_scope: 0,
+    jurisdictions_in_scope: 1,
     broad_jurisdiction_organization_layers: 0,
-    missing_broad_jurisdiction_organization_layers: 0,
-    statewide_scoped_layers_without_broad_layer: 0,
+    missing_broad_jurisdiction_organization_layers: 1,
+    statewide_scoped_layers_without_broad_layer: 1,
     local_layers_without_broad_or_statewide_layer: 0,
     national_sector_layers_only: 0,
     jurisdictions_with_national_sector_evidence: 0,
-    reported_location_profiles: 0,
-    coordinate_assigned_profiles: 0,
-    coordinate_assignment_percent: null,
+    reported_location_profiles: 2,
+    coordinate_assigned_profiles: 1,
+    coordinate_assignment_percent: 50,
     complete_all_active_businesses: false,
+  });
+  assert.deepEqual(overview.state_source_revalidation_summary, {
+    schema_version: "fixture",
+    revalidation_id: "state-source-revalidation-fixture",
+    observed_at: "2026-09-03",
+    coverage_release_id: "fixture-source-coverage-release",
+    current_coverage_release_id: releaseId,
+    coverage_release_matches_current: false,
+    jurisdictions_revalidated: 1,
+    hold_decisions: 1,
+    bounded_connector_decisions: 0,
+    changed_decisions: 0,
+    autonomous_acquisitions_authorized: 0,
+    production_ready_jurisdictions: 0,
   });
   const states = await store.listDimension("states", { query: "fixture" });
   assert.equal(states.total, 1);
   assert.equal(states.records[0].reported_address_profile_count, 2);
   assert.equal(states.records[0].nonemployer_baseline.nonemployer_establishments, 5);
-  assert.equal(states.records[0].state_source_readiness.source_scope_status, "outside-50-states-and-dc-peer-scope");
+  assert.equal(states.records[0].state_source_readiness.source_scope_status, "statewide-scoped-layer-only");
+  assert.equal(states.records[0].latest_source_revalidation.decision, "hold");
+  assert.equal(states.records[0].latest_source_revalidation.candidate.product, "Fixture source candidate");
+  assert.equal(states.records[0].latest_source_revalidation.coverage_release_matches_current, false);
+  states.records[0].latest_source_revalidation.candidate.product = "mutated caller value";
+  assert.equal((await store.listDimension("states", { query: "Fixture source candidate" })).total, 1);
+  assert.equal((await store.listDimension("states", { query: "mutated caller value" })).total, 0);
   const counties = await store.listDimension("counties", { stateFips: "99" });
   assert.equal(counties.total, 0);
   const sourceRows = await store.listDimension("sources");
@@ -253,9 +326,34 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   const gaps = await store.listDimension("gaps", { gapType: "reported-zip5-not-in-census-zcta5-polygon-denominator" });
   assert.equal(gaps.total, 1);
   await assert.rejects(store.listDimension("unsupported"), /Unsupported coverage dimension/);
+
+  const rolloverReleaseId = "coverage-store-rollover-fixture";
+  const rolloverDirectory = path.join(root, "releases", rolloverReleaseId);
+  await cp(releaseDirectory, rolloverDirectory, { recursive: true });
+  const rolloverStatePath = path.join(rolloverDirectory, "views", "states.jsonl");
+  const rolloverState = JSON.parse((await readFile(rolloverStatePath, "utf8")).trim());
+  rolloverState.state_name = "Rollover State";
+  await writeFile(rolloverStatePath, jsonLines([rolloverState]));
+  const rolloverManifestPath = path.join(rolloverDirectory, "manifest.json");
+  const rolloverManifest = JSON.parse(await readFile(rolloverManifestPath, "utf8"));
+  rolloverManifest.release_id = rolloverReleaseId;
+  await writeFile(rolloverManifestPath, json(rolloverManifest));
+  await writeFile(pointerPath, json({
+    dataset_id: "national-business-coverage-views",
+    release_id: rolloverReleaseId,
+    manifest: `releases/${rolloverReleaseId}/manifest.json`,
+  }));
+  const rollover = await store.listDimension("states", { query: "rollover" });
+  assert.equal(rollover.release_id, rolloverReleaseId);
+  assert.equal(rollover.total, 1);
+  assert.equal(rollover.records[0].state_name, "Rollover State");
+  assert.equal(rollover.records[0].latest_source_revalidation.coverage_release_matches_current, false);
 });
 
 test("reports unavailable when no current coverage release exists", async () => {
-  const store = createBusinessCoverageViewStore({ pointerPath: path.join(os.tmpdir(), `missing-${crypto.randomUUID()}.json`) });
+  const store = createBusinessCoverageViewStore({
+    pointerPath: path.join(os.tmpdir(), `missing-${crypto.randomUUID()}.json`),
+    stateSourceRevalidationPath: null,
+  });
   assert.deepEqual(await store.getOverview(), { available: false });
 });

@@ -68,6 +68,7 @@ async function verifyOccupiedPortRefusal() {
     assert.match(log, /already occupied/);
     assert.equal(log.includes(hostileToken), false);
   } finally {
+    listener.closeAllConnections();
     await new Promise((resolve) => listener.close(resolve));
     await rm(hostileRoot, { recursive: true, force: true });
   }

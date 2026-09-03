@@ -1,0 +1,325 @@
+{
+  "schema_version": "1.0.0",
+  "revalidation_id": "state-business-source-revalidation-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_level_data_requested": false,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "complete_bulk_downloads": 0,
+    "record_enumerations": 0,
+    "portal_automations": 0,
+    "access_controls_bypassed": 0,
+    "source_releases_published": 0,
+    "production_pointers_changed": 0
+  },
+  "forbidden_operations": [
+    "account-creation",
+    "terms-acceptance",
+    "purchase",
+    "record-level-request",
+    "record-enumeration",
+    "portal-automation",
+    "complete-bulk-download",
+    "connector-implementation",
+    "source-release-publication",
+    "registry-rebuild",
+    "coverage-publication",
+    "heatmap-admission",
+    "production-pointer-change"
+  ],
+  "required_excluded_data_classes": [
+    "registered-agent-and-service-address",
+    "natural-person-name-role-and-address",
+    "direct-contact-and-signature",
+    "tax-payment-financial-and-government-identifiers",
+    "filing-image-document-and-free-text"
+  ],
+  "parallel_execution": {
+    "maximum_active_workstreams": 4,
+    "non_overlapping_state_assignments": true,
+    "assignments": [
+      { "state_abbreviation": "CA", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "GA", "worker": "Gauss", "ran_in_parallel": true },
+      { "state_abbreviation": "OK", "worker": "root", "ran_in_parallel": true },
+      { "state_abbreviation": "NE", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "VT", "worker": "Confucius", "ran_in_parallel": true }
+    ],
+    "waves": [
+      {
+        "wave_id": "wave-1",
+        "concurrent_state_abbreviations": ["VT", "NE", "GA", "OK"],
+        "overlap_evidence": "Vermont, Nebraska, and Georgia agents were active while the root Oklahoma workstream inspected the official pages."
+      },
+      {
+        "wave_id": "wave-2",
+        "concurrent_state_abbreviations": ["CA", "VT", "GA", "OK"],
+        "overlap_evidence": "After Nebraska completed, California was dispatched while Vermont, Georgia, and the root Oklahoma workstream were still active."
+      }
+    ]
+  },
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "CA",
+      "state_name": "California",
+      "prior_decision": "hold",
+      "decision": "hold",
+      "changed_since_prior_review": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "bounded_connector_implementation_authorized": false,
+      "production_ready": false,
+      "candidate": {
+        "publisher": "California Secretary of State",
+        "product": "bizfile Business Entity Master Unload and Weekly Data",
+        "availability": "authenticated portal order; current public contract incomplete",
+        "price": "$100 master unload; weekly data listed at no charge"
+      },
+      "current_coverage": {
+        "reported_profiles": 1762569,
+        "coordinate_profiles": 555130,
+        "nonemployer_baseline_2023": 3537469,
+        "baseline_minus_profiles": 1774900,
+        "diagnostic_profile_percent": 49.8,
+        "material_zctas": 1808,
+        "zctas_with_record_level_evidence": 1807
+      },
+      "official_urls": [
+        "https://www.sos.ca.gov/administration/public-records-act-requests/business-entity-records",
+        "https://bpd.cdn.sos.ca.gov/ucc/ucc-online-help.pdf",
+        "https://bizfileonline.sos.ca.gov/",
+        "https://www.sos.ca.gov/business-programs/bizfile/privacy-warning-terms-and-conditions-use",
+        "https://www.sos.ca.gov/business-programs/business-entities/cbs-field-status-definitions"
+      ],
+      "observed_evidence": [
+        "The official records page still routes bulk users to authenticated bizfile BE and UCC Bulk Orders.",
+        "The public help manual lists a $100 Business Entity Master Unload and Business Entity Weekly Data at no charge.",
+        "No public file inventory, schema, sample, row count, checksum, or weekly change and tombstone contract is published.",
+        "Public terms prohibit robots and page scraping and do not provide the product-specific commercial retention and derived-publication grant required by Datahub.",
+        "Current California coverage is dominated by scoped license and local sources and is not a broad Secretary of State organization layer."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents and registered offices",
+        "officers, directors, managers, members, organizers, incorporators and other natural persons",
+        "person and residential addresses",
+        "phones, emails, signatures, filing images and free text"
+      ],
+      "strongest_bounded_next_action": "Obtain a schema-only or person-free sample and written product-specific answers on scope, entity-number lifecycle, status and address roles, weekly changes and tombstones, counts and checksums, supported automated retrieval, retention, commercial derived publication, and redistribution. Do not create an account, accept checkout terms, place an order, automate bizfile, or implement a connector before those gates clear."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "GA",
+      "state_name": "Georgia",
+      "prior_decision": "hold",
+      "decision": "hold",
+      "changed_since_prior_review": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "bounded_connector_implementation_authorized": false,
+      "production_ready": false,
+      "candidate": {
+        "publisher": "Georgia Secretary of State",
+        "product": "Georgia Corporations List",
+        "availability": "paid one-time or annual secure-FTP product; contract incomplete",
+        "price": "$500 one-time extract or $5,000 annual weekly subscription"
+      },
+      "current_coverage": {
+        "reported_profiles": 235468,
+        "coordinate_profiles": 11900,
+        "nonemployer_baseline_2023": 1163944,
+        "baseline_minus_profiles": 928476,
+        "diagnostic_profile_percent": 20.2,
+        "material_zctas": 752,
+        "zctas_with_record_level_evidence": 751
+      },
+      "official_urls": [
+        "https://sos.ga.gov/index.php/corporations",
+        "https://georgiasecretaryofstate.net/collections/corporations-list/products/annual-subscription-for-a-weekly-extract-of-the-georgia-corporations-list",
+        "https://georgiasecretaryofstate.net/collections/corporations-list/products/idm",
+        "https://sos.ga.gov/page/georgia-corporations-active-entities-report",
+        "https://georgiasecretaryofstate.net/policies/terms-of-service"
+      ],
+      "observed_evidence": [
+        "Georgia SOS links its official bulk-record order channel to the SOS-operated store.",
+        "The store lists a $500 one-time extract and a $5,000 annual secure-FTP product updated weekly.",
+        "The 2026-09-02 active-entities report counts 1,617,352 active domestic and foreign entities but is not the paid extract control total.",
+        "No public format, schema, sample, extract row count, checksum, full-versus-delta contract, FTP automation contract, or Control Number lifecycle guarantee is published.",
+        "The product expressly includes officers, registered agents, addresses, and filing history, requiring a documented person-free projection before ingest."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered and designated agents and offices",
+        "officers, directors, principals, managers, members, organizers, incorporators, filers and authorizers",
+        "natural-person and residential addresses",
+        "emails, phones, signatures, document images and unreviewed filing-history or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Request a redacted schema-only sample and written answers covering entity scope, counts and bytes, file contract, Control Number lifecycle, status and address roles, full-versus-delta and tombstones, checksums, supported FTP automation, retention, person-free derived publication, redistribution, attribution, and Rule 590-7-8 applicability. Do not purchase or build row acquisition before every gate clears."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "OK",
+      "state_name": "Oklahoma",
+      "prior_decision": "hold",
+      "decision": "hold",
+      "changed_since_prior_review": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "bounded_connector_implementation_authorized": false,
+      "production_ready": false,
+      "candidate": {
+        "publisher": "Oklahoma Secretary of State",
+        "product": "Business Entities Bulk Orders",
+        "availability": "paid authenticated web download; public 19-record layout",
+        "price": "$500 monthly master; $150 weekly filing update"
+      },
+      "current_coverage": {
+        "reported_profiles": 78908,
+        "coordinate_profiles": 5178,
+        "nonemployer_baseline_2023": 327441,
+        "baseline_minus_profiles": 248533,
+        "diagnostic_profile_percent": 24.1,
+        "material_zctas": 667,
+        "zctas_with_record_level_evidence": 665
+      },
+      "official_urls": [
+        "https://www.sos.ok.gov/corp/bulkorder/bulkDefault.aspx",
+        "https://www.sos.ok.gov/corp/bulkorder/BulkOrderFileLayoutLegalEntity.htm",
+        "https://www.sos.ok.gov/corp/bulkorder/CORP_WKLY_070422.txt",
+        "https://www.sos.ok.gov/feedback/disclaimer.aspx"
+      ],
+      "observed_evidence": [
+        "The live official page still offers a complete monthly tilde-delimited database with 19 relational tables and same-layout weekly filing packages.",
+        "The page still lists $500 for the master and $150 for each weekly filing update, with authenticated web download as the stated route.",
+        "The public layout still documents entity, address, status, name, filing, audit, and trailer control records.",
+        "The official sample and layout report 2012 Last-Modified metadata and do not establish the current production schema, counts, checksums, or change semantics.",
+        "The disclaimer says filing data are public and may be shared but does not grant scheduled acquisition, commercial retention, derived publication, or redistribution rights."
+      ],
+      "unresolved_gates": ["stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents and service-of-process addresses",
+        "officers, directors, associated people, owners and other natural persons",
+        "person addresses, tax identifiers and telephone numbers",
+        "stock data, signatures, audit comments and unreviewed free text"
+      ],
+      "strongest_bounded_next_action": "Obtain written SOS confirmation of scheduled retrieval and commercial derived use, Filing Number lifecycle, weekly full-row versus filing-event behavior, deletions and corrections, legal-current status mapping, entity Address ID role, counts, bytes, timestamps and checksums, plus a schema-only current sample. Do not purchase, download the sample rows, or implement acquisition before those answers clear every gate."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "NE",
+      "state_name": "Nebraska",
+      "prior_decision": "hold",
+      "decision": "hold",
+      "changed_since_prior_review": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "bounded_connector_implementation_authorized": false,
+      "production_ready": false,
+      "candidate": {
+        "publisher": "Nebraska Secretary of State through Nebraska.gov",
+        "product": "Corporate Records Batch",
+        "availability": "paid recurring full FTP set; replacement platform pending before end of 2026",
+        "price": "$300 weekly, $500 twice monthly, or $800 monthly plus $100 annual subscriber fee and six-month minimum"
+      },
+      "current_coverage": {
+        "reported_profiles": 52111,
+        "coordinate_profiles": 2577,
+        "nonemployer_baseline_2023": 154971,
+        "baseline_minus_profiles": 102860,
+        "diagnostic_profile_percent": 33.6,
+        "material_zctas": 592,
+        "zctas_with_record_level_evidence": 590
+      },
+      "official_urls": [
+        "https://www.nebraska.gov/subscriber/",
+        "https://www.nebraska.gov/subscriber/pdf/corp-data-bulk-contract.pdf",
+        "https://nebraskalegislature.gov/laws/statutes.php?statute=33-101",
+        "https://sos.nebraska.gov/new-online-business-filing-system",
+        "https://www.nebraska.gov/policies/"
+      ],
+      "observed_evidence": [
+        "The official service still describes complete fixed-record-length multi-file business-entity sets delivered by FTP weekly, twice monthly, or monthly.",
+        "The agreement requires six consecutive months and the subscriber service adds a $100 annual account fee.",
+        "No public schema, sample, file inventory, stable-key guarantee, status or address codebook, control totals, checksums, or person-field inventory is published.",
+        "Nebraska.gov general terms restrict automation, commercial reuse, distribution, and derivatives while the batch agreement is silent on retention and downstream rights.",
+        "The replacement filing system is still anticipated before the end of 2026 with no firm cutover, new bulk route, layout, identifier crosswalk, or dual-run plan."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy", "platform-migration"],
+      "required_exclusions": [
+        "registered agents and registered offices",
+        "officers, directors, members, managers, owners and other natural persons",
+        "person and residential addresses",
+        "phones, emails, signatures, images and unreviewed free text"
+      ],
+      "strongest_bounded_next_action": "Obtain a written legacy-and-replacement technical and rights package covering layouts, person-free samples, stable identifier crosswalk, status and address semantics, full or delta rules, timestamps, totals, checksums, automation permission, retention and derived-publication rights, firm cutover and dual-run dates, and post-cutover price. Do not enroll, subscribe, acquire files, or implement a connector before those gates clear."
+    },
+    {
+      "rank": 5,
+      "state_abbreviation": "VT",
+      "state_name": "Vermont",
+      "prior_decision": "hold",
+      "decision": "hold",
+      "changed_since_prior_review": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "bounded_connector_implementation_authorized": false,
+      "production_ready": false,
+      "candidate": {
+        "publisher": "Vermont Secretary of State",
+        "product": "Business Services bulk download",
+        "availability": "current portal route exists; actual file access and contract undocumented",
+        "price": "Unknown under current post-2025 statutory authority"
+      },
+      "current_coverage": {
+        "reported_profiles": 11833,
+        "coordinate_profiles": 885,
+        "nonemployer_baseline_2023": 65028,
+        "baseline_minus_profiles": 53195,
+        "diagnostic_profile_percent": 18.2,
+        "material_zctas": 266,
+        "zctas_with_record_level_evidence": 264
+      },
+      "official_urls": [
+        "https://bizfilings.vermont.gov/bulk-download",
+        "https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Data/W~Lauren%20Hibbert~Transparency%20and%20Accessibility%20of%20SOS%20Data~4-29-2025.pdf",
+        "https://legislature.vermont.gov/Documents/2026/Workgroups/Senate%20Institutions/State%20Agencies/Secretary%20of%20State/W~Sarah%20Copeland%20Hanzas~Senate%20Institutions%20Presentation%20-%20Secretary%20Of%20State%20Data~2-17-2026.pdf",
+        "https://legislature.vermont.gov/statutes/section/03/005/00118",
+        "https://legislature.vermont.gov/statutes/section/01/005/00316"
+      ],
+      "observed_evidence": [
+        "Official 2025 testimony described a full Business Services dataset updated weekly; a 2026 presentation separately describes current and historical registration information and confirms that a bulk download remains available.",
+        "The current anonymous bulk-download route returns an application shell rather than a documented immutable data asset or metadata contract.",
+        "A July 2025 statutory change authorizes data sales, so the earlier no-cost statement cannot establish the current price.",
+        "No current schema, sample, identifier guarantee, status or address codebook, counts, checksums, automation rules, or change contract is published.",
+        "The 2026 presentation says data feeds are still in development and no product-specific retention or derived-publication license was found."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service-of-process data",
+        "directors, officers, members, managers, organizers, incorporators and other natural persons",
+        "natural-person names, emails and addresses",
+        "phones, signatures, document images and unreviewed free text"
+      ],
+      "strongest_bounded_next_action": "Obtain written confirmation of account requirements, current price, supported acquisition and automation, a person-free schema and sample, exact record scope, Record Number lifecycle, status and address codebooks, counts, timestamps, checksums, full or delta semantics, and retention and derived-publication rights. Do not create an account or implement a connector before those answers clear every gate."
+    }
+  ]
+}

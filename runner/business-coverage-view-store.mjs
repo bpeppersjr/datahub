@@ -5,8 +5,19 @@ import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
+import {
+  DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH,
+  indexStateBusinessSourceRevalidation,
+  loadStateBusinessSourceRevalidation,
+  summarizeStateBusinessSourceRevalidation,
+} from "./state-business-source-revalidation.mjs";
 
 const DEFAULT_POINTER_PATH = path.join(APP_ROOT, "data", "business-coverage-views", "current.json");
+const DEFAULT_STATE_SOURCE_REVALIDATION_PROVIDER = Object.freeze({
+  load: loadStateBusinessSourceRevalidation,
+  index: indexStateBusinessSourceRevalidation,
+  summarize: summarizeStateBusinessSourceRevalidation,
+});
 const DIMENSION_ARTIFACT_TYPES = Object.freeze({
   states: "state-coverage-view-jsonl",
   counties: "county-coverage-view-jsonl",
@@ -85,7 +96,7 @@ async function readCompactZipIndex(filePath) {
   return records;
 }
 
-function stateApiRow(row) {
+function stateApiRow(row, sourceRevalidation = null, sourceRevalidationDocument = null, currentCoverageReleaseId = null) {
   return {
     view_id: row.view_id,
     state_fips: row.state_fips,
@@ -102,6 +113,23 @@ function stateApiRow(row) {
     zctas_denominator_only_no_record_level_contribution: row.zcta_coverage.zctas_denominator_only_no_record_level_contribution,
     nonemployer_baseline: row.nonemployer_baseline,
     state_source_readiness: assessStateBusinessSourceReadiness(row),
+    latest_source_revalidation: sourceRevalidation ? {
+      revalidation_id: sourceRevalidationDocument?.revalidation_id ?? null,
+      observed_at: sourceRevalidationDocument?.observed_at ?? null,
+      coverage_release_id: sourceRevalidationDocument?.coverage_release_id ?? null,
+      coverage_release_matches_current: sourceRevalidationDocument?.coverage_release_id === currentCoverageReleaseId,
+      prior_decision: sourceRevalidation.prior_decision,
+      decision: sourceRevalidation.decision,
+      changed_since_prior_review: sourceRevalidation.changed_since_prior_review,
+      candidate: structuredClone(sourceRevalidation.candidate),
+      bounded_connector_implementation_authorized: sourceRevalidation.bounded_connector_implementation_authorized,
+      autonomous_acquisition_authorized: sourceRevalidation.autonomous_acquisition_authorized,
+      complete_source_acquisition_authorized: sourceRevalidation.complete_source_acquisition_authorized,
+      production_ready: sourceRevalidation.production_ready,
+      unresolved_gates: [...sourceRevalidation.unresolved_gates],
+      strongest_bounded_next_action: sourceRevalidation.strongest_bounded_next_action,
+      official_urls: [...sourceRevalidation.official_urls],
+    } : null,
   };
 }
 
@@ -162,10 +190,27 @@ function contains(record, fields, query) {
   return fields.some((field) => String(record[field] ?? "").toLocaleLowerCase("en-US").includes(query));
 }
 
-export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_PATH, now = () => new Date() } = {}) {
+export function createBusinessCoverageViewStore({
+  pointerPath = DEFAULT_POINTER_PATH,
+  now = () => new Date(),
+  stateSourceRevalidationPath = DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH,
+  stateSourceRevalidationProvider = DEFAULT_STATE_SOURCE_REVALIDATION_PROVIDER,
+} = {}) {
   let activeReleaseId = null;
   let release = null;
+  let stateSourceRevalidationPromise = null;
   const cache = new Map();
+
+  async function ensureStateSourceRevalidation() {
+    if (stateSourceRevalidationPath === null) return null;
+    stateSourceRevalidationPromise ??= stateSourceRevalidationProvider.load(stateSourceRevalidationPath);
+    try {
+      return await stateSourceRevalidationPromise;
+    } catch (error) {
+      stateSourceRevalidationPromise = null;
+      throw error;
+    }
+  }
 
   async function ensureRelease() {
     let pointer;
@@ -193,10 +238,13 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
     }
     const releaseDirectory = path.dirname(manifestPath);
     const artifacts = new Map((manifest.artifacts ?? []).map((artifact) => [artifact.artifact_type, artifact]));
-    release = { manifest, releaseDirectory, artifacts };
+    const loadedRelease = { manifest, releaseDirectory, artifacts };
+    const latestPointer = JSON.parse(await readFile(pointerPath, "utf8"));
+    if (latestPointer.dataset_id !== pointer.dataset_id || latestPointer.release_id !== pointer.release_id || latestPointer.manifest !== pointer.manifest) return ensureRelease();
+    release = loadedRelease;
     activeReleaseId = pointer.release_id;
-    cache.clear();
-    return release;
+    for (const key of cache.keys()) if (!key.startsWith(`${activeReleaseId}:`)) cache.delete(key);
+    return loadedRelease;
   }
 
   function safeArtifactPath(current, artifactType) {
@@ -208,10 +256,11 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
     return filePath;
   }
 
-  async function loadDimension(dimension) {
-    const current = await ensureRelease();
+  async function loadDimension(dimension, releaseSnapshot = null) {
+    const current = releaseSnapshot ?? await ensureRelease();
     if (!current) return null;
-    if (cache.has(dimension)) return cache.get(dimension);
+    const cacheKey = `${current.manifest.release_id}:${dimension}`;
+    if (cache.has(cacheKey)) return structuredClone(cache.get(cacheKey));
     let records;
     if (dimension === "national") {
       records = await readJsonLines(safeArtifactPath(current, "national-coverage-view-jsonl"));
@@ -219,20 +268,34 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
       records = await readCompactZipIndex(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.zips));
     } else {
       records = await readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES[dimension]));
-      if (dimension === "states") records = records.map(stateApiRow);
+      if (dimension === "states") {
+        const sourceRevalidation = await ensureStateSourceRevalidation();
+        const sourceRevalidationIndex = sourceRevalidation ? stateSourceRevalidationProvider.index(sourceRevalidation) : new Map();
+        records = records.map((row) => stateApiRow(
+          row,
+          sourceRevalidationIndex.get(row.postal_abbreviation) ?? null,
+          sourceRevalidation,
+          current.manifest.release_id,
+        ));
+      }
       if (dimension === "counties") records = records.map(countyApiRow);
       if (dimension === "sources") records = records.map((row) => sourceApiRow(row, now()));
       if (dimension === "gaps") records = records.map(gapApiRow);
     }
-    cache.set(dimension, records);
-    return records;
+    if (activeReleaseId === current.manifest.release_id) cache.set(cacheKey, structuredClone(records));
+    return structuredClone(records);
   }
 
   async function getOverview() {
     const current = await ensureRelease();
     if (!current) return { available: false };
-    const [national, sources, states] = await Promise.all([loadDimension("national"), loadDimension("sources"), loadDimension("states")]);
-    return {
+    const [national, sources, states, sourceRevalidation] = await Promise.all([
+      loadDimension("national", current),
+      loadDimension("sources", current),
+      loadDimension("states", current),
+      ensureStateSourceRevalidation(),
+    ]);
+    return structuredClone({
       available: true,
       dataset_id: current.manifest.dataset_id,
       release_id: current.manifest.release_id,
@@ -251,19 +314,27 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
       sources,
       source_temporal_summary: summarizeBusinessSourceTemporalStatus(sources),
       state_source_readiness_summary: summarizeStateBusinessSourceReadiness(states),
+      state_source_revalidation_summary: sourceRevalidation
+        ? stateSourceRevalidationProvider.summarize(sourceRevalidation, current.manifest.release_id)
+        : null,
       limitations: current.manifest.limitations,
-    };
+    });
   }
 
   async function listDimension(dimension, options = {}) {
     if (!Object.hasOwn(DIMENSION_ARTIFACT_TYPES, dimension)) throw Object.assign(new Error("Unsupported coverage dimension."), { statusCode: 404 });
-    const records = await loadDimension(dimension);
+    const current = await ensureRelease();
+    const records = await loadDimension(dimension, current);
     if (!records) return { available: false, dimension, total: 0, offset: 0, limit: 0, records: [] };
     const query = cleanQuery(options.query);
     const stateFips = String(options.stateFips ?? "").trim();
     const gapType = String(options.gapType ?? "").trim();
     let filtered = records;
-    if (dimension === "states") filtered = records.filter((row) => contains(row, ["state_name", "postal_abbreviation", "state_fips"], query));
+    if (dimension === "states") filtered = records.filter((row) => contains({
+      ...row,
+      source_candidate: row.latest_source_revalidation?.candidate?.product,
+      source_decision: row.latest_source_revalidation?.decision,
+    }, ["state_name", "postal_abbreviation", "state_fips", "source_candidate", "source_decision"], query));
     if (dimension === "counties") filtered = records.filter((row) => (!stateFips || row.state_fips === stateFips) && contains(row, ["county_name", "county_geoid", "state_fips"], query));
     if (dimension === "zips") filtered = records.filter((row) => !query || row.zip_code.startsWith(query));
     if (dimension === "sources") filtered = records.filter((row) => contains(row, ["source_key", "source_name", "profile_source_id"], query));
@@ -272,7 +343,7 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
     const limit = Math.max(1, positiveInteger(options.limit, 25, 100));
     return {
       available: true,
-      release_id: activeReleaseId,
+      release_id: current.manifest.release_id,
       dimension,
       total: filtered.length,
       offset,

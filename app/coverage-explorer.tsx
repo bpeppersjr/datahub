@@ -100,6 +100,20 @@ type Overview = {
     coordinate_assignment_percent: number | null;
     complete_all_active_businesses: false;
   };
+  state_source_revalidation_summary?: {
+    schema_version: string;
+    revalidation_id: string;
+    observed_at: string;
+    coverage_release_id: string;
+    current_coverage_release_id: string | null;
+    coverage_release_matches_current: boolean | null;
+    jurisdictions_revalidated: number;
+    hold_decisions: number;
+    bounded_connector_decisions: number;
+    changed_decisions: number;
+    autonomous_acquisitions_authorized: number;
+    production_ready_jurisdictions: number;
+  } | null;
   coverage?: {
     state_views: number;
     county_views: number;
@@ -260,6 +274,23 @@ type StateRow = {
     coordinate_assignment_percent: number | null;
     complete_all_active_businesses: false;
   };
+  latest_source_revalidation: {
+    revalidation_id: string;
+    observed_at: string;
+    coverage_release_id: string;
+    coverage_release_matches_current: boolean;
+    prior_decision: 'hold' | 'proceed-to-bounded-connector';
+    decision: 'hold' | 'proceed-to-bounded-connector';
+    changed_since_prior_review: boolean;
+    candidate: { publisher: string; product: string; availability: string; price: string };
+    bounded_connector_implementation_authorized: boolean;
+    autonomous_acquisition_authorized: false;
+    complete_source_acquisition_authorized: false;
+    production_ready: false;
+    unresolved_gates: string[];
+    strongest_bounded_next_action: string;
+    official_urls: string[];
+  } | null;
 };
 
 type CountyRow = {
@@ -365,15 +396,25 @@ async function request<T>(path: string): Promise<T> {
 }
 
 function StateRows({ records }: { records: StateRow[] }) {
-  return records.map((row) => (
+  return records.map((row) => {
+    const revalidation = row.latest_source_revalidation;
+    return (
     <div className="coverage-table-row state-row" key={row.view_id}>
       <div><strong>{row.postal_abbreviation}</strong><span>{row.state_name} · {label(row.state_source_readiness.source_scope_status)}</span></div>
+      <div className="state-source-gate">
+        {revalidation ? <>
+          <strong className={revalidation.decision === 'hold' ? 'coverage-warn' : 'coverage-ok'}>Source gate: {label(revalidation.decision)}</strong>
+          <span>{revalidation.candidate.product}</span>
+          <details><summary>Review gate</summary><p>{!revalidation.coverage_release_matches_current && <b>Source review pinned to prior coverage release. </b>}{revalidation.strongest_bounded_next_action} Unresolved: {revalidation.unresolved_gates.map(label).join(', ')}.</p></details>
+        </> : <><strong>Source review unavailable</strong><span>Not included in the current revalidation pass</span></>}
+      </div>
       <span>{count(row.reported_address_profile_count)}</span>
       <span>{count(row.coordinate_assigned_profile_count)}</span>
       <span>{row.nonemployer_baseline?.status === 'published-annual-aggregate' ? count(row.nonemployer_baseline.nonemployer_establishments) : '—'}</span>
       <span>{count(row.zctas_with_record_level_source_contribution)} <small>/ {count(row.material_intersecting_zcta_count)}</small></span>
     </div>
-  ));
+  );
+  });
 }
 
 function CountyRows({ records }: { records: CountyRow[] }) {
@@ -390,7 +431,11 @@ function CountyRows({ records }: { records: CountyRow[] }) {
 function ZipRows({ records }: { records: ZipRow[] }) {
   return records.map((row) => (
     <div className="coverage-table-row zip-row" key={row.view_id}>
-      <div><strong>{row.zip_code}</strong><span>{row.spatial_zip_polygon_membership_status === 'included' && row.zcta_geoid ? `Census ZCTA5 ${row.zcta_geoid} · ${row.material_county_count} material count${row.material_county_count === 1 ? 'y' : 'ies'}` : 'Reported ZIP5 · outside Census polygon set'}</span></div>
+      <div><strong>{row.zip_code}</strong><span>{row.spatial_zip_polygon_membership_status === 'included' && row.zcta_geoid
+        ? `Census ZCTA5 ${row.zcta_geoid} · ${row.material_county_count} material count${row.material_county_count === 1 ? 'y' : 'ies'}`
+        : row.spatial_zip_polygon_membership_status === 'not-in-denominator'
+          ? 'Reported ZIP5 · outside Census polygon set'
+          : 'Census polygon membership unavailable'}</span></div>
       <span>{count(row.physical_site_count)}</span>
       <span>{count(row.establishment_count)}</span>
       <span className={row.coverage_status === 'record-level-source-contribution' ? 'coverage-ok' : 'coverage-warn'}>{row.coverage_status === 'record-level-source-contribution' ? 'Evidence' : 'Gap'}</span>
@@ -526,6 +571,9 @@ export default function CoverageExplorer() {
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
             <span><strong>{count(overview?.state_source_readiness_summary?.broad_jurisdiction_organization_layers)} / {count(overview?.state_source_readiness_summary?.jurisdictions_in_scope)}</strong> broad state organization layers · {count(overview?.state_source_readiness_summary?.missing_broad_jurisdiction_organization_layers)} gaps</span>
             <span><strong>{overview?.state_source_readiness_summary?.coordinate_assignment_percent?.toFixed(2) ?? '—'}%</strong> state-profile coordinate assignment · address latitude/longitude only</span>
+            {overview?.state_source_revalidation_summary
+              ? <span><strong>{count(overview.state_source_revalidation_summary.jurisdictions_revalidated)}</strong> source contracts revalidated · {count(overview.state_source_revalidation_summary.hold_decisions)} hold · {count(overview.state_source_revalidation_summary.bounded_connector_decisions)} bounded connector</span>
+              : <span><strong>Unavailable</strong> no current source-contract revalidation</span>}
             <span><strong>{count(overview?.source_temporal_summary?.within_review_window)} / {count(overview?.source_temporal_summary?.total_sources)}</strong> sources within review window · {count(overview?.source_temporal_summary?.review_due)} due · {count(overview?.source_temporal_summary?.missing_source_reference)} missing date</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.de_business_license_current_organization_records)}</strong> DE current licenses · {count(overview?.coverage?.de_business_license_eligible_reported_us_business_addresses)} reported U.S. addresses</span>
