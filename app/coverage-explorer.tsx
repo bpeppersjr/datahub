@@ -281,9 +281,11 @@ type StateSourceAssessment = {
   decision: 'hold' | 'proceed-to-bounded-connector';
   changed_since_prior_review: boolean;
   candidate: { publisher: string; product: string; availability: string; price: string };
+  authorized_next_action_type: 'written-preflight-inquiry' | 'bounded-connector-implementation';
   bounded_connector_implementation_authorized: boolean;
   autonomous_acquisition_authorized: false;
   complete_source_acquisition_authorized: false;
+  offline_fixture_connector_authorized: boolean;
   production_ready: false;
   unresolved_gates: string[];
   strongest_bounded_next_action: string;
@@ -427,7 +429,7 @@ function StateRows({ records }: { records: StateRow[] }) {
         {assessment ? <>
           <strong className={assessment.decision === 'hold' ? 'coverage-warn' : 'coverage-ok'}>{assessment.assessment_kind === 'source-discovery' ? 'First-pass source discovery' : 'Source revalidation'}: {label(assessment.decision)}</strong>
           <span>{assessment.candidate.product}</span>
-          <details><summary>{assessment.assessment_kind === 'source-discovery' ? 'Discovery gate' : 'Revalidation gate'}</summary><p>{!assessment.coverage_release_matches_current && <b>Source assessment pinned to prior coverage release. </b>}{assessment.strongest_bounded_next_action} Unresolved: {assessment.unresolved_gates.map(label).join(', ')}.</p></details>
+          <details><summary>{assessment.assessment_kind === 'source-discovery' ? 'Discovery gate' : 'Revalidation gate'}</summary><p>{!assessment.coverage_release_matches_current && <b>Source assessment pinned to prior coverage release. </b>}Authorized next action: {label(assessment.authorized_next_action_type)}. Offline fixture connector: {assessment.offline_fixture_connector_authorized ? 'authorized' : 'not authorized'}. {assessment.strongest_bounded_next_action} Unresolved: {assessment.unresolved_gates.map(label).join(', ')}.</p></details>
         </> : <><strong>Source assessment unavailable</strong><span>Not included in the current governed assessment catalog</span></>}
       </div>
       <span>{count(row.reported_address_profile_count)}</span>

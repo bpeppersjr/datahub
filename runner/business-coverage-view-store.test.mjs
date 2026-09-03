@@ -199,9 +199,11 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
       decision: "hold",
       changed_since_prior_review: false,
       candidate: { publisher: "Fixture publisher", product: "Fixture source candidate", availability: "fixture", price: "$0" },
+      authorized_next_action_type: "written-preflight-inquiry",
       bounded_connector_implementation_authorized: false,
       autonomous_acquisition_authorized: false,
       complete_source_acquisition_authorized: false,
+      offline_fixture_connector_authorized: false,
       production_ready: false,
       unresolved_gates: ["schema", "rights"],
       strongest_bounded_next_action: "Obtain the fixture contract. Do not acquire before approval.",
@@ -298,6 +300,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(states.records[0].latest_source_revalidation.coverage_release_matches_current, false);
   assert.equal(states.records[0].latest_source_assessment.assessment_kind, "revalidation");
   assert.equal(states.records[0].latest_source_assessment.candidate.product, "Fixture source candidate");
+  assert.equal(states.records[0].latest_source_assessment.authorized_next_action_type, "written-preflight-inquiry");
+  assert.equal(states.records[0].latest_source_assessment.offline_fixture_connector_authorized, false);
   states.records[0].latest_source_revalidation.candidate.product = "mutated caller value";
   assert.equal((await store.listDimension("states", { query: "Fixture source candidate" })).total, 1);
   assert.equal((await store.listDimension("states", { query: "mutated caller value" })).total, 0);
@@ -376,6 +380,20 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(rollover.total, 1);
   assert.equal(rollover.records[0].state_name, "Rollover State");
   assert.equal(rollover.records[0].latest_source_revalidation.coverage_release_matches_current, false);
+});
+
+test("projects exact HOLD and bounded-connector permissions from the governed catalog", async () => {
+  const states = (await createBusinessCoverageViewStore().listDimension("states", { limit: 100 })).records;
+  for (const stateAbbreviation of ["DC", "AK"]) {
+    const assessment = states.find((state) => state.postal_abbreviation === stateAbbreviation).latest_source_assessment;
+    assert.equal(assessment.decision, "proceed-to-bounded-connector");
+    assert.equal(assessment.authorized_next_action_type, "bounded-connector-implementation");
+    assert.equal(assessment.offline_fixture_connector_authorized, true);
+  }
+  const hold = states.find((state) => state.postal_abbreviation === "MI").latest_source_assessment;
+  assert.equal(hold.decision, "hold");
+  assert.equal(hold.authorized_next_action_type, "written-preflight-inquiry");
+  assert.equal(hold.offline_fixture_connector_authorized, false);
 });
 
 test("reports unavailable when no current coverage release exists", async () => {

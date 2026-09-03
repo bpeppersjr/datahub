@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -11,43 +12,91 @@ import {
 } from "./state-business-source-revalidation.mjs";
 
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.0.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-2026-09-03";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-queue-6-2026-09-03";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "b1b9c3509f43542c63324bfdaa31e066e67f84b519e8be2d3c1c5f181c665ef3";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
+  path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
+  path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
+  path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-3.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-5.json"),
+  path.join(APP_ROOT, "config", "state-business-source-discovery-queue-6.json"),
 ]);
 
-const EXPECTED_STATE_SCOPE = Object.freeze(["CA", "GA", "OK", "NE", "VT", "OH", "NC", "NJ", "VA"]);
-const QUEUE_5_ARTIFACT_ID = "state-business-source-discovery-queue-5-wave-1-2026-09-03";
-const EXPECTED_SOURCE_ARTIFACTS = Object.freeze([
+const SOURCE_ARTIFACT_SPECS = Object.freeze([
   Object.freeze({
     artifact_id: STATE_BUSINESS_SOURCE_REVALIDATION_ID,
     artifact_kind: "revalidation",
     observed_at: "2026-09-03",
     coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["CA", "GA", "OK", "NE", "VT"]),
   }),
   Object.freeze({
-    artifact_id: QUEUE_5_ARTIFACT_ID,
+    artifact_id: "state-business-source-discovery-queue-4-wave-1-2026-09-03",
     artifact_kind: "source-discovery",
     observed_at: "2026-09-03",
     coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["ID", "NM", "ME", "WY"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+    artifact_kind: "source-discovery",
+    observed_at: "2026-09-03",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["NH", "MT", "RI", "SD"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+    artifact_kind: "source-discovery",
+    observed_at: "2026-09-03",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["WV", "ND", "DC", "AK"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-discovery-queue-5-wave-1-2026-09-03",
+    artifact_kind: "source-discovery",
+    observed_at: "2026-09-03",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["OH", "NC", "NJ", "VA"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+    artifact_kind: "source-discovery",
+    observed_at: "2026-09-03",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["MI", "TN", "MA", "AZ"]),
   }),
 ]);
-const EXPECTED_STATE_PROVENANCE = Object.freeze(Object.fromEntries(EXPECTED_STATE_SCOPE.map((stateAbbreviation, index) => [
+const EXPECTED_SOURCE_ARTIFACTS = Object.freeze(SOURCE_ARTIFACT_SPECS.map((artifact) => Object.freeze({
+  artifact_id: artifact.artifact_id,
+  artifact_kind: artifact.artifact_kind,
+  observed_at: artifact.observed_at,
+  coverage_release_id: artifact.coverage_release_id,
+})));
+const EXPECTED_STATE_SCOPE = Object.freeze(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations));
+const EXPECTED_STATE_PROVENANCE = Object.freeze(Object.fromEntries(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations.map((stateAbbreviation) => [
   stateAbbreviation,
-  Object.freeze(index < 5
-    ? { assessment_id: STATE_BUSINESS_SOURCE_REVALIDATION_ID, assessment_kind: "revalidation" }
-    : { assessment_id: QUEUE_5_ARTIFACT_ID, assessment_kind: "source-discovery" }),
-])));
-const AUTHORITY_FIELDS = Object.freeze([
-  "bounded_connector_implementation_authorized",
-  "autonomous_acquisition_authorized",
-  "paid_acquisition_authorized",
-  "complete_source_acquisition_authorized",
-  "row_bearing_preflight_authorized",
-  "offline_fixture_connector_authorized",
-  "production_ready",
-  "broad_layer_production_ready",
-]);
+  Object.freeze({
+    assessment_id: artifact.artifact_id,
+    assessment_kind: artifact.artifact_kind,
+    observed_at: artifact.observed_at,
+    coverage_release_id: artifact.coverage_release_id,
+  }),
+]))));
+const BOUNDED_CONNECTOR_STATES = new Set(["DC", "AK"]);
+const EXPECTED_AUTHORITY_BY_STATE = Object.freeze(Object.fromEntries(EXPECTED_STATE_SCOPE.map((stateAbbreviation) => {
+  const boundedConnectorAuthorized = BOUNDED_CONNECTOR_STATES.has(stateAbbreviation);
+  return [stateAbbreviation, Object.freeze({
+    authorized_next_action_type: boundedConnectorAuthorized ? "bounded-connector-implementation" : "written-preflight-inquiry",
+    bounded_connector_implementation_authorized: boundedConnectorAuthorized,
+    autonomous_acquisition_authorized: false,
+    paid_acquisition_authorized: false,
+    complete_source_acquisition_authorized: false,
+    row_bearing_preflight_authorized: false,
+    offline_fixture_connector_authorized: boundedConnectorAuthorized,
+    production_ready: false,
+    broad_layer_production_ready: false,
+  })];
+})));
 
 function fail(message) {
   throw new Error(`State business-source assessment catalog is invalid: ${message}`);
@@ -59,10 +108,29 @@ function exactDate(value) {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 }
 
+function normalizeAuthorityFields(state) {
+  const boundedConnectorAuthorized = BOUNDED_CONNECTOR_STATES.has(state.state_abbreviation);
+  return {
+    ...structuredClone(state),
+    authorized_next_action_type: state.authorized_next_action_type ?? (boundedConnectorAuthorized ? "bounded-connector-implementation" : "written-preflight-inquiry"),
+    bounded_connector_implementation_authorized: state.bounded_connector_implementation_authorized ?? boundedConnectorAuthorized,
+    autonomous_acquisition_authorized: state.autonomous_acquisition_authorized ?? false,
+    paid_acquisition_authorized: state.paid_acquisition_authorized ?? false,
+    complete_source_acquisition_authorized: state.complete_source_acquisition_authorized ?? false,
+    row_bearing_preflight_authorized: state.row_bearing_preflight_authorized ?? false,
+    offline_fixture_connector_authorized: state.offline_fixture_connector_authorized ?? boundedConnectorAuthorized,
+    production_ready: state.production_ready ?? false,
+    broad_layer_production_ready: state.broad_layer_production_ready ?? false,
+    candidate: {
+      ...structuredClone(state.candidate),
+      price: state.candidate?.price ?? state.candidate?.published_price ?? "Unknown; no price is published",
+    },
+  };
+}
+
 function normalizeRevalidation(document) {
   return document.states.map((state) => ({
-    ...structuredClone(state),
-    broad_layer_production_ready: false,
+    ...normalizeAuthorityFields(state),
     assessment_id: document.revalidation_id,
     assessment_kind: "revalidation",
     observed_at: document.observed_at,
@@ -72,7 +140,7 @@ function normalizeRevalidation(document) {
 
 function normalizeDiscovery(queue) {
   return queue.states.map((state) => ({
-    ...structuredClone(state),
+    ...normalizeAuthorityFields(state),
     assessment_id: queue.queue_id,
     assessment_kind: "source-discovery",
     observed_at: queue.observed_at,
@@ -94,11 +162,16 @@ export function validateStateBusinessSourceAssessmentCatalog(catalog) {
   for (const state of catalog.states) {
     const expectedProvenance = EXPECTED_STATE_PROVENANCE[state.state_abbreviation];
     if (state.assessment_id !== expectedProvenance?.assessment_id || state.assessment_kind !== expectedProvenance?.assessment_kind) fail(`${state.state_abbreviation} assessment provenance is invalid`);
-    if (!exactDate(state.observed_at) || state.coverage_release_id !== catalog.coverage_release_id) fail(`${state.state_abbreviation} assessment date or coverage pin is invalid`);
-    if (state.decision !== "hold" || AUTHORITY_FIELDS.some((field) => state[field] !== false)) fail(`${state.state_abbreviation} authorization boundary drifted`);
+    if (state.observed_at !== expectedProvenance.observed_at || state.coverage_release_id !== expectedProvenance.coverage_release_id) fail(`${state.state_abbreviation} assessment date or coverage pin is invalid`);
+    const expectedAuthority = EXPECTED_AUTHORITY_BY_STATE[state.state_abbreviation];
+    const boundedConnectorAuthorized = expectedAuthority.bounded_connector_implementation_authorized;
+    const expectedDecision = boundedConnectorAuthorized ? "proceed-to-bounded-connector" : "hold";
+    if (state.decision !== expectedDecision || Object.entries(expectedAuthority).some(([field, value]) => state[field] !== value)) fail(`${state.state_abbreviation} authorization boundary drifted`);
     if (!state.candidate?.publisher || !state.candidate?.product || !state.candidate?.availability || !state.candidate?.price) fail(`${state.state_abbreviation} candidate is incomplete`);
     if (!Array.isArray(state.unresolved_gates) || state.unresolved_gates.length === 0 || !Array.isArray(state.official_urls) || state.official_urls.length < 2 || !state.strongest_bounded_next_action) fail(`${state.state_abbreviation} decision evidence is incomplete`);
   }
+  const contentDigest = createHash("sha256").update(JSON.stringify(catalog)).digest("hex");
+  if (contentDigest !== STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST) fail("catalog content digest drifted");
   return catalog;
 }
 
@@ -132,10 +205,18 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     observed_at: sourceArtifacts.map((artifact) => artifact.observed_at).sort().at(-1),
     coverage_release_id: revalidation.coverage_release_id,
     source_artifacts: sourceArtifacts,
-    states: [
-      ...normalizeRevalidation(revalidation),
-      ...discoveryQueues.flatMap(normalizeDiscovery),
-    ],
+    states: (() => {
+      const states = normalizeRevalidation(revalidation);
+      const seen = new Set(states.map((state) => state.state_abbreviation));
+      for (const queue of discoveryQueues) {
+        for (const state of normalizeDiscovery(queue)) {
+          if (seen.has(state.state_abbreviation)) continue;
+          seen.add(state.state_abbreviation);
+          states.push(state);
+        }
+      }
+      return states;
+    })(),
   };
   return validateStateBusinessSourceAssessmentCatalog(catalog);
 }

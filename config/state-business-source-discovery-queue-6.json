@@ -1,0 +1,288 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["MI", "TN", "MA", "AZ"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_level_data_requested": false,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "parallel_execution": {
+    "non_overlapping_state_assignments": true,
+    "maximum_active_workstreams": 4,
+    "assignments": [
+      { "state_abbreviation": "MI", "worker": "Confucius", "ran_in_parallel": true },
+      { "state_abbreviation": "TN", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "MA", "worker": "Gauss", "ran_in_parallel": true },
+      { "state_abbreviation": "AZ", "worker": "root", "ran_in_parallel": true }
+    ],
+    "waves": [
+      {
+        "wave_id": "queue-6-wave-1",
+        "concurrent_state_abbreviations": ["MI", "TN", "MA", "AZ"],
+        "overlap_evidence": "Michigan, Tennessee, and Massachusetts agents were active while the root Arizona workstream inspected official sources."
+      }
+    ]
+  },
+  "forbidden_operations": [
+    "account-creation",
+    "terms-acceptance",
+    "purchase",
+    "record-level-request",
+    "record-enumeration",
+    "portal-automation",
+    "complete-bulk-download",
+    "connector-implementation",
+    "source-release-publication",
+    "registry-rebuild",
+    "coverage-publication",
+    "heatmap-admission",
+    "production-pointer-change"
+  ],
+  "required_excluded_data_classes": [
+    "registered-agent-and-service-address",
+    "natural-person-name-role-and-address",
+    "direct-contact-and-signature",
+    "sensitive-personal-tax-payment-financial-and-nonregistry-government-identifiers",
+    "filing-image-document-and-free-text"
+  ],
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "MI",
+      "state_name": "Michigan",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Michigan Department of Licensing and Regulatory Affairs, Corporations Division",
+        "product": "customized nonconfidential business-entity database extract",
+        "availability": "possible written customized listing under FY2026 enabling authority; no published bulk product, API, recurring delivery contract, or current machine schema",
+        "price": "Unknown; LARA may quote a reasonable fee plus applicable production or FOIA costs"
+      },
+      "current_coverage": {
+        "reported_profiles": 191395,
+        "coordinate_profiles": 11964,
+        "nonemployer_baseline_2023": 815013,
+        "baseline_minus_profiles": 623618,
+        "diagnostic_profile_percent": 23.5,
+        "material_zctas": 993,
+        "zctas_with_record_level_evidence": 991
+      },
+      "official_urls": [
+        "https://www.michigan.gov/budget/-/media/Project/Websites/budget/Fiscal/Final-Signed-Budget-Bills/FY26-General-Omnibus-HB-4706-PA-22-of-2025-Includes-2025-Supplemental-Funding.pdf",
+        "https://www.michigan.gov/lara/bureau-list/cscl/corps",
+        "https://www.michigan.gov/lara/bureau-list/cscl/corps/mibrp/new-system",
+        "https://www.michigan.gov/som/footer/policies",
+        "https://www.michigan.gov/lara/foia-request",
+        "https://www.michigan.gov/lara/-/media/Project/Websites/lara/Folder6/FOIA_Procedure_and_Guidelines.pdf",
+        "https://www.michigan.gov/lara/bureau-list/cscl/corps/other/total-business-entities-as-of-october-10-2025",
+        "https://www.michigan.gov/lara/bureau-list/cscl/corps/frequently-asked-questions",
+        "https://www.michigan.gov/lara/bureau-list/cscl/corps/how-do-i/services/email-your-inquiries-to-the-corporations-division"
+      ],
+      "observed_evidence": [
+        "Michigan's FY2026 budget permits otherwise-unavailable customized nonconfidential listings for a reasonable fee but does not define a bulk product or contract.",
+        "The current MiBusiness Registry Portal is an interactive search; the legacy COFS service was retired and Michigan website terms prohibit automated access and commercial resale without written authorization.",
+        "An official October 2025 aggregate reports about 1.18 million favorable-status entities, but it is neither a current row count nor an extract contract.",
+        "The Division-assigned nine-digit identifier is only a candidate key because current extract presence, immutability, non-reuse, and migration lifecycle are undocumented.",
+        "Registry standing reflects legal filing condition and does not prove an operating business or physical establishment; registered offices may be resident-agent locations."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "resident and registered agents and every registered-office or service address",
+        "incorporators, organizers, officers, directors, members, managers, partners, owners and their addresses",
+        "email, phone, signature and filer-contact fields",
+        "FEIN, SSN, tax, payment, banking and non-registry government identifiers; preserve the public Division ID",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask the Michigan Corporations Division whether a recurring person-free entity extract exists and request only its blank agreement, price sheet, schema, aggregate size, identifier/status/address dictionaries, delivery and change contract, automation authorization, and written downstream-use rights. Do not submit a record request, access the portal programmatically, pay, or implement a connector first."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "TN",
+      "state_name": "Tennessee",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+        "product": "Business Entity Database through TNCaB",
+        "availability": "official user-directed purchase and download; no public current price, order contract, subscription, anonymous file route, API, or recurring-delivery specification",
+        "price": "Unknown; current database price and service fees are not published"
+      },
+      "current_coverage": {
+        "reported_profiles": 91467,
+        "coordinate_profiles": 8676,
+        "nonemployer_baseline_2023": 649168,
+        "baseline_minus_profiles": 557701,
+        "diagnostic_profile_percent": 14.1,
+        "material_zctas": 641,
+        "zctas_with_record_level_evidence": 638
+      },
+      "official_urls": [
+        "https://sos.tn.gov/business-services",
+        "https://tncab.tnsos.gov/portal",
+        "https://sos.tn.gov/businesses/forms-and-fees",
+        "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/2024%20Q4%20Quarterly%20Business%20and%20Economic%20Report.pdf?VersionId=igKxbwwpJ928hASJ7EeQRAiT06hTqAp8",
+        "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/202503_SS-4800%20P3.pdf?VersionId=p8vVMPK._sk.yWzweBUhjVwvAjfBRvO_",
+        "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/SS-9424.pdf?VersionId=9BNfi2cNqBmTz6DR.EZ9IQyANiL67lFB",
+        "https://www.tn.gov/content/dam/tn/revenue/documents/tax_manuals/june-2025/Frachise-Excise-Tax-Manual.pdf",
+        "https://sos-prod.tnsosgovfiles.com/s3fs-public/document/Department%20of%20State%20Model%20Policy_0.pdf?VersionId=z.xeYQlouqLHH23xxZPap1ZzVg9G1dev",
+        "https://comptroller.tn.gov/office-functions/open-records-counsel/open-meetings/frequently-asked-questions/tennessee-public-records-act-faqs.html"
+      ],
+      "observed_evidence": [
+        "The Secretary of State advertises purchase and download of a Business Entity Database through TNCaB but publishes no current machine or delivery contract.",
+        "An official Q4 2024 report states 406,667 active entities; that historical aggregate does not establish current database population, history scope, or bytes.",
+        "The SOS control number is the candidate key, but uniqueness, non-reuse, conversion, merger, reinstatement and migration continuity are undocumented.",
+        "Tennessee Revenue states that inactive, administratively dissolved or revoked entities may still conduct business, so registry status cannot become an operating-status assertion.",
+        "Official forms distinguish principal office, mailing address, and registered agent or office, while the database schema and privacy-safe projection remain unpublished."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service addresses",
+        "officers, directors, managers, members, partners, organizers, incorporators, signers and their addresses",
+        "email, phone, signature and direct-contact fields",
+        "FEIN, SSN, tax, payment, banking and non-registry government identifiers; preserve the public SOS control number",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask Tennessee SOS for the current unsigned database-download terms, exact price, schema-only header or person-free sample, entity and status dictionaries, control-number lifecycle, address roles, current aggregate size, delivery/change/checksum contract, automation support, and written downstream-use rights. Do not purchase, obtain credentials, request rows, or implement a connector first."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "MA",
+      "state_name": "Massachusetts",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Massachusetts Secretary of the Commonwealth, Corporations Division",
+        "product": "Corporations Information Management System full extract",
+        "availability": "paid extract available monthly in weekly increments; data elements and file layout are supplied only by the filing office on request",
+        "price": "$4,800 per year or $100 per week; filing images are extra and excluded"
+      },
+      "current_coverage": {
+        "reported_profiles": 118917,
+        "coordinate_profiles": 7560,
+        "nonemployer_baseline_2023": 633439,
+        "baseline_minus_profiles": 514522,
+        "diagnostic_profile_percent": 18.8,
+        "material_zctas": 540,
+        "zctas_with_record_level_evidence": 540
+      },
+      "official_urls": [
+        "https://www.mass.gov/regulations/950-CMR-11300-the-massachusetts-business-corporation-act-mgl-c-156d",
+        "https://www.sec.state.ma.us/divisions/corporations/download/950113.pdf",
+        "https://www.mass.gov/info-details/massachusetts-law-about-corporations",
+        "https://www.sec.state.ma.us/divisions/cis/guide/secretary.htm",
+        "https://corp.sec.state.ma.us/corpweb/CorpSearch/CorpSearch.aspx",
+        "https://www.mass.gov/info-details/dcms-tip-sheet-volume-5-edition-13-reminders-regarding-your-annual-report",
+        "https://www.sec.state.ma.us/divisions/terms.htm",
+        "https://malegislature.gov/Laws/GeneralLaws/PartI/TitleX/Chapter66/Section10",
+        "https://www.sec.state.ma.us/divisions/archives/download/MA_Statewide_Records_Retention_Schedule_03_26_2026.pdf",
+        "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-corporate-transparency.htm"
+      ],
+      "observed_evidence": [
+        "950 CMR 113.15 establishes the price and monthly-in-weekly-increments cadence but says data elements and layout are available only on request.",
+        "Official registry descriptions span corporations, nonprofits, LLCs, partnerships and other legal forms, but the paid extract's exact type, history and active-only scope is unpublished.",
+        "Public search exposes separate nine-digit Identification Number and Filing Number fields without an extract-presence or lifecycle guarantee.",
+        "Good standing is an administrative filing condition rather than proof of current operation, and registered office, principal office and person-linked addresses have distinct roles.",
+        "Official website terms prohibit scraping and derivative use of the search surface; unattended paid-bulk transport and downstream product rights are undocumented."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service addresses",
+        "officers, directors, managers, signers, authorized persons and their addresses",
+        "email, phone, signature and direct-contact fields",
+        "FEIN, tax, payment, financial and non-registry government identifiers; preserve the public corporation identification number",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask the Massachusetts Corporations Division for the current product agreement, schema or header-only person-free sample, type/status/address dictionaries, stable-ID lifecycle, current aggregate size, exact baseline/increment/deletion/replay/checksum contract, unattended-delivery support, and written downstream-use rights. Do not purchase, search or scrape the portal, request rows, or implement a connector first."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "AZ",
+      "state_name": "Arizona",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Arizona Corporation Commission, Corporations Division",
+        "product": "Public Records Request / Database Extraction",
+        "availability": "paid full database as double-quote-delimited CSV by CD-ROM or download, or partial extraction by CD-ROM or email, after a signed purpose statement; custom requests may be denied or additionally priced",
+        "price": "$1,000 full database or $75 partial extraction; commercial-use and current public-record fees may also apply"
+      },
+      "current_coverage": {
+        "reported_profiles": 99038,
+        "coordinate_profiles": 6080,
+        "nonemployer_baseline_2023": 598126,
+        "baseline_minus_profiles": 499088,
+        "diagnostic_profile_percent": 16.6,
+        "material_zctas": 420,
+        "zctas_with_record_level_evidence": 420
+      },
+      "official_urls": [
+        "https://www.azcc.gov/public-records-request",
+        "https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request.pdf?sfvrsn=73637fee_4",
+        "https://www.azcc.gov/faqs",
+        "https://azcc.gov/docs/default-source/corps-files/fee-schedules/fee-schedule-corporations6def4cc74b1a47129d16c2b1c3851bda.pdf",
+        "https://www.azleg.gov/ars/39/00121-03.htm",
+        "https://azcc.gov/corporations",
+        "https://www.azcc.gov/corporations/notices",
+        "https://webprod.azcc.gov/",
+        "https://www.azcc.gov/privacy-policy"
+      ],
+      "observed_evidence": [
+        "The Commission advertises full and partial database extractions, but delivery requires a signed request and payment rather than an anonymous public bulk route.",
+        "The form offers double-quote-delimited comma-separated data and high-level field groups, but no exact current header, type contract, encoding, sample, row count, bytes, or checksum.",
+        "The request form lists only high-level business name and address, date, agent or officer, status, domicile and business-type groups; it provides no public stable-identifier contract.",
+        "Arizona law and the request form require disclosure of commercial purpose and allow purpose-specific pricing, denial for misuse, and restrictions on use beyond the stated purpose.",
+        "The Arizona Business Center replaced eCorp in January 2026, adding a migration boundary whose effects on schema, identifiers and recurring extracts are undocumented."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "statutory agents, registered offices and service addresses",
+        "officers, directors, managers, members, owners, principals and their addresses",
+        "email, phone, signature and direct-contact fields",
+        "SSN, EIN, tax, payment, financial and non-registry government identifiers; preserve the public ACC entity number",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask the Arizona Corporation Commission for a current unsigned extraction agreement and quote, exact person-free schema or header-only sample, type/status/address dictionaries, Entity ID lifecycle, current aggregate size, full-versus-delta and deletion/replay/checksum contract, supported unattended delivery, and explicit downstream-use rights. Do not submit or sign a request, declare a purpose, pay, request rows, automate the portal, or implement a connector first."
+    }
+  ]
+}
