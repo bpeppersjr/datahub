@@ -173,6 +173,12 @@ test("serves governed category, geography, demographic, and percentage views", a
   const states = await store.getFeatures({ level: "states", categoryId: "retail-consumer", enhancerId: "business_count" });
   assert.equal(states.features.length, 2);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.business_count, 3);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_business_units, 5);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_physical_sites, 5);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_percent, 100);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_current_dollars, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_status, "unavailable-no-governed-bea-gdp-release");
+  assert.match(states.meta.relative_coverage_alignment_semantics, /values may exceed 100%.*not measured completeness/);
   assert.equal(states.meta.excluded_ambiguous_zcta_count, 1);
 
   const filteredStates = await store.getFeatures({
@@ -191,6 +197,7 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(counties.features[0].properties.business_count, 5);
   assert.equal(counties.features[0].properties.population_2020, 1000);
   assert.equal(counties.features[0].properties.heat_value, 5);
+  assert.equal(counties.features[0].properties.relative_coverage_alignment_percent, 100);
 
   const zips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "health-care", enhancerId: "housing_units_2020" });
   assert.equal(zips.features.length, 2);

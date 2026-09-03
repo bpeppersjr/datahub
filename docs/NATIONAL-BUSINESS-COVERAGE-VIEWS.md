@@ -95,7 +95,7 @@ Gap rows are first-class data. They include global blockers, inherited registry 
 
 The Co*Tive Collector management page exposes the current verified release in the **U.S. business coverage** panel. Operators can search and page through states, counties, ZIPs, source summaries, and coverage gaps without loading the large ZIP artifact into the browser. County filters accept a two-digit state FIPS code; ZIP search is a numeric prefix; gap rows can be narrowed to one declared gap type. State, county, and source views show the Nonemployer baseline separately from source-preserving profiles.
 
-The separate **Business heat maps** section uses this same governed release with the pinned Census polygons to provide state → county → ZCTA navigation, source-category heat values, population and housing enhancers, ZIP-scoped physical-location name review, and cross-state category percentages. It excludes ambiguous ZCTAs from jurisdiction aggregates instead of area-allocating people or businesses. See [`BUSINESS-HEAT-MAPS.md`](BUSINESS-HEAT-MAPS.md).
+The separate **Heatmap Builder** section uses this same governed release with the pinned Census polygons to provide state → county → ZCTA navigation, source-category heat values, population and housing enhancers, ZIP-scoped physical-location name review, and a persistent right-side entity summary with state-alignment percentages. It excludes ambiguous ZCTAs from jurisdiction aggregates instead of area-allocating people or businesses. See [`BUSINESS-HEAT-MAPS.md`](BUSINESS-HEAT-MAPS.md).
 
 The runner serves the same local-only, read-only view at:
 

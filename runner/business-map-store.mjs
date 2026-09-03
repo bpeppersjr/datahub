@@ -177,6 +177,9 @@ function emptyAggregate() {
     housing_units_2020: 0,
     area_land_m2: 0,
     employer_establishments: 0,
+    observed_business_units: 0,
+    observed_physical_sites: 0,
+    observed_organization_primary_locations: 0,
     zcta_count: 0,
   };
 }
@@ -187,6 +190,9 @@ function addAggregate(target, zip) {
   target.housing_units_2020 += zip.housing_units_2020;
   target.area_land_m2 += zip.area_land_m2;
   target.employer_establishments += zip.employer_establishments;
+  target.observed_business_units += zip.observed_business_units;
+  target.observed_physical_sites += zip.observed_physical_sites;
+  target.observed_organization_primary_locations += zip.observed_organization_primary_locations;
   target.zcta_count += 1;
 }
 
@@ -214,6 +220,9 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       population_2020: aggregate.population_2020,
       housing_units_2020: aggregate.housing_units_2020,
       employer_establishments: aggregate.employer_establishments,
+      observed_business_units: aggregate.observed_business_units,
+      observed_physical_sites: aggregate.observed_physical_sites,
+      observed_organization_primary_locations: aggregate.observed_organization_primary_locations,
       population_density: valueFor(aggregate, categoryId, "population_density"),
       businesses_per_1000_people: valueFor(aggregate, categoryId, "businesses_per_1000_people"),
       heat_value: valueFor(aggregate, categoryId, enhancerId),
@@ -251,6 +260,42 @@ function optionalWholeNumber(value, field) {
 
 function percentage(numerator, denominator) {
   return denominator ? Number(((numerator / denominator) * 100).toFixed(4)) : 0;
+}
+
+function median(values) {
+  const ordered = values.filter(Number.isFinite).sort((left, right) => left - right);
+  if (!ordered.length) return null;
+  const middle = Math.floor(ordered.length / 2);
+  return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
+}
+
+function addRelativeCoverageAlignment(features) {
+  const peerMedian = median(features
+    .filter((feature) => feature.properties.employer_establishments > 0)
+    .map((feature) => feature.properties.business_count / feature.properties.employer_establishments));
+  return {
+    peerMedian,
+    features: features.map((feature) => {
+      const evidencePerEmployerEstablishment = feature.properties.employer_establishments > 0
+        ? feature.properties.business_count / feature.properties.employer_establishments
+        : null;
+      const relativeCoverageAlignmentPercent = peerMedian && evidencePerEmployerEstablishment !== null
+        ? Number(((evidencePerEmployerEstablishment / peerMedian) * 100).toFixed(2))
+        : null;
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          evidence_per_employer_establishment: evidencePerEmployerEstablishment,
+          relative_coverage_alignment_percent: relativeCoverageAlignmentPercent,
+          relative_coverage_alignment_basis: "selected-category evidence per Census employer establishment versus the unfiltered geography-scope peer median; 100 equals the median and this is not true business-universe completeness",
+          gdp_current_dollars: null,
+          gdp_reference_year: null,
+          gdp_status: "unavailable-no-governed-bea-gdp-release",
+        },
+      };
+    }),
+  };
 }
 
 export function createBusinessMapStore({
@@ -294,6 +339,9 @@ export function createBusinessMapStore({
         housing_units_2020: number(demographic?.housing_units_2020),
         area_land_m2: number(demographic?.area_land_m2),
         employer_establishments: row.employer_baseline?.status === "published" ? number(row.employer_baseline.establishments) : 0,
+        observed_business_units: number(row.registry_coverage?.establishment_count),
+        observed_physical_sites: number(row.registry_coverage?.physical_site_count),
+        observed_organization_primary_locations: number(row.registry_coverage?.organization_primary_location_count),
         state_ids: stateIds,
         county_ids: countyIds,
         has_zcta: row.spatial_zip_polygon_membership?.status === "included" && Boolean(demographic),
@@ -479,6 +527,8 @@ export function createBusinessMapStore({
     } else {
       throw Object.assign(new Error("Unsupported heat-map geography level."), { statusCode: 400 });
     }
+    const aligned = addRelativeCoverageAlignment(features);
+    features = aligned.features;
     const unfilteredFeatureCount = features.length;
     if (populationFloor !== null) features = features.filter((feature) => feature.properties.population_2020 >= populationFloor);
     if (housingFloor !== null) features = features.filter((feature) => feature.properties.housing_units_2020 >= housingFloor);
@@ -497,6 +547,9 @@ export function createBusinessMapStore({
         unfiltered_feature_count: unfilteredFeatureCount,
         filtered_out_feature_count: unfilteredFeatureCount - features.length,
         demographic_filters: { min_population: populationFloor, min_housing_units: housingFloor },
+        peer_median_evidence_per_employer_establishment: aligned.peerMedian,
+        relative_coverage_alignment_semantics: "100% equals the selected-category evidence density of the unfiltered geography-scope peer median; values may exceed 100%. This is not measured completeness of the business universe.",
+        gdp_status: "unavailable-no-governed-bea-gdp-release",
         heat_min: heatValues.length ? Math.min(...heatValues) : null,
         heat_max: heatValues.length ? Math.max(...heatValues) : null,
       },

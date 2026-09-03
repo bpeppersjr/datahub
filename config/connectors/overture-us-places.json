@@ -1,0 +1,41 @@
+{
+  "connector_id": "overture-us-places",
+  "version": "1.0.0",
+  "implementation_status": "offline-conformance-and-explicitly-authorized-large-acquisition",
+  "description": "Preflights a pinned Overture release and publishes privacy-minimized U.S. place candidates with address latitude/longitude only; remote extraction is blocked unless separately and explicitly authorized.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "minimize", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/overture-us-places" },
+      "source": { "type": "string" },
+      "source_metadata": { "type": "string" },
+      "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
+      "minimum_places": { "type": "integer", "minimum": 1, "default": 1000000 },
+      "maximum_quarantine_ratio": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.02 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["overture-place-geoparquet-release", "overture-us-place-selected-source-jsonl-gzip", "census-zbp-baseline-release", "us-census-geography-release"],
+  "output_artifact_types": ["overture-us-place-selected-source-jsonl-gzip", "normalized-overture-us-place-jsonl-gzip", "overture-us-place-quarantine-jsonl-gzip", "overture-us-place-zip-coverage-jsonl", "overture-us-place-source-summary", "overture-stac-preflight", "overture-place-attribution-notice", "dataset-manifest-json"],
+  "allowed_hosts": ["stac.overturemaps.org", "overturemaps-us-west-2.s3.us-west-2.amazonaws.com"],
+  "redirect_policy": "Reject redirects. Accept only exact HTTPS Overture STAC paths and immutable release-scoped AWS GeoParquet asset paths discovered from the pinned collection.",
+  "provider_budget_key": "overture-us-places-large-snapshot",
+  "resource_class": "large-network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_stac_assets": 32,
+    "maximum_declared_global_rows": 100000000,
+    "large_acquisition_requires_explicit_authorization": true,
+    "store_business_geometry": false
+  },
+  "retry": "Retry transient STAC metadata requests with bounded backoff. Do not retry redirects, host/path drift, release mutation, schema drift, duplicate GERS IDs, quality-gate failures, or a missing large-acquisition authorization flag.",
+  "checkpoint": "Pin the latest immutable STAC release and all place assets; after explicit authorization, perform one DuckDB predicate/column-pushdown extraction into a run-scoped minimized source file. Build and verify a separate release before atomically changing current.json.",
+  "idempotency": "The pinned Overture release ID, ordered asset URLs and declared row counts, extraction contract version, selected source checksum, and GERS IDs identify the input snapshot.",
+  "cancellation": "Abort STAC requests or interrupt DuckDB, close gzip streams, leave the previous current pointer unchanged, and retain no promoted partial release.",
+  "source_policy": "config/source-policies/overture-us-places.json",
+  "retention_profile": "Retain pinned STAC metadata, the privacy-minimized U.S. selected source snapshot, governed normalized releases, and checksums. Do not materialize or retain global GeoParquet assets.",
+  "produced_entities": ["physical-site-candidate", "establishment-candidate", "brand-candidate", "source-operating-status-assertion", "reported-address-assertion"],
+  "produced_identifiers": ["overture-gers-id", "overture-source-record-id", "zip5", "zip-plus-4", "latitude-longitude"]
+}

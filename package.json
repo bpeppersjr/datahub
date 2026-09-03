@@ -44,6 +44,10 @@
     "ct-business:verify": "node scripts/verify-ct-business-registry.mjs",
     "il-business:build": "node scripts/build-il-business-registry.mjs",
     "il-business:verify": "node scripts/verify-il-business-registry.mjs",
+    "overture-us-places:preflight": "node scripts/prepare-overture-us-places.mjs --preflight-only",
+    "overture-us-places:prepare": "node scripts/prepare-overture-us-places.mjs",
+    "overture-us-places:build": "node scripts/build-overture-us-places.mjs",
+    "overture-us-places:verify": "node scripts/verify-overture-us-places.mjs",
     "co-business:build": "node scripts/build-co-business-registry.mjs",
     "co-business:verify": "node scripts/verify-co-business-registry.mjs",
     "or-business:build": "node scripts/build-or-business-registry.mjs",
@@ -107,6 +111,7 @@
     "check": "npm run connectors:check && npm run test && npm run lint && npm run build && npm run test:desktop"
   },
   "dependencies": {
+    "@duckdb/node-api": "^1.5.5-r.4",
     "@turf/area": "^7.4.0",
     "@turf/boolean-point-in-polygon": "^7.4.0",
     "csv-parse": "^6.2.1",

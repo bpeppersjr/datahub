@@ -68,8 +68,8 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 37);
-  assert.equal(registry.policyProfileCount, 35);
+  assert.equal(registry.connectorCount, 38);
+  assert.equal(registry.policyProfileCount, 36);
   assert.deepEqual(entries.map((entry) => entry.connector_id), entries.map((entry) => entry.connector_id).toSorted());
   assert(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.manifest_sha256)));
   assert(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.source_policy.sha256)));

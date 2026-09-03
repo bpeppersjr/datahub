@@ -1,10 +1,10 @@
-# Business heat maps and state category alignment
+# Heatmap Builder and entity alignment
 
-Co*Tive Collector's **Business heat maps** section is a read-only spatial view over the current governed national business coverage, Census geography, and national registry releases. It does not publish a new data release or change a production pointer.
+Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, and national registry releases. It does not publish a new data release or change a production pointer.
 
 ## Operator workflow
 
-The **Heat map** tab starts with the 50 states and District of Columbia. Select a business category and a data enhancer, optionally set independent minimum-population and minimum-housing-unit filters, then click a state to show its counties, click a county to show the 2020 Census ZCTAs that materially intersect it, and click a ZCTA to inspect physical-location business names. Use the on-map controls or hold `Ctrl` while scrolling up or down to zoom. The breadcrumb returns to any broader scope. The response and UI disclose both the remaining and filtered-out polygon counts.
+The map starts with the 50 states and District of Columbia. Select a business category and a data enhancer, optionally set independent minimum-population and minimum-housing-unit filters, then click a state to show its counties, click a county to show the 2020 Census ZCTAs that materially intersect it, and click a ZCTA to inspect physical-location business names. Use the on-map controls or hold `Ctrl` while scrolling up or down to zoom. The breadcrumb returns to any broader scope. The response and UI disclose both the remaining and filtered-out polygon counts.
 
 The category control is one hierarchy of source-preserving evidence:
 
@@ -18,12 +18,14 @@ These are analytical source groups, not inferred NAICS classifications. One real
 
 Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. Record-level local-review restrictions remain visible.
 
-The **State category alignment** tab provides two percentages for a selected category:
+The persistent entity-summary section to the right of the map provides selected entity values and two state-alignment percentages for the active category:
 
 - **Within state**: the category's share of all relevant source-category evidence assigned to that state; and
 - **Across U.S.**: the state's share of that category across the displayed states.
 
-The compact category-mix bar shows the full within-state distribution. Territories can be included explicitly.
+The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. GDP remains explicitly unavailable until a governed BEA GDP release is integrated. Business-name records appear in this same section after a ZIP selection.
+
+**Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the median value for the unfiltered peers at the current geography level. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
 
 ## Population and demographic enhancers
 
@@ -44,7 +46,7 @@ The view never multiplies a business, population, address, or establishment coun
 
 When a county is selected, all materially intersecting ZCTA polygons remain visible. A ZCTA's direct ZIP evidence is not represented as belonging wholly to the selected county, and cross-boundary counts are reported. ZCTAs approximate generalized ZIP service areas; they are not USPS delivery boundaries. ZIP+4 has no polygon.
 
-All counts remain source-preserving evidence rather than deduplicated or complete active-business counts. The current coverage release's provenance, temporal limitations, source policy, export policy, completeness flag, and entity-resolution status remain authoritative.
+All counts remain source-preserving evidence rather than deduplicated or complete active-business counts. Business records retain only address-associated latitude and longitude; business geometry and bounding boxes are not stored. Polygon geometry remains confined to the governed U.S., state, county, and ZIP/ZCTA geography layers. The current coverage release's provenance, temporal limitations, source policy, export policy, completeness flag, and entity-resolution status remain authoritative.
 
 ## Local API
 

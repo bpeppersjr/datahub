@@ -1,0 +1,47 @@
+{
+  "policy_id": "overture-us-places",
+  "version": "1.0.0",
+  "publisher": "Overture Maps Foundation",
+  "ownership": "A conflated global places theme assembled from multiple named providers and published by Overture Maps Foundation",
+  "source_home": "https://docs.overturemaps.org/guides/places/",
+  "source_catalog": "https://stac.overturemaps.org/catalog.json",
+  "source_schema": "https://docs.overturemaps.org/schema/reference/places/place/",
+  "source_attribution": "https://docs.overturemaps.org/attribution/",
+  "catalog_license": "Places records carry source-specific CDLA-Permissive-2.0, Apache-2.0, or CC0-1.0 terms",
+  "catalog_license_url": "https://docs.overturemaps.org/attribution/",
+  "source_access": "Public anonymous read-only STAC metadata and release-scoped GeoParquet assets on Overture's AWS bucket",
+  "allowed_use": [
+    "read-only STAC release discovery and metadata preflight",
+    "explicitly authorized release-scoped predicate and column-pushdown extraction",
+    "local privacy-minimized processing of U.S. place records",
+    "retention of GERS and source-record identifiers for provenance",
+    "ZIP/ZCTA coverage analysis and address coordinate linkage",
+    "derived source-linked physical-site, establishment, brand, status, taxonomy, and address assertions",
+    "redistribution consistent with each contributing source license and required attribution or NOTICE"
+  ],
+  "prohibited_use": [
+    "initiating the large remote extraction without explicit operator authorization",
+    "representing the places theme as a complete census of U.S. businesses",
+    "representing Overture confidence as a calibrated probability or completeness score",
+    "representing an open operating_status as proof of current hours, legal status, solvency, or continuous operation",
+    "representing every place as a commercial business",
+    "publishing emails, phone numbers, social profiles, or other excluded contact fields",
+    "storing geometry or polygons on business/place entities; retain only address latitude and longitude",
+    "joining ZIP5 and ZIP+4 into one canonical postal field",
+    "inferring ownership, parent company, network affiliation, or cross-source identity without versioned evidence"
+  ],
+  "field_export_policy": {
+    "global_geoparquet_assets": "remote-query-only-not-retained",
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_places_sites_establishments_brands_assertions_and_match_profiles": "local-review-only",
+    "zip_and_source_aggregate_counts": "public-with-overture-attribution-source-license-and-semantic-limitations",
+    "geometry_bbox_emails_phones_socials_and_unselected_addresses": "excluded-before-staging"
+  },
+  "attribution": "Source: Overture Maps Foundation Places theme. Preserve source-specific attribution and Foursquare Apache-2.0 NOTICE requirements described by Overture.",
+  "retention": "Retain immutable pinned metadata, privacy-minimized selected source snapshots, and governed normalized releases. Do not retain the global GeoParquet assets.",
+  "redistribution": "Record-level redistribution must preserve the source-level license and attribution/NOTICE obligations. This connector defaults normalized records to local-review-only and exposes only governed aggregates for general publication.",
+  "contains_personal_data": false,
+  "personal_data_handling": "Overture states that Places excludes PII. This connector additionally excludes emails, phones, and social URLs and retains only selected place, taxonomy, source, website, address, and latitude/longitude fields.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03"
+}
