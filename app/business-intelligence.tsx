@@ -39,6 +39,11 @@ type MapProperties = {
   gdp_source_release_id: string | null;
   gdp_geography_kind: string | null;
   gdp_status: string;
+  nonemployer_establishments: number | null;
+  nonemployer_receipts_thousands_usd: number | null;
+  nonemployer_reference_year: number | null;
+  nonemployer_source_release_id: string | null;
+  nonemployer_status: string;
   state_fips?: string;
   county_geoid?: string;
   heat_value: number | null;
@@ -108,6 +113,10 @@ function currency(value?: number | null) {
   return value === null || value === undefined ? 'Unavailable' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }
 
+function currencyFromThousands(value?: number | null) {
+  return value === null || value === undefined ? 'Unavailable' : currency(value * 1000);
+}
+
 function gdpLabel(properties: MapProperties) {
   return properties.gdp_reference_year ? `GDP — ${properties.gdp_reference_year} current dollars` : 'GDP — current dollars';
 }
@@ -118,6 +127,17 @@ function gdpNote(properties: MapProperties) {
   if (properties.gdp_status.includes('no-direct-bea')) return 'No direct BEA geography match';
   if (properties.gdp_status === 'unavailable-bea-value-not-published') return 'BEA value not published';
   return 'No governed BEA GDP release';
+}
+
+function nonemployerLabel(properties: MapProperties) {
+  return properties.nonemployer_reference_year ? `Census nonemployer units — ${properties.nonemployer_reference_year}` : 'Census nonemployer units';
+}
+
+function nonemployerNote(properties: MapProperties) {
+  if (typeof properties.nonemployer_establishments === 'number') return `Annual aggregate · businesses with no paid employees · source ${shortRelease(properties.nonemployer_source_release_id || undefined)}`;
+  if (properties.nonemployer_status === 'unavailable-not-published-at-zip-do-not-allocate') return 'Not published at ZIP level; not allocated';
+  if (properties.nonemployer_status?.includes('not-published')) return 'Census value not published for this geography';
+  return 'No governed Census Nonemployer value';
 }
 
 function alignmentLabel(properties: MapProperties) {
@@ -246,7 +266,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
         <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>2020 population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>2020 housing units</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
+        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>2020 population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>2020 housing units</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
@@ -312,7 +332,9 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>Observed business units</span><strong>{count(properties.observed_business_units)}</strong><small>Provisional establishments</small></div>
           <div><span>Observed physical sites</span><strong>{count(properties.observed_physical_sites)}</strong><small>Address-associated locations</small></div>
           <div><span>Selected-category evidence</span><strong>{count(properties.business_count)}</strong><small>Source-preserving; not deduplicated</small></div>
-          <div><span>Census business units</span><strong>{count(properties.employer_establishments)}</strong><small>Employer establishments baseline</small></div>
+          <div><span>Census employer units</span><strong>{count(properties.employer_establishments)}</strong><small>ZIP Business Patterns baseline</small></div>
+          <div><span>{nonemployerLabel(properties)}</span><strong>{count(properties.nonemployer_establishments)}</strong><small>{nonemployerNote(properties)}</small></div>
+          <div><span>Nonemployer receipts</span><strong>{currencyFromThousands(properties.nonemployer_receipts_thousands_usd)}</strong><small>Annual Census aggregate; not named-business revenue</small></div>
           <div><span>Population</span><strong>{count(properties.population_2020)}</strong><small>2020 Census</small></div>
           <div><span>Housing units</span><strong>{count(properties.housing_units_2020)}</strong><small>2020 Census</small></div>
           <div><span>{alignmentLabel(properties)}</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals the governed peer median</small></div>
@@ -320,7 +342,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
         </div>
         <div className="entity-ratios"><span><b>{count(properties.businesses_per_1000_people)}</b> evidence / 1K people</span><span><b>{count(properties.population_density)}</b> people / sq. mile</span></div>
         <p className="entity-method-note">Relative completeness is a coverage proxy: selected-category evidence per Census employer establishment compared with the median for {properties.relative_coverage_alignment_peer_scope}. Values can exceed 100%; it is not measured completeness of all businesses.</p>
-      </> : <div className="entity-summary-empty">Select a map entity to pin its business evidence, Census baselines, GDP, and state-relative coverage summary here. Hover details remain on the map.</div>}
+      </> : <div className="entity-summary-empty">Select a map entity to pin its business evidence, employer and nonemployer Census baselines, GDP, and state-relative coverage summary here. Hover details remain on the map.</div>}
       {state && <section className="state-alignment-card">
         <div><span>State alignment</span><strong>{state.postal_abbreviation} · {state.state_name}</strong></div>
         <dl><div><dt>Category evidence</dt><dd>{count(stateEvidence)}</dd></div><div><dt>Within state</dt><dd>{percent(withinState)}</dd></div><div><dt>Across displayed states</dt><dd>{percent(acrossNation)}</dd></div><div><dt>Assigned ZCTAs</dt><dd>{count(state.uniquely_assigned_zcta_count)}</dd></div></dl>

@@ -110,6 +110,7 @@ const ENHANCERS = Object.freeze([
   { id: "businesses_per_1000_people", label: "Business evidence per 1,000 people", kind: "population-enhanced" },
   { id: "population_density", label: "Population per square mile", kind: "demographic" },
   { id: "employer_establishments", label: "2023 employer-establishment baseline", kind: "business-demographic" },
+  { id: "nonemployer_establishments", label: "Census nonemployer establishments", kind: "business-demographic" },
   { id: "gdp_current_dollars", label: "BEA current-dollar GDP", kind: "economic" },
 ]);
 
@@ -225,6 +226,30 @@ function gdpProperties(release, record, geographyType) {
   };
 }
 
+function nonemployerProperties(record, geographyType) {
+  if (geographyType === "zip") {
+    return {
+      nonemployer_establishments: null,
+      nonemployer_receipts_thousands_usd: null,
+      nonemployer_reference_year: null,
+      nonemployer_source_release_id: null,
+      nonemployer_status: "unavailable-not-published-at-zip-do-not-allocate",
+    };
+  }
+  const baseline = record?.nonemployer_baseline;
+  const status = typeof baseline?.status === "string"
+    ? baseline.status
+    : "unavailable-no-governed-nonemployer-baseline";
+  const published = status === "published-annual-aggregate";
+  return {
+    nonemployer_establishments: published ? finiteOrNull(baseline.nonemployer_establishments) : null,
+    nonemployer_receipts_thousands_usd: published ? finiteOrNull(baseline.receipts_thousands_usd) : null,
+    nonemployer_reference_year: finiteOrNull(baseline?.reference_year),
+    nonemployer_source_release_id: baseline?.source_release_id ?? record?.lineage?.census_nonemployer_release_id ?? null,
+    nonemployer_status: status,
+  };
+}
+
 function countsFor(registryCoverage) {
   const counts = {};
   let all = 0;
@@ -270,6 +295,7 @@ function valueFor(aggregate, categoryId, enhancerId, economic = {}) {
   if (enhancerId === "housing_units_2020") return aggregate.housing_units_2020;
   if (enhancerId === "businesses_per_1000_people") return aggregate.population_2020 ? (businessCount / aggregate.population_2020) * 1000 : null;
   if (enhancerId === "population_density") return aggregate.area_land_m2 ? aggregate.population_2020 / (aggregate.area_land_m2 / SQ_METERS_PER_SQ_MILE) : null;
+  if (enhancerId === "nonemployer_establishments") return economic.nonemployer_establishments ?? null;
   if (enhancerId === "gdp_current_dollars") return economic.gdp_current_dollars ?? null;
   return aggregate.employer_establishments;
 }
@@ -391,11 +417,29 @@ export function createBusinessMapStore({
     const statesIndexPath = artifactPath(geography, (item) => item.path === "derived/index/states.jsonl", "state index");
     const zctaIndexPath = artifactPath(geography, (item) => item.path === "derived/index/zctas.jsonl", "ZCTA index");
     const coveragePath = artifactPath(coverage, (item) => item.artifact_type === "zip-coverage-view-jsonl", "ZIP coverage view");
+    const stateCoveragePath = artifactPath(coverage, (item) => item.artifact_type === "state-coverage-view-jsonl", "state coverage view");
+    const countyCoveragePath = artifactPath(coverage, (item) => item.artifact_type === "county-coverage-view-jsonl", "county coverage view");
     const states = new Map();
     const zctaDemographics = new Map();
+    const stateCoverage = new Map();
+    const countyCoverage = new Map();
     await Promise.all([
       readJsonLines(statesIndexPath, (row) => states.set(row.geoid, row)),
       readJsonLines(zctaIndexPath, (row) => zctaDemographics.set(row.geoid, row)),
+      readJsonLines(stateCoveragePath, (row) => {
+        const geoid = String(row.state_fips ?? "");
+        if (!/^\d{2}$/.test(geoid) || row.view_type !== "state" || stateCoverage.has(geoid)) {
+          throw new Error("State coverage view contains an invalid or duplicate geography record.");
+        }
+        stateCoverage.set(geoid, row);
+      }),
+      readJsonLines(countyCoveragePath, (row) => {
+        const geoid = String(row.county_geoid ?? "");
+        if (!/^\d{5}$/.test(geoid) || row.view_type !== "county" || countyCoverage.has(geoid)) {
+          throw new Error("County coverage view contains an invalid or duplicate geography record.");
+        }
+        countyCoverage.set(geoid, row);
+      }),
     ]);
     const stateGdp = new Map();
     const countyGdp = new Map();
@@ -480,7 +524,7 @@ export function createBusinessMapStore({
         excluded.county.ambiguous_business_evidence += zip.category_counts.all;
       }
     });
-    return { coverage, geography, gdp, states, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
+    return { coverage, geography, gdp, states, stateCoverage, countyCoverage, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
   }
 
   async function ensureIndex() {
@@ -549,6 +593,7 @@ export function createBusinessMapStore({
         business_count: "Source-preserving evidence counts; categories are mutually exclusive source groups, but businesses are not deduplicated across sources.",
         jurisdiction_assignment: "State/county aggregates include only ZCTAs with exactly one material intersection; no polygon-area allocation is used.",
         population: "2020 Census ZCTA population and housing. State/county values sum only uniquely assigned material ZCTAs.",
+        nonemployer: "Census Nonemployer Statistics are direct state/county annual aggregates. They are not current operating-status or completeness measures and are never allocated to ZIP/ZCTA geography.",
         zip: "Five-digit ZCTA/ZIP evidence only. ZIP+4 is not joined and has no polygon.",
         gdp: "BEA current-dollar GDP estimates are joined only by exact state or county GEOID. No GDP is allocated to ZIP/ZCTA geography or used in relative coverage alignment.",
       },
@@ -582,6 +627,7 @@ export function createBusinessMapStore({
         return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "state",
           scope_assignment: "unique-material-zcta-state",
+          ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
           ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
       });
@@ -603,6 +649,7 @@ export function createBusinessMapStore({
           level: "county",
           state_fips: state,
           scope_assignment: "unique-material-zcta-county",
+          ...nonemployerProperties(index.countyCoverage.get(geoid), "county"),
           ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
       });
@@ -633,6 +680,7 @@ export function createBusinessMapStore({
           state_fips: state,
           county_geoid: county,
           scope_assignment: "direct-zcta-evidence-not-county-allocated",
+          ...nonemployerProperties(null, "zip"),
           ...gdpProperties(index.gdp, null, "zip"),
         });
       });

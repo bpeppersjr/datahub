@@ -1,6 +1,6 @@
 # Heatmap Builder and entity alignment
 
-Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, national registry, and optional BEA regional-GDP releases. It does not publish a new data release or change a production pointer.
+Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, national registry, direct Census Nonemployer aggregates, and optional BEA regional-GDP releases. It does not publish a new data release or change a production pointer.
 
 ## Operator workflow
 
@@ -23,7 +23,7 @@ The persistent entity-summary section to the right of the map provides selected 
 - **Within state**: the category's share of all relevant source-category evidence assigned to that state; and
 - **Across U.S.**: the state's share of that category across the displayed states.
 
-The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that no official ZIP GDP is available; no state or county value is allocated downward. Business-name records and their available latitude/longitude appear in this same section after a ZIP selection. Map hover uses an on-map business tooltip and does not replace the entity pinned in the right-hand summary.
+The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, Census nonemployer establishments and receipts, population, housing, density, and GDP status. State and county entities show direct reference-year Census Nonemployer aggregates. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that neither official ZIP GDP nor Census Nonemployer values are available; no state or county value is allocated downward. Business-name records and their available latitude/longitude appear in this same section after a ZIP selection. Map hover uses an on-map business tooltip and does not replace the entity pinned in the right-hand summary.
 
 **Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the applicable governed peer median. States compare with the 50-state-and-DC state set, counties compare with counties in the selected state, and ZIP/ZCTA rows compare with uniquely state-assigned ZCTA peers across the selected state. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
 
@@ -36,10 +36,13 @@ The map can color polygons by:
 - 2020 Census housing units;
 - selected-category evidence per 1,000 people;
 - population density per square mile; or
-- the 2023 Census ZIP Business Patterns employer-establishment baseline; or
+- the 2023 Census ZIP Business Patterns employer-establishment baseline;
+- Census Nonemployer establishments for directly published state/county geography; or
 - BEA current-dollar GDP for states and directly matched counties.
 
 Population and housing values come directly from the selected Census 2020 ZCTA records. State and county values are sums only for ZCTAs that have exactly one material state or county intersection. They are not full official state/county population totals.
+
+Census Nonemployer Statistics values come directly from the state and county rows already pinned by the governed coverage release. They represent annual aggregate businesses with no paid employees that meet the Census source-universe rules. They are not named entities, a current-operation assertion, or a completeness denominator. Nonemployer establishments and receipts are never summed with provisional registry evidence or ZIP Business Patterns employer establishments, and they are never allocated to ZIP/ZCTA polygons.
 
 GDP comes from the governed BEA CAGDP1 release and is matched only by exact state FIPS or five-digit county-equivalent GEOID. BEA combination areas are not duplicated across their components. GDP is economic context, not a business count, and it is excluded from coverage-completion and relative-alignment denominators.
 
@@ -59,6 +62,7 @@ The loopback runner exposes:
 - `GET /api/business-map/features?level=states&category=all&enhancer=business_count`;
 - `GET /api/business-map/features?level=states&category=all&enhancer=business_count&min_population=100000&min_housing_units=40000`;
 - `GET /api/business-map/features?level=counties&state_fips=01&category=all&enhancer=population_2020`;
+- `GET /api/business-map/features?level=counties&state_fips=01&category=all&enhancer=nonemployer_establishments`;
 - `GET /api/business-map/features?level=zips&state_fips=01&county_geoid=01001&category=retail-consumer&enhancer=business_count`;
 - `GET /api/business-map/state-summary?include_territories=false`; and
 - `GET /api/business-map/names?zip=35022&category=retail-consumer&query=&limit=25`.

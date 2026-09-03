@@ -97,6 +97,40 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     },
   ];
   await writeFile(path.join(coverageRelease, "views", "zips.jsonl"), zipRows.map(json).join(""));
+  await writeFile(path.join(coverageRelease, "views", "states.jsonl"), [
+    {
+      schema_version: "1.0.0",
+      view_type: "state",
+      state_fips: "01",
+      nonemployer_baseline: {
+        status: "published-annual-aggregate",
+        reference_year: 2023,
+        nonemployer_establishments: 111,
+        receipts_thousands_usd: 2_220,
+        source_release_id: "census-nonemployer-2023-fixture",
+      },
+    },
+    {
+      schema_version: "1.0.0",
+      view_type: "state",
+      state_fips: "02",
+      nonemployer_baseline: { status: "unavailable-source-record-not-published", reference_year: 2023 },
+      lineage: { census_nonemployer_release_id: "census-nonemployer-2023-fixture" },
+    },
+  ].map(json).join(""));
+  await writeFile(path.join(coverageRelease, "views", "counties.jsonl"), json({
+    schema_version: "1.0.0",
+    view_type: "county",
+    county_geoid: "01001",
+    state_fips: "01",
+    nonemployer_baseline: {
+      status: "published-annual-aggregate",
+      reference_year: 2023,
+      nonemployer_establishments: 44,
+      receipts_thousands_usd: 880,
+      source_release_id: "census-nonemployer-2023-fixture",
+    },
+  }));
   await writeFile(path.join(coverageRelease, "manifest.json"), json({
     dataset_id: "national-business-coverage-views",
     release_id: "coverage-1",
@@ -104,7 +138,11 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     export_policy: "local-aggregate-review-required",
     complete_all_businesses: false,
     entity_resolution_applied: false,
-    artifacts: [{ artifact_type: "zip-coverage-view-jsonl", path: "views/zips.jsonl", record_count: 2 }],
+    artifacts: [
+      { artifact_type: "zip-coverage-view-jsonl", path: "views/zips.jsonl", record_count: 2 },
+      { artifact_type: "state-coverage-view-jsonl", path: "views/states.jsonl", record_count: 2 },
+      { artifact_type: "county-coverage-view-jsonl", path: "views/counties.jsonl", record_count: 1 },
+    ],
   }));
   await writeFile(path.join(coverageRoot, "current.json"), json({ dataset_id: "national-business-coverage-views", release_id: "coverage-1", manifest: "releases/coverage-1/manifest.json" }));
 
@@ -201,6 +239,7 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(catalog.available, true);
   assert(catalog.categories.some((category) => category.id === "retail-consumer"));
   assert(catalog.enhancers.some((enhancer) => enhancer.id === "population_2020"));
+  assert(catalog.enhancers.some((enhancer) => enhancer.id === "nonemployer_establishments"));
   assert(catalog.enhancers.some((enhancer) => enhancer.id === "gdp_current_dollars"));
   assert.equal(catalog.gdp_release_id, "gdp-1");
 
@@ -216,6 +255,17 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_units, "current dollars");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_source_release_id, "bea-cagdp1-2024-fixture");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_status, "available-direct-bea-estimate");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_establishments, 111);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_receipts_thousands_usd, 2_220);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_reference_year, 2023);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_source_release_id, "census-nonemployer-2023-fixture");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_status, "published-annual-aggregate");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.nonemployer_establishments, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.nonemployer_status, "unavailable-source-record-not-published");
+
+  const nonemployerStates = await store.getFeatures({ level: "states", categoryId: "all", enhancerId: "nonemployer_establishments" });
+  assert.equal(nonemployerStates.features.find((feature) => feature.properties.geoid === "01").properties.heat_value, 111);
+  assert.equal(nonemployerStates.features.find((feature) => feature.properties.geoid === "02").properties.heat_value, null);
   assert.match(states.meta.relative_coverage_alignment_semantics, /values may exceed 100%.*not measured completeness/);
   assert.equal(states.meta.relative_coverage_alignment_peer_scope, "50 states and District of Columbia peer");
   assert.equal(states.meta.excluded_ambiguous_zcta_count, 1);
@@ -239,6 +289,14 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(counties.features[0].properties.relative_coverage_alignment_percent, 100);
   assert.equal(counties.features[0].properties.relative_coverage_alignment_peer_scope, "county peers within state 01");
   assert.equal(counties.features[0].properties.gdp_current_dollars, 321_000_000);
+  assert.equal(counties.features[0].properties.nonemployer_establishments, 44);
+  assert.equal(counties.features[0].properties.nonemployer_receipts_thousands_usd, 880);
+  assert.equal(counties.features[0].properties.nonemployer_reference_year, 2023);
+  assert.equal(counties.features[0].properties.nonemployer_source_release_id, "census-nonemployer-2023-fixture");
+  assert.equal(counties.features[0].properties.nonemployer_status, "published-annual-aggregate");
+
+  const nonemployerCounties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "nonemployer_establishments" });
+  assert.equal(nonemployerCounties.features[0].properties.heat_value, 44);
 
   const gdpCounties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "gdp_current_dollars" });
   assert.equal(gdpCounties.features[0].properties.heat_value, 321_000_000);
@@ -249,8 +307,16 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.scope_assignment, "direct-zcta-evidence-not-county-allocated");
   assert.equal(zips.features[0].properties.gdp_current_dollars, null);
   assert.equal(zips.features[0].properties.gdp_status, "unavailable-no-official-zip-gdp-do-not-allocate");
+  assert.equal(zips.features[0].properties.nonemployer_establishments, null);
+  assert.equal(zips.features[0].properties.nonemployer_receipts_thousands_usd, null);
+  assert.equal(zips.features[0].properties.nonemployer_reference_year, null);
+  assert.equal(zips.features[0].properties.nonemployer_source_release_id, null);
+  assert.equal(zips.features[0].properties.nonemployer_status, "unavailable-not-published-at-zip-do-not-allocate");
   assert.equal(zips.features[0].properties.relative_coverage_alignment_peer_scope, "uniquely state-assigned ZCTA peers within state 01");
   assert.equal(zips.meta.relative_coverage_alignment_peer_scope, "uniquely state-assigned ZCTA peers within state 01");
+
+  const nonemployerZips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "all", enhancerId: "nonemployer_establishments" });
+  assert(nonemployerZips.features.every((feature) => feature.properties.heat_value === null));
 
   const summary = await store.getStateSummary({ includeTerritories: false });
   const alpha = summary.states.find((state) => state.state_fips === "01");
