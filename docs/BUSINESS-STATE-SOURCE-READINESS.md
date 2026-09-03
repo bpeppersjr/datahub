@@ -30,6 +30,6 @@ Business records may use address-level `latitude` and `longitude` when genuinely
 
 ## Next acquisition gate
 
-The closest broad-state activation target is the existing Illinois offline connector. It still requires five same-run official files, successful verification, and a national-registry adapter. Unattended source retrieval and broader redistribution remain gated on written Illinois authorization. Oklahoma and California remain rights/schema-preflight candidates, not approved acquisitions.
+The closest broad-state activation target is the existing Illinois offline connector. Its optional national-registry adapter is implemented and tested, but production activation still requires five same-run official files, a verified immutable Illinois release, an explicitly authorized registry rebuild, and later coverage-view publication. No Illinois source release or production pointer is present. Unattended source retrieval and broader redistribution remain gated on written Illinois authorization. Oklahoma and California remain rights/schema-preflight candidates, not approved acquisitions.
 
 This readiness assessment changes no source release, registry release, coverage release, or production pointer.

@@ -18,8 +18,9 @@ function row(sourceKey, releaseMetadata = {}, observation = {}) {
 }
 
 test("pins temporal policies for every source in the current coverage release", () => {
-  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 26);
+  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 27);
   assert.equal(BUSINESS_SOURCE_TEMPORAL_POLICIES.ny_retail_food_store_license_sites.review_after_days, 120);
+  assert.deepEqual(BUSINESS_SOURCE_TEMPORAL_POLICIES.il_business_registry_active_organizations.reference_fields, ["source_run_date"]);
 });
 
 test("assesses source reference age without claiming general business operation", () => {

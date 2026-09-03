@@ -33,6 +33,7 @@ Options:
   --ny-business <path> New York Active Corporations current.json prerequisite
   --fl-business <path> Florida quarterly active corporate entities current.json prerequisite
   --pa-business <path> Pennsylvania Department of State active registrations current.json prerequisite
+  --il-business <path> Optional Illinois Secretary of State daily-file organization release
   --la-active-businesses <path> City of Los Angeles active-business location accounts current.json prerequisite
   --tx-sales-tax <path> Texas Comptroller active sales-tax permit outlets current.json prerequisite
   --chicago-licenses <path> City of Chicago current active business-license sites current.json prerequisite
@@ -66,6 +67,7 @@ function parseArguments(args) {
     nyBusiness: "data/business-sources/ny-business-registry-active-entities/current.json",
     flBusiness: "data/business-sources/fl-business-registry-quarterly-active-entities/current.json",
     paBusiness: "data/business-sources/pa-business-registry-active-registrations/current.json",
+    ilBusiness: null,
     laActiveBusinesses: "data/business-sources/la-active-business-location-accounts/current.json",
     txActiveSalesTax: "data/business-sources/tx-active-sales-tax-outlets/current.json",
     chicagoActiveBusinessLicenses: "data/business-sources/chicago-active-business-license-sites/current.json",
@@ -78,7 +80,7 @@ function parseArguments(args) {
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -101,6 +103,7 @@ function parseArguments(args) {
       if (argument === "--ny-business") options.nyBusiness = value;
       if (argument === "--fl-business") options.flBusiness = value;
       if (argument === "--pa-business") options.paBusiness = value;
+      if (argument === "--il-business") options.ilBusiness = value;
       if (argument === "--la-active-businesses") options.laActiveBusinesses = value;
       if (argument === "--tx-sales-tax") options.txActiveSalesTax = value;
       if (argument === "--chicago-licenses") options.chicagoActiveBusinessLicenses = value;
@@ -171,6 +174,7 @@ try {
     nyBusinessPointer: sourcePointers.nyBusiness,
     flBusinessPointer: sourcePointers.flBusiness,
     paBusinessPointer: sourcePointers.paBusiness,
+    ilBusinessPointer: options.ilBusiness ? assertInsideApp(path.resolve(APP_ROOT, options.ilBusiness)) : null,
     laActiveBusinessesPointer: sourcePointers.laActiveBusinesses,
     txActiveSalesTaxPointer: sourcePointers.txActiveSalesTax,
     chicagoActiveBusinessLicensesPointer: sourcePointers.chicagoActiveBusinessLicenses,

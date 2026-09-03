@@ -97,6 +97,13 @@ type StateSummary = {
   }>;
 };
 
+function reconcileFeature(current: MapFeature | null, response: MapResponse) {
+  if (!current) return null;
+  const responseLevel = response.level === 'states' ? 'state' : response.level === 'counties' ? 'county' : 'zip';
+  if (current.properties.level !== responseLevel) return current;
+  return response.features.find((feature) => feature.properties.geoid === current.properties.geoid) ?? null;
+}
+
 async function request<T>(path: string): Promise<T> {
   return runnerJson<T>(path);
 }
@@ -377,7 +384,6 @@ export default function BusinessIntelligence() {
   const [stateName, setStateName] = useState('');
   const [countyGeoid, setCountyGeoid] = useState('');
   const [countyName, setCountyName] = useState('');
-  const [selectedZip, setSelectedZip] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -397,7 +403,13 @@ export default function BusinessIntelligence() {
     const timer = window.setTimeout(() => {
       setLoading(true);
       setError('');
-      void request<MapResponse>(`/api/business-map/features?${parameters}`).then((result) => { if (!cancelled) setData(result); }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Unable to load map.'); }).finally(() => { if (!cancelled) setLoading(false); });
+      void request<MapResponse>(`/api/business-map/features?${parameters}`).then((result) => {
+        if (cancelled) return;
+        setData(result);
+        setStateFeature((current) => reconcileFeature(current, result));
+        setCountyFeature((current) => reconcileFeature(current, result));
+        setZipFeature((current) => reconcileFeature(current, result));
+      }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Unable to load map.'); }).finally(() => { if (!cancelled) setLoading(false); });
     }, 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [catalog, categoryId, countyGeoid, enhancerId, level, minHousingUnits, minPopulation, stateFips]);
@@ -405,25 +417,26 @@ export default function BusinessIntelligence() {
   const activeCategory = catalog?.categories?.find(({ id }) => id === categoryId);
   const activeEnhancer = catalog?.enhancers?.find(({ id }) => id === enhancerId);
   const selectedFeature = zipFeature ?? countyFeature ?? stateFeature;
+  const selectedZip = zipFeature?.properties.geoid ?? '';
 
   function choose(feature: MapFeature) {
     if (level === 'states') {
-      setStateFeature(feature); setCountyFeature(null); setZipFeature(null); setStateFips(feature.properties.geoid); setStateName(feature.properties.name); setCountyGeoid(''); setCountyName(''); setSelectedZip(''); setLevel('counties');
+      setStateFeature(feature); setCountyFeature(null); setZipFeature(null); setStateFips(feature.properties.geoid); setStateName(feature.properties.name); setCountyGeoid(''); setCountyName(''); setLevel('counties');
     } else if (level === 'counties') {
-      setCountyFeature(feature); setZipFeature(null); setCountyGeoid(feature.properties.geoid); setCountyName(feature.properties.name); setSelectedZip(''); setLevel('zips');
-    } else { setZipFeature(feature); setSelectedZip(feature.properties.geoid); }
+      setCountyFeature(feature); setZipFeature(null); setCountyGeoid(feature.properties.geoid); setCountyName(feature.properties.name); setLevel('zips');
+    } else { setZipFeature(feature); }
   }
 
   function national() {
-    setLevel('states'); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setStateFips(''); setStateName(''); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
+    setLevel('states'); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setStateFips(''); setStateName(''); setCountyGeoid(''); setCountyName('');
   }
 
   function state() {
-    setLevel('counties'); setCountyFeature(null); setZipFeature(null); setCountyGeoid(''); setCountyName(''); setSelectedZip('');
+    setLevel('counties'); setCountyFeature(null); setZipFeature(null); setCountyGeoid(''); setCountyName('');
   }
 
   function county() {
-    setLevel('zips'); setZipFeature(null); setSelectedZip('');
+    setLevel('zips'); setZipFeature(null);
   }
 
   return (
@@ -435,12 +448,12 @@ export default function BusinessIntelligence() {
       {catalog?.available === false && <div className="map-error">No compatible coverage and geography release is available.</div>}
       {catalog?.available && <div className="heatmap-layout">
         <aside className="map-selectors">
-          <label><span>Business category hierarchy</span><select value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setSelectedZip(''); }}><option value="all">All source categories</option>{catalog.category_groups.map((group) => <optgroup label={group.label} key={group.id}>{group.categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</optgroup>)}</select></label>
+          <label><span>Business category hierarchy</span><select value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setStateFeature(null); setCountyFeature(null); setZipFeature(null); }}><option value="all">All source categories</option>{catalog.category_groups.map((group) => <optgroup label={group.label} key={group.id}>{group.categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</optgroup>)}</select></label>
           <label><span>Heat-map data / enhancer</span><select value={enhancerId} onChange={(event) => setEnhancerId(event.target.value)}>{catalog.enhancers.map((enhancer) => <option value={enhancer.id} key={enhancer.id}>{enhancer.label}</option>)}</select></label>
           <fieldset className="demographic-filters">
             <legend>Population / demographic filters</legend>
-            <label><span>Minimum population</span><input aria-label="Minimum population" type="number" min="0" step="1" inputMode="numeric" value={minPopulation} onChange={(event) => { setMinPopulation(event.target.value); setZipFeature(null); setSelectedZip(''); }} placeholder="No minimum" /></label>
-            <label><span>Minimum housing units</span><input aria-label="Minimum housing units" type="number" min="0" step="1" inputMode="numeric" value={minHousingUnits} onChange={(event) => { setMinHousingUnits(event.target.value); setZipFeature(null); setSelectedZip(''); }} placeholder="No minimum" /></label>
+            <label><span>Minimum population</span><input aria-label="Minimum population" type="number" min="0" step="1" inputMode="numeric" value={minPopulation} onChange={(event) => { setMinPopulation(event.target.value); setZipFeature(null); }} placeholder="No minimum" /></label>
+            <label><span>Minimum housing units</span><input aria-label="Minimum housing units" type="number" min="0" step="1" inputMode="numeric" value={minHousingUnits} onChange={(event) => { setMinHousingUnits(event.target.value); setZipFeature(null); }} placeholder="No minimum" /></label>
             <button type="button" onClick={() => { setMinPopulation(''); setMinHousingUnits(''); }}>Clear filters</button>
           </fieldset>
           <div className="scope-card"><span>Current scope</span><strong>{selectedZip ? `ZIP ${selectedZip}` : countyName || stateName || 'United States'}</strong><small>{activeCategory?.label}</small></div>

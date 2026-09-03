@@ -26,6 +26,7 @@ export const BUSINESS_SOURCE_TEMPORAL_POLICIES = Object.freeze({
   fmcsa_active_us_company_census: POLICY(["source_updated_at"], 45, "periodic-motor-carrier-snapshot", "source-active-registration-evidence-not-general-operation"),
   fsis_active_mpi_establishments: POLICY(["source_date"], 75, "periodic-inspection-directory", "source-active-inspection-program-evidence"),
   ia_business_registry_active_entities: POLICY(["source_modified_at"], 75, "periodic-registration-snapshot", "legal-registration-status-not-general-operation"),
+  il_business_registry_active_organizations: POLICY(["source_run_date"], 45, "official-daily-registration-file-set", "legal-registration-status-not-general-operation"),
   irs_eo_bmf_organizations: POLICY(["source_posting_date"], 75, "monthly-exempt-organization-file", "tax-exempt-organization-filing-evidence-not-general-operation"),
   la_active_business_location_accounts: POLICY(["source_rows_updated_at"], 75, "periodic-local-tax-registration-snapshot", "source-defined-active-local-account-evidence"),
   ncua_quarterly_credit_unions: POLICY(["cycle_date"], 200, "quarterly-call-report", "quarterly-institution-and-location-evidence"),

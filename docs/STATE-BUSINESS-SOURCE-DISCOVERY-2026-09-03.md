@@ -47,6 +47,6 @@ Minnesota Active Business Data is the second choice only after explicit spend au
 - New Jersey: [DORES fee schedule](https://www.nj.gov/treasury/revenue/fees.shtml)
 - Utah: [business-list order service](https://secure.utah.gov/datarequest/businesses/index.html), [layout example](https://secure.utah.gov/datarequest/businesses/listExample.html)
 
-Implementation evidence: [Illinois Business Registry offline connector](IL-BUSINESS-REGISTRY.md). No official source release has been supplied or published, all outputs remain local-review-only, and no production pointer or national-registry dependency was changed.
+Implementation evidence: [Illinois Business Registry offline connector](IL-BUSINESS-REGISTRY.md). An optional national-registry adapter now reconciles a verified connector release into privacy-minimized organization assertions and ZIP-level records-office-address evidence without creating physical sites or relationships. No official source release has been supplied or published, all Illinois-derived outputs remain local-review-only, and no production pointer or dependency has been activated.
 - Maryland: [SDAT service description](https://dat.maryland.gov/pages/services.aspx)
 - Arizona: [database-extraction form](https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6), [commercial-use statute](https://www.azleg.gov/ars/39/00121-03.htm)

@@ -98,6 +98,7 @@ const CATEGORY_DEFINITIONS = Object.freeze([
       "ny_business_registry_organization_reported_location_address_count",
       "fl_business_registry_organization_reported_principal_address_count",
       "pa_business_registry_organization_reported_business_address_count",
+      "il_business_registry_organization_records_office_address_count",
     ],
     source_ids: [],
   },
