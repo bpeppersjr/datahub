@@ -37,7 +37,7 @@ function sourceDefinition(key) {
   };
 }
 
-async function writeRelease(root, key, { candidate, version, releaseId, body }) {
+async function writeRelease(root, key, { candidate, version, releaseId, body, manifestStatus = "published" }) {
   const sourceRoot = candidate
     ? path.join(root, migrationRoot, "sources", key)
     : path.join(root, "data/business-sources", key);
@@ -49,7 +49,7 @@ async function writeRelease(root, key, { candidate, version, releaseId, body }) 
   await writeFile(path.join(releaseRoot, "manifest.json"), json({
     dataset_id: `${key}-dataset`,
     release_id: releaseId,
-    status: "published",
+    ...(manifestStatus === null ? {} : { status: manifestStatus }),
     connector: { id: `${key}-connector`, version },
     artifacts: [{
       path: "derived/rows.jsonl",
@@ -67,6 +67,31 @@ async function writeRelease(root, key, { candidate, version, releaseId, body }) 
   await writeFile(path.join(sourceRoot, "current.json"), pointer);
   return { sourceRoot, releaseRoot, pointer };
 }
+
+test("cutover planning accepts current-pointer publication across supported legacy manifest status conventions", async () => {
+  const { root, definition } = await fixture(["complete", "implicit"]);
+  try {
+    await writeRelease(root, "complete", { candidate: false, version: "1.0.0", releaseId: "complete-old", body: "old\n" });
+    await writeRelease(root, "implicit", { candidate: false, version: "1.0.0", releaseId: "implicit-old", body: "old\n" });
+    await writeRelease(root, "complete", { candidate: true, version: "1.0.1", releaseId: "complete-new", body: "new\n", manifestStatus: "complete" });
+    await writeRelease(root, "implicit", { candidate: true, version: "1.0.1", releaseId: "implicit-new", body: "new\n", manifestStatus: null });
+    const plan = await prepareNormalizedUsPostalCutover({ appRoot: root, definition });
+    assert.equal(plan.sources.length, 2);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("cutover planning rejects an explicit non-publication manifest status", async () => {
+  const { root, definition } = await fixture();
+  try {
+    await writeRelease(root, "alpha", { candidate: false, version: "1.0.0", releaseId: "alpha-old", body: "old\n" });
+    await writeRelease(root, "alpha", { candidate: true, version: "1.0.1", releaseId: "alpha-new", body: "new\n", manifestStatus: "failed" });
+    await assert.rejects(prepareNormalizedUsPostalCutover({ appRoot: root, definition }), /publication status is invalid/i);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 async function fixture(sourceKeys = ["alpha"]) {
   const root = await mkdtemp(path.join(tmpdir(), "postal-cutover-"));

@@ -4,7 +4,7 @@ The split ZIP5/ZIP4 migration uses isolated source candidates until every govern
 
 ## Safety contract
 
-A cutover plan is valid only when all 25 sources resolve to isolated candidate pointers, every release satisfies its connector-version floor, every manifest artifact has its declared byte count and SHA-256, and no unlisted file or link exists in a candidate release. The frozen plan binds the migration definition, connector configurations, production pointers, candidate pointers, manifests, artifact receipts, release IDs, and destination paths.
+A cutover plan is valid only when all 25 sources resolve to isolated candidate pointers, every release satisfies its connector-version floor, every manifest artifact has its declared byte count and SHA-256, and no unlisted file or link exists in a candidate release. Published source connectors use three established manifest conventions: `status: "published"`, `status: "complete"`, or an omitted status with publication represented by the verified current pointer. Any explicit status outside the two completed values is rejected. The frozen plan binds the migration definition, connector configurations, production pointers, candidate pointers, manifests, artifact receipts, release IDs, and destination paths.
 
 Execution requires the exact plan SHA-256 and explicit confirmation. It:
 
@@ -49,3 +49,7 @@ npm run postal-cutover:rollback -- --cutover-id <cutover-id> --expected-plan-sha
 ```
 
 No command deletes an immutable candidate or production release.
+
+## Current prepared plan
+
+The 2026-09-03 plan verified all 25 complete candidate artifact sets and binds candidate-readiness hash `8642a111b8362faa4311d56674e112870142c05d9a2ef4b6be8af2681e616dd2`. Its cutover-plan SHA-256 is `505c1039cbd95d7cc3249ca105c9a8e32bc6802b17fa6a7c2173d58fdfc97c1a`. The plan file is local governed state under `data/migrations/normalized-us-postal-fields-v1`; it is ignored by Git and has not been executed.

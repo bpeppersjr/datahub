@@ -3,7 +3,7 @@
 import path from "node:path";
 import process from "node:process";
 import { readFile } from "node:fs/promises";
-import { buildFlBusinessRegistry, publishFlBusinessRegistryStaging } from "../runner/fl-business-registry.mjs";
+import { buildFlBusinessRegistry, loadFlBusinessRegistrySourceRelease, publishFlBusinessRegistryStaging } from "../runner/fl-business-registry.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
 
 function usage() {
@@ -16,6 +16,8 @@ Options:
   --output <path>       Output root (default: data/business-sources/fl-business-registry-quarterly-active-entities)
   --zbp <path>          Census ZBP current.json prerequisite
   --archive <path>      Use an already downloaded official cordata.zip inside datahub
+  --source-release <path>
+                        Replay a verified published Florida current.json or manifest.json
   --minimum <number>    Minimum organizations quality floor (default: 2000000)
   --resume-staging-run <UUID>
                         Verify and publish one complete unpublished staging run
@@ -35,17 +37,19 @@ function parseArguments(args) {
     minimum: 2_000_000,
     resumeStagingRun: null,
     resumeSourceStagingRun: null,
+    sourceRelease: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--zbp", "--archive", "--minimum", "--resume-staging-run", "--resume-source-staging-run"].includes(argument)) {
+    if (["--output", "--zbp", "--archive", "--source-release", "--minimum", "--resume-staging-run", "--resume-source-staging-run"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--zbp") options.zbp = value;
       if (argument === "--archive") options.archive = value;
+      if (argument === "--source-release") options.sourceRelease = value;
       if (argument === "--minimum") options.minimum = Number(value);
       if (argument === "--resume-staging-run") options.resumeStagingRun = value;
       if (argument === "--resume-source-staging-run") options.resumeSourceStagingRun = value;
@@ -53,7 +57,7 @@ function parseArguments(args) {
     }
     throw new Error(`Unknown argument ${argument}.`);
   }
-  if ([options.archive, options.resumeStagingRun, options.resumeSourceStagingRun].filter(Boolean).length > 1) throw new Error("Archive and resume modes are mutually exclusive.");
+  if ([options.archive, options.sourceRelease, options.resumeStagingRun, options.resumeSourceStagingRun].filter(Boolean).length > 1) throw new Error("Archive, source-release, and resume modes are mutually exclusive.");
   return options;
 }
 
@@ -69,7 +73,15 @@ try {
   if (options.resumeSourceStagingRun && !uuid.test(options.resumeSourceStagingRun)) throw new Error("--resume-source-staging-run requires a UUID.");
   let sourceSnapshotPath = null;
   let sourceMetadata = null;
-  if (options.resumeSourceStagingRun) {
+  if (options.sourceRelease) {
+    const replay = await loadFlBusinessRegistrySourceRelease({
+      releasePath: assertInsideApp(path.resolve(APP_ROOT, options.sourceRelease)),
+      allowedRoot: APP_ROOT,
+    });
+    sourceSnapshotPath = replay.sourceSnapshotPath;
+    sourceMetadata = replay.sourceMetadata;
+    process.stdout.write(`Verified reusable Florida selected-source release ${replay.sourceReleaseId}.\n`);
+  } else if (options.resumeSourceStagingRun) {
     const staging = assertInsideApp(path.join(outputRoot, ".staging", options.resumeSourceStagingRun));
     sourceSnapshotPath = assertInsideApp(path.join(staging, "source", "selected-corporate-records.jsonl.gz"));
     const preflight = JSON.parse(await readFile(assertInsideApp(path.join(staging, "source", "preflight.json")), "utf8"));

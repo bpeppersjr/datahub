@@ -212,11 +212,11 @@
       "pointer": "data/business-sources/fl-business-registry-quarterly-active-entities/current.json",
       "connector_config": "config/connectors/fl-business-registry.json",
       "minimum_connector_version": "1.0.1",
-      "build_commands": ["npm run fl-business:build"],
+      "build_commands": ["npm run fl-business:build -- --source-release \"data/business-sources/fl-business-registry-quarterly-active-entities/current.json\""],
       "verify_command": "npm run fl-business:verify",
       "rebuild_prerequisites": {
-        "required_environment": ["FL_SUNBIZ_PUBLIC_PASSWORD"],
-        "note": "The current environment has no retained cordata.zip or supported published-release replay path. Never store the credential value in this definition or in a release manifest."
+        "required_paths": ["data/business-sources/fl-business-registry-quarterly-active-entities/current.json"],
+        "note": "Reuse the published privacy-minimized selected-source snapshot only after verifying its pointer, manifest, source artifact inventory, bytes, SHA-256 hashes, fixed-width layout, and source-release identity. The immutable historical normalized outputs are not accepted as migration inputs."
       }
     },
     {

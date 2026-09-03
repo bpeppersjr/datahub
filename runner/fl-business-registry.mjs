@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, realpath, rename, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
@@ -605,6 +605,141 @@ function sourceReleaseId(metadata, selectedSourceSha256) {
   return `fl-business-registry-${metadata.modifiedAt.slice(0, 10)}-${digest.slice(0, 16)}`;
 }
 
+async function resolveExistingAllowedPath(allowedRoot, candidate, label) {
+  const absoluteRoot = path.resolve(allowedRoot);
+  const absoluteCandidate = path.resolve(candidate);
+  const lexicalRelative = path.relative(absoluteRoot, absoluteCandidate);
+  if (lexicalRelative.startsWith("..") || path.isAbsolute(lexicalRelative)) throw new Error(`${label} escapes its allowed root.`);
+  const [realRoot, realCandidate] = await Promise.all([realpath(absoluteRoot), realpath(absoluteCandidate)]);
+  const realRelative = path.relative(realRoot, realCandidate);
+  if (realRelative.startsWith("..") || path.isAbsolute(realRelative)) throw new Error(`${label} escapes its allowed root through a link.`);
+  return realCandidate;
+}
+
+async function readBoundedJson(filename, label) {
+  const details = await stat(filename);
+  if (!details.isFile() || details.size <= 0 || details.size > 5_000_000) throw new Error(`${label} is not a bounded JSON file.`);
+  try {
+    return { buffer: await readFile(filename), details };
+  } catch (error) {
+    throw new Error(`${label} could not be read: ${error.message}`);
+  }
+}
+
+function sameJson(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export async function loadFlBusinessRegistrySourceRelease({ releasePath, allowedRoot } = {}) {
+  if (!releasePath || !allowedRoot) throw new Error("releasePath and allowedRoot are required for Florida source-release replay.");
+  const referencePath = await resolveExistingAllowedPath(allowedRoot, releasePath, "Florida source-release reference");
+  const referenceFile = await readBoundedJson(referencePath, "Florida source-release reference");
+  let reference;
+  try {
+    reference = JSON.parse(referenceFile.buffer.toString("utf8"));
+  } catch {
+    throw new Error("Florida source-release reference is not valid JSON.");
+  }
+  const isManifest = Array.isArray(reference?.artifacts);
+  const manifestPath = isManifest
+    ? referencePath
+    : await resolveExistingAllowedPath(allowedRoot, path.resolve(path.dirname(referencePath), reference?.manifest ?? ""), "Florida source-release manifest");
+  const manifestFile = isManifest ? referenceFile : await readBoundedJson(manifestPath, "Florida source-release manifest");
+  let manifest;
+  try {
+    manifest = isManifest ? reference : JSON.parse(manifestFile.buffer.toString("utf8"));
+  } catch {
+    throw new Error("Florida source-release manifest is not valid JSON.");
+  }
+  if (manifest.dataset_id !== "fl-business-registry-quarterly-active-entities" || manifest.status !== "published" || manifest.raw_archive_retained !== false) {
+    throw new Error("Florida source-release manifest is not a published privacy-minimized Florida release.");
+  }
+  if (!isManifest && (reference.dataset_id !== manifest.dataset_id || reference.release_id !== manifest.release_id)) {
+    throw new Error("Florida source-release pointer identity does not match its manifest.");
+  }
+  if (path.basename(path.dirname(manifestPath)) !== manifest.release_id) throw new Error("Florida source-release directory does not match its release ID.");
+  if (!Array.isArray(manifest.artifacts)) throw new Error("Florida source-release manifest has no artifact inventory.");
+  const expectedSourceArtifacts = new Map([
+    ["source/preflight.json", { artifactType: "fl-business-registry-preflight", exportPolicy: "internal" }],
+    ["source/selected-corporate-records.jsonl.gz", { artifactType: "fl-business-registry-selected-source-jsonl-gzip", exportPolicy: "internal" }],
+    ["source/release-metadata.json", { artifactType: "fl-business-registry-source-release-metadata", exportPolicy: null }],
+  ]);
+  const sourceArtifacts = manifest.artifacts.filter((artifact) => typeof artifact?.path === "string" && artifact.path.startsWith("source/"));
+  if (sourceArtifacts.length !== expectedSourceArtifacts.size || new Set(sourceArtifacts.map((artifact) => artifact.path)).size !== expectedSourceArtifacts.size) {
+    throw new Error("Florida source-release manifest must contain exactly the three governed source artifacts.");
+  }
+  const verifiedArtifacts = new Map();
+  for (const artifact of sourceArtifacts) {
+    const expected = expectedSourceArtifacts.get(artifact.path);
+    if (!expected || artifact.artifact_type !== expected.artifactType || (expected.exportPolicy && artifact.export_policy !== expected.exportPolicy)) {
+      throw new Error(`Florida source artifact contract mismatch for ${artifact.path}.`);
+    }
+    if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes <= 0 || !/^[0-9a-f]{64}$/.test(artifact.sha256 ?? "")) {
+      throw new Error(`Florida source artifact inventory is invalid for ${artifact.path}.`);
+    }
+    const artifactPath = await resolveExistingAllowedPath(allowedRoot, path.resolve(path.dirname(manifestPath), artifact.path), `Florida source artifact ${artifact.path}`);
+    assertContained(path.dirname(manifestPath), artifactPath, `Florida source artifact ${artifact.path}`);
+    const actual = await hashFile(artifactPath);
+    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Florida source artifact ${artifact.path} has a size or SHA-256 mismatch.`);
+    verifiedArtifacts.set(artifact.path, { artifact, artifactPath });
+  }
+  const preflightEntry = verifiedArtifacts.get("source/preflight.json");
+  const metadataEntry = verifiedArtifacts.get("source/release-metadata.json");
+  let preflight;
+  let releaseMetadata;
+  try {
+    preflight = JSON.parse(await readFile(preflightEntry.artifactPath, "utf8"));
+    releaseMetadata = JSON.parse(await readFile(metadataEntry.artifactPath, "utf8"));
+  } catch {
+    throw new Error("Florida source-release provenance artifacts are not valid JSON.");
+  }
+  const expectedMembers = [..."0123456789"].map((digit) => `cordata${digit}.txt`);
+  if (preflight.host !== FL_BUSINESS_REGISTRY_HOST || preflight.remote_path !== FL_BUSINESS_REGISTRY_REMOTE_PATH || preflight.sftp_host_key !== FL_BUSINESS_REGISTRY_HOST_KEY) {
+    throw new Error("Florida source-release acquisition identity does not match the pinned source contract.");
+  }
+  const sourceMetadata = validateRemoteMetadata({
+    remotePath: preflight.remote_path,
+    bytes: preflight.remote_bytes,
+    modifiedAt: preflight.remote_modified_at,
+    archiveSha256: preflight.archive_sha256,
+    members: preflight.archive_members,
+    uncompressedBytes: preflight.archive_uncompressed_bytes,
+  });
+  const selectedEntry = verifiedArtifacts.get("source/selected-corporate-records.jsonl.gz");
+  if (!Number.isSafeInteger(selectedEntry.artifact.record_count) || selectedEntry.artifact.record_count <= 0 || preflight.selected_source_records !== selectedEntry.artifact.record_count || manifest.coverage?.source_records !== selectedEntry.artifact.record_count) {
+    throw new Error("Florida selected-source record counts do not reconcile.");
+  }
+  if (preflight.record_bytes !== FL_BUSINESS_REGISTRY_RECORD_BYTES || preflight.selected_layout_fingerprint !== FL_BUSINESS_REGISTRY_LAYOUT_FINGERPRINT || !sameJson(preflight.selected_layout, FL_BUSINESS_REGISTRY_LAYOUT) || preflight.raw_archive_retained !== false) {
+    throw new Error("Florida selected-source layout or retention contract changed.");
+  }
+  if (!sameJson(preflight.archive_members, expectedMembers) || !Number.isSafeInteger(preflight.archive_uncompressed_bytes) || preflight.archive_uncompressed_bytes <= 0 || preflight.archive_uncompressed_bytes > FL_BUSINESS_REGISTRY_MAX_UNCOMPRESSED_BYTES) {
+    throw new Error("Florida source-release archive member inventory is invalid.");
+  }
+  if (releaseMetadata.publisher !== "Florida Department of State, Division of Corporations" || releaseMetadata.source_archive !== sourceMetadata.remotePath || releaseMetadata.source_archive_bytes !== sourceMetadata.bytes || releaseMetadata.source_archive_modified_at !== sourceMetadata.modifiedAt || releaseMetadata.source_archive_sha256 !== sourceMetadata.archiveSha256 || !sameJson(releaseMetadata.source_archive_members, expectedMembers) || releaseMetadata.source_archive_uncompressed_bytes !== sourceMetadata.uncompressedBytes || releaseMetadata.record_bytes !== FL_BUSINESS_REGISTRY_RECORD_BYTES || releaseMetadata.selected_layout_fingerprint !== FL_BUSINESS_REGISTRY_LAYOUT_FINGERPRINT || !sameJson(releaseMetadata.selected_layout, FL_BUSINESS_REGISTRY_LAYOUT) || !sameJson(releaseMetadata.selected_fields, FL_BUSINESS_REGISTRY_FIELDS) || releaseMetadata.raw_archive_retained !== false) {
+    throw new Error("Florida source-release metadata does not match its verified preflight contract.");
+  }
+  if (manifest.source_modified_at !== sourceMetadata.modifiedAt || manifest.source_archive_bytes !== sourceMetadata.bytes || manifest.source_archive_sha256 !== sourceMetadata.archiveSha256 || manifest.source?.credential_persisted !== false) {
+    throw new Error("Florida source-release manifest provenance does not match its preflight artifacts.");
+  }
+  const expectedSourceReleaseId = sourceReleaseId(sourceMetadata, selectedEntry.artifact.sha256);
+  if (manifest.source_release_id !== expectedSourceReleaseId) throw new Error("Florida source release ID is not bound to the verified source snapshot.");
+  const manifestSha256 = sha256(manifestFile.buffer);
+  sourceMetadata.replaySource = {
+    dataset_id: manifest.dataset_id,
+    release_id: manifest.release_id,
+    source_release_id: manifest.source_release_id,
+    manifest_sha256: manifestSha256,
+    selected_source_sha256: selectedEntry.artifact.sha256,
+  };
+  return {
+    sourceSnapshotPath: selectedEntry.artifactPath,
+    sourceMetadata,
+    sourceReleaseId: manifest.source_release_id,
+    sourceManifestPath: manifestPath,
+    sourceManifestSha256: manifestSha256,
+  };
+}
+
 export async function buildFlBusinessRegistry({
   outputRoot,
   zbpPointer,
@@ -642,6 +777,9 @@ export async function buildFlBusinessRegistry({
       await mkdir(path.dirname(selectedPath), { recursive: true });
       await copyFile(sourceSnapshotPath, selectedPath);
       sourceArtifact = { path: "source/selected-corporate-records.jsonl.gz", ...(await hashFile(selectedPath)), artifact_type: "fl-business-registry-selected-source-jsonl-gzip", export_policy: "internal" };
+      if (metadata.replaySource && sourceArtifact.sha256 !== metadata.replaySource.selected_source_sha256) {
+        throw new Error("Florida selected-source snapshot changed after source-release verification.");
+      }
       sourceRecords = 0;
       for await (const record of gzipRecords(selectedPath)) {
         void record;
@@ -686,6 +824,9 @@ export async function buildFlBusinessRegistry({
       downloadedArchive = null;
     }
     const selectedSourceReleaseId = sourceReleaseId(metadata, sourceArtifact.sha256);
+    if (metadata.replaySource && selectedSourceReleaseId !== metadata.replaySource.source_release_id) {
+      throw new Error("Florida selected-source replay no longer matches its verified source release ID.");
+    }
     const context = {
       runId,
       retrievedAt,
@@ -810,6 +951,7 @@ export async function buildFlBusinessRegistry({
       selected_fields: FL_BUSINESS_REGISTRY_FIELDS,
       explicitly_excluded_field_classes: ["FEIN", "mailing address", "registered-agent identity and address", "officer identities, titles, types, and addresses"],
       raw_archive_retained: false,
+      selected_source_replay: metadata.replaySource ?? null,
       source_urls: {
         downloads: "https://dos.fl.gov/sunbiz/other-services/data-downloads/",
         quarterly_data: "https://dos.fl.gov/sunbiz/other-services/data-downloads/quarterly-data/",
@@ -866,6 +1008,7 @@ export async function buildFlBusinessRegistry({
         public_username: FL_BUSINESS_REGISTRY_USERNAME,
         credential_reference: "FL_SUNBIZ_PUBLIC_PASSWORD",
         credential_persisted: false,
+        selected_source_replay: metadata.replaySource ?? null,
         policy_profile: "config/source-policies/fl-business-registry.json",
       },
       limitations: [

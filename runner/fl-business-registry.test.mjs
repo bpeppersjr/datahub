@@ -9,6 +9,7 @@ import {
   buildFlBusinessRegistry,
   FL_BUSINESS_REGISTRY_LAYOUT,
   FL_BUSINESS_REGISTRY_LAYOUT_FINGERPRINT,
+  loadFlBusinessRegistrySourceRelease,
   normalizeFlBusinessOrganization,
   parseFlCorporateLine,
   verifyFlBusinessRegistry,
@@ -140,7 +141,14 @@ test("builds and independently replays a privacy-minimized Florida fixture relea
     outputRoot: path.join(root, "output"),
     zbpPointer: await writeBaseline(path.join(root, "zbp")),
     sourceLines: lines,
-    sourceMetadata: { remotePath: "/Public/doc/quarterly/cor/cordata.zip", bytes: 12345, modifiedAt: "2026-07-10T13:41:00.000Z", archiveSha256: "a".repeat(64), members: ["cordata0.txt", "cordata1.txt"] },
+    sourceMetadata: {
+      remotePath: "/Public/doc/quarterly/cor/cordata.zip",
+      bytes: 12345,
+      modifiedAt: "2026-07-10T13:41:00.000Z",
+      archiveSha256: "a".repeat(64),
+      members: [..."0123456789"].map((digit) => `cordata${digit}.txt`),
+      uncompressedBytes: 5760,
+    },
     minimumOrganizations: 1,
     logger: () => {},
     now: () => new Date("2026-08-31T10:00:00.000Z"),
@@ -161,6 +169,59 @@ test("builds and independently replays a privacy-minimized Florida fixture relea
   const allText = JSON.stringify(normalized);
   for (const forbidden of ["12-3456789", "Private Registered Agent", "Private Officer"]) assert.equal(allText.includes(forbidden), false);
   assert.equal(result.manifest.artifacts.some((artifact) => /cordata\.zip/i.test(artifact.path)), false);
+
+  const replaySource = await loadFlBusinessRegistrySourceRelease({
+    releasePath: result.pointerPath,
+    allowedRoot: root,
+  });
+  assert.equal(replaySource.sourceReleaseId, result.manifest.source_release_id);
+  assert.equal(replaySource.sourceMetadata.replaySource.release_id, result.manifest.release_id);
+  const replayed = await buildFlBusinessRegistry({
+    outputRoot: path.join(root, "replayed-output"),
+    zbpPointer: await writeBaseline(path.join(root, "replayed-zbp")),
+    sourceSnapshotPath: replaySource.sourceSnapshotPath,
+    sourceMetadata: replaySource.sourceMetadata,
+    minimumOrganizations: 1,
+    logger: () => {},
+    now: () => new Date("2026-09-02T10:00:00.000Z"),
+  });
+  assert.equal(replayed.manifest.source_release_id, result.manifest.source_release_id);
+  assert.equal(replayed.manifest.source.selected_source_replay.release_id, result.manifest.release_id);
+  await verifyFlBusinessRegistry(path.join(replayed.releaseDirectory, "manifest.json"));
+
+  await writeFile(replaySource.sourceSnapshotPath, "tampered");
+  const tamperedZbpPointer = await writeBaseline(path.join(root, "tampered-replay-zbp"));
+  await assert.rejects(
+    () => buildFlBusinessRegistry({
+      outputRoot: path.join(root, "tampered-replay-output"),
+      zbpPointer: tamperedZbpPointer,
+      sourceSnapshotPath: replaySource.sourceSnapshotPath,
+      sourceMetadata: replaySource.sourceMetadata,
+      minimumOrganizations: 1,
+      logger: () => {},
+    }),
+    /changed after source-release verification/,
+  );
+  await assert.rejects(
+    () => loadFlBusinessRegistrySourceRelease({ releasePath: result.pointerPath, allowedRoot: root }),
+    /size or SHA-256 mismatch/,
+  );
+});
+
+test("rejects a Florida source-release pointer that escapes its allowed root", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-fl-business-source-path-test-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const allowedRoot = path.join(root, "allowed");
+  const outsideRoot = path.join(root, "outside");
+  await mkdir(allowedRoot, { recursive: true });
+  await mkdir(outsideRoot, { recursive: true });
+  await writeFile(path.join(outsideRoot, "manifest.json"), "{}\n");
+  const pointer = path.join(allowedRoot, "current.json");
+  await writeFile(pointer, `${JSON.stringify({ manifest: "../outside/manifest.json" })}\n`);
+  await assert.rejects(
+    () => loadFlBusinessRegistrySourceRelease({ releasePath: pointer, allowedRoot }),
+    /escapes its allowed root/,
+  );
 });
 
 test("blocks row-length drift, duplicate identity, unknown status codes, and pre-cancelled runs", async (t) => {

@@ -10,11 +10,12 @@
       "output": { "type": "string", "default": "data/business-sources/fl-business-registry-quarterly-active-entities" },
       "zbp_pointer": { "type": "string", "default": "data/business-baselines/census-zbp/current.json" },
       "minimum_organizations": { "type": "integer", "minimum": 1, "default": 2000000 },
+      "source_release": { "type": ["string", "null"], "description": "Published Florida current.json or manifest.json containing the retained governed selected-source snapshot." },
       "remote_path": { "const": "/Public/doc/quarterly/cor/cordata.zip" }
     }
   },
   "named_secret_references": ["FL_SUNBIZ_PUBLIC_PASSWORD"],
-  "input_artifact_types": ["fl-sunbiz-quarterly-corporate-data-zip", "census-zbp-baseline-release", "us-census-geography-release"],
+  "input_artifact_types": ["fl-sunbiz-quarterly-corporate-data-zip", "fl-business-registry-selected-source-jsonl-gzip", "census-zbp-baseline-release", "us-census-geography-release"],
   "output_artifact_types": ["fl-business-registry-selected-source-jsonl-gzip", "normalized-fl-business-organization-jsonl-gzip", "fl-business-registry-excluded-inactive-jsonl-gzip", "fl-business-registry-quarantine-jsonl-gzip", "fl-business-registry-zip-coverage-jsonl", "fl-business-registry-source-summary", "fl-business-registry-preflight", "fl-business-registry-source-release-metadata", "dataset-manifest-json"],
   "allowed_hosts": ["sftp.floridados.gov"],
   "allowed_remote_paths": ["/Public/doc/quarterly/cor/cordata.zip"],
@@ -30,7 +31,7 @@
     "minimum_active_organizations": 2000000
   },
   "retry": "Retry transient SFTP transport failures with bounded exponential backoff and resume from the verified partial byte offset. Do not retry host-key mismatch, authentication failure, remote-path drift, archive-size violation, invalid ZIP structure, fixed-width drift, duplicate identity, or quality-gate failure.",
-  "checkpoint": "Record remote size and modified time before download; resume only against identical metadata. Download to run-scoped temporary storage, hash the archive, stream every filing member, retain only approved selected fields, then delete the unminimized archive. Recheck remote metadata before publication. A complete selected-field staged snapshot can be independently replayed without reacquisition. current.json changes only after verification and atomic release publication.",
+  "checkpoint": "Record remote size and modified time before download; resume only against identical metadata. Download to run-scoped temporary storage, hash the archive, stream every filing member, retain only approved selected fields, then delete the unminimized archive. Recheck remote metadata before publication. A complete selected-field staged snapshot can be independently replayed without reacquisition. A published selected-source snapshot is reusable only after its pointer identity, manifest, path containment, source-artifact inventory, sizes, SHA-256 hashes, acquisition metadata, layout, and source-release identity are revalidated. current.json changes only after verification and atomic release publication.",
   "idempotency": "Remote modified time and size plus archive SHA-256 and the ordered privacy-minimized source SHA-256 identify a source release; the Florida corporate document number creates one stable provisional organization candidate.",
   "cancellation": "Abort SFTP and local streams cooperatively, delete the unminimized partial or complete archive, retain only privacy-minimized unpublished staging for diagnosis, and do not change current.json.",
   "source_policy": "config/source-policies/fl-business-registry.json",

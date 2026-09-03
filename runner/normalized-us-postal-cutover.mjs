@@ -28,6 +28,7 @@ export const NORMALIZED_US_POSTAL_CUTOVER_SCHEMA_VERSION = 1;
 export const DEFAULT_NORMALIZED_US_POSTAL_CUTOVER_ROOT = "data/migrations/normalized-us-postal-fields-v1";
 const LOCK_FILENAME = "cutover.lock";
 const TERMINAL_STATUSES = new Set(["COMMITTED", "ROLLED_BACK"]);
+const PUBLISHED_MANIFEST_STATUSES = new Set(["published", "complete"]);
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -129,7 +130,8 @@ async function verifyReleaseDirectory({ appRoot, releaseDirectory, source }) {
     throw new Error(`${source.source_key} manifest changed after the cutover plan was prepared.`);
   }
   const manifest = manifestDocument.value;
-  if (manifest.dataset_id !== source.dataset_id || manifest.release_id !== source.candidate_release_id || manifest.status !== "published") {
+  const publicationStatusValid = manifest.status === undefined || PUBLISHED_MANIFEST_STATUSES.has(manifest.status);
+  if (manifest.dataset_id !== source.dataset_id || manifest.release_id !== source.candidate_release_id || !publicationStatusValid) {
     throw new Error(`${source.source_key} manifest identity or publication status is invalid.`);
   }
   if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length === 0) {
