@@ -24,9 +24,12 @@ type MapProperties = {
   observed_business_units: number;
   observed_physical_sites: number;
   observed_organization_primary_locations: number;
-  population_2020: number;
-  housing_units_2020: number;
-  employer_establishments: number;
+  population_2020: number | null;
+  population_status: string;
+  housing_units_2020: number | null;
+  housing_status: string;
+  employer_establishments: number | null;
+  employer_baseline_status: string;
   businesses_per_1000_people: number | null;
   population_density: number | null;
   evidence_per_employer_establishment: number | null;
@@ -89,10 +92,13 @@ type StateSummary = {
     state_name: string;
     postal_abbreviation: string;
     category_counts: Record<string, number>;
-    percent_of_state: Record<string, number>;
-    percent_of_category_nationwide: Record<string, number>;
+    percent_of_state: Record<string, number | null>;
+    percent_of_category_nationwide: Record<string, number | null>;
     all_category_evidence_count: number;
-    population_2020: number;
+    population_2020: number | null;
+    population_status: string;
+    housing_units_2020: number | null;
+    housing_status: string;
     uniquely_assigned_zcta_count: number;
   }>;
 };
@@ -159,6 +165,22 @@ function populationLabel(properties: MapProperties) {
 
 function housingLabel(properties: MapProperties) {
   return properties.level === 'zip' ? '2020 Census ZCTA housing units' : '2020 uniquely assigned ZCTA housing units';
+}
+
+function demographicNote(properties: MapProperties, kind: 'population' | 'housing') {
+  const value = kind === 'population' ? properties.population_2020 : properties.housing_units_2020;
+  const status = kind === 'population' ? properties.population_status : properties.housing_status;
+  if (typeof value === 'number') return properties.level === 'zip' ? 'Direct Census ZCTA value' : 'Complete sum of uniquely assigned ZCTAs; not an official jurisdiction total';
+  if (status === 'unavailable-no-uniquely-assigned-zcta') return 'No uniquely assigned ZCTA; unavailable, not zero';
+  if (status?.includes('incomplete')) return 'Incomplete ZCTA inputs; partial sum withheld';
+  return 'Census ZCTA value unavailable, not zero';
+}
+
+function employerNote(properties: MapProperties) {
+  if (typeof properties.employer_establishments === 'number') return properties.level === 'zip' ? 'Direct ZIP Business Patterns value' : 'Complete sum of published uniquely assigned ZCTAs';
+  if (properties.employer_baseline_status === 'unavailable-no-uniquely-assigned-zcta') return 'No uniquely assigned ZCTA; unavailable, not zero';
+  if (properties.employer_baseline_status?.includes('incomplete')) return 'Incomplete ZIP Business Patterns inputs; partial sum withheld';
+  return 'ZIP Business Patterns value not published; unavailable, not zero';
 }
 
 function shortRelease(value?: string) {
@@ -281,7 +303,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
         <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
+        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}<small>{employerNote(hovered)}</small></dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}<small>{demographicNote(hovered, 'population')}</small></dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}<small>{demographicNote(hovered, 'housing')}</small></dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
@@ -337,8 +359,8 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
   const categoryId = category?.id ?? 'all';
   const nationalAll = stateSummary?.states.reduce((sum, item) => sum + item.all_category_evidence_count, 0) ?? 0;
   const stateEvidence = state ? (categoryId === 'all' ? state.all_category_evidence_count : state.category_counts[categoryId]) : null;
-  const withinState = state ? (categoryId === 'all' ? (state.all_category_evidence_count ? 100 : 0) : state.percent_of_state[categoryId]) : null;
-  const acrossNation = state ? (categoryId === 'all' ? (nationalAll ? (state.all_category_evidence_count / nationalAll) * 100 : 0) : state.percent_of_category_nationwide[categoryId]) : null;
+  const withinState = state ? (categoryId === 'all' ? (state.all_category_evidence_count > 0 ? 100 : null) : state.percent_of_state[categoryId]) : null;
+  const acrossNation = state ? (categoryId === 'all' ? (nationalAll > 0 ? (state.all_category_evidence_count / nationalAll) * 100 : null) : state.percent_of_category_nationwide[categoryId]) : null;
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
@@ -348,11 +370,11 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>Observed business units</span><strong>{count(properties.observed_business_units)}</strong><small>Provisional establishments</small></div>
           <div><span>Observed physical sites</span><strong>{count(properties.observed_physical_sites)}</strong><small>Address-associated locations</small></div>
           <div><span>Selected-category evidence</span><strong>{count(properties.business_count)}</strong><small>Source-preserving; not deduplicated</small></div>
-          <div><span>Census employer units</span><strong>{count(properties.employer_establishments)}</strong><small>ZIP Business Patterns baseline</small></div>
+          <div><span>Census employer units</span><strong>{count(properties.employer_establishments)}</strong><small>{employerNote(properties)}</small></div>
           <div><span>{nonemployerLabel(properties)}</span><strong>{count(properties.nonemployer_establishments)}</strong><small>{nonemployerNote(properties)}</small></div>
           <div><span>Nonemployer receipts</span><strong>{currencyFromThousands(properties.nonemployer_receipts_thousands_usd)}</strong><small>Annual Census aggregate; not named-business revenue</small></div>
-          <div><span>{populationLabel(properties)}</span><strong>{count(properties.population_2020)}</strong><small>{properties.level === 'zip' ? 'Direct ZCTA value' : 'Not an official state or county total'}</small></div>
-          <div><span>{housingLabel(properties)}</span><strong>{count(properties.housing_units_2020)}</strong><small>{properties.level === 'zip' ? 'Direct ZCTA value' : 'Not an official state or county total'}</small></div>
+          <div><span>{populationLabel(properties)}</span><strong>{count(properties.population_2020)}</strong><small>{demographicNote(properties, 'population')}</small></div>
+          <div><span>{housingLabel(properties)}</span><strong>{count(properties.housing_units_2020)}</strong><small>{demographicNote(properties, 'housing')}</small></div>
           <div><span>{alignmentLabel(properties)}</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals the governed peer median</small></div>
           <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>

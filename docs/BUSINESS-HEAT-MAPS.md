@@ -40,7 +40,7 @@ The map can color polygons by:
 - Census Nonemployer establishments for directly published state/county geography; or
 - BEA current-dollar GDP for states and directly matched counties.
 
-Population and housing values come directly from the selected Census 2020 ZCTA records. State and county values are sums only for ZCTAs that have exactly one material state or county intersection. They are not full official state/county population totals.
+Population and housing values come directly from the selected Census 2020 ZCTA records. State and county values are shown only when at least one ZCTA is uniquely assigned and every included ZCTA has the relevant value; otherwise the value is `null` and the response explains whether no ZCTA was assignable or inputs were incomplete. A genuine direct Census zero remains numeric zero. ZIP Business Patterns employer establishments follow the same rule, so an unpublished ZIP baseline or incomplete aggregate is never displayed as zero or silently used as a partial alignment denominator. State and county sums are not full official jurisdiction totals.
 
 Census Nonemployer Statistics values come directly from the state and county rows already pinned by the governed coverage release. They represent annual aggregate businesses with no paid employees that meet the Census source-universe rules. They are not named entities, a current-operation assertion, or a completeness denominator. Nonemployer establishments and receipts are never summed with provisional registry evidence or ZIP Business Patterns employer establishments, and they are never allocated to ZIP/ZCTA polygons.
 
@@ -49,6 +49,8 @@ GDP comes from the governed BEA CAGDP1 release and is matched only by exact stat
 ## Geography and percentage safeguards
 
 The view never multiplies a business, population, address, or establishment count by polygon-area weights. State and county category aggregates admit only a ZCTA with exactly one material jurisdiction intersection. Ambiguous cross-boundary ZCTAs and reported ZIP values without a usable ZCTA remain excluded from those aggregates, and every response reports the excluded record and evidence counts.
+
+State composition and nationwide-share percentages return `null` when their denominator is zero or unavailable. Numeric `0%` is reserved for a measured zero numerator over a positive denominator.
 
 When a county is selected, all materially intersecting ZCTA polygons remain visible. A ZCTA's direct ZIP evidence is not represented as belonging wholly to the selected county, and cross-boundary counts are reported. ZCTAs approximate generalized ZIP service areas; they are not USPS delivery boundaries. ZIP+4 has no polygon.
 

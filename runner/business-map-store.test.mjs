@@ -88,6 +88,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
       ...baseCoverage,
       view_id: "zip:12346",
       zip_code: "12346",
+      employer_baseline: { status: "not-published-for-zip", establishments: null },
       registry_coverage: { ...baseCoverage.registry_coverage, physical_site_count: 7, establishment_count: 7, snap_authorization_evidence_count: 5, nppes_primary_practice_location_count: 2 },
       geography: { status: "2020-zcta-polygon-available", geoid: "12346" },
       jurisdiction_overlay: { relationships: [
@@ -152,6 +153,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
   ] };
   const counties = { type: "FeatureCollection", features: [
     { type: "Feature", properties: { GEOID: "01001", NAME: "Alpha County", STATE: "01" }, geometry: polygon(-90, 30, -80, 40) },
+    { type: "Feature", properties: { GEOID: "01003", NAME: "No Unique ZCTA County", STATE: "01" }, geometry: polygon(-80, 30, -75, 35) },
   ] };
   const zctas = { type: "FeatureCollection", features: [
     { type: "Feature", properties: { GEOID: "12345", ZCTA5: "12345", NAME: "ZCTA5 12345", POP100: 1000, HU100: 400, AREALAND: 2500000 }, geometry: polygon(-88, 32, -86, 34) },
@@ -166,7 +168,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
   ].map(json).join(""));
   await writeFile(path.join(geographyRelease, "derived", "index", "zctas.jsonl"), [
     { geo_id: "zcta:12345", geoid: "12345", zcta: "12345", population_2020: 1000, housing_units_2020: 400, area_land_m2: 2500000, geometry_file: "source/zctas/prefix=1.geojson" },
-    { geo_id: "zcta:12346", geoid: "12346", zcta: "12346", population_2020: 2000, housing_units_2020: 800, area_land_m2: 5000000, geometry_file: "source/zctas/prefix=1.geojson" },
+    { geo_id: "zcta:12346", geoid: "12346", zcta: "12346", population_2020: null, housing_units_2020: 0, area_land_m2: 5000000, geometry_file: "source/zctas/prefix=1.geojson" },
   ].map(json).join(""));
   await writeFile(path.join(geographyRelease, "manifest.json"), json({
     dataset_id: "us-census-geography",
@@ -262,6 +264,10 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.nonemployer_status, "published-annual-aggregate");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.nonemployer_establishments, null);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.nonemployer_status, "unavailable-source-record-not-published");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.population_2020, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.housing_units_2020, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.employer_establishments, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "02").properties.population_status, "unavailable-no-uniquely-assigned-zcta");
 
   const nonemployerStates = await store.getFeatures({ level: "states", categoryId: "all", enhancerId: "nonemployer_establishments" });
   assert.equal(nonemployerStates.features.find((feature) => feature.properties.geoid === "01").properties.heat_value, 111);
@@ -281,19 +287,27 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(filteredStates.meta.unfiltered_feature_count, 2);
   assert.equal(filteredStates.meta.filtered_out_feature_count, 1);
   assert.deepEqual(filteredStates.meta.demographic_filters, { min_population: 1, min_housing_units: 1 });
+  const zeroFloorStates = await store.getFeatures({ level: "states", categoryId: "all", minPopulation: "0" });
+  assert.deepEqual(zeroFloorStates.features.map((feature) => feature.properties.geoid), ["01"]);
 
   const counties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "businesses_per_1000_people" });
-  assert.equal(counties.features[0].properties.business_count, 5);
-  assert.equal(counties.features[0].properties.population_2020, 1000);
-  assert.equal(counties.features[0].properties.heat_value, 5);
-  assert.equal(counties.features[0].properties.relative_coverage_alignment_percent, 100);
-  assert.equal(counties.features[0].properties.relative_coverage_alignment_peer_scope, "county peers within state 01");
-  assert.equal(counties.features[0].properties.gdp_current_dollars, 321_000_000);
-  assert.equal(counties.features[0].properties.nonemployer_establishments, 44);
-  assert.equal(counties.features[0].properties.nonemployer_receipts_thousands_usd, 880);
-  assert.equal(counties.features[0].properties.nonemployer_reference_year, 2023);
-  assert.equal(counties.features[0].properties.nonemployer_source_release_id, "census-nonemployer-2023-fixture");
-  assert.equal(counties.features[0].properties.nonemployer_status, "published-annual-aggregate");
+  const alphaCounty = counties.features.find((feature) => feature.properties.geoid === "01001");
+  const emptyCounty = counties.features.find((feature) => feature.properties.geoid === "01003");
+  assert.equal(alphaCounty.properties.business_count, 5);
+  assert.equal(alphaCounty.properties.population_2020, 1000);
+  assert.equal(alphaCounty.properties.heat_value, 5);
+  assert.equal(alphaCounty.properties.relative_coverage_alignment_percent, 100);
+  assert.equal(alphaCounty.properties.relative_coverage_alignment_peer_scope, "county peers within state 01");
+  assert.equal(alphaCounty.properties.gdp_current_dollars, 321_000_000);
+  assert.equal(alphaCounty.properties.nonemployer_establishments, 44);
+  assert.equal(alphaCounty.properties.nonemployer_receipts_thousands_usd, 880);
+  assert.equal(alphaCounty.properties.nonemployer_reference_year, 2023);
+  assert.equal(alphaCounty.properties.nonemployer_source_release_id, "census-nonemployer-2023-fixture");
+  assert.equal(alphaCounty.properties.nonemployer_status, "published-annual-aggregate");
+  assert.equal(emptyCounty.properties.population_2020, null);
+  assert.equal(emptyCounty.properties.housing_units_2020, null);
+  assert.equal(emptyCounty.properties.employer_establishments, null);
+  assert.equal(emptyCounty.properties.population_status, "unavailable-no-uniquely-assigned-zcta");
 
   const nonemployerCounties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "nonemployer_establishments" });
   assert.equal(nonemployerCounties.features[0].properties.heat_value, 44);
@@ -305,6 +319,10 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(zips.features.length, 2);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12345").properties.business_count, 2);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.scope_assignment, "direct-zcta-evidence-not-county-allocated");
+  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.population_2020, null);
+  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.housing_units_2020, 0);
+  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.heat_value, 0);
+  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.employer_establishments, null);
   assert.equal(zips.features[0].properties.gdp_current_dollars, null);
   assert.equal(zips.features[0].properties.gdp_status, "unavailable-no-official-zip-gdp-do-not-allocate");
   assert.equal(zips.features[0].properties.nonemployer_establishments, null);
@@ -317,12 +335,20 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const nonemployerZips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "all", enhancerId: "nonemployer_establishments" });
   assert(nonemployerZips.features.every((feature) => feature.properties.heat_value === null));
+  const employerZips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "all", enhancerId: "employer_establishments" });
+  assert.equal(employerZips.features.find((feature) => feature.properties.geoid === "12346").properties.heat_value, null);
 
   const summary = await store.getStateSummary({ includeTerritories: false });
   const alpha = summary.states.find((state) => state.state_fips === "01");
   assert.equal(alpha.category_counts["retail-consumer"], 3);
   assert.equal(alpha.percent_of_state["retail-consumer"], 60);
   assert.equal(alpha.percent_of_category_nationwide["retail-consumer"], 100);
+  const beta = summary.states.find((state) => state.state_fips === "02");
+  assert.equal(beta.percent_of_state["retail-consumer"], null);
+  assert.equal(beta.percent_of_category_nationwide["retail-consumer"], 0);
+  assert.equal(alpha.percent_of_category_nationwide["registrations-nonprofits"], null);
+  assert.equal(beta.percent_of_category_nationwide["registrations-nonprofits"], null);
+  assert.match(summary.assignment.percentage_semantics, /null when.*denominator is zero/);
   assert.equal(summary.assignment.excluded_ambiguous_zcta_count, 1);
 });
 

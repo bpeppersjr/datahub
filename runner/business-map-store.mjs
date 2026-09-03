@@ -267,9 +267,12 @@ function emptyAggregate() {
   return {
     category_counts: Object.fromEntries(["all", ...CATEGORY_DEFINITIONS.map(({ id }) => id)].map((id) => [id, 0])),
     population_2020: 0,
+    population_known_zcta_count: 0,
     housing_units_2020: 0,
+    housing_known_zcta_count: 0,
     area_land_m2: 0,
     employer_establishments: 0,
+    employer_known_zcta_count: 0,
     observed_business_units: 0,
     observed_physical_sites: 0,
     observed_organization_primary_locations: 0,
@@ -279,30 +282,51 @@ function emptyAggregate() {
 
 function addAggregate(target, zip) {
   for (const [category, count] of Object.entries(zip.category_counts)) target.category_counts[category] += count;
-  target.population_2020 += zip.population_2020;
-  target.housing_units_2020 += zip.housing_units_2020;
+  if (zip.population_2020 !== null) target.population_2020 += zip.population_2020;
+  target.population_known_zcta_count += zip.population_known_zcta_count;
+  if (zip.housing_units_2020 !== null) target.housing_units_2020 += zip.housing_units_2020;
+  target.housing_known_zcta_count += zip.housing_known_zcta_count;
   target.area_land_m2 += zip.area_land_m2;
-  target.employer_establishments += zip.employer_establishments;
+  if (zip.employer_establishments !== null) target.employer_establishments += zip.employer_establishments;
+  target.employer_known_zcta_count += zip.employer_known_zcta_count;
   target.observed_business_units += zip.observed_business_units;
   target.observed_physical_sites += zip.observed_physical_sites;
   target.observed_organization_primary_locations += zip.observed_organization_primary_locations;
-  target.zcta_count += 1;
+  target.zcta_count += zip.zcta_count;
+}
+
+function completeZctaMetric(aggregate, valueField, knownCountField) {
+  if (aggregate.zcta_count <= 0 || aggregate[knownCountField] !== aggregate.zcta_count) return null;
+  return aggregate[valueField];
+}
+
+function aggregateMetricStatus(aggregate, knownCountField, metric) {
+  if (aggregate.zcta_count <= 0) return "unavailable-no-uniquely-assigned-zcta";
+  if (aggregate[knownCountField] === aggregate.zcta_count) return `available-complete-sum-of-uniquely-assigned-zcta-${metric}`;
+  if (aggregate[knownCountField] === 0) return `unavailable-no-published-zcta-${metric}`;
+  return `unavailable-incomplete-uniquely-assigned-zcta-${metric}-not-summed`;
 }
 
 function valueFor(aggregate, categoryId, enhancerId, economic = {}) {
   const businessCount = aggregate.category_counts[categoryId] ?? 0;
+  const population = completeZctaMetric(aggregate, "population_2020", "population_known_zcta_count");
+  const housing = completeZctaMetric(aggregate, "housing_units_2020", "housing_known_zcta_count");
+  const employers = completeZctaMetric(aggregate, "employer_establishments", "employer_known_zcta_count");
   if (enhancerId === "business_count") return businessCount;
-  if (enhancerId === "population_2020") return aggregate.population_2020;
-  if (enhancerId === "housing_units_2020") return aggregate.housing_units_2020;
-  if (enhancerId === "businesses_per_1000_people") return aggregate.population_2020 ? (businessCount / aggregate.population_2020) * 1000 : null;
-  if (enhancerId === "population_density") return aggregate.area_land_m2 ? aggregate.population_2020 / (aggregate.area_land_m2 / SQ_METERS_PER_SQ_MILE) : null;
+  if (enhancerId === "population_2020") return population;
+  if (enhancerId === "housing_units_2020") return housing;
+  if (enhancerId === "businesses_per_1000_people") return population !== null && population > 0 ? (businessCount / population) * 1000 : null;
+  if (enhancerId === "population_density") return population !== null && aggregate.area_land_m2 > 0 ? population / (aggregate.area_land_m2 / SQ_METERS_PER_SQ_MILE) : null;
   if (enhancerId === "nonemployer_establishments") return economic.nonemployer_establishments ?? null;
   if (enhancerId === "gdp_current_dollars") return economic.gdp_current_dollars ?? null;
-  return aggregate.employer_establishments;
+  return employers;
 }
 
 function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
   const geoid = String(feature.properties?.GEOID ?? feature.properties?.ZCTA5 ?? "");
+  const population = completeZctaMetric(aggregate, "population_2020", "population_known_zcta_count");
+  const housing = completeZctaMetric(aggregate, "housing_units_2020", "housing_known_zcta_count");
+  const employers = completeZctaMetric(aggregate, "employer_establishments", "employer_known_zcta_count");
   return {
     type: "Feature",
     geometry: feature.geometry,
@@ -312,9 +336,16 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       postal_abbreviation: feature.properties?.STUSAB ?? null,
       category_id: categoryId,
       business_count: aggregate.category_counts[categoryId] ?? 0,
-      population_2020: aggregate.population_2020,
-      housing_units_2020: aggregate.housing_units_2020,
-      employer_establishments: aggregate.employer_establishments,
+      population_2020: population,
+      population_status: aggregate.population_status ?? aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
+      population_known_zcta_count: aggregate.population_known_zcta_count,
+      housing_units_2020: housing,
+      housing_status: aggregate.housing_status ?? aggregateMetricStatus(aggregate, "housing_known_zcta_count", "housing"),
+      housing_known_zcta_count: aggregate.housing_known_zcta_count,
+      employer_establishments: employers,
+      employer_baseline_status: aggregate.employer_baseline_status ?? aggregateMetricStatus(aggregate, "employer_known_zcta_count", "employer-baseline"),
+      employer_known_zcta_count: aggregate.employer_known_zcta_count,
+      demographic_zcta_count: aggregate.zcta_count,
       observed_business_units: aggregate.observed_business_units,
       observed_physical_sites: aggregate.observed_physical_sites,
       observed_organization_primary_locations: aggregate.observed_organization_primary_locations,
@@ -354,7 +385,9 @@ function optionalWholeNumber(value, field) {
 }
 
 function percentage(numerator, denominator) {
-  return denominator ? Number(((numerator / denominator) * 100).toFixed(4)) : 0;
+  return Number.isFinite(numerator) && Number.isFinite(denominator) && denominator > 0
+    ? Number(((numerator / denominator) * 100).toFixed(4))
+    : null;
 }
 
 function median(values) {
@@ -372,8 +405,9 @@ function peerMedianForFeatures(features) {
 
 function peerMedianForAggregates(aggregates, categoryId) {
   return median(aggregates
-    .filter((aggregate) => aggregate.employer_establishments > 0)
-    .map((aggregate) => (aggregate.category_counts[categoryId] ?? 0) / aggregate.employer_establishments));
+    .map((aggregate) => ({ aggregate, employers: completeZctaMetric(aggregate, "employer_establishments", "employer_known_zcta_count") }))
+    .filter(({ employers }) => employers !== null && employers > 0)
+    .map(({ aggregate, employers }) => (aggregate.category_counts[categoryId] ?? 0) / employers));
 }
 
 function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displayed peer geographies" } = {}) {
@@ -381,7 +415,7 @@ function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displ
   return {
     peerMedian: resolvedPeerMedian,
     features: features.map((feature) => {
-      const evidencePerEmployerEstablishment = feature.properties.employer_establishments > 0
+      const evidencePerEmployerEstablishment = feature.properties.employer_establishments !== null && feature.properties.employer_establishments > 0
         ? feature.properties.business_count / feature.properties.employer_establishments
         : null;
       const relativeCoverageAlignmentPercent = resolvedPeerMedian && evidencePerEmployerEstablishment !== null
@@ -479,19 +513,31 @@ export function createBusinessMapStore({
       const relationships = (row.jurisdiction_overlay?.relationships ?? []).filter((item) => item.material_intersection);
       const stateIds = [...new Set(relationships.map((item) => String(item.state_geo_id ?? "").replace("state:", "")).filter(Boolean))];
       const countyIds = [...new Set(relationships.map((item) => String(item.county_geo_id ?? "").replace("county:", "")).filter(Boolean))];
+      const hasZcta = row.spatial_zip_polygon_membership?.status === "included" && Boolean(demographic);
+      const population = hasZcta ? finiteOrNull(demographic?.population_2020) : null;
+      const housing = hasZcta ? finiteOrNull(demographic?.housing_units_2020) : null;
+      const employerPublished = row.employer_baseline?.status === "published";
+      const employers = employerPublished ? finiteOrNull(row.employer_baseline.establishments) : null;
       const zip = {
         zip_code: code,
         category_counts: countsFor(row.registry_coverage),
-        population_2020: number(demographic?.population_2020),
-        housing_units_2020: number(demographic?.housing_units_2020),
+        population_2020: population,
+        population_status: population === null ? "unavailable-census-zcta-population-not-published" : "available-direct-census-zcta-2020",
+        population_known_zcta_count: population === null ? 0 : 1,
+        housing_units_2020: housing,
+        housing_status: housing === null ? "unavailable-census-zcta-housing-not-published" : "available-direct-census-zcta-2020",
+        housing_known_zcta_count: housing === null ? 0 : 1,
         area_land_m2: number(demographic?.area_land_m2),
-        employer_establishments: row.employer_baseline?.status === "published" ? number(row.employer_baseline.establishments) : 0,
+        employer_establishments: employers,
+        employer_baseline_status: employerPublished && employers === null ? "unavailable-published-employer-baseline-value-missing" : (row.employer_baseline?.status ?? "unavailable-no-employer-baseline-status"),
+        employer_known_zcta_count: employers === null ? 0 : 1,
         observed_business_units: number(row.registry_coverage?.establishment_count),
         observed_physical_sites: number(row.registry_coverage?.physical_site_count),
         observed_organization_primary_locations: number(row.registry_coverage?.organization_primary_location_count),
         state_ids: stateIds,
         county_ids: countyIds,
-        has_zcta: row.spatial_zip_polygon_membership?.status === "included" && Boolean(demographic),
+        has_zcta: hasZcta,
+        zcta_count: hasZcta ? 1 : 0,
       };
       zips.set(code, zip);
       for (const stateId of stateIds) {
@@ -705,8 +751,8 @@ export function createBusinessMapStore({
     });
     features = aligned.features;
     const unfilteredFeatureCount = features.length;
-    if (populationFloor !== null) features = features.filter((feature) => feature.properties.population_2020 >= populationFloor);
-    if (housingFloor !== null) features = features.filter((feature) => feature.properties.housing_units_2020 >= housingFloor);
+    if (populationFloor !== null) features = features.filter((feature) => feature.properties.population_2020 !== null && feature.properties.population_2020 >= populationFloor);
+    if (housingFloor !== null) features = features.filter((feature) => feature.properties.housing_units_2020 !== null && feature.properties.housing_units_2020 >= housingFloor);
     const heatValues = features.map((feature) => feature.properties.heat_value).filter(Number.isFinite);
     return {
       available: true,
@@ -751,6 +797,8 @@ export function createBusinessMapStore({
     const states = stateRows.map((row) => {
       const aggregate = index.stateAggregates.get(row.geoid) ?? emptyAggregate();
       const stateTotal = categoryIds.reduce((sum, id) => sum + aggregate.category_counts[id], 0);
+      const population = completeZctaMetric(aggregate, "population_2020", "population_known_zcta_count");
+      const housing = completeZctaMetric(aggregate, "housing_units_2020", "housing_known_zcta_count");
       return {
         state_fips: row.geoid,
         state_name: row.name,
@@ -760,8 +808,10 @@ export function createBusinessMapStore({
         percent_of_state: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], stateTotal)])),
         percent_of_category_nationwide: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], national[id])])),
         all_category_evidence_count: stateTotal,
-        population_2020: aggregate.population_2020,
-        housing_units_2020: aggregate.housing_units_2020,
+        population_2020: population,
+        population_status: aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
+        housing_units_2020: housing,
+        housing_status: aggregateMetricStatus(aggregate, "housing_known_zcta_count", "housing"),
         uniquely_assigned_zcta_count: aggregate.zcta_count,
       };
     });
@@ -774,6 +824,7 @@ export function createBusinessMapStore({
       states,
       assignment: {
         semantics: "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
+        percentage_semantics: "Category shares are null when their denominator is zero or unavailable; a numeric zero means a measured zero numerator over a positive denominator.",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
