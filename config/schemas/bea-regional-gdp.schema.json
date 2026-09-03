@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/bea-regional-gdp.schema.json",
+  "title": "BEA directly matched regional GDP aggregate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "geography_type",
+    "geoid",
+    "geography_name",
+    "state_fips",
+    "county_fips",
+    "source_geo_fips",
+    "source_geo_name",
+    "geography_release_id",
+    "reference_year",
+    "observation_period",
+    "status",
+    "gdp_current_dollars",
+    "gdp_current_dollars_flag",
+    "real_gdp_chained_2017_dollars",
+    "real_gdp_chained_2017_dollars_flag",
+    "quantity_index_2017_100",
+    "quantity_index_2017_100_flag",
+    "units",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "geography_type": { "enum": ["state", "county"] },
+    "geoid": { "type": "string", "pattern": "^([0-9]{2}|[0-9]{5})$" },
+    "geography_name": { "type": "string", "minLength": 1 },
+    "state_fips": { "type": "string", "pattern": "^[0-9]{2}$" },
+    "county_fips": { "type": ["string", "null"], "pattern": "^[0-9]{3}$" },
+    "source_geo_fips": { "type": "string", "pattern": "^[0-9]{5}$" },
+    "source_geo_name": { "type": "string", "minLength": 1 },
+    "geography_release_id": { "type": "string", "minLength": 1 },
+    "reference_year": { "type": "integer", "minimum": 2001, "maximum": 2100 },
+    "observation_period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string", "format": "date" },
+        "to": { "type": "string", "format": "date" }
+      }
+    },
+    "status": { "const": "published-annual-aggregate" },
+    "gdp_current_dollars": { "type": ["integer", "null"], "minimum": 0 },
+    "gdp_current_dollars_flag": { "type": ["string", "null"], "enum": ["(NA)", "(NM)", "missing", null] },
+    "real_gdp_chained_2017_dollars": { "type": ["integer", "null"], "minimum": 0 },
+    "real_gdp_chained_2017_dollars_flag": { "type": ["string", "null"], "enum": ["(NA)", "(NM)", "missing", null] },
+    "quantity_index_2017_100": { "type": ["number", "null"], "minimum": 0 },
+    "quantity_index_2017_100_flag": { "type": ["string", "null"], "enum": ["(NA)", "(NM)", "missing", null] },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gdp_current_dollars", "real_gdp_chained_2017_dollars", "quantity_index_2017_100"],
+      "properties": {
+        "gdp_current_dollars": { "const": "current dollars" },
+        "real_gdp_chained_2017_dollars": { "const": "chained 2017 dollars" },
+        "quantity_index_2017_100": { "const": "index, 2017=100" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "transformation_version", "policy_id"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "source_release_id": { "type": "string", "minLength": 1 },
+        "source_record_id": { "type": "string", "minLength": 1 },
+        "ingest_run_id": { "type": "string", "minLength": 1 },
+        "transformation_version": { "const": "bea-regional-gdp@1.0.0" },
+        "policy_id": { "const": "bea-regional-gdp" }
+      }
+    }
+  }
+}

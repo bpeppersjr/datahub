@@ -9,6 +9,7 @@ type Catalog = {
   available: boolean;
   coverage_release_id: string;
   geography_release_id: string;
+  gdp_release_id: string | null;
   categories: Category[];
   category_groups: Array<{ id: string; label: string; categories: Category[] }>;
   enhancers: Enhancer[];
@@ -33,6 +34,9 @@ type MapProperties = {
   relative_coverage_alignment_basis: string;
   gdp_current_dollars: number | null;
   gdp_reference_year: number | null;
+  gdp_units: string | null;
+  gdp_source_release_id: string | null;
+  gdp_geography_kind: string | null;
   gdp_status: string;
   state_fips?: string;
   county_geoid?: string;
@@ -102,6 +106,18 @@ function currency(value?: number | null) {
   return value === null || value === undefined ? 'Unavailable' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 }).format(value);
 }
 
+function gdpLabel(properties: MapProperties) {
+  return properties.gdp_reference_year ? `GDP — ${properties.gdp_reference_year} current dollars` : 'GDP — current dollars';
+}
+
+function gdpNote(properties: MapProperties) {
+  if (properties.gdp_current_dollars !== null) return 'BEA estimate · direct geography match';
+  if (properties.gdp_status === 'unavailable-no-official-zip-gdp-do-not-allocate') return 'No official ZIP GDP; not allocated';
+  if (properties.gdp_status.includes('no-direct-bea')) return 'No direct BEA geography match';
+  if (properties.gdp_status === 'unavailable-bea-value-not-published') return 'BEA value not published';
+  return 'No governed BEA GDP release';
+}
+
 function shortRelease(value?: string) {
   if (!value) return 'unavailable';
   const tail = value.split('-').at(-1);
@@ -165,10 +181,11 @@ function heatColor(value: number | null, maximum: number, selected: boolean) {
   return `hsl(${hue} 78% ${lightness}%)`;
 }
 
-function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelect, onHover }: {
+function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLabel, onSelect, onHover }: {
   data: MapResponse;
   selectedGeoid: string;
   categoryLabel: string;
+  enhancerId: string;
   enhancerLabel: string;
   onSelect: (feature: MapFeature) => void;
   onHover: (feature: MapFeature | null) => void;
@@ -222,8 +239,8 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelec
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
         <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>Population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>Relative alignment (proxy)</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}</dd></div><div><dt>GDP</dt><dd>{currency(hovered.gdp_current_dollars)}</dd></div></dl>
-        <small>Heat: {enhancerLabel} · {count(hovered.heat_value)}</small>
+        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>Population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>Relative alignment (proxy)</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div></dl>
+        <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
   );
@@ -292,7 +309,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>Population</span><strong>{count(properties.population_2020)}</strong><small>2020 Census</small></div>
           <div><span>Housing units</span><strong>{count(properties.housing_units_2020)}</strong><small>2020 Census</small></div>
           <div><span>Relative coverage alignment (proxy)</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals displayed peer median</small></div>
-          <div><span>GDP</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{properties.gdp_current_dollars === null ? 'Requires governed BEA GDP release' : `BEA ${properties.gdp_reference_year}`}</small></div>
+          <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>
         <div className="entity-ratios"><span><b>{count(properties.businesses_per_1000_people)}</b> evidence / 1K people</span><span><b>{count(properties.population_density)}</b> people / sq. mile</span></div>
         <p className="entity-method-note">Relative alignment compares selected-category evidence per Census employer establishment with the median of the currently displayed peer entities. Values can exceed 100%; this is a comparison proxy, not measured completeness of all businesses.</p>
@@ -396,8 +413,8 @@ export default function BusinessIntelligence() {
         <div className="map-stage">
           <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>ZIP {selectedZip}</strong></>}</nav>
           {loading && <div className="map-loading overlay">Loading {level} polygons and evidence…</div>}
-          {data && <FeatureMap key={`${data.level}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} onHover={setHoveredFeature} />}
-          {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
+          {data && <FeatureMap key={`${data.level}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerId={enhancerId} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} onHover={setHoveredFeature} />}
+          {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed ZCTAs materially intersect the selected county; their direct ZIP values are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
         </div>
         <EntitySummary feature={inspectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} />

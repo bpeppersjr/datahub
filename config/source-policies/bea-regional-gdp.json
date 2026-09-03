@@ -1,0 +1,21 @@
+{
+  "policy_id": "bea-regional-gdp",
+  "version": "1.0.0",
+  "publisher": "United States Bureau of Economic Analysis",
+  "ownership": "United States federal government public-domain aggregate data",
+  "source_home": "https://apps.bea.gov/regional/downloadzip.htm",
+  "methodology_url": "https://www.bea.gov/resources/methodologies/gdp-by-county-metro-and-other-areas",
+  "allowed_use": ["download", "local processing", "analysis", "derived aggregate datasets", "redistribution with provenance"],
+  "prohibited_use": [
+    "representing GDP as a business count, named-business directory, or collection-completeness measure",
+    "allocating national, regional, state, county, or combined-area GDP to ZIP codes or ZCTAs without a published source relationship",
+    "duplicating a BEA combined-area value onto any constituent county or county-equivalent",
+    "converting not-available, not-meaningful, or unpublished values to zero"
+  ],
+  "attribution": "Source: U.S. Bureau of Economic Analysis, CAGDP1 County GDP Summary.",
+  "retention": "Indefinite for public aggregate source releases and derived artifacts unless an approved retention rule applies.",
+  "redistribution": "Allowed with publisher, source table, reference year, units, transformation version, flags, geography limitations, and provenance. Citation is appreciated by BEA.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-09-03"
+}

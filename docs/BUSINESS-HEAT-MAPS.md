@@ -1,6 +1,6 @@
 # Heatmap Builder and entity alignment
 
-Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, and national registry releases. It does not publish a new data release or change a production pointer.
+Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, national registry, and optional BEA regional-GDP releases. It does not publish a new data release or change a production pointer.
 
 ## Operator workflow
 
@@ -23,7 +23,7 @@ The persistent entity-summary section to the right of the map provides selected 
 - **Within state**: the category's share of all relevant source-category evidence assigned to that state; and
 - **Across U.S.**: the state's share of that category across the displayed states.
 
-The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. GDP remains explicitly unavailable until a governed BEA GDP release is integrated. Business-name records appear in this same section after a ZIP selection.
+The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, population, housing, density, and GDP status. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that no official ZIP GDP is available; no state or county value is allocated downward. Business-name records appear in this same section after a ZIP selection.
 
 **Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the median value for the unfiltered peers at the current geography level. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
 
@@ -36,9 +36,12 @@ The map can color polygons by:
 - 2020 Census housing units;
 - selected-category evidence per 1,000 people;
 - population density per square mile; or
-- the 2023 Census ZIP Business Patterns employer-establishment baseline.
+- the 2023 Census ZIP Business Patterns employer-establishment baseline; or
+- BEA current-dollar GDP for states and directly matched counties.
 
 Population and housing values come directly from the selected Census 2020 ZCTA records. State and county values are sums only for ZCTAs that have exactly one material state or county intersection. They are not full official state/county population totals.
+
+GDP comes from the governed BEA CAGDP1 release and is matched only by exact state FIPS or five-digit county-equivalent GEOID. BEA combination areas are not duplicated across their components. GDP is economic context, not a business count, and it is excluded from coverage-completion and relative-alignment denominators.
 
 ## Geography and percentage safeguards
 

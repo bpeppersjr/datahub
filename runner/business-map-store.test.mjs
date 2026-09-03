@@ -16,21 +16,24 @@ function polygon(west, south, east, north) {
   return { type: "Polygon", coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] };
 }
 
-async function fixture(context) {
+async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1" } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const coverageRoot = path.join(root, "coverage");
   const geographyRoot = path.join(root, "geography");
   const registryRoot = path.join(root, "registry");
+  const gdpRoot = path.join(root, "gdp");
   const coverageRelease = path.join(coverageRoot, "releases", "coverage-1");
   const geographyRelease = path.join(geographyRoot, "releases", "geography-1");
   const registryRelease = path.join(registryRoot, "releases", "registry-1");
+  const gdpRelease = path.join(gdpRoot, "releases", "gdp-1");
   await Promise.all([
     mkdir(path.join(coverageRelease, "views"), { recursive: true }),
     mkdir(path.join(geographyRelease, "source", "counties"), { recursive: true }),
     mkdir(path.join(geographyRelease, "source", "zctas"), { recursive: true }),
     mkdir(path.join(geographyRelease, "derived", "index"), { recursive: true }),
     mkdir(path.join(registryRelease, "resolution", "location-profiles"), { recursive: true }),
+    ...(withGdp ? [mkdir(path.join(gdpRelease, "derived"), { recursive: true })] : []),
   ]);
 
   const baseCoverage = {
@@ -156,10 +159,39 @@ async function fixture(context) {
   }));
   await writeFile(path.join(registryRoot, "current.json"), json({ dataset_id: "national-business-registry", release_id: "registry-1", manifest: "releases/registry-1/manifest.json" }));
 
+  if (withGdp) {
+    await writeFile(path.join(gdpRelease, "derived", "state-gdp.jsonl"), [
+      { schema_version: "1.0.0", geography_type: "state", geoid: "01", reference_year: 2024, gdp_current_dollars: 1_234_000_000, units: { gdp_current_dollars: "current dollars" }, provenance: { source_release_id: "bea-cagdp1-2024-fixture" } },
+      { schema_version: "1.0.0", geography_type: "state", geoid: "02", reference_year: 2024, gdp_current_dollars: 500_000_000, units: { gdp_current_dollars: "current dollars" }, provenance: { source_release_id: "bea-cagdp1-2024-fixture" } },
+    ].map(json).join(""));
+    await writeFile(path.join(gdpRelease, "derived", "county-gdp.jsonl"), json({
+      schema_version: "1.0.0",
+      geography_type: "county",
+      geoid: "01001",
+      reference_year: 2024,
+      gdp_current_dollars: 321_000_000,
+      units: { gdp_current_dollars: "current dollars" },
+      provenance: { source_release_id: "bea-cagdp1-2024-fixture" },
+    }));
+    await writeFile(path.join(gdpRelease, "manifest.json"), json({
+      dataset_id: "bea-regional-gdp",
+      release_id: "gdp-1",
+      status: "published",
+      reference_year: 2024,
+      geography_dependency: { dataset_id: "us-census-geography", release_id: gdpGeographyReleaseId, manifest_sha256: "fixture" },
+      artifacts: [
+        { artifact_type: "state-gdp-jsonl", path: "derived/state-gdp.jsonl", record_count: 2 },
+        { artifact_type: "county-gdp-jsonl", path: "derived/county-gdp.jsonl", record_count: 1 },
+      ],
+    }));
+    await writeFile(path.join(gdpRoot, "current.json"), json({ dataset_id: "bea-regional-gdp", release_id: "gdp-1", manifest: "releases/gdp-1/manifest.json" }));
+  }
+
   return createBusinessMapStore({
     coveragePointerPath: path.join(coverageRoot, "current.json"),
     geographyPointerPath: path.join(geographyRoot, "current.json"),
     registryPointerPath: path.join(registryRoot, "current.json"),
+    gdpPointerPath: path.join(gdpRoot, "current.json"),
   });
 }
 
@@ -169,6 +201,8 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(catalog.available, true);
   assert(catalog.categories.some((category) => category.id === "retail-consumer"));
   assert(catalog.enhancers.some((enhancer) => enhancer.id === "population_2020"));
+  assert(catalog.enhancers.some((enhancer) => enhancer.id === "gdp_current_dollars"));
+  assert.equal(catalog.gdp_release_id, "gdp-1");
 
   const states = await store.getFeatures({ level: "states", categoryId: "retail-consumer", enhancerId: "business_count" });
   assert.equal(states.features.length, 2);
@@ -176,8 +210,11 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_business_units, 5);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_physical_sites, 5);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_percent, 100);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_current_dollars, null);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_status, "unavailable-no-governed-bea-gdp-release");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_current_dollars, 1_234_000_000);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_reference_year, 2024);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_units, "current dollars");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_source_release_id, "bea-cagdp1-2024-fixture");
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_status, "available-direct-bea-estimate");
   assert.match(states.meta.relative_coverage_alignment_semantics, /values may exceed 100%.*not measured completeness/);
   assert.equal(states.meta.excluded_ambiguous_zcta_count, 1);
 
@@ -198,11 +235,17 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(counties.features[0].properties.population_2020, 1000);
   assert.equal(counties.features[0].properties.heat_value, 5);
   assert.equal(counties.features[0].properties.relative_coverage_alignment_percent, 100);
+  assert.equal(counties.features[0].properties.gdp_current_dollars, 321_000_000);
+
+  const gdpCounties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "gdp_current_dollars" });
+  assert.equal(gdpCounties.features[0].properties.heat_value, 321_000_000);
 
   const zips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "health-care", enhancerId: "housing_units_2020" });
   assert.equal(zips.features.length, 2);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12345").properties.business_count, 2);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.scope_assignment, "direct-zcta-evidence-not-county-allocated");
+  assert.equal(zips.features[0].properties.gdp_current_dollars, null);
+  assert.equal(zips.features[0].properties.gdp_status, "unavailable-no-official-zip-gdp-do-not-allocate");
 
   const summary = await store.getStateSummary({ includeTerritories: false });
   const alpha = summary.states.find((state) => state.state_fips === "01");
@@ -235,6 +278,24 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   await assert.rejects(() => store.getFeatures({ level: "states", minHousingUnits: "-1" }), /min_housing_units/);
 });
 
+test("keeps the map available when the optional governed GDP release is absent", async (context) => {
+  const store = await fixture(context, { withGdp: false });
+  const catalog = await store.getCatalog();
+  assert.equal(catalog.available, true);
+  assert.equal(catalog.gdp_release_id, null);
+
+  const states = await store.getFeatures({ level: "states", categoryId: "all", enhancerId: "gdp_current_dollars" });
+  assert.equal(states.features[0].properties.heat_value, null);
+  assert.equal(states.features[0].properties.gdp_current_dollars, null);
+  assert.equal(states.features[0].properties.gdp_status, "unavailable-no-governed-bea-gdp-release");
+  assert.equal(states.meta.gdp_status, "unavailable-no-governed-bea-gdp-release");
+});
+
+test("rejects GDP values reconciled against a different geography release", async (context) => {
+  const store = await fixture(context, { gdpGeographyReleaseId: "geography-stale" });
+  await assert.rejects(() => store.getCatalog(), /GDP geography dependency does not match/);
+});
+
 test("rejects a coverage manifest path outside its governed dataset directory", async (context) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-escape-"));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -246,6 +307,7 @@ test("rejects a coverage manifest path outside its governed dataset directory", 
     coveragePointerPath: path.join(coverageRoot, "current.json"),
     geographyPointerPath: path.join(root, "missing-geography.json"),
     registryPointerPath: path.join(root, "missing-registry.json"),
+    gdpPointerPath: path.join(root, "missing-gdp.json"),
   });
   await assert.rejects(() => store.getCatalog(), /escapes its dataset directory/);
 });

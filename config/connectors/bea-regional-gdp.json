@@ -1,0 +1,54 @@
+{
+  "connector_id": "bea-regional-gdp",
+  "version": "1.0.0",
+  "description": "Publishes governed state and directly matched county GDP aggregates from the BEA CAGDP1 archive.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-baselines/bea-regional-gdp" },
+      "geography_pointer": { "type": "string", "default": "data/geography/current.json" },
+      "source": { "type": ["string", "null"], "default": null }
+    }
+  },
+  "input_artifact_types": ["us-census-geography-release", "optional-operator-supplied-cagdp1-archive"],
+  "output_artifact_types": [
+    "source-archive",
+    "bea-state-gdp-jsonl",
+    "bea-county-gdp-jsonl",
+    "bea-geography-coverage-gaps-jsonl",
+    "dataset-manifest-json"
+  ],
+  "named_secret_references": [],
+  "allowed_hosts": ["apps.bea.gov"],
+  "redirect_policy": "deny",
+  "provider_budget_key": "bea-regional-gdp",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "request_timeout_seconds": 300,
+    "retries": 3,
+    "max_parallel_downloads": 1,
+    "maximum_source_archive_bytes": 10000000,
+    "maximum_selected_csv_bytes": 10000000,
+    "maximum_total_uncompressed_archive_bytes": 20000000
+  },
+  "retry": "Exponential backoff for the single official archive request; fail after four total attempts.",
+  "checkpoint": "The archive and derived records are run-scoped; the manifest and current pointer publish only after schema, geography, and coverage gates pass.",
+  "idempotency": "Each successful build creates one immutable release and atomically updates current.json after publication.",
+  "cancellation": "Abort the active request and leave no shared lock; unpublished staging remains isolated by run ID.",
+  "source_policy": "config/source-policies/bea-regional-gdp.json",
+  "retention_profile": "Retain immutable public aggregate releases until an approved retention operation removes them.",
+  "produced_entities": ["state-economic-aggregate", "county-economic-aggregate", "geography-coverage-gap"],
+  "produced_identifiers": ["state-fips", "county-geoid", "bea-regional-geofips"]
+}

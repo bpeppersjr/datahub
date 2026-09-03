@@ -8,6 +8,7 @@ import { APP_ROOT } from "./paths.mjs";
 const DEFAULT_COVERAGE_POINTER = path.join(APP_ROOT, "data", "business-coverage-views", "current.json");
 const DEFAULT_GEOGRAPHY_POINTER = path.join(APP_ROOT, "data", "geography", "current.json");
 const DEFAULT_REGISTRY_POINTER = path.join(APP_ROOT, "data", "business-registry", "current.json");
+const DEFAULT_GDP_POINTER = path.join(APP_ROOT, "data", "business-baselines", "bea-regional-gdp", "current.json");
 const SQ_METERS_PER_SQ_MILE = 2_589_988.110336;
 
 const CATEGORY_DEFINITIONS = Object.freeze([
@@ -109,6 +110,7 @@ const ENHANCERS = Object.freeze([
   { id: "businesses_per_1000_people", label: "Business evidence per 1,000 people", kind: "population-enhanced" },
   { id: "population_density", label: "Population per square mile", kind: "demographic" },
   { id: "employer_establishments", label: "2023 employer-establishment baseline", kind: "business-demographic" },
+  { id: "gdp_current_dollars", label: "BEA current-dollar GDP", kind: "economic" },
 ]);
 
 const CATEGORY_BY_ID = new Map(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
@@ -158,6 +160,54 @@ function number(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function gdpProperties(release, record, geographyType) {
+  if (geographyType === "zip") {
+    return {
+      gdp_current_dollars: null,
+      gdp_reference_year: null,
+      gdp_units: null,
+      gdp_source_release_id: release?.manifest.release_id ?? null,
+      gdp_geography_kind: null,
+      gdp_status: "unavailable-no-official-zip-gdp-do-not-allocate",
+    };
+  }
+  if (!release) {
+    return {
+      gdp_current_dollars: null,
+      gdp_reference_year: null,
+      gdp_units: null,
+      gdp_source_release_id: null,
+      gdp_geography_kind: geographyType,
+      gdp_status: "unavailable-no-governed-bea-gdp-release",
+    };
+  }
+  if (!record) {
+    return {
+      gdp_current_dollars: null,
+      gdp_reference_year: finiteOrNull(release.manifest.reference_year),
+      gdp_units: "current dollars",
+      gdp_source_release_id: release.manifest.source_release?.source_release_id ?? release.manifest.release_id,
+      gdp_geography_kind: geographyType,
+      gdp_status: `unavailable-no-direct-bea-${geographyType}-match`,
+    };
+  }
+  const currentDollars = finiteOrNull(record.gdp_current_dollars);
+  return {
+    gdp_current_dollars: currentDollars,
+    gdp_reference_year: finiteOrNull(record.reference_year),
+    gdp_units: record.units?.gdp_current_dollars ?? null,
+    gdp_source_release_id: record.provenance?.source_release_id ?? release.manifest.release_id,
+    gdp_geography_kind: record.geography_type ?? geographyType,
+    gdp_status: currentDollars === null ? "unavailable-bea-value-not-published" : "available-direct-bea-estimate",
+  };
+}
+
 function countsFor(registryCoverage) {
   const counts = {};
   let all = 0;
@@ -196,13 +246,14 @@ function addAggregate(target, zip) {
   target.zcta_count += 1;
 }
 
-function valueFor(aggregate, categoryId, enhancerId) {
+function valueFor(aggregate, categoryId, enhancerId, economic = {}) {
   const businessCount = aggregate.category_counts[categoryId] ?? 0;
   if (enhancerId === "business_count") return businessCount;
   if (enhancerId === "population_2020") return aggregate.population_2020;
   if (enhancerId === "housing_units_2020") return aggregate.housing_units_2020;
   if (enhancerId === "businesses_per_1000_people") return aggregate.population_2020 ? (businessCount / aggregate.population_2020) * 1000 : null;
   if (enhancerId === "population_density") return aggregate.area_land_m2 ? aggregate.population_2020 / (aggregate.area_land_m2 / SQ_METERS_PER_SQ_MILE) : null;
+  if (enhancerId === "gdp_current_dollars") return economic.gdp_current_dollars ?? null;
   return aggregate.employer_establishments;
 }
 
@@ -225,7 +276,7 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       observed_organization_primary_locations: aggregate.observed_organization_primary_locations,
       population_density: valueFor(aggregate, categoryId, "population_density"),
       businesses_per_1000_people: valueFor(aggregate, categoryId, "businesses_per_1000_people"),
-      heat_value: valueFor(aggregate, categoryId, enhancerId),
+      heat_value: valueFor(aggregate, categoryId, enhancerId, extra),
       ...extra,
     },
   };
@@ -289,9 +340,9 @@ function addRelativeCoverageAlignment(features) {
           evidence_per_employer_establishment: evidencePerEmployerEstablishment,
           relative_coverage_alignment_percent: relativeCoverageAlignmentPercent,
           relative_coverage_alignment_basis: "selected-category evidence per Census employer establishment versus the unfiltered geography-scope peer median; 100 equals the median and this is not true business-universe completeness",
-          gdp_current_dollars: null,
-          gdp_reference_year: null,
-          gdp_status: "unavailable-no-governed-bea-gdp-release",
+          gdp_current_dollars: feature.properties.gdp_current_dollars ?? null,
+          gdp_reference_year: feature.properties.gdp_reference_year ?? null,
+          gdp_status: feature.properties.gdp_status ?? "unavailable-no-governed-bea-gdp-release",
         },
       };
     }),
@@ -302,12 +353,13 @@ export function createBusinessMapStore({
   coveragePointerPath = DEFAULT_COVERAGE_POINTER,
   geographyPointerPath = DEFAULT_GEOGRAPHY_POINTER,
   registryPointerPath = DEFAULT_REGISTRY_POINTER,
+  gdpPointerPath = DEFAULT_GDP_POINTER,
 } = {}) {
   let indexKey = null;
   let indexPromise = null;
   const geometryCache = new Map();
 
-  async function buildIndex(coverage, geography) {
+  async function buildIndex(coverage, geography, gdp) {
     const statesIndexPath = artifactPath(geography, (item) => item.path === "derived/index/states.jsonl", "state index");
     const zctaIndexPath = artifactPath(geography, (item) => item.path === "derived/index/zctas.jsonl", "ZCTA index");
     const coveragePath = artifactPath(coverage, (item) => item.artifact_type === "zip-coverage-view-jsonl", "ZIP coverage view");
@@ -317,6 +369,28 @@ export function createBusinessMapStore({
       readJsonLines(statesIndexPath, (row) => states.set(row.geoid, row)),
       readJsonLines(zctaIndexPath, (row) => zctaDemographics.set(row.geoid, row)),
     ]);
+    const stateGdp = new Map();
+    const countyGdp = new Map();
+    if (gdp) {
+      const stateGdpPath = artifactPath(gdp, (item) => item.path === "derived/state-gdp.jsonl", "state GDP index");
+      const countyGdpPath = artifactPath(gdp, (item) => item.path === "derived/county-gdp.jsonl", "county GDP index");
+      await Promise.all([
+        readJsonLines(stateGdpPath, (row) => {
+          const geoid = String(row.geoid ?? "");
+          if (!/^\d{2}$/.test(geoid) || (row.geography_type && row.geography_type !== "state") || stateGdp.has(geoid)) {
+            throw new Error("BEA state GDP index contains an invalid or duplicate geography record.");
+          }
+          stateGdp.set(geoid, row);
+        }),
+        readJsonLines(countyGdpPath, (row) => {
+          const geoid = String(row.geoid ?? "");
+          if (!/^\d{5}$/.test(geoid) || (row.geography_type && row.geography_type !== "county") || countyGdp.has(geoid)) {
+            throw new Error("BEA county GDP index contains an invalid or duplicate geography record.");
+          }
+          countyGdp.set(geoid, row);
+        }),
+      ]);
+    }
     const zips = new Map();
     const zipsByState = new Map();
     const zipsByCounty = new Map();
@@ -378,20 +452,27 @@ export function createBusinessMapStore({
         excluded.county.ambiguous_business_evidence += zip.category_counts.all;
       }
     });
-    return { coverage, geography, states, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
+    return { coverage, geography, gdp, states, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
   }
 
   async function ensureIndex() {
-    const [coverage, geography] = await Promise.all([
+    const [coverage, geography, gdp] = await Promise.all([
       loadPointer(coveragePointerPath, "national-business-coverage-views", new Set(["published-partial-local-aggregate"])),
       loadPointer(geographyPointerPath, "us-census-geography", new Set(["published"])),
+      loadPointer(gdpPointerPath, "bea-regional-gdp", new Set(["published"])),
     ]);
     if (!coverage || !geography) return null;
-    const key = `${coverage.manifest.release_id}:${geography.manifest.release_id}`;
+    if (gdp) {
+      const dependency = gdp.manifest.geography_dependency;
+      if (dependency?.dataset_id !== "us-census-geography" || dependency.release_id !== geography.manifest.release_id) {
+        throw new Error("BEA GDP geography dependency does not match the active governed geography release.");
+      }
+    }
+    const key = `${coverage.manifest.release_id}:${geography.manifest.release_id}:${gdp?.manifest.release_id ?? "no-gdp"}`;
     if (key !== indexKey) {
       indexKey = key;
       geometryCache.clear();
-      indexPromise = buildIndex(coverage, geography).catch((error) => {
+      indexPromise = buildIndex(coverage, geography, gdp).catch((error) => {
         indexKey = null;
         indexPromise = null;
         throw error;
@@ -428,6 +509,7 @@ export function createBusinessMapStore({
       available: true,
       coverage_release_id: index.coverage.manifest.release_id,
       geography_release_id: index.geography.manifest.release_id,
+      gdp_release_id: index.gdp?.manifest.release_id ?? null,
       export_policy: index.coverage.manifest.export_policy,
       complete_all_businesses: false,
       entity_resolution_applied: false,
@@ -440,6 +522,7 @@ export function createBusinessMapStore({
         jurisdiction_assignment: "State/county aggregates include only ZCTAs with exactly one material intersection; no polygon-area allocation is used.",
         population: "2020 Census ZCTA population and housing. State/county values sum only uniquely assigned material ZCTAs.",
         zip: "Five-digit ZCTA/ZIP evidence only. ZIP+4 is not joined and has no polygon.",
+        gdp: "BEA current-dollar GDP estimates are joined only by exact state or county GEOID. No GDP is allocated to ZIP/ZCTA geography or used in relative coverage alignment.",
       },
     };
   }
@@ -469,6 +552,7 @@ export function createBusinessMapStore({
         return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "state",
           scope_assignment: "unique-material-zcta-state",
+          ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
       });
       meta = {
@@ -488,6 +572,7 @@ export function createBusinessMapStore({
           level: "county",
           state_fips: state,
           scope_assignment: "unique-material-zcta-county",
+          ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
       });
       meta = {
@@ -516,6 +601,7 @@ export function createBusinessMapStore({
           state_fips: state,
           county_geoid: county,
           scope_assignment: "direct-zcta-evidence-not-county-allocated",
+          ...gdpProperties(index.gdp, null, "zip"),
         });
       });
       meta = {
@@ -541,6 +627,7 @@ export function createBusinessMapStore({
       enhancer_id: enhancerId,
       coverage_release_id: index.coverage.manifest.release_id,
       geography_release_id: index.geography.manifest.release_id,
+      gdp_release_id: index.gdp?.manifest.release_id ?? null,
       meta: {
         ...meta,
         feature_count: features.length,
@@ -549,7 +636,11 @@ export function createBusinessMapStore({
         demographic_filters: { min_population: populationFloor, min_housing_units: housingFloor },
         peer_median_evidence_per_employer_establishment: aligned.peerMedian,
         relative_coverage_alignment_semantics: "100% equals the selected-category evidence density of the unfiltered geography-scope peer median; values may exceed 100%. This is not measured completeness of the business universe.",
-        gdp_status: "unavailable-no-governed-bea-gdp-release",
+        gdp_status: level === "zips"
+          ? "unavailable-no-official-zip-gdp-do-not-allocate"
+          : index.gdp
+            ? "available-direct-matches-only"
+            : "unavailable-no-governed-bea-gdp-release",
         heat_min: heatValues.length ? Math.min(...heatValues) : null,
         heat_max: heatValues.length ? Math.max(...heatValues) : null,
       },
