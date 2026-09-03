@@ -13,10 +13,10 @@ function stateAssessment(catalog, stateAbbreviation) {
   return catalog.states.find((state) => state.state_abbreviation === stateAbbreviation);
 }
 
-test("loads a non-overlapping governed catalog across revalidation and Queues 4 through 6", async () => {
+test("loads a non-overlapping governed catalog across revalidation and Queues 4 through 7", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
-  assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ"]);
-  assert.equal(indexStateBusinessSourceAssessments(catalog).size, 25);
+  assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ", "MD", "MO", "IN", "SC"]);
+  assert.equal(indexStateBusinessSourceAssessments(catalog).size, 29);
   assert.equal(stateAssessment(catalog, "MI").offline_fixture_connector_authorized, false);
   assert.equal(stateAssessment(catalog, "MI").authorized_next_action_type, "written-preflight-inquiry");
   for (const stateAbbreviation of ["DC", "AK"]) {
@@ -25,7 +25,7 @@ test("loads a non-overlapping governed catalog across revalidation and Queues 4 
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
     schema_version: "1.0.0",
-    assessment_catalog_id: "state-business-source-assessment-catalog-queue-6-2026-09-03",
+    assessment_catalog_id: "state-business-source-assessment-catalog-queue-7-2026-09-03",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-03",
     coverage_release_id: catalog.coverage_release_id,
@@ -38,11 +38,12 @@ test("loads a non-overlapping governed catalog across revalidation and Queues 4 
       "state-business-source-discovery-queue-4-wave-3-2026-09-03",
       "state-business-source-discovery-queue-5-wave-1-2026-09-03",
       "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+      "state-business-source-discovery-queue-7-wave-1-2026-09-03",
     ],
-    jurisdictions_assessed: 25,
+    jurisdictions_assessed: 29,
     jurisdictions_revalidated: 5,
-    jurisdictions_discovered: 20,
-    hold_decisions: 23,
+    jurisdictions_discovered: 24,
+    hold_decisions: 27,
     bounded_connector_decisions: 2,
     changed_decisions: 0,
     autonomous_acquisitions_authorized: 0,
@@ -133,6 +134,8 @@ test("rejects aggregate evidence, source, privacy, and candidate drift", async (
     (catalog) => { stateAssessment(catalog, "TN").official_urls[0] = "https://example.gov/altered"; },
     (catalog) => { stateAssessment(catalog, "MA").required_exclusions[0] = "allow personal records"; },
     (catalog) => { stateAssessment(catalog, "AZ").candidate.product = "Altered product"; },
+    (catalog) => { stateAssessment(catalog, "MD").observed_evidence[0] = "fabricated"; },
+    (catalog) => { stateAssessment(catalog, "SC").candidate.price = "$0"; },
   ]) {
     const catalog = await loadStateBusinessSourceAssessmentCatalog();
     mutate(catalog);

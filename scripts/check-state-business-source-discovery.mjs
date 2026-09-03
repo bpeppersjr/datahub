@@ -17,10 +17,12 @@ const QUEUE_PATHS = [
   path.join(ROOT, "config", "state-business-source-discovery-queue-4-wave-3.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-5.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-6.json"),
+  path.join(ROOT, "config", "state-business-source-discovery-queue-7.json"),
 ];
 const CURRENT_COVERAGE_POINTER_PATH = path.join(ROOT, "data", "business-coverage-views", "current.json");
 const EXPECTED_COVERAGE_RELEASE_ID = "national-business-coverage-views-20260902-115337634Z-ba689784";
 const QUEUE_6_ID = "state-business-source-discovery-queue-6-wave-1-2026-09-03";
+const QUEUE_7_ID = "state-business-source-discovery-queue-7-wave-1-2026-09-03";
 const QUEUE_SCOPES = new Map([
   ["state-business-source-discovery-queue-4-wave-1-2026-09-03", { scope: ["ID", "NM", "ME", "WY"], contentDigest: "d22322c16cfa6ed2874026e0802c144dbcbf15a9f4b2a54e2b61000d76555deb" }],
   ["state-business-source-discovery-queue-4-wave-2-2026-09-03", { scope: ["NH", "MT", "RI", "SD"], contentDigest: "9589562225aaf53534763d562ca44a16b46ed404a231e9e72036c9d3b8293e71" }],
@@ -63,6 +65,17 @@ const QUEUE_6_WAVES = [{
   concurrent_state_abbreviations: ["MI", "TN", "MA", "AZ"],
   overlap_evidence: "Michigan, Tennessee, and Massachusetts agents were active while the root Arizona workstream inspected official sources.",
 }];
+const QUEUE_7_ASSIGNMENTS = [
+  { state_abbreviation: "MD", worker: "Confucius", ran_in_parallel: true },
+  { state_abbreviation: "MO", worker: "Mill", ran_in_parallel: true },
+  { state_abbreviation: "IN", worker: "Gauss", ran_in_parallel: true },
+  { state_abbreviation: "SC", worker: "root", ran_in_parallel: true },
+];
+const QUEUE_7_WAVES = [{
+  wave_id: "queue-7-wave-1",
+  concurrent_state_abbreviations: ["MD", "MO", "IN", "SC"],
+  overlap_evidence: "Maryland, Missouri, and Indiana agents were active while the root South Carolina workstream inspected official sources.",
+}];
 const QUEUE_5_CANDIDATES = {
   OH: { publisher: "Ohio Secretary of State", product: "Business Filing Data", availability: "paid one-time FTP order; recurring delivery requires a separate unpublished contract", price: "$62.50 one-time FTP; weekly or monthly price is unpublished" },
   NC: { publisher: "North Carolina Secretary of State", product: "Business Registration Division Master Files Subscription — Core export", availability: "paid weekly relational CSV snapshot over FTP; current contract and data contract are unpublished", price: "$750 setup plus $2,000 per North Carolina state fiscal year" },
@@ -99,6 +112,24 @@ const QUEUE_6_URLS = {
   MA: ["https://www.mass.gov/regulations/950-CMR-11300-the-massachusetts-business-corporation-act-mgl-c-156d", "https://www.sec.state.ma.us/divisions/corporations/download/950113.pdf", "https://www.mass.gov/info-details/massachusetts-law-about-corporations", "https://www.sec.state.ma.us/divisions/cis/guide/secretary.htm", "https://corp.sec.state.ma.us/corpweb/CorpSearch/CorpSearch.aspx", "https://www.mass.gov/info-details/dcms-tip-sheet-volume-5-edition-13-reminders-regarding-your-annual-report", "https://www.sec.state.ma.us/divisions/terms.htm", "https://malegislature.gov/Laws/GeneralLaws/PartI/TitleX/Chapter66/Section10", "https://www.sec.state.ma.us/divisions/archives/download/MA_Statewide_Records_Retention_Schedule_03_26_2026.pdf", "https://www.sec.state.ma.us/divisions/corporations/general-information/corporations-corporate-transparency.htm"],
   AZ: ["https://www.azcc.gov/public-records-request", "https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request.pdf?sfvrsn=73637fee_4", "https://www.azcc.gov/faqs", "https://azcc.gov/docs/default-source/corps-files/fee-schedules/fee-schedule-corporations6def4cc74b1a47129d16c2b1c3851bda.pdf", "https://www.azleg.gov/ars/39/00121-03.htm", "https://azcc.gov/corporations", "https://www.azcc.gov/corporations/notices", "https://webprod.azcc.gov/", "https://www.azcc.gov/privacy-policy"],
 };
+const QUEUE_7_CANDIDATES = {
+  MD: { publisher: "Maryland State Department of Assessments and Taxation through SpecPrint", product: "Corporate Master File / Corporate File", availability: "paid historical master with monthly creation and weekly subscription delivery; FTP is preferred and advance payment is required", price: "$2,100 per Corporate File; published weekly-subscription pricing is unresolved; listed media and shipping charges are included" },
+  MO: { publisher: "Missouri Secretary of State, Business Services Division, Corporations Unit", product: "corporate bulk data downloads", availability: "an official report confirms implementation, but the current service catalog publishes no bulk order route, delivery mechanism, agreement, or current technical contract", price: "Unknown; no current product price is published" },
+  IN: { publisher: "Indiana Secretary of State, Business Services Division", product: "INBiz Business Entity Bulk Data", availability: "account-gated monthly full snapshot delivered by USB, with separately selected downloadable monthly differential updates", price: "$8,000 one-time, or $9,500 baseline-plus-subscription eligibility plus $500 for each selected monthly update" },
+  SC: { publisher: "South Carolina Secretary of State through South Carolina Interactive / SC.gov", product: "Corporation Bulk Data", availability: "paid monthly CSV archives pushed to a subscriber-provided FTP endpoint on the fifth of each month; signed SCI registration, ACH Auto Pay, and state-fiscal-year access required", price: "$12,000 per state fiscal year plus the $125 annual SCI subscription; no proration or refunds" },
+};
+const QUEUE_7_COVERAGE = {
+  MD: { reported_profiles: 132909, coordinate_profiles: 5141, nonemployer_baseline_2023: 599050, baseline_minus_profiles: 466141, diagnostic_profile_percent: 22.2, material_zctas: 484, zctas_with_record_level_evidence: 480 },
+  MO: { reported_profiles: 94218, coordinate_profiles: 7351, nonemployer_baseline_2023: 485486, baseline_minus_profiles: 391268, diagnostic_profile_percent: 19.4, material_zctas: 1041, zctas_with_record_level_evidence: 1028 },
+  IN: { reported_profiles: 112961, coordinate_profiles: 7347, nonemployer_baseline_2023: 486290, baseline_minus_profiles: 373329, diagnostic_profile_percent: 23.2, material_zctas: 807, zctas_with_record_level_evidence: 798 },
+  SC: { reported_profiles: 81827, coordinate_profiles: 6345, nonemployer_baseline_2023: 445689, baseline_minus_profiles: 363862, diagnostic_profile_percent: 18.4, material_zctas: 425, zctas_with_record_level_evidence: 419 },
+};
+const QUEUE_7_URLS = {
+  MD: ["https://dat.maryland.gov/Pages/Services.aspx", "https://www.specprint.com/state_prc.html", "https://specprint.com/spec/CORP%20FILE%20LAYOUT.pdf", "https://specprint.com/spec/TOF.pdf", "https://dat.maryland.gov/SiteAssets/Pages/sdatforms/2026%20Form%201%20Instructions%20%20FINAL.pdf", "https://egov.maryland.gov/businessexpress/entitysearch", "https://dat.maryland.gov/Documents/Accessible%20Documents/Charter%20-%20Resource%20Docs/What%20it%20means%20when%20a%20business%20is%20Not%20in%20Good%20Standing%20or%20Forfeited%20-%20Entity%20Status_0326-A.pdf", "https://dat.maryland.gov/about/Pages/Website-Usage-Statements.aspx", "https://mgaleg.maryland.gov/mgawebsite/laws/StatuteText?article=ggp&section=4-205"],
+  MO: ["https://www.sos.mo.gov/CMSImages/SOSMain/AshcroftAdministrationAccomplishments.pdf", "https://www.sos.mo.gov/CMSImages/NewsReleases/OfficeCalendarYear2023.pdf", "https://www.sos.mo.gov/business/formsAndServices", "https://revisor.mo.gov/main/OneSection.aspx?section=610.026", "https://revisor.mo.gov/main/OneSection.aspx?section=610.029", "https://www.sos.mo.gov/business/corporations", "https://www.sos.mo.gov/business/corporations/faqs.asp", "https://www.sos.mo.gov/business/corporations/about.asp", "https://www.sos.mo.gov/CMSImages/Business/BRSGuides/SearchingforEntitiy.pdf", "https://www.sos.mo.gov/business/corporations/fictitious_faq", "https://www.sos.mo.gov/business/corporations/generalInfo", "https://oa.mo.gov/sites/default/files/2021-State-Projects-Report.pdf", "https://www.sos.mo.gov/bsd/RegSysFAQ", "https://www.sos.mo.gov/ipolicy", "https://www.sos.mo.gov/business/corporations/contact.asp"],
+  IN: ["https://inbiz.in.gov/inbiz/bulkdataservices/index", "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf", "https://inbiz.in.gov/business-filings/business-entityreport", "https://www.in.gov/sos/files/2025-InBiz-Legislative-Council-Report-Business-One-Stop-10-31-25.pdf", "https://inbiz.in.gov/business-filings/admin-dissolution", "https://bsd.sos.in.gov/publicbusinesssearch", "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/", "https://www.in.gov/core/terms_of_use.html", "https://www.in.gov/sos/business/files/New-INBiz-FAQs.pdf", "https://www.in.gov/pla/license/download-license-files/"],
+  SC: ["https://scdgs.sc.gov/sites/scdgs/files/Documents/06252025_SC_Subscriber_Agreement.pdf", "https://www.sos.sc.gov/online-filings/business-entities", "https://www.sos.sc.gov/online-filings/business-entities/file-and-search-online", "https://businessfilings.sc.gov/businessfiling/Home", "https://sos.sc.gov/faqs-about-business-entities", "https://sos.sc.gov/node/39", "https://sos.sc.gov/sites/sos/files/Documents/About%20Us/Secretary_of_State_FY%202025_Annual_AccountabilityReport.pdf", "https://www.scstatehouse.gov/code/t33c005.php", "https://www.scstatehouse.gov/code/t33c044.php"],
+};
 
 QUEUE_SCOPES.set("state-business-source-discovery-queue-5-wave-1-2026-09-03", {
   scope: ["OH", "NC", "NJ", "VA"],
@@ -123,6 +154,18 @@ QUEUE_SCOPES.set("state-business-source-discovery-queue-6-wave-1-2026-09-03", {
   forbiddenOperations: QUEUE_5_FORBIDDEN_OPERATIONS,
   excludedDataClasses: QUEUE_6_EXCLUDED_DATA_CLASSES,
   contentDigest: "7b25e28bcbd11ec0fc4a3344ce8895d6d4aef35482f1614dc3cb657c5a74e0d8",
+});
+QUEUE_SCOPES.set("state-business-source-discovery-queue-7-wave-1-2026-09-03", {
+  scope: ["MD", "MO", "IN", "SC"],
+  candidates: QUEUE_7_CANDIDATES,
+  coverage: QUEUE_7_COVERAGE,
+  urls: QUEUE_7_URLS,
+  parallel: true,
+  assignments: QUEUE_7_ASSIGNMENTS,
+  waves: QUEUE_7_WAVES,
+  forbiddenOperations: QUEUE_5_FORBIDDEN_OPERATIONS,
+  excludedDataClasses: QUEUE_6_EXCLUDED_DATA_CLASSES,
+  contentDigest: "e3d4baaa2c23c9eb13798bb201180f2735e6b57a2b07bc0c980962e4614b9bb4",
 });
 
 function fail(message) {
@@ -150,21 +193,44 @@ function safeChild(rootDirectory, candidate, label) {
   return resolved;
 }
 
-async function loadCurrentStateCoverageRows(pointer) {
-  const coverageRoot = path.join(ROOT, "data", "business-coverage-views");
+export async function loadVerifiedStateCoverageRows(
+  pointer,
+  coverageRoot = path.join(ROOT, "data", "business-coverage-views"),
+) {
   const manifestPath = safeChild(coverageRoot, pointer.manifest, "current coverage manifest");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.dataset_id !== pointer.dataset_id || manifest.release_id !== pointer.release_id) fail("current coverage manifest identity drifted");
   const artifact = manifest.artifacts?.find((candidate) => candidate.artifact_type === "state-coverage-view-jsonl");
   if (!artifact) fail("current coverage release has no state view");
   const statePath = safeChild(path.dirname(manifestPath), artifact.path, "state coverage artifact");
-  const rows = (await readFile(statePath, "utf8")).split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+  const stateBytes = await readFile(statePath);
+  const digest = createHash("sha256").update(stateBytes).digest("hex");
+  if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes !== stateBytes.byteLength || !/^[a-f0-9]{64}$/.test(artifact.sha256 ?? "") || artifact.sha256 !== digest) fail("state coverage artifact integrity drifted");
+  const rows = stateBytes.toString("utf8").split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
   if (rows.length !== artifact.record_count) fail("state coverage artifact count drifted");
   return rows;
 }
 
-export function validateQueue6RankedSelection(queue, stateRows, priorStateAbbreviations) {
-  if (queue?.queue_id !== QUEUE_6_ID) fail("ranked selection requires Queue 6");
+function coverageFromStateRow(row) {
+  const reportedProfiles = row.registry_evidence?.reported_address_profile_count;
+  const baseline = row.nonemployer_baseline?.nonemployer_establishments;
+  return {
+    reported_profiles: reportedProfiles,
+    coordinate_profiles: row.registry_evidence?.coordinate_assigned_profile_count,
+    nonemployer_baseline_2023: baseline,
+    baseline_minus_profiles: baseline - reportedProfiles,
+    diagnostic_profile_percent: roundedPercent(reportedProfiles, baseline),
+    material_zctas: row.zcta_coverage?.material_intersecting_zcta_count,
+    zctas_with_record_level_evidence: row.zcta_coverage?.zctas_with_record_level_source_contribution,
+  };
+}
+
+function validateRankedSelection(queue, expectedQueueId, queueLabel, stateRows, priorStateAbbreviations) {
+  if (queue?.queue_id !== expectedQueueId) fail(`ranked selection requires ${queueLabel}`);
+  for (const state of queue.states) {
+    const sourceRow = stateRows.find((row) => row.postal_abbreviation === state.state_abbreviation);
+    if (!sourceRow || JSON.stringify(state.current_coverage) !== JSON.stringify(coverageFromStateRow(sourceRow))) fail(`${queueLabel} ${state.state_abbreviation} coverage does not match the current state view`);
+  }
   const prior = new Set(priorStateAbbreviations);
   const ranked = stateRows
     .filter((row) => row.is_50_states_or_dc
@@ -177,8 +243,16 @@ export function validateQueue6RankedSelection(queue, stateRows, priorStateAbbrev
     }))
     .sort((left, right) => right.gap - left.gap || left.state_abbreviation.localeCompare(right.state_abbreviation));
   const expectedScope = ranked.slice(0, queue.scope.length).map((row) => row.state_abbreviation);
-  if (JSON.stringify(queue.scope) !== JSON.stringify(expectedScope)) fail("Queue 6 is not the next ranked eligible state wave");
+  if (JSON.stringify(queue.scope) !== JSON.stringify(expectedScope)) fail(`${queueLabel} is not the next ranked eligible state wave`);
   return queue;
+}
+
+export function validateQueue6RankedSelection(queue, stateRows, priorStateAbbreviations) {
+  return validateRankedSelection(queue, QUEUE_6_ID, "Queue 6", stateRows, priorStateAbbreviations);
+}
+
+export function validateQueue7RankedSelection(queue, stateRows, priorStateAbbreviations) {
+  return validateRankedSelection(queue, QUEUE_7_ID, "Queue 7", stateRows, priorStateAbbreviations);
 }
 
 export function validateStateBusinessSourceDiscoveryQueue(queue) {
@@ -254,13 +328,20 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const currentCoveragePointer = JSON.parse(await readFile(CURRENT_COVERAGE_POINTER_PATH, "utf8"));
   if (currentCoveragePointer.dataset_id !== "national-business-coverage-views" || !/^national-business-coverage-views-/.test(currentCoveragePointer.release_id ?? "")) fail("current coverage pointer is invalid");
   if (currentCoveragePointer.release_id !== EXPECTED_COVERAGE_RELEASE_ID || queues.some((queue) => queue.coverage_release_id !== currentCoveragePointer.release_id)) fail("discovery queue coverage release does not match the current production pointer");
-  const queue6 = queues.find((queue) => queue.queue_id === QUEUE_6_ID);
-  const priorStateAbbreviations = [
-    ...revalidation.states.map((state) => state.state_abbreviation),
-    ...queues.filter((queue) => queue.queue_id !== QUEUE_6_ID).flatMap((queue) => queue.scope),
-  ];
-  validateQueue6RankedSelection(queue6, await loadCurrentStateCoverageRows(currentCoveragePointer), priorStateAbbreviations);
-  console.log(`Ranked Queue 6 selection: PASS (${queue6.scope.join(", ")})`);
+  const stateRows = await loadVerifiedStateCoverageRows(currentCoveragePointer);
+  for (const [queueId, queueLabel, validator] of [
+    [QUEUE_6_ID, "Queue 6", validateQueue6RankedSelection],
+    [QUEUE_7_ID, "Queue 7", validateQueue7RankedSelection],
+  ]) {
+    const queueIndex = queues.findIndex((queue) => queue.queue_id === queueId);
+    const queue = queues[queueIndex];
+    const priorStateAbbreviations = [
+      ...revalidation.states.map((state) => state.state_abbreviation),
+      ...queues.slice(0, queueIndex).flatMap((candidate) => candidate.scope),
+    ];
+    validator(queue, stateRows, priorStateAbbreviations);
+    console.log(`Ranked ${queueLabel} selection: PASS (${queue.scope.join(", ")})`);
+  }
   const summary = summarizeStateBusinessSourceRevalidation(revalidation, currentCoveragePointer.release_id);
   if (summary.coverage_release_matches_current !== true) fail("revalidation coverage release does not match the current production pointer");
   console.log(`State-source revalidation ${summary.revalidation_id}: PASS`);

@@ -17,7 +17,7 @@ if (currentCoveragePointer.dataset_id !== "national-business-coverage-views" || 
 }
 const summary = summarizeStateBusinessSourceAssessments(catalog, currentCoveragePointer.release_id);
 if (summary.coverage_release_matches_current !== true) throw new Error("State-source assessment catalog is pinned to a prior production coverage release.");
-if (summary.jurisdictions_assessed !== 25 || summary.jurisdictions_revalidated !== 5 || summary.jurisdictions_discovered !== 20 || summary.hold_decisions !== 23 || summary.bounded_connector_decisions !== 2 || summary.autonomous_acquisitions_authorized !== 0 || summary.production_ready_jurisdictions !== 0) {
+if (summary.jurisdictions_assessed !== 29 || summary.jurisdictions_revalidated !== 5 || summary.jurisdictions_discovered !== 24 || summary.hold_decisions !== 27 || summary.bounded_connector_decisions !== 2 || summary.autonomous_acquisitions_authorized !== 0 || summary.production_ready_jurisdictions !== 0) {
   throw new Error("State-source assessment decision totals drifted.");
 }
 

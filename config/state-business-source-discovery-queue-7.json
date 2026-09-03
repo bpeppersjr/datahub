@@ -1,0 +1,295 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["MD", "MO", "IN", "SC"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_level_data_requested": false,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "parallel_execution": {
+    "non_overlapping_state_assignments": true,
+    "maximum_active_workstreams": 4,
+    "assignments": [
+      { "state_abbreviation": "MD", "worker": "Confucius", "ran_in_parallel": true },
+      { "state_abbreviation": "MO", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "IN", "worker": "Gauss", "ran_in_parallel": true },
+      { "state_abbreviation": "SC", "worker": "root", "ran_in_parallel": true }
+    ],
+    "waves": [
+      {
+        "wave_id": "queue-7-wave-1",
+        "concurrent_state_abbreviations": ["MD", "MO", "IN", "SC"],
+        "overlap_evidence": "Maryland, Missouri, and Indiana agents were active while the root South Carolina workstream inspected official sources."
+      }
+    ]
+  },
+  "forbidden_operations": [
+    "account-creation",
+    "terms-acceptance",
+    "purchase",
+    "record-level-request",
+    "record-enumeration",
+    "portal-automation",
+    "complete-bulk-download",
+    "connector-implementation",
+    "source-release-publication",
+    "registry-rebuild",
+    "coverage-publication",
+    "heatmap-admission",
+    "production-pointer-change"
+  ],
+  "required_excluded_data_classes": [
+    "registered-agent-and-service-address",
+    "natural-person-name-role-and-address",
+    "direct-contact-and-signature",
+    "sensitive-personal-tax-payment-financial-and-nonregistry-government-identifiers",
+    "filing-image-document-and-free-text"
+  ],
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "MD",
+      "state_name": "Maryland",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Maryland State Department of Assessments and Taxation through SpecPrint",
+        "product": "Corporate Master File / Corporate File",
+        "availability": "paid historical master with monthly creation and weekly subscription delivery; FTP is preferred and advance payment is required",
+        "price": "$2,100 per Corporate File; published weekly-subscription pricing is unresolved; listed media and shipping charges are included"
+      },
+      "current_coverage": {
+        "reported_profiles": 132909,
+        "coordinate_profiles": 5141,
+        "nonemployer_baseline_2023": 599050,
+        "baseline_minus_profiles": 466141,
+        "diagnostic_profile_percent": 22.2,
+        "material_zctas": 484,
+        "zctas_with_record_level_evidence": 480
+      },
+      "official_urls": [
+        "https://dat.maryland.gov/Pages/Services.aspx",
+        "https://www.specprint.com/state_prc.html",
+        "https://specprint.com/spec/CORP%20FILE%20LAYOUT.pdf",
+        "https://specprint.com/spec/TOF.pdf",
+        "https://dat.maryland.gov/SiteAssets/Pages/sdatforms/2026%20Form%201%20Instructions%20%20FINAL.pdf",
+        "https://egov.maryland.gov/businessexpress/entitysearch",
+        "https://dat.maryland.gov/Documents/Accessible%20Documents/Charter%20-%20Resource%20Docs/What%20it%20means%20when%20a%20business%20is%20Not%20in%20Good%20Standing%20or%20Forfeited%20-%20Entity%20Status_0326-A.pdf",
+        "https://dat.maryland.gov/about/Pages/Website-Usage-Statements.aspx",
+        "https://mgaleg.maryland.gov/mgawebsite/laws/StatuteText?article=ggp&section=4-205"
+      ],
+      "observed_evidence": [
+        "SDAT describes a broad historical Corporate Master File covering multiple domestic and foreign entity types, created monthly with a weekly subscription option.",
+        "SpecPrint publishes a $2,100 per-Corporate-File price and an unversioned 25-file fixed-position layout, but no separate weekly-subscription price, current code values, row sample, encoding, schema date, or compatibility guarantee.",
+        "The price page labels average weekly volume as 9,300,000 records without an as-of date; this is not safely interpretable as a unique-entity count and no compressed or uncompressed byte size is published.",
+        "The public SDAT ID and the layout's prefix-plus-16-character ID_BUS lack a published mapping, non-reuse promise, and lifecycle contract.",
+        "Address-type codes are unpublished, so principal or administrative entity addresses cannot safely be separated from resident-agent, trade-name-filer, tax, or person-linked addresses.",
+        "FTP delivery is possible, but full-versus-delta, deletion, correction, replay, checksum, unattended retrieval, and derived-publication rights remain undocumented."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "resident and registered agents and every registered-office or service address",
+        "trade-name filers, owners, officers, directors, managers, members and other natural-person roles and addresses",
+        "email, phone, signature and direct-contact fields",
+        "FEIN, EIN, SSN, tax, payment, financial and non-registry government identifiers; preserve only a contract-confirmed public SDAT entity key",
+        "filing images, documents, comments and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask SDAT and SpecPrint for current unsigned terms, the data dictionary and a header-only person-free sample, identifier and address codebooks, current aggregate size, baseline/update/change/checksum contract, unattended FTP support, and written retention, transformation, geocoding, derived-publication and redistribution rights. Do not purchase, obtain credentials, request rows, scrape the portal, or implement a connector first."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "MO",
+      "state_name": "Missouri",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Missouri Secretary of State, Business Services Division, Corporations Unit",
+        "product": "corporate bulk data downloads",
+        "availability": "an official report confirms implementation, but the current service catalog publishes no bulk order route, delivery mechanism, agreement, or current technical contract",
+        "price": "Unknown; no current product price is published"
+      },
+      "current_coverage": {
+        "reported_profiles": 94218,
+        "coordinate_profiles": 7351,
+        "nonemployer_baseline_2023": 485486,
+        "baseline_minus_profiles": 391268,
+        "diagnostic_profile_percent": 19.4,
+        "material_zctas": 1041,
+        "zctas_with_record_level_evidence": 1028
+      },
+      "official_urls": [
+        "https://www.sos.mo.gov/CMSImages/SOSMain/AshcroftAdministrationAccomplishments.pdf",
+        "https://www.sos.mo.gov/CMSImages/NewsReleases/OfficeCalendarYear2023.pdf",
+        "https://www.sos.mo.gov/business/formsAndServices",
+        "https://revisor.mo.gov/main/OneSection.aspx?section=610.026",
+        "https://revisor.mo.gov/main/OneSection.aspx?section=610.029",
+        "https://www.sos.mo.gov/business/corporations",
+        "https://www.sos.mo.gov/business/corporations/faqs.asp",
+        "https://www.sos.mo.gov/business/corporations/about.asp",
+        "https://www.sos.mo.gov/CMSImages/Business/BRSGuides/SearchingforEntitiy.pdf",
+        "https://www.sos.mo.gov/business/corporations/fictitious_faq",
+        "https://www.sos.mo.gov/business/corporations/generalInfo",
+        "https://oa.mo.gov/sites/default/files/2021-State-Projects-Report.pdf",
+        "https://www.sos.mo.gov/bsd/RegSysFAQ",
+        "https://www.sos.mo.gov/ipolicy",
+        "https://www.sos.mo.gov/business/corporations/contact.asp"
+      ],
+      "observed_evidence": [
+        "One official report says corporate bulk downloads were implemented in November 2022; a separate report aggregates bulk-data revenue with filings and copies and does not attribute sales to this corporate product. The current SOS catalog exposes no bulk route, price, terms, or delivery mechanism.",
+        "The registry covers many legal-entity forms but excludes important operating-business universes, and exact bulk inclusion of statuses, history, and fictitious names is unpublished.",
+        "Charter No. is only a candidate key because global uniqueness, non-reuse, lifecycle, and platform-continuity guarantees are absent; expired fictitious names receive new numbers.",
+        "Registry standing is legal and filing status rather than proof of commercial operation, while registered-agent and registered-office fields are service-of-process roles.",
+        "No public schema, sample, count, byte size, delivery/change contract, automation allowance, or product-specific downstream-use license was located."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service addresses",
+        "officers, directors, incorporators, organizers, managers, members, partners, fictitious-name owners and their addresses",
+        "email, phone, signature and direct-contact fields",
+        "SSN, date of birth, tax, payment, financial and non-registry government identifiers; preserve only a contract-confirmed public charter key",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask the Missouri Corporations Division for the current unsigned order form or agreement, price sheet, technical specification, header-only person-free sample, scope and aggregate size, identifier lifecycle, delivery/change/checksum contract, automation permission, and explicit downstream-use rights. Do not purchase, request rows, automate the portal, or implement a connector first."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "IN",
+      "state_name": "Indiana",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Indiana Secretary of State, Business Services Division",
+        "product": "INBiz Business Entity Bulk Data",
+        "availability": "account-gated monthly full snapshot delivered by USB, with separately selected downloadable monthly differential updates",
+        "price": "$8,000 one-time, or $9,500 baseline-plus-subscription eligibility plus $500 for each selected monthly update"
+      },
+      "current_coverage": {
+        "reported_profiles": 112961,
+        "coordinate_profiles": 7347,
+        "nonemployer_baseline_2023": 486290,
+        "baseline_minus_profiles": 373329,
+        "diagnostic_profile_percent": 23.2,
+        "material_zctas": 807,
+        "zctas_with_record_level_evidence": 798
+      },
+      "official_urls": [
+        "https://inbiz.in.gov/inbiz/bulkdataservices/index",
+        "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf",
+        "https://inbiz.in.gov/business-filings/business-entityreport",
+        "https://www.in.gov/sos/files/2025-InBiz-Legislative-Council-Report-Business-One-Stop-10-31-25.pdf",
+        "https://inbiz.in.gov/business-filings/admin-dissolution",
+        "https://bsd.sos.in.gov/publicbusinesssearch",
+        "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/",
+        "https://www.in.gov/core/terms_of_use.html",
+        "https://www.in.gov/sos/business/files/New-INBiz-FAQs.pdf",
+        "https://www.in.gov/pla/license/download-license-files/"
+      ],
+      "observed_evidence": [
+        "INBiz documents an account-gated monthly full file on USB and downloadable differential updates, with material purchase costs but no unattended acquisition contract.",
+        "The source covers SOS-registered legal entities rather than all operating businesses, and its active-business aggregate is not a bulk row count.",
+        "Business ID is only a candidate key because the bulk schema and lifecycle across merger, conversion, reinstatement, dissolution, and platform migration are unpublished.",
+        "Differential updates lack published deletion, tombstone, ordering, watermark, correction, replay, baseline-compatibility, checksum, and control-total semantics.",
+        "Principal-office evidence is administrative only, 2026 privacy changes permit withheld residential or CMRA addresses, and commercial transformation, geocoding, publication, and redistribution rights remain unresolved."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service addresses",
+        "governing persons, officers, directors, managers, members, partners, incorporators, organizers, shareholders, owners and their addresses",
+        "submitter, contact, identity-verification, email, phone and signature fields",
+        "professional-license, tax, payment, financial and non-registry government identifiers; preserve only a contract-confirmed public Business ID",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask Indiana SOS for current unsigned bulk terms, a data dictionary and header-only person-free sample, current aggregate size, Business-ID and address-role semantics, the full differential/deletion/replay/checksum contract, unattended delivery support, and explicit retention, transformation, geocoding, derived-publication and redistribution rights. Do not create an account, purchase, request rows, automate the portal, or implement a connector first."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "SC",
+      "state_name": "South Carolina",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "South Carolina Secretary of State through South Carolina Interactive / SC.gov",
+        "product": "Corporation Bulk Data",
+        "availability": "paid monthly CSV archives pushed to a subscriber-provided FTP endpoint on the fifth of each month; signed SCI registration, ACH Auto Pay, and state-fiscal-year access required",
+        "price": "$12,000 per state fiscal year plus the $125 annual SCI subscription; no proration or refunds"
+      },
+      "current_coverage": {
+        "reported_profiles": 81827,
+        "coordinate_profiles": 6345,
+        "nonemployer_baseline_2023": 445689,
+        "baseline_minus_profiles": 363862,
+        "diagnostic_profile_percent": 18.4,
+        "material_zctas": 425,
+        "zctas_with_record_level_evidence": 419
+      },
+      "official_urls": [
+        "https://scdgs.sc.gov/sites/scdgs/files/Documents/06252025_SC_Subscriber_Agreement.pdf",
+        "https://www.sos.sc.gov/online-filings/business-entities",
+        "https://www.sos.sc.gov/online-filings/business-entities/file-and-search-online",
+        "https://businessfilings.sc.gov/businessfiling/Home",
+        "https://sos.sc.gov/faqs-about-business-entities",
+        "https://sos.sc.gov/node/39",
+        "https://sos.sc.gov/sites/sos/files/Documents/About%20Us/Secretary_of_State_FY%202025_Annual_AccountabilityReport.pdf",
+        "https://www.scstatehouse.gov/code/t33c005.php",
+        "https://www.scstatehouse.gov/code/t33c044.php"
+      ],
+      "observed_evidence": [
+        "The current subscriber agreement defines monthly CSV delivery, filenames, and price, but requires a signed registration, annual payment, ACH Auto Pay, and subscriber-supplied FTP credentials.",
+        "The phrase all public information associated with Corporation filings is not an exact schema, sample, aggregate size, type/status dictionary, or current legal-entity scope contract.",
+        "Secretary of State registration spans several entity forms but excludes sole proprietorships and general partnerships, and a current stable source-identifier lifecycle is unpublished.",
+        "The portal explicitly says good standing means not dissolved in SOS records and does not mean currently operating; registered office may be the agent's business office rather than an establishment.",
+        "Baseline-versus-delta, corrections, deletions, replay, checksums, unattended use, retention, geocoding, derived publication, and redistribution rights are undocumented."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service or process addresses",
+        "incorporators, organizers, officers, directors, managers, members, partners, owners, signers and their addresses",
+        "email, phone, signature and direct-contact fields",
+        "SSN, FEIN, tax, payment, banking and non-registry government identifiers; preserve only a contract-confirmed public registry key",
+        "transaction records, filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask South Carolina SOS and SCI for the current blank product addendum, exact schema or header-only person-free sample, aggregate size, entity, status and address dictionaries, stable-ID lifecycle, full/delta/correction/deletion/replay/checksum contract, unattended delivery support, and explicit retention, transformation, geocoding, derived-publication, redistribution and attribution rights. Do not register, sign, provide credentials, pay, request rows, or implement a connector first."
+    }
+  ]
+}

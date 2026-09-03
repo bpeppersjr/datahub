@@ -12,14 +12,15 @@ import {
 } from "./state-business-source-revalidation.mjs";
 
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.0.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-queue-6-2026-09-03";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "b1b9c3509f43542c63324bfdaa31e066e67f84b519e8be2d3c1c5f181c665ef3";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-queue-7-2026-09-03";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "703121d5e2ac4f2343406cdfb2f5683cc98f03411ed378730a465ade123d1d45";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-3.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-5.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-6.json"),
+  path.join(APP_ROOT, "config", "state-business-source-discovery-queue-7.json"),
 ]);
 
 const SOURCE_ARTIFACT_SPECS = Object.freeze([
@@ -64,6 +65,13 @@ const SOURCE_ARTIFACT_SPECS = Object.freeze([
     observed_at: "2026-09-03",
     coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
     state_abbreviations: Object.freeze(["MI", "TN", "MA", "AZ"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+    artifact_kind: "source-discovery",
+    observed_at: "2026-09-03",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["MD", "MO", "IN", "SC"]),
   }),
 ]);
 const EXPECTED_SOURCE_ARTIFACTS = Object.freeze(SOURCE_ARTIFACT_SPECS.map((artifact) => Object.freeze({
