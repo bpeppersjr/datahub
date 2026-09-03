@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
+import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
+import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 
 const DEFAULT_POINTER_PATH = path.join(APP_ROOT, "data", "business-coverage-views", "current.json");
 const DIMENSION_ARTIFACT_TYPES = Object.freeze({
@@ -31,11 +33,15 @@ const SOURCE_DISPLAY_NAMES = Object.freeze({
   fsis_active_mpi_establishments: "FSIS Active MPI Establishments",
   ia_business_registry_active_entities: "Iowa Business Registry Active Entities",
   irs_eo_bmf_organizations: "IRS EO BMF Organizations",
+  la_active_business_location_accounts: "Los Angeles Active Business Location Accounts",
   ncua_quarterly_credit_unions: "NCUA Quarterly Credit Unions",
   ny_business_registry_active_entities: "New York Business Registry Active Entities",
+  ny_retail_food_store_license_sites: "New York Retail Food Store License Sites",
   or_business_registry_active_registrations: "Oregon Business Registry Active Registrations",
   pa_business_registry_active_registrations: "Pennsylvania Department of State Active Business Registrations",
+  tx_active_sales_tax_permit_outlets: "Texas Active Sales Tax Permit Outlets",
   usda_snap_retailers: "USDA SNAP Retailers",
+  wa_lni_active_contractor_organizations: "Washington L&I Active Contractor Organizations",
 });
 
 function positiveInteger(value, fallback, maximum) {
@@ -95,6 +101,7 @@ function stateApiRow(row) {
     zctas_with_record_level_source_contribution: row.zcta_coverage.zctas_with_record_level_source_contribution,
     zctas_denominator_only_no_record_level_contribution: row.zcta_coverage.zctas_denominator_only_no_record_level_contribution,
     nonemployer_baseline: row.nonemployer_baseline,
+    state_source_readiness: assessStateBusinessSourceReadiness(row),
   };
 }
 
@@ -114,7 +121,7 @@ function countyApiRow(row) {
   };
 }
 
-function sourceApiRow(row) {
+function sourceApiRow(row, asOf) {
   return {
     view_id: row.view_id,
     source_key: row.source_key,
@@ -134,6 +141,7 @@ function sourceApiRow(row) {
     earliest_observed_at: row.location_profile_geography.earliest_observed_at,
     latest_observed_at: row.location_profile_geography.latest_observed_at,
     aggregate_baseline: row.aggregate_baseline ?? null,
+    temporal_status: assessBusinessSourceTemporalStatus(row, { asOf }),
   };
 }
 
@@ -154,7 +162,7 @@ function contains(record, fields, query) {
   return fields.some((field) => String(record[field] ?? "").toLocaleLowerCase("en-US").includes(query));
 }
 
-export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_PATH } = {}) {
+export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_PATH, now = () => new Date() } = {}) {
   let activeReleaseId = null;
   let release = null;
   const cache = new Map();
@@ -213,7 +221,7 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
       records = await readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES[dimension]));
       if (dimension === "states") records = records.map(stateApiRow);
       if (dimension === "counties") records = records.map(countyApiRow);
-      if (dimension === "sources") records = records.map(sourceApiRow);
+      if (dimension === "sources") records = records.map((row) => sourceApiRow(row, now()));
       if (dimension === "gaps") records = records.map(gapApiRow);
     }
     cache.set(dimension, records);
@@ -223,7 +231,7 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
   async function getOverview() {
     const current = await ensureRelease();
     if (!current) return { available: false };
-    const [national, sources] = await Promise.all([loadDimension("national"), loadDimension("sources")]);
+    const [national, sources, states] = await Promise.all([loadDimension("national"), loadDimension("sources"), loadDimension("states")]);
     return {
       available: true,
       dataset_id: current.manifest.dataset_id,
@@ -241,6 +249,8 @@ export function createBusinessCoverageViewStore({ pointerPath = DEFAULT_POINTER_
       count_semantics: current.manifest.count_semantics,
       national,
       sources,
+      source_temporal_summary: summarizeBusinessSourceTemporalStatus(sources),
+      state_source_readiness_summary: summarizeStateBusinessSourceReadiness(states),
       limitations: current.manifest.limitations,
     };
   }

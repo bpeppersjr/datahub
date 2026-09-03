@@ -187,7 +187,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     manifest: `releases/${releaseId}/manifest.json`,
   }));
 
-  const store = createBusinessCoverageViewStore({ pointerPath });
+  const store = createBusinessCoverageViewStore({ pointerPath, now: () => new Date("2026-09-03T12:00:00.000Z") });
   const overview = await store.getOverview();
   assert.equal(overview.available, true);
   assert.equal(overview.release_id, releaseId);
@@ -195,10 +195,35 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(overview.normalized_postal_field_migration.status, "pre-migration-registry-release");
   assert.equal(overview.usps_operational_zip_evidence, null);
   assert.equal(overview.sources[0].profile_count, 2);
+  assert.deepEqual(overview.source_temporal_summary, {
+    total_sources: 5,
+    policy_configured: 4,
+    within_review_window: 1,
+    review_due: 0,
+    missing_source_reference: 3,
+    future_source_reference: 0,
+    unconfigured_source_policy: 1,
+    general_business_operating_status_asserted: 0,
+  });
+  assert.deepEqual(overview.state_source_readiness_summary, {
+    policy_version: "1.0.0",
+    jurisdictions_in_scope: 0,
+    broad_jurisdiction_organization_layers: 0,
+    missing_broad_jurisdiction_organization_layers: 0,
+    statewide_scoped_layers_without_broad_layer: 0,
+    local_layers_without_broad_or_statewide_layer: 0,
+    national_sector_layers_only: 0,
+    jurisdictions_with_national_sector_evidence: 0,
+    reported_location_profiles: 0,
+    coordinate_assigned_profiles: 0,
+    coordinate_assignment_percent: null,
+    complete_all_active_businesses: false,
+  });
   const states = await store.listDimension("states", { query: "fixture" });
   assert.equal(states.total, 1);
   assert.equal(states.records[0].reported_address_profile_count, 2);
   assert.equal(states.records[0].nonemployer_baseline.nonemployer_establishments, 5);
+  assert.equal(states.records[0].state_source_readiness.source_scope_status, "outside-50-states-and-dc-peer-scope");
   const counties = await store.listDimension("counties", { stateFips: "99" });
   assert.equal(counties.total, 0);
   const sourceRows = await store.listDimension("sources");
@@ -218,6 +243,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(californiaSources.records[0].source_name, "California ABC Active Issued-License Sites");
   assert.equal(californiaSources.records[0].profile_source_id, "california-abc-daily-active-licenses");
   assert.equal(californiaSources.records[0].coordinate_missing_count, 1);
+  assert.equal(californiaSources.records[0].temporal_status.status, "within-review-window");
+  assert.equal(californiaSources.records[0].temporal_status.source_reference_date, "2026-09-01");
   const zips = await store.listDimension("zips", { query: "123" });
   assert.equal(zips.total, 1);
   assert.equal(zips.records[0].physical_site_count, 2);

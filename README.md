@@ -47,6 +47,10 @@ The [USDA Organic INTEGRITY connector](docs/USDA-ORGANIC-INTEGRITY.md) is an off
 
 The [ZIP denominator audit](docs/ZIP-DENOMINATOR-AUDIT.md) is read-only and keeps Census ZCTA polygon membership separate from current USPS operational evidence. Audit `zip-denominator-audit-d48230b5f34ec2e88b360a25` found 48,217 ZIP5 rows in production publisher 2.9.0, including 33,791 governed ZCTA members, with all 48,217 USPS statuses unverified and 4,607 reasons absent. The isolated 2.10.0 candidate has 48,190 ZIP5 rows, the same 33,791 ZCTA members, 4,604 absent reasons, and all 48,190 rows missing the newly required physical `postal_code` and separate `zip4` fields; it fails contract and is not approved for cutover. Run `npm run zip-denominator:audit -- --summary-only --allow-contract-gaps` to reproduce the report without mutating releases or pointers.
 
+The [business-source temporal audit](docs/BUSINESS-SOURCE-TEMPORAL-STATUS.md) gives all 26 current coverage sources an explicit source-reference date, internal review window, evidence scope, and non-operating-status boundary. At the reproducible `2026-09-03T12:00:00.000Z` assessment, 25 sources are within review and the New York retail-food license source is review-due; all policies and reference dates are present. Run `npm run source-temporal:audit -- --summary-only --allow-review-due`. The Sources management view displays the same temporal status without changing any release.
+
+The [state source-readiness view](docs/BUSINESS-STATE-SOURCE-READINESS.md) separates broad state organization layers from statewide scoped, local, and national sector evidence. The current production view has broad layers for 8 of 51 jurisdictions and explicit gaps for 43; its 7,981,531 state-scoped location profiles have 994,523 coordinate assignments (12.46%). These are profiles rather than deduplicated businesses, and the UI preserves that boundary. Business entities receive no geometry—only address latitude/longitude when genuinely sourced or governed-geocoded.
+
 ## Data locations
 
 All local files remain inside the `datahub` repository:

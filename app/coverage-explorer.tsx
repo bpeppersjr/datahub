@@ -76,6 +76,30 @@ type Overview = {
   };
   usps_operational_zip_evidence?: unknown;
   authoritative_current_usps_zip_denominator?: unknown;
+  source_temporal_summary?: {
+    total_sources: number;
+    policy_configured: number;
+    within_review_window: number;
+    review_due: number;
+    missing_source_reference: number;
+    future_source_reference: number;
+    unconfigured_source_policy: number;
+    general_business_operating_status_asserted: number;
+  };
+  state_source_readiness_summary?: {
+    policy_version: string;
+    jurisdictions_in_scope: number;
+    broad_jurisdiction_organization_layers: number;
+    missing_broad_jurisdiction_organization_layers: number;
+    statewide_scoped_layers_without_broad_layer: number;
+    local_layers_without_broad_or_statewide_layer: number;
+    national_sector_layers_only: number;
+    jurisdictions_with_national_sector_evidence: number;
+    reported_location_profiles: number;
+    coordinate_assigned_profiles: number;
+    coordinate_assignment_percent: number | null;
+    complete_all_active_businesses: false;
+  };
   coverage?: {
     state_views: number;
     county_views: number;
@@ -226,6 +250,16 @@ type StateRow = {
   material_intersecting_zcta_count: number;
   zctas_with_record_level_source_contribution: number;
   nonemployer_baseline?: NonemployerBaseline;
+  state_source_readiness: {
+    policy_version: string;
+    in_50_states_and_dc_peer_scope: boolean;
+    source_scope_status: 'broad-jurisdiction-organization-layer' | 'statewide-scoped-layer-only' | 'local-and-national-sector-layers-only' | 'national-sector-layers-only' | 'outside-50-states-and-dc-peer-scope';
+    broad_jurisdiction_organization_layer: { status: 'production-integrated' | 'missing' | 'not-applicable'; source_key: string | null };
+    statewide_scoped_source_keys: string[];
+    local_source_keys: string[];
+    coordinate_assignment_percent: number | null;
+    complete_all_active_businesses: false;
+  };
 };
 
 type CountyRow = {
@@ -273,6 +307,19 @@ type SourceRow = {
     state_totals: number;
     county_totals: number;
   } | null;
+  temporal_status: {
+    policy_version: string;
+    policy_configured: boolean;
+    status: 'within-review-window' | 'review-due' | 'missing-source-reference' | 'future-source-reference' | 'unconfigured-source-policy';
+    source_reference_field: string | null;
+    source_reference_date: string | null;
+    age_days: number | null;
+    review_after_days: number | null;
+    review_due_date: string | null;
+    cadence_class: string;
+    evidence_scope: string;
+    general_business_operating_status_asserted: false;
+  };
 };
 
 type NonemployerBaseline = {
@@ -320,7 +367,7 @@ async function request<T>(path: string): Promise<T> {
 function StateRows({ records }: { records: StateRow[] }) {
   return records.map((row) => (
     <div className="coverage-table-row state-row" key={row.view_id}>
-      <div><strong>{row.postal_abbreviation}</strong><span>{row.state_name}</span></div>
+      <div><strong>{row.postal_abbreviation}</strong><span>{row.state_name} · {label(row.state_source_readiness.source_scope_status)}</span></div>
       <span>{count(row.reported_address_profile_count)}</span>
       <span>{count(row.coordinate_assigned_profile_count)}</span>
       <span>{row.nonemployer_baseline?.status === 'published-annual-aggregate' ? count(row.nonemployer_baseline.nonemployer_establishments) : '—'}</span>
@@ -360,9 +407,10 @@ function SourceRows({ records }: { records: SourceRow[] }) {
       : row.profile_count;
     return (
       <div className="coverage-table-row source-row" key={row.view_id}>
-        <div><strong>{row.source_name || label(row.source_key)}</strong><span>{aggregate ? 'Annual aggregate baseline' : row.profile_source_id ?? 'Entity-only evidence'}</span></div>
+        <div><strong>{row.source_name || label(row.source_key)}</strong><span>{label(row.temporal_status.evidence_scope)}</span></div>
         <span>{count(aggregate?.national_nonemployer_establishments ?? entityOnlyEvidence)}</span>
         <span>{aggregate ? `${count(aggregate.state_totals)} states` : count(row.coordinate_assigned_single_count)}</span>
+        <span className={row.temporal_status.status === 'within-review-window' ? 'coverage-ok' : 'coverage-warn'}>{row.temporal_status.source_reference_date ?? 'No source date'} <small>{label(row.temporal_status.status)}</small></span>
         <span>{aggregate ? `${count(aggregate.county_totals)} counties` : count(row.zip_rows_with_contribution)}</span>
       </div>
     );
@@ -476,6 +524,9 @@ export default function CoverageExplorer() {
             <span><strong>{overview?.normalized_postal_cutover?.lock_present ? 'Locked' : 'Unlocked'}</strong> postal cutover · {overview?.normalized_postal_cutover?.latest_run?.status ?? 'not started'}</span>
             <span><strong>{count(overview?.coverage?.zip_views_with_published_employer_baseline)}</strong> published ZBP baselines</span>
             <span><strong>{count(overview?.coverage?.national_nonemployer_establishments)}</strong> nonemployer baseline · {overview?.coverage?.nonemployer_reference_year ?? '—'}</span>
+            <span><strong>{count(overview?.state_source_readiness_summary?.broad_jurisdiction_organization_layers)} / {count(overview?.state_source_readiness_summary?.jurisdictions_in_scope)}</strong> broad state organization layers · {count(overview?.state_source_readiness_summary?.missing_broad_jurisdiction_organization_layers)} gaps</span>
+            <span><strong>{overview?.state_source_readiness_summary?.coordinate_assignment_percent?.toFixed(2) ?? '—'}%</strong> state-profile coordinate assignment · address latitude/longitude only</span>
+            <span><strong>{count(overview?.source_temporal_summary?.within_review_window)} / {count(overview?.source_temporal_summary?.total_sources)}</strong> sources within review window · {count(overview?.source_temporal_summary?.review_due)} due · {count(overview?.source_temporal_summary?.missing_source_reference)} missing date</span>
             <span><strong>{count(overview?.coverage?.ct_business_registry_active_organization_records)}</strong> CT active registrations</span>
             <span><strong>{count(overview?.coverage?.de_business_license_current_organization_records)}</strong> DE current licenses · {count(overview?.coverage?.de_business_license_eligible_reported_us_business_addresses)} reported U.S. addresses</span>
             <span><strong>{count(overview?.coverage?.ak_active_business_license_organizations)}</strong> AK active licenses · {count(overview?.coverage?.ak_active_business_license_provisional_physical_sites)} provisional sites</span>

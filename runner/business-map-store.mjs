@@ -846,6 +846,9 @@ export function createBusinessMapStore({
       total,
       limit: cappedLimit,
       records,
+      limitation: categoryId === "all"
+        ? "Business names include governed physical-location profiles only; organization-address evidence included in the map count is excluded from this name list."
+        : null,
       registry_release_id: registry.manifest.release_id,
       local_review_only: records.some((record) => record.export_policy !== "public"),
     };

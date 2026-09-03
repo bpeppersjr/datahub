@@ -16,7 +16,7 @@ The category control is one hierarchy of source-preserving evidence:
 
 These are analytical source groups, not inferred NAICS classifications. One real business can occur in more than one source because the current coverage release deliberately does not apply entity-resolution aliases.
 
-Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. When the governed location profile has a point, the response projects it to separate nullable `latitude` and `longitude` values; it does not expose a business geometry. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. Record-level local-review restrictions remain visible.
+Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. When the governed location profile has a point, the response projects it to separate nullable `latitude` and `longitude` values; it does not expose a business geometry. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. The all-category response also discloses that its names cover physical-location profiles only and exclude organization-address evidence that remains part of the map count. Record-level local-review restrictions remain visible.
 
 The persistent entity-summary section to the right of the map provides selected entity values and two state-alignment percentages for the active category:
 

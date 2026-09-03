@@ -141,6 +141,7 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .scope-card strong { color: var(--cyan); font-size: 12px; }
 .scope-card small { color: #87929c; font-size: 9px; line-height: 1.4; }
 .business-name-drill { margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--border); }
+.name-drill-limitation { display: block; margin-top: 8px; color: #7d8993; font-size: 8px; line-height: 1.5; }
 .name-drill-heading { display: grid; gap: 10px; }
 .name-drill-heading > div span, .name-drill-heading > div strong { display: block; }
 .name-drill-heading > div span { color: #596571; font-size: 8px; text-transform: uppercase; letter-spacing: .07em; }
@@ -270,7 +271,8 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .coverage-table-row.state-row { grid-template-columns: minmax(180px,1.4fr) repeat(4,minmax(82px,.65fr)); }
 .coverage-table-row.county-row { grid-template-columns: minmax(220px,1.5fr) repeat(3,minmax(92px,.65fr)); }
 .coverage-table-row.zip-row { grid-template-columns: minmax(190px,1.3fr) repeat(4,minmax(75px,.55fr)); }
-.coverage-table-row.source-row { grid-template-columns: minmax(240px,1.6fr) repeat(3,minmax(80px,.6fr)); }
+.coverage-table-row.source-row { grid-template-columns: minmax(240px,1.6fr) repeat(4,minmax(80px,.6fr)); }
+.coverage-table-row.source-row > span small { display: block; margin-top: 4px; color: #58636d; font-size: 7px; }
 .coverage-table-row.gap-row { grid-template-columns: minmax(230px,1.1fr) minmax(100px,.45fr) minmax(280px,1.7fr); }
 .coverage-table-row.gap-row p { margin: 0; color: #88939d; font-size: 9px; line-height: 1.45; }
 .coverage-ok { color: #69d49b; }

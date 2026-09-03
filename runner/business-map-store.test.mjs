@@ -330,6 +330,7 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   const store = await fixture(context);
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer", query: "market", limit: 10 });
   assert.equal(names.total, 1);
+  assert.equal(names.limitation, null);
   assert.deepEqual(names.records[0], {
     business_name: "Main Street Market",
     address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" },
@@ -346,6 +347,9 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   assert(!Object.hasOwn(names.records[0].address, "postal_code"));
   const malformedGeocode = await store.listBusinessNames({ zipCode: "12345", categoryId: "health-care", query: "clinic", limit: 10 });
   assert.equal(malformedGeocode.records[0].geocode, null);
+  const allNames = await store.listBusinessNames({ zipCode: "12345", categoryId: "all", limit: 10 });
+  assert.match(allNames.limitation, /physical-location profiles only/);
+  assert.match(allNames.limitation, /organization-address evidence.*excluded/);
   await assert.rejects(() => store.listBusinessNames({ zipCode: "1234", categoryId: "all" }), /five-digit ZIP/);
   await assert.rejects(() => store.getFeatures({ level: "counties", stateFips: "../" }), /state_fips/);
   await assert.rejects(() => store.getFeatures({ level: "states", minPopulation: "1e3" }), /min_population/);

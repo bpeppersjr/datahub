@@ -146,6 +146,14 @@ function alignmentLabel(properties: MapProperties) {
   return 'Relative completeness proxy vs in-state ZIP peers';
 }
 
+function populationLabel(properties: MapProperties) {
+  return properties.level === 'zip' ? '2020 Census ZCTA population' : '2020 uniquely assigned ZCTA population';
+}
+
+function housingLabel(properties: MapProperties) {
+  return properties.level === 'zip' ? '2020 Census ZCTA housing units' : '2020 uniquely assigned ZCTA housing units';
+}
+
 function shortRelease(value?: string) {
   if (!value) return 'unavailable';
   const tail = value.split('-').at(-1);
@@ -266,7 +274,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
         <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>2020 population</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>2020 housing units</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
+        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}</dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
@@ -299,6 +307,7 @@ function BusinessNames({ selectedZip, categoryId, canDrill }: { selectedZip: str
       {loading && <p>Scanning the matching ZIP partition…</p>}
       {error && <p className="map-error">{error}</p>}
       {data?.local_review_only && <small className="local-review-label">Local review only — record-level redistribution policies still apply.</small>}
+      {data?.limitation && <small className="name-drill-limitation">{data.limitation}</small>}
       {data && !loading && canDrill && <div className="business-name-list">
         {!data.records.length && <p>No matching physical-location names in this category.</p>}
         {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'} · {record.address.city}, {record.address.state} {record.address.zip_code}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
@@ -335,8 +344,8 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>Census employer units</span><strong>{count(properties.employer_establishments)}</strong><small>ZIP Business Patterns baseline</small></div>
           <div><span>{nonemployerLabel(properties)}</span><strong>{count(properties.nonemployer_establishments)}</strong><small>{nonemployerNote(properties)}</small></div>
           <div><span>Nonemployer receipts</span><strong>{currencyFromThousands(properties.nonemployer_receipts_thousands_usd)}</strong><small>Annual Census aggregate; not named-business revenue</small></div>
-          <div><span>Population</span><strong>{count(properties.population_2020)}</strong><small>2020 Census</small></div>
-          <div><span>Housing units</span><strong>{count(properties.housing_units_2020)}</strong><small>2020 Census</small></div>
+          <div><span>{populationLabel(properties)}</span><strong>{count(properties.population_2020)}</strong><small>{properties.level === 'zip' ? 'Direct ZCTA value' : 'Not an official state or county total'}</small></div>
+          <div><span>{housingLabel(properties)}</span><strong>{count(properties.housing_units_2020)}</strong><small>{properties.level === 'zip' ? 'Direct ZCTA value' : 'Not an official state or county total'}</small></div>
           <div><span>{alignmentLabel(properties)}</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals the governed peer median</small></div>
           <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>
@@ -430,8 +439,8 @@ export default function BusinessIntelligence() {
           <label><span>Heat-map data / enhancer</span><select value={enhancerId} onChange={(event) => setEnhancerId(event.target.value)}>{catalog.enhancers.map((enhancer) => <option value={enhancer.id} key={enhancer.id}>{enhancer.label}</option>)}</select></label>
           <fieldset className="demographic-filters">
             <legend>Population / demographic filters</legend>
-            <label><span>Minimum population</span><input aria-label="Minimum population" type="number" min="0" step="1" inputMode="numeric" value={minPopulation} onChange={(event) => { setMinPopulation(event.target.value); setSelectedZip(''); }} placeholder="No minimum" /></label>
-            <label><span>Minimum housing units</span><input aria-label="Minimum housing units" type="number" min="0" step="1" inputMode="numeric" value={minHousingUnits} onChange={(event) => { setMinHousingUnits(event.target.value); setSelectedZip(''); }} placeholder="No minimum" /></label>
+            <label><span>Minimum population</span><input aria-label="Minimum population" type="number" min="0" step="1" inputMode="numeric" value={minPopulation} onChange={(event) => { setMinPopulation(event.target.value); setZipFeature(null); setSelectedZip(''); }} placeholder="No minimum" /></label>
+            <label><span>Minimum housing units</span><input aria-label="Minimum housing units" type="number" min="0" step="1" inputMode="numeric" value={minHousingUnits} onChange={(event) => { setMinHousingUnits(event.target.value); setZipFeature(null); setSelectedZip(''); }} placeholder="No minimum" /></label>
             <button type="button" onClick={() => { setMinPopulation(''); setMinHousingUnits(''); }}>Clear filters</button>
           </fieldset>
           <div className="scope-card"><span>Current scope</span><strong>{selectedZip ? `ZIP ${selectedZip}` : countyName || stateName || 'United States'}</strong><small>{activeCategory?.label}</small></div>

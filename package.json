@@ -92,6 +92,7 @@
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "postal-migration:status": "node scripts/check-normalized-us-postal-migration.mjs --allow-pending",
     "zip-denominator:audit": "node scripts/audit-zip-denominator.mjs",
+    "source-temporal:audit": "node scripts/audit-business-source-temporal-status.mjs",
     "postal-migration:candidates": "node scripts/check-normalized-us-postal-migration.mjs --candidates --allow-pending",
     "postal-migration:check": "node scripts/check-normalized-us-postal-migration.mjs",
     "postal-cutover:plan": "node scripts/cutover-normalized-us-postal-migration.mjs plan",
