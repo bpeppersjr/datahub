@@ -1,0 +1,145 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-4-wave-1-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["ID", "NM", "ME", "WY"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "ID",
+      "state_name": "Idaho",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Idaho Secretary of State",
+        "product": "SOSBiz business search and possible corporate information list",
+        "availability": "no documented recurring business-entity bulk product",
+        "published_price": null
+      },
+      "current_coverage": {
+        "reported_profiles": 34206,
+        "coordinate_profiles": 1597,
+        "nonemployer_baseline_2023": 165145,
+        "baseline_minus_profiles": 130939,
+        "diagnostic_profile_percent": 20.7,
+        "material_zctas": 287
+      },
+      "official_urls": [
+        "https://sosbiz.idaho.gov/search/business",
+        "https://legislature.idaho.gov/statutesrules/idstat/Title74/T74CH1/SECT74-120/",
+        "https://sos.idaho.gov/ucc/",
+        "https://sos.idaho.gov/sosbiz-help/"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["registered agents and offices", "governors, officers, directors, members, managers, partners, owners, incorporators and signers", "person addresses", "phones and emails", "filing images and free text"],
+      "strongest_bounded_next_action": "Ask Idaho SOS whether an existing corporate information list or broader business-entity product can supply a complete person-free recurring master with a sample, schema, control totals, status and address codebooks, source-key guarantees, change semantics, supported automation, price, and written derived-use rights. Do not scrape SOSBiz."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "NM",
+      "state_name": "New Mexico",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "New Mexico Secretary of State Business Services Division",
+        "product": "SOS Enterprise business records",
+        "availability": "no documented recurring business-record export or API",
+        "published_price": null
+      },
+      "current_coverage": {
+        "reported_profiles": 40433,
+        "coordinate_profiles": 2098,
+        "nonemployer_baseline_2023": 140015,
+        "baseline_minus_profiles": 99582,
+        "diagnostic_profile_percent": 28.9,
+        "material_zctas": 379
+      },
+      "official_urls": [
+        "https://enterprise.sos.nm.gov/api/GroupItems/BusinessRecordTypes/true",
+        "https://enterprise.sos.nm.gov/api/GroupItems/BusinessStatusTypes/true",
+        "https://www.sos.nm.gov/business-services/",
+        "https://www.sos.nm.gov/legislation-and-lobbying/legal-resources/ipra-request-information/"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["agents, officers, directors, members, managers, organizers and incorporators", "person addresses", "phones, emails and signatures", "tax and account identifiers", "payment data, comments, documents and free text"],
+      "strongest_bounded_next_action": "Ask New Mexico SOS whether an existing recurring SOS Enterprise export can provide a person-free entity projection with a sample, dictionary, exact population and active count, Business ID guarantee, status and address codebooks, change semantics, checksum, price, supported automation, and written derived-use rights. Do not enumerate the public search."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "ME",
+      "state_name": "Maine",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Maine Secretary of State through InforME",
+        "product": "monthly Corporate and UCC Records with weekly Corporate Data updates",
+        "availability": "recurring paid product with unpublished data contract",
+        "published_price": "$600 or $1,200 monthly full product; $300 weekly corporate update; subscriber fee may also apply"
+      },
+      "current_coverage": {
+        "reported_profiles": 30240,
+        "coordinate_profiles": 1847,
+        "nonemployer_baseline_2023": 127173,
+        "baseline_minus_profiles": 96933,
+        "diagnostic_profile_percent": 23.8,
+        "material_zctas": 427
+      },
+      "official_urls": [
+        "https://www.maine.gov/sos/corporations-commissions/bulk-data",
+        "https://www.maine.gov/informe/subscribers/services",
+        "https://www.maine.gov/sos/corporations-commissions/incorporating-resources/corporations-commissions/miscellaneous-service-lists-and-bulk-data",
+        "https://www.maine.gov/informe/subscribers/sign-up/service-agreement"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["clerks and registered agents", "officers, directors, shareholders, members, managers and authorized persons", "person addresses", "phones, emails and signatures", "filing images and free text"],
+      "strongest_bounded_next_action": "Request the current corporate-only order packet, sample, dictionary, exact entity/status scope, Charter Number guarantee, principal-office and ZIP coverage, file controls, monthly/weekly change semantics, protocol, automation terms, complete price, and written derived-use rights from InforME and Maine SOS. Do not purchase before the response clears every gate."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "WY",
+      "state_name": "Wyoming",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Wyoming Secretary of State",
+        "product": "Business Database Download",
+        "availability": "monthly paid ZIP download with unpublished data contract",
+        "published_price": "$850 single month, $5,100 six months, or $10,200 yearly"
+      },
+      "current_coverage": {
+        "reported_profiles": 16143,
+        "coordinate_profiles": 674,
+        "nonemployer_baseline_2023": 65773,
+        "baseline_minus_profiles": 49630,
+        "diagnostic_profile_percent": 24.5,
+        "material_zctas": 182
+      },
+      "official_urls": [
+        "https://sos.wyo.gov/FAQS.aspx?root=BUS",
+        "https://sos.wyo.gov/Forms/Business/General/WYSOS-BusinessDatabaseDownload.pdf"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["registered agents", "officers, directors and other parties", "person addresses", "phones, emails and signatures", "filing images and free text"],
+      "strongest_bounded_next_action": "Request a non-production sample, dictionary, exact complete/current scope, entity key and status contract, address roles, file counts and checksums, full-versus-delta semantics, supported retrieval method, and written retention and derived-publication rights from Wyoming SOS. Do not subscribe before those answers clear every gate."
+    }
+  ]
+}
