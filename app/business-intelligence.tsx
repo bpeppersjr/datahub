@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties, type WheelEvent } from 'react';
-
-const RUNNER_URL = 'http://127.0.0.1:4300';
+import { runnerJson } from './runner-client';
 
 type Category = { id: string; label: string; group_id?: string; group_label?: string; business_name_drilldown: boolean };
 type Enhancer = { id: string; label: string; kind: string };
@@ -77,10 +76,7 @@ type StateSummary = {
 };
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${RUNNER_URL}${path}`);
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || `Runner returned HTTP ${response.status}.`);
-  return body;
+  return runnerJson<T>(path);
 }
 
 function count(value?: number | null) {
@@ -329,7 +325,7 @@ export default function BusinessIntelligence() {
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [catalog, categoryId, countyGeoid, enhancerId, level, minHousingUnits, minPopulation, stateFips, tab]);
 
-  const activeCategory = catalog?.categories.find(({ id }) => id === categoryId);
+  const activeCategory = catalog?.categories?.find(({ id }) => id === categoryId);
 
   function choose(feature: MapFeature) {
     if (level === 'states') {

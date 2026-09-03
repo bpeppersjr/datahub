@@ -68,6 +68,8 @@ Owner: security and governance
 - Refuse non-loopback binding unless a separately designed authenticated remote mode is enabled.
 - Add negative tests for every management and output endpoint.
 
+Implementation evidence: the loopback runner now creates or accepts one 256-bit per-launch control token, reduces unauthenticated health to `{ "ok": true }`, and requires timing-safe bearer authentication before every management, data, review, mutation, and output route. Exact Host and configured-origin checks run before routing; non-loopback listener configuration is rejected. The Electron main process passes the token only to its runner child and an exact-document, main-frame, sandboxed preload IPC method. It refuses an occupied runner port without sending HTTP data, waits for its own child to announce readiness over IPC, and loads the renderer only after authenticated proof. The coordinated web-development launcher supplies one fresh token and exact origins to both direct child processes without printing or persisting it, and awaits both children during coordinated shutdown. Authenticated fetch-based downloads replace direct unauthenticated links. Negative integration tests enumerate every endpoint family and cover missing/wrong tokens, forged Hosts, disallowed origins, preflight behavior, token redaction, authenticated reads and mutations, minimal liveness, hostile pre-bound ports, foreign local-file navigation, normal two-service shutdown, and one-child failure cleanup.
+
 ### DH-004 — Versioned connector registry and validation
 
 Owner: platform architecture and connector engineering

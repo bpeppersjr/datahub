@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "npm run desktop",
-    "dev:web": "concurrently --kill-others --names UI,RUNNER --prefix-colors cyan,magenta \"npm:dev:ui\" \"npm:runner\"",
+    "dev:web": "node scripts/start-dev-web.mjs",
     "dev:ui": "vinext dev",
     "runner": "node runner/server.mjs",
     "geography:build": "node scripts/build-us-geography.mjs",
@@ -94,18 +94,18 @@
     "entity-resolution:benchmark:labels:verify": "node scripts/verify-entity-resolution-benchmark-labels.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
+    "test:desktop": "node scripts/verify-desktop-control-plane.mjs",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",
     "build:web": "vinext build",
     "build": "npm run build:web && npm run desktop:build",
     "start": "npm run desktop",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
     "test": "node --test runner/*.test.mjs",
-    "check": "npm run test && npm run lint && npm run build"
+    "check": "npm run test && npm run lint && npm run build && npm run test:desktop"
   },
   "dependencies": {
     "@turf/area": "^7.4.0",
     "@turf/boolean-point-in-polygon": "^7.4.0",
-    "concurrently": "^10.0.5",
     "csv-parse": "^6.2.1",
     "next": "^16.3.3",
     "playwright": "^1.62.1",

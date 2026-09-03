@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-const RUNNER_URL = 'http://127.0.0.1:4300';
+import { runnerJson } from './runner-client';
 type Dimension = 'states' | 'counties' | 'zips' | 'sources' | 'gaps';
 
 type Overview = {
@@ -315,12 +314,7 @@ function label(value?: string | null) {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`${RUNNER_URL}${path}`);
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || `Runner returned HTTP ${response.status}.`);
-  }
-  return response.json();
+  return runnerJson<T>(path);
 }
 
 function StateRows({ records }: { records: StateRow[] }) {

@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-const RUNNER_URL = 'http://127.0.0.1:4300';
+import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type ReviewLabelValue = 'match' | 'non-match' | 'uncertain' | 'not-reviewable';
 type ReviewLabel = {
@@ -85,15 +84,10 @@ function percent(value: number | null | undefined) {
 }
 
 async function benchmarkApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${RUNNER_URL}${path}`, {
+  return runnerJson<T>(path, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
   });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || `Runner returned HTTP ${response.status}.`);
-  }
-  return response.json();
 }
 
 export default function BenchmarkReview() {
@@ -179,6 +173,15 @@ export default function BenchmarkReview() {
     }
   }
 
+  async function downloadLabels() {
+    try {
+      await downloadRunnerArtifact('/api/entity-resolution/benchmark/labels', 'entity-resolution-benchmark.labels.jsonl');
+      setNotice('Prepared the current working labels download.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to download labels.');
+    }
+  }
+
   const siteAssessment = data?.assessment?.strata['automatic-physical-site'];
   const establishmentAssessment = data?.assessment?.strata['automatic-establishment'];
 
@@ -191,7 +194,7 @@ export default function BenchmarkReview() {
         </div>
         <div className="benchmark-actions">
           <label>Reviewer ID<input value={reviewerId} onChange={(event) => setReviewerId(event.target.value)} placeholder="operator-name" /></label>
-          {data?.available && <a className="ghost-button link-button" href={`${RUNNER_URL}/api/entity-resolution/benchmark/labels`}>Download labels</a>}
+          {data?.available && <button className="ghost-button link-button" onClick={() => void downloadLabels()}>Download labels</button>}
           <button className="text-button" onClick={() => void load()} disabled={loading}>Refresh</button>
         </div>
       </div>

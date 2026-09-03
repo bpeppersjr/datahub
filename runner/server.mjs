@@ -12,6 +12,7 @@ import { inspectNormalizedUsPostalCutoverControl } from './normalized-us-postal-
 import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
+import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -21,6 +22,11 @@ try {
 
 const PORT = Number(process.env.RUNNER_PORT) || 4300;
 const HOST = process.env.RUNNER_HOST || '127.0.0.1';
+const controlPlane = createLocalControlPlaneGuard({
+  host: HOST,
+  port: PORT,
+  controlToken: process.env.DATAHUB_CONTROL_TOKEN || undefined,
+});
 const jobTypes = new Set(['browser', 'api', 'map', 'places', 'pharmacy', 'download', 'parse', 'ocr', 'transform']);
 
 const templates = {
@@ -188,18 +194,6 @@ pool.on('cancelled', ({ run, job }) => {
   })();
 });
 
-function setCors(request, response) {
-  const origin = request.headers.origin;
-  if (origin === 'null') {
-    response.setHeader('Access-Control-Allow-Origin', 'null');
-  } else if (origin && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) {
-    response.setHeader('Access-Control-Allow-Origin', origin);
-    response.setHeader('Vary', 'Origin');
-  }
-  response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-}
-
 function json(response, status, value) {
   const body = JSON.stringify(value);
   response.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) });
@@ -230,18 +224,22 @@ function validateJob(input) {
 }
 
 const server = http.createServer(async (request, response) => {
-  setCors(request, response);
-  if (request.method === 'OPTIONS') {
-    response.writeHead(204);
-    response.end();
-    return;
-  }
-
   try {
+    controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
+    if (request.method === 'OPTIONS') {
+      response.writeHead(204);
+      response.end();
+      return;
+    }
+    if (request.method === 'GET' && url.pathname === '/api/health') {
+      json(response, 200, { ok: true });
+      return;
+    }
+    controlPlane.authorize(request);
     const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
 
-    if (request.method === 'GET' && url.pathname === '/api/health') {
+    if (request.method === 'GET' && url.pathname === '/api/status') {
       const pharmacySource = await inspectNppesSource();
       json(response, 200, {
         ok: true,
@@ -484,12 +482,14 @@ const server = http.createServer(async (request, response) => {
     json(response, 404, { error: 'Route not found.' });
   } catch (error) {
     const status = error.statusCode || 500;
+    for (const [name, value] of Object.entries(error.responseHeaders ?? {})) response.setHeader(name, value);
     json(response, status, { error: status === 500 ? `Runner error: ${error.message}` : error.message });
   }
 });
 
 server.listen(PORT, HOST, () => {
   console.log(`Co*Tive Collector listening at http://${HOST}:${PORT}`);
+  if (process.connected && typeof process.send === 'function') process.send({ type: 'runner-ready', host: HOST, port: PORT });
 });
 
 async function shutdown() {

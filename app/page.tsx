@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import BenchmarkReview from './benchmark-review';
 import BusinessIntelligence from './business-intelligence';
 import CoverageExplorer from './coverage-explorer';
-
-const RUNNER_URL = 'http://127.0.0.1:4300';
+import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
 type Status = 'idle' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
@@ -77,16 +76,10 @@ const statusLabel: Record<Status, string> = {
 };
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${RUNNER_URL}${path}`, {
+  return runnerJson<T>(path, {
     ...options,
     headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) },
   });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || `Runner returned HTTP ${response.status}.`);
-  }
-  if (response.status === 204) return undefined as T;
-  return response.json();
 }
 
 function age(timestamp?: string) {
@@ -127,7 +120,7 @@ export default function Home() {
         api<Job[]>('/api/jobs'),
         api<Run[]>('/api/runs?limit=200'),
         api<Activity[]>('/api/activity?limit=20'),
-        api<Health>('/api/health'),
+        api<Health>('/api/status'),
       ]);
       setJobs(nextJobs);
       setRuns(nextRuns);
@@ -277,6 +270,14 @@ export default function Home() {
     }
   }
 
+  async function downloadOutput(runId: string) {
+    try {
+      await downloadRunnerArtifact(`/api/runs/${runId}/output`, `${runId}.json`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unable to download output.');
+    }
+  }
+
   function exportJobs() {
     const payload = jobs.map(({ name, type, enabled, config }) => ({ name, type, enabled, config }));
     const url = URL.createObjectURL(new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' }));
@@ -399,7 +400,7 @@ export default function Home() {
                       {run && ['running', 'queued'].includes(run.status)
                         ? <button className="stop-button" onClick={() => cancelRun(run)} aria-label={`Cancel ${job.name}`}>■</button>
                         : run?.outputPath
-                          ? <a className="output-button" href={`${RUNNER_URL}/api/runs/${run.id}/output`} title="Download JSON output">↓</a>
+                          ? <button className="output-button" onClick={() => void downloadOutput(run.id)} title="Download JSON output">↓</button>
                           : <button className="more-button" onClick={() => openEdit(job)} aria-label={`Edit ${job.name}`}>•••</button>}
                     </article>
                   );
@@ -485,7 +486,7 @@ export default function Home() {
             <div className="run-summary"><span className={`state ${runDetail.status}`}><i />{statusLabel[runDetail.status]}</span><span>{runDetail.type}</span><span>{runDetail.progress}%</span><span>{age(runDetail.completedAt ?? runDetail.startedAt)}</span></div>
             {runDetail.error && <p className="run-error">{runDetail.error}</p>}
             <div className="log-view">{runDetail.logs?.length ? runDetail.logs.map((entry, index) => <p key={`${entry.at}-${index}`}><time>{new Date(entry.at).toLocaleTimeString()}</time><span>{entry.message}</span></p>) : <p><span>{runDetail.message || 'No log messages recorded.'}</span></p>}</div>
-            <footer>{runDetail.outputPath && <a className="primary-button link-button" href={`${RUNNER_URL}/api/runs/${runDetail.id}/output`}>Download output</a>}<span className="footer-spacer" /><button className="ghost-button" onClick={() => setRunDetail(null)}>Close</button></footer>
+            <footer>{runDetail.outputPath && <button className="primary-button link-button" onClick={() => void downloadOutput(runDetail.id)}>Download output</button>}<span className="footer-spacer" /><button className="ghost-button" onClick={() => setRunDetail(null)}>Close</button></footer>
           </section>
         </div>
       )}

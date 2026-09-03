@@ -1,6 +1,6 @@
 # Co*Tive Collector
 
-Co*Tive Collector is a standalone desktop management console for configuring, running, and monitoring mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle Google ZIP place segments, APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms.
+Co*Tive Collector is a standalone desktop management console for configuring, running, and monitoring mixed data-collection jobs in parallel. Browser jobs use Playwright and Chromium; other workers handle Google ZIP place segments, APIs, GeoJSON, downloads, file parsing, OCR, and structured JSON transforms. Its management API is loopback-only and protected by a fresh per-launch control token.
 
 ## Included job types
 
@@ -35,7 +35,7 @@ npx playwright install chromium
 npm run dev:web
 ```
 
-Open `http://localhost:3000`. The runner API listens only on `127.0.0.1:4300` unless explicitly changed with environment variables.
+Open `http://localhost:3000`. The coordinated command creates a fresh control token for both processes; launching only the UI will not authenticate to the runner. The runner API listens only on loopback, defaults to `127.0.0.1:4300`, validates its exact Host and origin, and exposes only narrow liveness without authentication. See [the local control-plane security contract](docs/LOCAL-CONTROL-PLANE-SECURITY.md).
 
 The **U.S. business coverage** panel is the management view over the current governed aggregate release. It provides paged state, county, ZIP, source, and explicit-gap visibility, including state-FIPS, ZIP-prefix, and gap-type filters. Annual Census Nonemployer baselines appear separately from record-level profiles and are never allocated to ZIPs. The panel is deliberately source-preserving: it does not claim a complete or deduplicated census of U.S. businesses. See [the national coverage-view contract](docs/NATIONAL-BUSINESS-COVERAGE-VIEWS.md).
 
