@@ -599,6 +599,7 @@ export async function buildNyRetailFoodStores({
     manifest_version: "1.0.0",
     dataset_id: "ny-retail-food-store-license-sites",
     schema_version: NY_RETAIL_FOOD_SCHEMA_VERSION,
+    connector: { id: "ny-retail-food-stores", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     run_id: runId,

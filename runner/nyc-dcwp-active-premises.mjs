@@ -713,6 +713,7 @@ export async function buildNycDcwpActivePremises({
   const manifest = {
     schema_version: NYC_DCWP_ACTIVE_PREMISE_SCHEMA_VERSION,
     dataset_id: "nyc-dcwp-active-license-sites",
+    connector: { id: "nyc-dcwp-active-premises", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     status: "complete",

@@ -7,6 +7,7 @@ import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
+import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
 import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 
@@ -259,7 +260,29 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
-      json(response, 200, await businessCoverageViews.getOverview());
+      const [overview, postalMigration] = await Promise.all([
+        businessCoverageViews.getOverview(),
+        inspectNormalizedUsPostalMigration(),
+      ]);
+      json(response, 200, {
+        ...overview,
+        normalized_postal_source_migration: {
+          migration_id: postalMigration.migration_id,
+          contract_version: postalMigration.contract_version,
+          ready_for_registry_2_10: postalMigration.ready_for_registry_2_10,
+          counts: postalMigration.counts,
+          sources: postalMigration.sources.map((source) => ({
+            source_key: source.source_key,
+            dataset_id: source.dataset_id,
+            status: source.status,
+            current_connector_version: source.current_connector_version,
+            minimum_connector_version: source.minimum_connector_version,
+            reason: source.reason,
+            build_commands: source.build_commands,
+            verify_command: source.verify_command,
+          })),
+        },
+      });
       return;
     }
 

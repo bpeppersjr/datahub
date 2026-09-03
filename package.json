@@ -75,6 +75,8 @@
     "nyc-dcwp:verify": "node scripts/verify-nyc-dcwp-active-premises.mjs",
     "fmcsa:build": "node scripts/build-fmcsa-company-census.mjs",
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
+    "postal-migration:status": "node scripts/check-normalized-us-postal-migration.mjs --allow-pending",
+    "postal-migration:check": "node scripts/check-normalized-us-postal-migration.mjs",
     "registry:build": "node scripts/build-business-registry.mjs",
     "registry:verify": "node scripts/verify-business-registry.mjs",
     "entity-resolution:build": "node scripts/build-business-entity-resolution.mjs",

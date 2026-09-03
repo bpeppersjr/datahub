@@ -744,6 +744,7 @@ export async function buildChicagoActiveBusinessLicenses({
   const manifest = {
     schema_version: CHICAGO_ACTIVE_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "chicago-active-business-license-sites",
+    connector: { id: "chicago-active-business-licenses", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     status: "complete",

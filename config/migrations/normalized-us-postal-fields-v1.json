@@ -1,0 +1,304 @@
+{
+  "migration_id": "normalized-us-postal-fields-v1",
+  "contract_version": "1.0.0",
+  "description": "Require ZIP5 and ZIP+4 to be published as separate normalized fields before registry publisher 2.10.0 can run.",
+  "execution_order": [
+    "fsis",
+    "nyRetailFoodStores",
+    "fdic",
+    "deBusiness",
+    "echo",
+    "fmcsa",
+    "coBusiness",
+    "irsEo",
+    "akBusiness",
+    "caAbcActiveLicenses",
+    "chicagoActiveBusinessLicenses",
+    "ctBusiness",
+    "dcBasicBusinessLicenses",
+    "iaBusiness",
+    "laActiveBusinesses",
+    "ncua",
+    "nycDcwpActiveLicenses",
+    "orBusiness",
+    "snap",
+    "txActiveSalesTax",
+    "waLniActiveContractors",
+    "nyBusiness",
+    "paBusiness",
+    "nppes",
+    "flBusiness"
+  ],
+  "sources": [
+    {
+      "source_key": "snap",
+      "dataset_id": "usda-snap-retailers",
+      "pointer": "data/business-sources/usda-snap/current.json",
+      "connector_config": "config/connectors/usda-snap-retailers.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run snap:build"],
+      "verify_command": "npm run snap:verify"
+    },
+    {
+      "source_key": "nppes",
+      "dataset_id": "cms-nppes-organizations",
+      "pointer": "data/business-sources/cms-nppes-organizations/current.json",
+      "connector_config": "config/connectors/cms-nppes-organizations.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run nppes-org:build"],
+      "verify_command": "npm run nppes-org:verify",
+      "rebuild_prerequisites": {
+        "required_paths": ["data/pharmacy-sources/nppes"],
+        "note": "Reuse the prepared governed NPPES source directory; rerun npm run nppes:prepare only if it is missing or intentionally refreshed."
+      }
+    },
+    {
+      "source_key": "fdic",
+      "dataset_id": "fdic-bankfind",
+      "pointer": "data/business-sources/fdic-bankfind/current.json",
+      "connector_config": "config/connectors/fdic-bankfind.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run fdic:build"],
+      "verify_command": "npm run fdic:verify"
+    },
+    {
+      "source_key": "ncua",
+      "dataset_id": "ncua-quarterly-credit-unions",
+      "pointer": "data/business-sources/ncua-quarterly-credit-unions/current.json",
+      "connector_config": "config/connectors/ncua-quarterly.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ncua:build"],
+      "verify_command": "npm run ncua:verify"
+    },
+    {
+      "source_key": "fsis",
+      "dataset_id": "fsis-active-mpi-establishments",
+      "pointer": "data/business-sources/fsis-active-mpi-establishments/current.json",
+      "connector_config": "config/connectors/fsis-mpi.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run fsis:build -- --source-date 2026-08-24"],
+      "verify_command": "npm run fsis:verify",
+      "rebuild_prerequisites": {
+        "required_paths": [
+          "downloads/fsis-mpi/MPI_Directory_by_Establishment_Name.csv",
+          "downloads/fsis-mpi/Dataset_Establishment_Demographic_Data.csv"
+        ],
+        "note": "Reuse the two retained official FSIS downloads for the recorded source date."
+      }
+    },
+    {
+      "source_key": "echo",
+      "dataset_id": "epa-echo-active-facilities",
+      "pointer": "data/business-sources/epa-echo-active-facilities/current.json",
+      "connector_config": "config/connectors/epa-echo.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run echo:build -- --archive \"downloads/epa-echo/echo_exporter.zip\""],
+      "verify_command": "npm run echo:verify",
+      "rebuild_prerequisites": {
+        "required_paths": ["downloads/epa-echo/echo_exporter.zip"],
+        "note": "Reuse the retained official archive whose SHA-256 matches the current release."
+      }
+    },
+    {
+      "source_key": "fmcsa",
+      "dataset_id": "fmcsa-active-us-company-census",
+      "pointer": "data/business-sources/fmcsa-active-us-company-census/current.json",
+      "connector_config": "config/connectors/fmcsa-company-census.json",
+      "minimum_connector_version": "1.0.2",
+      "build_commands": ["npm run fmcsa:build -- --source-csv \"data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/active-us-company-census-selected.csv\" --dictionary \"data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/company-census-data-dictionary.pdf\" --metadata \"data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/release-metadata.json\""],
+      "verify_command": "npm run fmcsa:verify",
+      "rebuild_prerequisites": {
+        "required_paths": [
+          "data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/active-us-company-census-selected.csv",
+          "data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/company-census-data-dictionary.pdf",
+          "data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260830-182538838Z-1bdf3bbe/source/release-metadata.json"
+        ],
+        "note": "Reuse the selected CSV, official dictionary, and release metadata from the immutable current release."
+      }
+    },
+    {
+      "source_key": "irsEo",
+      "dataset_id": "irs-eo-bmf-organizations",
+      "pointer": "data/business-sources/irs-eo-bmf-organizations/current.json",
+      "connector_config": "config/connectors/irs-eo-bmf.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run irs-eo:build -- --source-directory \"data/business-sources/irs-eo-bmf-organizations/releases/irs-eo-bmf-20260830-170801603Z-33a33e6c/source\""],
+      "verify_command": "npm run irs-eo:verify",
+      "rebuild_prerequisites": {
+        "required_paths": ["data/business-sources/irs-eo-bmf-organizations/releases/irs-eo-bmf-20260830-170801603Z-33a33e6c/source"],
+        "note": "Reuse eo1.csv through eo4.csv; the builder still checks the current IRS discovery page and can reject source drift."
+      }
+    },
+    {
+      "source_key": "ctBusiness",
+      "dataset_id": "ct-business-registry-active-organizations",
+      "pointer": "data/business-sources/ct-business-registry-active-organizations/current.json",
+      "connector_config": "config/connectors/ct-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ct-business:build"],
+      "verify_command": "npm run ct-business:verify"
+    },
+    {
+      "source_key": "deBusiness",
+      "dataset_id": "de-business-licenses-current",
+      "pointer": "data/business-sources/de-business-licenses-current/current.json",
+      "connector_config": "config/connectors/de-business-licenses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run de-business:build"],
+      "verify_command": "npm run de-business:verify"
+    },
+    {
+      "source_key": "akBusiness",
+      "dataset_id": "ak-active-business-licenses",
+      "pointer": "data/business-sources/ak-active-business-licenses/current.json",
+      "connector_config": "config/connectors/ak-active-business-licenses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ak-business:build"],
+      "verify_command": "npm run ak-business:verify"
+    },
+    {
+      "source_key": "coBusiness",
+      "dataset_id": "co-business-registry-good-standing-or-delinquent-organizations",
+      "pointer": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json",
+      "connector_config": "config/connectors/co-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run co-business:build -- --resume-source-staging-run f91f07d3-eeb0-4d76-a2f9-36ff0203c35d"],
+      "verify_command": "npm run co-business:verify",
+      "rebuild_prerequisites": {
+        "required_paths": ["data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/.staging/f91f07d3-eeb0-4d76-a2f9-36ff0203c35d/source/good-standing-or-delinquent-business-entities.jsonl.gz"],
+        "note": "Reuse the complete staged source snapshot; live metadata and row counts are still checked for drift."
+      }
+    },
+    {
+      "source_key": "waLniActiveContractors",
+      "dataset_id": "wa-lni-active-contractor-organizations",
+      "pointer": "data/business-sources/wa-lni-active-contractor-organizations/current.json",
+      "connector_config": "config/connectors/wa-lni-active-contractor-licenses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run wa-lni-contractors:build"],
+      "verify_command": "npm run wa-lni-contractors:verify"
+    },
+    {
+      "source_key": "orBusiness",
+      "dataset_id": "or-business-registry-active-registrations",
+      "pointer": "data/business-sources/or-business-registry-active-registrations/current.json",
+      "connector_config": "config/connectors/or-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run or-business:build"],
+      "verify_command": "npm run or-business:verify"
+    },
+    {
+      "source_key": "iaBusiness",
+      "dataset_id": "ia-business-registry-active-entities",
+      "pointer": "data/business-sources/ia-business-registry-active-entities/current.json",
+      "connector_config": "config/connectors/ia-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ia-business:build"],
+      "verify_command": "npm run ia-business:verify"
+    },
+    {
+      "source_key": "nyBusiness",
+      "dataset_id": "ny-business-registry-active-entities",
+      "pointer": "data/business-sources/ny-business-registry-active-entities/current.json",
+      "connector_config": "config/connectors/ny-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ny-business:build"],
+      "verify_command": "npm run ny-business:verify"
+    },
+    {
+      "source_key": "flBusiness",
+      "dataset_id": "fl-business-registry-quarterly-active-entities",
+      "pointer": "data/business-sources/fl-business-registry-quarterly-active-entities/current.json",
+      "connector_config": "config/connectors/fl-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run fl-business:build"],
+      "verify_command": "npm run fl-business:verify",
+      "rebuild_prerequisites": {
+        "required_environment": ["FL_SUNBIZ_PUBLIC_PASSWORD"],
+        "note": "The current environment has no retained cordata.zip or supported published-release replay path. Never store the credential value in this definition or in a release manifest."
+      }
+    },
+    {
+      "source_key": "paBusiness",
+      "dataset_id": "pa-business-registry-active-registrations",
+      "pointer": "data/business-sources/pa-business-registry-active-registrations/current.json",
+      "connector_config": "config/connectors/pa-business-registry.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run pa-business:build"],
+      "verify_command": "npm run pa-business:verify"
+    },
+    {
+      "source_key": "laActiveBusinesses",
+      "dataset_id": "la-active-business-location-accounts",
+      "pointer": "data/business-sources/la-active-business-location-accounts/current.json",
+      "connector_config": "config/connectors/la-active-businesses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run la-active-businesses:build"],
+      "verify_command": "npm run la-active-businesses:verify"
+    },
+    {
+      "source_key": "txActiveSalesTax",
+      "dataset_id": "tx-active-sales-tax-outlets",
+      "pointer": "data/business-sources/tx-active-sales-tax-outlets/current.json",
+      "connector_config": "config/connectors/tx-active-sales-tax-permits.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run tx-sales-tax:build"],
+      "verify_command": "npm run tx-sales-tax:verify"
+    },
+    {
+      "source_key": "chicagoActiveBusinessLicenses",
+      "dataset_id": "chicago-active-business-license-sites",
+      "pointer": "data/business-sources/chicago-active-business-license-sites/current.json",
+      "connector_config": "config/connectors/chicago-active-business-licenses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run chicago-licenses:build"],
+      "verify_command": "npm run chicago-licenses:verify"
+    },
+    {
+      "source_key": "dcBasicBusinessLicenses",
+      "dataset_id": "dc-basic-business-license-sites",
+      "pointer": "data/business-sources/dc-basic-business-license-sites/current.json",
+      "connector_config": "config/connectors/dc-basic-business-licenses.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run dc-bbl:build"],
+      "verify_command": "npm run dc-bbl:verify"
+    },
+    {
+      "source_key": "caAbcActiveLicenses",
+      "dataset_id": "ca-abc-active-license-sites",
+      "pointer": "data/business-sources/ca-abc-active-license-sites/current.json",
+      "connector_config": "config/connectors/ca-abc-active-license-sites.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ca-abc:build"],
+      "verify_command": "npm run ca-abc:verify"
+    },
+    {
+      "source_key": "nyRetailFoodStores",
+      "dataset_id": "ny-retail-food-store-license-sites",
+      "pointer": "data/business-sources/ny-retail-food-store-license-sites/current.json",
+      "connector_config": "config/connectors/ny-retail-food-stores.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run ny-retail-food:build"],
+      "verify_command": "npm run ny-retail-food:verify"
+    },
+    {
+      "source_key": "nycDcwpActiveLicenses",
+      "dataset_id": "nyc-dcwp-active-license-sites",
+      "pointer": "data/business-sources/nyc-dcwp-active-license-sites/current.json",
+      "connector_config": "config/connectors/nyc-dcwp-active-premises.json",
+      "minimum_connector_version": "1.0.1",
+      "build_commands": ["npm run nyc-dcwp:build"],
+      "verify_command": "npm run nyc-dcwp:verify"
+    }
+  ],
+  "downstream_order": [
+    "npm run registry:build",
+    "npm run registry:verify",
+    "npm run entity-resolution:build",
+    "npm run entity-resolution:verify",
+    "npm run entity-resolution:benchmark:build",
+    "npm run entity-resolution:benchmark:verify",
+    "npm run coverage-views:build",
+    "npm run coverage-views:verify"
+  ]
+}

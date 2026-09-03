@@ -585,6 +585,7 @@ export async function buildTxActiveSalesTaxPermits({
   const manifest = {
     schema_version: TX_ACTIVE_SALES_TAX_SCHEMA_VERSION,
     dataset_id: "tx-active-sales-tax-outlets",
+    connector: { id: "tx-active-sales-tax-permits", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     status: "complete",

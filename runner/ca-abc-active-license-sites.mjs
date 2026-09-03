@@ -638,6 +638,7 @@ export async function buildCaAbcActiveLicenseSites({
     retrieved_at: retrievedAt, source_modified_at: metadata.modifiedAt, source_release_id: selectedSourceReleaseId,
     source_archive_sha256: metadata.archiveSha256, source_archive_bytes: metadata.bytes, source_updated_label: metadata.sourceUpdatedLabel,
     status: "published", complete_selected_active_issued_license_snapshot: true, raw_archive_retained: false,
+    connector: { id: "ca-abc-active-license-sites", version: "1.0.1" },
     selection: { type_status: "ACTIVE", license_or_application: "LIC" },
     publisher: { id: "ca-abc-active-license-sites", version: "1.0.1" },
     dependencies: [baseline.dependency],

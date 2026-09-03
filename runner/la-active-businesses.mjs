@@ -601,6 +601,7 @@ export async function buildLaActiveBusinesses({
   const manifest = {
     schema_version: LA_ACTIVE_BUSINESS_SCHEMA_VERSION,
     dataset_id: "la-active-business-location-accounts",
+    connector: { id: "la-active-businesses", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     status: "complete",

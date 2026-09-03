@@ -176,6 +176,8 @@ Its 48,217-row ZIP union has record-level source contributions in 48,018 rows. N
 
 This 2.9 release supersedes the verified 2.8 registry. New York retail-food licensing adds 24,281 organizations, 24,230 location profiles/sites/establishments, 48,460 relationships, and 289,835 source-backed assertions. Record-level artifacts remain local-review-only, while aggregate use requires OPEN-NY attribution and semantic limitations. Washington L&I, California ABC, DC, and Alaska retain their existing source-specific restrictions. Publisher 2.10.0 and corrected source generators are ready, but adoption requires an ordered rebuild of the source releases, registry, entity resolution, benchmark, and coverage. The USPS connector remains optional routing evidence and is not a polygon prerequisite.
 
+The registry CLI now runs a read-only 25-source postal migration preflight before it loads source artifacts or creates registry staging. It rejects legacy or mixed input pointers and directs operators to `npm run postal-migration:status`, whose versioned definition includes the source build/verifier commands, current prerequisite blockers, immutable input hashes, and downstream order. The checker does not automate multi-pointer production cutover; that remains gated on isolated candidates, an exclusive lock, compare-and-swap pointer promotion, and deterministic recovery.
+
 ## Adding the next source
 
 Add a source adapter that emits the same entity/assertion/relationship contracts while retaining the source release, record, ingest run, transformation, policy, observation time, and export classification. Cross-source merging requires a separate versioned rule with reversible evidence; new adapters must not silently overwrite existing assertions.

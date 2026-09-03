@@ -712,6 +712,7 @@ export async function buildIaBusinessRegistry({
   const manifest = {
     schema_version: IA_BUSINESS_REGISTRY_SCHEMA_VERSION,
     dataset_id: "ia-business-registry-active-entities",
+    connector: { id: "ia-business-registry", version: "1.0.1" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     source_modified_at: catalog.sourceModifiedAt,
