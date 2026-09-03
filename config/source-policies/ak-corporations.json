@@ -1,0 +1,47 @@
+{
+  "policy_id": "ak-corporations",
+  "version": "1.0.0",
+  "publisher": "State of Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing",
+  "ownership": "Official State of Alaska corporation-registration records published by DCCED; source ownership remains with the State of Alaska and no public-domain dedication is asserted.",
+  "source_home": "https://www.commerce.alaska.gov/cbp/main/",
+  "source_download": "https://www.commerce.alaska.gov/cbp/main/DbDownload/CorporationsDownload",
+  "publisher_terms": "https://www.commerce.alaska.gov/web/TermsofUsePolicy.aspx",
+  "public_records_law": "https://www.akleg.gov/basis/statutes.asp#40.25.100",
+  "source_access": "Anonymous official HTTPS endpoint. Connector network use is restricted to one HEAD and one bounded-prefix GET; the approximately 44 MB live file is not acquired or saved, and no row is parsed or persisted. Offline fixture builds require an exact acknowledgement and operator-supplied SHA-256.",
+  "rights_posture": "Alaska public-record access and the State website terms do not establish a separate open-data license for this connector. State ownership, source attribution, privacy review, retention, and redistribution approval remain explicit gates.",
+  "allowed_use": [
+    "one exact-host exact-path metadata HEAD request",
+    "one bounded-prefix GET that is cancelled after the exact schema header is found; the returned chunk may contain unparsed row bytes, but no row is parsed or persisted",
+    "operator-supplied offline CSV fixture validation after exact acknowledgement and SHA-256 binding",
+    "checksum-verified, non-overwriting internal privacy-selected source retention",
+    "local-review-only organization normalization preserving source status and administrative address roles",
+    "local schema, duplicate, status, address, and privacy quality review"
+  ],
+  "prohibited_use": [
+    "live full-file acquisition until a separately reviewed implementation and exact acknowledgement are approved",
+    "creating or changing current.json or another production pointer",
+    "admission of Alaska Corporations records to production datasets, the national business registry, state coverage views, completeness counts, or Heatmap Builder",
+    "publishing or redistributing raw or derived record-level data without explicit rights and privacy approval",
+    "persisting or publishing REGISTEREDAGENT or any REGISTEREDMAIL or REGISTEREDPHYS address field",
+    "persisting owner, officer, manager, member, principal, signer, or other person fields",
+    "treating Business Name Registration or Foreign Corporate Name Registration as a legal entity",
+    "representing source status as proof of operation, good standing, solvency, public access, or licensure",
+    "representing entity mailing or physical addresses as operating sites or establishments",
+    "creating sites, establishments, geometry, geocodes, ownership, affiliations, or operating-status inferences"
+  ],
+  "field_export_policy": {
+    "offline_privacy_selected_source_jsonl": "internal",
+    "entity_number_corporation_type_legal_and_assumed_names_exact_status_dates_home_jurisdiction_and_entity_administrative_addresses": "local-review-only",
+    "registered_agent_and_all_registered_agent_address_fields": "excluded-before-persistence",
+    "owner_officer_manager_member_principal_signer_and_other_person_fields": "excluded",
+    "site_establishment_geometry_geocode_and_heatmap_fields": "prohibited",
+    "production_registry_coverage_and_heatmap_admission": "prohibited"
+  },
+  "attribution": "Source: State of Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing, Corporations Download. Preserve the source URL, observation timestamp, schema fingerprint, source SHA-256, and status/address limitations.",
+  "retention": "Retain only checksum-verified privacy-selected internal source records and non-overwriting local-review-only releases inside the governed Datahub workspace pending an approved retention schedule. Filesystem immutability is not asserted. The connector does not copy or retain a live bulk download.",
+  "redistribution": "Not authorized by this policy. Raw records, selected source records, normalized records, aggregates, registry entries, coverage results, and Heatmap inputs remain non-public until explicit State-ownership/terms, privacy, attribution, and derived-publication review is approved.",
+  "contains_personal_data": true,
+  "personal_data_handling": "REGISTEREDAGENT and all registered-agent mailing and physical address fields are excluded before persistence. Name-registration aliases and any owner, officer, manager, member, principal, signer, or other person fields are excluded. Legal organization names and entity administrative addresses may still contain personal names or residential addresses, so every normalized record remains local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03"
+}

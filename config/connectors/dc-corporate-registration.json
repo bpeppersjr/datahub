@@ -1,0 +1,54 @@
+{
+  "connector_id": "dc-corporate-registration",
+  "version": "1.0.0",
+  "description": "Preflights the official DC Corporate Registration table with metadata and aggregate counts only, then builds acknowledged privacy-selected active-entity fixtures into checksum-verified, non-overwriting local-review-only releases.",
+  "implementation_status": "metadata-count-preflight-and-acknowledged-offline-fixture-only-live-bulk-unimplemented",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": { "type": "string", "default": "data/business-sources/dc-corporate-registration-organizations" },
+      "offline_source": { "type": "string", "description": "Operator-supplied exact 24-field JSONL/NDJSON fixture containing only the two source-defined active statuses." },
+      "maximum_source_bytes": { "type": "integer", "minimum": 1, "maximum": 2000000000, "default": 500000000 },
+      "maximum_decoded_source_bytes": { "type": "integer", "minimum": 1, "maximum": 1000000000, "default": 1000000000 },
+      "maximum_line_bytes": { "type": "integer", "minimum": 1, "maximum": 1000000, "default": 1000000 },
+      "maximum_rows": { "type": "integer", "minimum": 1, "maximum": 1000000, "default": 1000000 },
+      "maximum_preflight_age_ms": { "type": "integer", "minimum": 1, "maximum": 604800000, "default": 172800000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["dc-corporate-registration-metadata-and-aggregate-count-preflight", "operator-supplied-dc-corporate-registration-selected-active-jsonl-fixture"],
+  "output_artifact_types": ["dc-corporate-registration-preflight-receipt-json", "dc-corporate-registration-selected-active-source-jsonl-gzip", "normalized-dc-corporate-registration-organization-jsonl-gzip", "dc-corporate-registration-source-summary-json", "dataset-manifest-json"],
+  "allowed_hosts": ["maps2.dcgis.dc.gov"],
+  "allowed_paths": [
+    "/dcgis/rest/services/DCGIS_DATA/Business_Licensing_and_Grants_WebMercator/FeatureServer/0",
+    "/dcgis/rest/services/DCGIS_DATA/Business_Licensing_and_Grants_WebMercator/FeatureServer/0/query"
+  ],
+  "redirect_policy": "Reject every redirect. Accept only HTTPS on the exact maps2.dcgis.dc.gov host, no port, credentials, fragment, or unapproved path. Live requests are limited to one metadata request and six exact aggregate/count-only forms.",
+  "provider_budget_key": "dc-dlcp-corporate-registration-public-arcgis-preflight",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 6,
+    "maximum_metadata_response_bytes": 1000000,
+    "maximum_aggregate_response_bytes": 128000,
+    "maximum_record_count": 1000000,
+    "maximum_source_bytes": 500000000,
+    "maximum_decoded_source_bytes": 1000000000,
+    "maximum_line_bytes": 1000000,
+    "maximum_rows": 1000000
+  },
+  "retry": "No automatic retries. Redirects, HTTP errors, ArcGIS errors, response overages, schema drift, vocabulary drift, non-reconciling counts, non-unique active FILE_NUMBER controls, fixture count mismatch, privacy leakage, duplicate identity, or verification failure stop the run.",
+  "checkpoint": "The live preflight records exact selected schema, all-status and all-MODELTYPE aggregate counts, total and distinct FILE_NUMBER counts, active distinct FILE_NUMBER count, and maximum DCS_LAST_MOD_DTTM without requesting record rows. The offline build hashes its operator fixture, writes only to a new UUID-scoped .staging directory, verifies it, then atomically promotes it to a checksum-verified non-overwriting release without a current pointer.",
+  "idempotency": "Source maximum DCS_LAST_MOD_DTTM plus the operator fixture SHA-256 identify the offline source release. FILE_NUMBER, compared case-insensitively and preserved exactly in provenance, is the candidate organization key. Duplicate active identities fail closed.",
+  "cancellation": "Abort live requests and fixture streaming cooperatively. Remove unpublished UUID-scoped staging, surface cleanup failures, and never create or modify a production pointer.",
+  "source_policy": "config/source-policies/dc-corporate-registration.json",
+  "retention_profile": "Retain checksum-verified, non-overwriting internal selected-field snapshots and local-review-only normalized artifacts only under the approved project retention process; filesystem immutability and production retention are not asserted.",
+  "produced_entities": ["provisional-organization-candidate", "corporate-registration-status-assertion", "administrative-business-address-evidence"],
+  "produced_identifiers": ["dc-dlcp-corporate-file-number-candidate-key", "dcgis-globalid", "dcgis-objectid-provenance", "zip5", "zip4"],
+  "live_bulk_acquisition_enabled": false,
+  "production_enabled": false,
+  "registry_enabled": false,
+  "coverage_enabled": false,
+  "heatmap_enabled": false
+}

@@ -1,0 +1,148 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["NH", "MT", "RI", "SD"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "NH",
+      "state_name": "New Hampshire",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "New Hampshire Department of State Corporation Division",
+        "product": "potential customized list, direct-access service, or electronic copy",
+        "availability": "optional electronic custom service is authorized by statute, but no current named product, scope, or contract is published",
+        "published_price": null
+      },
+      "current_coverage": {
+        "reported_profiles": 22001,
+        "coordinate_profiles": 1415,
+        "nonemployer_baseline_2023": 116209,
+        "baseline_minus_profiles": 94208,
+        "diagnostic_profile_percent": 18.9,
+        "material_zctas": 251
+      },
+      "official_urls": [
+        "https://gc.nh.gov/RSA/html/XXVII/293-A/293-A-122.htm",
+        "https://www.gc.nh.gov/rsa/html/XXVII/293-A/293-A-mrg.htm",
+        "https://www.sos.nh.gov/corporations-0/business-faqs",
+        "https://www.sos.nh.gov/business-status-definitions",
+        "https://www.sos.nh.gov/corporations-0/contact"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["trade-name applicants and sole proprietors", "registered agents and registered offices", "officers, directors, managers, members and owners", "person names and addresses", "phones, emails, signatures and filing images"],
+      "strongest_bounded_next_action": "Request a written quote, person-free schema and bounded sample for an existing recurring legal-entity extract, including BID guarantees, exact status and address codebooks, counts, change and tombstone semantics, checksums, automation rules, and written retention and derived-publication rights. Do not automate QuickStart."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "MT",
+      "state_name": "Montana",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Montana Secretary of State",
+        "product": "Montana Corporate Records Bulk Data File",
+        "availability": "paid ZIP-compressed comma-delimited export with no published recurring automation or change contract",
+        "published_price": "$0.02 per record; new-business reports and subscriptions are listed separately at $80"
+      },
+      "current_coverage": {
+        "reported_profiles": 25619,
+        "coordinate_profiles": 1193,
+        "nonemployer_baseline_2023": 109660,
+        "baseline_minus_profiles": 84041,
+        "diagnostic_profile_percent": 23.4,
+        "material_zctas": 373
+      },
+      "official_urls": [
+        "https://sosmt.gov/business/business-services-catalog/",
+        "https://sosmt.gov/wp-content/uploads/BulkDownloadSpecs.pdf",
+        "https://sosmt.gov/Portals/142/Business/Corp_Bulk_Download_Data_Layout.pdf",
+        "https://sosmt.gov/Business/Fees/",
+        "https://biz.sosmt.gov/forms/new/1354"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["registered agents", "directors, officers, shareholders, managers and incorporators", "members, partners and owners", "person names and addresses", "contacts, signatures, images and free text"],
+      "strongest_bounded_next_action": "Ask Montana SOS for the complete included subtype list and current quote, the Business Entity Number identity contract, status vocabulary, snapshot and update mechanics, counts and checksums, automation authorization, written retention and derived-use rights, and a person-free projection. Do not purchase before every gate closes."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "RI",
+      "state_name": "Rhode Island",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Rhode Island Department of State Business Services Division",
+        "product": "Corporate Database Active and Inactive",
+        "availability": "one-time text files and annual SFTP subscription with ambiguous daily-versus-monthly and full-versus-delta semantics",
+        "published_price": "$250 active plus $50 inactive one-time; $3,600 annual active-and-inactive subscription"
+      },
+      "current_coverage": {
+        "reported_profiles": 15949,
+        "coordinate_profiles": 1191,
+        "nonemployer_baseline_2023": 95241,
+        "baseline_minus_profiles": 79292,
+        "diagnostic_profile_percent": 16.7,
+        "material_zctas": 81
+      },
+      "official_urls": [
+        "https://www.sos.ri.gov/divisions/business-services/business-data-hub/data-subscription",
+        "https://docs.sos.ri.gov/documents/BusinessServices/Subscriber_Agreement.pdf",
+        "https://www.sos.ri.gov/divisions/business-services/search-assistance-corporate-database",
+        "https://business.sos.ri.gov/corp/WeeklyCorpExport/filestructure.htm"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["registered and resident agents", "officers, directors, managers, members, owners and incorporators", "person names and addresses", "stock and ownership detail", "contacts, signatures, filing images and free text"],
+      "strongest_bounded_next_action": "Request the current active-and-inactive file inventory, sample and dictionary, exact entity scope, entity-ID lifecycle, status and address codebooks, full-versus-delta and tombstone mechanics, counts and checksums, SFTP automation rules, written derived-use rights, and a person-free option. Do not purchase; if those gates close, seek explicit authorization for a bounded $300 evaluation."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "SD",
+      "state_name": "South Dakota",
+      "decision": "hold",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "South Dakota Secretary of State",
+        "product": "Business Filings Database Download",
+        "availability": "paid full database with monthly or weekly password-protected updates and unpublished file contract",
+        "published_price": "$1,500 setup and full database; $750 monthly updates; $250 weekly updates"
+      },
+      "current_coverage": {
+        "reported_profiles": 17758,
+        "coordinate_profiles": 1261,
+        "nonemployer_baseline_2023": 75686,
+        "baseline_minus_profiles": 57928,
+        "diagnostic_profile_percent": 23.5,
+        "material_zctas": 401
+      },
+      "official_urls": [
+        "https://www.sdsos.gov/business-services/databasedownloads.aspx",
+        "https://sdsos.gov/Division%20of%20Business%20Services/FAQs/default.aspx",
+        "https://sdsos.gov/docs/ucc-docs/NEWBusinessUCCDatabaseSubscriptionForm.pdf"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["registered agents and registered offices", "organizers, incorporators, directors and officers", "beneficial owners, managers and members", "person names and addresses", "contacts, signatures, filing images and free text"],
+      "strongest_bounded_next_action": "Request a non-ordering sample and dictionary, exact legal-entity scope, Business ID guarantee, status and address codebooks, full and update file controls, tombstones, replay, checksums, supported unattended retrieval, and written retention and derived-publication rights. Do not create a PAD account, sign, or purchase before every gate closes."
+    }
+  ]
+}

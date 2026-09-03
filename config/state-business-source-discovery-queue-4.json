@@ -9,7 +9,7 @@
     "accounts_created": 0,
     "terms_accepted": 0,
     "purchases_made": 0,
-    "bulk_record_downloads": 0,
+    "completed_bulk_record_downloads": 0,
     "broad_portal_queries": 0,
     "access_controls_bypassed": 0,
     "production_pointers_changed": 0

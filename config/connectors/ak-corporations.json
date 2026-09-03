@@ -1,0 +1,45 @@
+{
+  "connector_id": "ak-corporations",
+  "version": "1.0.0",
+  "description": "Preflights Alaska DCCED's broad Corporations Download with a bounded prefix read that parses and persists no records, and supports only an explicitly acknowledged operator-supplied offline CSV fixture build into a checksum-verified, non-overwriting local-review-only organization release.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": { "type": "string", "enum": ["preflight-only", "offline-fixture"], "default": "preflight-only" },
+      "output": { "type": "string", "default": "data/business-sources/ak-corporations-local-review" },
+      "source_path": { "type": ["string", "null"], "default": null },
+      "expected_source_sha256": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$", "default": null },
+      "acknowledgement": { "type": ["string", "null"], "default": null },
+      "maximum_header_bytes": { "type": "integer", "minimum": 1024, "maximum": 81616, "default": 81616 },
+      "maximum_source_bytes": { "type": "integer", "minimum": 1, "maximum": 60000000, "default": 60000000 },
+      "request_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 120000, "default": 30000 }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["alaska-dcced-corporations-csv-operator-fixture"],
+  "output_artifact_types": ["ak-corporations-metadata-header-preflight-receipt", "ak-corporations-privacy-selected-source-jsonl", "normalized-ak-corporation-organization-jsonl", "ak-corporations-source-summary-json", "dataset-manifest-json"],
+  "allowed_hosts": ["www.commerce.alaska.gov"],
+  "redirect_policy": "Reject every redirect and accept only HTTPS requests to the exact /cbp/main/DbDownload/CorporationsDownload path on www.commerce.alaska.gov without credentials, query parameters, or fragments.",
+  "provider_budget_key": "alaska-dcced-corporations-header-preflight",
+  "resource_class": "network-metadata-offline-cpu-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "preflight_head_requests": 1,
+    "preflight_bounded_header_get_requests": 1,
+    "maximum_header_response_bytes": 81616,
+    "maximum_declared_source_bytes": 60000000,
+    "observed_source_content_length_reference": 44309498,
+    "live_bulk_rows": 0,
+    "live_full_acquisition_implemented": false
+  },
+  "retry": "Do not retry redirects, path or host drift, content-contract failures, source-size violations, schema drift, duplicate identities, privacy leakage, cancellation, or verification failures. The bounded preflight performs one HEAD and one bounded-prefix GET; live full acquisition is unimplemented.",
+  "checkpoint": "The network preflight returns an in-memory receipt and saves no bulk file. A network chunk may contain bytes beyond the header, but no row is parsed or persisted. An acknowledged offline fixture build writes privacy-selected JSONL and normalized organization JSONL under a run-scoped staging directory, verifies checksums and content independently, then atomically promotes a checksum-verified non-overwriting local-review-only release without writing current.json or any production pointer.",
+  "idempotency": "The operator-acknowledged source SHA-256 identifies the offline source release; the unique run ID identifies staging; ENTITYNUMBER is the candidate source key and duplicate values fail closed.",
+  "cancellation": "Abort the active HEAD or bounded header GET, cancel the response body after the exact header, stop offline CSV processing cooperatively, close writers, retain no pointer, and never promote an unverified staging run.",
+  "source_policy": "config/source-policies/ak-corporations.json",
+  "retention_profile": "Retain only privacy-selected internal source JSONL and local-review-only normalized releases pending explicit rights, privacy, and production admission; never retain a connector-downloaded bulk CSV because live acquisition is unimplemented.",
+  "produced_entities": ["organization-candidate", "alaska-corporation-registration-assertion", "reported-entity-mailing-administrative-address-assertion", "reported-entity-physical-administrative-address-assertion"],
+  "produced_identifiers": ["alaska-corporation-entity-number", "zip5", "zip4"]
+}

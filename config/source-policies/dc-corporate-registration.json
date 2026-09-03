@@ -1,0 +1,52 @@
+{
+  "policy_id": "dc-corporate-registration",
+  "version": "1.0.0",
+  "publisher": "District of Columbia Department of Licensing and Consumer Protection",
+  "ownership": "Official Corporate Registration records published by DLCP through Open Data DC and the DCGIS ArcGIS FeatureServer",
+  "source_home": "https://opendata.dc.gov/datasets/DCGIS::corporate-registration",
+  "source_dataset": "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Business_Licensing_and_Grants_WebMercator/FeatureServer/0",
+  "catalog_item_id": "5238c4fd99c843a1bd7679a243747a8c",
+  "district_data_terms": "CC0 1.0 Universal unless otherwise noted",
+  "district_data_terms_url": "https://dc.gov/page/terms-and-conditions-use-district-data",
+  "catalog_license_notice": "The current harvested item metadata has also identified CC BY 4.0; this connector conservatively requires source attribution and a version note despite the broader District data terms.",
+  "catalog_license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "open_api_policy": "The District Transparency, Open Government and Open Data Directive says catalog datasets must use an open format retrievable through an open API and usable for automated processing.",
+  "open_api_policy_url": "https://dc.gov/page/transparency-open-government-and-open-data-directive",
+  "source_access": "Public anonymous HTTPS ArcGIS metadata, query, and catalog download endpoints exist. This implementation allows only exact metadata and aggregate/count-only live preflight forms; row acquisition is default-denied and unimplemented.",
+  "allowed_use": [
+    "exact official layer metadata and aggregate/count-only preflight requests",
+    "acknowledged local processing of an operator-supplied exact selected-field active JSONL fixture",
+    "checksum-verified, non-overwriting internal selected-field fixture retention",
+    "local-review-only provisional organization and registration-status normalization",
+    "local-review-only administrative business-address evidence with ZIP5 and ZIP+4 kept separate",
+    "derived aggregate statistics only after privacy review and with source attribution, version date, checksum, and semantic limitations"
+  ],
+  "prohibited_use": [
+    "selecting, retaining, normalizing, or publishing EMAIL or any RA_* registered-agent name or address field",
+    "publishing person, contact, registered-agent, owner, officer, or member information",
+    "representing a business registration address as a verified physical site, establishment, storefront, occupancy, geometry, or geocode",
+    "representing either source-defined active status as independent proof of current operation, solvency, compliance, or public access",
+    "inferring ownership, control, parent-company, officer, member, agent, residence, or cross-source identity",
+    "joining ZIP5 and ZIP+4 in normalized postal_code or zip_code fields",
+    "record-level redistribution without a separate privacy, license, and data-quality approval",
+    "using District names or logos to imply endorsement"
+  ],
+  "field_export_policy": {
+    "EMAIL_and_all_RA_fields": "excluded-before-offline-fixture-and-forbidden-in-all-artifacts",
+    "selected_source_snapshot": "internal",
+    "normalized_record_level_organizations_status_and_administrative_addresses": "local-review-only",
+    "approved_aggregate_statistics": "review-required-with-dlcp-open-data-dc-attribution-version-note-and-semantic-limitations"
+  },
+  "attribution": "Source: District of Columbia Department of Licensing and Consumer Protection, Corporate Registration, via Open Data DC/DCGIS; include the source item ID, observation/version date, selected-field checksum, and applicable license/terms notice.",
+  "version_note": "Every derived publication must identify item 5238c4fd99c843a1bd7679a243747a8c, the maximum DCS_LAST_MOD_DTTM observed, the selected schema fingerprint, and the source artifact SHA-256.",
+  "retention": "Checksum-verified internal selected-field fixtures and non-overwriting local-review-only normalized releases may be retained under the approved project retention process. Filesystem immutability is not asserted. No public or production retention authorization is granted by this connector.",
+  "redistribution": "CC0 District terms allow copying, modification, distribution, and commercial use unless otherwise noted, while current catalog metadata may identify CC BY 4.0. Apply the conservative attribution/version notice. Record-level redistribution remains disabled pending separate privacy and license review.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names can identify natural persons and business addresses can be residences. EMAIL and every RA_* field are excluded and prohibited. No person/contact/agent record, site, establishment, geometry, geocode, operation, or ownership inference is produced.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-03",
+  "production_approved": false,
+  "registry_approved": false,
+  "coverage_approved": false,
+  "heatmap_approved": false
+}

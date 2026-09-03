@@ -1,0 +1,207 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["VT", "WV", "ND", "DC", "AK"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0,
+    "bounded_source_streams_opened": 1,
+    "bounded_source_stream_byte_cap": 81616,
+    "bounded_source_stream_bytes_read": 81616,
+    "bounded_source_streams_saved": 0,
+    "individual_source_records_persisted": 0
+  },
+  "allowed_operations": ["metadata-and-aggregate-preflight", "bounded-header-preflight", "offline-fixture-validation-and-local-review-release"],
+  "forbidden_operations": ["complete-source-acquisition", "paid-acquisition", "live-source-release-publication", "production-registry-rebuild", "coverage-publication", "heatmap-admission", "production-pointer-change"],
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "VT",
+      "state_name": "Vermont",
+      "decision": "hold",
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "bounded_connector_implementation_authorized": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Vermont Secretary of State Business Services Division",
+        "product": "weekly full business-services bulk data download",
+        "availability": "officially described as free and weekly, but the current route requires sign-in and publishes no data contract",
+        "published_price": "$0"
+      },
+      "current_coverage": {
+        "reported_profiles": 11833,
+        "coordinate_profiles": 885,
+        "nonemployer_baseline_2023": 65028,
+        "baseline_minus_profiles": 53195,
+        "diagnostic_profile_percent": 18.2,
+        "material_zctas": 266
+      },
+      "official_urls": [
+        "https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Data/W~Lauren%20Hibbert~Transparency%20and%20Accessibility%20of%20SOS%20Data~4-29-2025.pdf",
+        "https://bizfilings.vermont.gov/bulk-download",
+        "https://bizfilings.vermont.gov/business/businesssearch",
+        "https://legislature.vermont.gov/statutes/section/11/015/01657",
+        "https://legislature.vermont.gov/statutes/section/01/005/00316",
+        "https://legislature.vermont.gov/statutes/section/11A/014/00014.20",
+        "https://legislature.vermont.gov/statutes/section/11/025/04034"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["assumed-name individuals and sole proprietors", "every registered-agent name, email, and mailing or physical address field, including organizational agents", "directors, officers, organizers, members, owners, principals and partners", "person names and addresses", "phones, emails, signatures and document images"],
+      "strongest_bounded_next_action": "Ask Vermont SOS for the current manifest, dictionary and person-free sample; exact entity scope, status and Record Number definitions; address semantics; count, as-of, checksum and tombstone contract; automation permission; and written retention and derived-publication rights. Do not create an account or accept terms before those answers."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "WV",
+      "state_name": "West Virginia",
+      "decision": "hold",
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "bounded_connector_implementation_authorized": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "West Virginia Secretary of State",
+        "product": "Bulk Data Service Business Organizations Database",
+        "availability": "authenticated paid monthly full and update files with price and contract conflicts",
+        "published_price": "$12,000 full database; monthly price conflicts between $1,000, $1,750, and $21,000 yearly; $1,800 annual resale fee may apply"
+      },
+      "current_coverage": {
+        "reported_profiles": 42791,
+        "coordinate_profiles": 2559,
+        "nonemployer_baseline_2023": 94681,
+        "baseline_minus_profiles": 51890,
+        "diagnostic_profile_percent": 45.2,
+        "material_zctas": 745
+      },
+      "official_urls": [
+        "https://apps.wv.gov/sos/bulkdata/RegistrationInformation.aspx",
+        "https://apps.wv.gov/sos/bulkdata/Content/BED_FileInformation.pdf",
+        "https://apps.wv.gov/sos/bulkdata/Forms/FileDescriptions.aspx",
+        "https://code.wvlegislature.gov/59-1-2A/",
+        "https://sos.wv.gov/sites/default/files/2026-04/BulkDataResaleContract.pdf"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["officer and contact address file", "notice-of-process people and addresses", "officers, principals, partners and owners", "person names and addresses", "amendment free text and document images"],
+      "strongest_bounded_next_action": "Ask West Virginia SOS for the current price and executed-use documents, schema and codebooks, complete type scope, active predicate, organization-address option, monthly snapshot and change mechanics, counts and checksums, authorized unattended retrieval, person-free projection, and written entity-only derived/public redistribution permission. Do not create an account or purchase first."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "ND",
+      "state_name": "North Dakota",
+      "decision": "hold",
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "bounded_connector_implementation_authorized": false,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "North Dakota Secretary of State",
+        "product": "All Business and Trademark Records Subscription",
+        "availability": "paid monthly FirstStop Excel delivery with samples but no automation, change, or rights contract",
+        "published_price": "$1,440 per month"
+      },
+      "current_coverage": {
+        "reported_profiles": 17759,
+        "coordinate_profiles": 994,
+        "nonemployer_baseline_2023": 60342,
+        "baseline_minus_profiles": 42583,
+        "diagnostic_profile_percent": 29.4,
+        "material_zctas": 400
+      },
+      "official_urls": [
+        "https://www.sos.nd.gov/services/data-list-requests",
+        "https://www.sos.nd.gov/sites/default/files/documents/services/sample-business-all.xlsx",
+        "https://www.sos.nd.gov/business/business-services/maintain-registration",
+        "https://www.sos.nd.gov/FirstStopSupport",
+        "https://ndlegis.gov/cencode/t44c04.pdf"
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": ["business-owner companion workbook", "registered agents and their addresses", "officers, managers, partners, owners and signers", "person names and residential addresses", "contacts and free-text purpose"],
+      "strongest_bounded_next_action": "Request the exact business-only type inventory and person-free option, SOS Control ID contract, status codebook and active predicate, delivery/change/tombstone/checksum mechanics, supported automation, and written retention and derived-publication rights. Do not create an NDLogin or purchase first."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "DC",
+      "state_name": "District of Columbia",
+      "decision": "proceed-to-bounded-connector",
+      "authorized_next_action_type": "bounded-connector-implementation",
+      "bounded_connector_implementation_authorized": true,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "District of Columbia Department of Licensing and Consumer Protection through DC Open Data",
+        "product": "Corporate Registration ArcGIS table",
+        "availability": "free query and extract API with a published field schema; District terms say CC0 unless otherwise noted, while current catalog metadata also identifies CC BY 4.0, so conservative attribution applies",
+        "published_price": "$0",
+        "observed_total_rows": 503371,
+        "observed_active_rows": 115469,
+        "observed_latest_modified_at": "2026-09-03T11:53:39Z"
+      },
+      "current_coverage": {
+        "reported_profiles": 53407,
+        "coordinate_profiles": 43438,
+        "nonemployer_baseline_2023": 64986,
+        "baseline_minus_profiles": 11579,
+        "diagnostic_profile_percent": 82.2,
+        "material_zctas": 61
+      },
+      "official_urls": [
+        "https://opendata.dc.gov/datasets/DCGIS::corporate-registration/explore",
+        "https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Business_Licensing_and_Grants_WebMercator/FeatureServer/0",
+        "https://beta.dc.gov/terms-and-conditions-use-district-data",
+        "https://dlcp.dc.gov/DLCPreadingroom"
+      ],
+      "unresolved_gates": ["stable-identifier", "address-role", "change-contract", "large-acquisition-authorization"],
+      "required_exclusions": ["email", "registered-agent name", "all registered-agent address fields", "person names and person-linked addresses", "documents, signatures and free text"],
+      "strongest_bounded_next_action": "Implement and fixture-test a metadata/count-only preflight plus offline organization-only normalizer. Preserve both active status classes separately, exclude email and all registered-agent fields, create no site or geometry, and require explicit authorization before the first full selected-row acquisition or production admission."
+    },
+    {
+      "rank": 5,
+      "state_abbreviation": "AK",
+      "state_name": "Alaska",
+      "decision": "proceed-to-bounded-connector",
+      "authorized_next_action_type": "bounded-connector-implementation",
+      "bounded_connector_implementation_authorized": true,
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Alaska Division of Corporations, Business and Professional Licensing",
+        "product": "CorporationsDownload.csv",
+        "availability": "free direct official CSV with a confirmed 35-column header and no published cadence or derived-use contract",
+        "published_price": "$0",
+        "observed_content_length_bytes": 44309498,
+        "bounded_preflight_bytes_read": 81616,
+        "bounded_preflight_file_saved": false
+      },
+      "current_coverage": {
+        "reported_profiles": 101859,
+        "coordinate_profiles": 625,
+        "nonemployer_baseline_2023": 61337,
+        "baseline_minus_profiles": -40522,
+        "diagnostic_profile_percent": 166.1,
+        "material_zctas": 245
+      },
+      "official_urls": [
+        "https://www.commerce.alaska.gov/cbp/main/DbDownload/CorporationsDownload",
+        "https://www.commerce.alaska.gov/web/cbpl/corporations",
+        "https://www.commerce.alaska.gov/web/cbpl/PublicRecordsRequests.aspx",
+        "https://www.commerce.alaska.gov/web/cbpl/Corporations/ObtainEntityNumber.aspx"
+      ],
+      "unresolved_gates": ["source-scope", "stable-identifier", "status-codebook", "change-contract", "rights", "large-acquisition-authorization"],
+      "required_exclusions": ["business-name and foreign-corporate-name registration aliases", "registered-agent name", "all registered-agent mailing and physical addresses", "officials, owners and other person roles", "contacts, signatures, documents and free text"],
+      "strongest_bounded_next_action": "Implement and fixture-test a bounded header preflight plus offline legal-entity normalizer that removes every registered-agent field, preserves administrative entity addresses and split ZIP fields, and creates no site or geometry. Require explicit authorization before downloading the 44.3 MB source or admitting a release to production."
+    }
+  ]
+}
