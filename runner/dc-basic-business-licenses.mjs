@@ -1,13 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
+import { setImmediate as yieldEventLoop, setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import proj4 from "proj4";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+import { assertInsideApp } from "./paths.mjs";
 
 export const DC_BASIC_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DC_BASIC_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "dc-basic-business-licenses@1.0.1";
@@ -87,10 +89,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -367,7 +370,7 @@ function validateDcUrl(value) {
   return url;
 }
 
-export async function requestDcArcGisJson(urlValue, { fetchImpl = fetch, signal, sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)), method = "GET", body = null, attempts = 4 } = {}) {
+export async function requestDcArcGisJson(urlValue, { fetchImpl = fetch, signal, sleep = (milliseconds, options) => delay(milliseconds, undefined, options), method = "GET", body = null, attempts = 4 } = {}) {
   const url = validateDcUrl(urlValue);
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -390,10 +393,11 @@ export async function requestDcArcGisJson(urlValue, { fetchImpl = fetch, signal,
       if (payload?.error) throw new Error(`DC ArcGIS error: ${payload.error.message ?? "unknown error"}`);
       return payload;
     } catch (error) {
+      signal?.throwIfAborted();
       lastError = error;
       const transient = error.retryable === true || error.name === "TypeError" || ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(error.code);
       if (!transient || attempt + 1 >= attempts) throw error;
-      await sleep(Math.min(250 * (2 ** attempt), 2000));
+      await sleep(Math.min(250 * (2 ** attempt), 2000), { signal });
     }
   }
   throw lastError;
@@ -410,18 +414,34 @@ async function querySourceCount(options) {
   return count;
 }
 
-async function openGzipWriter(stagingDirectory, relativePath) {
+async function openGzipWriter(stagingDirectory, relativePath, writers = [], signal) {
   const destination = path.join(stagingDirectory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${randomUUID()}`;
   const output = createWriteStream(temporary, { flags: "wx" });
   const gzip = createGzip();
+  output.on("error", (error) => gzip.destroy(error));
+  gzip.on("error", (error) => output.destroy(error));
+  const completion = finished(output);
+  void completion.catch(() => {});
   gzip.pipe(output);
-  return { relativePath, destination, temporary, output, gzip, records: 0 };
+  const writer = { relativePath, destination, temporary, output, gzip, records: 0, signal, completion };
+  writers.push(writer);
+  return writer;
 }
 
-async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+export async function writeGzipRecord(writer, record) {
+  if (writer.records % 256 === 0) await yieldEventLoop();
+  writer.signal?.throwIfAborted();
+  const assertWritable = () => {
+    if (writer.gzip.errored) throw writer.gzip.errored;
+    if (writer.output?.errored) throw writer.output.errored;
+    if (writer.gzip.destroyed || writer.gzip.writableEnded || writer.output?.destroyed) throw new Error("DC output writer closed before record completion.");
+  };
+  assertWritable();
+  const ready = writer.gzip.write(`${JSON.stringify(record)}\n`);
+  assertWritable();
+  if (!ready) await once(writer.gzip, "drain", { signal: writer.signal });
   writer.records += 1;
 }
 
@@ -438,17 +458,18 @@ async function renameWithRetry(sourcePath, destinationPath, attempts = 12) {
 }
 
 async function closeGzipWriter(writer, artifactType, metadata = {}) {
-  const completion = finished(writer.output);
+  writer.signal?.throwIfAborted();
   writer.gzip.end();
-  await completion;
+  await writer.completion;
+  writer.signal?.throwIfAborted();
   await renameWithRetry(writer.temporary, writer.destination);
-  return { path: writer.relativePath.replaceAll("\\", "/"), ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType, ...metadata };
+  return { path: writer.relativePath.replaceAll("\\", "/"), ...(await hashFile(writer.destination, writer.signal)), record_count: writer.records, artifact_type: artifactType, ...metadata };
 }
 
 async function abortGzipWriters(writers) {
   const active = writers.filter(Boolean);
-  for (const writer of active) if (!writer.gzip.destroyed && !writer.gzip.writableEnded) writer.gzip.end();
-  await Promise.allSettled(active.map((writer) => finished(writer.output)));
+  for (const writer of active) { writer.gzip.destroy(); writer.output.destroy(); }
+  await Promise.allSettled(active.flatMap((writer) => [writer.completion, finished(writer.gzip)]));
 }
 
 async function writeArtifact(directory, relativePath, content, metadata = {}) {
@@ -484,10 +505,28 @@ async function loadZbpBaseline(pointerPath) {
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const input = createReadStream(filename).pipe(createGunzip());
+async function* gzipRecords(filename, signal) {
+  const source = createReadStream(filename);
+  const input = createGunzip();
+  const forwardError = (error) => input.destroy(error);
+  source.on("error", forwardError);
+  source.pipe(input);
   const lines = createInterface({ input, crlfDelay: Infinity });
-  for await (const line of lines) if (line.trim()) yield JSON.parse(line);
+  const abort = () => input.destroy(signal.reason);
+  signal?.addEventListener("abort", abort, { once: true });
+  try {
+    signal?.throwIfAborted();
+    let count = 0;
+    for await (const line of lines) {
+      if (count++ % 256 === 0) await yieldEventLoop();
+      signal?.throwIfAborted();
+      if (line.trim()) yield JSON.parse(line);
+    }
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    lines.close(); source.destroy(); input.destroy();
+    await Promise.allSettled([finished(source), finished(input)]);
+  }
 }
 
 function selectedRecord(record) {
@@ -593,13 +632,16 @@ export async function buildDcBasicBusinessLicenses({
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
+  assertInsideApp(path.resolve(stagingDirectory));
   await mkdir(stagingDirectory, { recursive: true });
+  const writers = [];
+  try {
   const baseline = await loadZbpBaseline(zbpPointer);
   const metadata = layerMetadata ?? await requestDcArcGisJson(`${DC_BASIC_BUSINESS_LICENSE_LAYER_URL}?f=pjson`, { fetchImpl, signal, sleep });
   const catalog = validateLayerMetadata(metadata, expectedSchemaFingerprint);
   const expectedCount = sourceRecords ? Number(sourceCount ?? sourceRecords.length) : await querySourceCount({ fetchImpl, signal, sleep });
   if (!Number.isInteger(expectedCount) || expectedCount < minimumActiveLicenseRecords) throw new Error(`DC source count ${expectedCount} is below the minimum ${minimumActiveLicenseRecords}.`);
-  const sourceWriter = await openGzipWriter(stagingDirectory, "source/selected-active-business-license-rows.jsonl.gz");
+  const sourceWriter = await openGzipWriter(stagingDirectory, "source/selected-active-business-license-rows.jsonl.gz", writers, signal);
   try {
     await acquireSource({ writer: sourceWriter, sourceRecords, expectedCount, fetchImpl, signal, sleep, pageSize, logger });
   } catch (error) {
@@ -610,7 +652,7 @@ export async function buildDcBasicBusinessLicenses({
   const groups = new Map();
   const globalIds = new Set();
   const refreshValues = new Set();
-  for await (const row of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+  for await (const row of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
     if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
     const globalId = canonicalGlobalId(row.GLOBALID);
     if (globalIds.has(globalId)) throw new Error(`Duplicate DC GlobalID ${globalId}.`);
@@ -627,8 +669,10 @@ export async function buildDcBasicBusinessLicenses({
   const releaseId = `dc-basic-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const context = { runId, retrievedAt, sourceRefreshedAt, sourceReleaseId, baselineByZip: baseline.byZip };
   const normalizedWriters = new Map();
-  for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/sites/prefix=${prefix}.jsonl.gz`));
-  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz");
+  logger("Normalizing DC licensed premises.");
+  signal?.throwIfAborted();
+  for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/sites/prefix=${prefix}.jsonl.gz`, writers, signal));
+  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz", writers, signal);
   const zipCounts = new Map();
   const quarantineReasons = new Map();
   const activityCounts = new Map();
@@ -641,6 +685,7 @@ export async function buildDcBasicBusinessLicenses({
   let outsideDcPremiseSiteCount = 0;
   try {
     for (const [customer, records] of [...groups.entries()].sort(([left], [right]) => compareText(left, right))) {
+      signal?.throwIfAborted();
       try {
         const normalized = normalizeDcBasicBusinessLicenseSite(records, context);
         assertNormalizedUsPostalFieldsDeep(normalized);
@@ -794,17 +839,33 @@ export async function buildDcBasicBusinessLicenses({
     artifacts,
   };
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
-  await verifyDcBasicBusinessLicenses(path.join(stagingDirectory, "manifest.json"));
-  return publishDcBasicBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  logger("Verifying DC licensed premises before publication.");
+  await verifyDcBasicBusinessLicenses(path.join(stagingDirectory, "manifest.json"), { signal });
+  logger("Publishing verified DC licensed premises.");
+  return await publishDcBasicBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
+  } catch (error) {
+    await abortGzipWriters(writers);
+    if (signal?.aborted) {
+      try {
+        const target = assertInsideApp(path.resolve(stagingDirectory));
+        if ((await lstat(target)).isSymbolicLink() || await realpath(target) !== target) throw new Error("Cancelled DC staging path changed; inspection required.");
+        await rm(target, { recursive: true, force: true });
+      } catch (cleanupError) { if (cleanupError.code !== "ENOENT") throw cleanupError; }
+    }
+    throw error;
+  }
 }
 
-export async function publishDcBasicBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishDcBasicBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted();
   if (!outputRoot || !stagingRunId) throw new Error("outputRoot and stagingRunId are required.");
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(stagingRunId)) throw new Error("Invalid DC staging run ID.");
   const stagingDirectory = path.join(outputRoot, ".staging", stagingRunId);
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  if (!/^dc-basic-business-licenses-[a-zA-Z0-9-]+$/.test(manifest.release_id ?? "")) throw new Error("Invalid DC release ID.");
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("DC staging release ID mismatch.");
-  await verifyDcBasicBusinessLicenses(manifestPath);
+  await verifyDcBasicBusinessLicenses(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
   await mkdir(releasesDirectory, { recursive: true });
@@ -814,6 +875,8 @@ export async function publishDcBasicBusinessLicensesStaging({ outputRoot, stagin
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
+  signal?.throwIfAborted();
+  // Publication is non-cancellable once the immutable release rename starts.
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const pointer = {
@@ -840,7 +903,8 @@ function containsExcludedKey(value) {
   return false;
 }
 
-export async function verifyDcBasicBusinessLicenses(manifestPath) {
+export async function verifyDcBasicBusinessLicenses(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
@@ -851,12 +915,14 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
   if (manifest.policy?.record_level_distribution !== "local-review-only" || manifest.coverage?.complete_all_businesses !== false) failures.push({ path: "manifest.json", reason: "privacy or completeness policy was overstated" });
   const artifacts = manifest.artifacts ?? [];
   for (const artifact of artifacts) {
+    signal?.throwIfAborted();
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const digest = await hashFile(filename);
+      const digest = await hashFile(filename, signal);
       if (digest.bytes !== artifact.bytes || digest.sha256 !== artifact.sha256) throw new Error("checksum or byte count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: error.message });
     }
   }
@@ -869,7 +935,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
   const refreshes = new Set();
   try {
     if (!sourceArtifact || sourceArtifact.export_policy !== "internal") throw new Error("missing or misclassified selected source artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path), signal)) {
       sourceRows += 1;
       if (containsExcludedKey(record)) throw new Error("excluded source field leaked");
       if (Object.keys(record).length !== DC_BASIC_BUSINESS_LICENSE_FIELDS.length || Object.keys(record).some((field) => !DC_BASIC_BUSINESS_LICENSE_FIELDS.includes(field))) throw new Error("unapproved or missing selected source field");
@@ -882,6 +948,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
     if (sourceRows !== sourceArtifact.record_count || sourceRows !== manifest.coverage.source_active_business_license_rows) throw new Error("source record count mismatch");
     if (refreshes.size !== 1 || !refreshes.has(manifest.source.data_refreshed_on)) throw new Error("source refresh mismatch");
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: sourceArtifact?.path ?? "source/selected-active-business-license-rows.jsonl.gz", reason: error.message });
   }
   let normalizedSites = 0;
@@ -896,7 +963,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
     try {
       if (artifact.export_policy !== "local-review-only") throw new Error("normalized artifact is not local-review-only");
       let artifactRows = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         artifactRows += 1;
         normalizedSites += 1;
         if (containsExcludedKey(record)) throw new Error("excluded source field leaked into normalized record");
@@ -923,6 +990,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
       }
       if (artifactRows !== artifact.record_count) throw new Error("normalized artifact record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: error.message });
     }
   }
@@ -931,13 +999,14 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
   let quarantinedGroups = 0;
   try {
     if (!quarantineArtifact || quarantineArtifact.export_policy !== "internal") throw new Error("missing or misclassified quarantine artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path), signal)) {
       quarantinedGroups += 1;
       if (!QUARANTINE_REASONS.has(record.reason) || !Number.isInteger(record.source_record_count) || record.source_record_count < 1 || record.export_policy !== "internal") throw new Error("invalid quarantine record");
       quarantinedRows += record.source_record_count;
     }
     if (quarantinedGroups !== quarantineArtifact.record_count) throw new Error("quarantine group count mismatch");
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: quarantineArtifact?.path ?? "quality/quarantine.jsonl.gz", reason: error.message });
   }
   try {
@@ -948,6 +1017,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
     let siteCount = 0;
     const seen = new Set();
     for (const row of rows) {
+      signal?.throwIfAborted();
       if (!/^\d{5}$/.test(row.zip_code ?? "") || seen.has(row.zip_code)) throw new Error("invalid or duplicate ZIP coverage identity");
       seen.add(row.zip_code);
       const count = row.dc_basic_business_license_snapshot?.licensed_site_count;
@@ -956,6 +1026,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
     }
     if (siteCount !== normalizedSites) throw new Error("ZIP contribution total mismatch");
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: zipArtifact?.path ?? "derived/zip-coverage.jsonl", reason: error.message });
   }
   if (sourceRows !== acceptedRows + quarantinedRows) failures.push({ path: "manifest.json", reason: "source, accepted, and quarantined rows do not reconcile" });
@@ -972,6 +1043,7 @@ export async function verifyDcBasicBusinessLicenses(manifestPath) {
     outside_dc_premise_sites: normalizedSites - inDcSites,
   };
   for (const [field, value] of Object.entries(actual)) if (expected[field] !== value) failures.push({ path: "manifest.json", reason: `${field} mismatch` });
+  signal?.throwIfAborted();
   if (failures.length) {
     const error = new Error("DC Basic Business License verification failed.");
     error.failures = failures;

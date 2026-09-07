@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { buildDcBasicBusinessLicenses } from "../runner/dc-basic-business-licenses.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Build the governed District of Columbia active Basic Business License site release.
@@ -48,6 +49,7 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
@@ -60,6 +62,7 @@ try {
     pageSize: options.pageSize,
     minimumActiveLicenseRecords: options.minimumActiveLicenseRecords,
     maximumQuarantineRate: options.maximumQuarantineRate,
+    signal: cancellation.signal,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({
@@ -73,4 +76,6 @@ try {
   process.stderr.write(`DC Basic Business License build failed: ${error.message}\n`);
   if (error.failures) process.stderr.write(`${JSON.stringify(error.failures, null, 2)}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

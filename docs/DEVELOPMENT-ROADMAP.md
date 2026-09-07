@@ -241,6 +241,8 @@ The national business goal remains active: every valid ZIP must retain authorize
 
 Source handoff follow-up (September 7): a parallel Alaska peer audit and D.C. integrator audit found missing complete cancellation/cleanup lifecycles, so neither license source was enrolled prematurely. Alaska's first prerequisite repair fixes premature retry timing, supports publisher date/seconds delays, cancels native backoff on AbortSignal, and fails closed for waits beyond one day. See [handoff findings](states/AK-DC-HANDOFF-2026-09-07.md). Complete CLI cancellation, bounded network execution, and publication/cleanup fault tests remain next, followed by industry enrollment. No production pointer or acquisition was changed.
 
+D.C. cancellation preparation: CLI IPC, native retry waits, stream backpressure/hash/reader cleanup, verifier abort propagation, and pre-publication checks now share the cancellation signal. Cancelled owned staging is removed without touching prior releases or sibling staging; ordinary failures stay inspectable. Six new offline tests include a real CLI child and pre-errored writer regression. Provider pacing/timeouts and updating the production-pinned connector JSON after the current run are still required before scheduler enrollment. See [D.C. cancellation boundaries](DC-BASIC-BUSINESS-LICENSES.md#cooperative-cancellation-preparation--september-7).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

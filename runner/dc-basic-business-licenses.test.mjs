@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { PassThrough } from "node:stream";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -12,9 +15,11 @@ import {
   DC_BASIC_BUSINESS_LICENSE_SCHEMA_FINGERPRINT,
   normalizeDcBasicBusinessLicenseSite,
   projectDcMarylandStatePlane,
+  publishDcBasicBusinessLicensesStaging,
   requestDcArcGisJson,
   schemaFingerprint,
   verifyDcBasicBusinessLicenses,
+  writeGzipRecord,
 } from "./dc-basic-business-licenses.mjs";
 
 function sha256(value) {
@@ -237,4 +242,95 @@ test("blocks schema drift, unapproved fields, duplicate identities, excess quara
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(() => buildDcBasicBusinessLicenses({ outputRoot: path.join(root, "cancelled"), zbpPointer, layerMetadata: metadata(), sourceRecords: [license()], sourceCount: 1, minimumActiveLicenseRecords: 1, signal: controller.signal, logger: () => {}, now: () => new Date("2026-09-01T12:00:00.000Z") }), { name: "AbortError" });
+});
+
+test("DC cancellation at acquisition, normalization, verification and publication preserves previous data", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-dc-cancel-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const common = { outputRoot, zbpPointer, layerMetadata: metadata(), minimumActiveLicenseRecords: 1, now: () => new Date("2026-09-01T12:00:00Z") };
+  const prior = await buildDcBasicBusinessLicenses({ ...common, sourceRecords: [license()], logger() {} });
+  const pointer = await readFile(path.join(outputRoot, "current.json"), "utf8");
+  const sibling = path.join(outputRoot, ".staging", "unrelated");
+  await mkdir(sibling, { recursive: true }); await writeFile(path.join(sibling, "keep.txt"), "keep");
+  for (const phase of ["Acquired", "Normalizing", "Verifying", "Publishing"]) {
+    const controller = new AbortController();
+    await assert.rejects(buildDcBasicBusinessLicenses({
+      ...common, signal: controller.signal,
+      fetchImpl: async (url, options) => {
+        if (options?.body?.get("returnCountOnly")) return Response.json({ count: 1 });
+        if (options?.body?.get("outFields")) return Response.json({ features: [{ attributes: license() }] });
+        return Response.json(metadata());
+      },
+      logger(message) { if (message.startsWith(phase)) controller.abort(); },
+    }), { name: "AbortError" });
+    assert.equal(await readFile(path.join(outputRoot, "current.json"), "utf8"), pointer);
+    assert.deepEqual(await readdir(path.join(outputRoot, ".staging")), ["unrelated"]);
+    assert.deepEqual(await readdir(path.join(outputRoot, "releases")), [prior.manifest.release_id]);
+    assert.equal(await readFile(path.join(sibling, "keep.txt"), "utf8"), "keep");
+  }
+});
+
+test("DC retry waits abort without issuing another request", async () => {
+  const controller = new AbortController(); let requests = 0;
+  await assert.rejects(requestDcArcGisJson("https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/0?f=pjson", {
+    signal: controller.signal, fetchImpl: async () => { requests++; setTimeout(() => controller.abort(), 20); return new Response(null, { status: 503 }); },
+  }), { name: "AbortError" });
+  assert.equal(requests, 1);
+});
+
+test("DC records reject previously failed writers and abort blocked backpressure", async () => {
+  const failed = new PassThrough();
+  failed.on("error", () => {});
+  failed.destroy(new Error("fixture output failure"));
+  await new Promise((resolve) => setImmediate(resolve));
+  await assert.rejects(writeGzipRecord({ gzip: failed, records: 1 }, {}), /fixture output failure/);
+  const blocked = new PassThrough({ highWaterMark: 1 });
+  const controller = new AbortController();
+  const writing = writeGzipRecord({ gzip: blocked, records: 1, signal: controller.signal }, { value: "fixture" });
+  controller.abort();
+  await assert.rejects(writing, { name: "AbortError" });
+  assert.equal(blocked.listenerCount("drain"), 0);
+  blocked.destroy();
+});
+
+test("DC ordinary failures retain staging and publisher rejects traversal", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-dc-failure-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  await assert.rejects(buildDcBasicBusinessLicenses({ outputRoot, zbpPointer, layerMetadata: metadata({ fields: [] }), sourceRecords: [license()], minimumActiveLicenseRecords: 1 }), /schema/);
+  assert.equal((await readdir(path.join(outputRoot, ".staging"))).length, 1);
+  await assert.rejects(publishDcBasicBusinessLicensesStaging({ outputRoot, stagingRunId: "../escape" }), /staging run ID/);
+});
+
+test("DC verifier aborts during hashing and rejects missing gzip without hanging", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-dc-verifier-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const result = await buildDcBasicBusinessLicenses({ outputRoot: path.join(root, "output"), zbpPointer: await writeBaseline(path.join(root, "zbp")), layerMetadata: metadata(), sourceRecords: [license()], minimumActiveLicenseRecords: 1, now: () => new Date("2026-09-01T12:00:00Z"), logger() {} });
+  const manifestPath = path.join(result.releaseDirectory, "manifest.json");
+  const controller = new AbortController();
+  const verification = verifyDcBasicBusinessLicenses(manifestPath, { signal: controller.signal });
+  setImmediate(() => controller.abort());
+  await assert.rejects(verification, { name: "AbortError" });
+  const source = result.manifest.artifacts.find((item) => item.path.startsWith("source/selected"));
+  await rm(path.join(result.releaseDirectory, source.path));
+  await assert.rejects(verifyDcBasicBusinessLicenses(manifestPath), /verification failed/);
+});
+
+test("DC CLI accepts real parent IPC cancellation during a fixture request", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-dc-ipc-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const child = spawn(process.execPath, ["--import", "./runner/fixtures/dc-cancel-fetch.mjs", "scripts/build-dc-basic-business-licenses.mjs", "--output", outputRoot, "--zbp", zbpPointer, "--minimum", "1"], { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe", "ipc"], windowsHide: true });
+  const exit = once(child, "exit");
+  let output = "";
+  child.stdout.on("data", (chunk) => { output += chunk; });
+  child.stderr.on("data", (chunk) => { output += chunk; });
+  const watchdog = setTimeout(() => child.kill(), 5000);
+  t.after(() => clearTimeout(watchdog));
+  let messages = 0;
+  child.on("message", (message) => { if (message.type === "fixture-request") { messages++; child.send({ type: "cancel" }); } });
+  const [code] = await exit;
+  assert.equal(messages, 1, output); assert.equal(code, 1, output);
+  assert.deepEqual(await readdir(path.join(outputRoot, ".staging")), []);
 });

@@ -22,3 +22,15 @@ npm run dc-bbl:verify
 ```
 
 Generated immutable releases live under `data/business-sources/dc-basic-business-license-sites`. The tracked connector, schema, dataset catalog, and source-policy files are the machine-readable contract.
+
+## Cooperative cancellation preparation — September 7
+
+The CLI now accepts parent IPC cancellation and termination signals through the shared cancellation adapter. The signal reaches network requests, native retry waits, gzip backpressure and hashing, source/group normalization, verification, and both checks before publication. Verification rethrows cancellation instead of collecting it as a quality error. Input/decompression streams are closed on early exit; output failures are retained and rejected even if they precede a partition's first write.
+
+Cancellation before immutable publication closes all tracked writers and removes only this build's UUID staging directory after checking its absolute and canonical location. Existing releases, the current pointer, sibling staging, and ordinary non-cancelled failed staging remain intact. If the staging path changes or cleanup fails, the error requires inspection rather than claiming cleanup succeeded. Once the staging-to-release rename starts, the existing publication sequence finishes without further cancellation checks. Arbitrary staging IDs and unsafe release names are rejected by the publisher.
+
+This is preparation, not automatic enrollment. Provider `Retry-After` handling and bounded network execution still require repair before this source can be added to the industry scheduler. The currently running production reconciliation pins the legacy connector JSON, including its old cancellation description; that file is intentionally unchanged until the pinned run finishes. Updating its cancellation contract is an explicit enrollment prerequisite, not a claim that the legacy description matches the new implementation. Source policies, normalization semantics, and production data pointers are unchanged.
+
+Six added offline tests cover phase cancellation with previous/sibling preservation, native wait cancellation, pre-errored writers and blocked backpressure, retained ordinary failures and traversal rejection, verifier cancellation/missing gzip, and actual parent-to-CLI IPC cancellation using a network-free preload. These do not prove every post-rename storage-failure recovery path or make a live provider request. Existing immutable data requires no migration; the change may be reverted at source level after active connector work finishes, preserving all run evidence.
+
+Verification passed all 493 repository tests, lint, web/desktop builds, desktop smoke, TypeScript, and the production audit with zero vulnerabilities. The local preview was stopped for the supervisor tests and restored afterward. Its empty stopped scheduler's lock was preserved as `data/refresh-schedules/owner-stopped-6824-20260907.lock` after confirming the exact owner had exited; this is manual recovery, not automatic lock reclamation. No production source or schedule was changed.
