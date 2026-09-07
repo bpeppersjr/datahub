@@ -13,6 +13,7 @@
     "industry:plan": "node scripts/run-industry-segments.mjs plan",
     "industry:run": "node scripts/run-industry-segments.mjs run",
     "industry:import-candidate": "node scripts/import-industry-candidate.mjs",
+    "state-access:report": "node scripts/report-state-access.mjs",
     "reconciliation:plan": "node scripts/reconcile-business-candidates.mjs plan",
     "reconciliation:run": "node scripts/reconcile-business-candidates.mjs run",
     "business:export": "node scripts/compose-flat-business-export.mjs",

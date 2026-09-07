@@ -12,6 +12,15 @@ The primary agent is the integrator. It owns scope, sequencing, cross-module dec
 
 Use a modular monolith until measured workload or deployment requirements justify distributed services. New connectors must use shared contracts rather than adding another special case to `runner/server.mjs`, `runner/worker.mjs`, and `app/page.tsx`.
 
+### State coverage and application-owned acquisition
+
+- Maintain one independent state workstream for each of the 50 states; track D.C. separately. Keep state agents and the state-coverage coordinator at the existing peer level, without adding nested orchestration layers.
+- Dispatch state validation and connector work in parallel within the actual available agent slots. A configured workstream is not evidence that an agent is running or that a source has been accessed.
+- State agents validate source contracts, industry scope, and acquisition prerequisites and build or repair connectors. Once ready, hand acquisition to Co*Tive's standalone application workers; do not require a live Codex or ChatGPT agent to execute or supervise routine downloads.
+- Keep source-specific policy, request-rate, disk, memory, cancellation, and verification limits in the app. Available RAM alone does not authorize higher provider request rates.
+- Acquire a shared national dataset once and derive state-specific evidence locally; do not duplicate national downloads for each state assignment. Report direct state-publisher evidence, national records for that state, local-only coverage, and unmeasured/blocked gaps separately.
+- Scheduled refreshes and app queue handoffs must be evidenced by implemented runtime behavior and actual job receipts, not just agent plans or configuration entries.
+
 ## Agent roster
 
 | Agent | Owns | Required outputs |

@@ -1,0 +1,25 @@
+# State access coordination
+
+The state-access ledger is a read-only inventory of the 50 states plus the District of Columbia across the industry buckets configured in `config/industry-segments.json`. It does not represent every possible industry or source. A durable report is written exclusively beneath `data/state-access/reports`; it never downloads data, changes a current pointer, promotes production, or launches or watches an acquisition.
+
+Each state has one flat peer-workstream template in `config/state-access-workstreams.json`. A configured peer name is not a live agent. `IN_PROGRESS` appears only when a caller explicitly supplies that state as an operator-reported assignment. The configured concurrency of four is total agent capacity, not four available state workers. Available capacity remains unknown unless the caller supplies an observed total covering all active work, including the coordinator and unrelated rebuild work.
+
+## Evidence meanings
+
+`direct-state-publisher` requires a positive, hash-verified profile count for the configured state publisher in the governed coverage artifact. Configuration alone is insufficient. `national-dataset-state-evidence` likewise requires a positive state count from a known published source profile. `unsupported-evidence-not-measured` means the relevant organization or mailing-address connector is outside the current location-profile artifact (not that it has zero records). `unsupported-missing` means this snapshot contains no accepted evidence for the configured bucket. State-source assessment holds are recorded separately and never converted into blanket industry findings.
+
+Counts describe source-specific reported-address profiles. They are not deduplicated business totals, current-download totals, physical-site proof, or completeness claims. The report pins the coverage manifest and its declared artifact path, byte length, and SHA-256 plus both configuration hashes. Assessment provenance is separate: the report records its observed date and coverage-release pin and explicitly says whether that pin matches the current coverage snapshot. A mismatch is visible and must not be read as contemporaneous evidence.
+
+## Application handoff
+
+Each state/industry cell lists applicable configured source IDs, prerequisite path presence, known source limitations, and `acquisitionExecutor: cotive-app`. Published state evidence plus present prerequisite paths yields `APP_PREFLIGHT_REQUIRED`, meaning only that the job is eligible to be submitted for application validation. Path presence does not validate prerequisite contents. `prerequisiteContentsValidated`, `jobSubmitted`, and `recurringSchedulerImplemented` remain false. State agents validate evidence and connectors, then hand eligible work to the governed application queue. They should not remain occupied monitoring downloads.
+
+Run `node scripts/report-state-access.mjs`. Optional `--active-state AL` values record operator-reported state assignments. `--observed-total-active-agents N` may be supplied only when the total across all work is actually known. Reports are immutable and a collision fails instead of overwriting.
+
+## September 7 evidence
+
+The final verified live report is `data/state-access/reports/20260907155340-c62aa4c6-02de-44c9-9692-15db5c03686f.json`: 51 jurisdictions and 306 configured-industry cells, comprising 202 with national-dataset state evidence, two with direct-state-publisher evidence, 50 without accepted evidence in this snapshot, and 52 not measured by the location-profile artifact. These are inventory-cell counts, not percentages of all businesses or all possible industries. The report uses the still-current September 2 production coverage release while its replacement rebuild runs. An earlier immutable report is retained as history.
+
+Independent peer inventories are recorded for [Alabama](states/AL-ACCESS-2026-09-07.md), [Georgia](states/GA-ACCESS-2026-09-07.md), and [Texas](states/TX-ACCESS-2026-09-07.md). Those inventory turns completed; configuration for the other state workstreams does not mean their agents were launched. Georgia and Texas ran concurrently at the same peer level. The ledger's optional assignment fields describe supplied runtime observations, not a persistent agent scheduler.
+
+Verification passed 418 repository tests, lint, web/desktop builds, desktop control-plane smoke, TypeScript checking, and a zero-vulnerability production dependency audit. Ten ledger tests cover evidence integrity, historical assessment provenance, state uniqueness, capacity claims, unmeasured sources, and immutable link-safe output. No source acquisition or job submission was performed by this increment. Rollback is additive: stop using the report command/configuration; existing app workers and all published data remain unchanged.
