@@ -41,3 +41,17 @@ exit $LASTEXITCODE
 ```
 
 Every command uses its production default pointers and output root. A downstream stage starts only after the preceding independent verifier exits zero.
+
+## Interrupted launch evidence
+
+At the September 7 continuation inspection, session `48083` was absent and an authoritative Windows process inventory contained no production registry, resolution, benchmark, or coverage builder/verifier. Registry and coverage pointers still selected their September 2 releases. The original registry staging directory `data/business-registry/.staging/4c92700e-e080-49bf-8bfc-879e2c1334e3` contained 676 partial files totaling 1,810,400,175 bytes, with no manifest. It is retained unchanged; these incomplete files are not a published or verified registry. The cause of the process exit is not established because the original launch did not persist its terminal output.
+
+The production postal-readiness gate was rerun and still reported all 25 sources ready, zero candidate pointers, and unchanged cohort hash `84738a309d340703420bd42ab56aefec583a34cb855ac83fcf42e08e0134a848`. No source re-download is required. The registry has no supported partial-staging resume contract; a replacement run must rebuild derived artifacts from the retained source releases, with durable logs and stage receipts.
+
+## Durable replacement launch
+
+The [standalone production controller](PRODUCTION-RECONCILIATION-CONTROLLER.md) planned `production-20260907-durable-01` with plan SHA-256 `c5c566ac0ba15debee739628598b49d76e370d67c2dd9e099c04401f16327cbf`. Its plan is stored under `data/reconciliations/production-plans/`; the run's immutable plan copy, atomic receipt, and per-stage logs live under `data/reconciliations/production-runs/production-20260907-durable-01/`.
+
+After checking the Windows process inventory and absence of the shared controller lock, the exact confirmed plan was launched with hidden `Start-Process` at `2026-09-07T16:12:48.555Z`. Controller PID `5768` and registry child PID `12784` were independently observed alive after the launcher command returned. The child log reported `Reconciled 16,968 USDA SNAP records.` Launcher stdout/stderr are retained under `data/reconciliations/launcher-logs/production-20260907-durable-01/`; initial stderr was empty. These PIDs and log observations are launch evidence, not permanent liveness or completion claims.
+
+The controller, not a Codex agent, now owns the remaining sequential build/verifier execution. All 440 repository tests, lint, web/desktop builds, desktop smoke, TypeScript, and the zero-vulnerability production dependency audit passed. The final atomic stop-publication change also passed the 17-test focused controller rerun and lint. No production completion claim is made until the run receipt and all published output dependencies are independently checked after termination.
