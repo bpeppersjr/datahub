@@ -10,9 +10,22 @@
     "construction": ["state-wa-contractors"],
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
-    "local-business-licenses": ["state-dc-basic-licenses"]
+    "local-business-licenses": ["state-dc-basic-licenses"],
+    "childcare": ["state-ma-childcare"]
   },
   "sources": {
+    "state-ma-childcare": {
+      "script": "scripts/build-ma-childcare.mjs",
+      "scope": "state",
+      "states": ["MA"],
+      "state_filter_supported": false,
+      "prerequisites": [],
+      "coverage_notes": [
+        "MassGIS/EEC licensed center-based childcare program locations in Massachusetts only; family-based care and funded public-school programs are excluded. This is not all childcare or all businesses, and no nationwide completeness percentage is established.",
+        "Publisher license status and coordinates remain source assertions, not independent proof of active operations, occupancy, current USPS validity or unique business identity. ZIP5 and ZIP4 remain separate; business records contain latitude/longitude only.",
+        "Selected source evidence stays internal and normalized records remain local-review-only, with MassGIS/EEC attribution. Acquisition is independent of Census baselines; national registry integration and temporal comparisons remain separate, and missing rows must not be interpreted as closures."
+      ]
+    },
     "state-dc-basic-licenses": {
       "script": "scripts/build-dc-basic-business-licenses.mjs",
       "scope": "state",

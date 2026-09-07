@@ -1,0 +1,27 @@
+{
+  "policy_id": "massgis-eec-childcare-local-review",
+  "version": "1.0.0",
+  "publisher": "Commonwealth of Massachusetts MassGIS/EEC",
+  "ownership": "Official public licensed center-based childcare program layer distributed by MassGIS with Massachusetts Department of Early Education and Care source credit.",
+  "source_home": "https://www.mass.gov/info-details/massgis-data-licensed-child-care-programs",
+  "source_dataset": "https://services1.arcgis.com/hGdibHYSPO59RG1h/arcgis/rest/services/Licensed_Child_Care_Programs/FeatureServer/0",
+  "terms_url": "https://www.mass.gov/info-details/about-massgis",
+  "catalog_item_id": "c8c5aacce28e48339f17894447c73038",
+  "catalog_license": null,
+  "allowed_use": ["fixed public HTTPS metadata, count, ID inventory and selected-field queries", "local governed business-source review", "immutable internal selected source retention", "local-review normalization with source attribution and semantic limitations"],
+  "prohibited_use": ["expanding collection to upstream family/home-based care or funded public-school programs", "acquiring PHONE or undeclared contact fields", "inferring active business operation or current occupancy from source membership or license status", "treating program umbrella labels as verified corporate ownership", "claiming canonical unique businesses or complete state or national industry coverage", "inferring closure from disappearance or publisher edits", "redistributing record-level or aggregate outputs as authorized by this release without a separate export approval"],
+  "field_export_policy": { "selected_source_snapshot": "internal", "normalized_program_records": "local-review-only", "quarantine_and_source_observations": "internal", "PHONE": "excluded-at-query-time" },
+  "export_policy": "local-review-only",
+  "attribution": "MassGIS (Bureau of Geographic Information), Commonwealth of Massachusetts EOTSS; Massachusetts Department of Early Education and Care (EEC)",
+  "retention": "Immutable local source evidence; operator-governed deletion. Ordinary failed staging remains inspectable. No automatic cleanup or retention deadline is implemented.",
+  "redistribution": "Not authorized by this release; local-review-only. General public reuse guidance is distinct from release-level export approval. No named Creative Commons license is inferred from blank catalog licenseInfo.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business/program names and reported addresses can identify natural persons or locations with privacy implications; selected raw data stays internal and normalized records stay local-review-only. PHONE and undeclared fields are excluded.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-07",
+  "evidence": {
+    "record": "docs/states/MA-CHILDCARE-ACCESS-2026-09-07.md",
+    "basis": "Public owner MassGIS item and successful bounded layer inspection; official indexed publisher scope and general public-record reuse guidance corroborated September 7. Direct mass.gov reads returned 403; indexed-page observation is not a downloaded policy snapshot.",
+    "limitations": "Family-based and funded public-school programs are excluded. Refresh cadence, provider-key lifecycle and definitive status semantics remain unverified. The 3016-row observation is not a completeness denominator."
+  }
+}

@@ -6,6 +6,8 @@ import { boundedJson, publisherRetryDelay } from "./source-http-guards.mjs";
 const hash = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const FIELDS = MA_CHILDCARE_SCHEMA.map(([name]) => name);
 const MAX_RECORDS = 20_000;
+export const MA_CHILDCARE_BATCH_SIZE = 100;
+export const MA_CHILDCARE_MAX_URL_BYTES = 2000;
 
 // Fixed publisher/layer/query scope. Runtime injection is limited to transport and clock.
 export async function acquireMaChildcare(options = {}) {
@@ -21,6 +23,7 @@ export async function acquireMaChildcare(options = {}) {
     if (observations.length) await sleep(1000, { signal });
     const url = new URL(parameters ? `${MA_CHILDCARE_LAYER}/query` : MA_CHILDCARE_LAYER);
     url.search = new URLSearchParams({ f: "json", ...parameters }).toString();
+    if (Buffer.byteLength(url.href) > MA_CHILDCARE_MAX_URL_BYTES) throw new Error(`Massachusetts childcare ${kind} request exceeds URL byte limit.`);
     for (let attempt = 0; attempt < 3; attempt++) {
       signal?.throwIfAborted();
       const deadline = new AbortController();
@@ -43,7 +46,7 @@ export async function acquireMaChildcare(options = {}) {
         signal?.throwIfAborted();
         if (error.code === "SOURCE_RETRY_DEFERRED") throw error;
         if (attempt === 2 || !(error.retryable || error.name === "TypeError" || error.name === "TimeoutError")) {
-          throw new Error("Massachusetts childcare acquisition request failed: HTTP, deadline, network, format or byte limit.");
+          throw new Error(`Massachusetts childcare acquisition request failed during ${kind} (HTTP ${response?.status ?? "unavailable"}): deadline, network, format or byte limit may apply.`);
         }
       } finally { clearTimeout(timer); }
       await sleep(wait, { signal });
@@ -65,7 +68,7 @@ export async function acquireMaChildcare(options = {}) {
   }
   const before = inspectMaChildcareMetadata(await observe("metadata"));
   const countBefore = await count(), ids = await inventory(countBefore), features = [];
-  const batchSize = Math.min(500, before.max_record_count);
+  const batchSize = Math.min(MA_CHILDCARE_BATCH_SIZE, before.max_record_count);
   for (let offset = 0; offset < ids.length; offset += batchSize) {
     const batch = ids.slice(offset, offset + batchSize);
     const payload = await observe("features", { where: "1=1", objectIds: batch.join(","), outFields: FIELDS.join(","),

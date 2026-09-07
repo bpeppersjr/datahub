@@ -3,7 +3,7 @@ import { mkdir, realpath, lstat, readFile, open, rename, rm, readdir } from "nod
 import path from "node:path";
 import { setImmediate as yieldLoop } from "node:timers/promises";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
-import { acquireMaChildcare } from "./ma-childcare-acquisition.mjs";
+import { acquireMaChildcare, MA_CHILDCARE_BATCH_SIZE } from "./ma-childcare-acquisition.mjs";
 import { normalizeMaChildcareFeature, MA_CHILDCARE_TRANSFORMATION } from "./ma-childcare-normalization.mjs";
 import { MA_CHILDCARE_LAYER, MA_CHILDCARE_ITEM, MA_CHILDCARE_SCHEMA } from "./ma-childcare-preflight.mjs";
 
@@ -32,7 +32,7 @@ async function canonical(target, create = false) {
   return absolute;
 }
 function utc(value) { return typeof value === "string" && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value; }
-function validateSource(source, features) {
+function validateSource(source, features, batchSize) {
   const keys = ["layer_url", "item_id", "schema_sha256", "editing", "max_record_count", "native_wkid", "output_wkid", "record_count", "object_ids_sha256", "selected_fields", "started_at", "observed_at", "observations", "consistency"];
   requireValue(source && json(Object.keys(source).sort()) === json(keys.sort()), "source evidence fields");
   requireValue(source.layer_url === MA_CHILDCARE_LAYER && source.item_id === MA_CHILDCARE_ITEM && source.native_wkid === 26986 && source.output_wkid === 4326, "source identity/CRS");
@@ -44,7 +44,7 @@ function validateSource(source, features) {
   requireValue(ids.every((id, i) => Number.isSafeInteger(id) && id > 0 && (!i || id > ids[i - 1])) && source.object_ids_sha256 === sha(json(ids)), "source IDs");
   requireValue(utc(source.started_at) && utc(source.observed_at) && source.started_at <= source.observed_at, "observation interval");
   requireValue(source.consistency === "metadata-count-id-inventory-stable-not-transactional-snapshot", "consistency claim");
-  const kinds = ["metadata", "count", "inventory", ...Array(Math.ceil(features.length / Math.min(500, source.max_record_count))).fill("features"), "inventory", "count", "metadata"];
+  const kinds = ["metadata", "count", "inventory", ...Array(Math.ceil(features.length / Math.min(batchSize, source.max_record_count))).fill("features"), "inventory", "count", "metadata"];
   requireValue(Array.isArray(source.observations) && source.observations.length === kinds.length, "observation count");
   let previous = source.started_at;
   source.observations.forEach((o, i) => {
@@ -52,8 +52,8 @@ function validateSource(source, features) {
     previous = o.observed_at;
   });
 }
-async function derive(features, source, runId, signal) {
-  validateSource(source, features);
+async function derive(features, source, runId, signal, batchSize = MA_CHILDCARE_BATCH_SIZE) {
+  validateSource(source, features, batchSize);
   const { observations } = source;
   const stableSource = Object.fromEntries(Object.entries(source).filter(([key]) => !["started_at", "observed_at", "observations"].includes(key)));
   const featureHashes = [];
@@ -79,8 +79,8 @@ async function derive(features, source, runId, signal) {
   requireValue(normalized.length > 0 && quarantine.length / features.length <= 0.05, "quarantine gate exceeds 5% or no accepted records");
   return { sourceReleaseId, normalized, quarantine, counts: { selected: features.length, accepted: normalized.length, quarantined: quarantine.length } };
 }
-function manifestFor(runId, source, result, artifacts) {
-  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: "1.0.0", transformation_version: MA_CHILDCARE_TRANSFORMATION,
+function manifestFor(runId, source, result, artifacts, connectorVersion = "1.0.1") {
+  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: connectorVersion, transformation_version: MA_CHILDCARE_TRANSFORMATION,
     run_id: runId, release_id: `ma-childcare-${runId}`, source_release_id: result.sourceReleaseId, status: "complete", observed_at: source.observed_at,
     source_url: MA_CHILDCARE_LAYER, policy, counts: result.counts, quarantine_max_fraction: 0.05,
     scope: "MassGIS/EEC licensed center-based childcare source records, Massachusetts",
@@ -115,6 +115,7 @@ export async function verifyMaChildcareRelease(manifestPath, { signal } = {}) {
   requireValue(path.basename(resolved) === "manifest.json", "manifest filename");
   const directory = path.dirname(resolved), rawManifest = await boundedRead(resolved, 100000, signal), manifest = JSON.parse(rawManifest);
   requireValue(uuid.test(manifest.run_id) && manifest.release_id === `ma-childcare-${manifest.run_id}`, "run/release identity");
+  requireValue(["1.0.0", "1.0.1"].includes(manifest.connector_version), "connector version");
   const parent = path.basename(path.dirname(directory));
   requireValue((parent === ".staging" && path.basename(directory) === manifest.run_id) || (parent === "releases" && path.basename(directory) === manifest.release_id), "manifest directory identity");
   requireValue(json((await readdir(directory)).sort()) === json([...files.map(([f]) => f), "manifest.json"].sort()), "missing/extra artifacts");
@@ -126,10 +127,10 @@ export async function verifyMaChildcareRelease(manifestPath, { signal } = {}) {
       if (index % 100 === 0) { await yieldLoop(); signal?.throwIfAborted(); } rows.push(JSON.parse(line));
     } return rows;
   };
-  const features = await parseLines(values[0]), source = JSON.parse(values[3]), result = await derive(features, source, manifest.run_id, signal);
+  const features = await parseLines(values[0]), source = JSON.parse(values[3]), result = await derive(features, source, manifest.run_id, signal, manifest.connector_version === "1.0.0" ? 500 : MA_CHILDCARE_BATCH_SIZE);
   const reproduced = await contents(features, source, result, signal);
   requireValue(values.every((value, index) => value === reproduced[index]), "normalized/quarantine/source bytes differ from reproduction");
-  const expected = manifestFor(manifest.run_id, source, result, descriptors(values, result));
+  const expected = manifestFor(manifest.run_id, source, result, descriptors(values, result), manifest.connector_version);
   requireValue(json(manifest) === json(expected), "manifest identity, counts, policy or artifact integrity");
   signal?.throwIfAborted();
   return { status: "verified", release_id: manifest.release_id, manifest_path: resolved, manifest_sha256: sha(rawManifest), counts: result.counts, artifact_count: 4 };

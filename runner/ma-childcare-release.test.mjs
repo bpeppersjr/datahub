@@ -46,6 +46,19 @@ test("MA release publishes immutable evidence and independently reproduces selec
   assert.deepEqual(await readdir(path.join(root, ".staging")), []);
 });
 
+test("MA verifier preserves earlier release version support but rejects unknown versions", async (t) => {
+  const root = await workspace(t), result = await build(root);
+  const manifest = JSON.parse(await readFile(result.manifest_path, "utf8"));
+  assert.equal(manifest.connector_version, "1.0.1");
+  // This 20-record fixture has one batch under both versioned contracts.
+  manifest.connector_version = "1.0.0";
+  await writeFile(result.manifest_path, JSON.stringify(manifest));
+  assert.equal((await verifyMaChildcareRelease(result.manifest_path)).status, "verified");
+  manifest.connector_version = "0.9.9";
+  await writeFile(result.manifest_path, JSON.stringify(manifest));
+  await assert.rejects(verifyMaChildcareRelease(result.manifest_path), /connector version/);
+});
+
 test("MA release quarantines at most 5% while rejecting source scope/private drift wholesale", async (t) => {
   const root = await workspace(t);
   const accepted = await build(path.join(root, "accepted"), { fetchImpl: fixture((p, k) => { if (k === "features") p.features[0].attributes.ZIPCODE = "bad"; }) });

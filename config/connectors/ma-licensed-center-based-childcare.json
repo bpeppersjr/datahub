@@ -1,0 +1,40 @@
+{
+  "connector_id": "ma-licensed-center-based-childcare",
+  "version": "1.0.1",
+  "description": "Acquires and verifies selected MassGIS/EEC licensed center-based childcare program records as an immutable local-review source release; not a canonical business registry adapter.",
+  "implementation_status": "standalone-acquisition-and-local-release",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object", "additionalProperties": false,
+    "properties": { "output": { "type": "string", "minLength": 1, "default": "data/business-sources/ma-licensed-center-based-childcare" } }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["massgis-eec-selected-childcare-arcgis-features"],
+  "output_artifact_types": ["ma-childcare-selected-features-jsonl", "ma-childcare-normalized-program-jsonl", "ma-childcare-quarantine-jsonl", "ma-childcare-source-observation-json", "dataset-manifest-json"],
+  "output_schema_contract": {
+    "dataset_id": "ma-licensed-center-based-childcare", "schema_version": "1.0.0", "transformation_version": "ma-childcare-normalization@1.0.0",
+    "artifacts": ["selected-features.jsonl", "normalized.jsonl", "quarantine.jsonl", "source-observation.json"],
+    "verification": "scripts/verify-ma-childcare.mjs takes the immutable manifest path and replays normalization from retained selected features; it does not take current.json.",
+    "postal_fields": "physical_address.zip_code and postal_code contain ZIP5 only; physical_address.zip4 is a separate four-digit string or null.",
+    "geocode": "Normalized records contain nullable latitude/longitude only; selected source point geometry remains internal provenance. No business polygons are produced."
+  },
+  "allowed_hosts": ["services1.arcgis.com"],
+  "redirect_policy": "Reject redirects. Only the fixed HTTPS Licensed_Child_Care_Programs FeatureServer/0 metadata and /query paths are requested; no caller URL or SQL override. Fail closed before dispatch when the encoded request URL exceeds 2000 bytes; feature batches contain at most 100 IDs.",
+  "provider_budget_key": "massgis-eec-licensed-center-based-childcare-public-arcgis",
+  "resource_class": "bounded-network-memory-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1, "maximum_source_records": 20000, "maximum_batch_records": 100, "maximum_request_url_bytes": 2000,
+    "maximum_response_bytes": 8000000, "request_timeout_ms": 30000, "maximum_injected_request_timeout_ms": 60000,
+    "maximum_request_attempts": 3, "minimum_observation_spacing_ms": 1000, "maximum_retry_after_ms": 60000,
+    "maximum_quarantine_rate": 0.05, "minimum_accepted_records": 1,
+    "maximum_verification_artifact_bytes": 100000000, "maximum_verification_manifest_bytes": 100000
+  },
+  "retry": "Three attempts at most for 429, 5xx, transient transport TypeError or request TimeoutError. The default 30000ms deadline covers headers and body. One-second spacing between observations; retry fallback waits are one then two seconds. Honor Retry-After; waits above 60000ms defer instead of shortening. Cancellation, redirects, other HTTP failures, schema/scope/format drift and quality failures are not retried. CLI does not expose transport or limit overrides.",
+  "checkpoint": "Metadata/count/ID inventory before and after bounded feature batches must agree. Retain selected features and parsed-response observation digests; full metadata/count/inventory payloads are not retained. Matching inventories are not transactional snapshot isolation. No acquisition resume checkpoint or automatic crash recovery is implemented.",
+  "idempotency": "Source release identity hashes stable acquisition evidence and selected feature content; each publication has a fresh immutable UUID run/release. This does not skip future network acquisition, deduplicate businesses, establish provider-key lifecycle, or implement first/last-seen comparisons.",
+  "cancellation": "SIGINT, SIGTERM and parent IPC abort requests, waits and precommit processing. Remove only owned UUID staging on cooperative precommit cancellation; preserve ordinary failed staging, sibling and prior releases. Recheck staging and exclusive lock ownership before immutable rename. After rename starts, finish pointer commit without cooperative interruption. Abrupt termination or disk failure can leave retained locks or an unpointed release; explicit inspection is required and stale locks are never automatically reclaimed.",
+  "source_policy": "config/source-policies/massgis-eec-childcare-local-review.json",
+  "retention_profile": "Immutable internal selected source and local-review normalized artifacts; operator-governed deletion, no automatic retention cleanup.",
+  "produced_entities": ["licensed-childcare-program-source-record", "reported-program-location-assertion", "source-license-status-assertion"],
+  "produced_identifiers": ["massachusetts_eec_provider_number", "massgis_master_address_id", "release-scoped-source-object-id", "zip5", "zip4"]
+}

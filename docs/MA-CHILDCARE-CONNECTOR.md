@@ -1,12 +1,12 @@
 # Massachusetts childcare acquisition and normalization
 
-Implemented modules cover acquisition, normalization and local release publication/verification. These are application-side functions, not AI-dependent execution. No live Massachusetts dataset has been acquired by these implementation increments, and managed industry enrollment is still pending.
+Implemented modules cover acquisition, normalization and local release publication/verification. These are application-side functions, not AI-dependent execution. Managed industry enrollment is implemented below; enrollment and offline test results alone do not establish live source acquisition or national reporting coverage.
 
 ## Acquisition contract
 
 `acquireMaChildcare` accepts only transport, clock, cancellation, sleep and bounded timeout options. Source host, layer, SQL scope and selected fields are fixed by the existing preflight contract. No PHONE field, caller URL, credential or arbitrary SQL override is accepted.
 
-Execution reads metadata, count and sorted ID inventory; fetches explicit ID batches of at most 500 (also limited by publisher maximum); then rechecks inventory, count and metadata. The source ceiling is 20,000 rows and eight megabytes per response. Each request has a default 30-second deadline through body reading, three attempts for transient failures, and one-second spacing between successful observations. Publisher waits above 60 seconds defer instead of retrying early. All requests reject redirects and cancellation interrupts requests or waits.
+Execution reads metadata, count and sorted ID inventory; fetches explicit ID batches of at most 100 (also limited by publisher maximum); then rechecks inventory, count and metadata. Connector 1.0.1 rejects URLs above 2,000 bytes before sending them. The source ceiling is 20,000 rows and eight megabytes per response. Each request has a default 30-second deadline through body reading, three attempts for transient failures, and one-second spacing between successful observations. Publisher waits above 60 seconds defer instead of retrying early. All requests reject redirects and cancellation interrupts requests or waits. The verifier retains support for earlier 1.0.0 releases and their 500-ID observation contract without rewriting their evidence.
 
 Missing, extra or duplicate IDs, selected-field drift, truncated batches, changed counts/inventories/edit metadata and non-WGS84 response coordinates fail acquisition. Results retain selected feature attributes, source point data and per-response parsed-payload hashes with observation timestamps. No disk artifacts are written. Matching checks are not transactional snapshot isolation, a freshness promise or proof of business operation.
 
@@ -18,15 +18,49 @@ The function requires Center-based Care and Licensed scope fields, excludes unde
 
 Output business records have longitude/latitude, not feature geometries. Missing source points remain missing. Coordinates must fit a broad plausibility envelope (longitude -74 through -69; latitude 41 through 43), which is explicitly not a state-boundary test. Source statuses, capacity and program umbrella labels are preserved without inferring active operation, parent ownership or unique canonical identity. Unknown or missing statuses remain explicit. Outputs are local-review-only pending the release-level policy gate.
 
-## Remaining work before app execution
+## Remaining reporting and recovery work
 
-Standalone CLI execution is implemented below. Managed app enrollment, versioned first/last-observation comparisons, disappearance handling and explicit crash-recovery workflows remain. A missing row must not become a closure assertion. Integrate the validated connector with an explicit childcare industry bucket only after source-contract and runtime plan checks pass.
+Standalone and managed app execution are implemented below. National registry integration, versioned first/last-observation comparisons, disappearance handling and explicit crash-recovery workflows remain. A missing row must not become a closure assertion.
 
-The metadata-only preflight remains unchanged and correctly reports connector_ready false. Existing production pointers, pinned source configuration and current reconciliation are untouched. See [source/policy evidence](states/MA-CHILDCARE-ACCESS-2026-09-07.md). No migration is required for these additive modules; removing them does not remove existing releases.
+The metadata-only preflight remains unchanged: its connector_ready false flag means that metadata inspection does not establish application readiness, not a dynamic catalog lookup. Its historical next-step text is not an execution gate. Existing production pointers, pinned source configuration and current reconciliation are untouched. See [source/policy evidence](states/MA-CHILDCARE-ACCESS-2026-09-07.md). No migration is required for these additive modules; removing enrollment does not remove existing releases.
 
 Verification: 14 focused tests and the final full 551-test repository check passed, including lint, web/desktop builds and desktop smoke. TypeScript passed and the production audit found zero vulnerabilities. Peer review prompted rejection of contradictory per-feature CRS identifiers; both acquisition and normalization now test that case. These are offline code checks, not evidence of a published Massachusetts release.
 
 ## Standalone release commands
+
+### Managed industry handoff
+
+The `childcare` industry maps to `state-ma-childcare`, invoking `scripts/build-ma-childcare.mjs` through Co*Tive's existing standalone industry worker. Only MA is supported; selecting other states records gaps and does not duplicate the MA source. There are no local Census prerequisites for acquisition; the builder performs its own fixed-source metadata/count/ID checks before retrieving features. This does not waive downstream geography and reconciliation requirements.
+
+Inspect without downloading:
+
+```powershell
+node scripts/run-industry-segments.mjs plan --industry childcare --state MA
+```
+
+Execute through the app-owned worker (makes real provider requests):
+
+```powershell
+node scripts/run-industry-segments.mjs run --industry childcare --state MA --run-id <unique-run-id>
+```
+
+The app records a durable plan, receipt and checksummed worker log, reserves the source across concurrent industry runs, and forwards cancellation through IPC. The child verifies its release before returning success. Outputs remain under `data/industry-segments/runs/<run-id>/state-ma-childcare-MA`; national reporting pointers are not changed. A refresh creates new immutable evidence, not a closure inference or an automatically merged national dataset. No recurring refresh cadence is enabled by enrollment.
+
+The source contract is `config/connectors/ma-licensed-center-based-childcare.json`; policy is `config/source-policies/massgis-eec-childcare-local-review.json`. The state ledger deliberately uses an unmeasured profile mapping until a registry adapter and reconciled coverage release exist. Its `NOT_READY_EVIDENCE_UNMEASURED` status concerns reporting evidence, not whether the acquisition CLI can execute.
+
+Offline integration runs the real industry CLI and child worker with fixture-only transport, checks a verified publication and durable receipt, and proves scope drift fails without publishing a pointer. These tests do not contact the provider.
+
+### First live handoff and request-size correction
+
+Co*Tive run `ma-app-acquisition-20260907-01` failed on September 7, 2026 before artifact publication (19:03:47.937Z–19:03:52.524Z). Receipt: `data/industry-segments/runs/ma-app-acquisition-20260907-01/receipt.json`, SHA-256 `ca33459b335da02963726420e099e4a885766d8bbde166c70b0d9851595fa962`. The controller exited, no current pointer was published, and ordinary failed staging was retained. Do not overwrite this run or describe it as an acquired dataset.
+
+Bounded diagnostics confirmed metadata and the 3,016-ID inventory were accessible. The 500-ID selected-field GET was 3,241 URL bytes and returned HTTP 404 with HTML; a shorter 100-ID probe returned HTTP 200 JSON. Probe response bodies were discarded, not retained as a dataset. This supports reducing GET size; it does not establish the provider's exact infrastructure limit. Connector 1.0.1 uses at most 100 IDs, rejects URLs over 2,000 bytes locally, and includes safe phase/HTTP status in acquisition errors. Inventory completeness, scope, selected-field and quarantine checks are unchanged. No fallback to unselected fields or relaxed validation is used.
+
+After the correction, the full repository check passed (tests, lint, web/desktop builds and desktop smoke); TypeScript passed and the production dependency audit found zero vulnerabilities. Regression tests cover 201 IDs split into 100/100/1 complete batches, rejection of an overlong URL before transport, and retained verifier support for earlier release versions.
+
+Replacement app-owned run `ma-app-acquisition-20260907-02` started at 19:09:41.589Z with expected plan SHA-256 `0af9d96585a3590a7f9b904ebe2270495eefd1837b50d4a5c36a9c5421623408`. Controller PID 24300 and acquisition worker PID 10804 were confirmed live after launch. Inspect `data/industry-segments/runs/ma-app-acquisition-20260907-02/receipt.json` for its current state; launch is not completion evidence. This separate run preserves the failed first attempt and does not require a live AI session for ongoing acquisition.
+
+### Direct release commands
 
 Release-workflow verification: eight release tests and two CLI tests passed as part of the full 561-test repository check, including lint, web/desktop builds and desktop smoke. TypeScript passed; the production dependency audit found zero vulnerabilities. Tests used offline fixtures, including real subprocess cancellation; no live Massachusetts acquisition or managed-app enrollment is claimed.
 

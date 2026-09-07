@@ -77,6 +77,21 @@ test('state ledger does not treat a configured state connector as measured acces
   assert.match(construction.accessEvidenceStatus, /not-measured|configured|unsupported/);
 });
 
+test('MA childcare app enrollment does not manufacture national reporting evidence', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const cell = ledger.jurisdictions.find(r => r.state === 'MA').industries.find(r => r.industry === 'childcare');
+  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId, 'state-ma-childcare');
+  assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor, 'cotive-app');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus, 'PRESENT');
+  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+  const other = ledger.jurisdictions.find(r => r.state === 'NY').industries.find(r => r.industry === 'childcare');
+  assert.equal(other.accessEvidenceStatus, 'unsupported-missing');
+  assert.deepEqual(other.appHandoff.configuredSources, []);
+});
+
 test('state ledger cannot infer free agent capacity from an empty state-assignment list', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
   assert.equal(ledger.dispatch.availableDispatchSlots, null);

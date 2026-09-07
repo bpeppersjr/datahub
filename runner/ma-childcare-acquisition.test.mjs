@@ -38,6 +38,30 @@ test("MA acquisition uses fixed selected scope, bounded sorted batches and prove
   for (const item of result.source.observations) assert.match(item.payload_sha256, /^[a-f0-9]{64}$/);
 });
 
+test("MA acquisition keeps GET batches within 100 IDs and 2000 URL bytes", async () => {
+  const stub = source((payload, kind) => {
+    if (kind === "metadata") payload.maxRecordCount = 2000;
+    if (kind === "count") payload.count = 201;
+    if (kind === "inventory") payload.objectIds = Array.from({ length: 201 }, (_, i) => i + 1);
+  });
+  const result = await acquireMaChildcare({ fetchImpl: stub.fetchImpl, sleep });
+  const batches = stub.calls.filter((call) => call.kind === "features");
+  assert.deepEqual(batches.map((call) => new URL(call.url).searchParams.get("objectIds").split(",").length), [100, 100, 1]);
+  assert.ok(stub.calls.every((call) => Buffer.byteLength(call.url) <= 2000));
+  assert.equal(result.features.length, 201);
+  assert.deepEqual(result.features.map((row) => row.attributes.OBJECTID), Array.from({ length: 201 }, (_, i) => i + 1));
+});
+
+test("MA acquisition rejects overlong GET requests before sending them", async () => {
+  const stub = source((payload, kind) => {
+    if (kind === "metadata") payload.maxRecordCount = 2000;
+    if (kind === "count") payload.count = 100;
+    if (kind === "inventory") payload.objectIds = Array.from({ length: 100 }, (_, i) => Number.MAX_SAFE_INTEGER - i);
+  });
+  await assert.rejects(acquireMaChildcare({ fetchImpl: stub.fetchImpl, sleep }), /features request exceeds URL byte limit/);
+  assert.equal(stub.calls.some((call) => call.kind === "features"), false);
+});
+
 test("MA selected acquisition feeds conservative program normalization without canonical merging", async () => {
   const stub = source((payload, kind) => {
     if (kind !== "features") return;

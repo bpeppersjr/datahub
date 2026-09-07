@@ -2,6 +2,8 @@
 
 ## Objective
 
+Massachusetts app enrollment (2026-09-07): [managed childcare acquisition](MA-CHILDCARE-CONNECTOR.md#managed-industry-handoff) uses the existing standalone industry worker, source reservation, IPC cancellation and durable receipts. The new versioned source/policy contracts match the verified release builder. MA is acquisition-enabled; national reporting evidence remains unmeasured pending registry integration. No recurring cadence or production reporting promotion is implied.
+
 Massachusetts release workflow (2026-09-07): [standalone build and verification](MA-CHILDCARE-CONNECTOR.md#standalone-release-commands) adds local artifact publication, source-bound normalization/quarantine reproduction and app IPC cancellation. This remains separate from managed industry enrollment and live acquisition; no new provider records or production reporting pointers are claimed by the implementation.
 
 Massachusetts connector implementation (2026-09-07): [bounded acquisition and conservative normalization](MA-CHILDCARE-CONNECTOR.md) now have offline request, consistency, privacy, ZIP/coordinate/status and integration tests. They produce in-memory source/record results without AI, but immutable publication, independent release verification and managed enrollment are still required. No live childcare records or source pointers changed.
