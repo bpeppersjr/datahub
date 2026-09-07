@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { createInterface } from "node:readline";
@@ -266,15 +266,19 @@ async function openGzipWriter(stagingDirectory, relativePath) {
   return { relativePath, destination, temporary, output, gzip, records: 0 };
 }
 
-async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+async function writeGzipRecord(writer, record, signal) {
+  signal?.throwIfAborted();
+  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain", signal ? { signal } : undefined);
   writer.records += 1;
 }
 
-async function closeGzipWriters(writers, artifactType) {
+async function closeGzipWriters(writers, artifactType, signal) {
+  signal?.throwIfAborted();
   const completion = writers.map((writer) => finished(writer.output));
   for (const writer of writers) writer.gzip.end();
-  await Promise.all(completion);
+  const cancel = () => { for (const writer of writers) { writer.gzip.on("error", () => {}); writer.output.on("error", () => {}); writer.gzip.destroy(); writer.output.destroy(); } };
+  signal?.addEventListener("abort", cancel, { once: true });
+  try { await Promise.all(completion); } finally { signal?.removeEventListener("abort", cancel); }
   const artifacts = [];
   for (const writer of writers) {
     await rename(writer.temporary, writer.destination);
@@ -287,6 +291,7 @@ function assertContained(parent, child, label) {
   const relative = path.relative(parent, child);
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
+async function rejectLinkedAncestors(root, target) { let current = path.resolve(target), stop = path.resolve(root); while (true) { try { const details = await lstat(current); if (details.isSymbolicLink() || path.resolve(await realpath(current)) !== current) throw new Error("FSIS staging path crosses a link or junction."); } catch (error) { if (error.code !== "ENOENT") throw error; } if (current === stop) break; current = path.dirname(current); } }
 
 async function loadZbpBaseline(pointerPath) {
   const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
@@ -352,6 +357,8 @@ export async function buildFsisMpi({
   schemaFingerprints = FSIS_SCHEMA_FINGERPRINTS,
   logger = console.log,
   now = () => new Date(),
+  signal,
+  progressInterval = 1_000,
 } = {}) {
   if (!outputRoot || !zbpPointer || !directoryPath || !demographicPath || !sourceDateValue) {
     throw new Error("outputRoot, zbpPointer, directoryPath, demographicPath, and sourceDate are required.");
@@ -360,27 +367,38 @@ export async function buildFsisMpi({
   if (!sourceDateNormalized) throw new Error("sourceDate must be YYYY-MM-DD.");
   if (!Number.isInteger(minimumEstablishments) || minimumEstablishments < 1) throw new Error("minimumEstablishments must be a positive integer.");
   if (!Number.isFinite(maximumQuarantineRate) || maximumQuarantineRate < 0 || maximumQuarantineRate > 1) throw new Error("maximumQuarantineRate must be from 0 through 1.");
+  if (!Number.isInteger(progressInterval) || progressInterval < 1) throw new Error("progressInterval must be a positive integer.");
   const retrievedAt = now().toISOString();
   if (sourceDateNormalized > retrievedAt.slice(0, 10)) throw new Error("sourceDate cannot be after retrieval date.");
   const runId = randomUUID();
   const releaseId = `fsis-mpi-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
+  signal?.throwIfAborted();
+  const activeWriters = [];
+  try {
+  await rejectLinkedAncestors(outputRoot, stagingDirectory);
   await mkdir(path.join(stagingDirectory, "source"), { recursive: true });
+  signal?.throwIfAborted();
   const baseline = await loadZbpBaseline(zbpPointer);
-  const directoryBuffer = await readFile(directoryPath);
-  const demographicBuffer = await readFile(demographicPath);
+  signal?.throwIfAborted();
+  const directoryBuffer = await readFile(directoryPath, { signal });
+  const demographicBuffer = await readFile(demographicPath, { signal });
   if (directoryBuffer.length > 50_000_000 || demographicBuffer.length > 50_000_000) throw new Error("An FSIS source CSV exceeds the 50 MB input limit.");
   const directory = parseCsvTable(directoryBuffer, FSIS_MPI_HEADERS, schemaFingerprints.directory, "FSIS MPI directory");
+  signal?.throwIfAborted();
   const demographic = parseCsvTable(demographicBuffer, FSIS_DEMOGRAPHIC_REQUIRED_HEADERS, schemaFingerprints.demographic, "FSIS demographic data");
+  signal?.throwIfAborted();
   if (directory.rows.length !== demographic.rows.length) throw new Error("FSIS directory and demographic row counts differ.");
   const demographicById = new Map();
   for (const row of demographic.rows) {
+    signal?.throwIfAborted();
     const id = digits(row.establishment_id);
     if (!id || demographicById.has(id)) throw new Error(`Duplicate or invalid FSIS demographic establishment ID ${row.establishment_id ?? "<blank>"}.`);
     demographicById.set(id, row);
   }
   const directoryIds = new Set();
   for (const row of directory.rows) {
+    signal?.throwIfAborted();
     const id = digits(row.establishment_id);
     if (!id) throw new Error("FSIS directory contains a blank or invalid establishment ID.");
     if (directoryIds.has(id)) throw new Error(`Duplicate FSIS directory establishment ID ${id}.`);
@@ -397,8 +415,9 @@ export async function buildFsisMpi({
   const sourceReleaseId = `fsis-mpi-${sourceDateNormalized}-${sourceDigest.slice(0, 16)}`;
   const context = { runId, retrievedAt, sourceDate: sourceDateNormalized, sourceReleaseId, baselineByZip: baseline.byZip };
   const writers = new Map();
-  for (const prefix of "0123456789") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/establishments/zip-prefix=${prefix}.jsonl.gz`));
+  for (const prefix of "0123456789") { const writer = await openGzipWriter(stagingDirectory, `derived/establishments/zip-prefix=${prefix}.jsonl.gz`); writers.set(prefix, writer); activeWriters.push(writer); }
   const quarantineWriter = await openGzipWriter(stagingDirectory, "quarantine/records.jsonl.gz");
+  activeWriters.push(quarantineWriter);
   const ids = new Set();
   const countsByZip = new Map();
   const stateCounts = new Map();
@@ -406,6 +425,7 @@ export async function buildFsisMpi({
   let accepted = 0;
   let quarantined = 0;
   for (const source of directory.rows) {
+    signal?.throwIfAborted();
     const id = digits(source.establishment_id);
     try {
       if (!id || ids.has(id)) throw new Error("duplicate-or-invalid-establishment-id");
@@ -415,15 +435,17 @@ export async function buildFsisMpi({
       assertNormalizedUsPostalFieldsDeep(normalized);
       ids.add(id);
       const zipCode = normalized.address.zip_code;
-      await writeGzipRecord(writers.get(zipCode[0]), normalized);
+      await writeGzipRecord(writers.get(zipCode[0]), normalized, signal);
       countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
       stateCounts.set(normalized.address.state, (stateCounts.get(normalized.address.state) ?? 0) + 1);
       for (const activity of normalized.activities) activityCounts.set(activity, (activityCounts.get(activity) ?? 0) + 1);
       accepted += 1;
     } catch (error) {
-      await writeGzipRecord(quarantineWriter, { source_type: "establishment", source_id: id || null, reason: error.message });
+      if (signal?.aborted || error.name === "AbortError") throw error;
+      await writeGzipRecord(quarantineWriter, { source_type: "establishment", source_id: id || null, reason: error.message }, signal);
       quarantined += 1;
     }
+    if ((accepted + quarantined) % progressInterval === 0) { logger(`Normalized ${(accepted + quarantined).toLocaleString("en-US")} FSIS MPI source records.`); await new Promise((resolve) => setImmediate(resolve)); signal?.throwIfAborted(); }
   }
   if (ids.size + quarantined !== directory.rows.length) throw new Error("FSIS source records are not fully accounted.");
   if (accepted < minimumEstablishments) throw new Error(`FSIS accepted establishment count ${accepted} is below the ${minimumEstablishments} quality floor.`);
@@ -431,8 +453,8 @@ export async function buildFsisMpi({
   const artifacts = [];
   artifacts.push(await writeArtifact(stagingDirectory, "source/MPI_Directory_by_Establishment_Name.csv", directoryBuffer, { artifact_type: "fsis-source-active-directory-csv", record_count: directory.rows.length, export_policy: "internal" }));
   artifacts.push(await writeArtifact(stagingDirectory, "source/Dataset_Establishment_Demographic_Data.csv", demographicBuffer, { artifact_type: "fsis-source-demographic-csv", record_count: demographic.rows.length, export_policy: "internal" }));
-  artifacts.push(...await closeGzipWriters([...writers.values()], "normalized-fsis-establishment-jsonl-gzip"));
-  artifacts.push(...await closeGzipWriters([quarantineWriter], "quarantine-jsonl-gzip"));
+  artifacts.push(...await closeGzipWriters([...writers.values()], "normalized-fsis-establishment-jsonl-gzip", signal));
+  artifacts.push(...await closeGzipWriters([quarantineWriter], "quarantine-jsonl-gzip", signal));
   const coverageRows = buildZipCoverage(baseline.rows, countsByZip, context);
   artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(coverageRows), { artifact_type: "fsis-zip-coverage-jsonl", record_count: coverageRows.length }));
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-summary.json", json({
@@ -493,9 +515,11 @@ export async function buildFsisMpi({
     ],
     artifacts: artifacts.sort((left, right) => left.path.localeCompare(right.path)),
   };
+  signal?.throwIfAborted();
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
+  signal?.throwIfAborted(); // Final cooperative boundary; publication is atomic and non-interruptible from this point.
   await rename(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${runId}`;
@@ -505,6 +529,12 @@ export async function buildFsisMpi({
   if (!(await stat(releaseDirectory)).isDirectory()) throw new Error("Published FSIS MPI release is not a directory.");
   logger(`Published ${accepted.toLocaleString("en-US")} FSIS active establishments.`);
   return { manifest, releaseDirectory, pointerPath };
+  } catch (error) {
+    for (const writer of activeWriters) { writer.gzip.on("error", () => {}); writer.output.on("error", () => {}); writer.gzip.destroy(); writer.output.destroy(); }
+    await Promise.allSettled(activeWriters.map((writer) => finished(writer.output)));
+    if (signal?.aborted || error.name === "AbortError") { assertContained(path.resolve(outputRoot), path.resolve(stagingDirectory), "FSIS cancellation staging cleanup"); const [realOutput, realStaging] = await Promise.all([realpath(outputRoot), realpath(stagingDirectory)]); assertContained(realOutput, realStaging, "FSIS cancellation staging cleanup"); await rm(stagingDirectory, { recursive: true, force: true }); throw signal?.reason instanceof Error ? signal.reason : error; }
+    throw error;
+  }
 }
 
 async function forEachGzipRecord(filename, consume) {

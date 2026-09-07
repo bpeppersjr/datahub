@@ -38,3 +38,15 @@ update-industry.bat run --industry tax-exempt-organizations --state NY,CA
 The run acquires the four national regional files once; NY/CA selection does not reduce the source request scope. The verified Census ZBP baseline remains a prerequisite, followed by the connector's page/date, schema, regional byte/count, duplicate-EIN, quarantine, and normalized-field gates. No credentials or AI are required. The existing IRS policy retains raw regional CSVs internally, excludes personal contacts and financial amounts from normalized records, and permits only approved normalized exports with attribution and limitations.
 
 Optional per-source `coverage_notes` are validated, displayed in plan warnings, and persisted in the run receipt. The IRS notes explicitly preserve the cross-industry, address, operational-status, and export limitations. Cancellation propagates from the runner into the IRS request/stream/normalization lifecycle; once immutable publication begins it finishes its atomic pointer sequence. No live IRS refresh was started merely by adding this bucket. A completed refresh still requires the separate governed national reconciliation chain before appearing in production views.
+
+## FSIS food-processing prerequisite
+
+The governed FSIS MPI connector covers regulated meat, poultry, and egg-product establishments, but it is not yet an industry selector. Its offline-only CLI requires two explicitly supplied official CSV files and the source date printed beside both download links:
+
+```text
+npm run fsis:build -- --source-date YYYY-MM-DD --directory downloads/fsis-mpi/MPI_Directory_by_Establishment_Name.csv --demographic downloads/fsis-mpi/Dataset_Establishment_Demographic_Data.csv
+```
+
+The generic industry runner supplies only an isolated output root; it cannot safely infer a source date, select arbitrary retained files, or acquire the browser-only inputs. Consequently `food-processing` / `national-fsis-mpi` has not been added to `config/industry-segments.json`. Adding it requires a separate allow-listed input profile or governed prepared-source pointer that pins both files, the source date, bytes, and hashes.
+
+The FSIS CLI accepts cooperative IPC cancellation. It stops between local validation and normalization steps, interrupts gzip backpressure, closes open writers, removes only its cancelled run-scoped staging directory, and leaves `current.json` unchanged. Once immutable publication begins, its release rename and pointer replacement finish without interruption. FSIS active-directory membership remains source-specific regulatory evidence—not proof of general business operation, public access, ownership, or coverage of every food business. Raw CSVs remain internal and the DUNS field remains excluded from normalized/public data.

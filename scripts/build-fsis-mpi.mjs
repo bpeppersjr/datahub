@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildFsisMpi } from "../runner/fsis-mpi.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed USDA FSIS active MPI establishment release.
@@ -64,6 +66,7 @@ try {
     demographicPath: assertInsideApp(path.resolve(APP_ROOT, options.demographic)),
     sourceDate: options.sourceDate,
     logger: (message) => process.stdout.write(`${message}\n`),
+    signal: cancellation.signal,
   });
   process.stdout.write(`${JSON.stringify({
     release_id: result.manifest.release_id,
@@ -74,4 +77,6 @@ try {
 } catch (error) {
   process.stderr.write(`FSIS MPI build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

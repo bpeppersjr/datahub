@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createGunzip } from "node:zlib";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { APP_ROOT } from "./paths.mjs";
 import {
   buildFsisMpi,
   FSIS_DEMOGRAPHIC_REQUIRED_HEADERS,
@@ -199,4 +200,51 @@ test("blocks mismatched FSIS directory and demographic identities before normali
     logger: () => {},
     now: () => new Date("2026-08-30T16:00:00.000Z"),
   }), /identity mismatch/);
+});
+
+async function cancellationFixture(t) {
+  const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
+  const root = await mkdtemp(path.join(temp, 'fsis-cancel-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const directoryPath = path.join(root, 'directory.csv');
+  const demographicPath = path.join(root, 'demographic.csv');
+  const identities = [{}, { establishment_id: '200', establishment_number: 'M200', establishment_name: 'Second Fixture Foods' }];
+  await writeFile(directoryPath, csv(FSIS_MPI_HEADERS, identities.map(value => directory(value))));
+  await writeFile(demographicPath, csv(FSIS_DEMOGRAPHIC_REQUIRED_HEADERS, identities.map(value => demographic(value))));
+  return {
+    outputRoot: path.join(root, 'output'), directoryPath, demographicPath,
+    zbpPointer: await writeBaseline(path.join(root, 'zbp')), sourceDate: '2026-08-24', minimumEstablishments: 1,
+    schemaFingerprints: { directory: headerFingerprint(FSIS_MPI_HEADERS), demographic: headerFingerprint(FSIS_DEMOGRAPHIC_REQUIRED_HEADERS) },
+    now: () => new Date('2026-08-30T16:00:00.000Z'), logger: () => {},
+  };
+}
+
+async function assertUnpublishedAndClean(options) {
+  await assert.rejects(readFile(path.join(options.outputRoot, 'current.json')), /ENOENT/);
+  const staging = await readdir(path.join(options.outputRoot, '.staging')).catch(error => { if (error.code === 'ENOENT') return []; throw error; });
+  assert.deepEqual(staging, []);
+}
+
+test('FSIS cancellation before work publishes nothing and leaves no staging', async (t) => {
+  const options = await cancellationFixture(t); const controller = new AbortController(); controller.abort();
+  await assert.rejects(buildFsisMpi({ ...options, signal: controller.signal }), /abort|cancel/i);
+  await assertUnpublishedAndClean(options);
+});
+
+test('FSIS cancellation during normalization closes writers and does not quarantine the stop request', async (t) => {
+  const options = await cancellationFixture(t); const controller = new AbortController(); let progress = 0;
+  await assert.rejects(buildFsisMpi({ ...options, signal: controller.signal, progressInterval: 1, logger: () => { progress += 1; setImmediate(() => controller.abort()); } }), /abort|cancel/i);
+  assert.equal(progress, 1);
+  await assertUnpublishedAndClean(options);
+});
+
+test('FSIS cancellation preserves earlier publication and another run staging', async (t) => {
+  const options = await cancellationFixture(t); const controller = new AbortController();
+  const other = path.join(options.outputRoot, '.staging', 'other-run'); await mkdir(other, { recursive: true });
+  await writeFile(path.join(other, 'keep.txt'), 'other run');
+  const previous = '{"release_id":"previous-release"}\n'; await writeFile(path.join(options.outputRoot, 'current.json'), previous);
+  await assert.rejects(buildFsisMpi({ ...options, signal: controller.signal, progressInterval: 1, logger: () => controller.abort() }), /abort|cancel/i);
+  assert.equal(await readFile(path.join(options.outputRoot, 'current.json'), 'utf8'), previous);
+  assert.equal(await readFile(path.join(other, 'keep.txt'), 'utf8'), 'other run');
+  assert.deepEqual(await readdir(path.join(options.outputRoot, '.staging')), ['other-run']);
 });

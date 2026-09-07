@@ -122,3 +122,21 @@ node scripts/cutover-normalized-us-postal-migration.mjs plan `
 Review and retain the emitted plan SHA-256. Only that newly reviewed hash may be supplied to `execute --confirm`. Source cutover and production downstream publication are separate operations: after a successful source cutover, rebuild and verify registry, resolution, benchmark, and coverage in that order against production pointers. Do not repoint production to the isolated `downstream` artifacts.
 
 Rollback before cutover is file-local: retain the prior isolated `current.json` values and restore them only through the repository's governed publication/recovery mechanism if an isolated build fails. Once cutover execution starts, use its journaled `status`, `recover`, or `rollback` commands with the exact cutover ID and reviewed plan hash; do not manually repair production pointers.
+
+## Live isolated-chain evidence
+
+The exact mixed-input readiness gate passed immediately before launch with 25/25 sources ready, zero blocked, and frozen input SHA-256 `df6338fa0ec70a604f4cc32e940e50427f186f910806a3587a92328194d86716`.
+
+The isolated registry published as `national-business-registry-20260907-140848014Z-9b1fdcb8`, and its independent verifier exited zero across 679 artifacts. Verified source-preserving totals are 33,979,462 source records, 19,247,102 organization records, 8,011,817 physical-site records, 8,011,817 establishment records, 191,205,139 assertions, and a 48,190-ZIP union with record-level contributions in 47,991 ZIPs. These are overlapping source records and provisional canonical candidates, not a count of unique U.S. businesses or proof of national completeness.
+
+The verified refreshed-source contributions are:
+
+| Source | Verified registry contribution |
+| --- | --- |
+| Washington L&I | 75,816 active license rows; 72,819 organizations; 74,030 eligible reported U.S. mailing addresses; no inferred physical-site contribution |
+| California ABC | 105,672 selected active issued-license rows; 84,497 organizations/sites; 105,435 license activities; 237 quarantined source rows |
+| New York retail food | 24,281 license organizations; 24,230 provisional physical sites; 22,999 usable platform geocodes; zero quarantined source rows |
+
+The dependent entity-resolution release subsequently published and independently verified as `business-entity-resolution-20260907-152358811Z-5d44a98c` across 101 artifacts. It pins the verified registry release and reports 8,011,817 profiles, 6,505,544 address groups, 2,325,194 site-alias decisions, 146,896 establishment-alias decisions, 106,063 review-candidate decisions, and two review groups skipped for size. These are deterministic decision-layer counts, not adjudicated unique-business totals.
+
+The benchmark then published and independently verified as `business-entity-resolution-benchmark-sample-20260907-152723285Z-cecd9819` across three artifacts. It contains 1,275 sampled candidates—425 in each of the automatic-physical-site, automatic-establishment, and review-candidate strata—and 2,545 unique profiles in its review packet. Its truthful status remains `awaiting-independent-labels`: submitted labels are zero and `benchmark_gate_passed` is false. Verification proves artifact and sampling integrity, not entity-resolution accuracy. Coverage remains pending until its own independent verifier exits zero.
