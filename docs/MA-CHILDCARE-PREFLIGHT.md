@@ -1,0 +1,23 @@
+# Massachusetts childcare: standalone acquisition prerequisite
+
+Run `npm run ma-childcare:preflight` from datahub. This app-owned Node command needs no AI session or API credential. It checks the pinned public MassGIS layer, not the broader upstream childcare dataset. `--stdout-only` prints the observation without persisting it; `--help` performs no network request. No output path, URL, SQL or credential overrides are accepted by the CLI.
+
+## Implemented boundary
+
+The preflight requests layer metadata, count-only twice, and layer metadata again, sequentially with one-second spacing. It validates layer/item identity, point reference system, required field names/types/string lengths, query/pagination/order capabilities, record limit and edit stamps. Duplicate schema fields, empty/invalid counts, changed selected schema (including nullability/domains), changed edit stamps or different counts fail the observation. Additional unselected fields are not permission to acquire them.
+
+Each request has a 30-second header/body deadline and one-megabyte JSON response ceiling. There are at most three attempts per request, retrying network failures, timeouts, HTTP 429 and 5xx. Retry-After is honored; publisher waits exceeding 60 seconds defer with an error instead of being shortened. Redirects, ArcGIS error payloads and malformed/oversized JSON fail without echoing response text. SIGINT, SIGTERM and parent IPC cancellation interrupt requests and waits. No row or ID inventory requests occur.
+
+Successful receipts are UUID-named, checksummed and published from a flushed temporary file under `data/business-sources/ma-licensed-center-based-childcare/preflights`. The writer checks local path containment and redirected directories. Failed/cancelled receipt writes remove their temporary file; prior receipts and production pointers are unchanged. Receipt hashes describe serialized parsed payloads, not raw HTTP byte streams. Fixture receipts belong only under `data/tmp` and are not live-source evidence.
+
+`metadata-preflight-passed` means an observed metadata/count check passed. It explicitly leaves connector readiness, scheduling and export authorization false. Two matching counts and edit stamps do not provide transactional snapshot isolation, freshness, correct address geocoding or proof that businesses are operating. Subsequent acquisition must repeat its own consistency checks, stable-ID accounting and content validation. Native publisher edit stamps are preserved separately from this command's observation time.
+
+## Evidence and next implementation
+
+The final live CLI observation on 2026-09-07 produced receipt `b60b9727-61fd-45c1-97f5-ab311c60df4e.json`, SHA-256 `23930d49d79e292d62f5633a9156f01c927379c7cda707ee7cad569a374fff13`, recording 3,016 rows and no acquired row data. The earlier observation `184fca95-87cd-4da9-8ec5-062a7e3fe5af.json` is retained. This is not a normalized release or enrolled source. Eight focused offline tests cover metadata/count-only scope, schema/capability drift, changing snapshots, retry timing, redaction/HTTP/size rejection, cancellation/deadlines, bounded attempts and receipt publication.
+
+The final full repository check passed all 511 tests, lint, web/desktop builds and desktop smoke; TypeScript and the production dependency audit also passed with zero vulnerabilities. The first full run failed the existing timing-sensitive candidate-controller stop-request test; its isolated rerun and the complete final rerun passed without changing that test. A peer review prompted explicit layer CRS and non-null OID checks plus rejection of impossible receipt readiness/acquisition flags. Two initial fixture receipts were moved out of the live receipt directory into data/tmp; later test receipts use isolated data/tmp folders.
+
+See [source handoff](states/MA-CHILDCARE-ACCESS-2026-09-07.md) for the source URLs, scope, business field exclusions, ZIP5/ZIP4 and lat/lon rules. A peer reconfirmed public ArcGIS item ownership as MassGIS and blank item license metadata. The mass.gov scope/policy pages returned 403 during this implementation review; no export permission is inferred from public access. Complete the acquisition/normalization contract, source-policy review, fixture tests and explicit childcare industry enrollment before handing downloads to Co*Tive workers. Source configuration is intentionally unchanged while the separate production reconciliation pins it.
+
+This is additive; no dataset migration is needed. Removing this command does not remove receipts or change existing datasets. It is not yet exposed as a managed Data Operations action or enrolled recurring job.

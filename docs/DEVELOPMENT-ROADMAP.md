@@ -4,6 +4,10 @@
 
 Build a standalone, local-first data hub that can acquire, validate, normalize, reconcile, catalog, and publish mixed public and licensed datasets with durable workflows and operator-visible provenance.
 
+Latest source prerequisite (2026-09-07): [Massachusetts childcare preflight](MA-CHILDCARE-PREFLIGHT.md) is implemented as a standalone metadata/count-only CLI with immutable receipts. Final live observation: 3,016 source rows; no row acquisition, export approval or scheduler enrollment. Full check: 511 tests passed. Acquisition/normalization and governed industry enrollment remain next work for this source.
+
+Production reconciliation follow-up (2026-09-07): run `production-20260907-durable-01` is terminal FAILED after successful registry and resolution build/verification. Benchmark builder exited zero and wrote `business-entity-resolution-benchmark-sample-20260907-173232935Z-cabe188b`; controller rejected its legitimate `awaiting-independent-labels` manifest status because its generic output check requires a `published` prefix. Benchmark verification and coverage stages were skipped. Correct the benchmark-specific status contract with regression tests, verify the existing benchmark's pinned dependencies/artifacts, and continue remaining local stages without repulling sources or restarting completed builds. Do not treat this status correction as passing the independent-label accuracy gate or edit the failed receipt to manufacture success.
+
 The present application is a useful pre-alpha job runner:
 
 ```text

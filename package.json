@@ -24,6 +24,7 @@
     "connectors:check": "node scripts/check-connector-registry.mjs",
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
+    "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
     "usda-organic-integrity:preflight": "node scripts/preflight-usda-organic-integrity.mjs",
     "usda-organic-integrity:build-offline": "node scripts/build-usda-organic-integrity-offline.mjs",
     "usda-organic-integrity:verify-offline": "node scripts/verify-usda-organic-integrity.mjs",
