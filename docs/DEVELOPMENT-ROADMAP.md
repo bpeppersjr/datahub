@@ -247,6 +247,8 @@ D.C. network safeguards: shared HTTP guards now enforce streamed/declared respon
 
 Local development shutdown: an explicit [stop command](LOCAL-DEVELOPMENT-SHUTDOWN.md) now asks the unique local launcher to stop through IPC, confirms a terminal receipt, and avoids force-killing its runner on the file-request path. This replaces manual terminal termination for development checks; it does not claim crash recovery or Electron/Windows-service lifecycle coverage. No credentials are stored in stop receipts, and independent reconciliation controllers are not targeted.
 
+State access refresh: the seven-bucket ledger now measures 357 jurisdiction/industry cells (202 national evidence, three direct state evidence, 100 missing, 52 unmeasured) against the still-published September 2 coverage artifact. Texas's new selector expands inventory scope, not actual acquisitions. Scheduling observation is explicitly unknown rather than falsely unimplemented; reports never imply a configured source is queued. See [current report evidence](STATE-ACCESS-COORDINATION.md#september-7-evidence).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

@@ -38,6 +38,16 @@ test('state ledger distinguishes observed national state records from direct sta
   assert.doesNotMatch(JSON.stringify(retail), /"status":"direct-state-publisher"/);
 });
 
+test('state ledger does not infer scheduler implementation or actual dispatch from source evidence', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  for (const state of ledger.jurisdictions) for (const cell of state.industries) {
+    assert.equal(cell.appHandoff.recurringSchedulerImplemented, null);
+    assert.equal(cell.appHandoff.schedulerObservation, 'not-inspected-by-ledger');
+    assert.equal(cell.appHandoff.jobSubmitted, false);
+    assert.equal(cell.appHandoff.prerequisiteContentsValidated, false);
+  }
+});
+
 test('state ledger rejects artifact tampering before claiming access evidence', async (t) => {
   const f = await fixture(t); const artifact = f.manifest.artifacts.find(a => a.artifact_type === 'state-coverage-view-jsonl');
   await writeFile(path.join(f.root, path.dirname(f.manifestPath), artifact.path), '{}\n');
