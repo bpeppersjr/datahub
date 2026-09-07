@@ -2,6 +2,8 @@
 
 ## Objective
 
+Massachusetts connector implementation (2026-09-07): [bounded acquisition and conservative normalization](MA-CHILDCARE-CONNECTOR.md) now have offline request, consistency, privacy, ZIP/coordinate/status and integration tests. They produce in-memory source/record results without AI, but immutable publication, independent release verification and managed enrollment are still required. No live childcare records or source pointers changed.
+
 Massachusetts source-policy follow-up (2026-09-07): [indexed official scope/reuse evidence](states/MA-CHILDCARE-ACCESS-2026-09-07.md#scope-and-reuse-recheck--september-7-follow-up) corroborates center-based licensed-only locations and MassGIS public-data attribution guidance, despite direct-page 403 responses. Public item metadata was independently rechecked without row requests. Proceed to the bounded acquisition/normalization implementation; do not treat blank item license metadata as an indefinite development hold or metadata success as completed enrollment.
 
 Alaska cancellation handoff (2026-09-07): [cooperative cancellation](AK-ACTIVE-BUSINESS-LICENSES.md#cooperative-cancellation-handoff--september-7-2026) now connects CLI IPC to local I/O, verification and the pre-publication boundary. Owned cancelled staging is distinguished from ordinary failures and resumed staging. Source-contract/catalog enrollment remains separate while reconciliation pins current configuration; no repull is needed for existing releases.
