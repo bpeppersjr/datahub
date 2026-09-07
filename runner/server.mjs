@@ -1,4 +1,6 @@
 import http from 'node:http';
+import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import { readFile } from 'node:fs/promises';
 import { cpus } from 'node:os';
 import path from 'node:path';
@@ -14,6 +16,7 @@ import { RunnerPool } from './pool.mjs';
 import { APP_ROOT, resolveAppPath } from './paths.mjs';
 import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
 import { createConnectorRegistry } from './connector-registry.mjs';
+import { createManagedOperations } from './managed-operations.mjs';
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -123,6 +126,7 @@ const store = await createStore();
 const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
+const managedOperations = createManagedOperations();
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
 const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
@@ -240,6 +244,44 @@ const server = http.createServer(async (request, response) => {
     }
     controlPlane.authorize(request);
     const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+
+    if (segments[0] === 'api' && segments[1] === 'data-operations') {
+      const endpoint = segments[2];
+      if (segments.length === 3 && request.method === 'GET' && endpoint === 'catalog') {
+        json(response, 200, await managedOperations.catalog()); return;
+      }
+      if (segments.length === 3 && request.method === 'GET' && endpoint === 'operations') {
+        json(response, 200, await managedOperations.list()); return;
+      }
+      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports'].includes(endpoint)) {
+        const input = await bodyJson(request);
+        const result = endpoint === 'plan' ? await managedOperations.plan(input)
+          : endpoint === 'collections' ? await managedOperations.startCollection(input)
+            : await managedOperations.startExport(input);
+        json(response, endpoint === 'plan' ? 200 : 202, result); return;
+      }
+      if (endpoint === 'operations' && segments.length === 4 && request.method === 'GET') {
+        const operation = await managedOperations.get(segments[3]);
+        json(response, operation ? 200 : 404, operation ?? { error: 'Operation not found.' }); return;
+      }
+      if (endpoint === 'operations' && segments.length === 5 && segments[4] === 'cancel' && request.method === 'POST') {
+        const operation = await managedOperations.cancel(segments[3]);
+        json(response, operation ? 200 : 404, operation ?? { error: 'Operation not found.' }); return;
+      }
+      if (endpoint === 'operations' && segments.length === 6 && segments[4] === 'artifacts' && request.method === 'GET') {
+        const artifact = await managedOperations.artifact(segments[3], segments[5]);
+        if (!artifact) { json(response, 404, { error: 'Artifact not found.' }); return; }
+        response.writeHead(200, {
+          'Content-Type': artifact.contentType,
+          'Content-Length': artifact.bytes,
+          'Content-Disposition': `attachment; filename="${artifact.name.replace(/[^a-zA-Z0-9._-]/g, '_')}"`,
+        });
+        try { await pipeline(createReadStream(artifact.path), response); }
+        catch { response.destroy(); }
+        return;
+      }
+      json(response, 404, { error: 'Data operation route not found.' }); return;
+    }
 
     if (request.method === 'GET' && url.pathname === '/api/status') {
       const pharmacySource = await inspectNppesSource();
@@ -529,6 +571,7 @@ async function shutdown() {
   clearInterval(googleOutputCleanupTimer);
   server.close();
   await pool.close();
+  await managedOperations.close();
   await store.flush();
   process.exit(0);
 }

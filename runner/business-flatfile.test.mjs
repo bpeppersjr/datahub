@@ -41,6 +41,15 @@ test("argument validation requires explicit supported policy modes", () => {
   assert.throws(() => parseArguments(["--state", "Texas"]), /two-letter/);
 });
 
+test("cancellation removes an incomplete export without publishing a manifest", async (t) => {
+  const item = await fixture(t);
+  const controller = new AbortController();
+  const task = composeFlatBusinessExport(["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--output-prefix", "cancelled"], { signal: controller.signal });
+  controller.abort();
+  await assert.rejects(task, /abort/i);
+  await assert.rejects(() => stat(path.join(item.root, "cancelled")), { code: "ENOENT" });
+});
+
 test("streams governed CSV/JSONL exports with policy filtering and provenance", async (t) => {
   const item = await fixture(t);
   const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--field", "business_name,state,zip_code,zip4,latitude,longitude,source_id,dataset_id,source_dataset_release_id,export_policy"];

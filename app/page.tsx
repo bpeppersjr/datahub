@@ -5,6 +5,7 @@ import BenchmarkReview from './benchmark-review';
 import BusinessIntelligence from './business-intelligence';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
+import DataOperations from './data-operations';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
@@ -319,6 +320,7 @@ export default function Home() {
           <a className="rail-link" href="#coverage" aria-label="National business coverage">◎</a>
           <a className="rail-link" href="#business-intelligence" aria-label="Heatmap Builder business and Census comparisons">◉</a>
           <a className="rail-link" href="#connectors" aria-label="Governed connector registry">◇</a>
+          <a className="rail-link" href="#data-operations" aria-label="Industry collection and flat-file builder">⇅</a>
           <a className="rail-link" href="#benchmark" aria-label="Entity-resolution benchmark">≋</a>
         </nav>
         <div className="rail-spacer" />
@@ -412,6 +414,7 @@ export default function Home() {
 
             <CoverageExplorer />
             <BusinessIntelligence />
+            <DataOperations />
             <ConnectorCatalog />
             <BenchmarkReview />
           </section>

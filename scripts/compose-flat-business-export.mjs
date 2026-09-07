@@ -10,6 +10,7 @@ import { finished } from "node:stream/promises";
 import { createGunzip } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const DEFAULT_OUTPUT = "data/exports/flat-business/builds";
@@ -75,8 +76,8 @@ export function parseArguments(argv = process.argv.slice(2)) {
   return out;
 }
 
-async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
-async function descriptor(input) {
+async function hashFile(file, signal) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { signal?.throwIfAborted(); bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
+async function descriptor(input, signal) {
   const inputPath = appPath(input); const raw = JSON.parse(await readFile(inputPath, "utf8")); let manifest = raw; let manifestPath = inputPath; let pointerPath = null;
   if (!Array.isArray(raw.artifacts)) {
     if (!raw.dataset_id || !raw.release_id || typeof raw.manifest !== "string") throw new Error(`${relativeToApp(inputPath)} is not a governed pointer or manifest.`);
@@ -86,14 +87,14 @@ async function descriptor(input) {
     if (manifest.dataset_id !== raw.dataset_id || manifest.release_id !== raw.release_id) throw new Error(`Pointer/manifest identity mismatch: ${input}`);
   }
   if (!manifest.dataset_id || !manifest.release_id || !Array.isArray(manifest.artifacts) || !String(manifest.status ?? "").startsWith("published")) throw new Error(`Invalid or unpublished governed manifest: ${relativeToApp(manifestPath)}`);
-  return { input, pointerPath, manifestPath, manifest, manifestHash: await hashFile(manifestPath) };
+  return { input, pointerPath, manifestPath, manifest, manifestHash: await hashFile(manifestPath, signal) };
 }
 function profileArtifacts(source) { return source.manifest.artifacts.filter((a) => /location-profile/.test(String(a.artifact_type ?? "")) && String(a.path ?? "").endsWith(".jsonl.gz")); }
-async function governedArtifact(source, artifact) {
+async function governedArtifact(source, artifact, signal) {
   if (!Number.isSafeInteger(artifact.bytes) || !/^[a-f0-9]{64}$/.test(String(artifact.sha256 ?? ""))) throw new Error(`Artifact lacks governed bytes/sha256: ${artifact.path}`);
   const file = path.resolve(path.dirname(source.manifestPath), artifact.path);
   if (!contained(path.dirname(source.manifestPath), file)) throw new Error(`Artifact escapes release directory: ${artifact.path}`);
-  await access(file); const actual = await hashFile(file);
+  await access(file); const actual = await hashFile(file, signal);
   if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Artifact checksum mismatch: ${artifact.path}`);
   return file;
 }
@@ -118,7 +119,18 @@ async function put(stream, text) { if (!stream.write(text)) await once(stream, "
 async function close(stream) { stream.end(); await finished(stream); }
 async function atomicJson(file, value) { const temp = `${file}.tmp-${randomUUID()}`; await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`); await rename(temp, file); }
 
+async function* profileLines(file, signal) {
+  const source = createReadStream(file);
+  const decoded = createGunzip();
+  source.on("error", (error) => decoded.destroy(error));
+  const lines = createInterface({ input: source.pipe(decoded), crlfDelay: Infinity });
+  try { for await (const line of lines) { signal?.throwIfAborted(); yield line; } }
+  finally { lines.close(); source.destroy(); decoded.destroy(); }
+}
+
 export async function composeFlatBusinessExport(argv = process.argv.slice(2), options = {}) {
+  const signal = options.signal;
+  signal?.throwIfAborted();
   const args = parseArguments(argv); if (args.help) return { usage: usage() };
   const runId = options.runId ?? randomUUID(); const root = appPath(args.output);
   const prefix = args.outputPrefix ?? `flat-business-${new Date().toISOString().replace(/\D/g, "").slice(0, 14)}-${runId.slice(0, 8)}`;
@@ -131,12 +143,11 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
   try {
     if (csvStream) await put(csvStream, `${args.fields.join(",")}\n`);
     for (const input of [...args.sources].sort()) {
-      const source = await descriptor(input); const artifacts = profileArtifacts(source); if (!artifacts.length) throw new Error(`${source.manifest.dataset_id}/${source.manifest.release_id} has no location-profile artifacts.`);
+      const source = await descriptor(input, signal); const artifacts = profileArtifacts(source); if (!artifacts.length) throw new Error(`${source.manifest.dataset_id}/${source.manifest.release_id} has no location-profile artifacts.`);
       const sourceLineage = { dataset_id: source.manifest.dataset_id, release_id: source.manifest.release_id, manifest_path: relativeToApp(source.manifestPath), manifest_sha256: source.manifestHash.sha256, pointer_path: source.pointerPath ? relativeToApp(source.pointerPath) : null, artifacts: [] }; lineage.push(sourceLineage);
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
-        const file = await governedArtifact(source, artifact); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
-        const lines = createInterface({ input: createReadStream(file).pipe(createGunzip()), crlfDelay: Infinity });
-        for await (const line of lines) {
+        const file = await governedArtifact(source, artifact, signal); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
+        for await (const line of profileLines(file, signal)) {
           if (!line.trim()) continue; read += 1; const record = JSON.parse(line); const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
           if ((selectedSources.size && !selectedSources.has(sourceId)) || (states.size && !states.has(rowState))) { filtered += 1; continue; }
           const policy = typeof record.export_policy === "string" ? record.export_policy : "missing"; policies[policy] = (policies[policy] ?? 0) + 1;
@@ -149,15 +160,19 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
       }
     }
     await Promise.all([csvStream && close(csvStream), jsonlStream && close(jsonlStream)].filter(Boolean));
-    const artifacts = []; for (const [file, type] of [[csvStream && csvPath, "flat-business-csv"], [jsonlStream && jsonlPath, "flat-business-jsonl"]]) if (file) artifacts.push({ path: path.basename(file), artifact_type: type, records: written, ...(await hashFile(file)) });
+    const artifacts = []; for (const [file, type] of [[csvStream && csvPath, "flat-business-csv"], [jsonlStream && jsonlPath, "flat-business-jsonl"]]) if (file) artifacts.push({ path: path.basename(file), artifact_type: type, records: written, ...(await hashFile(file, signal)) });
     const generatedAt = new Date().toISOString(); const summary = { schema_version: "1.0.0", run_id: runId, generated_at: generatedAt, policy_mode: args.policyMode, local_review_only: args.policyMode === "local-review", counts: { source_rows_read: read, rows_written: written, filter_rejected: filtered, policy_rejected: policyRejected }, source_counts: sourceCounts, encountered_export_policies: policies };
     const summaryPath = path.join(outputDirectory, "summary.json"); await atomicJson(summaryPath, summary); artifacts.push({ path: "summary.json", artifact_type: "flat-business-summary", ...(await hashFile(summaryPath)) });
     const manifest = { schema_version: "1.0.0", dataset_id: "flat-business-export", release_id: runId, status: "published-local", generated_at: generatedAt, policy_mode: args.policyMode, export_policy: args.policyMode === "local-review" ? "local-review-only" : "public-policy-filtered", fields: args.fields, filters: { categories: args.categories, source_ids: args.sourceIds, states: args.states }, source_lineage: lineage, artifacts };
+    signal?.throwIfAborted();
     const manifestPath = path.join(outputDirectory, "manifest.json"); await atomicJson(manifestPath, manifest); // publication marker, written last
     return { outputDirectory, summaryPath, manifestPath, summary, manifest };
   } catch (error) { csvStream?.destroy(); jsonlStream?.destroy(); await Promise.allSettled([csvStream && finished(csvStream), jsonlStream && finished(jsonlStream)].filter(Boolean)); await rm(outputDirectory, { recursive: true, force: true }); throw error; }
 }
 
-if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) composeFlatBusinessExport().then((result) => {
+if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+const cancellation = createCliCancellation();
+composeFlatBusinessExport(process.argv.slice(2), { signal: cancellation.signal }).then((result) => {
   if (result.usage) process.stdout.write(result.usage); else process.stdout.write(`${JSON.stringify({ status: "ok", output_directory: relativeToApp(result.outputDirectory), rows_written: result.summary.counts.rows_written, manifest: relativeToApp(result.manifestPath) }, null, 2)}\n`);
-}).catch((error) => { process.stderr.write(`compose-flat-business-export failed: ${error.message}\n`); process.exitCode = 1; });
+}).catch((error) => { process.stderr.write(`compose-flat-business-export failed: ${error.message}\n`); process.exitCode = 1; }).finally(() => cancellation.dispose());
+}

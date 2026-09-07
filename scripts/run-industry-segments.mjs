@@ -2,6 +2,7 @@
 import path from "node:path";
 import process from "node:process";
 import { DEFAULT_CONFIG, loadIndustryConfig, buildIndustryPlan, runIndustryPlan } from "../runner/industry-segments.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Run independent industry/state source segments.
@@ -32,19 +33,19 @@ function parse(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parse(process.argv.slice(2));
   if (options.help) { process.stdout.write(usage()); process.exit(0); }
   const config = await loadIndustryConfig(options.config);
   const plan = buildIndustryPlan(config, { industries: options.industries, states: options.states, runId: options.runId || undefined });
   if (options.mode === "plan") { process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`); process.exit(0); }
-  const abort = new AbortController();
-  process.once("SIGINT", () => abort.abort());
-  process.once("SIGTERM", () => abort.abort());
-  const result = await runIndustryPlan(config, plan, { signal: abort.signal });
+  const result = await runIndustryPlan(config, plan, { signal: cancellation.signal });
   process.stdout.write(`${JSON.stringify({ status: result.receipt.status, run_id: plan.runId, receipt: path.relative(process.cwd(), result.receiptPath).replaceAll("\\", "/") }, null, 2)}\n`);
   process.exitCode = result.receipt.status === "succeeded" ? 0 : 1;
 } catch (error) {
   process.stderr.write(`Industry segment orchestration failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

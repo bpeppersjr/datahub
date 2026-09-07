@@ -3,11 +3,20 @@ const DEFAULT_RUNNER_URL = 'http://127.0.0.1:4300';
 type RunnerConnection = { runnerUrl: string; controlToken: string };
 
 declare global {
+  interface ImportMetaEnv {
+    readonly VITE_DATAHUB_RUNNER_URL?: string;
+    readonly VITE_DATAHUB_CONTROL_TOKEN?: string;
+  }
   interface Window {
     cotiveCollector?: {
       getRunnerConnection: () => Promise<RunnerConnection>;
     };
   }
+}
+
+function responseError(payload: unknown, status: number) {
+  return payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string'
+    ? payload.error : `Runner returned HTTP ${status}.`;
 }
 
 let connectionPromise: Promise<RunnerConnection> | null = null;
@@ -36,7 +45,7 @@ export async function runnerJson<T>(path: string, options: RequestInit = {}): Pr
   const response = await runnerFetch(path, options);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || `Runner returned HTTP ${response.status}.`);
+    throw new Error(responseError(payload, response.status));
   }
   if (response.status === 204) return undefined as T;
   return response.json();
@@ -46,7 +55,7 @@ export async function downloadRunnerArtifact(path: string, fallbackName: string)
   const response = await runnerFetch(path);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || `Runner returned HTTP ${response.status}.`);
+    throw new Error(responseError(payload, response.status));
   }
   const disposition = response.headers.get('content-disposition') || '';
   const declaredName = disposition.match(/filename="([^"]+)"/i)?.[1];
