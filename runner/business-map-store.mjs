@@ -1,9 +1,11 @@
 import { createReadStream } from "node:fs";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { createGunzip } from "node:zlib";
 import { APP_ROOT } from "./paths.mjs";
+import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 
 const DEFAULT_COVERAGE_POINTER = path.join(APP_ROOT, "data", "business-coverage-views", "current.json");
 const DEFAULT_GEOGRAPHY_POINTER = path.join(APP_ROOT, "data", "geography", "current.json");
@@ -27,6 +29,14 @@ const CATEGORY_DEFINITIONS = Object.freeze([
     group_label: "Services",
     fields: ["nppes_primary_practice_location_count", "nppes_non_primary_practice_location_count"],
     source_ids: ["cms-nppes-monthly-v2"],
+  },
+  {
+    id: "childcare",
+    label: "Reported childcare centers",
+    group_id: "services",
+    group_label: "Services",
+    fields: ["ma_childcare_center_site_count", "nj_childcare_center_site_count"],
+    source_ids: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"],
   },
   {
     id: "financial-services",
@@ -863,14 +873,30 @@ export function createBusinessMapStore({
     if (pinnedRegistryId && pinnedRegistryId !== registry.manifest.release_id) throw new Error("Business-name registry release does not match the coverage view lineage.");
     const suffix = `resolution/location-profiles/zip2=${zip.slice(0, 2)}.jsonl.gz`;
     const filePath = artifactPath(registry, (item) => item.artifact_type === "entity-resolution-location-profile-jsonl-gzip" && item.path === suffix, `location-profile partition ${zip.slice(0, 2)}`);
+    const files = [{ path: filePath, reporting: false }];
+    const reportingSuffix = `reporting/location-evidence/zip2=${zip.slice(0, 2)}/records.jsonl.gz`;
+    const reportingArtifact = registry.manifest.artifacts.find((item) => item.artifact_type === "business-reporting-location-evidence-jsonl-gzip" && item.path === reportingSuffix);
+    if (reportingArtifact) {
+      const reportingPath = artifactPath(registry, (item) => item === reportingArtifact, "reporting-only location evidence");
+      const hash = createHash("sha256"); let bytes = 0;
+      for await (const chunk of createReadStream(reportingPath)) { hash.update(chunk); bytes += chunk.length; }
+      if (bytes !== reportingArtifact.bytes || hash.digest("hex") !== reportingArtifact.sha256) throw new Error("Reporting-only location evidence checksum mismatch.");
+      files.push({ path: reportingPath, reporting: true });
+    }
     const categoryBySource = new Map(CATEGORY_DEFINITIONS.flatMap((item) => item.source_ids.map((sourceId) => [sourceId, item.id])));
     const records = [];
     const seen = new Set();
     let total = 0;
-    const lines = createInterface({ input: createReadStream(filePath).pipe(createGunzip()), crlfDelay: Infinity });
+    for (const file of files) {
+    const input = createReadStream(file.path), decoded = createGunzip();
+    input.on("error", (error) => decoded.destroy(error));
+    const lines = createInterface({ input: input.pipe(decoded), crlfDelay: Infinity });
+    try {
     for await (const line of lines) {
       if (!line) continue;
       const row = JSON.parse(line);
+      if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+      if (file.reporting) validateChildcareGeographicEvidence(row);
       const sourceId = row.source?.source_id;
       if (row.zip_code !== zip || !sourceIds.has(sourceId)) continue;
       for (const name of row.names ?? []) {
@@ -883,7 +909,9 @@ export function createBusinessMapStore({
           zip_code: row.address?.zip_code ?? zip,
           zip4: row.address?.zip4 ?? null,
         };
-        const key = `${businessName.toLocaleUpperCase("en-US")}\u0000${JSON.stringify(address)}`;
+        const key = file.reporting
+          ? `reporting\u0000${sourceId}\u0000${row.source.source_record_id}\u0000${row.site_entity_id}`
+          : `${businessName.toLocaleUpperCase("en-US")}\u0000${JSON.stringify(address)}`;
         if (seen.has(key)) continue;
         seen.add(key);
         total += 1;
@@ -899,8 +927,11 @@ export function createBusinessMapStore({
           policy_id: row.source?.policy_id ?? null,
           observed_at: row.observed_at ?? null,
           export_policy: row.export_policy ?? "local-review-only",
+          ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
         });
       }
+    }
+    } finally { lines.close(); input.destroy(); decoded.destroy(); }
     }
     return {
       available: true,
@@ -910,7 +941,7 @@ export function createBusinessMapStore({
       limit: cappedLimit,
       records,
       limitation: categoryId === "all"
-        ? "Business names include governed physical-location profiles only; organization-address evidence included in the map count is excluded from this name list."
+        ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list."
         : null,
       registry_release_id: registry.manifest.release_id,
       local_review_only: records.some((record) => record.export_policy !== "public"),

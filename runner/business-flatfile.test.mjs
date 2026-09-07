@@ -6,6 +6,7 @@ import { gzipSync } from "node:zlib";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
 import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport, parseArguments } from "../scripts/compose-flat-business-export.mjs";
+import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 
 const digest = (buffer) => createHash("sha256").update(buffer).digest("hex");
 
@@ -33,6 +34,43 @@ test("flat-file categories use the map-store source identifiers", () => {
   assert.ok(BUSINESS_FLATFILE_CATEGORIES["financial-services"].includes("ncua-final-quarterly-call-report"));
   assert.ok(BUSINESS_FLATFILE_CATEGORIES.transportation.includes("fmcsa-company-census-active-us-principal-office"));
   assert.ok(BUSINESS_FLATFILE_CATEGORIES["licensed-businesses"].includes("texas-comptroller-active-sales-tax-permits"));
+});
+
+test("reporting-only childcare is exported only in local-review mode with split ZIP and source evidence", async (t) => {
+  const item = await fixture(t), release = path.join(item.root, "release");
+  const manifestPath = path.join(release, "manifest.json"), manifest = JSON.parse(await readFile(manifestPath));
+  const row = childcareReportingRow(), bytes = gzipSync(`${JSON.stringify(row)}\n`);
+  await writeFile(path.join(release, "childcare.jsonl.gz"), bytes);
+  manifest.artifacts.push({ path: "childcare.jsonl.gz", artifact_type: "business-reporting-location-evidence-jsonl-gzip", bytes: bytes.length, sha256: digest(bytes) });
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--category", "childcare", "--format", "jsonl", "--field", "business_name,zip_code,zip4,latitude,longitude,source_status,source_evidence,identity_matching_eligible"];
+  const denied = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-public"]);
+  assert.equal(denied.summary.counts.rows_written, 0);
+  assert.equal(denied.summary.counts.policy_rejected, 1);
+  const local = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-local", "--policy-mode", "local-review"]);
+  assert.equal(local.summary.counts.rows_written, 1);
+  const actual = JSON.parse((await readFile(path.join(local.outputDirectory, "records.jsonl"), "utf8")).trim());
+  assert.deepEqual([actual.business_name, actual.zip_code, actual.zip4, actual.latitude, actual.longitude], ["Fixture Childcare", "02536", "5023", 41.57, -70.6]);
+  assert.equal(actual.identity_matching_eligible, false);
+  assert.deepEqual(actual.source_status, row.source_status);
+  assert.deepEqual(actual.source_evidence, row.evidence);
+  row.export_policy = "public";
+  const altered = gzipSync(`${JSON.stringify(row)}\n`);
+  await writeFile(path.join(release, "childcare.jsonl.gz"), altered);
+  Object.assign(manifest.artifacts.at(-1), { bytes: altered.length, sha256: digest(altered) });
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(composeFlatBusinessExport([...common, "--output-prefix", "childcare-forged-policy"]), /reporting-only childcare/i);
+  manifest.artifacts.at(-1).artifact_type = "entity-resolution-location-profile-jsonl-gzip";
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(composeFlatBusinessExport([...common, "--output-prefix", "childcare-mislabelled"]), /cannot appear in matching-profile/i);
+  for (const field of ["evidence", "source_status", "address"]) {
+    const injected = childcareReportingRow(); injected[field].private_owner_contact = "excluded fixture";
+    const bytes = gzipSync(`${JSON.stringify(injected)}\n`);
+    await writeFile(path.join(release, "childcare.jsonl.gz"), bytes);
+    Object.assign(manifest.artifacts.at(-1), { artifact_type: "business-reporting-location-evidence-jsonl-gzip", bytes: bytes.length, sha256: digest(bytes) });
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    await assert.rejects(composeFlatBusinessExport([...common, "--output-prefix", `childcare-private-${field}`, "--policy-mode", "local-review"]), /reporting-only childcare/i);
+  }
 });
 
 test("argument validation requires explicit supported policy modes", () => {

@@ -25,6 +25,16 @@ The plan is not a completed reconciliation or promotion receipt. Inspect `data/r
 
 ## Subsequent completion review
 
+### Verified production reporting completion
+
+`production-dc-refresh-20260907-01` finished `SUCCEEDED` at `2026-09-07T22:30:39.435Z`. All eight build/verify stages exited zero. Independent post-run checks matched the eight log byte counts and SHA-256 hashes, all four current-pointer hashes and all four output-manifest hashes against the receipt. The controller and child processes exited and `data/reconciliations/controller.lock` was released. Receipt SHA-256: `5a1cd26d36e5e407fd0a255c3174b3db86d664ddf985c5b8e5442f267212d227`.
+
+The registry is `national-business-registry-20260907-201119931Z-caaed124`, manifest SHA-256 `93f2c13c246142629509b32ce5bcefeec5310fda85f1df082d82209255d70df4`. All registry coverage fields match the earlier verified candidate, including 33,979,582 source records and 8,011,835 provisional sites. These are not deduplicated active-business counts.
+
+The resulting coverage release is `national-business-coverage-views-20260907-223035676Z-eaf37740`, manifest SHA-256 `6add23501019da0e5c503f3a7eaada6ce5e653362866f29741b302fa5ed6beb8`. It reports 995,293 coordinate-assigned profiles, 7,016,542 profiles without valid coordinate assignment and 28,073 explicit gap views. Its 48,190 ZIP views are a source/baseline union, not an authoritative current USPS ZIP denominator. The benchmark still awaits independent labels; matching accuracy and nationwide completeness remain unapproved. MA/NJ childcare releases are retained separately and are not included in this 25-source rebuild.
+
+This was an app-owned local rebuild using retained source evidence, not acquisition. Historical paragraphs below describe the earlier dispatch/promotion state; they do not override this terminal receipt. Future state-coverage reassessment must explicitly account for the new coverage release rather than silently replacing historical pins.
+
 ### Source promotion after completion
 
 Fresh cutover plan `data/migrations/normalized-us-postal-fields-v1/cutover-dc-refresh-20260907-01.json`, SHA-256 `882452f49b709aed47d15ad219f67765d91b35732f05815ff8a0d8b192674aa3`, verified 539 artifacts totaling 18,769,220,742 bytes across 25 retained candidate sources. Only D.C. differed from the production source pointers. Cutover `20260907200813125-4b81b029-4922-4e1f-8c03-09ac625b3730` finished `COMMITTED`, revision 53. Subsequent hash checks matched all 25 production source pointers to the plan's candidate pins. Prior releases and cutover rollback evidence remain retained; no source was redownloaded.

@@ -32,7 +32,7 @@ async function makeFixture(t) {
   await mkdir(path.join(root, "runner"), { recursive: true });
   await cp(path.join(APP_ROOT, "config"), path.join(root, "config"), { recursive: true });
   for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
-  for (const file of ["paths.mjs", "cli-cancellation.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+  for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
   const industryConfig = JSON.parse(await readFile(path.join(root, "config", "industry-segments.json"), "utf8"));
   for (const source of Object.values(industryConfig.sources)) {
     const stub = path.join(root, ...source.script.split("/"));

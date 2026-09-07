@@ -78,7 +78,7 @@ test('state ledger does not treat a configured state connector as measured acces
 });
 
 test('MA childcare app enrollment does not manufacture national reporting evidence', async (t) => {
-  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const f = await fixture(t); await childcareCounts(f, undefined); const ledger = await buildStateAccessLedger(f);
   const cell = ledger.jurisdictions.find(r => r.state === 'MA').industries.find(r => r.industry === 'childcare');
   assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
   assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
@@ -90,6 +90,51 @@ test('MA childcare app enrollment does not manufacture national reporting eviden
   const other = ledger.jurisdictions.find(r => r.state === 'NY').industries.find(r => r.industry === 'childcare');
   assert.equal(other.accessEvidenceStatus, 'unsupported-missing');
   assert.deepEqual(other.appHandoff.configuredSources, []);
+});
+
+async function childcareCounts(f, value) {
+  const artifact=f.manifest.artifacts.find(a=>a.artifact_type==='state-coverage-view-jsonl');
+  const file=path.join(f.root,path.dirname(f.manifestPath),artifact.path);
+  const rows=(await readFile(file,'utf8')).trim().split('\n').map(line=>JSON.parse(line));
+  for(const row of rows){
+    const source=row.postal_abbreviation==='MA'?'ma-licensed-center-based-childcare':row.postal_abbreviation==='NJ'?'nj-licensed-childcare-centers':null;
+    if(!source)continue;
+    row.registry_evidence??={};row.registry_evidence.source_profile_counts_by_reported_address_state??={};
+    if(value===undefined)delete row.registry_evidence.source_profile_counts_by_reported_address_state[source];
+    else row.registry_evidence.source_profile_counts_by_reported_address_state[source]=value;
+  }
+  const bytes=Buffer.from(`${rows.map(row=>JSON.stringify(row)).join('\n')}\n`);
+  await writeFile(file,bytes);artifact.bytes=bytes.length;artifact.sha256=createHash('sha256').update(bytes).digest('hex');
+  await writeFile(path.join(f.root,f.manifestPath),JSON.stringify(f.manifest));
+}
+
+test('state ledger keeps absent MA/NJ reporting integration unmeasured rather than measured zero',async(t)=>{
+  const f=await fixture(t);await childcareCounts(f,undefined);const ledger=await buildStateAccessLedger(f);
+  for(const state of ['MA','NJ']){
+    const cell=ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare');
+    assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');assert.equal(cell.appHandoff.status,'NOT_READY_EVIDENCE_UNMEASURED');
+    assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);assert.equal(cell.appHandoff.jobSubmitted,false);
+  }
+});
+
+test('state ledger identifies positive MA/NJ counts as direct reporting evidence without submitting jobs',async(t)=>{
+  const f=await fixture(t);await childcareCounts(f,7);
+  const ledger=await buildStateAccessLedger({...f,assessmentLoader:async()=>({assessment_catalog_id:'historic-hold',coverage_release_id:'older-coverage',states:[{state_abbreviation:'NJ',decision:'hold',assessment_id:'unrelated-publisher-hold',strongest_bounded_next_action:'Review another state source.'}]})});
+  for(const state of ['MA','NJ']){
+    const cell=ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare');
+    assert.equal(cell.accessEvidenceStatus,'direct-state-publisher');assert.equal(cell.appHandoff.status,'APP_PREFLIGHT_REQUIRED');
+    assert.deepEqual(cell.evidence.filter(e=>e.recordCount!==undefined).map(e=>[e.type,e.recordCount]),[['published-direct-state-reporting-count',7]]);
+    assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  }
+  const nj=ledger.jurisdictions.find(r=>r.state==='NJ').industries.find(r=>r.industry==='childcare');
+  assert.ok(nj.evidence.some(e=>e.type==='separate-state-publisher-assessment-hold'&&e.assessmentCoverageReleaseId==='older-coverage'));
+  await assert.rejects(readdir(path.join(f.root,'data/state-access/reports')),/ENOENT/);
+});
+
+test('state ledger distinguishes measured zero and rejects malformed reporting counts',async(t)=>{
+  const f=await fixture(t);await childcareCounts(f,0);const ledger=await buildStateAccessLedger(f);
+  for(const state of ['MA','NJ'])assert.equal(ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare').accessEvidenceStatus,'unsupported-missing');
+  for(const count of [-1,1.5,'7']){await childcareCounts(f,count);await assert.rejects(buildStateAccessLedger(f),/reporting count/);}
 });
 
 test('state ledger cannot infer free agent capacity from an empty state-assignment list', async (t) => {

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { createGzip } from "node:zlib";
+import { createGzip, gzipSync } from "node:zlib";
+import { createHash } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
@@ -7,6 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createBusinessMapStore } from "./business-map-store.mjs";
+import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 
 function json(value) {
   return `${JSON.stringify(value)}\n`;
@@ -16,7 +18,7 @@ function polygon(west, south, east, north) {
   return { type: "Polygon", coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] };
 }
 
-async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1" } = {}) {
+async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const coverageRoot = path.join(root, "coverage");
@@ -190,12 +192,22 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     { zip_code: "12345", names: [{ raw: "Alpha Clinic" }], address: { street: "2 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: { latitude: " ", longitude: false }, source: { source_id: "cms-nppes-monthly-v2" }, observed_at: "2026-01-02T00:00:00.000Z", export_policy: "public" },
   ];
   const profilePath = path.join(registryRelease, "resolution", "location-profiles", "zip2=12.jsonl.gz");
+  if (mislabeledChildcare) profiles.push(mislabeledChildcare);
   await pipeline(Readable.from([profiles.map(json).join("")]), createGzip(), await import("node:fs").then(({ createWriteStream }) => createWriteStream(profilePath)));
+  const reportingArtifacts = [];
+  if (reportingRow) {
+    const relative = "reporting/location-evidence/zip2=12/records.jsonl.gz", file = path.join(registryRelease, relative);
+    await mkdir(path.dirname(file), { recursive: true });
+    const rows = Array.isArray(reportingRow) ? reportingRow : [reportingRow];
+    const bytes = gzipSync(rows.map(json).join("")); await writeFile(file, bytes);
+    reportingArtifacts.push({ artifact_type: "business-reporting-location-evidence-jsonl-gzip", path: relative, bytes: bytes.length,
+      sha256: invalidReportingHash ? "0".repeat(64) : createHash("sha256").update(bytes).digest("hex"), record_count: rows.length });
+  }
   await writeFile(path.join(registryRelease, "manifest.json"), json({
     dataset_id: "national-business-registry",
     release_id: "registry-1",
     status: "published-partial",
-    artifacts: [{ artifact_type: "entity-resolution-location-profile-jsonl-gzip", path: "resolution/location-profiles/zip2=12.jsonl.gz", record_count: 2 }],
+    artifacts: [{ artifact_type: "entity-resolution-location-profile-jsonl-gzip", path: "resolution/location-profiles/zip2=12.jsonl.gz", record_count: 2 }, ...reportingArtifacts],
   }));
   await writeFile(path.join(registryRoot, "current.json"), json({ dataset_id: "national-business-registry", release_id: "registry-1", manifest: "releases/registry-1/manifest.json" }));
 
@@ -357,6 +369,47 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(summary.assignment.excluded_ambiguous_zcta_count, 1);
 });
 
+test("childcare name drill-down includes reporting-only rows without promoting status or matching eligibility", async (context) => {
+  const row = childcareReportingRow("12345"), store = await fixture(context, { reportingRow: row });
+  const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "childcare" });
+  assert.equal(names.total, 1);
+  assert.equal(names.local_review_only, true);
+  assert.equal(names.records[0].business_name, "Fixture Childcare");
+  assert.equal(names.records[0].address.zip_code, "12345");
+  assert.equal(names.records[0].address.zip4, "5023");
+  assert.equal(names.records[0].identity_matching_eligible, false);
+  assert.deepEqual(names.records[0].source_status, row.source_status);
+  assert.deepEqual(names.records[0].source_evidence, row.evidence);
+  assert.equal((await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer" })).total, 1);
+});
+
+test("childcare map rows reject altered artifact hashes and public-policy escalation", async (context) => {
+  const row = childcareReportingRow("12345");
+  const corrupted = await fixture(context, { reportingRow: row, invalidReportingHash: true });
+  await assert.rejects(corrupted.listBusinessNames({ zipCode: "12345", categoryId: "childcare" }), /checksum mismatch/);
+  const escalated = await fixture(context, { reportingRow: { ...row, export_policy: "public" } });
+  await assert.rejects(escalated.listBusinessNames({ zipCode: "12345", categoryId: "childcare" }), /reporting-only childcare/i);
+  const mislabeled = await fixture(context, { mislabeledChildcare: { ...row, export_policy: "public" } });
+  await assert.rejects(mislabeled.listBusinessNames({ zipCode: "12345", categoryId: "childcare" }), /cannot appear in matching-profile/i);
+  for (const field of ["evidence", "source_status", "address"]) {
+    const injected = structuredClone(row); injected[field].private_owner_contact = "excluded fixture";
+    const store = await fixture(context, { reportingRow: injected });
+    await assert.rejects(store.listBusinessNames({ zipCode: "12345", categoryId: "childcare" }), /reporting-only childcare/i);
+  }
+});
+
+test("childcare rows sharing name and address retain separate source-record lineage", async (context) => {
+  const first = childcareReportingRow("12345"), second = structuredClone(first);
+  second.source.source_record_id = second.source.source_record_id.replace(/:1$/, ":2");
+  second.site_entity_id = `site:ma_childcare_${"e".repeat(32)}`;
+  second.establishment_entity_id = second.site_entity_id.replace(/^site:/, "establishment:");
+  const store = await fixture(context, { reportingRow: [first, second] });
+  const result = await store.listBusinessNames({ zipCode: "12345", categoryId: "childcare" });
+  assert.equal(result.total, 2);
+  assert.equal(new Set(result.records.map((row) => row.source_record_id)).size, 2);
+  assert.equal((await store.listBusinessNames({ zipCode: "12345", categoryId: "all" })).total, 4);
+});
+
 test("drills from category to real ZIP business names without joining ZIP+4", async (context) => {
   const store = await fixture(context);
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer", query: "market", limit: 10 });
@@ -379,7 +432,7 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   const malformedGeocode = await store.listBusinessNames({ zipCode: "12345", categoryId: "health-care", query: "clinic", limit: 10 });
   assert.equal(malformedGeocode.records[0].geocode, null);
   const allNames = await store.listBusinessNames({ zipCode: "12345", categoryId: "all", limit: 10 });
-  assert.match(allNames.limitation, /physical-location profiles only/);
+  assert.match(allNames.limitation, /location profiles and reporting-only childcare/);
   assert.match(allNames.limitation, /organization-address evidence.*excluded/);
   await assert.rejects(() => store.listBusinessNames({ zipCode: "1234", categoryId: "all" }), /five-digit ZIP/);
   await assert.rejects(() => store.getFeatures({ level: "counties", stateFips: "../" }), /state_fips/);

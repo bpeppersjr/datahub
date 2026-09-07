@@ -69,6 +69,11 @@ import { normalizeLaActiveBusinessLocation } from "./la-active-businesses.mjs";
 import { normalizeTxActiveSalesTaxOutlet } from "./tx-active-sales-tax-permits.mjs";
 import { normalizeNcuaBranch, normalizeNcuaInstitution, normalizeNcuaTradeName } from "./ncua-quarterly.mjs";
 import { normalizeSnapFeature } from "./usda-snap-retailers.mjs";
+import { buildMaChildcareRelease } from "./ma-childcare-release.mjs";
+import { buildNjChildcareRelease, reprocessNjChildcareRelease } from "./nj-childcare-release.mjs";
+import { MA_CHILDCARE_SCHEMA, MA_CHILDCARE_ITEM } from "./ma-childcare-preflight.mjs";
+import { NJ_CHILDCARE_SCHEMA, NJ_CHILDCARE_ITEM, NJ_CHILDCARE_LAYER } from "./nj-childcare-preflight.mjs";
+import { validateChildcareGeographicEvidence, CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE } from "./childcare-geographic-evidence.mjs";
 
 function sourceFeature(recordId, zipCode, overrides = {}) {
   return {
@@ -143,6 +148,105 @@ function normalizedRecord(recordId = 101, zipCode = "60601", overrides = {}) {
 function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
+
+function childcareSource(state) {
+  const fields = state === "MA" ? MA_CHILDCARE_SCHEMA : NJ_CHILDCARE_SCHEMA;
+  return async (url) => {
+    const p = new URL(url), q = p.searchParams;
+    if (p.pathname.endsWith("metadata.xml")) return new Response("<metadata>Strc_DCF_childcare</metadata>", { headers: { "content-type": "application/xml" } });
+    let value;
+    if (p.pathname.includes("sharing/rest")) value = { id: NJ_CHILDCARE_ITEM, owner: "NJDEPBGIS", access: "public", type: "Feature Service", title: "Child Care Centers of New Jersey", url: NJ_CHILDCARE_LAYER, created: 1500000000000, modified: 1758741707000, licenseInfo: "Retain all publisher metadata and notices." };
+    else if (!p.pathname.endsWith("/query")) value = { id: state === "MA" ? 0 : 4, name: state === "MA" ? "Licensed Child Care Programs" : "Child Care Centers", type: "Feature Layer", geometryType: "esriGeometryPoint",
+      ...(state === "MA" ? { serviceItemId: MA_CHILDCARE_ITEM, objectIdField: "OBJECTID", spatialReference: { wkid: 26986 }, editingInfo: { lastEditDate: 1778802655030, schemaLastEditDate: 1778802655030, dataLastEditDate: 1777567917233 } } : {}),
+      extent: { spatialReference: state === "MA" ? { wkid: 26986 } : { wkid: 102100, latestWkid: 3857 } }, capabilities: "Query", maxRecordCount: 100,
+      advancedQueryCapabilities: { supportsPagination: true, supportsOrderBy: true, supportsStatistics: true },
+      fields: fields.map(([name, type, length]) => ({ name, type, length, nullable: name !== "OBJECTID" })) };
+    else if (q.has("returnCountOnly")) value = { count: 1 };
+    else if (q.has("returnIdsOnly")) value = { objectIdFieldName: "OBJECTID", objectIds: [1] };
+    else if (q.has("outStatistics")) value = { features: [{ attributes: { download_date_min: 1786463205000, download_date_max: 1786463205000, download_date_count: 1 } }] };
+    else value = { spatialReference: { wkid: 4326 }, features: [{ attributes: { ...Object.fromEntries(fields.map(([name]) => [name, null])),
+      ...(state === "MA" ? { OBJECTID: 1, PROV_NUM: "P-1", PROG_NAME: "MA Center", ADDRESS: "10 Main Street", CITY: "Boston", ZIPCODE: "02108-1234", LICENSED_STATUS: "Current", PROG_TYPE: "Center-based Care", LICENSED_FUNDED: "Licensed", CAPACITY: 20 }
+        : { OBJECTID: 1, center_id: "001", center_name: "NJ Center", address: "10 Main Street", city: "Trenton", state: "NJ", zip: "08625-0123", download_date: 1786463205000, licensed_capacity: 20 }) },
+    geometry: state === "MA" ? { x: -71, y: 42 } : { x: -74.76, y: 40.22 } }] };
+    return new Response(JSON.stringify(value));
+  };
+}
+
+test("registry integrates verified childcare as disjoint reporting evidence, not matching candidates", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "registry-childcare-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const clock = () => new Date("2026-09-08T00:00:00.000Z"), sleep = async () => {};
+  const ma = await buildMaChildcareRelease({ outputRoot: path.join(root, "ma"), fetchImpl: childcareSource("MA"), sleep, now: clock });
+  const nj = await buildNjChildcareRelease({ outputRoot: path.join(root, "nj"), fetchImpl: childcareSource("NJ"), sleep, now: clock });
+  const next = await reprocessNjChildcareRelease(nj.manifest_path, { outputRoot: path.join(root, "nj-reprocessed"), now: clock });
+  const snapPointer = await writeFixtureSnapRelease(path.join(root, "snap"));
+  const priorFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("No network allowed."); };
+  let result, base;
+  try {
+    base = await buildNationalBusinessRegistry({ outputRoot: path.join(root, "registry-base"), snapPointer, logger: () => {}, now: clock });
+    result = await buildNationalBusinessRegistry({ outputRoot: path.join(root, "registry"), snapPointer, maChildcareManifest: ma.manifest_path, njChildcareManifest: next.manifest_path, logger: () => {}, now: clock });
+  }
+  finally { globalThis.fetch = priorFetch; }
+  const manifestPath = path.join(result.releaseDirectory, "manifest.json"), m = result.manifest;
+  assert.equal(m.publisher.version, "2.12.0"); assert.equal(m.coverage.physical_sites, 4);
+  assert.equal(m.coverage.resolution_location_profiles, 2); assert.equal(m.coverage.reporting_location_evidence, 2);
+  assert.equal(m.coverage.ma_childcare_center_sites, 1); assert.equal(m.coverage.nj_childcare_center_sites, 1);
+  const matchingArtifacts = (manifest) => manifest.artifacts.filter((artifact) => artifact.artifact_type.includes("location-profile")).map(({ path: file, sha256, record_count }) => ({ path: file, sha256, record_count }));
+  assert.ok(matchingArtifacts(m).length > 0);
+  assert.deepEqual(matchingArtifacts(m), matchingArtifacts(base.manifest));
+  const artifacts = m.artifacts.filter((a) => a.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE);
+  const geo = (await Promise.all(artifacts.map(async (a) => gunzipSync(await readFile(path.join(result.releaseDirectory, a.path))).toString().trim().split("\n").map(JSON.parse)))).flat();
+  assert.deepEqual(geo.map((r) => r.address.state).sort(), ["MA", "NJ"]);
+  assert.ok(geo.every((r) => !Object.hasOwn(r, "profile_id") && r.identity_matching_eligible === false));
+  assert.equal(geo.find((r) => r.address.state === "NJ").evidence.processed_at, clock().toISOString());
+  await verifyNationalBusinessRegistry(manifestPath);
+  // Rewrite both artifact hashes and the geographic assertion digest: rejection must
+  // come from the source contract, not merely from a stale checksum.
+  const cleanManifest = structuredClone(m);
+  for (const mutation of ["source-field", "private-classification", "unknown-predicate", "relationship-owner", "relationship-status", "relationship-confidence", "relationship-validity"]) {
+    const candidate = structuredClone(cleanManifest), backups = [];
+    const relationship = mutation.startsWith("relationship-");
+    const target = candidate.artifacts.find((artifact) => artifact.artifact_type.includes(relationship ? "relationship" : "assertion") && artifact.record_count > 0);
+    const targetPath = path.join(result.releaseDirectory, target.path), prior = await readFile(targetPath);
+    backups.push([targetPath, prior]);
+    const records = gunzipSync(prior).toString().trim().split("\n").map(JSON.parse);
+    const record = records.find((row) => row.source.source_id === "ma-licensed-center-based-childcare" && (relationship || row.predicate === "establishment.source-classification"));
+    assert.ok(record);
+    if (mutation === "source-field") record.source.source_field = "owner";
+    if (mutation === "private-classification") record.value.owner = { contact: "private" };
+    if (mutation === "unknown-predicate") record.predicate = "establishment.owner";
+    if (!relationship) record.assertion_id = `assertion:${sha256(JSON.stringify([record.subject_entity_id, record.predicate, record.value, record.source.source_release_id, record.source.source_record_id])).slice(0, 32)}`;
+    if (mutation === "relationship-owner") record.owner = "private";
+    if (mutation === "relationship-status") record.status = "inactive";
+    if (mutation === "relationship-confidence") record.confidence = 0.5;
+    if (mutation === "relationship-validity") record.valid_from = clock().toISOString();
+    const payload = gzipSync(records.map((row) => JSON.stringify(row)).join("\n") + "\n");
+    target.sha256 = sha256(payload); target.bytes = payload.length; await writeFile(targetPath, payload);
+    if (!relationship) {
+      const geographic = candidate.artifacts.find((artifact) => artifact.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE && artifact.path.includes("zip2=02"));
+      const geographicPath = path.join(result.releaseDirectory, geographic.path), originalGeographic = await readFile(geographicPath);
+      backups.push([geographicPath, originalGeographic]);
+      const row = JSON.parse(gunzipSync(originalGeographic).toString().trim());
+      const assertions = records.filter((assertion) => [row.site_entity_id, row.establishment_entity_id].includes(assertion.subject_entity_id)).sort((a, b) => a.assertion_id.localeCompare(b.assertion_id));
+      row.evidence.assertions_sha256 = sha256(JSON.stringify(assertions));
+      const encoded = gzipSync(`${JSON.stringify(row)}\n`); geographic.sha256 = sha256(encoded); geographic.bytes = encoded.length; await writeFile(geographicPath, encoded);
+    }
+    await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath), undefined, mutation);
+    for (const [file, bytes] of backups) await writeFile(file, bytes);
+    await writeFile(manifestPath, JSON.stringify(cleanManifest));
+  }
+  for (const mutate of [(r) => { r.address.owner = "private"; }, (r) => { r.source_status.contact = "private"; }, (r) => { r.evidence.owner = "private"; }]) {
+    const bad = structuredClone(geo[0]); mutate(bad); assert.throws(() => validateChildcareGeographicEvidence(bad));
+  }
+  const original = await readFile(manifestPath), a = artifacts[0], file = path.join(result.releaseDirectory, a.path), bytes = await readFile(file);
+  const row = JSON.parse(gunzipSync(bytes).toString().trim()); row.identity_matching_eligible = true;
+  const changed = gzipSync(`${JSON.stringify(row)}\n`); await writeFile(file, changed);
+  a.sha256 = sha256(changed); a.bytes = changed.length; await writeFile(manifestPath, JSON.stringify(m));
+  await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+  await writeFile(file, bytes); await writeFile(manifestPath, original);
+  const missing = structuredClone(m); missing.coverage.reporting_location_evidence = 0; await writeFile(manifestPath, JSON.stringify(missing));
+  await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+});
 
 async function writeFixtureSnapRelease(root) {
   const releaseId = "usda-snap-retailers-fixture";

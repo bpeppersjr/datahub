@@ -11,6 +11,7 @@ import { createGunzip } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "../runner/paths.mjs";
 import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+import { validateChildcareGeographicEvidence } from "../runner/childcare-geographic-evidence.mjs";
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const DEFAULT_OUTPUT = "data/exports/flat-business/builds";
@@ -23,6 +24,7 @@ const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_re
 export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "retail-consumer": ["usda-snap-current-retailers", "new-york-agriculture-markets-retail-food-stores", "california-abc-daily-active-licenses"],
   "health-care": ["cms-nppes-monthly-v2"],
+  childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"],
   "financial-services": ["fdic-bankfind-current-structure", "ncua-final-quarterly-call-report"],
   "food-production": ["usda-fsis-active-mpi-directory"],
   "environmental-facilities": ["epa-echo-exporter-active-facility"],
@@ -34,6 +36,7 @@ export const AVAILABLE_EXPORT_FIELDS = Object.freeze([
   "industry_categories", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "source_status_value",
   "source_status_scope", "source_status_observed_at", "observed_at", "policy_id", "export_policy", "transformation_version",
   "dataset_id", "source_dataset_release_id", "external_identifiers", "site_entity_id", "establishment_entity_id", "organization_entity_id",
+  "source_status", "source_evidence", "identity_matching_eligible",
 ]);
 
 export function usage() { return `Compose a governed, streamed flat business export.\n\nUsage:\n  node scripts/compose-flat-business-export.mjs [options]\n\nOptions:\n  --source <path>              Governed pointer or manifest; repeatable\n  --category <id>[,<id>...]    Map category; repeatable\n  --source-id <id>[,<id>...]   Source filter; repeatable\n  --state <US>[,<US>...]       State filter; repeatable\n  --field <name>[,<name>...]   Selected columns; repeatable\n  --format <csv|jsonl|both>    Default: both\n  --policy-mode <mode>         public-only (default) or explicit local-review\n  --output <path>              Default: ${DEFAULT_OUTPUT}\n  --output-prefix <name>       Output folder name\n  --help                       Show help\n`; }
@@ -89,7 +92,7 @@ async function descriptor(input, signal) {
   if (!manifest.dataset_id || !manifest.release_id || !Array.isArray(manifest.artifacts) || !String(manifest.status ?? "").startsWith("published")) throw new Error(`Invalid or unpublished governed manifest: ${relativeToApp(manifestPath)}`);
   return { input, pointerPath, manifestPath, manifest, manifestHash: await hashFile(manifestPath, signal) };
 }
-function profileArtifacts(source) { return source.manifest.artifacts.filter((a) => /location-profile/.test(String(a.artifact_type ?? "")) && String(a.path ?? "").endsWith(".jsonl.gz")); }
+function profileArtifacts(source) { return source.manifest.artifacts.filter((a) => (/location-profile/.test(String(a.artifact_type ?? "")) || a.artifact_type === "business-reporting-location-evidence-jsonl-gzip") && String(a.path ?? "").endsWith(".jsonl.gz")); }
 async function governedArtifact(source, artifact, signal) {
   if (!Number.isSafeInteger(artifact.bytes) || !/^[a-f0-9]{64}$/.test(String(artifact.sha256 ?? ""))) throw new Error(`Artifact lacks governed bytes/sha256: ${artifact.path}`);
   const file = path.resolve(path.dirname(source.manifestPath), artifact.path);
@@ -113,6 +116,8 @@ function projection(record, source, rowCategories) {
     dataset_id: source.manifest.dataset_id, source_dataset_release_id: source.manifest.release_id,
     external_identifiers: Array.isArray(record.external_identifiers) ? record.external_identifiers : [], site_entity_id: record.site_entity_id ?? null,
     establishment_entity_id: record.establishment_entity_id ?? null, organization_entity_id: record.organization_entity_id ?? null,
+    source_status: record.source_status ?? null, source_evidence: record.evidence ?? null,
+    identity_matching_eligible: record.identity_matching_eligible ?? null,
   };
 }
 async function put(stream, text) { if (!stream.write(text)) await once(stream, "drain"); }
@@ -148,7 +153,10 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
         const file = await governedArtifact(source, artifact, signal); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
         for await (const line of profileLines(file, signal)) {
-          if (!line.trim()) continue; read += 1; const record = JSON.parse(line); const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
+          if (!line.trim()) continue; read += 1; const record = JSON.parse(line);
+          if (BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) && artifact.artifact_type !== "business-reporting-location-evidence-jsonl-gzip") throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+          if (artifact.artifact_type === "business-reporting-location-evidence-jsonl-gzip") validateChildcareGeographicEvidence(record);
+          const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
           if ((selectedSources.size && !selectedSources.has(sourceId)) || (states.size && !states.has(rowState))) { filtered += 1; continue; }
           const policy = typeof record.export_policy === "string" ? record.export_policy : "missing"; policies[policy] = (policies[policy] ?? 0) + 1;
           const permitted = args.policyMode === "public-only" ? PUBLIC_POLICIES : LOCAL_POLICIES;

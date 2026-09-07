@@ -42,6 +42,8 @@ Options:
   --ny-retail-food <path> New York retail-food-store licenses current.json prerequisite
   --nyc-dcwp <path> NYC DCWP active Premises-license sites current.json prerequisite
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
+  --ma-childcare <path> Optional verified Massachusetts childcare manifest.json
+  --nj-childcare <path> Optional verified New Jersey childcare manifest.json (choose one release)
   --help           Show this help
 `;
 }
@@ -76,11 +78,13 @@ function parseArguments(args) {
     nyRetailFoodStores: "data/business-sources/ny-retail-food-store-license-sites/current.json",
     nycDcwpActiveLicenses: "data/business-sources/nyc-dcwp-active-license-sites/current.json",
     uspsZips: null,
+    maChildcare: null,
+    njChildcare: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips", "--ma-childcare", "--nj-childcare"].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
@@ -112,6 +116,8 @@ function parseArguments(args) {
       if (argument === "--ny-retail-food") options.nyRetailFoodStores = value;
       if (argument === "--nyc-dcwp") options.nycDcwpActiveLicenses = value;
       if (argument === "--usps-zips") options.uspsZips = value;
+      if (argument === "--ma-childcare") { if (options.maChildcare) throw new Error("Choose one Massachusetts childcare release."); options.maChildcare = value; }
+      if (argument === "--nj-childcare") { if (options.njChildcare) throw new Error("Choose one New Jersey childcare release."); options.njChildcare = value; }
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -183,6 +189,8 @@ try {
     nyRetailFoodStoresPointer: sourcePointers.nyRetailFoodStores,
     nycDcwpActiveLicensesPointer: sourcePointers.nycDcwpActiveLicenses,
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
+    maChildcareManifest: options.maChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.maChildcare)) : null,
+    njChildcareManifest: options.njChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.njChildcare)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

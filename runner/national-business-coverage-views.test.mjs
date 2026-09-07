@@ -600,7 +600,7 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     logger: () => {},
   });
   const verification = await verifyNationalBusinessCoverageViewsRelease(path.join(result.releaseDirectory, "manifest.json"));
-  assert.equal(result.manifest.publisher.version, "2.7.0");
+  assert.equal(result.manifest.publisher.version, "2.8.0");
   assert.deepEqual(result.manifest.spatial_zip_polygon_denominator, {
     count: 1,
     geography_type: "census-zcta5",
@@ -832,4 +832,81 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       writeFile(manifestPath, json(originalManifest)),
     ]);
   }
+
+  // Add geography-only childcare evidence without changing resolver/benchmark inputs.
+  const reportingRow = (state, number, location) => {
+    const slug = state.toLowerCase(), sourceId = state === "MA" ? "ma-licensed-center-based-childcare" : "nj-licensed-childcare-centers";
+    const policyId = state === "MA" ? "massgis-eec-childcare-local-review" : "njdep-childcare-local-review";
+    const sourceRelease = `${slug}-childcare-${"a".repeat(64)}`, suffix = `${slug}_childcare_${String(number).padStart(32, "0")}`;
+    return { schema_version: "1.0.0", site_entity_id: `site:${suffix}`, establishment_entity_id: `establishment:${suffix}`,
+      zip_code: "12345", address: { street: "10 Fixture Street", city: "Fixture", state, country: "US", zip_code: "12345", postal_code: "12345", zip4: "0123" },
+      location, source: { source_id: sourceId, source_release_id: sourceRelease, source_record_id: `${sourceRelease}:object:${number}`,
+        ingest_run_id: "fixture-childcare", transformation_version: "fixture-childcare@1.0.0", policy_id: policyId },
+      observed_at: "2026-08-01T00:00:00.000Z", identity_matching_eligible: false, export_policy: "local-review-only", category: "childcare",
+      names: [{ raw: "Fixture Childcare" }], source_status: { active_business_verified: false, status_source: null, licensed_capacity: null,
+        ...(state === "NJ" ? { approval_date_epoch_ms: null, renewal_date_epoch_ms: null } : {}),
+        status_interpretation: state === "MA" ? "missing-source-status" : "active-licensed-center-layer-membership-only" },
+      evidence: { manifest_sha256: "b".repeat(64), policy_profile: `${policyId}@1.0.0` } };
+  };
+  const reportingRows = [reportingRow("MA", 1, { latitude: 42, longitude: -72 }),
+    reportingRow("MA", 2, { latitude: null, longitude: null }), reportingRow("MA", 3, { latitude: 42.5, longitude: -69.5 }),
+    reportingRow("NJ", 4, { latitude: 40.5, longitude: -74.5 })];
+  const reportingArtifact = await writeArtifact(registryRelease, "reporting/location-evidence/zip2=12/records.jsonl.gz", gzipSync(jsonLines(reportingRows)),
+    { artifact_type: "business-reporting-location-evidence-jsonl-gzip", record_count: 4 });
+  const registryManifestPath = path.join(registryRelease, "manifest.json");
+  const updatedRegistry = JSON.parse(await readFile(registryManifestPath, "utf8"));
+  updatedRegistry.artifacts.push(reportingArtifact);
+  Object.assign(updatedRegistry.coverage, { physical_sites: 13, establishments: 13, reporting_location_evidence: 4, ma_childcare_center_sites: 3, nj_childcare_center_sites: 1 });
+  zipRows[0].registry_coverage.physical_site_count = 13;
+  zipRows[0].registry_coverage.establishment_count = 13;
+  Object.assign(zipRows[0].registry_coverage, { ma_childcare_center_site_count: 3, nj_childcare_center_site_count: 1 });
+  for (const [key, count, row] of [["ma_childcare_centers", 3, reportingRows[0]], ["nj_childcare_centers", 1, reportingRows[3]]]) {
+    zipRows[0].source_contributions[key] = { reported_center_count: count, source_release_id: row.source.source_release_id,
+      observed_at: row.observed_at, record_level_distribution: "local-review-only" };
+  }
+  Object.assign(updatedRegistry.artifacts[0], await writeArtifact(registryRelease, "derived/zip-coverage.jsonl", jsonLines(zipRows),
+    { artifact_type: "registry-zip-coverage-jsonl", record_count: zipRows.length }));
+  await writeFile(registryManifestPath, json(updatedRegistry));
+  const updatedGeography = JSON.parse(await readFile(path.join(geographyRelease, "manifest.json"), "utf8"));
+  stateIndex[0].postal_abbreviation = "MA";
+  Object.assign(updatedGeography.artifacts[0], await writeArtifact(geographyRelease, "derived/index/states.jsonl", jsonLines(stateIndex)));
+  Object.assign(updatedGeography.artifacts[3], await writeArtifact(geographyRelease, "source/counties/state=01.geojson",
+    json({ type: "FeatureCollection", features: [polygonFeature({ GEOID: "01001" }, -74, 41, -71, 43)] }), { geography_type: "county" }));
+  await writeFile(path.join(geographyRelease, "manifest.json"), json(updatedGeography));
+  const buildWithReporting = (output) => buildNationalBusinessCoverageViews({ registryPointerPath: registry.pointerPath,
+    geographyPointerPath: geography.pointerPath, crosswalkPointerPath: crosswalk.pointerPath, resolutionPointerPath: resolution.pointerPath,
+    benchmarkPointerPath: benchmark.pointerPath, nonemployerPointerPath: nonemployer.pointerPath, outputRoot: path.join(root, output), logger: () => {} });
+  const withReporting = await buildWithReporting("reporting-coverage");
+  await verifyNationalBusinessCoverageViewsRelease(path.join(withReporting.releaseDirectory, "manifest.json"));
+  assert.equal(withReporting.manifest.coverage.location_profiles_assessed, 9);
+  assert.equal(withReporting.manifest.coverage.geographic_evidence_assessed, 13);
+  assert.equal(withReporting.manifest.coverage.reporting_only_locations_assessed, 4);
+  assert.equal(withReporting.manifest.coverage.reporting_only_coordinate_assigned, 1);
+  const reportingSources = (await readFile(path.join(withReporting.releaseDirectory, "views/sources.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const maReporting = reportingSources.find((row) => row.source_key === "ma_childcare_centers");
+  assert.equal(maReporting.location_profile_geography.matching_profile_count, 0);
+  assert.equal(maReporting.location_profile_geography.reporting_only_count, 3);
+  assert.equal(maReporting.location_profile_geography.coordinate_missing_count, 1);
+  assert.equal(maReporting.location_profile_geography.coordinate_unmatched_count, 1);
+  assert.equal(maReporting.identity_matching_eligible, false);
+  assert.equal(maReporting.export_policy, "local-review-only");
+  const reportingStates = (await readFile(path.join(withReporting.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(reportingStates[0].registry_evidence.reporting_only_count, 3);
+  assert.equal(reportingStates[0].registry_evidence.source_profile_counts_by_reported_address_state["ma-licensed-center-based-childcare"], 3);
+  const reportingManifestPath = path.join(withReporting.releaseDirectory, "manifest.json");
+  const reportingManifestBytes = await readFile(reportingManifestPath);
+  const forgedReportingManifest = JSON.parse(reportingManifestBytes);
+  forgedReportingManifest.coverage.reporting_only_locations_assessed = 0;
+  await writeFile(reportingManifestPath, json(forgedReportingManifest));
+  await assert.rejects(verifyNationalBusinessCoverageViewsRelease(reportingManifestPath), /Reporting-only manifest/);
+  await writeFile(reportingManifestPath, reportingManifestBytes);
+  // Older published aggregate artifacts remain independently verifiable.
+  const legacyManifest = structuredClone(originalManifest);
+  legacyManifest.publisher.version = "2.7.0";
+  await writeFile(manifestPath, json(legacyManifest));
+  await verifyNationalBusinessCoverageViewsRelease(manifestPath);
+  await writeFile(manifestPath, json(originalManifest));
+  reportingRows[0].identity_matching_eligible = true;
+  await writeFile(path.join(registryRelease, reportingArtifact.path), gzipSync(jsonLines(reportingRows)));
+  await assert.rejects(buildWithReporting("invalid-reporting-coverage"), /reporting-only childcare/);
 });

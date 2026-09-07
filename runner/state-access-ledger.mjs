@@ -16,10 +16,13 @@ const PROFILE_IDS = Object.freeze({
   "state-wa-contractors": null,
   "state-tx-sales-tax": "texas-comptroller-active-sales-tax-permits",
   "state-dc-basic-licenses": "dc-dlcp-active-basic-business-licenses",
-  "state-ma-childcare": null,
-  "state-nj-childcare": null,
+  "state-ma-childcare": "ma-licensed-center-based-childcare",
+  "state-nj-childcare": "nj-licensed-childcare-centers",
   "national-irs-eo-bmf": null,
 });
+// The coverage view retains this historical count-field name for both evidence
+// classes. These sources are reporting-only, never identity-matching profiles.
+const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcare"]);
 const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 const CANONICAL = new Set(STATES);
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -97,16 +100,18 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
         const applies = source.scope === "national" || source.states.includes(state), positive = Number.isSafeInteger(count) && count > 0;
         if (!applies) continue;
+        const reportingOnly = REPORTING_ONLY_SOURCES.has(key);
+        if (reportingOnly && count !== undefined && count !== null && (!Number.isSafeInteger(count) || count < 0)) throw new Error("Published childcare reporting count must be a non-negative integer.");
         const missing = await missingPrerequisites(root, source.prerequisites ?? []);
         appSources.push({ sourceId: key, acquisitionExecutor: "cotive-app", prerequisiteStatus: missing.length ? "MISSING" : "PRESENT", missingPrerequisites: missing, limitations: source.coverage_notes ?? [] });
-        if (source.scope === "state" && positive) { direct = true; evidence.push({ type: "published-direct-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
+        if (source.scope === "state" && positive) { direct = true; evidence.push({ type: reportingOnly ? "published-direct-state-reporting-count" : "published-direct-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (source.scope === "national" && positive) { national = true; evidence.push({ type: "published-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
-        else if (profileId === null) unmeasured = true;
+        else if (profileId === null || reportingOnly && (count === undefined || count === null)) unmeasured = true;
       }
       const accessEvidenceStatus = direct ? "direct-state-publisher" : national ? "national-dataset-state-evidence" : unmeasured ? "unsupported-evidence-not-measured" : "unsupported-missing";
       if (assessment?.decision === "hold") evidence.push({ type: "separate-state-publisher-assessment-hold", assessmentId: assessment.assessment_id, assessmentCoverageReleaseId: assessment.coverage_release_id ?? assessments.coverage_release_id ?? null, observedAt: assessment.observed_at ?? assessments.observed_at ?? null, reason: assessment.strongest_bounded_next_action });
       const prerequisiteReady = appSources.length > 0 && appSources.every((item) => item.prerequisiteStatus === "PRESENT");
-      industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles, not deduplicated businesses or proof of complete industry coverage."] });
+      industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
     }
     jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
   }

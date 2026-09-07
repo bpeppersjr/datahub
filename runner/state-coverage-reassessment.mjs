@@ -4,8 +4,8 @@ import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 import { assessStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 
-// An explicit reviewed transition, not automatic acceptance of future reporting releases.
-export const COVERAGE_REASSESSMENT = Object.freeze({
+// Explicit reviewed transitions, not automatic acceptance of future releases.
+const INITIAL_REASSESSMENT = Object.freeze({
   id: "state-coverage-reassessment-20260907",
   historicalRelease: "national-business-coverage-views-20260902-115337634Z-ba689784",
   currentRelease: "national-business-coverage-views-20260907-174411739Z-4169d204",
@@ -14,6 +14,14 @@ export const COVERAGE_REASSESSMENT = Object.freeze({
   historicalStatesSha256: "6a3d4054953190a2f6f43c94630e2edaf2bd6e6d87039fd7f2b0af56916860a4",
   currentStatesSha256: "4d02b711e45a4fd69f633f9f91349712f21066afd50c95926cdb89d01a5bb330",
 });
+export const COVERAGE_REASSESSMENT = Object.freeze({
+  ...INITIAL_REASSESSMENT,
+  id: "state-coverage-reassessment-20260907-dc-refresh",
+  currentRelease: "national-business-coverage-views-20260907-223035676Z-eaf37740",
+  currentManifestSha256: "6add23501019da0e5c503f3a7eaada6ce5e653362866f29741b302fa5ed6beb8",
+  currentStatesSha256: "ca25ca31b50144ca1167475b75ca8ca6e3df3f252e8ce4aa7bb137e270133bef",
+});
+export const COVERAGE_REASSESSMENTS = Object.freeze([INITIAL_REASSESSMENT, COVERAGE_REASSESSMENT]);
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 
 export function currentCoverageProjection(row) {
@@ -57,8 +65,8 @@ async function checkedFile(root,file) {
 }
 
 export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) {
-  const proof=COVERAGE_REASSESSMENT;
-  if(pointer?.dataset_id!=="national-business-coverage-views" || pointer.release_id!==proof.currentRelease
+  const proof=COVERAGE_REASSESSMENTS.find(item=>item.currentRelease===pointer?.release_id);
+  if(!proof || pointer?.dataset_id!=="national-business-coverage-views" || pointer.release_id!==proof.currentRelease
     || pointer.manifest!==`releases/${proof.currentRelease}/manifest.json`)throw new Error("Current coverage has no reviewed reassessment transition.");
   root=path.resolve(root);
   const rows=[];
