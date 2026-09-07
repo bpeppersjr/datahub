@@ -23,4 +23,10 @@ Preflight inspection caught the production controller's previously fixed status 
 
 The plan is not a completed reconciliation or promotion receipt. Inspect `data/reconciliations/runs/candidate-dc-refresh-20260907-01/receipt.json` for execution outcome. Do not start another run merely because observation takes time; the standalone controller owns execution. Prior candidates, source downloads and production reporting releases remain retained.
 
+## Subsequent completion review
+
+The app-owned run finished `SUCCEEDED` on September 7 at 19:30:15.929Z, with all eight stages exiting zero. The subsequent read-only review reproduced the byte counts and SHA-256 hashes of all eight stage logs and the hashes of all four build manifests against the receipt. It did not independently rehash all multi-gigabyte artifacts; their verification is evidenced by the completed verifier stages and retained logs. No source was repulled for this reconciliation or review.
+
+The completed candidate remains separate from production. The benchmark still requires independent labels; successful benchmark artifact verification does not establish match accuracy or authorize entity merging. Next is governed source-cohort promotion and production reconciliation, preserving the prior cohort and rollback evidence. Do not reuse a stale cutover plan or describe the net source changes as newly opened businesses.
+
 Implementation verification passed all 524 repository tests, lint, web/desktop builds, desktop smoke and TypeScript. The production dependency audit reported zero vulnerabilities. The local app was restored after checks. This supports the controller fix, not a claim that the newly planned cohort has finished or passed independent-label review.
