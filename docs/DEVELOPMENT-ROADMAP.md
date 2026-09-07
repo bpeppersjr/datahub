@@ -2,6 +2,8 @@
 
 ## Objective
 
+Minnesota food-source assessment (2026-09-07): [MDA location-contract findings](states/MN-FOOD-ACCESS-2026-09-07.md) identify a legacy/current license-classification mismatch and one-license/multiple-location semantics. Resolve selected-view scope and premises identity before building the app-owned connector. Only public guidance and form metadata were inspected; no rows, enrollment or coverage increase is claimed. The separate SOS hold remains unchanged.
+
 Latest cohort review (2026-09-07): [D.C. candidate comparison](DC-CANDIDATE-COHORT-REVIEW-20260907.md) confirms only D.C. differs among 25 source manifests. Its candidate adds 120 activity rows and 18 accepted provisional sites, with quarantine still below the declared limit. Candidate-controller benchmark status handling is corrected and 524 tests passed. Isolated plan `candidate-dc-refresh-20260907-01` is ready for app-owned local reconciliation; inspect its runtime receipt before claiming completion. Production remains unchanged.
 
 Latest candidate handoff (2026-09-07): the verified app-owned D.C. refresh was imported without repull into its isolated migration candidate root, retaining all 21 artifacts and source provenance. Import receipt `5e87206a-acbb-4f59-98d3-6cb793016e30` succeeded; production still selects its prior D.C. release. Adapter verification passed 523 tests. Next is cohort change review and governed reconciliation/promotion; 25/25 candidate schema readiness alone is not permission to claim a new reporting cohort or accuracy approval.
