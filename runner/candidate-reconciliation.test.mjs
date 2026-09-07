@@ -10,6 +10,18 @@ const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const resign = (plan) => { delete plan.planSha256; plan.planSha256 = sha(JSON.stringify(plan)); return plan; };
 const scripts = ['build-business-registry', 'verify-business-registry', 'build-business-entity-resolution', 'verify-business-entity-resolution', 'build-entity-resolution-benchmark', 'verify-entity-resolution-benchmark', 'build-national-business-coverage-views', 'verify-national-business-coverage-views'];
 const datasets = { registry: 'national-business-registry', resolution: 'national-business-entity-resolution', benchmark: 'national-business-entity-resolution-benchmark', coverage: 'national-business-coverage-views' };
+
+test('candidate benchmark status is exact and cannot authorize unlabelled other datasets',async(t)=>{
+  for(const [group,status] of [['benchmark','published-partial'],['registry','awaiting-independent-labels']]){
+    const f=await fixture(t),plan=await planCandidateReconciliation({...f,runId:`status-${group}`}),calls=[];
+    const result=await runCandidateReconciliation(plan,{...f,executor:async(stage,context)=>{
+      calls.push(stage.id);await executorFor(f,stage,context);
+      if(stage.id===`${group}-build`){const directory=stage.args[stage.args.indexOf('--output')+1];const file=path.resolve(f.root,directory,`releases/fixture-new-${group}/manifest.json`);const manifest=JSON.parse(await readFile(file));manifest.status=status;await json(file,manifest);}
+      return {exitCode:0};
+    }});
+    assert.equal(result.receipt.status,'FAILED');assert.equal(calls.at(-1),`${group}-build`);assert.match(result.receipt.error,/status/);
+  }
+});
 async function json(file, value) { await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, `${JSON.stringify(value)}\n`); }
 async function release(root, relative, dataset, id, extra = {}) {
   const directory = path.resolve(root, relative);
@@ -61,7 +73,7 @@ async function executorFor(f, stage, { logPath, onSpawn }) {
   let extra;
   if (key === 'registry') extra = { dependencies: await Promise.all(f.definition.sources.map((s) => dependency(f.root, `${f.definition.candidate_root}/sources/${s.source_key}/current.json`))) };
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
-  if (key === 'benchmark') extra = { dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
+  if (key === 'benchmark') extra = { status:'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
   if (key === 'coverage') extra = { dependencies: await Promise.all(['--registry', '--resolution', '--benchmark', '--geography', '--crosswalk', '--nonemployer'].map((flag) => dependency(f.root, value(flag)))) };
   await release(f.root, value('--output'), datasets[key], `fixture-new-${key}`, extra);
   return { exitCode: 0 };
