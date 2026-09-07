@@ -96,11 +96,13 @@ Before considering the isolated chain ready for cutover preparation, record the 
 5. Production `data/business-registry/current.json`, `data/business-entity-resolution/current.json`, `data/business-entity-resolution-benchmark/current.json`, and `data/business-coverage-views/current.json` remain byte-for-byte unchanged during this isolated build.
 6. `npm run check` and `npm audit --omit=dev` pass before any production promotion.
 
-## Promotion blocker and next cutover step
+Preparing immutable, byte-identical copies of the three refreshed releases under their migration candidate roots may run concurrently with this isolated downstream build. That preparation does not change the manifests already resolved by the live registry process, does not substitute candidate-readiness for downstream verification, and does not authorize cutover. The complete registry, resolution, benchmark, and coverage chain must still finish and pass its verifiers against the recorded release IDs.
 
-The existing postal cutover planner cannot promote this mixed cohort as-is. Its plan requires every selected source to have `pointer_scope: candidate`; the readiness report above classifies the three September 7 pointers as `override`, and the current September 3 cutover plan is hash-pinned to the older releases. Executing that old plan would intentionally promote the September 3 source set, not the refreshed set.
+## Candidate import outcome and next cutover step
 
-After the isolated national chain verifies, publish or rebuild each of the three September 7 releases into its corresponding governed migration candidate root, using the connector's normal immutable publication path rather than hand-editing a pointer:
+At isolated-build launch, the postal cutover planner could not promote the mixed cohort as-is. Its plan requires every selected source to have `pointer_scope: candidate`; the launch readiness report classified the three September 7 pointers as `override`, and the September 3 cutover plan was hash-pinned to the older releases. Executing that old plan would intentionally promote the September 3 source set, not the refreshed set.
+
+That candidate-scope blocker is now resolved. During the isolated build, all three refreshed releases were imported as immutable, verified candidate copies under their corresponding governed migration roots:
 
 ```text
 data/migrations/normalized-us-postal-fields-v1/sources/nyRetailFoodStores/current.json
@@ -108,7 +110,9 @@ data/migrations/normalized-us-postal-fields-v1/sources/caAbcActiveLicenses/curre
 data/migrations/normalized-us-postal-fields-v1/sources/waLniActiveContractors/current.json
 ```
 
-Then rerun `npm run postal-migration:candidates`, require 25 candidate-scoped ready sources and the three September 7 release IDs, and create a new cutover plan at a new path:
+The import preserved the exact refreshed release IDs, replayed all three independent source verifiers across 50 artifacts, and left all 29 captured production pointer hashes unchanged. The strict candidate gate now reports 25/25 candidate-scoped sources ready, zero blocked, with frozen-plan SHA-256 `28c94c799bf9faf21875180d576b2bc89c278574ad94a08a97cfd8a03b5b6f49`. Machine-readable evidence is recorded in `docs/INDUSTRY-CANDIDATE-IMPORT-EVIDENCE-2026-09-07.json`.
+
+This resolves candidate scope only. The isolated registry, resolution, benchmark, and coverage chain must still finish and verify before cutover planning. No new cutover plan has been created or executed. After the full chain verifies, create a new plan at a new path:
 
 ```powershell
 node scripts/cutover-normalized-us-postal-migration.mjs plan `

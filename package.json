@@ -12,6 +12,7 @@
     "runner": "node runner/server.mjs",
     "industry:plan": "node scripts/run-industry-segments.mjs plan",
     "industry:run": "node scripts/run-industry-segments.mjs run",
+    "industry:import-candidate": "node scripts/import-industry-candidate.mjs",
     "business:export": "node scripts/compose-flat-business-export.mjs",
     "business:export:verify": "node scripts/verify-flat-business-export.mjs",
     "connectors:check": "node scripts/check-connector-registry.mjs",

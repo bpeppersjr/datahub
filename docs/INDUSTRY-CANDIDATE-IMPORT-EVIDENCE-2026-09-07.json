@@ -1,0 +1,117 @@
+{
+  "evidence_id": "industry-candidate-import-2026-09-07",
+  "scope": "Isolated candidate imports only; production cutover and national downstream verification are not complete.",
+  "candidate_readiness": {
+    "counts": {
+      "total": 25,
+      "ready": 25,
+      "rebuild_required": 0,
+      "blocked": 0,
+      "candidate_pointers_used": 25
+    },
+    "plan_sha256": "28c94c799bf9faf21875180d576b2bc89c278574ad94a08a97cfd8a03b5b6f49"
+  },
+  "imports": [
+    {
+      "source_key": "nyRetailFoodStores",
+      "release_id": "ny-retail-food-stores-20260907-134303353Z-c3167a89",
+      "manifest_sha256": "0c263a3a76edc73a4519f6f945e450951acc454118e193b1e69395d02ce3e815",
+      "pointer_sha256": "46c00c164e7f1b9f6497340fd04f26079ef1981d23d105638d97ac7b58a1c2d0",
+      "status": "ready",
+      "pointer_scope": "candidate"
+    },
+    {
+      "source_key": "caAbcActiveLicenses",
+      "release_id": "ca-abc-active-licenses-20260907-134420041Z-1d86412e",
+      "manifest_sha256": "aa5c35c1784c5d937210078a9c70799061bd3368aa455a1bd1c35353a0945d0c",
+      "pointer_sha256": "42a3bc1cec40b5ec6aeedd1d7e2d3ee0341cba30835c6ce9638559540ecd9861",
+      "status": "ready",
+      "pointer_scope": "candidate"
+    },
+    {
+      "source_key": "waLniActiveContractors",
+      "release_id": "wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283",
+      "manifest_sha256": "3b7097aa58fbb4f1987cd535f4f838cc4d99e69bd76f4a7edc403d37c4bc680d",
+      "pointer_sha256": "91b4c1ad883790f4a45c9f32e65eef23f837b1dbfbdd7e02deb4f0b71918514c",
+      "status": "ready",
+      "pointer_scope": "candidate"
+    }
+  ],
+  "production_pointer_comparison": {
+    "before": {
+      "data/business-sources/usda-snap/current.json": "5ce0bf4cb20fe9984669584d4914530b39666b3106e2a8b50c8ab05778bec7e4",
+      "data/business-sources/cms-nppes-organizations/current.json": "3ce3dfa44d946b6901b9930e8f4415f5f5ec0a8d5dcc791976653ccf70819928",
+      "data/business-sources/fdic-bankfind/current.json": "ad18b499ed2e302df28c15507eaf022dfbe55cb63ab3f0147e60dc49d7b268e9",
+      "data/business-sources/ncua-quarterly-credit-unions/current.json": "6f33e0fb84e8b16aafca2c4ee4744f039987dbde3ed250e0af716376f236212e",
+      "data/business-sources/fsis-active-mpi-establishments/current.json": "933870100204036922fac997ecf75e9968b587818ec47365a1816d9747bae533",
+      "data/business-sources/epa-echo-active-facilities/current.json": "07c0f8e7730129768d45e648d0294189648fe756337ffdb888a85481b330cfb5",
+      "data/business-sources/fmcsa-active-us-company-census/current.json": "9740e26932c27826bfb4694e317548600db87c4c376c35589b2bd014aa8a0754",
+      "data/business-sources/irs-eo-bmf-organizations/current.json": "3f9ecd604bda1a68da25d4d619d7fbf9e5bc7c04e504ea5ef30769ab5856f2c6",
+      "data/business-sources/ct-business-registry-active-organizations/current.json": "f23b4157ec68989af2e3ac10a314d3846518ccd4cdce38e5fc9652bbd306eb46",
+      "data/business-sources/de-business-licenses-current/current.json": "55652f4489ea2120aca3bdc08a8dfbef5625d248c63bd3ea9f1a0157c5643142",
+      "data/business-sources/ak-active-business-licenses/current.json": "4114b9eae17570959fb73a565b83bb13b87df45b88bc9010c1b891be23c0a160",
+      "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json": "2da7690832ed64a82c78258d94344c98edd7b621c0c2d37e3bdf92d9acc02f53",
+      "data/business-sources/wa-lni-active-contractor-organizations/current.json": "5dabf26b98b2a7469c88b1008bcd4448becca6740171599675fb596784bb76b6",
+      "data/business-sources/or-business-registry-active-registrations/current.json": "a0aba3aa74d54499dea35d8fa6ddd0477e2f6dc67a3e11d851bba4ea32468218",
+      "data/business-sources/ia-business-registry-active-entities/current.json": "d0a4bb7164ac1fa4b3f4a74daf2d27fb903d291ca3fec75c9f7f942cab1fa8e6",
+      "data/business-sources/ny-business-registry-active-entities/current.json": "6ef0a258d8d771d89c83e28c1f2f009fb863ff92e76a82b5d013ad276b0cff1b",
+      "data/business-sources/fl-business-registry-quarterly-active-entities/current.json": "b2ce627542c3ccbc4a93829d110507ae3f77e838aa713858e350ffceba51ee4c",
+      "data/business-sources/pa-business-registry-active-registrations/current.json": "cbe0d269faf8bbd05a29a049cd14cb9273367cb251317272a24974adb97fad41",
+      "data/business-sources/la-active-business-location-accounts/current.json": "bfe002b514568d583e4e3eb13fa46131c33d9d84239ae7202603a7cd8d18c1f5",
+      "data/business-sources/tx-active-sales-tax-outlets/current.json": "2f7f5774209bcef4b2c5e4bcbcc4128d31ed9a7a71e8f245172ab40b72e3869c",
+      "data/business-sources/chicago-active-business-license-sites/current.json": "8b6f223185a30641a33f40839a192a9e20be9045d37d2b5f14e4cdd2d3a126dc",
+      "data/business-sources/dc-basic-business-license-sites/current.json": "4ac499a889bad8dde9af63c7300178001f3ffc2092a38573c889f6c752f3826a",
+      "data/business-sources/ca-abc-active-license-sites/current.json": "8932dfd553fa18c927603476856c5d42063056a4701b67499416cc7a357b675a",
+      "data/business-sources/ny-retail-food-store-license-sites/current.json": "5112e8c047cc563d3de96578b1754233a2a3577ea27e6d569c35319d352ea5af",
+      "data/business-sources/nyc-dcwp-active-license-sites/current.json": "492ec1fcb479d9e0f24269b248866ee13349411bdd5889fa23e7c1d6fad167d9",
+      "data/business-registry/current.json": "b672e727831cffdf9c6c1a37581d66b1c61e4af8c4218ea1c34c4207398278d7",
+      "data/business-entity-resolution/current.json": "99e04d541cff534a99a4d798e3fe4940c8f6234739a0c8762ffb63dcf10b7679",
+      "data/business-entity-resolution-benchmark/current.json": "6ce6a62ca685503773eeb51294bae501baf2fc542d370648cef897180871c874",
+      "data/business-coverage-views/current.json": "fc9361bf635493fed16d6bd75c85f53173f9333653f8df1c6c931d938bf48b09"
+    },
+    "after": {
+      "data/business-sources/usda-snap/current.json": "5ce0bf4cb20fe9984669584d4914530b39666b3106e2a8b50c8ab05778bec7e4",
+      "data/business-sources/cms-nppes-organizations/current.json": "3ce3dfa44d946b6901b9930e8f4415f5f5ec0a8d5dcc791976653ccf70819928",
+      "data/business-sources/fdic-bankfind/current.json": "ad18b499ed2e302df28c15507eaf022dfbe55cb63ab3f0147e60dc49d7b268e9",
+      "data/business-sources/ncua-quarterly-credit-unions/current.json": "6f33e0fb84e8b16aafca2c4ee4744f039987dbde3ed250e0af716376f236212e",
+      "data/business-sources/fsis-active-mpi-establishments/current.json": "933870100204036922fac997ecf75e9968b587818ec47365a1816d9747bae533",
+      "data/business-sources/epa-echo-active-facilities/current.json": "07c0f8e7730129768d45e648d0294189648fe756337ffdb888a85481b330cfb5",
+      "data/business-sources/fmcsa-active-us-company-census/current.json": "9740e26932c27826bfb4694e317548600db87c4c376c35589b2bd014aa8a0754",
+      "data/business-sources/irs-eo-bmf-organizations/current.json": "3f9ecd604bda1a68da25d4d619d7fbf9e5bc7c04e504ea5ef30769ab5856f2c6",
+      "data/business-sources/ct-business-registry-active-organizations/current.json": "f23b4157ec68989af2e3ac10a314d3846518ccd4cdce38e5fc9652bbd306eb46",
+      "data/business-sources/de-business-licenses-current/current.json": "55652f4489ea2120aca3bdc08a8dfbef5625d248c63bd3ea9f1a0157c5643142",
+      "data/business-sources/ak-active-business-licenses/current.json": "4114b9eae17570959fb73a565b83bb13b87df45b88bc9010c1b891be23c0a160",
+      "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json": "2da7690832ed64a82c78258d94344c98edd7b621c0c2d37e3bdf92d9acc02f53",
+      "data/business-sources/wa-lni-active-contractor-organizations/current.json": "5dabf26b98b2a7469c88b1008bcd4448becca6740171599675fb596784bb76b6",
+      "data/business-sources/or-business-registry-active-registrations/current.json": "a0aba3aa74d54499dea35d8fa6ddd0477e2f6dc67a3e11d851bba4ea32468218",
+      "data/business-sources/ia-business-registry-active-entities/current.json": "d0a4bb7164ac1fa4b3f4a74daf2d27fb903d291ca3fec75c9f7f942cab1fa8e6",
+      "data/business-sources/ny-business-registry-active-entities/current.json": "6ef0a258d8d771d89c83e28c1f2f009fb863ff92e76a82b5d013ad276b0cff1b",
+      "data/business-sources/fl-business-registry-quarterly-active-entities/current.json": "b2ce627542c3ccbc4a93829d110507ae3f77e838aa713858e350ffceba51ee4c",
+      "data/business-sources/pa-business-registry-active-registrations/current.json": "cbe0d269faf8bbd05a29a049cd14cb9273367cb251317272a24974adb97fad41",
+      "data/business-sources/la-active-business-location-accounts/current.json": "bfe002b514568d583e4e3eb13fa46131c33d9d84239ae7202603a7cd8d18c1f5",
+      "data/business-sources/tx-active-sales-tax-outlets/current.json": "2f7f5774209bcef4b2c5e4bcbcc4128d31ed9a7a71e8f245172ab40b72e3869c",
+      "data/business-sources/chicago-active-business-license-sites/current.json": "8b6f223185a30641a33f40839a192a9e20be9045d37d2b5f14e4cdd2d3a126dc",
+      "data/business-sources/dc-basic-business-license-sites/current.json": "4ac499a889bad8dde9af63c7300178001f3ffc2092a38573c889f6c752f3826a",
+      "data/business-sources/ca-abc-active-license-sites/current.json": "8932dfd553fa18c927603476856c5d42063056a4701b67499416cc7a357b675a",
+      "data/business-sources/ny-retail-food-store-license-sites/current.json": "5112e8c047cc563d3de96578b1754233a2a3577ea27e6d569c35319d352ea5af",
+      "data/business-sources/nyc-dcwp-active-license-sites/current.json": "492ec1fcb479d9e0f24269b248866ee13349411bdd5889fa23e7c1d6fad167d9",
+      "data/business-registry/current.json": "b672e727831cffdf9c6c1a37581d66b1c61e4af8c4218ea1c34c4207398278d7",
+      "data/business-entity-resolution/current.json": "99e04d541cff534a99a4d798e3fe4940c8f6234739a0c8762ffb63dcf10b7679",
+      "data/business-entity-resolution-benchmark/current.json": "6ce6a62ca685503773eeb51294bae501baf2fc542d370648cef897180871c874",
+      "data/business-coverage-views/current.json": "fc9361bf635493fed16d6bd75c85f53173f9333653f8df1c6c931d938bf48b09"
+    },
+    "changed": []
+  },
+  "verification": {
+    "tests_passed": 385,
+    "focused_import_tests_passed": 9,
+    "repository_check": "passed",
+    "typecheck": "passed",
+    "production_dependency_vulnerabilities": 0,
+    "independent_candidate_verifiers": [
+      "nyRetailFoodStores",
+      "caAbcActiveLicenses",
+      "waLniActiveContractors"
+    ]
+  }
+}
