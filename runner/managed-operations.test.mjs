@@ -5,6 +5,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import { createManagedOperations } from "./managed-operations.mjs";
+import { buildIndustryPlan, industryPlanFingerprint } from "./industry-segments.mjs";
 
 const config = { version: 1, max_concurrency: 1, states: ["TX"], industries: { retail: ["source"] }, sources: { source: { script: "scripts/run-industry-segments.mjs", scope: "national", states: "all", state_filter_supported: false, prerequisites: [] } } };
 const sha = (text) => createHash("sha256").update(text).digest("hex");
@@ -23,6 +24,98 @@ test("catalog and plans use allowlisted industry configuration", async (t) => {
   await assert.rejects(service.startExport({ output: "elsewhere" }), /Unsupported operation option/);
   await assert.rejects(service.startExport({ states: ["Texas"] }), /two-letter/);
   await service.close();
+});
+
+test("scheduled occurrence is durable before execution and idempotent while running and complete", async (t) => {
+  let executions = 0; let release;
+  const service = await fixture(t, { executor: async () => {
+    executions += 1;
+    const receipt = JSON.parse(await readFile(path.join(service.root, "schedule-one", "receipt.json"), "utf8"));
+    assert.deepEqual(receipt.scheduling, { operationId: "schedule-one", selection: { industries: ["retail"], states: ["TX"] }, expectedPlanHash: industryPlanFingerprint(buildIndustryPlan(config, { industries: ["retail"], states: ["TX"] })) });
+    return new Promise((resolve) => { release = () => resolve({ code: 0 }); });
+  } });
+  const input = { industries: ["retail"], states: ["tx", "TX"] };
+  const [first, replay] = await Promise.all([service.startScheduledCollection(input, { operationId: "schedule-one" }), service.startScheduledCollection(input, { operationId: "schedule-one" })]);
+  assert.equal(first.id, replay.id);
+  while (!release) await new Promise((resolve) => setImmediate(resolve));
+  assert.equal((await service.startScheduledCollection({ industries: ["retail"], states: ["TX"] }, { operationId: "schedule-one" })).id, first.id);
+  release(); assert.equal((await finished(service, first.id)).status, "SUCCEEDED");
+  assert.equal((await service.startScheduledCollection(input, { operationId: "schedule-one" })).status, "SUCCEEDED");
+  assert.equal(executions, 1); await service.close();
+  const restarted = createManagedOperations({ root: service.root, configLoader: async () => { throw new Error("Replay must not replan"); }, executor: async () => { throw new Error("Replay must not execute"); } });
+  assert.equal((await restarted.startScheduledCollection(input, { operationId: "schedule-one" })).status, "SUCCEEDED");
+  await restarted.close();
+});
+
+test("scheduled identity conflicts on changed selection and manual identity", async (t) => {
+  const service = await fixture(t, { idFactory: () => "manual-one", executor: async () => ({ code: 0 }) });
+  const scheduled = await service.startScheduledCollection({ industries: ["retail"] }, { operationId: "schedule-one" });
+  await finished(service, scheduled.id);
+  await assert.rejects(service.startScheduledCollection({ industries: ["retail"], states: ["TX"] }, { operationId: "schedule-one" }), { code: "OPERATION_CONFLICT" });
+  const manual = await service.startCollection({}); assert.equal(manual.id, "manual-one"); await finished(service, manual.id);
+  await assert.rejects(service.startScheduledCollection({}, { operationId: "manual-one" }), { code: "OPERATION_CONFLICT" });
+  await assert.rejects(service.startCollection({ operationId: "injected" }), /Unsupported operation option/);
+  await service.close();
+});
+
+test("scheduled tombstones and malformed receipts block without ID fallback", async (t) => {
+  let executions = 0;
+  const service = await fixture(t, { idFactory: () => { throw new Error("No generated fallback permitted"); }, executor: async () => { executions += 1; return { code: 0 }; } }); await service.ready;
+  for (const [id, contents] of [["missing", null], ["malformed", "{"], ["wrong-kind", JSON.stringify({ id: "wrong-kind", kind: "export", status: "SUCCEEDED" })]]) {
+    await mkdir(path.join(service.root, id));
+    if (contents !== null) await writeFile(path.join(service.root, id, "receipt.json"), contents);
+    await assert.rejects(service.startScheduledCollection({}, { operationId: id }), { code: "OPERATION_CONFLICT" });
+    if (contents !== null) assert.equal(await readFile(path.join(service.root, id, "receipt.json"), "utf8"), contents);
+  }
+  assert.equal(executions, 0); await service.close();
+});
+
+test("scheduled IDs are bounded and traversal rejected before execution", async (t) => {
+  let executions = 0; const service = await fixture(t, { executor: async () => { executions += 1; return { code: 0 }; } });
+  for (const operationId of [undefined, "", "../escape", "a/b", "a\\b", "x".repeat(65), 12]) await assert.rejects(service.startScheduledCollection({}, { operationId }), { statusCode: 400 });
+  await assert.rejects(service.startScheduledCollection({}, { operationId: "safe", untrusted: true }), { statusCode: 400 });
+  assert.equal(executions, 0); await service.close();
+});
+
+test("scheduled allocation race cannot substitute a generated operation ID", async (t) => {
+  let release; let executions = 0;
+  const service = await fixture(t, { configLoader: () => new Promise((resolve) => { release = () => resolve(config); }), idFactory: () => { throw new Error("No fallback ID permitted"); }, executor: async () => { executions += 1; return { code: 0 }; } });
+  const starting = service.startScheduledCollection({}, { operationId: "raced" });
+  while (!release) await new Promise((resolve) => setImmediate(resolve));
+  await mkdir(path.join(service.root, "raced")); release();
+  await assert.rejects(starting, { code: "OPERATION_CONFLICT" });
+  assert.equal(executions, 0); await service.close();
+});
+
+test("scheduled failed terminal occurrence is not retried", async (t) => {
+  let executions = 0; const service = await fixture(t, { executor: async () => { executions += 1; return { code: 1 }; } });
+  const operationId = "s".repeat(64);
+  await service.startScheduledCollection({}, { operationId });
+  assert.equal((await finished(service, operationId)).status, "FAILED");
+  assert.equal((await service.startScheduledCollection({}, { operationId })).status, "FAILED");
+  assert.equal(executions, 1); await service.close();
+});
+
+test("scheduled executable plan is checked before allocation and passed to child", async (t) => {
+  let executions = 0; let actualArgs;
+  const service = await fixture(t, { executor: async ({ args }) => { executions += 1; actualArgs = args; return { code: 0 }; } });
+  await assert.rejects(service.startScheduledCollection({}, { operationId: "drift", expectedPlanHash: "0".repeat(64) }), (error) => error.code === "OPERATION_CONFLICT" && !error.retryable);
+  await assert.rejects(readFile(path.join(service.root, "drift", "receipt.json")), { code: "ENOENT" });
+  const expectedPlanHash = industryPlanFingerprint(buildIndustryPlan(config));
+  await service.startScheduledCollection({}, { operationId: "pinned", expectedPlanHash });
+  await finished(service, "pinned");
+  assert.equal(actualArgs[actualArgs.indexOf("--expected-plan-sha256") + 1], expectedPlanHash);
+  await assert.rejects(service.startScheduledCollection({}, { operationId: "pinned", expectedPlanHash: "1".repeat(64) }), (error) => error.code === "OPERATION_CONFLICT" && !error.retryable);
+  assert.equal(executions, 1); await service.close();
+});
+
+test("scheduled interrupted receipt returns unknown without automatic resumption", async (t) => {
+  let executions = 0; const service = await fixture(t, { executor: async () => { executions += 1; return { code: 0 }; } }); await service.ready;
+  const record = { id: "interrupted", kind: "collection", status: "QUEUED", createdAt: "2026-01-01T00:00:00.000Z", scheduling: { operationId: "interrupted", selection: { industries: [], states: [] } }, artifacts: [], result: {} };
+  await mkdir(path.join(service.root, record.id)); const file = path.join(service.root, record.id, "receipt.json"); await writeFile(file, JSON.stringify(record));
+  assert.equal((await service.startScheduledCollection({}, { operationId: record.id })).status, "UNKNOWN");
+  assert.equal((await service.startScheduledCollection({}, { operationId: record.id })).status, "UNKNOWN");
+  assert.equal(await readFile(file, "utf8"), JSON.stringify(record)); assert.equal(executions, 0); await service.close();
 });
 
 test("one global slot rejects concurrent work and cancellation is cooperative", async (t) => {

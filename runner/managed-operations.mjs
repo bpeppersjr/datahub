@@ -3,9 +3,9 @@ import process from "node:process";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, readdir, realpath, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, realpath, rename, stat, writeFile } from "node:fs/promises";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
-import { buildIndustryPlan, loadIndustryConfig } from "./industry-segments.mjs";
+import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "./industry-segments.mjs";
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
@@ -30,6 +30,7 @@ function processPresence(pid) {
   catch (error) { return error.code === "ESRCH" ? "missing" : "unknown"; }
 }
 function invalid(message) { return Object.assign(new Error(message), { statusCode: 400 }); }
+function conflict(message) { return Object.assign(new Error(message), { code: "OPERATION_CONFLICT", statusCode: 409 }); }
 function validate(action) { try { return action(); } catch (error) { error.statusCode ??= 400; throw error; } }
 
 function defaultExecutor({ script, args, signal, onSpawn }) {
@@ -57,7 +58,7 @@ export class ManagedOperations {
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
-    this.operations = new Map(); this.running = new Map(); this.writes = new Map(); this.ready = this.#load(); this.closed = false;
+    this.operations = new Map(); this.running = new Map(); this.writes = new Map(); this.scheduledStarts = new Map(); this.ready = this.#load(); this.closed = false;
   }
   async #load() {
     await mkdir(this.root, { recursive: true });
@@ -86,6 +87,69 @@ export class ManagedOperations {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
     try { this.#only(input, ["industries", "states"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); return await this.#start("collection", { plan }); }
     catch (error) { this.reserved = false; throw error; }
+  }
+  // Internal scheduler entry point: manual HTTP inputs cannot supply operation IDs.
+  async startScheduledCollection(input = {}, options = {}) {
+    await this.ready;
+    this.#only(options, ["operationId", "expectedPlanHash"]);
+    const { operationId, expectedPlanHash } = options;
+    if (!safeId(operationId) || operationId.length > 64) throw invalid("Scheduled operation ID is invalid (maximum 64 characters).");
+    if (expectedPlanHash !== undefined && (typeof expectedPlanHash !== "string" || !/^[a-f0-9]{64}$/.test(expectedPlanHash))) throw invalid("Expected plan hash must be a 64-character lowercase SHA256 hash.");
+    this.#only(input, ["industries", "states"]);
+    const selected = this.#selection(input);
+    const selection = { industries: [...selected.industries].sort(), states: [...new Set(selected.states)].sort() };
+    const identity = JSON.stringify({ selection, expectedPlanHash });
+    const pending = this.scheduledStarts.get(operationId);
+    if (pending) {
+      if (pending.identity !== identity) throw conflict("Scheduled operation ID belongs to a different selection.");
+      return pending.promise;
+    }
+    const promise = this.#dispatchScheduled(operationId, selection, expectedPlanHash);
+    this.scheduledStarts.set(operationId, { identity, promise });
+    try { return await promise; } finally { this.scheduledStarts.delete(operationId); }
+  }
+  async #dispatchScheduled(operationId, selection, expectedPlanHash) {
+    await this.#refreshUnknown();
+    const directory = path.join(this.root, operationId);
+    let existing = this.operations.get(operationId);
+    // The directory itself is an allocation tombstone, even if a crash preceded its receipt.
+    try {
+      const info = await lstat(directory);
+      if (!info.isDirectory() || info.isSymbolicLink()) throw conflict("Scheduled operation directory is not a safe directory.");
+      const receiptInfo = await lstat(path.join(directory, "receipt.json"));
+      if (!receiptInfo.isFile() || receiptInfo.isSymbolicLink()) throw conflict("Scheduled operation receipt is not a safe file.");
+      const disk = JSON.parse(await readFile(path.join(directory, "receipt.json"), "utf8"));
+      if (disk.id !== operationId || disk.kind !== "collection" || disk.scheduling?.operationId !== operationId
+        || JSON.stringify(disk.scheduling?.selection) !== JSON.stringify(selection)
+        || (expectedPlanHash !== undefined && disk.scheduling?.expectedPlanHash !== expectedPlanHash)
+        || !["QUEUED", "RUNNING", ...FINAL].includes(disk.status) || typeof disk.createdAt !== "string") {
+        throw conflict("Scheduled operation ID conflicts with its existing receipt.");
+      }
+      if (!existing) {
+        existing = disk;
+        if (["QUEUED", "RUNNING"].includes(existing.status)) {
+          existing.status = "UNKNOWN";
+          existing.error = "Operation process ownership remains unresolved; duplicate execution is blocked.";
+        }
+        this.operations.set(operationId, existing);
+      }
+      return this.#snapshot(existing);
+    } catch (error) {
+      if (error.code === "OPERATION_CONFLICT") throw error;
+      if (error.code !== "ENOENT" || existing) throw conflict("Scheduled operation receipt is missing or malformed; execution is blocked.");
+      try { await lstat(directory); } catch (directoryError) { if (directoryError.code === "ENOENT") return this.#allocateScheduled(operationId, selection, expectedPlanHash); }
+      throw conflict("Scheduled operation directory has no valid receipt; execution is blocked.");
+    }
+  }
+  async #allocateScheduled(operationId, selection, expectedPlanHash) {
+    this.#reserve();
+    try {
+      const config = await this.configLoader();
+      const plan = validate(() => buildIndustryPlan(config, selection));
+      const actualPlanHash = industryPlanFingerprint(plan);
+      if (expectedPlanHash !== undefined && expectedPlanHash !== actualPlanHash) throw conflict("Scheduled industry plan changed; acquisition is blocked.");
+      return await this.#start("collection", { plan }, { operationId, selection, expectedPlanHash: actualPlanHash });
+    } catch (error) { this.reserved = false; throw error; }
   }
   async startExport(input = {}) {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
@@ -136,7 +200,7 @@ export class ManagedOperations {
   #selection(input) { return { industries: this.#strings(input.industries, "industries"), states: this.#strings(input.states, "states").map((x) => x.toUpperCase()) }; }
   #strings(value, name) { if (value === undefined) return []; if (!Array.isArray(value) || value.some((x) => typeof x !== "string" || !x.trim())) throw invalid(`${name} must be an array of strings.`); return [...new Set(value.map((x) => x.trim()))]; }
   #only(input, allowed) { if (!input || typeof input !== "object" || Array.isArray(input)) throw invalid("Operation input must be an object."); for (const key of Object.keys(input)) if (!allowed.includes(key)) throw invalid(`Unsupported operation option: ${key}`); }
-  #reserve() { if (this.closed) throw new Error("Managed operations service is closed."); if (this.reserved || this.running.size || [...this.operations.values()].some((item) => item.status === "UNKNOWN")) { const error = new Error("Another managed operation is already running or has unresolved ownership."); error.code = "OPERATION_CONFLICT"; error.statusCode = 409; throw error; } this.reserved = true; }
+  #reserve() { if (this.closed) throw new Error("Managed operations service is closed."); if (this.reserved || this.running.size || [...this.operations.values()].some((item) => item.status === "UNKNOWN")) { const error = conflict("Another managed operation is already running or has unresolved ownership."); error.retryable = ![...this.operations.values()].some((item) => item.status === "UNKNOWN"); throw error; } this.reserved = true; }
   #persist(record) {
     const snapshot = JSON.parse(JSON.stringify(record));
     const pending = (this.writes.get(record.id) ?? Promise.resolve()).then(() => atomicJson(path.join(this.root, record.id, "receipt.json"), snapshot));
@@ -150,13 +214,14 @@ export class ManagedOperations {
     if (input.format !== undefined) args.push("--format", String(input.format)); if (input.policyMode !== undefined) args.push("--policy-mode", String(input.policyMode));
     if (input.outputPrefix !== undefined) args.push("--output-prefix", String(input.outputPrefix)); return args;
   }
-  async #start(kind, details) {
+  async #start(kind, details, scheduling = null) {
     if (this.closed) throw new Error("Managed operations service is closed.");
     let id, directory;
-    for (let attempt = 0; attempt < 4; attempt += 1) { id = this.idFactory(); if (!safeId(id)) throw new Error("Generated operation ID is invalid."); directory = path.join(this.root, id); try { await mkdir(directory); break; } catch (error) { if (error.code === "EEXIST") { directory = null; continue; } throw error; } }
+    for (let attempt = 0; attempt < (scheduling ? 1 : 4); attempt += 1) { id = scheduling?.operationId ?? this.idFactory(); if (!safeId(id)) throw new Error("Generated operation ID is invalid."); directory = path.join(this.root, id); try { await mkdir(directory); break; } catch (error) { if (error.code === "EEXIST") { if (scheduling) throw conflict("Scheduled operation directory already exists; execution is blocked."); directory = null; continue; } throw error; } }
     if (!directory) throw new Error("Could not allocate an operation ID.");
     if (this.operations.has(id)) throw new Error("Operation ID collision.");
     const record = { id, kind, status: "QUEUED", createdAt: this.now(), finishedAt: null, error: null, artifacts: [], result: {}, details, owner: { supervisorPid: process.pid } };
+    if (scheduling) record.scheduling = scheduling;
     this.operations.set(id, record); await this.#persist(record);
     const controller = new AbortController(); this.running.set(id, controller);
     this.reserved = false;
@@ -172,6 +237,7 @@ export class ManagedOperations {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
+      if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
       const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
       if (controller.signal.aborted) record.status = "CANCELLED";
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");

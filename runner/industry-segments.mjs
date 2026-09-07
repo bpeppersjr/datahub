@@ -10,6 +10,13 @@ import { acquireIndustrySourceLocks } from "./industry-source-locks.mjs";
 export const DEFAULT_CONFIG = path.join(APP_ROOT, "config", "industry-segments.json");
 export const MAX_CONCURRENCY = 10;
 
+export function industryPlanFingerprint(plan) {
+  const canonical = (value) => Array.isArray(value) ? value.map(canonical)
+    : value !== null && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonical(value[key])])) : value;
+  const executablePlan = Object.fromEntries(Object.entries(plan).filter(([key]) => key !== "runId"));
+  return createHash("sha256").update(JSON.stringify(canonical(executablePlan))).digest("hex");
+}
+
 const asArray = (value) => value === undefined ? [] : Array.isArray(value) ? value : [value];
 
 export async function loadIndustryConfig(configPath = DEFAULT_CONFIG) {

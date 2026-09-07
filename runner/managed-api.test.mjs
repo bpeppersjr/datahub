@@ -69,7 +69,7 @@ async function makeFixture(t) {
     if (child.exitCode === null) child.kill("SIGKILL");
     await rm(root, { recursive: true, force: true });
   });
-  return { root, base: `http://127.0.0.1:${port}` };
+  return { root, child, base: `http://127.0.0.1:${port}` };
 }
 
 async function request(base, route, { method = "GET", body, authenticated = true } = {}) {
@@ -131,4 +131,21 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   const history = await request(fixture.base, "/api/data-operations/operations");
   assert.equal(history.status, 200);
   assert.ok((await history.json()).some((item) => item.id === operation.id && item.status === "SUCCEEDED"));
+});
+
+test("managed refresh schedule API creates disabled schedules without launching collection", { timeout: 20_000 }, async (t) => {
+  const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
+  assert.equal((await request(fixture.base, route, { authenticated: false })).status, 401);
+  const initial = await request(fixture.base, route); assert.equal(initial.status, 200); assert.deepEqual(await initial.json(), []);
+  const invalid = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 0 } });
+  assert.equal(invalid.status, 400);
+  const response = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 24 } });
+  assert.equal(response.status, 201); const schedule = await response.json(); assert.equal(schedule.enabled, false);
+  const pause = await request(fixture.base, `${route}/${schedule.id}/enabled`, { method: "POST", body: { enabled: false } }); assert.equal(pause.status, 200);
+  const invalidToggle = await request(fixture.base, `${route}/${schedule.id}/enabled`, { method: "POST", body: { enabled: false, command: "ignored" } }); assert.equal(invalidToggle.status, 400);
+  const listed = await request(fixture.base, route); assert.equal((await listed.json()).length, 1);
+  const operations = await request(fixture.base, "/api/data-operations/operations"); assert.deepEqual(await operations.json(), []);
+  const exited = once(fixture.child, "exit"); fixture.child.send("shutdown"); await exited;
+  await assert.rejects(readFile(path.join(fixture.root, "data/refresh-schedules/owner.lock")), /ENOENT/);
+  assert.equal(JSON.parse(await readFile(path.join(fixture.root, "data/refresh-schedules/state.json"))).schedules[0].enabled, false);
 });

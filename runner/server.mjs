@@ -17,6 +17,7 @@ import { APP_ROOT, resolveAppPath } from './paths.mjs';
 import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
 import { createConnectorRegistry } from './connector-registry.mjs';
 import { createManagedOperations } from './managed-operations.mjs';
+import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -127,6 +128,9 @@ const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
 const managedOperations = createManagedOperations();
+const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
+let refreshSchedulerUnavailable = false;
+void refreshScheduler.ready.catch(() => { refreshSchedulerUnavailable = true; console.warn('Refresh scheduler unavailable; inspect its stored state and ownership before enabling refreshes.'); });
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
 const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
@@ -247,6 +251,17 @@ const server = http.createServer(async (request, response) => {
 
     if (segments[0] === 'api' && segments[1] === 'data-operations') {
       const endpoint = segments[2];
+      if (endpoint === 'schedules') {
+        if (refreshSchedulerUnavailable) { json(response, 503, { error: 'Refresh scheduler unavailable; inspect stored state and process ownership. Manual operations remain available.' }); return; }
+        if (segments.length === 3 && request.method === 'GET') { json(response, 200, await refreshScheduler.list()); return; }
+        if (segments.length === 3 && request.method === 'POST') { json(response, 201, await refreshScheduler.create(await bodyJson(request))); return; }
+        if (segments.length === 5 && segments[4] === 'enabled' && request.method === 'POST') {
+          const input = await bodyJson(request);
+          if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length !== 1 || typeof input.enabled !== 'boolean') { json(response, 400, { error: 'Supply only an enabled boolean.' }); return; }
+          const schedule = await refreshScheduler.setEnabled(segments[3], input.enabled);
+          json(response, schedule ? 200 : 404, schedule ?? { error: 'Schedule not found.' }); return;
+        }
+      }
       if (segments.length === 3 && request.method === 'GET' && endpoint === 'catalog') {
         json(response, 200, await managedOperations.catalog()); return;
       }
@@ -567,9 +582,15 @@ server.listen(PORT, HOST, () => {
   if (process.connected && typeof process.send === 'function') process.send({ type: 'runner-ready', host: HOST, port: PORT });
 });
 
-async function shutdown() {
+let shutdownPromise;
+function shutdown() {
+  shutdownPromise ??= stopServices();
+  return shutdownPromise;
+}
+async function stopServices() {
   clearInterval(googleOutputCleanupTimer);
   server.close();
+  await refreshScheduler.close().catch(() => {});
   await pool.close();
   await managedOperations.close();
   await store.flush();
@@ -578,3 +599,4 @@ async function shutdown() {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+process.on('message', (message) => { if (message === 'shutdown') void shutdown(); });

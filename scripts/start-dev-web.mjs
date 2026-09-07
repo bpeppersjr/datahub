@@ -19,7 +19,7 @@ const environment = {
 };
 
 const children = [
-  spawn(process.execPath, [path.resolve("runner", "server.mjs")], { env: environment, stdio: "inherit", windowsHide: true }),
+  spawn(process.execPath, [path.resolve("runner", "server.mjs")], { env: environment, stdio: ["inherit", "inherit", "inherit", "ipc"], windowsHide: true }),
   spawn(process.execPath, [path.resolve("node_modules", "vinext", "dist", "cli.js"), "dev", "--port", String(uiPort)], { env: environment, stdio: "inherit", windowsHide: true }),
 ];
 
@@ -33,7 +33,8 @@ function terminateChild(child) {
       clearTimeout(forceTimer);
       resolve();
     });
-    child.kill();
+    if (child.connected) child.send("shutdown", (error) => { if (error && child.exitCode === null) child.kill(); });
+    else child.kill();
   });
 }
 
