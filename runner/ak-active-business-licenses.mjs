@@ -6,6 +6,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import { finished } from "node:stream/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
@@ -330,22 +331,39 @@ function assertAllowedUrl(urlValue, type) {
   return url;
 }
 
-function retryDelay(response, attempt) {
-  const retryAfter = Number(response?.headers?.get?.("retry-after"));
-  if (Number.isFinite(retryAfter) && retryAfter >= 0) return Math.min(retryAfter * 1000, 30_000);
-  return Math.min(500 * (2 ** attempt), 8_000);
+function retryDelay(response, attempt, now) {
+  const fallback = Math.min(500 * (2 ** attempt), 8_000);
+  const header = response?.headers?.get?.("retry-after")?.trim();
+  if (!header) return fallback;
+  let milliseconds;
+  if (/^\d+$/.test(header)) milliseconds = Number(header) * 1000;
+  else {
+    // Date.parse alone also accepts strings such as "-1" as dates.
+    if (!/[a-z]/i.test(header)) return fallback;
+    const timestamp = Date.parse(header);
+    if (!Number.isFinite(timestamp)) return fallback;
+    const clock = now().getTime();
+    if (!Number.isFinite(clock)) throw new Error("Alaska retry clock is invalid.");
+    milliseconds = Math.max(0, timestamp - clock);
+  }
+  // Never shorten a publisher delay or let timer overflow cause an early retry.
+  if (!Number.isFinite(milliseconds) || milliseconds > 86_400_000) {
+    throw Object.assign(new Error("Alaska publisher requested a retry beyond the one-day wait budget; defer this acquisition."), { code: "AK_RETRY_DEFERRED" });
+  }
+  return Math.max(fallback, milliseconds);
 }
 
 export async function requestAkCsv(urlValue, {
   type = "licenses",
   fetchImpl = fetch,
   signal,
-  sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  sleep = (milliseconds, options) => delay(milliseconds, undefined, options),
   attempts = 4,
   maximumResponseBytes = 50_000_000,
   now = () => new Date(),
 } = {}) {
   const url = assertAllowedUrl(urlValue, type);
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) throw new Error("Alaska attempts must be an integer from 1 through 10.");
   const expectedFilename = type === "licenses" ? "BusinessLicenseDownload.csv" : "NaicsDownload.csv";
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
@@ -353,14 +371,17 @@ export async function requestAkCsv(urlValue, {
     try {
       response = await fetchImpl(url, { redirect: "manual", signal, headers: { accept: "text/csv" } });
     } catch (error) {
+      signal?.throwIfAborted?.();
       if (error?.name === "AbortError" || attempt + 1 >= attempts) throw error;
-      await sleep(500 * (2 ** attempt));
+      await sleep(Math.min(500 * (2 ** attempt), 8_000), { signal });
       continue;
     }
     if (response.status >= 300 && response.status < 400) throw new Error("Alaska source redirect rejected.");
     if (response.status === 429 || response.status >= 500) {
+      await response.body?.cancel();
+      signal?.throwIfAborted?.();
       if (attempt + 1 >= attempts) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
-      await sleep(retryDelay(response, attempt));
+      await sleep(retryDelay(response, attempt, now), { signal });
       continue;
     }
     if (!response.ok) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);

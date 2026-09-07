@@ -198,6 +198,49 @@ test("retries transient Alaska downloads and rejects redirects", async () => {
   }), /redirect rejected/);
 });
 
+test("Alaska retries honor seconds and HTTP dates without collapsing absent or invalid headers", async () => {
+  const url = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
+  for (const [header, expected] of [[null, 500], ["", 500], ["-1", 500], ["invalid", 500], ["120", 120000], ["0", 500], ["Tue, 01 Sep 2026 12:02:00 GMT", 120000], ["Tue, 01 Sep 2026 11:59:00 GMT", 500]]) {
+    const waits = []; let calls = 0, cancelled = 0;
+    await assert.rejects(requestAkCsv(url, {
+      attempts: 2, now: () => new Date("2026-09-01T12:00:00Z"),
+      sleep: async (ms) => waits.push(ms),
+      fetchImpl: async () => { calls++; return new Response(new ReadableStream({ cancel() { cancelled++; } }), { status: 429, headers: header === null ? {} : { "retry-after": header } }); },
+    }), /HTTP 429/);
+    assert.deepEqual(waits, [expected]); assert.equal(calls, 2); assert.equal(cancelled, 2);
+  }
+});
+
+test("Alaska excessive publisher delays defer without another request or timer overflow", async () => {
+  for (const header of ["86401", "9".repeat(400), "Wed, 02 Sep 2026 12:00:01 GMT"]) {
+    let calls = 0;
+    await assert.rejects(requestAkCsv("https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload", {
+      now: () => new Date("2026-09-01T12:00:00Z"), sleep: async () => assert.fail("must not wait or shorten delay"),
+      fetchImpl: async () => { calls++; return new Response(null, { status: 503, headers: { "retry-after": header } }); },
+    }), { code: "AK_RETRY_DEFERRED" });
+    assert.equal(calls, 1);
+  }
+});
+
+test("Alaska real retry wait aborts promptly with no follow-up request", async () => {
+  const controller = new AbortController(); let calls = 0;
+  const result = requestAkCsv("https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload", {
+    signal: controller.signal, fetchImpl: async () => {
+      calls++; setTimeout(() => controller.abort(), 20);
+      return new Response(null, { status: 429, headers: { "retry-after": "3600" } });
+    },
+  });
+  await assert.rejects(result, { name: "AbortError" }); assert.equal(calls, 1);
+});
+
+test("Alaska network backoff is bounded and invalid retry budgets never fetch", async () => {
+  const url = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
+  for (const attempts of [0, 11, 1.5]) await assert.rejects(requestAkCsv(url, { attempts, fetchImpl: async () => assert.fail("invalid budget") }), /attempts/);
+  const waits = [];
+  await assert.rejects(requestAkCsv(url, { attempts: 7, fetchImpl: async () => { throw new TypeError("fixture network failure"); }, sleep: async (ms) => waits.push(ms) }), /fixture network failure/);
+  assert.deepEqual(waits, [500, 1000, 2000, 4000, 8000, 8000]);
+});
+
 test("builds and independently verifies a privacy-minimized Alaska active-license release", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-business-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
