@@ -112,14 +112,16 @@ data/migrations/normalized-us-postal-fields-v1/sources/waLniActiveContractors/cu
 
 The import preserved the exact refreshed release IDs, replayed all three independent source verifiers across 50 artifacts, and left all 29 captured production pointer hashes unchanged. The strict candidate gate now reports 25/25 candidate-scoped sources ready, zero blocked, with frozen-plan SHA-256 `28c94c799bf9faf21875180d576b2bc89c278574ad94a08a97cfd8a03b5b6f49`. Machine-readable evidence is recorded in `docs/INDUSTRY-CANDIDATE-IMPORT-EVIDENCE-2026-09-07.json`.
 
-This resolves candidate scope only. The isolated registry, resolution, benchmark, and coverage chain must still finish and verify before cutover planning. No new cutover plan has been created or executed. After the full chain verifies, create a new plan at a new path:
+The isolated registry, resolution, benchmark, and coverage chain has now finished and verified, as recorded below. On September 7, a new plan was prepared successfully using:
 
 ```powershell
 node scripts/cutover-normalized-us-postal-migration.mjs plan `
   --write-plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260907-refresh.json
 ```
 
-Review and retain the emitted plan SHA-256. Only that newly reviewed hash may be supplied to `execute --confirm`. Source cutover and production downstream publication are separate operations: after a successful source cutover, rebuild and verify registry, resolution, benchmark, and coverage in that order against production pointers. Do not repoint production to the isolated `downstream` artifacts.
+The prepared plan SHA-256 is `6cb1a6a92f4a30ca8ae81f876b71a31f0dfaeaa633d28ec044cdd726b0d8f984`. Planning reverified all 25 source releases, 539 artifacts, and 18,769,197,611 bytes. An independent review recomputed the plan hash and checked 75 current pointer/manifest hashes; the 25 production source pointers remain unchanged. The plan is **NOT EXECUTED** and awaits explicit operator confirmation. Do not rerun the creation command at this existing exclusive path or execute an older plan.
+
+Only that newly reviewed hash may be supplied to `execute --confirm` after confirmation. Source cutover and production downstream publication are separate operations: after a successful source cutover, rebuild and verify registry, resolution, benchmark, and coverage in that order against production pointers. Do not repoint production to the isolated `downstream` artifacts. The benchmark's absent independent labels continue to block approval of entity-resolution-based aggregate deduplication, not the integrity of the source releases.
 
 Rollback before cutover is file-local: retain the prior isolated `current.json` values and restore them only through the repository's governed publication/recovery mechanism if an isolated build fails. Once cutover execution starts, use its journaled `status`, `recover`, or `rollback` commands with the exact cutover ID and reviewed plan hash; do not manually repair production pointers.
 
@@ -139,4 +141,8 @@ The verified refreshed-source contributions are:
 
 The dependent entity-resolution release subsequently published and independently verified as `business-entity-resolution-20260907-152358811Z-5d44a98c` across 101 artifacts. It pins the verified registry release and reports 8,011,817 profiles, 6,505,544 address groups, 2,325,194 site-alias decisions, 146,896 establishment-alias decisions, 106,063 review-candidate decisions, and two review groups skipped for size. These are deterministic decision-layer counts, not adjudicated unique-business totals.
 
-The benchmark then published and independently verified as `business-entity-resolution-benchmark-sample-20260907-152723285Z-cecd9819` across three artifacts. It contains 1,275 sampled candidates—425 in each of the automatic-physical-site, automatic-establishment, and review-candidate strata—and 2,545 unique profiles in its review packet. Its truthful status remains `awaiting-independent-labels`: submitted labels are zero and `benchmark_gate_passed` is false. Verification proves artifact and sampling integrity, not entity-resolution accuracy. Coverage remains pending until its own independent verifier exits zero.
+The benchmark then published and independently verified as `business-entity-resolution-benchmark-sample-20260907-152723285Z-cecd9819` across three artifacts. It contains 1,275 sampled candidates—425 in each of the automatic-physical-site, automatic-establishment, and review-candidate strata—and 2,545 unique profiles in its review packet. Its truthful status remains `awaiting-independent-labels`: submitted labels are zero and `benchmark_gate_passed` is false. Verification proves artifact and sampling integrity, not entity-resolution accuracy.
+
+Finally, coverage published and independently verified as `national-business-coverage-views-20260907-152810395Z-065d78dd` across seven artifacts totaling 587,635,246 verified bytes. It pins the new registry, resolution, and benchmark chain and reports three national views, 56 state/equivalent views, 3,235 county/equivalent views, 48,190 ZIP views, 26 source views, and 28,073 explicit gap records. Of 8,011,817 location profiles assessed, 995,292 have coordinate assignments and 7,016,525 do not. The release preserves the incomplete-business-universe and entity-resolution-not-approved-for-aggregate-application gaps; it does not claim national completeness or approved deduplication.
+
+The isolated four-stage chain completed with exit code zero. No production registry, resolution, benchmark, coverage, or source pointer was promoted by this run.

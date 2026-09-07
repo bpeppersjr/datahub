@@ -26,13 +26,13 @@ Registry 2.10.0 is separately blocked while the cutover lock exists and remains 
 Planning is read-only except for exclusive creation of the requested plan file:
 
 ```powershell
-npm run postal-cutover:plan -- --write-plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260903-refresh.json
+npm run postal-cutover:plan -- --write-plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-<new-unique-id>.json
 ```
 
 Execution is intentionally verbose and cannot be implied by planning:
 
 ```powershell
-npm run postal-cutover:execute -- --plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260903-refresh.json --expected-plan-sha256 <sha256> --confirm
+npm run postal-cutover:execute -- --plan data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260907-refresh.json --expected-plan-sha256 <reviewed-sha256> --confirm
 ```
 
 Inspect or recover one durable run using the cutover ID printed by execution:
@@ -50,6 +50,14 @@ npm run postal-cutover:rollback -- --cutover-id <cutover-id> --expected-plan-sha
 
 No command deletes an immutable candidate or production release.
 
-## Current prepared plan
+## Historical September 3 plan (superseded)
 
 The refreshed 2026-09-03 plan reverified all 25 complete candidate releases: 539 declared artifacts totaling 18,769,192,318 bytes. It binds live production-readiness hash `c7028b4aebf3d77b9f43c9d8357b79ff83fc224a12cbc9bb6aa4dfcc33bafdce` and candidate-readiness hash `8fa892b1c3448c9e6e0f69ee7cc4be67575339159667ce9a4e15d76751d576c3`; its canonical cutover-plan SHA-256 is `62aae9436c0a91b8d930caa766f1b7b6603916612fa4bf82e432e61680ef4d79`. The older `cutover-plan.json` is retained as audit history but is stale and must not be executed. The first isolated registry 2.10.0 chain is retained as a failed split-field audit receipt. Its corrected registry 2.11.0, entity-resolution, benchmark, and national-coverage replacements now pass their independent verifiers, and strict ZIP audit `zip-denominator-audit-91f2251924768ac8d4c94bc2` reports zero physical split-field or missing-reason violations. The benchmark has no independent labels and does not pass its statistical quality gate, so cutover remains an operator decision rather than an automatic consequence of technical readiness. The refreshed plan file is local governed state under `data/migrations/normalized-us-postal-fields-v1`; it is ignored by Git and has not been executed. Production remains at 0 of 25 promoted source pointers.
+
+## Current September 7 plan — awaiting operator confirmation
+
+After the refreshed isolated registry, resolution, benchmark sample, and coverage chain all independently verified, planning completed with exit zero at `data/migrations/normalized-us-postal-fields-v1/cutover-plan-20260907-refresh.json`. It reverified 25 sources, 539 artifacts, and 18,769,197,611 bytes, including the September 7 NY retail-food, CA ABC, and WA contractor releases. Its canonical plan SHA-256 is `6cb1a6a92f4a30ca8ae81f876b71a31f0dfaeaa633d28ec044cdd726b0d8f984`; candidate readiness is `28c94c799bf9faf21875180d576b2bc89c278574ad94a08a97cfd8a03b5b6f49`. The production-readiness hash remains `c7028b4aebf3d77b9f43c9d8357b79ff83fc224a12cbc9bb6aa4dfcc33bafdce`. A separate comparison found zero drift in all 25 production pointer hashes.
+
+Read-only ZIP audit `zip-denominator-audit-a1337a1e172d760054a51d27` physically checked all 48,190 aggregate ZIP rows in the new registry: zero missing, joined, mismatched, or non-null split-field violations and zero missing reasons for unverified USPS status. Census ZCTA membership remains distinct from current USPS operational validity.
+
+This new plan supersedes both older plans for the intended refreshed cohort. It has **not** been executed. Explicit operator confirmation is still required. Source promotion does not approve statistical deduplication: the benchmark has zero independent labels, its accuracy gate remains false, and aggregate application must stay disabled. Production downstream publication requires a separate rebuild and verification against the promoted source pointers. See [complete isolated-chain evidence](REFRESH-RECONCILIATION.md).
