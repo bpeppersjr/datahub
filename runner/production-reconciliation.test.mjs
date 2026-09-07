@@ -54,7 +54,7 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   let extra;
   if (key === 'registry') extra = { dependencies: await Promise.all(f.definition.sources.map((s) => dependency(f.root, s.pointer))) };
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
-  if (key === 'benchmark') extra = { dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
+  if (key === 'benchmark') extra = { status: 'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
   if (key === 'coverage') extra = { dependencies: await Promise.all(['--registry', '--resolution', '--benchmark', '--geography', '--crosswalk', '--nonemployer'].map((flag) => dependency(f.root, value(flag)))) };
   await release(f.root, value('--output'), datasets[key], `fresh-${key}`, extra);
   return { exitCode: 0 };
@@ -207,4 +207,69 @@ test('production stop refuses missing run and escaping run IDs', async (t) => {
   const f = await fixture(t);
   await assert.rejects(requestProductionReconciliationStop({ root: f.root, runId: 'missing' }));
   await assert.rejects(requestProductionReconciliationStop({ root: f.root, runId: '../outside' }));
+});
+
+async function historicalBenchmarkFailure(t) {
+  const f=await fixture(t), original=await planProductionReconciliation({...f,runId:'historical-failure'});
+  const manifestPath=path.join(f.root,outputs.benchmark,'releases/fresh-benchmark/manifest.json');
+  const result=await runProductionReconciliation(original,{...f,executor:async(stage,context)=>{
+    await executeFixture(f,stage,context);
+    // Simulate the old classifier rejecting this sample, then restore its real status below.
+    if(stage.id==='benchmark-build'){const manifest=JSON.parse(await readFile(manifestPath));manifest.status='draft';await json(manifestPath,manifest);}
+    return {exitCode:0};
+  }});
+  assert.equal(result.receipt.status,'FAILED');assert.equal(result.receipt.stages[4].exitCode,0);
+  const manifest=JSON.parse(await readFile(manifestPath));manifest.status='awaiting-independent-labels';await json(manifestPath,manifest);
+  const logPath=path.join(f.root,original.outputRoot,'benchmark-build.log');
+  const log=`Completed fixture sample.\n${JSON.stringify({release_id:'fresh-benchmark',manifest:manifestPath,status:manifest.status},null,2)}\n`;
+  await writeFile(logPath,log);result.receipt.stages[4].log={path:'benchmark-build.log',sha256:sha(log),bytes:Buffer.byteLength(log)};
+  await json(result.receiptPath,result.receipt);
+  return {...f,original,receiptPath:result.receiptPath};
+}
+
+test('benchmark status recovery executes only remaining local stages and preserves failed evidence',async(t)=>{
+  const f=await historicalBenchmarkFailure(t), before=await readFile(f.receiptPath);
+  const plan=await planProductionReconciliation({...f,runId:'recovery',recoverBenchmarkFrom:f.original.runId});
+  assert.deepEqual(plan.stages.map(s=>s.id),['benchmark-verify','coverage-build','coverage-verify']);
+  assert.equal(plan.recovery.evidencePins.length,7);assert.equal(plan.recovery.independentLabelGatePassed,false);
+  const calls=[];const result=await runProductionReconciliation(plan,{...f,executor:async(s,c)=>{calls.push(s.id);return executeFixture(f,s,c);}});
+  assert.equal(result.receipt.status,'SUCCEEDED');assert.deepEqual(calls,plan.stages.map(s=>s.id));
+  assert.deepEqual(await readFile(f.receiptPath),before);assert.deepEqual(result.receipt.recovery,plan.recovery);
+});
+
+test('benchmark recovery rejects changed origins, source pins and unrelated compatible samples',async(t)=>{
+  for(const mutation of ['receipt','log','source','benchmark','coverage','skipped']){
+    const f=await historicalBenchmarkFailure(t);
+    if(mutation==='receipt'||mutation==='skipped'){const r=JSON.parse(await readFile(f.receiptPath));if(mutation==='receipt')r.stages[1].exitCode=8;else r.stages[5].pid=123;await json(f.receiptPath,r);}
+    if(mutation==='log')await writeFile(path.join(f.root,f.original.outputRoot,'benchmark-build.log'),'altered');
+    if(mutation==='source')await writeFile(path.join(f.root,f.definition.sources[0].connector_config),'{}');
+    if(mutation==='benchmark'){const m=JSON.parse(await readFile(path.join(f.root,outputs.benchmark,'releases/fresh-benchmark/manifest.json')));await release(f.root,outputs.benchmark,datasets.benchmark,'unrelated-benchmark',{...m,release_id:'unrelated-benchmark'});}
+    if(mutation==='coverage')await release(f.root,outputs.coverage,datasets.coverage,'unrelated-coverage');
+    await assert.rejects(planProductionReconciliation({...f,runId:`reject-${mutation}`,recoverBenchmarkFrom:f.original.runId}));
+  }
+});
+
+test('benchmark recovery rejects evidence drift after planning and excludes locked execution',async(t)=>{
+  for(const mutation of ['receipt','lock']){
+    const f=await historicalBenchmarkFailure(t),plan=await planProductionReconciliation({...f,runId:`recovery-${mutation}`,recoverBenchmarkFrom:f.original.runId});
+    if(mutation==='receipt')await writeFile(f.receiptPath,'{}');
+    else await json(path.join(f.root,'data/reconciliations/controller.lock'),{pid:99999999,runId:'other'});
+    await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('must not launch')}));
+  }
+});
+
+test('benchmark recovery does not build coverage after verification failure or pre-cancellation',async(t)=>{
+  for(const cancelled of [false,true]){
+    const f=await historicalBenchmarkFailure(t),plan=await planProductionReconciliation({...f,runId:`recovery-stop-${cancelled}`,recoverBenchmarkFrom:f.original.runId}),calls=[];
+    const result=await runProductionReconciliation(plan,{...f,signal:cancelled?AbortSignal.abort():undefined,executor:async(s,c)=>{calls.push(s.id);await writeFile(c.logPath,'verification failed');return {exitCode:3};}});
+    assert.equal(result.receipt.status,cancelled?'STOPPED':'FAILED');assert.deepEqual(calls,cancelled?[]:['benchmark-verify']);
+  }
+});
+
+test('benchmark recovery detects historical evidence mutation during verification before coverage',async(t)=>{
+  const f=await historicalBenchmarkFailure(t),plan=await planProductionReconciliation({...f,runId:'recovery-midrun',recoverBenchmarkFrom:f.original.runId}),calls=[];
+  const result=await runProductionReconciliation(plan,{...f,executor:async(s,c)=>{
+    calls.push(s.id);await executeFixture(f,s,c);await writeFile(f.receiptPath,'{}');return {exitCode:0};
+  }});
+  assert.equal(result.receipt.status,'FAILED');assert.deepEqual(calls,['benchmark-verify']);assert.match(result.receipt.error,/Pinned input or output changed/);
 });

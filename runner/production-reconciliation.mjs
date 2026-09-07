@@ -39,7 +39,7 @@ function stageDefinitions(sources) {
   const args = [ ['--output',OUTPUTS.registry,...sources.flatMap(source => [FLAGS[source.sourceKey],source.pointer])], [pointer('registry')], ['--output',OUTPUTS.resolution,'--registry',pointer('registry')], [pointer('resolution')], ['--output',OUTPUTS.benchmark,'--registry',pointer('registry'),'--resolution',pointer('resolution')], [pointer('benchmark')], ['--output',OUTPUTS.coverage,'--registry',pointer('registry'),'--resolution',pointer('resolution'),'--benchmark',pointer('benchmark'),'--geography',INPUTS.geography,'--crosswalk',INPUTS.crosswalk,'--nonemployer',INPUTS.nonemployer], [pointer('coverage')] ];
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
   root = await realpath(path.resolve(root)); if(!ID.test(runId)) throw new Error('Invalid production run ID.');
   const report = await readinessInspector({appRoot:root,useCandidatePointers:false});
   if(!report.ready_for_registry_2_10 || report.counts?.total !== 25 || report.sources?.length !== 25 || report.sources.some(s=>s.status !== 'ready' || s.pointer_scope !== 'production')) throw new Error('All 25 production sources must be ready.');
@@ -59,6 +59,10 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   const implementationPins = []; for(const file of MODULES) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
   const outputRoot = `data/reconciliations/production-runs/${runId}`; await safe(root,outputRoot,false);
   const plan = {schemaVersion:1,mode:'production',runId,createdAt:new Date().toISOString(),outputRoot,readinessPlanSha256:report.plan_sha256,definitionSha256:hash(definitionBytes),sourcePins,inputPins,previousOutputs,scriptPins,implementationPins,stages};
+  if(recoverBenchmarkFrom !== undefined) {
+    plan.recovery = await benchmarkRecovery(root,plan,recoverBenchmarkFrom);
+    plan.stages = stages.slice(5);
+  }
   plan.planSha256 = hash(JSON.stringify(plan)); return plan;
 }
 function execute(stage,{cwd,logPath,onSpawn}) {
@@ -73,6 +77,7 @@ function execute(stage,{cwd,logPath,onSpawn}) {
 }
 async function checkPins(root,plan,outputs) {
   const checks = [[DEFINITION,plan.definitionSha256]];
+  for(const p of plan.recovery?.evidencePins??[])checks.push([p.path,p.sha256]);
   for(const p of plan.sourcePins) checks.push([p.pointer,p.sha256],[p.manifestPath,p.manifestSha256],[p.connectorConfigPath,p.connectorConfigSha256]);
   for(const p of [...plan.inputPins,...Object.values(outputs)]) checks.push([p.path,p.sha256],[p.manifestPath,p.manifestSha256]);
   for(const p of [...plan.scriptPins,...plan.implementationPins]) checks.push([p.path,p.sha256]);
@@ -80,7 +85,8 @@ async function checkPins(root,plan,outputs) {
 }
 async function emitted(root,group,previous,expected) {
   const output = await pin(root,group,`${OUTPUTS[group]}/current.json`), manifest = JSON.parse(await readFile(path.join(root,output.manifestPath),'utf8'));
-  if(output.datasetId !== DATASETS[group] || output.releaseId === previous.releaseId || !String(manifest.status??'').startsWith('published')) throw new Error(`Stage did not emit a new published ${group} release.`);
+  const acceptedStatus = group === 'benchmark' ? manifest.status === 'awaiting-independent-labels' : String(manifest.status??'').startsWith('published');
+  if(output.datasetId !== DATASETS[group] || output.releaseId === previous.releaseId || !acceptedStatus) throw new Error(`Stage did not emit a new published ${group} release.`);
   const dependencies = group === 'resolution' ? [manifest.dependency] : group === 'benchmark' ? Object.values(manifest.dependencies??{}) : manifest.dependencies;
   if(!Array.isArray(dependencies) || group !== 'registry' && dependencies.length !== expected.length) throw new Error(`Invalid ${group} dependency set.`);
   if(group==='registry') {
@@ -92,16 +98,72 @@ async function emitted(root,group,previous,expected) {
   for(const p of expected) { const matches = dependencies.filter(d=>d?.dataset_id === p.datasetId); if(matches.length !== 1 || matches[0].release_id !== p.releaseId || matches[0].manifest_sha256 !== p.manifestSha256) throw new Error(`Emitted ${group} dependency does not match ${p.datasetId}.`); }
   return output;
 }
+
+// Narrow recovery for the historical benchmark status-classification failure.
+// It adopts completed immutable releases in a new run; never rewrites old receipts.
+async function benchmarkRecovery(root,current,fromRunId) {
+  if(!ID.test(fromRunId??'') || fromRunId===current.runId)throw new Error('Invalid benchmark recovery origin.');
+  const directory=`data/reconciliations/production-runs/${fromRunId}`;
+  const evidencePins=[];
+  async function evidence(file) {const bytes=await readFile(await safe(root,file));evidencePins.push({path:file,sha256:hash(bytes)});return bytes;}
+  const original=JSON.parse(await evidence(`${directory}/plan.json`));
+  const receipt=JSON.parse(await evidence(`${directory}/receipt.json`));
+  const planDigest=hash(JSON.stringify(Object.fromEntries(Object.entries(original).filter(([key])=>key!=='planSha256'))));
+  if(original.schemaVersion!==1 || original.mode!=='production' || original.runId!==fromRunId || original.recovery
+    || original.outputRoot!==directory || original.planSha256!==planDigest
+    || JSON.stringify(original.stages)!==JSON.stringify(stageDefinitions(original.sourcePins??[])))throw new Error('Invalid original production plan for benchmark recovery.');
+  const failure='Stage did not emit a new published benchmark release.';
+  let loggedBenchmark;
+  if(receipt.schemaVersion!==1 || receipt.mode!=='production' || receipt.runId!==fromRunId || receipt.status!=='FAILED'
+    || receipt.owner || receipt.stopRequested || !Number.isFinite(Date.parse(receipt.finishedAt)) || receipt.error!==failure
+    || receipt.stages?.length!==8 || JSON.stringify(receipt.previousOutputs)!==JSON.stringify(original.previousOutputs)
+    || JSON.stringify(Object.keys(receipt.outputs??{}).sort())!==JSON.stringify(['registry','resolution']))throw new Error('Receipt is not the supported terminal benchmark failure.');
+  for(let index=0;index<8;index++) {
+    const stage=receipt.stages[index];
+    if(stage.id!==original.stages[index].id || stage.status!==(index<4?'SUCCEEDED':index===4?'FAILED':'SKIPPED')
+      || (index<5 && (stage.exitCode!==0 || !Number.isFinite(Date.parse(stage.finishedAt))))
+      || (index>4 && [stage.pid,stage.exitCode,stage.startedAt,stage.finishedAt,stage.log,stage.error].some(value=>value!==null))
+      || (index===4 && stage.error!==failure))throw new Error('Original stage evidence is not recoverable.');
+    if(index<5) {
+      if(stage.log?.path!==`${stage.id}.log`)throw new Error('Original log identity is invalid.');
+      const bytes=await evidence(`${directory}/${stage.log.path}`);
+      if(bytes.length!==stage.log.bytes || hash(bytes)!==stage.log.sha256)throw new Error('Original log evidence changed.');
+      if(index===4) {
+        const text=bytes.toString('utf8').trim(), start=text.lastIndexOf('\n{');
+        try {loggedBenchmark=JSON.parse(start<0?text:text.slice(start+1));}
+        catch {throw new Error('Benchmark log lacks its terminal release identity.');}
+      }
+    }
+  }
+  for(const key of ['definitionSha256','sourcePins','inputPins','scriptPins','implementationPins']) {
+    if(JSON.stringify(original[key])!==JSON.stringify(current[key]))throw new Error(`Recovery original input changed: ${key}.`);
+  }
+  for(const group of ['registry','resolution']) {
+    const build=receipt.stages[group==='registry'?0:2];
+    if(JSON.stringify(current.previousOutputs[group])!==JSON.stringify(receipt.outputs[group])
+      || JSON.stringify(build.release)!==JSON.stringify(receipt.outputs[group]))throw new Error(`Recovery ${group} output differs from verified receipt.`);
+    await emitted(root,group,original.previousOutputs[group],group==='registry'?current.sourcePins:[current.previousOutputs.registry]);
+  }
+  if(JSON.stringify(current.previousOutputs.coverage)!==JSON.stringify(original.previousOutputs.coverage))throw new Error('Coverage changed after the failed production run.');
+  const benchmark=await emitted(root,'benchmark',original.previousOutputs.benchmark,[current.previousOutputs.registry,current.previousOutputs.resolution]);
+  const manifest=JSON.parse(await readFile(await safe(root,benchmark.manifestPath),'utf8'));
+  if(manifest.status!=='awaiting-independent-labels')throw new Error('Recovery requires the unlabelled benchmark sample status.');
+  if(loggedBenchmark?.release_id!==benchmark.releaseId || loggedBenchmark.status!==manifest.status
+    || typeof loggedBenchmark.manifest!=='string' || path.resolve(loggedBenchmark.manifest)!==path.join(root,benchmark.manifestPath))throw new Error('Current benchmark does not match the original build log.');
+  return {kind:'benchmark-status-classification',fromRunId,evidencePins,adoptedOutputs:{registry:current.previousOutputs.registry,resolution:current.previousOutputs.resolution,benchmark},
+    independentLabelGatePassed:false,semantics:'Verify adopted benchmark, then build and verify coverage; no source acquisition or completed build replay.'};
+}
 export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessInspector=inspectNormalizedUsPostalMigration,executor=execute,signal}={}) {
   root=await realpath(path.resolve(root));
   if(plan?.schemaVersion !== 1 || plan.mode !== 'production' || !ID.test(plan.runId??'') || hash(JSON.stringify(Object.fromEntries(Object.entries(plan).filter(([key])=>key!=='planSha256')))) !== plan.planSha256) throw new Error('Invalid production reconciliation plan.');
-  const current = await planProductionReconciliation({root,runId:plan.runId,readinessInspector});
+  const current = await planProductionReconciliation({root,runId:plan.runId,recoverBenchmarkFrom:plan.recovery?.fromRunId,readinessInspector});
   for(const key of Object.keys(current).filter(key=>!['createdAt','planSha256'].includes(key))) if(JSON.stringify(current[key]) !== JSON.stringify(plan[key])) throw new Error(`Production reconciliation plan changed: ${key}.`);
   const runRoot=await safe(root,plan.outputRoot,false), lockPath=await safe(root,'data/reconciliations/controller.lock',false); await mkdir(path.dirname(lockPath),{recursive:true}); await safe(root,path.dirname(lockPath));
   let lock; const token=randomUUID();
   try { lock=await open(lockPath,'wx'); await lock.writeFile(`${JSON.stringify({pid:process.pid,runId:plan.runId,mode:'production',token,startedAt:new Date().toISOString()})}\n`); } catch(error) { if(lock){await lock.close();await unlink(lockPath);} if(error.code==='EEXIST') throw new Error('Another reconciliation owns the controller lock; inspect ownership before recovery.'); throw error; }
   const receipt={schemaVersion:1,mode:'production',runId:plan.runId,status:'RUNNING',startedAt:new Date().toISOString(),finishedAt:null,owner:{pid:process.pid},stopRequested:false,previousOutputs:plan.previousOutputs,outputs:{},stages:plan.stages.map(s=>({id:s.id,status:'PENDING',pid:null,exitCode:null,startedAt:null,finishedAt:null,log:null,error:null})),error:null};
   const receiptPath=path.join(runRoot,'receipt.json'), planPath=path.join(runRoot,'plan.json'); let initialized=false, persistenceError=null, saves=Promise.resolve(), poll=null, pendingPoll=null;
+  if(plan.recovery)receipt.recovery=plan.recovery;
   const save=()=>{saves=saves.catch(()=>{}).then(()=>atomic(receiptPath,receipt));return saves;};
   const requestStop=()=>{receipt.stopRequested=true;if(initialized)void save().catch(error=>{persistenceError=error;});};
   const inspectStop=async()=>{try{const file=await safe(root,path.join(runRoot,'stop-request.json'));const request=JSON.parse(await readFile(file,'utf8'));if(request.runId!==plan.runId)throw new Error('Stop request run identity differs.');if(!receipt.stopRequested)requestStop();}catch(error){if(error.code!=='ENOENT')throw error;}};
