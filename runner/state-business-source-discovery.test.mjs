@@ -9,6 +9,7 @@ import {
   loadVerifiedStateCoverageRows,
   validateQueue6RankedSelection,
   validateQueue7RankedSelection,
+  validateQueue8RankedSelection,
   validateStateBusinessSourceDiscoveryQueue,
 } from "../scripts/check-state-business-source-discovery.mjs";
 
@@ -19,6 +20,7 @@ const WAVE_3_PATH = path.join(ROOT, "config", "state-business-source-discovery-q
 const QUEUE_5_PATH = path.join(ROOT, "config", "state-business-source-discovery-queue-5.json");
 const QUEUE_6_PATH = path.join(ROOT, "config", "state-business-source-discovery-queue-6.json");
 const QUEUE_7_PATH = path.join(ROOT, "config", "state-business-source-discovery-queue-7.json");
+const QUEUE_8_PATH = path.join(ROOT, "config", "state-business-source-discovery-queue-8.json");
 
 async function queueFixture() {
   return JSON.parse(await readFile(QUEUE_PATH, "utf8"));
@@ -257,6 +259,68 @@ test("verifies the on-disk state coverage artifact before ranking", async () => 
   } finally {
     await rm(coverageRoot, { recursive: true, force: true });
   }
+});
+
+test("accepts the governed four-workstream Queue 8 decision", async () => {
+  const queue = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  assert.equal(validateStateBusinessSourceDiscoveryQueue(queue), queue);
+  assert.deepEqual(queue.scope, ["LA", "MN", "AL", "WI"]);
+  assert.equal(queue.states.every((state) => state.decision === "hold"), true);
+  assert.equal(queue.states.some((state) => state.autonomous_acquisition_authorized || state.production_ready), false);
+});
+
+test("rejects Queue 8 provenance, evidence, coverage, candidate, URL, and authority drift", async () => {
+  const parallel = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  parallel.parallel_execution.assignments[1].worker = "root";
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(parallel), /Parallel queue execution evidence drifted/);
+
+  const coverage = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  coverage.states[0].current_coverage.coordinate_profiles += 1;
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(coverage), /LA pinned coverage evidence drifted/);
+
+  const candidate = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  candidate.states[1].candidate.price = "$0";
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(candidate), /MN candidate identity drifted/);
+
+  const url = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  url.states[2].official_urls[0] = "https://example.gov/not-the-source";
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(url), /AL official evidence URLs drifted/);
+
+  const authority = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  authority.states[3].row_bearing_preflight_authorized = true;
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(authority), /WI extended authorization boundary drifted/);
+
+  const evidence = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  evidence.states[3].observed_evidence[0] = "fabricated";
+  assert.throws(() => validateStateBusinessSourceDiscoveryQueue(evidence), /content digest drifted/);
+});
+
+test("proves Queue 8 is the next ranked eligible state wave", async () => {
+  const queue = JSON.parse(await readFile(QUEUE_8_PATH, "utf8"));
+  const row = (stateAbbreviation, coverage) => ({
+    postal_abbreviation: stateAbbreviation,
+    is_50_states_or_dc: true,
+    registry_evidence: {
+      reported_address_profile_count: coverage.reported_profiles,
+      coordinate_assigned_profile_count: coverage.coordinate_profiles,
+      source_profile_counts_by_reported_address_state: {},
+    },
+    nonemployer_baseline: { nonemployer_establishments: coverage.nonemployer_baseline_2023 },
+    zcta_coverage: {
+      material_intersecting_zcta_count: coverage.material_zctas,
+      zctas_with_record_level_source_contribution: coverage.zctas_with_record_level_evidence,
+    },
+  });
+  const stateRows = [
+    row("MD", { reported_profiles: 132909, coordinate_profiles: 0, nonemployer_baseline_2023: 599050, material_zctas: 0, zctas_with_record_level_evidence: 0 }),
+    ...queue.states.map((state) => row(state.state_abbreviation, state.current_coverage)),
+    row("NV", { reported_profiles: 44174, coordinate_profiles: 0, nonemployer_baseline_2023: 299815, material_zctas: 0, zctas_with_record_level_evidence: 0 }),
+  ];
+  assert.equal(validateQueue8RankedSelection(queue, stateRows, ["MD"]), queue);
+
+  const reranked = structuredClone(queue);
+  [reranked.scope[2], reranked.scope[3]] = [reranked.scope[3], reranked.scope[2]];
+  assert.throws(() => validateQueue8RankedSelection(reranked, stateRows, ["MD"]), /not the next ranked eligible state wave/);
 });
 
 test("rejects accidental acquisition authorization", async () => {

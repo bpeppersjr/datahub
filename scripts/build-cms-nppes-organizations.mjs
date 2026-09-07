@@ -4,6 +4,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { buildCmsNppesOrganizations } from '../runner/cms-nppes-organizations.mjs';
 import { APP_ROOT, assertInsideApp } from '../runner/paths.mjs';
+import { createCliCancellation } from '../runner/cli-cancellation.mjs';
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed CMS NPPES organization-provider source release.
@@ -52,6 +54,7 @@ try {
     process.exit(0);
   }
   const result = await buildCmsNppesOrganizations({
+    signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     sourceDirectory: assertInsideApp(path.resolve(APP_ROOT, options.source)),
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
@@ -67,4 +70,6 @@ try {
 } catch (error) {
   process.stderr.write(`CMS NPPES organization build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

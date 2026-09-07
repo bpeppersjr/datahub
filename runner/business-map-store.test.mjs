@@ -343,6 +343,11 @@ test("serves governed category, geography, demographic, and percentage views", a
   assert.equal(alpha.category_counts["retail-consumer"], 3);
   assert.equal(alpha.percent_of_state["retail-consumer"], 60);
   assert.equal(alpha.percent_of_category_nationwide["retail-consumer"], 100);
+  assert.equal(summary.national_all_category_evidence_count, 5);
+  assert.equal(summary.national_category_percent_of_collected_evidence["retail-consumer"], 60);
+  assert.equal(summary.national_percentage_basis.geography_scope, "50 states and District of Columbia");
+  assert.equal(summary.national_percentage_basis.universe_completeness_percent, null);
+  assert.match(summary.national_percentage_basis.unit, /same business more than once/);
   const beta = summary.states.find((state) => state.state_fips === "02");
   assert.equal(beta.percent_of_state["retail-consumer"], null);
   assert.equal(beta.percent_of_category_nationwide["retail-consumer"], 0);

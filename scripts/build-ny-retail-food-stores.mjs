@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildNyRetailFoodStores } from "../runner/ny-retail-food-stores.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed New York retail-food-store license release.
@@ -51,6 +53,7 @@ try {
     process.exit(0);
   }
   const result = await buildNyRetailFoodStores({
+    signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     minimumRows: options.minimumRows,
@@ -61,4 +64,6 @@ try {
 } catch (error) {
   process.stderr.write(`New York retail-food-store build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

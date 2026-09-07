@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildWaLniActiveContractors, publishWaLniActiveContractorStaging } from "../runner/wa-lni-active-contractor-licenses.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed Washington L&I active-contractor organization release.
@@ -65,6 +67,7 @@ try {
   const result = options.resumeStagingRun
     ? await publishWaLniActiveContractorStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
     : await buildWaLniActiveContractors({
+      signal: cancellation.signal,
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       pageSize: options.pageSize,
@@ -75,4 +78,6 @@ try {
 } catch (error) {
   process.stderr.write(`Washington L&I active-contractor build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

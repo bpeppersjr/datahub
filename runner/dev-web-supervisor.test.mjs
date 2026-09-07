@@ -63,7 +63,8 @@ test("development supervisor closes both direct child services", async (context)
     if (child.exitCode === null) await once(child, "exit");
   });
 
-  await waitUntil(async () => await listening(runnerPort) && await listening(uiPort, "localhost"));
+  await waitUntil(async () => await listening(runnerPort) && await listening(uiPort, "localhost"))
+    .catch((error) => { throw new Error(`${error.message}\n${output}`, { cause: error }); });
   child.send("shutdown");
   const [code] = await once(child, "exit");
   assert.equal(code, 0, output);

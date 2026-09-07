@@ -5,6 +5,8 @@ import process from "node:process";
 import { readFile } from "node:fs/promises";
 import { buildFmcsaCompanyCensus } from "../runner/fmcsa-company-census.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed FMCSA active U.S. Company Census release.
@@ -58,6 +60,7 @@ try {
   const localInputs = [options.sourceCsv, options.dictionary, options.metadata];
   if (localInputs.some(Boolean) && !localInputs.every(Boolean)) throw new Error("--source-csv, --dictionary, and --metadata must be supplied together.");
   const result = await buildFmcsaCompanyCensus({
+    signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     sourceCsvPath: options.sourceCsv ? assertInsideApp(path.resolve(APP_ROOT, options.sourceCsv)) : null,
@@ -74,4 +77,6 @@ try {
 } catch (error) {
   process.stderr.write(`FMCSA Company Census build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

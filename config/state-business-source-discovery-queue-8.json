@@ -1,0 +1,301 @@
+{
+  "schema_version": "1.0.0",
+  "queue_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03",
+  "observed_at": "2026-09-03",
+  "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+  "scope": ["LA", "MN", "AL", "WI"],
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_level_data_requested": false,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "purchases_made": 0,
+    "completed_bulk_record_downloads": 0,
+    "broad_portal_queries": 0,
+    "access_controls_bypassed": 0,
+    "production_pointers_changed": 0
+  },
+  "parallel_execution": {
+    "non_overlapping_state_assignments": true,
+    "maximum_active_workstreams": 4,
+    "assignments": [
+      { "state_abbreviation": "LA", "worker": "Confucius", "ran_in_parallel": true },
+      { "state_abbreviation": "MN", "worker": "Mill", "ran_in_parallel": true },
+      { "state_abbreviation": "AL", "worker": "Gauss", "ran_in_parallel": true },
+      { "state_abbreviation": "WI", "worker": "root", "ran_in_parallel": true }
+    ],
+    "waves": [
+      {
+        "wave_id": "queue-8-wave-1",
+        "concurrent_state_abbreviations": ["LA", "MN", "AL", "WI"],
+        "overlap_evidence": "Louisiana, Minnesota, and Alabama agents were active while the root Wisconsin workstream inspected official sources."
+      }
+    ]
+  },
+  "forbidden_operations": [
+    "account-creation",
+    "terms-acceptance",
+    "purchase",
+    "record-level-request",
+    "record-enumeration",
+    "portal-automation",
+    "complete-bulk-download",
+    "connector-implementation",
+    "source-release-publication",
+    "registry-rebuild",
+    "coverage-publication",
+    "heatmap-admission",
+    "production-pointer-change"
+  ],
+  "required_excluded_data_classes": [
+    "registered-agent-and-service-address",
+    "natural-person-name-role-and-address",
+    "direct-contact-and-signature",
+    "sensitive-personal-tax-payment-financial-and-nonregistry-government-identifiers",
+    "filing-image-document-and-free-text"
+  ],
+  "states": [
+    {
+      "rank": 1,
+      "state_abbreviation": "LA",
+      "state_name": "Louisiana",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Louisiana Secretary of State, Commercial Division",
+        "product": "custom Computer Query",
+        "availability": "paid request-defined multi-entity search; electronic ordering is account and payment mediated, with no anonymous recurring statewide extract or documented delivery format",
+        "price": "$25 for the first 40 entity records plus $0.01 per additional record"
+      },
+      "current_coverage": {
+        "reported_profiles": 91456,
+        "coordinate_profiles": 5508,
+        "nonemployer_baseline_2023": 418516,
+        "baseline_minus_profiles": 327060,
+        "diagnostic_profile_percent": 21.9,
+        "material_zctas": 540,
+        "zctas_with_record_level_evidence": 535
+      },
+      "official_urls": [
+        "https://www.sos.la.gov/business-services/how-to-order",
+        "https://static.sos.la.gov/COAPI/Commercial_API_Guide.pdf",
+        "https://subscriptions.sos.la.gov/",
+        "https://www.doa.la.gov/doa/osr/louisiana-administrative-code/",
+        "https://coraweb.sos.la.gov/CommercialSearch/CommercialSearch.aspx",
+        "https://www.sos.la.gov/business-services/start-a-business",
+        "https://www.sos.la.gov/business-services/frequently-asked-questions",
+        "https://www.sos.la.gov/our-office/about-us",
+        "https://legis.la.gov/Legis/Law.aspx?d=920189",
+        "https://www.legis.la.gov/legis/Law.aspx?d=76257",
+        "https://www.legis.la.gov/legis/Law.aspx?d=920229",
+        "https://legis.la.gov/Legis/Law.aspx?d=920469",
+        "https://www.legis.la.gov/legis/Law.aspx?d=99688",
+        "https://legis.la.gov/Legis/Law.aspx?d=99691&p=y",
+        "https://www.sos.la.gov/disclaimer",
+        "https://www.sos.la.gov/business-services/contact-us"
+      ],
+      "observed_evidence": [
+        "The Commercial Division offers paid custom multi-entity computer queries but publishes no complete active-statewide product, anonymous route, recurring cadence, delivery format, schema, sample, aggregate size, or checksum.",
+        "The separate account and token-gated Commercial API is rate-limited to 18 calls per minute and 1,000 search results, has no pagination or changed-since route, and is not a statewide bulk substitute.",
+        "Charter Number is only a candidate stable key because uniqueness wording does not establish length, non-reuse, or continuity through conversion, merger, reinstatement, termination, and migration.",
+        "Charter, substatus, and annual-report standing are legal filing conditions rather than proof of current operation, while registered offices expressly need not be places of business.",
+        "Public-record inspection and a customer-application API do not establish indefinite retention, transformation, geocoding, derived-publication, or redistribution rights."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service-of-process addresses",
+        "officers, directors, members, managers, owners, individual trade-name applicants and every natural-person role and address",
+        "name-reservation contacts, email, phone, signature and direct-contact fields",
+        "tax, payment, account credential, financial and non-registry government identifiers; preserve only a contract-confirmed public charter key",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask the Louisiana Commercial Division for a written quote and unsigned terms for one complete as-of legal-entity extract, with exact person-free schema, aggregate size, type/status/address dictionaries, Charter Number lifecycle, recurring full/delta/deletion/replay/checksum contract, secure unattended delivery, platform-change notice, and explicit retention, transformation, geocoding, derived-publication and redistribution rights. Do not create an account, accept terms, buy a token, order rows, enumerate the API or portal, or implement a connector first."
+    },
+    {
+      "rank": 2,
+      "state_abbreviation": "MN",
+      "state_name": "Minnesota",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Minnesota Secretary of State, Business Services",
+        "product": "Active Business Data",
+        "availability": "account-gated ZIP and CSV containing active registered names and primary addresses; available once or weekly through MBLS Transaction History",
+        "price": "$30 one-time or $30 per weekly file"
+      },
+      "current_coverage": {
+        "reported_profiles": 149694,
+        "coordinate_profiles": 5490,
+        "nonemployer_baseline_2023": 453181,
+        "baseline_minus_profiles": 303487,
+        "diagnostic_profile_percent": 33,
+        "material_zctas": 887,
+        "zctas_with_record_level_evidence": 886
+      },
+      "official_urls": [
+        "https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/",
+        "https://www.sos.mn.gov/media/3973/acitvebusinessdataorderrequest.pdf",
+        "https://www.sos.mn.gov/media/3974/business-data-active-user-guide.pdf",
+        "https://www.sos.mn.gov/media/5126/business-bulk-order-implementation-guide-and-record-layout.pdf",
+        "https://www.sos.mn.gov/business-liens/renewals",
+        "https://www.revisor.mn.gov/statutes/cite/5/pdf",
+        "https://www.revisor.mn.gov/statutes/cite/5.002",
+        "https://www.sos.mn.gov/about-the-office/about-the-office/web-site-terms-and-conditions-of-use",
+        "https://www.sos.mn.gov/media/5125/business-bulk-la.pdf"
+      ],
+      "observed_evidence": [
+        "The 2025 Active Business Data guide publishes a 16-column layout and illustrative output with separate ZIP and ZIP extension, but no current count, bytes, manifest, checksum, or control total.",
+        "The candidate covers records classified active across multiple entity and assumed-name types, with a Housing Cooperative discrepancy between the current landing page and dated guide.",
+        "File Number plus Business Filing Type is documented as unique within this product but lacks non-reuse and lifecycle guarantees; the stronger static Master ID belongs only to another product.",
+        "Active is a recognition and renewal condition rather than operating proof, and the primary business address type lacks a complete value domain proving organization control rather than agent, party, or home use.",
+        "Weekly account delivery exists, but full-replacement, disappearance, deletion, correction, replay, checksum, unattended access, controlling-license, retention, geocoding, and derived-publication semantics remain unresolved."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices, service addresses, home addresses and every address not proven organization-controlled",
+        "assumed-name natural-person holders, business parties, officers, managers, organizers, incorporators and every natural-person name and address",
+        "email, phone, signature and direct-contact fields",
+        "tax, payment, account, financial and non-registry government identifiers; preserve only contract-confirmed public registry keys",
+        "filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask Minnesota SOS which license controls Active Business Data and request written permission for retention, organization-only transformation, geocoding and derived publication; a current header-only person-free sample and aggregate size; exact address-type values and File Number lifecycle; weekly replacement/deletion/replay/checksum semantics; and an approved unattended delivery method. Do not create an MBLS account, accept terms, pay, acquire a fixture, automate Transaction History, or implement a connector first."
+    },
+    {
+      "rank": 3,
+      "state_abbreviation": "AL",
+      "state_name": "Alabama",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Alabama Secretary of State, Business Services Division",
+        "product": "Business Entity Database / Government Records Inquiry System",
+        "availability": "free per-entity inquiry only; no published bulk file, API, feed, recurring export, or supported automation route",
+        "price": "No bulk business-entity price is published; ad hoc public-record copies are $1 per page plus quoted outside costs"
+      },
+      "current_coverage": {
+        "reported_profiles": 89981,
+        "coordinate_profiles": 6394,
+        "nonemployer_baseline_2023": 388978,
+        "baseline_minus_profiles": 298997,
+        "diagnostic_profile_percent": 23.1,
+        "material_zctas": 658,
+        "zctas_with_record_level_evidence": 655
+      },
+      "official_urls": [
+        "https://www.sos.alabama.gov/government-records/business-entity-records?area=Business+Entity",
+        "https://www.sos.alabama.gov/business-entities/business-downloads",
+        "https://www.sos.alabama.gov/business-entities",
+        "https://www.sos.alabama.gov/sites/default/files/sos-rda-2021-10-27.pdf",
+        "https://alison.legislature.state.al.us/code-of-alabama?section=10A-1-5.32",
+        "https://alison.legislature.state.al.us/code-of-alabama?section=10A-5A-10.04",
+        "https://www.sos.alabama.gov/sites/default/files/Business-Entities/Domestic%20Business%20Entities%20Brochure%202022.pdf",
+        "https://www.sos.alabama.gov/newsroom/secretary-state-wes-allen-applauds-final-passage-legislation-cutting-red-tape-alabama",
+        "https://www.sos.alabama.gov/sites/default/files/form-files/dbc-certificateFormation.pdf",
+        "https://www.sos.alabama.gov/sites/default/files/2022-09/DomesticLLCFormation.pdf",
+        "https://www.sos.alabama.gov/sites/default/files/2023-05/Conversion-FormationByConversion.pdf",
+        "https://www.sos.alabama.gov/public-records-request",
+        "https://www.sos.alabama.gov/sites/default/files/form-files/FeeSchedule.pdf",
+        "https://www.alabama.gov/PDFs/AITermsConditions.pdf",
+        "https://www.sos.alabama.gov/contact"
+      ],
+      "observed_evidence": [
+        "The current SOS entity database exposes individual searches only; its downloads page contains filing forms rather than an entity dataset, and no recurring bulk business-entity product is priced.",
+        "A 2021 internal records authority describes the database and a few fields but is not a current export schema, sample, row count, byte size, checksum, manifest, or status codebook.",
+        "Entity ID changed from six to nine displayed digits by adding leading zeroes and is continued through at least some conversions, but universal non-reuse and lifecycle behavior remain undocumented.",
+        "Exists is legal-record status rather than operating proof, and elimination of SOS annual reports effective October 2024 increases address and status staleness risk.",
+        "The official $1,500 full and $300 weekly bulk prices apply to UCC data, not business entities; public inspection supplies no affirmative transformation, geocoding, publication, or redistribution license."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service-of-process addresses",
+        "officers, directors, incorporators, organizers, members, managers, partners, owners, preparers and every natural-person role and address",
+        "email, phone, signature, direct-contact and optional demographic-survey fields",
+        "tax, payment, financial and non-registry government identifiers; preserve Entity ID only as a zero-padded string if contract-confirmed",
+        "scanned filing images, documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask Alabama SOS whether a complete recurring Business Entity Database export exists and request its unsigned terms, exact price and route, current person-free schema or header-only sample, aggregate size, status/address dictionaries, Entity-ID lifecycle, full/delta/deletion/replay/checksum contract, supported unattended delivery, and explicit commercial retention, transformation, geocoding, derived-publication, redistribution and attribution rights. Do not submit a public-record request, request rows, scrape the inquiry portal, pay, or implement a connector first."
+    },
+    {
+      "rank": 4,
+      "state_abbreviation": "WI",
+      "state_name": "Wisconsin",
+      "decision": "hold",
+      "bounded_connector_implementation_authorized": false,
+      "authorized_next_action_type": "written-preflight-inquiry",
+      "autonomous_acquisition_authorized": false,
+      "paid_acquisition_authorized": false,
+      "complete_source_acquisition_authorized": false,
+      "row_bearing_preflight_authorized": false,
+      "offline_fixture_connector_authorized": false,
+      "production_ready": false,
+      "broad_layer_production_ready": false,
+      "candidate": {
+        "publisher": "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+        "product": "Full Corporate Database",
+        "availability": "paid complete text file delivered through a DFI-created ShareFile subscriber account; one-time, weekly Tuesday, or monthly second-Tuesday schedules require mailed Form 51 and prepayment",
+        "price": "$40 per full database file; the separate additions-only monthly new-formations file is $5"
+      },
+      "current_coverage": {
+        "reported_profiles": 124257,
+        "coordinate_profiles": 6292,
+        "nonemployer_baseline_2023": 397269,
+        "baseline_minus_profiles": 273012,
+        "diagnostic_profile_percent": 31.3,
+        "material_zctas": 783,
+        "zctas_with_record_level_evidence": 783
+      },
+      "official_urls": [
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx",
+        "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf",
+        "https://apps.dfi.wi.gov/apps/corpsearch/search.aspx",
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/FAQ.aspx",
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/AdministrativeDissolutions.aspx",
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/GeneralInformation.aspx",
+        "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CurrentHistoricalStats.aspx",
+        "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/073126_EndOfMonthEntityCounts.pdf",
+        "https://dfi.wi.gov/Pages/About/OpenRecords.aspx",
+        "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP5i.pdf"
+      ],
+      "observed_evidence": [
+        "DFI sells the complete corporate database as a text file for $40 per snapshot through ShareFile, with one-time, weekly Tuesday, and monthly second-Tuesday order options.",
+        "The data-services page names only legal name, registered agent and office address, entity type, formation date, current status, and annual-report indicator; it publishes no exact layout, sample, delimiter, encoding, count, bytes, checksum, or manifest.",
+        "The seven-character DFI Entity ID is assigned when first organized and public status/type dictionaries exist, but bulk inclusion, non-reuse, conversion, merger, reinstatement, and migration continuity are not guaranteed.",
+        "DFI expressly says it is not a registry of all businesses and cannot certify legal operation; the July 2026 active count of 635,017 also excludes miscellaneous entities and foreign registered names.",
+        "The only bulk-listed address is registered agent or office data, which is ineligible for entity geocoding; full-snapshot deletion, correction, replay, unattended ShareFile, retention, transformation, geocoding, and redistribution terms are unpublished."
+      ],
+      "unresolved_gates": ["source-scope", "schema", "stable-identifier", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+      "required_exclusions": [
+        "registered agents, registered offices and service-of-process addresses",
+        "officers, directors, members, managers, organizers, partners, owners and every natural-person role and address",
+        "email, phone, order-form contacts, signature and direct-contact fields",
+        "FEIN, SSN, tax, payment, financial and non-registry government identifiers; preserve only a contract-confirmed public DFI Entity ID",
+        "annual-report and charter images, filing documents and narrative or free-text fields"
+      ],
+      "strongest_bounded_next_action": "Ask Wisconsin DFI for the current unsigned bulk agreement, exact text layout and a header-only person-free sample, current row and byte totals, entity/type/status/address dictionaries, DFI Entity ID lifecycle, full-snapshot deletion/correction/replay/checksum contract, supported unattended ShareFile retrieval, and explicit retention, transformation, geocoding, derived-publication, redistribution and attribution rights. Do not mail Form 51, provide account data, pay, acquire a fixture, automate ShareFile or public search, or implement a connector first."
+    }
+  ]
+}

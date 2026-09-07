@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "max_concurrency": 10,
+  "states": ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"],
+  "industries": {
+    "retail-consumer": ["national-snap-retailers", "state-ny-retail-food", "state-ca-abc"],
+    "health-care": ["national-nppes-organizations"],
+    "financial-services": ["national-fdic-bankfind", "national-ncua-quarterly"],
+    "transportation": ["national-fmcsa-census"],
+    "construction": ["state-wa-contractors"]
+  },
+  "sources": {
+    "national-nppes-organizations": {
+      "script": "scripts/build-cms-nppes-organizations.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json", "data/pharmacy-sources/nppes"]
+    },
+    "national-snap-retailers": {
+      "script": "scripts/build-usda-snap-retailers.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "national-fdic-bankfind": {
+      "script": "scripts/build-fdic-bankfind.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "national-ncua-quarterly": {
+      "script": "scripts/build-ncua-quarterly.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "national-fmcsa-census": {
+      "script": "scripts/build-fmcsa-company-census.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "state-ny-retail-food": {
+      "script": "scripts/build-ny-retail-food-stores.mjs",
+      "scope": "state",
+      "states": ["NY"],
+      "state_filter_supported": true,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "state-ca-abc": {
+      "script": "scripts/build-ca-abc-active-license-sites.mjs",
+      "scope": "state",
+      "states": ["CA"],
+      "state_filter_supported": true,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "state-wa-contractors": {
+      "script": "scripts/build-wa-lni-active-contractor-licenses.mjs",
+      "scope": "state",
+      "states": ["WA"],
+      "state_filter_supported": true,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    }
+  }
+}

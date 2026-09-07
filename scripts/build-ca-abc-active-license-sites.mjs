@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildCaAbcActiveLicenseSites } from "../runner/ca-abc-active-license-sites.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed California ABC active issued-license site release.
@@ -44,6 +46,7 @@ try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) { process.stdout.write(usage()); process.exit(0); }
   const result = await buildCaAbcActiveLicenseSites({
+    signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     minimumSites: options.minimumSites,
@@ -54,4 +57,6 @@ try {
 } catch (error) {
   process.stderr.write(`California ABC active-license build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

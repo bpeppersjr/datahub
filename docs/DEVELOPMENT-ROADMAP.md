@@ -217,6 +217,17 @@ State-source decision-catalog evidence: the versioned assessment catalog combine
 
 ## Verification and release gates
 
+### September 7 parallel industry collection increment
+
+The national business goal remains active: every valid ZIP must retain authorized source evidence, reconciled identities, temporal status, provenance, and explicit coverage gaps. The following increment does not establish nationwide completeness.
+
+- Source catalog: Queue 8 integrated and validated, bringing the historical decision catalog to 33 jurisdictions (31 holds and two existing bounded-connector decisions).
+- Industry execution: standalone industry/state plan and run commands, capped at ten parallel source subprocesses, with national acquisition deduplication, explicit state-source gaps, prerequisite checks, isolated outputs, atomic receipts, and log hashes. See [industry segments](INDUSTRY-SEGMENTS.md).
+- Data gathering: independently verified New York retail-food, California ABC, and Washington contractor refreshes; Washington exercised the new standalone command end to end. See [refresh evidence](INDUSTRY-REFRESH-2026-09-07.md). These sources remain isolated pending downstream integration.
+- Heatmap Builder: national category share includes an explicit state-assigned evidence denominator and excluded ambiguous/unmatched evidence. True business-universe completeness remains unknown.
+- Flat-file builder: selectable state/category/source/column CSV and JSONL exports with mandatory provenance, explicit local policy modes, output hashes, and independent verification. A live New York production-registry export verified 24,230 records in each format. See [flat-file export](BUSINESS-FLATFILE.md).
+- Remaining integration: add collection/export management controls and durable recovery/scheduling; reconcile refreshed sources through registry, resolution, benchmark, and coverage dependency checks; continue additional industry/state acquisition and gap closure. The eight configured builder CLIs now accept cooperative IPC cancellation before forced termination.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

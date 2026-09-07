@@ -86,6 +86,9 @@ type StateSummary = {
   available: boolean;
   categories: Array<{ id: string; label: string }>;
   national_category_counts: Record<string, number>;
+  national_all_category_evidence_count: number;
+  national_category_percent_of_collected_evidence: Record<string, number | null>;
+  national_percentage_basis: { geography_scope: string; unit: string };
   assignment: Record<string, number | string>;
   states: Array<{
     state_fips: string;
@@ -361,9 +364,16 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
   const stateEvidence = state ? (categoryId === 'all' ? state.all_category_evidence_count : state.category_counts[categoryId]) : null;
   const withinState = state ? (categoryId === 'all' ? (state.all_category_evidence_count > 0 ? 100 : null) : state.percent_of_state[categoryId]) : null;
   const acrossNation = state ? (categoryId === 'all' ? (nationalAll > 0 ? (state.all_category_evidence_count / nationalAll) * 100 : null) : state.percent_of_category_nationwide[categoryId]) : null;
+  const nationalCategoryCount = categoryId === 'all' ? stateSummary?.national_all_category_evidence_count : stateSummary?.national_category_counts[categoryId];
+  const nationalCategoryShare = categoryId === 'all' ? (stateSummary && stateSummary.national_all_category_evidence_count > 0 ? 100 : null) : stateSummary?.national_category_percent_of_collected_evidence?.[categoryId];
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      {stateSummary?.available && <section className="state-alignment-card">
+        <div><span>National category share</span><strong>{category?.label ?? 'All source categories'}</strong></div>
+        <dl><div><dt>State-assigned category evidence</dt><dd>{count(nationalCategoryCount)}</dd></div><div><dt>State-assigned all-category evidence</dt><dd>{count(stateSummary.national_all_category_evidence_count)}</dd></div><div><dt>Share of state-assigned national evidence</dt><dd>{percent(nationalCategoryShare)}</dd></div></dl>
+        <p className="entity-method-note">{stateSummary.national_percentage_basis?.geography_scope ?? '50 states and District of Columbia'}. Category count ÷ all-category count, using ZIP evidence assigned to exactly one state. Excludes {count(Number(stateSummary.assignment.excluded_ambiguous_business_evidence))} ambiguous and {count(Number(stateSummary.assignment.excluded_unmatched_business_evidence))} unmatched evidence records. Categories group source evidence and may overlap. The percentage of all U.S. businesses collected is unknown.</p>
+      </section>}
       <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or ZIP details appear here after selection.'}</small></div>
       {properties ? <>
         <div className="entity-stat-grid">

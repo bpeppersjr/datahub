@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildNcuaQuarterly } from "../runner/ncua-quarterly.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed NCUA final quarterly credit-union release.
@@ -49,6 +51,7 @@ try {
     process.exit(0);
   }
   const result = await buildNcuaQuarterly({
+    signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     sourceUrl: options.source,
@@ -63,4 +66,6 @@ try {
 } catch (error) {
   process.stderr.write(`NCUA quarterly build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

@@ -18,11 +18,13 @@ const QUEUE_PATHS = [
   path.join(ROOT, "config", "state-business-source-discovery-queue-5.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-6.json"),
   path.join(ROOT, "config", "state-business-source-discovery-queue-7.json"),
+  path.join(ROOT, "config", "state-business-source-discovery-queue-8.json"),
 ];
 const CURRENT_COVERAGE_POINTER_PATH = path.join(ROOT, "data", "business-coverage-views", "current.json");
 const EXPECTED_COVERAGE_RELEASE_ID = "national-business-coverage-views-20260902-115337634Z-ba689784";
 const QUEUE_6_ID = "state-business-source-discovery-queue-6-wave-1-2026-09-03";
 const QUEUE_7_ID = "state-business-source-discovery-queue-7-wave-1-2026-09-03";
+const QUEUE_8_ID = "state-business-source-discovery-queue-8-wave-1-2026-09-03";
 const QUEUE_SCOPES = new Map([
   ["state-business-source-discovery-queue-4-wave-1-2026-09-03", { scope: ["ID", "NM", "ME", "WY"], contentDigest: "d22322c16cfa6ed2874026e0802c144dbcbf15a9f4b2a54e2b61000d76555deb" }],
   ["state-business-source-discovery-queue-4-wave-2-2026-09-03", { scope: ["NH", "MT", "RI", "SD"], contentDigest: "9589562225aaf53534763d562ca44a16b46ed404a231e9e72036c9d3b8293e71" }],
@@ -75,6 +77,17 @@ const QUEUE_7_WAVES = [{
   wave_id: "queue-7-wave-1",
   concurrent_state_abbreviations: ["MD", "MO", "IN", "SC"],
   overlap_evidence: "Maryland, Missouri, and Indiana agents were active while the root South Carolina workstream inspected official sources.",
+}];
+const QUEUE_8_ASSIGNMENTS = [
+  { state_abbreviation: "LA", worker: "Confucius", ran_in_parallel: true },
+  { state_abbreviation: "MN", worker: "Mill", ran_in_parallel: true },
+  { state_abbreviation: "AL", worker: "Gauss", ran_in_parallel: true },
+  { state_abbreviation: "WI", worker: "root", ran_in_parallel: true },
+];
+const QUEUE_8_WAVES = [{
+  wave_id: "queue-8-wave-1",
+  concurrent_state_abbreviations: ["LA", "MN", "AL", "WI"],
+  overlap_evidence: "Louisiana, Minnesota, and Alabama agents were active while the root Wisconsin workstream inspected official sources.",
 }];
 const QUEUE_5_CANDIDATES = {
   OH: { publisher: "Ohio Secretary of State", product: "Business Filing Data", availability: "paid one-time FTP order; recurring delivery requires a separate unpublished contract", price: "$62.50 one-time FTP; weekly or monthly price is unpublished" },
@@ -130,6 +143,24 @@ const QUEUE_7_URLS = {
   IN: ["https://inbiz.in.gov/inbiz/bulkdataservices/index", "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf", "https://inbiz.in.gov/business-filings/business-entityreport", "https://www.in.gov/sos/files/2025-InBiz-Legislative-Council-Report-Business-One-Stop-10-31-25.pdf", "https://inbiz.in.gov/business-filings/admin-dissolution", "https://bsd.sos.in.gov/publicbusinesssearch", "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/", "https://www.in.gov/core/terms_of_use.html", "https://www.in.gov/sos/business/files/New-INBiz-FAQs.pdf", "https://www.in.gov/pla/license/download-license-files/"],
   SC: ["https://scdgs.sc.gov/sites/scdgs/files/Documents/06252025_SC_Subscriber_Agreement.pdf", "https://www.sos.sc.gov/online-filings/business-entities", "https://www.sos.sc.gov/online-filings/business-entities/file-and-search-online", "https://businessfilings.sc.gov/businessfiling/Home", "https://sos.sc.gov/faqs-about-business-entities", "https://sos.sc.gov/node/39", "https://sos.sc.gov/sites/sos/files/Documents/About%20Us/Secretary_of_State_FY%202025_Annual_AccountabilityReport.pdf", "https://www.scstatehouse.gov/code/t33c005.php", "https://www.scstatehouse.gov/code/t33c044.php"],
 };
+const QUEUE_8_CANDIDATES = {
+  LA: { publisher: "Louisiana Secretary of State, Commercial Division", product: "custom Computer Query", availability: "paid request-defined multi-entity search; electronic ordering is account and payment mediated, with no anonymous recurring statewide extract or documented delivery format", price: "$25 for the first 40 entity records plus $0.01 per additional record" },
+  MN: { publisher: "Minnesota Secretary of State, Business Services", product: "Active Business Data", availability: "account-gated ZIP and CSV containing active registered names and primary addresses; available once or weekly through MBLS Transaction History", price: "$30 one-time or $30 per weekly file" },
+  AL: { publisher: "Alabama Secretary of State, Business Services Division", product: "Business Entity Database / Government Records Inquiry System", availability: "free per-entity inquiry only; no published bulk file, API, feed, recurring export, or supported automation route", price: "No bulk business-entity price is published; ad hoc public-record copies are $1 per page plus quoted outside costs" },
+  WI: { publisher: "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services", product: "Full Corporate Database", availability: "paid complete text file delivered through a DFI-created ShareFile subscriber account; one-time, weekly Tuesday, or monthly second-Tuesday schedules require mailed Form 51 and prepayment", price: "$40 per full database file; the separate additions-only monthly new-formations file is $5" },
+};
+const QUEUE_8_COVERAGE = {
+  LA: { reported_profiles: 91456, coordinate_profiles: 5508, nonemployer_baseline_2023: 418516, baseline_minus_profiles: 327060, diagnostic_profile_percent: 21.9, material_zctas: 540, zctas_with_record_level_evidence: 535 },
+  MN: { reported_profiles: 149694, coordinate_profiles: 5490, nonemployer_baseline_2023: 453181, baseline_minus_profiles: 303487, diagnostic_profile_percent: 33, material_zctas: 887, zctas_with_record_level_evidence: 886 },
+  AL: { reported_profiles: 89981, coordinate_profiles: 6394, nonemployer_baseline_2023: 388978, baseline_minus_profiles: 298997, diagnostic_profile_percent: 23.1, material_zctas: 658, zctas_with_record_level_evidence: 655 },
+  WI: { reported_profiles: 124257, coordinate_profiles: 6292, nonemployer_baseline_2023: 397269, baseline_minus_profiles: 273012, diagnostic_profile_percent: 31.3, material_zctas: 783, zctas_with_record_level_evidence: 783 },
+};
+const QUEUE_8_URLS = {
+  LA: ["https://www.sos.la.gov/business-services/how-to-order", "https://static.sos.la.gov/COAPI/Commercial_API_Guide.pdf", "https://subscriptions.sos.la.gov/", "https://www.doa.la.gov/doa/osr/louisiana-administrative-code/", "https://coraweb.sos.la.gov/CommercialSearch/CommercialSearch.aspx", "https://www.sos.la.gov/business-services/start-a-business", "https://www.sos.la.gov/business-services/frequently-asked-questions", "https://www.sos.la.gov/our-office/about-us", "https://legis.la.gov/Legis/Law.aspx?d=920189", "https://www.legis.la.gov/legis/Law.aspx?d=76257", "https://www.legis.la.gov/legis/Law.aspx?d=920229", "https://legis.la.gov/Legis/Law.aspx?d=920469", "https://www.legis.la.gov/legis/Law.aspx?d=99688", "https://legis.la.gov/Legis/Law.aspx?d=99691&p=y", "https://www.sos.la.gov/disclaimer", "https://www.sos.la.gov/business-services/contact-us"],
+  MN: ["https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/", "https://www.sos.mn.gov/media/3973/acitvebusinessdataorderrequest.pdf", "https://www.sos.mn.gov/media/3974/business-data-active-user-guide.pdf", "https://www.sos.mn.gov/media/5126/business-bulk-order-implementation-guide-and-record-layout.pdf", "https://www.sos.mn.gov/business-liens/renewals", "https://www.revisor.mn.gov/statutes/cite/5/pdf", "https://www.revisor.mn.gov/statutes/cite/5.002", "https://www.sos.mn.gov/about-the-office/about-the-office/web-site-terms-and-conditions-of-use", "https://www.sos.mn.gov/media/5125/business-bulk-la.pdf"],
+  AL: ["https://www.sos.alabama.gov/government-records/business-entity-records?area=Business+Entity", "https://www.sos.alabama.gov/business-entities/business-downloads", "https://www.sos.alabama.gov/business-entities", "https://www.sos.alabama.gov/sites/default/files/sos-rda-2021-10-27.pdf", "https://alison.legislature.state.al.us/code-of-alabama?section=10A-1-5.32", "https://alison.legislature.state.al.us/code-of-alabama?section=10A-5A-10.04", "https://www.sos.alabama.gov/sites/default/files/Business-Entities/Domestic%20Business%20Entities%20Brochure%202022.pdf", "https://www.sos.alabama.gov/newsroom/secretary-state-wes-allen-applauds-final-passage-legislation-cutting-red-tape-alabama", "https://www.sos.alabama.gov/sites/default/files/form-files/dbc-certificateFormation.pdf", "https://www.sos.alabama.gov/sites/default/files/2022-09/DomesticLLCFormation.pdf", "https://www.sos.alabama.gov/sites/default/files/2023-05/Conversion-FormationByConversion.pdf", "https://www.sos.alabama.gov/public-records-request", "https://www.sos.alabama.gov/sites/default/files/form-files/FeeSchedule.pdf", "https://www.alabama.gov/PDFs/AITermsConditions.pdf", "https://www.sos.alabama.gov/contact"],
+  WI: ["https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx", "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf", "https://apps.dfi.wi.gov/apps/corpsearch/search.aspx", "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/FAQ.aspx", "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/AdministrativeDissolutions.aspx", "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/GeneralInformation.aspx", "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CurrentHistoricalStats.aspx", "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/073126_EndOfMonthEntityCounts.pdf", "https://dfi.wi.gov/Pages/About/OpenRecords.aspx", "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP5i.pdf"],
+};
 
 QUEUE_SCOPES.set("state-business-source-discovery-queue-5-wave-1-2026-09-03", {
   scope: ["OH", "NC", "NJ", "VA"],
@@ -166,6 +197,18 @@ QUEUE_SCOPES.set("state-business-source-discovery-queue-7-wave-1-2026-09-03", {
   forbiddenOperations: QUEUE_5_FORBIDDEN_OPERATIONS,
   excludedDataClasses: QUEUE_6_EXCLUDED_DATA_CLASSES,
   contentDigest: "e3d4baaa2c23c9eb13798bb201180f2735e6b57a2b07bc0c980962e4614b9bb4",
+});
+QUEUE_SCOPES.set("state-business-source-discovery-queue-8-wave-1-2026-09-03", {
+  scope: ["LA", "MN", "AL", "WI"],
+  candidates: QUEUE_8_CANDIDATES,
+  coverage: QUEUE_8_COVERAGE,
+  urls: QUEUE_8_URLS,
+  parallel: true,
+  assignments: QUEUE_8_ASSIGNMENTS,
+  waves: QUEUE_8_WAVES,
+  forbiddenOperations: QUEUE_5_FORBIDDEN_OPERATIONS,
+  excludedDataClasses: QUEUE_6_EXCLUDED_DATA_CLASSES,
+  contentDigest: "6a9d2926feb5414b752e343cacae26470faa7988ad5a0b7bee1be55b0ab5d265",
 });
 
 function fail(message) {
@@ -255,6 +298,10 @@ export function validateQueue7RankedSelection(queue, stateRows, priorStateAbbrev
   return validateRankedSelection(queue, QUEUE_7_ID, "Queue 7", stateRows, priorStateAbbreviations);
 }
 
+export function validateQueue8RankedSelection(queue, stateRows, priorStateAbbreviations) {
+  return validateRankedSelection(queue, QUEUE_8_ID, "Queue 8", stateRows, priorStateAbbreviations);
+}
+
 export function validateStateBusinessSourceDiscoveryQueue(queue) {
   if (queue?.schema_version !== "1.0.0") fail("unsupported schema version");
   const queueSpec = QUEUE_SCOPES.get(queue?.queue_id);
@@ -332,6 +379,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   for (const [queueId, queueLabel, validator] of [
     [QUEUE_6_ID, "Queue 6", validateQueue6RankedSelection],
     [QUEUE_7_ID, "Queue 7", validateQueue7RankedSelection],
+    [QUEUE_8_ID, "Queue 8", validateQueue8RankedSelection],
   ]) {
     const queueIndex = queues.findIndex((queue) => queue.queue_id === queueId);
     const queue = queues[queueIndex];

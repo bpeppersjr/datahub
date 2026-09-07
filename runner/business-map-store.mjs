@@ -794,6 +794,7 @@ export function createBusinessMapStore({
       const counts = index.stateAggregates.get(row.geoid)?.category_counts ?? emptyAggregate().category_counts;
       for (const id of categoryIds) national[id] += counts[id];
     }
+    const nationalTotal = categoryIds.reduce((sum, id) => sum + national[id], 0);
     const states = stateRows.map((row) => {
       const aggregate = index.stateAggregates.get(row.geoid) ?? emptyAggregate();
       const stateTotal = categoryIds.reduce((sum, id) => sum + aggregate.category_counts[id], 0);
@@ -821,6 +822,16 @@ export function createBusinessMapStore({
       geography_release_id: index.geography.manifest.release_id,
       categories: CATEGORY_DEFINITIONS.map(({ id, label }) => ({ id, label })),
       national_category_counts: national,
+      national_all_category_evidence_count: nationalTotal,
+      national_category_percent_of_collected_evidence: Object.fromEntries(categoryIds.map((id) => [id, percentage(national[id], nationalTotal)])),
+      national_percentage_basis: {
+        geography_scope: includeTerritories ? "selected Census state equivalents including territories" : "50 states and District of Columbia",
+        numerator: "selected category source-evidence count assigned to included states",
+        denominator: "sum of all category source-evidence counts assigned to included states",
+        unit: "source-evidence records; overlapping sources may count the same business more than once",
+        universe_completeness_percent: null,
+        universe_completeness_status: "unavailable-no-comparable-complete-business-universe",
+      },
       states,
       assignment: {
         semantics: "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
