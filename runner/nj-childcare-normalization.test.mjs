@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { NJ_CHILDCARE_SCHEMA } from "./nj-childcare-preflight.mjs";
-import { normalizeNjChildcareFeature } from "./nj-childcare-normalization.mjs";
+import { normalizeNjChildcareFeature, NJ_CHILDCARE_TRANSFORMATION, NJ_CHILDCARE_REPROCESS_TRANSFORMATION } from "./nj-childcare-normalization.mjs";
 
 const context = { runId: "fixture-run", sourceReleaseId: "fixture-release", observedAt: "2026-09-07T00:00:00.000Z", outputWkid: 4326, downloadDateEpochMs: 1786463205000 };
 function fixture() {
@@ -53,4 +53,31 @@ test("NJ provenance requires canonical observation and explicit coordinate/date 
   }
   assert.notEqual(normalizeNjChildcareFeature(fixture(), context).source_record_id,
     normalizeNjChildcareFeature(fixture(), { ...context, sourceReleaseId: "later-release" }).source_record_id);
+});
+
+test("NJ explicit reprocessing version preserves internal sessions LF while default remains legacy", () => {
+  const input = fixture(); input.attributes.sessions = "Morning\nAfternoon";
+  assert.throws(() => normalizeNjChildcareFeature(input, context), { reason: "invalid-text" });
+  assert.throws(() => normalizeNjChildcareFeature(input, { ...context, transformationVersion: NJ_CHILDCARE_TRANSFORMATION }), { reason: "invalid-text" });
+  const result = normalizeNjChildcareFeature(input, { ...context, transformationVersion: NJ_CHILDCARE_REPROCESS_TRANSFORMATION });
+  assert.equal(result.industry.sessions_source, "Morning\nAfternoon");
+  assert.equal(result.provenance.transformation_version, NJ_CHILDCARE_REPROCESS_TRANSFORMATION);
+  assert.equal(input.attributes.sessions, "Morning\nAfternoon");
+});
+
+test("NJ sessions reprocessing does not relax other controls, fields, lengths or versions", () => {
+  const latest = { ...context, transformationVersion: NJ_CHILDCARE_REPROCESS_TRANSFORMATION };
+  for (const control of ["\r", "\t", "\u0000", "\u000b", "\u001f", "\u007f"]) {
+    const input = fixture(); input.attributes.sessions = `Morning${control}Afternoon`;
+    assert.throws(() => normalizeNjChildcareFeature(input, latest), { reason: "invalid-text" });
+  }
+  for (const name of ["address", "center_name", "age_range", "months_operational"]) {
+    const input = fixture(); input.attributes[name] = "Morning\nAfternoon";
+    assert.throws(() => normalizeNjChildcareFeature(input, latest), { reason: "invalid-text" });
+  }
+  const long = fixture(); long.attributes.sessions = "a".repeat(176);
+  assert.throws(() => normalizeNjChildcareFeature(long, latest), { reason: "invalid-text" });
+  assert.throws(() => normalizeNjChildcareFeature(fixture(), { ...context, transformationVersion: "latest" }), /Unsupported/);
+  assert.deepEqual(normalizeNjChildcareFeature(fixture(), context),
+    normalizeNjChildcareFeature(fixture(), { ...context, transformationVersion: NJ_CHILDCARE_TRANSFORMATION }));
 });

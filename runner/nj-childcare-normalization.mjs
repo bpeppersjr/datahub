@@ -3,13 +3,15 @@ import { NJ_CHILDCARE_SCHEMA, NJ_CHILDCARE_LAYER } from "./nj-childcare-prefligh
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NJ_CHILDCARE_TRANSFORMATION = "nj-childcare-normalization@1.0.0";
+export const NJ_CHILDCARE_REPROCESS_TRANSFORMATION = "nj-childcare-normalization@1.0.1";
 const fields = new Set(NJ_CHILDCARE_SCHEMA.map(([name]) => name));
 function reject(reason) {
   throw Object.assign(new Error(`New Jersey childcare record rejected: ${reason}.`), { code: "NJ_CHILDCARE_RECORD_REJECTED", reason });
 }
-function text(value, maximum, required) {
+function text(value, maximum, required, allowLineFeed = false) {
   if (value === null && !required) return null;
-  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u001f\u007f]/u.test(value)) reject("invalid-text");
+  const forbidden = allowLineFeed ? /[\u0000-\u0009\u000b-\u001f\u007f]/u : /[\u0000-\u001f\u007f]/u;
+  if (typeof value !== "string" || value.length > maximum || forbidden.test(value)) reject("invalid-text");
   const result = value.trim();
   if (!result && required) reject("missing-required-text");
   return result || null;
@@ -18,6 +20,10 @@ function epoch(value) { return Number.isSafeInteger(value) && Number.isFinite(ne
 
 /** Pure source normalization: no geocoding requests, business matching or publication. */
 export function normalizeNjChildcareFeature(feature, context = {}) {
+  const transformationVersion = context.transformationVersion ?? NJ_CHILDCARE_TRANSFORMATION;
+  if (![NJ_CHILDCARE_TRANSFORMATION, NJ_CHILDCARE_REPROCESS_TRANSFORMATION].includes(transformationVersion)) {
+    throw new Error("Unsupported New Jersey childcare transformation version.");
+  }
   for (const key of ["runId", "sourceReleaseId", "observedAt"]) {
     if (typeof context[key] !== "string" || !context[key].trim() || context[key].length > 255
       || /[\u0000-\u001f\u007f]/u.test(context[key])) throw new Error(`New Jersey childcare ${key} is required.`);
@@ -34,7 +40,8 @@ export function normalizeNjChildcareFeature(feature, context = {}) {
   const selected = {};
   for (const [name, type, maximum] of NJ_CHILDCARE_SCHEMA) {
     if (type === "esriFieldTypeString") selected[name] = text(attrs[name], maximum,
-      ["center_id", "center_name", "address", "city", "state", "zip"].includes(name));
+      ["center_id", "center_name", "address", "city", "state", "zip"].includes(name),
+      name === "sessions" && transformationVersion === NJ_CHILDCARE_REPROCESS_TRANSFORMATION);
   }
   if (selected.state !== "NJ") reject("source-scope-drift");
   if (/^(?:P\.?\s*O\.?\s*(?:BOX|B\b)|POST\s+OFFICE\s+BOX|GENERAL\s+DELIVERY)\b/i.test(selected.address)) reject("nonphysical-address");
@@ -77,7 +84,7 @@ export function normalizeNjChildcareFeature(feature, context = {}) {
     affiliation: { parent_company: null, ownership_verified: false },
     provenance: { source_url: NJ_CHILDCARE_LAYER, source_object_id: attrs.OBJECTID, source_release_id: sourceReleaseId,
       ingest_run_id: runId, observed_at: observedAt, publisher_download_date_epoch_ms: downloadDateEpochMs,
-      publisher_download_date_at: new Date(downloadDateEpochMs).toISOString(), transformation_version: NJ_CHILDCARE_TRANSFORMATION,
+      publisher_download_date_at: new Date(downloadDateEpochMs).toISOString(), transformation_version: transformationVersion,
       input_feature_sha256: createHash("sha256").update(JSON.stringify(feature)).digest("hex"),
       attribution: "NJ Department of Environmental Protection (NJDEP), DCF-derived licensed childcare centers",
       publisher_metadata_required: true, derived_publication_notice_required: true },

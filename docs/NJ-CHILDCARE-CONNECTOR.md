@@ -60,6 +60,22 @@ Next: acquire and verify a first live release through the enrolled app worker, t
 
 ## Source normalization
 
+### Versioned offline reprocessing
+
+```powershell
+npm run nj-childcare:reprocess -- <original-1.0.0-manifest-path>
+```
+
+The reprocessing API accepts only a verified original 1.0.0 release and local output/cancellation/logger/clock options, not transport options. The default output is a separate `data/business-sources/nj-licensed-childcare-centers-reprocessed` root. It must not replace the original source pointer or write inside the original immutable release. Reprocessing a reprocessed parent is deliberately unsupported in this initial implementation.
+
+Transformation `nj-childcare-normalization@1.0.1` permits U+000A only in `sessions`, preserving internal line breaks without interpreting them as hours or schedules. All other field and control-character rules remain unchanged. Default live acquisition and legacy verification continue using 1.0.0. Existing releases are not silently reinterpreted.
+
+A new UUID release retains identical selected-feature, source-observation and raw XML bytes, plus `reprocessing-parent-manifest.json` as a sixth artifact. Its manifest records a separate processing time and parent manifest/release provenance; source observation dates and source-release identity are unchanged. The verifier reconstructs the parent's legacy transformation from shared raw evidence before verifying the new transformation and all artifact checksums. No publisher request or source freshness claim is made. Parent/source evidence and local-review export restrictions remain intact.
+
+Verified real reprocessing at 2026-09-07T20:18:36.968Z produced `nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812`, manifest SHA-256 `b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e`, under the separate reprocessed root. All 4,075 retained rows now normalize successfully, with zero quarantine; this recovers the original 123 LF-session rows without reacquisition. Six artifacts total 16,546,539 bytes. Independent verification passed, and direct byte comparisons confirmed identical selected/source/XML artifacts and exact parent manifest preservation. The original manifest SHA and source pointer are unchanged; staging is empty and the publication lock is released. Source observation time remains the original acquisition's time, not the processing time.
+
+All 633 repository tests, lint, web/desktop builds, desktop smoke and TypeScript passed; the production dependency audit reported zero vulnerabilities. No national registry/coverage integration or new export authorization is implied by recovering these source records. Rollback means selecting the retained original release where appropriate, not deleting either release or rewriting its manifest.
+
 `normalizeNjChildcareFeature(feature, context)` is a pure transformation with explicit run/release identity, canonical UTC observation time, WGS84 output and expected publisher download-date context. It rejects undeclared or missing attributes, out-of-state records, invalid identifiers/dates/capacities, postal-box-only primary addresses and malformed postal values rather than repairing or guessing them. Missing source coordinates remain null; present coordinates must pass CRS and a broad NJ plausibility envelope, which does not prove geographic boundary membership.
 
 The normalized record preserves the DCF center identifier as a string, ZIP5 and ZIP4 separately, nullable source license dates, source capacity and operational descriptors. FOIPS values remain source strings, not inferred booleans or ownership. Publisher download dates are distinct from observation time. Active-layer membership does not establish current business activity, occupancy, renewal validity, unique business identity or nationwide completeness. No parent company is inferred, and there is no cross-release closure detection or cross-source entity merging.

@@ -28,6 +28,7 @@
     "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
     "nj-childcare:build": "node scripts/build-nj-childcare.mjs",
     "nj-childcare:verify": "node scripts/verify-nj-childcare.mjs",
+    "nj-childcare:reprocess": "node scripts/reprocess-nj-childcare.mjs",
     "ma-childcare:build": "node scripts/build-ma-childcare.mjs",
     "ma-childcare:verify": "node scripts/verify-ma-childcare.mjs",
     "usda-organic-integrity:preflight": "node scripts/preflight-usda-organic-integrity.mjs",

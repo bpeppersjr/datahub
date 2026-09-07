@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink, rename } fro
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 import { NJ_CHILDCARE_SCHEMA, NJ_CHILDCARE_ITEM, NJ_CHILDCARE_LAYER } from "./nj-childcare-preflight.mjs";
-import { buildNjChildcareRelease, verifyNjChildcareRelease } from "./nj-childcare-release.mjs";
+import { buildNjChildcareRelease, verifyNjChildcareRelease, reprocessNjChildcareRelease } from "./nj-childcare-release.mjs";
 
 const now = () => new Date("2026-09-07T20:00:00.000Z"), sleep = async () => {};
 const xml = Buffer.from("\ufeff<?xml version=\"1.0\"?>\\n<metadata>Strc_DCF_childcare</metadata>\\n".replaceAll("\\n", "\n"));
@@ -187,4 +187,93 @@ test("NJ refuses publication if lock ownership changes immediately before commit
   assert.deepEqual(await readdir(path.join(root, "releases")), []);
   await assert.rejects(readFile(path.join(root, "current.json")), { code: "ENOENT" });
   assert.equal(JSON.parse(await readFile(path.join(root, ".publish.lock"), "utf8")).run_id, "foreign");
+});
+
+test("NJ offline reprocessing recovers LF sessions with unchanged source evidence and legacy verification", async (t) => {
+  const root = await workspace(t), originalRoot = path.join(root, "original"), outputRoot = path.join(root, "reprocessed");
+  const original = await build(originalRoot, { fetchImpl: fixture((p, k) => {
+    if (k === "features") p.features[0].attributes.sessions = "Morning\nAfternoon";
+  }) });
+  assert.deepEqual(original.counts, { selected: 20, accepted: 19, quarantined: 1 });
+  const originalPointer = await readFile(path.join(originalRoot, "current.json")), originalManifestBytes = await readFile(original.manifest_path);
+  const priorFetch = globalThis.fetch;
+  let calls = 0, result;
+  globalThis.fetch = async () => { calls++; throw new Error("Network must not run during reprocessing."); };
+  try { result = await reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now: () => new Date("2026-09-07T21:00:00.000Z") }); }
+  finally { globalThis.fetch = priorFetch; }
+  assert.equal(calls, 0); assert.deepEqual(result.counts, { selected: 20, accepted: 20, quarantined: 0 });
+  assert.notEqual(result.run_id, original.run_id);
+  const oldManifest = JSON.parse(originalManifestBytes), manifest = JSON.parse(await readFile(result.manifest_path, "utf8"));
+  assert.equal(manifest.connector_version, "1.0.1"); assert.equal(manifest.transformation_version, "nj-childcare-normalization@1.0.1");
+  assert.equal(manifest.source_release_id, oldManifest.source_release_id); assert.equal(manifest.observed_at, oldManifest.observed_at);
+  assert.equal(manifest.processed_at, "2026-09-07T21:00:00.000Z"); assert.equal(manifest.reprocessing.network_requests, 0);
+  assert.equal(manifest.reprocessing.parent_manifest_sha256, original.manifest_sha256);
+  for (const name of ["selected-features.jsonl", "source-observation.json", "publisher-metadata.xml"]) {
+    assert.deepEqual(await readFile(path.join(path.dirname(result.manifest_path), name)), await readFile(path.join(path.dirname(original.manifest_path), name)));
+    assert.equal(manifest.artifacts.find((entry) => entry.path === name).sha256, oldManifest.artifacts.find((entry) => entry.path === name).sha256);
+  }
+  assert.deepEqual(await readFile(path.join(path.dirname(result.manifest_path), "reprocessing-parent-manifest.json")), originalManifestBytes);
+  assert.deepEqual(await readFile(path.join(originalRoot, "current.json")), originalPointer);
+  assert.deepEqual(await readFile(original.manifest_path), originalManifestBytes);
+  const records = (await readFile(path.join(path.dirname(result.manifest_path), "normalized.jsonl"), "utf8")).trimEnd().split("\n").map(JSON.parse);
+  assert.equal(records[0].industry.sessions_source, "Morning\nAfternoon");
+  assert.equal(records[0].provenance.observed_at, oldManifest.observed_at);
+  assert.equal(records[0].provenance.transformation_version, "nj-childcare-normalization@1.0.1");
+  assert.equal((await verifyNjChildcareRelease(original.manifest_path)).artifact_count, 5);
+  assert.equal((await verifyNjChildcareRelease(result.manifest_path)).artifact_count, 6);
+});
+
+test("NJ reprocessing rejects unsafe lineage, unknown versions and clocks without modifying original evidence", async (t) => {
+  const root = await workspace(t), original = await build(path.join(root, "original"));
+  const outputRoot = path.join(root, "new"), result = await reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now });
+  await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot, fetchImpl: fixture() }), /unsupported/);
+  await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot: path.join(root, "original") }), /outside the parent/);
+  await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot: path.dirname(original.manifest_path) }), /outside the parent/);
+  await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now: () => new Date("2000-01-01T00:00:00.000Z") }), /clock/);
+  await assert.rejects(reprocessNjChildcareRelease(result.manifest_path, { outputRoot: path.join(root, "third") }), /original 1.0.0/);
+  const manifestBytes = await readFile(result.manifest_path), parentPath = path.join(path.dirname(result.manifest_path), "reprocessing-parent-manifest.json"), parentBytes = await readFile(parentPath);
+  for (const change of [
+    (m) => { m.transformation_version = "nj-childcare-normalization@1.0.0"; },
+    (m) => { m.reprocessing.parent_manifest_artifact = "../../original/manifest.json"; },
+    (m) => { m.reprocessing.parent_manifest_sha256 = "0".repeat(64); },
+    (m) => { m.processed_at = "2026-09-07T20:00:00Z"; },
+    (m) => { m.reprocessing.network_requests = 1; },
+  ]) {
+    const manifest = JSON.parse(manifestBytes); change(manifest); await writeFile(result.manifest_path, JSON.stringify(manifest));
+    await assert.rejects(verifyNjChildcareRelease(result.manifest_path)); await writeFile(result.manifest_path, manifestBytes);
+  }
+  const parent = JSON.parse(parentBytes); parent.counts.accepted--;
+  const forged = Buffer.from(JSON.stringify(parent)), manifest = JSON.parse(manifestBytes);
+  const digest = createHash("sha256").update(forged).digest("hex");
+  manifest.reprocessing.parent_manifest_sha256 = digest;
+  Object.assign(manifest.artifacts.find((artifact) => artifact.path === "reprocessing-parent-manifest.json"), { sha256: digest, bytes: forged.length });
+  await writeFile(parentPath, forged); await writeFile(result.manifest_path, JSON.stringify(manifest));
+  await assert.rejects(verifyNjChildcareRelease(result.manifest_path), /parent lineage/);
+  await writeFile(parentPath, parentBytes); await writeFile(result.manifest_path, manifestBytes);
+  assert.equal((await verifyNjChildcareRelease(original.manifest_path)).status, "verified");
+});
+
+test("NJ reprocessing cancellation and shared publication lock preserve both original and prior outputs", async (t) => {
+  const root = await workspace(t), original = await build(path.join(root, "original")), outputRoot = path.join(root, "reprocessed");
+  const first = await reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now });
+  const pointer = await readFile(path.join(outputRoot, "current.json"));
+  for (const phase of ["verify-parent", "reuse", "normalize", "verify", "before-commit"]) {
+    const abort = new AbortController();
+    await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now, signal: abort.signal,
+      logger: (entry) => { if (entry === phase) abort.abort(); },
+    }), { name: "AbortError" });
+    assert.deepEqual(await readdir(path.join(outputRoot, ".staging")), []);
+    assert.deepEqual(await readFile(path.join(outputRoot, "current.json")), pointer);
+  }
+  let entered, release;
+  const blocked = new Promise((resolve) => { entered = resolve; }), gate = new Promise((resolve) => { release = resolve; });
+  const running = reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now, logger: async (phase) => {
+    if (phase === "reuse") { entered(); await gate; }
+  } });
+  await blocked;
+  try { await assert.rejects(reprocessNjChildcareRelease(original.manifest_path, { outputRoot, now }), { code: "EEXIST" }); }
+  finally { release(); }
+  await running;
+  assert.equal((await verifyNjChildcareRelease(first.manifest_path)).status, "verified");
+  assert.equal((await verifyNjChildcareRelease(original.manifest_path)).status, "verified");
 });

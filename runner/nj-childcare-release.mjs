@@ -4,7 +4,7 @@ import path from "node:path";
 import { setImmediate as yieldLoop } from "node:timers/promises";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 import { acquireNjChildcare } from "./nj-childcare-acquisition.mjs";
-import { normalizeNjChildcareFeature, NJ_CHILDCARE_TRANSFORMATION } from "./nj-childcare-normalization.mjs";
+import { normalizeNjChildcareFeature, NJ_CHILDCARE_TRANSFORMATION, NJ_CHILDCARE_REPROCESS_TRANSFORMATION } from "./nj-childcare-normalization.mjs";
 import { NJ_CHILDCARE_LAYER, NJ_CHILDCARE_ITEM_URL, NJ_CHILDCARE_SCHEMA } from "./nj-childcare-preflight.mjs";
 import { NJ_CHILDCARE_METADATA_URL } from "./nj-childcare-metadata.mjs";
 
@@ -22,6 +22,8 @@ const policy = { profile: "njdep-childcare-local-review@1.0.0", export: "local-r
   legal_approval: false };
 const files = [["selected-features.jsonl", "internal"], ["normalized.jsonl", "local-review-only"],
   ["quarantine.jsonl", "internal"], ["source-observation.json", "internal"], ["publisher-metadata.xml", "internal"]];
+const parentFile = ["reprocessing-parent-manifest.json", "internal"];
+const filesFor = (version) => version === "1.0.1" ? [...files, parentFile] : files;
 function requireValue(ok, label) { if (!ok) throw new Error(`New Jersey childcare release rejected: ${label}.`); }
 async function canonical(target, create = false) {
   const absolute = path.resolve(target); assertInsideApp(absolute);
@@ -66,7 +68,7 @@ async function replay(source, xml, signal) {
   requireValue(json(result.source) === json(source), "acquisition replay differs from retained source");
   return result.features;
 }
-async function derive(features, source, runId, signal, xml) {
+async function derive(features, source, runId, signal, xml, transformationVersion = NJ_CHILDCARE_TRANSFORMATION) {
   requireValue(json(features) === json(await replay(source, xml, signal)), "selected features differ from acquisition replay");
   const stableSource = Object.fromEntries(Object.entries(source).filter(([key]) => !["started_at", "observed_at", "observations"].includes(key)));
   const featureHashes = [];
@@ -83,7 +85,7 @@ async function derive(features, source, runId, signal, xml) {
     requireValue(json(Object.keys(feature.attributes).sort()) === json(NJ_CHILDCARE_SCHEMA.map(([n]) => n).sort()) && Object.keys(feature).every((k) => ["attributes", "geometry"].includes(k)), "private/selected field drift");
     requireValue(!feature.geometry || (Object.keys(feature.geometry).every((key) => ["x", "y", "spatialReference"].includes(key))
       && (!feature.geometry.spatialReference || Object.keys(feature.geometry.spatialReference).every((key) => ["wkid", "latestWkid"].includes(key)))), "private geometry field drift");
-    try { normalized.push(normalizeNjChildcareFeature(feature, { runId, sourceReleaseId, observedAt: source.observed_at, outputWkid: 4326, downloadDateEpochMs: source.download_date_epoch_ms })); }
+    try { normalized.push(normalizeNjChildcareFeature(feature, { runId, sourceReleaseId, observedAt: source.observed_at, outputWkid: 4326, downloadDateEpochMs: source.download_date_epoch_ms, transformationVersion })); }
     catch (error) {
       if (error.code !== "NJ_CHILDCARE_RECORD_REJECTED") throw error;
       quarantine.push({ source_object_id: feature.attributes.OBJECTID, input_feature_sha256: sha(json(feature)), reason: error.reason });
@@ -92,13 +94,15 @@ async function derive(features, source, runId, signal, xml) {
   requireValue(normalized.length > 0 && quarantine.length / features.length <= 0.05, "quarantine gate exceeds 5% or no accepted records");
   return { sourceReleaseId, normalized, quarantine, counts: { selected: features.length, accepted: normalized.length, quarantined: quarantine.length } };
 }
-function manifestFor(runId, source, result, artifacts, connectorVersion = "1.0.0") {
-  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: connectorVersion, transformation_version: NJ_CHILDCARE_TRANSFORMATION,
+function manifestFor(runId, source, result, artifacts, connectorVersion = "1.0.0", processing) {
+  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: connectorVersion,
+    transformation_version: connectorVersion === "1.0.1" ? NJ_CHILDCARE_REPROCESS_TRANSFORMATION : NJ_CHILDCARE_TRANSFORMATION,
     run_id: runId, release_id: `nj-childcare-${runId}`, source_release_id: result.sourceReleaseId, status: "complete", observed_at: source.observed_at,
     source_url: NJ_CHILDCARE_LAYER, policy, counts: result.counts, quarantine_max_fraction: 0.05,
     scope: "NJDEP/DCF licensed childcare center source records, New Jersey; public-school facilities included, not all childcare businesses",
     claims: { active_business_verified: false, unique_business_identity_verified: false, national_coverage_complete: false, current_usps_validity_verified: false, disappearance_means_closure: false },
-    evidence_limit: "Full parsed JSON responses and raw XML replay the acquisition contract offline. This is not provider authenticity, transactional snapshot isolation, XML schema validation or proof of current business operation.", artifacts };
+    evidence_limit: "Full parsed JSON responses and raw XML replay the acquisition contract offline. This is not provider authenticity, transactional snapshot isolation, XML schema validation or proof of current business operation.", artifacts,
+    ...(connectorVersion === "1.0.1" ? { processed_at: processing.processed_at, reprocessing: processing.reprocessing } : {}) };
 }
 async function contents(features, source, result, signal, xml) {
   const values = [];
@@ -114,8 +118,8 @@ async function linesFor(rows, signal) {
   }
   return lines.join("");
 }
-function descriptors(values, result) {
-  return files.map(([filename, exportPolicy], i) => ({ path: filename, sha256: sha(values[i]), bytes: Buffer.byteLength(values[i]), records: [result.counts.selected, result.counts.accepted, result.counts.quarantined, 1, 1][i], export_policy: exportPolicy }));
+function descriptors(values, result, version = "1.0.0") {
+  return filesFor(version).map(([filename, exportPolicy], i) => ({ path: filename, sha256: sha(values[i]), bytes: Buffer.byteLength(values[i]), records: [result.counts.selected, result.counts.accepted, result.counts.quarantined, 1, 1, 1][i], export_policy: exportPolicy }));
 }
 async function boundedRead(filename, maximum, signal) {
   await canonical(filename); const info = await lstat(filename, { bigint: true });
@@ -140,17 +144,35 @@ async function durableWrite(filename, value, signal) {
   try { await handle.writeFile(value, { signal }); signal?.throwIfAborted(); await handle.sync(); }
   finally { await handle.close(); }
 }
-export async function verifyNjChildcareRelease(manifestPath, { signal } = {}) {
+async function verifiedParent(parentBytes, features, source, xml, signal) {
+  requireValue(parentBytes.length <= 100000, "parent manifest size");
+  const parent = JSON.parse(parentBytes.toString("utf8"));
+  requireValue(parent.connector_version === "1.0.0" && uuid.test(parent.run_id)
+    && parent.release_id === `nj-childcare-${parent.run_id}`, "parent must be an original 1.0.0 release");
+  const original = await derive(features, source, parent.run_id, signal, xml, NJ_CHILDCARE_TRANSFORMATION);
+  const originalValues = await contents(features, source, original, signal, xml);
+  requireValue(json(parent) === json(manifestFor(parent.run_id, source, original, descriptors(originalValues, original))), "parent lineage differs from original evidence replay");
+  return parent;
+}
+function processingFor(parentBytes, parent, processedAt) {
+  requireValue(utc(processedAt) && processedAt >= parent.observed_at, "reprocessing clock");
+  return { processed_at: processedAt, reprocessing: { mode: "local-retained-evidence", network_requests: 0,
+    parent_release_id: parent.release_id, parent_source_release_id: parent.source_release_id,
+    parent_manifest_sha256: sha(parentBytes), parent_manifest_artifact: parentFile[0],
+    parent_transformation_version: NJ_CHILDCARE_TRANSFORMATION } };
+}
+async function readVerifiedRelease(manifestPath, { signal } = {}) {
   signal?.throwIfAborted(); const resolved = await canonical(manifestPath);
   requireValue(path.basename(resolved) === "manifest.json", "manifest filename");
   const directory = path.dirname(resolved), rawManifest = await boundedRead(resolved, 100000, signal), manifest = JSON.parse(rawManifest.toString("utf8"));
   requireValue(uuid.test(manifest.run_id) && manifest.release_id === `nj-childcare-${manifest.run_id}`, "run/release identity");
-  requireValue(manifest.connector_version === "1.0.0", "connector version");
+  requireValue(["1.0.0", "1.0.1"].includes(manifest.connector_version), "connector version");
+  const releaseFiles = filesFor(manifest.connector_version);
   const parent = path.basename(path.dirname(directory));
   requireValue((parent === ".staging" && path.basename(directory) === manifest.run_id) || (parent === "releases" && path.basename(directory) === manifest.release_id), "manifest directory identity");
-  requireValue(json((await readdir(directory)).sort()) === json([...files.map(([f]) => f), "manifest.json"].sort()), "missing/extra artifacts");
+  requireValue(json((await readdir(directory)).sort()) === json([...releaseFiles.map(([f]) => f), "manifest.json"].sort()), "missing/extra artifacts");
   const values = [];
-  for (const [filename] of files) { signal?.throwIfAborted(); values.push(await boundedRead(path.join(directory, filename), filename === "publisher-metadata.xml" ? 1_000_000 : filename === "source-observation.json" ? 150_000_000 : 100_000_000, signal)); }
+  for (const [filename] of releaseFiles) { signal?.throwIfAborted(); values.push(await boundedRead(path.join(directory, filename), filename === parentFile[0] ? 100000 : filename === "publisher-metadata.xml" ? 1_000_000 : filename === "source-observation.json" ? 150_000_000 : 100_000_000, signal)); }
   const parseLines = async (bytes) => {
     const text = bytes.toString("utf8");
     requireValue(text === "" || text.endsWith("\n"), "JSONL termination"); const rows = [];
@@ -158,19 +180,55 @@ export async function verifyNjChildcareRelease(manifestPath, { signal } = {}) {
       if (index % 100 === 0) { await yieldLoop(); signal?.throwIfAborted(); } rows.push(JSON.parse(line));
     } return rows;
   };
-  const features = await parseLines(values[0]), source = JSON.parse(values[3].toString("utf8")), result = await derive(features, source, manifest.run_id, signal, values[4]);
+  const features = await parseLines(values[0]), source = JSON.parse(values[3].toString("utf8"));
+  let processing;
+  if (manifest.connector_version === "1.0.1") {
+    const parentManifest = await verifiedParent(values[5], features, source, values[4], signal);
+    requireValue(parentManifest.run_id !== manifest.run_id, "reprocessing must have a new run identity");
+    processing = processingFor(values[5], parentManifest, manifest.processed_at);
+  }
+  const result = await derive(features, source, manifest.run_id, signal, values[4], manifest.connector_version === "1.0.1" ? NJ_CHILDCARE_REPROCESS_TRANSFORMATION : NJ_CHILDCARE_TRANSFORMATION);
   const reproduced = await contents(features, source, result, signal, values[4]);
+  if (processing) reproduced.push(values[5]);
   requireValue(values.every((value, index) => value.equals(Buffer.from(reproduced[index]))), "normalized/quarantine/source bytes differ from reproduction");
-  const expected = manifestFor(manifest.run_id, source, result, descriptors(values, result), manifest.connector_version);
+  const expected = manifestFor(manifest.run_id, source, result, descriptors(values, result, manifest.connector_version), manifest.connector_version, processing);
   requireValue(json(manifest) === json(expected), "manifest identity, counts, policy or artifact integrity");
   signal?.throwIfAborted();
-  return { status: "verified", release_id: manifest.release_id, manifest_path: resolved, manifest_sha256: sha(rawManifest), counts: result.counts, artifact_count: 5 };
+  return { verification: { status: "verified", release_id: manifest.release_id, manifest_path: resolved, manifest_sha256: sha(rawManifest), counts: result.counts, artifact_count: releaseFiles.length },
+    manifest, rawManifest, values, features, source };
+}
+export async function verifyNjChildcareRelease(manifestPath, { signal } = {}) {
+  return (await readVerifiedRelease(manifestPath, { signal })).verification;
 }
 export async function buildNjChildcareRelease(options = {}) {
   requireValue(options && typeof options === "object" && !Array.isArray(options) && Object.keys(options).every((key) => ["outputRoot", "fetchImpl", "signal", "sleep", "timeoutMs", "now", "logger"].includes(key)), "unsupported options");
   const { outputRoot = path.join(APP_ROOT, "data/business-sources", DATASET), logger = () => {}, ...transport } = options;
-  delete transport.logger;
-  requireValue(typeof logger === "function", "logger"); const { signal } = transport; signal?.throwIfAborted();
+  return publishRelease({ outputRoot, logger, signal: transport.signal }, async () => {
+    const { features, source, publisher_metadata } = await acquireNjChildcare(transport);
+    return { features, source, xml: publisher_metadata.before.raw, version: "1.0.0" };
+  });
+}
+export async function reprocessNjChildcareRelease(inputManifestPath, options = {}) {
+  requireValue(options && typeof options === "object" && !Array.isArray(options)
+    && Object.keys(options).every((key) => ["outputRoot", "signal", "logger", "now"].includes(key)), "unsupported reprocessing options");
+  const { outputRoot = path.join(APP_ROOT, "data/business-sources", `${DATASET}-reprocessed`), signal, logger = () => {}, now = () => new Date() } = options;
+  requireValue(typeof logger === "function" && typeof now === "function", "reprocessing logger/clock");
+  signal?.throwIfAborted();
+  await logger("verify-parent");
+  const captured = await readVerifiedRelease(inputManifestPath, { signal });
+  requireValue(captured.manifest.connector_version === "1.0.0", "parent must be an original 1.0.0 release");
+  const inputRoot = path.dirname(path.dirname(path.dirname(captured.verification.manifest_path)));
+  const destination = await canonical(outputRoot);
+  const relative = path.relative(inputRoot, destination);
+  requireValue(relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative), "reprocessing output must be outside the parent source tree");
+  const processing = processingFor(captured.rawManifest, captured.manifest, now().toISOString());
+  return publishRelease({ outputRoot: destination, signal, logger, acquirePhase: "reuse" }, async () => ({
+    features: captured.features, source: captured.source, xml: captured.values[4], parentBytes: captured.rawManifest,
+    version: "1.0.1", processing,
+  }));
+}
+async function publishRelease({ outputRoot, logger, signal, acquirePhase = "acquire" }, loadEvidence) {
+  requireValue(typeof logger === "function", "logger"); signal?.throwIfAborted();
   const root = await canonical(outputRoot, true), stagingRoot = await canonical(path.join(root, ".staging"), true), releasesRoot = await canonical(path.join(root, "releases"), true);
   const lockPath = path.join(root, ".publish.lock"), lock = await open(lockPath, "wx"), runId = randomUUID(), lockIdentity = await lock.stat({ bigint: true });
   const staging = path.join(stagingRoot, runId), release = path.join(releasesRoot, `nj-childcare-${runId}`), pointerTemp = path.join(root, `.current-${runId}.tmp`);
@@ -190,16 +248,19 @@ export async function buildNjChildcareRelease(options = {}) {
   }
   try {
     await lock.writeFile(json({ run_id: runId, pid: process.pid })); await lock.sync(); await mkdir(staging); stagingIdentity = await lstat(staging, { bigint: true });
-    await logger("acquire"); signal?.throwIfAborted(); const { features, source, publisher_metadata } = await acquireNjChildcare(transport);
-    const xml = publisher_metadata.before.raw;
+    await logger(acquirePhase); signal?.throwIfAborted();
+    const { features, source, xml, parentBytes, version, processing } = await loadEvidence();
     // Preserve completed acquisition evidence even when later normalization fails.
     await durableWrite(path.join(staging, files[0][0]), await linesFor(features, signal), signal);
     await durableWrite(path.join(staging, files[3][0]), `${json(source)}\n`, signal);
     await durableWrite(path.join(staging, files[4][0]), xml, signal);
+    if (parentBytes) await durableWrite(path.join(staging, parentFile[0]), parentBytes, signal);
     await logger("normalize"); signal?.throwIfAborted();
-    const result = await derive(features, source, runId, signal, xml), values = await contents(features, source, result, signal, xml);
+    const result = await derive(features, source, runId, signal, xml, version === "1.0.1" ? NJ_CHILDCARE_REPROCESS_TRANSFORMATION : NJ_CHILDCARE_TRANSFORMATION);
+    const values = await contents(features, source, result, signal, xml);
+    if (parentBytes) values.push(parentBytes);
     for (const i of [1, 2]) { signal?.throwIfAborted(); await durableWrite(path.join(staging, files[i][0]), values[i], signal); }
-    const manifest = manifestFor(runId, source, result, descriptors(values, result));
+    const manifest = manifestFor(runId, source, result, descriptors(values, result, version), version, processing);
     await durableWrite(path.join(staging, "manifest.tmp"), `${json(manifest)}\n`, signal);
     await rename(path.join(staging, "manifest.tmp"), path.join(staging, "manifest.json"));
     await logger("verify"); const verification = await verifyNjChildcareRelease(path.join(staging, "manifest.json"), { signal });
