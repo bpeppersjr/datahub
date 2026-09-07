@@ -7,12 +7,14 @@ import { APP_ROOT } from "./paths.mjs";
 import { publishNyRetailFoodStoresStaging, verifyNyRetailFoodStores } from "./ny-retail-food-stores.mjs";
 import { publishCaAbcActiveLicenseSitesStaging, verifyCaAbcActiveLicenseSites } from "./ca-abc-active-license-sites.mjs";
 import { publishWaLniActiveContractorStaging, verifyWaLniActiveContractors } from "./wa-lni-active-contractor-licenses.mjs";
+import { publishDcBasicBusinessLicensesStaging, verifyDcBasicBusinessLicenses } from "./dc-basic-business-licenses.mjs";
 
 const DEFINITION = "config/migrations/normalized-us-postal-fields-v1.json";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const RELEASE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const SOURCES = Object.freeze({
+  dcBasicBusinessLicenses: { datasetId: "dc-basic-business-license-sites", status: "complete", importGeneratedStaging: true, verify: verifyDcBasicBusinessLicenses, publish: publishDcBasicBusinessLicensesStaging },
   nyRetailFoodStores: { datasetId: "ny-retail-food-store-license-sites", verify: verifyNyRetailFoodStores, publish: publishNyRetailFoodStoresStaging },
   caAbcActiveLicenses: { datasetId: "ca-abc-active-license-sites", verify: verifyCaAbcActiveLicenseSites, publish: publishCaAbcActiveLicenseSitesStaging },
   waLniActiveContractors: { datasetId: "wa-lni-active-contractor-organizations", verify: verifyWaLniActiveContractors, publish: publishWaLniActiveContractorStaging },
@@ -53,14 +55,16 @@ export async function importIndustryCandidate({ root = APP_ROOT, sourceKey, sour
     const manifestLink = await lstat(manifestPath); if (!manifestLink.isFile() || manifestLink.isSymbolicLink()) throw new Error("Source manifest must be a regular file.");
     const manifestBytes = await readFile(manifestPath); const manifestHash = { bytes: manifestBytes.length, sha256: createHash("sha256").update(manifestBytes).digest("hex") }; if (manifestHash.sha256 !== expectedManifestSha256) throw new Error("Source manifest SHA-256 does not match the expected hash.");
     const manifest = JSON.parse(manifestBytes.toString("utf8"));
-    if (manifest.dataset_id !== source.datasetId || manifest.release_id !== expectedReleaseId || manifest.status !== "published" || !UUID.test(manifest.run_id ?? "") || !Array.isArray(manifest.artifacts) || !manifest.artifacts.length) throw new Error("Source manifest is not a complete expected published release.");
+    if (manifest.dataset_id !== source.datasetId || manifest.release_id !== expectedReleaseId || manifest.status !== (source.status ?? "published") || (!source.importGeneratedStaging && !UUID.test(manifest.run_id ?? "")) || !Array.isArray(manifest.artifacts) || !manifest.artifacts.length) throw new Error("Source manifest is not a complete expected published release.");
+    const stagingRunId=source.importGeneratedStaging?receipt.import_id:manifest.run_id;
+    receipt.import_staging_run_id=stagingRunId;
     for (const artifact of manifest.artifacts) artifactPath(artifact.path);
     const verify = dependencies.verifiers?.[sourceKey] ?? source.verify; const publish = dependencies.publishers?.[sourceKey] ?? source.publish;
     const candidatePointer = path.join(candidateRoot, "current.json");
     for (const [target, label] of [[path.join(candidateRoot, ".staging"), "Candidate staging root"], [path.join(candidateRoot, "releases"), "Candidate releases root"], [candidatePointer, "Candidate pointer"]]) await rejectLinkedAncestors(resolvedRoot, target, label);
     const pointerBefore = await optionalHash(candidatePointer); receipt.pointer_before_sha256 = pointerBefore.sha256;
     await verify(manifestPath); abort(signal);
-    const staging = path.join(candidateRoot, ".staging", manifest.run_id); const release = path.join(candidateRoot, "releases", manifest.release_id); receipt.staging = path.relative(resolvedRoot, staging).replaceAll("\\", "/"); receipt.release = path.relative(resolvedRoot, release).replaceAll("\\", "/");
+    const staging = path.join(candidateRoot, ".staging", stagingRunId); const release = path.join(candidateRoot, "releases", manifest.release_id); receipt.staging = path.relative(resolvedRoot, staging).replaceAll("\\", "/"); receipt.release = path.relative(resolvedRoot, release).replaceAll("\\", "/");
     for (const [destination, label] of [[staging, "staging run"], [release, "release"]]) { try { await stat(destination); throw new Error(`Candidate ${label} already exists.`); } catch (error) { if (error.code !== "ENOENT") throw error; } }
     await mkdir(path.dirname(staging), { recursive: true }); await mkdir(staging, { recursive: false });
     await writeFile(path.join(staging, "manifest.json"), manifestBytes, { flag: "wx" });
@@ -77,7 +81,7 @@ export async function importIndustryCandidate({ root = APP_ROOT, sourceKey, sour
     await dependencies.beforePublish?.({ sourceKey, candidateRoot, candidatePointer, pointerBefore }); abort(signal);
     if ((await hashFile(path.join(staging, "manifest.json"))).sha256 !== expectedManifestSha256) throw new Error("Staged manifest changed before publication.");
     const pointerRecheck = await optionalHash(candidatePointer); if (JSON.stringify(pointerRecheck) !== JSON.stringify(pointerBefore)) throw new Error("Candidate pointer changed before publication.");
-    publicationAttempted = true; published = await publish({ outputRoot: candidateRoot, stagingRunId: manifest.run_id, expectedReleaseId });
+    publicationAttempted = true; published = await publish({ outputRoot: candidateRoot, stagingRunId, expectedReleaseId });
     const publishedManifestHash = await hashFile(path.join(published.releaseDirectory, "manifest.json")); if (publishedManifestHash.sha256 !== expectedManifestSha256) throw new Error("Published candidate manifest bytes changed.");
     await verify(path.join(published.releaseDirectory, "manifest.json"));
     Object.assign(receipt, { status: "succeeded", finished_at: new Date().toISOString(), source_pointer: path.relative(resolvedRoot, pointerPath).replaceAll("\\", "/"), candidate_pointer: path.relative(resolvedRoot, published.pointerPath).replaceAll("\\", "/"), release_id: manifest.release_id, run_id: manifest.run_id, manifest_sha256: publishedManifestHash.sha256, artifact_count: manifest.artifacts.length, pointer_before_sha256: pointerBefore.sha256, pointer_after_sha256: (await hashFile(published.pointerPath)).sha256 });

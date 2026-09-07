@@ -6,6 +6,7 @@ import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
 import { importIndustryCandidate } from './import-industry-candidate.mjs';
 import { buildNyRetailFoodStores, NY_RETAIL_FOOD_SCHEMA, verifyNyRetailFoodStores } from './ny-retail-food-stores.mjs';
+import { buildDcBasicBusinessLicenses, DC_BASIC_BUSINESS_LICENSE_SCHEMA, verifyDcBasicBusinessLicenses } from './dc-basic-business-licenses.mjs';
 
 const digest = (value) => createHash('sha256').update(value).digest('hex');
 const candidateRelative = 'data/migrations/normalized-us-postal-fields-v1/sources/nyRetailFoodStores';
@@ -60,6 +61,49 @@ test('candidate import preserves a real verified release and leaves source/produ
     assert.deepEqual(await readFile(path.join(result.releaseDirectory, artifact.path)), await readFile(path.join(f.built.releaseDirectory, artifact.path)));
   }
   await assert.rejects(importIndustryCandidate(f.options), /exist|already|collision/i);
+});
+
+async function dcFixture(t) {
+  const f=await fixture(t),sourceRoot=path.join(f.root,'data/industry-refresh/dc');
+  const built=await buildDcBasicBusinessLicenses({outputRoot:sourceRoot,zbpPointer:path.join(f.root,'baseline/current.json'),
+    layerMetadata:{name:'Basic Business License',type:'Table',objectIdField:'OBJECTID',globalIdField:'GLOBALID',maxRecordCount:2000,capabilities:'Query,Extract',fields:DC_BASIC_BUSINESS_LICENSE_SCHEMA.map(([name,type,length])=>({name,type,...(length?{length}:{})}))},
+    sourceRecords:[{CUSTOMERNUMBER:'500526000983',LICENSESTATUS:'Active',LICENSETYPE:'Business License',BUSINESSACTIVITY:'Grocery Store',
+      LICENSEENDDATE:Date.parse('2028-07-31T04:00:00Z'),LICENSESTARTDATE:Date.parse('2026-08-01T04:00:00Z'),LICENSESTATUSDATE:Date.parse('2026-08-01T04:00:00Z'),INITIALISSUEDATE:Date.parse('2020-08-01T04:00:00Z'),
+      PREMISEADDRESS:'624 DELAWARE AVE, DELMAR, NY, 12054-1234, USA',PREMISEINDC:'No',ENTITYNAME:'FIXTURE MARKET LLC',ENTITYTRADENAME:'FIXTURE MARKET',
+      DATAREFRESHEDON:Date.parse('2026-09-07T04:00:00Z'),GLOBALID:'{11111111-1111-1111-1111-111111111111}',OBJECTID:1}],
+    minimumActiveLicenseRecords:1,maximumQuarantineRate:0,logger:()=>{}});
+  const manifestBytes=await readFile(path.join(built.releaseDirectory,'manifest.json'));
+  const candidateRoot=path.join(f.root,'data/migrations/normalized-us-postal-fields-v1/sources/dcBasicBusinessLicenses');
+  await mkdir(candidateRoot,{recursive:true});await writeFile(path.join(candidateRoot,'current.json'),f.previousPointer);
+  const productionPath=path.join(f.root,'data/business-sources/dc-basic-business-license-sites/current.json');
+  await mkdir(path.dirname(productionPath),{recursive:true});await writeFile(productionPath,'untouched-dc-production');
+  return {...f,built,manifestBytes,candidateRoot,productionPath,options:{root:f.root,sourceKey:'dcBasicBusinessLicenses',sourcePointer:path.join(sourceRoot,'current.json'),expectedReleaseId:built.manifest.release_id,expectedManifestSha256:digest(manifestBytes)}};
+}
+
+test('DC candidate import accepts source-specific complete status and verifies unchanged artifacts without production writes',async(t)=>{
+  const f=await dcFixture(t),sourceBefore=await readFile(f.options.sourcePointer);
+  const result=await importIndustryCandidate(f.options);
+  assert.equal(result.receipt.status,'succeeded');assert.equal(result.receipt.source_key,'dcBasicBusinessLicenses');
+  assert.equal(result.pointerPath,path.join(f.candidateRoot,'current.json'));
+  assert.deepEqual(await readFile(path.join(result.releaseDirectory,'manifest.json')),f.manifestBytes);
+  assert.deepEqual(await readFile(f.options.sourcePointer),sourceBefore);
+  assert.equal(await readFile(f.productionPath,'utf8'),'untouched-dc-production');
+  const verified=await verifyDcBasicBusinessLicenses(path.join(result.releaseDirectory,'manifest.json'));
+  assert.equal(verified.coverage.normalized_licensed_sites,1);
+  await assert.rejects(importIndustryCandidate(f.options),/exists/);
+});
+
+test('DC import rejects forged completion, manifest pins and corrupted artifacts before candidate publication',async(t)=>{
+  for(const mutation of ['status','complete','hash','artifact']){
+    const f=await dcFixture(t);
+    if(mutation==='hash')f.options.expectedManifestSha256='0'.repeat(64);
+    else if(mutation==='artifact')await writeFile(path.join(f.built.releaseDirectory,f.built.manifest.artifacts[0].path),'bad');
+    else {const manifest=JSON.parse(f.manifestBytes);if(mutation==='status')manifest.status='published';else manifest.complete_source_selected_view=false;
+      const bytes=Buffer.from(JSON.stringify(manifest));await writeFile(path.join(f.built.releaseDirectory,'manifest.json'),bytes);f.options.expectedManifestSha256=digest(bytes);}
+    await assert.rejects(importIndustryCandidate(f.options));
+    assert.deepEqual(await readFile(path.join(f.candidateRoot,'current.json')),f.previousPointer);
+    assert.equal(await readFile(f.productionPath,'utf8'),'untouched-dc-production');
+  }
 });
 
 test('candidate import rejects a mismatched manifest pin and altered artifacts before publication', async (t) => {

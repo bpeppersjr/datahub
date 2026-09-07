@@ -2,6 +2,8 @@
 
 ## Objective
 
+Latest candidate handoff (2026-09-07): the verified app-owned D.C. refresh was imported without repull into its isolated migration candidate root, retaining all 21 artifacts and source provenance. Import receipt `5e87206a-acbb-4f59-98d3-6cb793016e30` succeeded; production still selects its prior D.C. release. Adapter verification passed 523 tests. Next is cohort change review and governed reconciliation/promotion; 25/25 candidate schema readiness alone is not permission to claim a new reporting cohort or accuracy approval.
+
 Latest app handoff (2026-09-07): D.C. connector contract 1.0.2 is enrolled in the cross-industry `local-business-licenses` bucket, with publisher-jurisdiction scope and local-review-only record outputs. [Coverage reassessment](STATE-COVERAGE-REASSESSMENT.md) resolves the post-rebuild historical-catalog gate using pinned old/new state evidence and current rank calculations without renewing source-policy decisions. Combined verification: 521 tests passed. The next D.C. operation is an isolated app-owned refresh; production import/promotion and recurring scheduling remain separate actions.
 
 Build a standalone, local-first data hub that can acquire, validate, normalize, reconcile, catalog, and publish mixed public and licensed datasets with durable workflows and operator-visible provenance.
