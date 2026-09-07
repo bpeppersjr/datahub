@@ -2,6 +2,8 @@
 
 ## Objective
 
+Massachusetts local integration preparation (2026-09-07): [verified registry conversion](MA-CHILDCARE-CONNECTOR.md#verified-local-registry-conversion) reuses the acquired immutable release, producing source-scoped provisional site/establishment assertions without downloads, ownership inference, automatic matching or reporting publication. The loader verifies membership and checksums before conversion. National writer/verifier, coordinate reporting and measured coverage integration remain explicit gates while the existing candidate reconciliation runs against pinned implementations.
+
 Massachusetts first live acquisition (2026-09-07): [independent release verification](MA-CHILDCARE-CONNECTOR.md#verified-first-acquisition) confirms app run `ma-app-acquisition-20260907-02` succeeded with 3,007 accepted center-based childcare program records and 9 quarantined rows out of 3,016. The standalone worker finished and released its locks. Reuse this immutable local-review release for subsequent registry integration; no repull, national completeness claim, or production promotion is needed to preserve the newly obtained evidence.
 
 Massachusetts app enrollment (2026-09-07): [managed childcare acquisition](MA-CHILDCARE-CONNECTOR.md#managed-industry-handoff) uses the existing standalone industry worker, source reservation, IPC cancellation and durable receipts. The new versioned source/policy contracts match the verified release builder. MA is acquisition-enabled; national reporting evidence remains unmeasured pending registry integration. No recurring cadence or production reporting promotion is implied.
