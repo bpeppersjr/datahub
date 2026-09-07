@@ -10,6 +10,7 @@ import { createGunzip, createGzip } from "node:zlib";
 import proj4 from "proj4";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 import { assertInsideApp } from "./paths.mjs";
+import { boundedJson, publisherRetryDelay } from "./source-http-guards.mjs";
 
 export const DC_BASIC_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DC_BASIC_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "dc-basic-business-licenses@1.0.1";
@@ -370,35 +371,46 @@ function validateDcUrl(value) {
   return url;
 }
 
-export async function requestDcArcGisJson(urlValue, { fetchImpl = fetch, signal, sleep = (milliseconds, options) => delay(milliseconds, undefined, options), method = "GET", body = null, attempts = 4 } = {}) {
+export async function requestDcArcGisJson(urlValue, { fetchImpl = fetch, signal, sleep = (milliseconds, options) => delay(milliseconds, undefined, options), method = "GET", body = null, attempts = 4, timeoutMs = 60_000, maximumResponseBytes = 50_000_000, now = () => new Date() } = {}) {
   const url = validateDcUrl(urlValue);
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) throw new Error("DC request attempts must be from 1 through 10.");
+  if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000) throw new Error("DC request timeout must be from 1 through 300000 milliseconds.");
+  if (!Number.isInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 50_000_000) throw new Error("DC response byte limit must be from 1 through 50000000.");
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
+    const deadline = new AbortController();
+    const timer = setTimeout(() => deadline.abort(new DOMException("DC source request timed out.", "TimeoutError")), timeoutMs);
+    const requestSignal = signal ? AbortSignal.any([signal, deadline.signal]) : deadline.signal;
+    let response;
+    let waitMs = Math.min(250 * (2 ** attempt), 2000);
     try {
-      const response = await fetchImpl(url, {
+      response = await fetchImpl(url, {
         method,
         body: body ? new URLSearchParams(body) : undefined,
         headers: body ? { "content-type": "application/x-www-form-urlencoded" } : undefined,
         redirect: "manual",
-        signal,
+        signal: requestSignal,
       });
       if (response.status >= 300 && response.status < 400) throw new Error(`DC ArcGIS redirect rejected (${response.status}).`);
       if (!response.ok) {
         const error = new Error(`DC ArcGIS request failed (${response.status}).`);
         error.retryable = response.status === 429 || response.status >= 500;
+        if (error.retryable) waitMs = publisherRetryDelay(response.headers.get("retry-after"), { fallbackMs: waitMs, now });
         throw error;
       }
-      const payload = await response.json();
+      const payload = await boundedJson(response, { signal: requestSignal, maximumBytes: maximumResponseBytes });
       if (payload?.error) throw new Error(`DC ArcGIS error: ${payload.error.message ?? "unknown error"}`);
       return payload;
     } catch (error) {
+      clearTimeout(timer);
+      if (response?.body && !response.body.locked) void response.body.cancel().catch(() => {});
       signal?.throwIfAborted();
       lastError = error;
-      const transient = error.retryable === true || error.name === "TypeError" || ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(error.code);
+      const transient = error.retryable === true || error.name === "TimeoutError" || error.name === "TypeError" || ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN"].includes(error.code);
       if (!transient || attempt + 1 >= attempts) throw error;
-      await sleep(Math.min(250 * (2 ** attempt), 2000), { signal });
-    }
+      await sleep(waitMs, { signal });
+    } finally { clearTimeout(timer); }
   }
   throw lastError;
 }

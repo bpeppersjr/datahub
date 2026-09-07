@@ -243,6 +243,8 @@ Source handoff follow-up (September 7): a parallel Alaska peer audit and D.C. in
 
 D.C. cancellation preparation: CLI IPC, native retry waits, stream backpressure/hash/reader cleanup, verifier abort propagation, and pre-publication checks now share the cancellation signal. Cancelled owned staging is removed without touching prior releases or sibling staging; ordinary failures stay inspectable. Six new offline tests include a real CLI child and pre-errored writer regression. Provider pacing/timeouts and updating the production-pinned connector JSON after the current run are still required before scheduler enrollment. See [D.C. cancellation boundaries](DC-BASIC-BUSINESS-LICENSES.md#cooperative-cancellation-preparation--september-7).
 
+D.C. network safeguards: shared HTTP guards now enforce streamed/declared response byte limits, a per-attempt deadline through body reading, publisher Retry-After delays without truncation, and fail-closed excessive wait deferral. Six offline network regressions complement cancellation tests. The production-pinned connector contract update and scheduler enrollment remain pending; no new provider request or production data change was made.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
