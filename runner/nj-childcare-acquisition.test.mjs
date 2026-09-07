@@ -109,6 +109,8 @@ test("NJ batch validation rejects private fields, date disagreement, missing/dup
     (p) => { p.features[0].attributes.owner = "private"; }, (p) => { p.features[0].attributes.download_date++; },
     (p) => { p.features[0].attributes.center_name = { owner: "private" }; },
     (p) => { p.features[0].attributes.center_name = ["private"]; },
+    (p) => { p.features[0].geometry.x = { owner: "private" }; },
+    (p) => { p.features[0].geometry.y = ["private"]; },
     (p) => { p.features[0].attributes.download_date = null; }, (p) => { p.features[0].center_email = "private"; },
     (p) => { p.features[0].geometry.extra = "private"; }, (p) => { p.spatialReference.latestWkid = 3857; },
     (p) => { p.features[0].geometry.spatialReference = { wkid: 4326, latestWkid: 3857 }; },

@@ -11,9 +11,21 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses"],
-    "childcare": ["state-ma-childcare"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare"]
   },
   "sources": {
+    "state-nj-childcare": {
+      "script": "scripts/build-nj-childcare.mjs",
+      "scope": "state",
+      "states": ["NJ"],
+      "state_filter_supported": false,
+      "prerequisites": [],
+      "coverage_notes": [
+        "NJDEP/DCF licensed childcare center locations in New Jersey, including facilities operating in public schools; family-home registration and licensing exemptions are separate. NJ and Massachusetts scopes are not identical denominators; no nationwide completeness percentage is established.",
+        "Active-layer membership, license dates and publisher coordinates are source assertions, not independent proof of current operations, occupancy, unique business identity or current USPS validity. ZIP5 and ZIP4 remain separate; business records contain latitude/longitude only.",
+        "Exactly 21 selected fields exclude owner, director, center_phone and center_email. Selected evidence stays internal; normalized records remain local-review-only with complete publisher metadata and required NJDEP notices. National integration remains separate; missing rows must not be interpreted as closures."
+      ]
+    },
     "state-ma-childcare": {
       "script": "scripts/build-ma-childcare.mjs",
       "scope": "state",

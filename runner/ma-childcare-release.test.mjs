@@ -7,6 +7,13 @@ import { MA_CHILDCARE_SCHEMA, MA_CHILDCARE_ITEM } from "./ma-childcare-preflight
 import { buildMaChildcareRelease, verifyMaChildcareRelease } from "./ma-childcare-release.mjs";
 
 const now = () => new Date("2026-09-07T20:00:00.000Z"), sleep = async () => {};
+test("MA release ownership checks request lossless filesystem identities", async () => {
+  const source = await readFile(new URL("./ma-childcare-release.mjs", import.meta.url), "utf8");
+  const calls = [...source.matchAll(/(?:\blstat|\.stat)\(([^)]*)\)/g)];
+  assert.equal(calls.length, 5);
+  for (const [call, args] of calls) assert.match(args, /\bbigint:\s*true\b/, call);
+});
+
 function fixture(change = () => {}, count = 20) {
   return async (url) => {
     const parsed = new URL(url), params = parsed.searchParams;

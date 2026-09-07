@@ -6,6 +6,13 @@ import { APP_ROOT } from "./paths.mjs";
 import { NJ_CHILDCARE_LAYER, NJ_CHILDCARE_ITEM, NJ_CHILDCARE_SCHEMA, inspectNjChildcareMetadata,
   preflightNjChildcare, writeNjChildcarePreflight } from "./nj-childcare-preflight.mjs";
 
+test("NJ receipt ownership checks request lossless filesystem identities", async () => {
+  const source = await readFile(new URL("./nj-childcare-preflight.mjs", import.meta.url), "utf8");
+  const calls = [...source.matchAll(/(?:\blstat|\.stat)\(([^)]*)\)/g)];
+  assert.equal(calls.length, 5);
+  for (const [call, args] of calls) assert.match(args, /\bbigint:\s*true\b/, call);
+});
+
 const metadata = () => ({ id: 4, name: "Child Care Centers", type: "Feature Layer", geometryType: "esriGeometryPoint",
   extent: { spatialReference: { wkid: 102100, latestWkid: 3857 } }, capabilities: "Map,Query,Data", maxRecordCount: 2000,
   advancedQueryCapabilities: { supportsPagination: true, supportsOrderBy: true, supportsStatistics: true },

@@ -1,0 +1,30 @@
+{
+  "policy_id": "njdep-childcare-local-review",
+  "version": "1.0.0",
+  "publisher": "New Jersey Department of Environmental Protection / Department of Children and Families",
+  "ownership": "Official public NJDEP distribution of DCF-derived licensed childcare center locations.",
+  "source_home": "https://www.nj.gov/dcf/divisions-offices/ool/",
+  "source_dataset": "https://mapsdep.nj.gov/arcgis/rest/services/Features/Structures/MapServer/4",
+  "terms_url": "https://njdep.maps.arcgis.com/sharing/rest/content/items/0bc9fe070d4c49e1a6555c3fdea15b8a",
+  "publisher_metadata_url": "https://njdep.maps.arcgis.com/sharing/rest/content/items/0bc9fe070d4c49e1a6555c3fdea15b8a/info/metadata/metadata.xml",
+  "catalog_item_id": "0bc9fe070d4c49e1a6555c3fdea15b8a",
+  "catalog_license": null,
+  "allowed_use": ["fixed public HTTPS layer, item, raw publisher metadata, count, date, ID inventory and selected-field queries", "immutable internal selected source retention with complete publisher metadata and terms", "local-review normalization preserving attribution, source CRS and semantic limitations"],
+  "prohibited_use": ["acquiring owner, director, center_phone, center_email or undeclared record attributes", "inferring current business operation, occupancy, ownership or corporate parents from center names or active-layer membership", "claiming complete childcare or unique-business coverage from licensed-center counts", "treating New Jersey public-school inclusion as the same denominator as Massachusetts center-based exclusions", "inferring closure from disappearance or source edits", "redistributing records or aggregate outputs as authorized by this release without a separate export approval"],
+  "field_export_policy": { "selected_source_snapshot": "internal", "normalized_center_records": "local-review-only", "quarantine_and_source_observations": "internal", "publisher_metadata": "internal-accompanying-evidence", "owner": "excluded-at-query-time", "director": "excluded-at-query-time", "center_phone": "excluded-at-query-time", "center_email": "excluded-at-query-time" },
+  "export_policy": "local-review-only",
+  "attribution": "New Jersey Department of Environmental Protection; New Jersey Department of Children and Families",
+  "publisher_notice_requirement": "Retain complete distribution terms in source-observation.json item payloads and publisher-metadata.xml unchanged. Any separately authorized reproduction or derived publication must accompany the data with complete publisher metadata and carry the prescribed NJDEP credit/disclaimer, not substitute generic attribution. Coordinate-reference integrity and third-party rights remain applicable.",
+  "coordinate_handling": "Retain source WKID 102100/latest 3857 evidence and explicit requested WGS84 4326 transformation. Normalized business records contain nullable latitude/longitude only; retained selected point features remain internal evidence.",
+  "retention": "Immutable local source evidence; operator-governed deletion. Ordinary failed staging remains inspectable. No automatic retention cleanup is implemented.",
+  "redistribution": "Not authorized by this release; local-review-only. Public source access and retained terms are not legal approval or evidence of unrestricted third-party rights.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Names and reported addresses may identify natural persons or sensitive locations. Selected raw evidence stays internal; normalized records stay local-review-only. Owner, director, phone and email fields are excluded at query time.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-07",
+  "evidence": {
+    "record": "docs/states/NJ-CHILDCARE-ACCESS-2026-09-07.md",
+    "basis": "Independent bounded public production layer/item/count/date inspection and raw publisher metadata utility evidence; full retained release metadata remains authoritative for each acquired version.",
+    "limitations": "Licensed-center scope includes facilities operating in public schools, unlike Massachusetts. Family-home registration and licensing exemptions are separate. Publisher download date, item modification and observation time are distinct; neither layer membership nor license dates prove current operations. No unique-business, current USPS or nationwide completeness denominator is established."
+  }
+}

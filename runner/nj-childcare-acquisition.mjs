@@ -51,6 +51,7 @@ function validateBatch(payload, ids, downloadDate) {
     const geometry = feature.geometry;
     if (geometry !== undefined && geometry !== null && (typeof geometry !== "object" || Array.isArray(geometry)
       || Object.keys(geometry).some((key) => !["x", "y", "spatialReference"].includes(key))
+      || [geometry.x, geometry.y].some((value) => value !== null && typeof value === "object")
       || (geometry.spatialReference !== undefined && !crsValid(geometry.spatialReference)))) {
       throw new Error("New Jersey childcare feature geometry fields or CRS changed.");
     }

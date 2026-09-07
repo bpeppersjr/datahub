@@ -209,23 +209,24 @@ export async function writeNjChildcarePreflight(receipt, options = {}) {
     signal?.throwIfAborted();
     root = path.join(root, segment);
     try { await mkdir(root); } catch (error) { if (error.code !== "EEXIST") throw error; }
-    if (await realpath(root) !== root || (await lstat(root)).isSymbolicLink()) throw new Error("Preflight receipt storage is redirected.");
+    if (await realpath(root) !== root || (await lstat(root, { bigint: true })).isSymbolicLink()) throw new Error("Preflight receipt storage is redirected.");
   }
   const id = randomUUID(), temporary = path.join(root, `${id}.tmp`), destination = path.join(root, `${id}.json`);
   const bytes = Buffer.from(`${JSON.stringify(receipt, null, 2)}\n`);
   let identity;
   try {
     const handle = await open(temporary, "wx");
-    try { identity = await handle.stat(); await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
+    // Keep Windows file identities exact when deciding whether cleanup owns a path.
+    try { identity = await handle.stat({ bigint: true }); await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
     signal?.throwIfAborted();
     if (await realpath(root) !== root) throw new Error("Preflight receipt storage is redirected.");
-    const current = await lstat(temporary);
+    const current = await lstat(temporary, { bigint: true });
     if (current.isSymbolicLink() || current.dev !== identity.dev || current.ino !== identity.ino) throw new Error("Preflight temporary ownership changed; inspection required.");
-    try { await lstat(destination); throw new Error("Preflight destination already exists."); } catch (error) { if (error.code !== "ENOENT") throw error; }
+    try { await lstat(destination, { bigint: true }); throw new Error("Preflight destination already exists."); } catch (error) { if (error.code !== "ENOENT") throw error; }
     await rename(temporary, destination);
   } catch (error) {
     if (identity && await realpath(root) === root) {
-      const current = await lstat(temporary).catch(() => null);
+      const current = await lstat(temporary, { bigint: true }).catch(() => null);
       if (current && !current.isSymbolicLink() && current.dev === identity.dev && current.ino === identity.ino) await rm(temporary);
     }
     throw error;

@@ -102,7 +102,7 @@ function descriptors(values, result) {
   return files.map(([filename, exportPolicy], i) => ({ path: filename, sha256: sha(values[i]), bytes: Buffer.byteLength(values[i]), records: [result.counts.selected, result.counts.accepted, result.counts.quarantined, 1][i], export_policy: exportPolicy }));
 }
 async function boundedRead(filename, maximum, signal) {
-  await canonical(filename); const info = await lstat(filename);
+  await canonical(filename); const info = await lstat(filename, { bigint: true });
   requireValue(info.isFile() && info.size <= maximum, "artifact type/size"); return readFile(filename, { encoding: "utf8", signal });
 }
 async function durableWrite(filename, value, signal) {
@@ -141,12 +141,13 @@ export async function buildMaChildcareRelease(options = {}) {
   delete transport.logger;
   requireValue(typeof logger === "function", "logger"); const { signal } = transport; signal?.throwIfAborted();
   const root = await canonical(outputRoot, true), stagingRoot = await canonical(path.join(root, ".staging"), true), releasesRoot = await canonical(path.join(root, "releases"), true);
-  const lockPath = path.join(root, ".publish.lock"), lock = await open(lockPath, "wx"), runId = randomUUID(), lockIdentity = await lock.stat();
+  // Windows file identities can exceed Number's exact integer range.
+  const lockPath = path.join(root, ".publish.lock"), lock = await open(lockPath, "wx"), runId = randomUUID(), lockIdentity = await lock.stat({ bigint: true });
   const staging = path.join(stagingRoot, runId), release = path.join(releasesRoot, `ma-childcare-${runId}`), pointerTemp = path.join(root, `.current-${runId}.tmp`);
   let committed = false, stagingIdentity, pointerIdentity, reportedFailure;
   async function owned(filename, identity) {
     if (!identity) return false;
-    try { await canonical(filename); const current = await lstat(filename); return !current.isSymbolicLink() && current.dev === identity.dev && current.ino === identity.ino; }
+    try { await canonical(filename); const current = await lstat(filename, { bigint: true }); return !current.isSymbolicLink() && current.dev === identity.dev && current.ino === identity.ino; }
     catch { return false; }
   }
   async function ownLock() {
@@ -158,7 +159,7 @@ export async function buildMaChildcareRelease(options = {}) {
     return Object.assign(new AggregateError(errors, "Massachusetts childcare ownership changed; inspection required. Foreign paths were preserved."), { code: "MA_CHILDCARE_INSPECTION_REQUIRED" });
   }
   try {
-    await lock.writeFile(json({ run_id: runId, pid: process.pid })); await lock.sync(); await mkdir(staging); stagingIdentity = await lstat(staging);
+    await lock.writeFile(json({ run_id: runId, pid: process.pid })); await lock.sync(); await mkdir(staging); stagingIdentity = await lstat(staging, { bigint: true });
     logger("acquire"); const { features, source } = await acquireMaChildcare(transport);
     logger("normalize"); signal?.throwIfAborted(); const result = await derive(features, source, runId, signal), values = await contents(features, source, result, signal);
     for (let i = 0; i < files.length; i++) { signal?.throwIfAborted(); await durableWrite(path.join(staging, files[i][0]), values[i], signal); }
@@ -175,7 +176,7 @@ export async function buildMaChildcareRelease(options = {}) {
     await canonical(path.join(root, "current.json"));
     const pointerHandle = await open(pointerTemp, "wx");
     try {
-      pointerIdentity = await pointerHandle.stat();
+      pointerIdentity = await pointerHandle.stat({ bigint: true });
       await pointerHandle.writeFile(`${json({ dataset_id: DATASET, release_id: manifest.release_id, manifest: `releases/${manifest.release_id}/manifest.json`, manifest_sha256: verification.manifest_sha256 })}\n`);
       await pointerHandle.sync();
     } finally { await pointerHandle.close(); }

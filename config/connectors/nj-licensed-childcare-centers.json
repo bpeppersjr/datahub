@@ -1,0 +1,36 @@
+{
+  "connector_id": "nj-licensed-childcare-centers",
+  "version": "1.0.0",
+  "description": "Acquires and verifies selected NJDEP/DCF licensed childcare center source records with full publisher metadata as an immutable local-review release; not a national registry adapter.",
+  "implementation_status": "standalone-acquisition-and-local-release",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": { "type": "object", "additionalProperties": false, "properties": { "output": { "type": "string", "minLength": 1, "default": "data/business-sources/nj-licensed-childcare-centers" } } },
+  "named_secret_references": [],
+  "input_artifact_types": ["njdep-dcf-selected-childcare-arcgis-features", "njdep-publisher-metadata-xml"],
+  "output_artifact_types": ["nj-childcare-selected-features-jsonl", "nj-childcare-normalized-center-jsonl", "nj-childcare-quarantine-jsonl", "nj-childcare-source-observation-json", "njdep-publisher-metadata-xml", "dataset-manifest-json"],
+  "output_schema_contract": {
+    "dataset_id": "nj-licensed-childcare-centers", "schema_version": "1.0.0", "transformation_version": "nj-childcare-normalization@1.0.0",
+    "artifacts": ["selected-features.jsonl", "normalized.jsonl", "quarantine.jsonl", "source-observation.json", "publisher-metadata.xml"],
+    "verification": "scripts/verify-nj-childcare.mjs takes an immutable manifest path, replays acquisition evidence and normalization, and verifies retained raw publisher XML; it does not take current.json.",
+    "postal_fields": "physical_address.zip_code and postal_code contain ZIP5 only; physical_address.zip4 is a separate four-digit string or null.",
+    "geocode": "Nullable latitude/longitude only on normalized entities. Internal selected features retain source point evidence; native Web Mercator 102100/latest 3857 and requested WGS84 4326 transformation remain explicit. No business polygons."
+  },
+  "allowed_hosts": ["mapsdep.nj.gov", "njdep.maps.arcgis.com"],
+  "redirect_policy": "Reject redirects. Only fixed production Structures MapServer/4 and /query paths, fixed public item and raw metadata.xml are requested. No caller URL, SQL or field override; do not follow embedded metadata links.",
+  "provider_budget_key": "njdep-dcf-licensed-childcare-centers-public-arcgis",
+  "resource_class": "bounded-network-memory-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1, "maximum_source_records": 20000, "maximum_batch_records": 100, "maximum_request_url_bytes": 2000,
+    "maximum_response_bytes": 8000000, "maximum_xml_response_bytes": 1000000, "maximum_cumulative_selected_response_bytes": 100000000,
+    "request_timeout_ms": 30000, "maximum_injected_request_timeout_ms": 60000, "maximum_request_attempts": 3,
+    "minimum_observation_spacing_ms": 1000, "maximum_retry_after_ms": 60000, "maximum_quarantine_rate": 0.05, "minimum_accepted_records": 1
+  },
+  "retry": "At most three bounded transient attempts with header/body deadlines and one-second observation spacing. Honor publisher Retry-After; waits above 60000ms defer. No retry for cancellation, redirects, scope/schema/format drift or quality failure. CLI exposes no transport or limit override.",
+  "checkpoint": "Before/after layer, item, raw XML, count, date and unique ID evidence must agree around selected batches. Retain complete JSON observations and unchanged XML bytes. This is not a transactional snapshot; acquisition resume and automatic crash recovery are not implemented.",
+  "idempotency": "Immutable UUID run-scoped releases retain source evidence and hashes. No freshness reuse, business deduplication, closure detection or temporal comparison is implied; repeated explicit acquisition may access the provider again.",
+  "cancellation": "Cooperative CLI signals and parent IPC abort requests, waits and precommit work. Preserve prior/sibling releases and ordinary failed staging; clean only owned staging on cooperative precommit cancellation. Publication uses an exclusive lock and a noninterruptible final commit. Abrupt termination or disk failure requires explicit inspection; no automatic stale-lock reclamation.",
+  "source_policy": "config/source-policies/njdep-childcare-local-review.json",
+  "retention_profile": "Immutable internal selected features, complete publisher metadata and source observations; local-review-only normalized records. Operator-governed deletion, no automatic cleanup.",
+  "produced_entities": ["licensed-childcare-center-source-record", "reported-center-location-assertion", "source-license-date-assertion"],
+  "produced_identifiers": ["new_jersey_dcf_center_id", "release-scoped-source-object-id", "zip5", "zip4"]
+}
