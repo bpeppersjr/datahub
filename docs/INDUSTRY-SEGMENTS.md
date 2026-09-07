@@ -25,3 +25,16 @@ Windows users can run `update-industry.bat plan --industry construction --state 
 Published source releases stay inside their run folder. They require a subsequent registry, resolution, benchmark, and coverage rebuild before appearing in production national views. Logs are local and inherit source-connector redaction behavior. An interrupted run is retained for inspection; start a new run ID to retry, since run folders cannot be overwritten. Automatic restart recovery and scheduling are not implemented by this CLI.
 
 Plans also report per-industry/state gaps where no state-scoped source is configured. An empty plan is a failed run. This runner does not download data during planning and has no AI or discovery behavior. Existing builder scripts remain the source of acquisition and validation policy; this layer only coordinates them.
+
+## Tax-exempt organization refresh
+
+The `tax-exempt-organizations` bucket runs the existing governed IRS EO BMF connector as `national-irs-eo-bmf`. This is a cross-industry source grouping, not a mutually exclusive industry classification. It covers the IRS current extract and reported filing addresses, not every nonprofit and not independently verified operating premises. It does not add a new Heatmap industry classification or change the national percentage denominator.
+
+```text
+update-industry.bat plan --industry tax-exempt-organizations --state NY,CA
+update-industry.bat run --industry tax-exempt-organizations --state NY,CA
+```
+
+The run acquires the four national regional files once; NY/CA selection does not reduce the source request scope. The verified Census ZBP baseline remains a prerequisite, followed by the connector's page/date, schema, regional byte/count, duplicate-EIN, quarantine, and normalized-field gates. No credentials or AI are required. The existing IRS policy retains raw regional CSVs internally, excludes personal contacts and financial amounts from normalized records, and permits only approved normalized exports with attribution and limitations.
+
+Optional per-source `coverage_notes` are validated, displayed in plan warnings, and persisted in the run receipt. The IRS notes explicitly preserve the cross-industry, address, operational-status, and export limitations. Cancellation propagates from the runner into the IRS request/stream/normalization lifecycle; once immutable publication begins it finishes its atomic pointer sequence. No live IRS refresh was started merely by adding this bucket. A completed refresh still requires the separate governed national reconciliation chain before appearing in production views.

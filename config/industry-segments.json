@@ -7,9 +7,21 @@
     "health-care": ["national-nppes-organizations"],
     "financial-services": ["national-fdic-bankfind", "national-ncua-quarterly"],
     "transportation": ["national-fmcsa-census"],
-    "construction": ["state-wa-contractors"]
+    "construction": ["state-wa-contractors"],
+    "tax-exempt-organizations": ["national-irs-eo-bmf"]
   },
   "sources": {
+    "national-irs-eo-bmf": {
+      "script": "scripts/build-irs-eo-bmf.mjs",
+      "scope": "national",
+      "states": "all",
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"],
+      "coverage_notes": [
+        "Cross-industry IRS current-extract membership and reported filing addresses are not proof of ongoing operations or physical premises, and do not cover every nonprofit or tax-exempt organization.",
+        "Raw regional CSVs remain internal. Only policy-approved normalized fields may be exported; personal contact and financial amount fields are excluded."
+      ]
+    },
     "national-nppes-organizations": {
       "script": "scripts/build-cms-nppes-organizations.mjs",
       "scope": "national",

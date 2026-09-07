@@ -145,3 +145,47 @@ test("an empty task plan fails and preserves explicit state coverage gaps", asyn
 test("invalid config is rejected before execution", () => {
   assert.throws(() => validateIndustryConfig({ version: 1, max_concurrency: 11, states: [], industries: {}, sources: {} }), /max_concurrency/);
 });
+
+test("IRS standalone plan preserves cross-industry and filing-address limitations without state-filter claims", async () => {
+  const config = await loadIndustryConfig();
+  const plan = buildIndustryPlan(config, { industries: ['tax-exempt-organizations'], states: ['NY', 'CA'] });
+  assert.equal(plan.taskCount, 1);
+  assert.equal(plan.tasks[0].sourceId, 'national-irs-eo-bmf');
+  assert.equal(plan.tasks[0].scope, 'national');
+  assert.equal(plan.tasks[0].script, 'scripts/build-irs-eo-bmf.mjs');
+  assert.deepEqual(plan.tasks[0].prerequisites, ['data/business-baselines/census-zbp/current.json']);
+  assert.equal(plan.gaps.length, 2);
+  assert.ok(plan.warnings.some((warning) => /cross-industry/i.test(warning) && /not proof/i.test(warning)));
+  assert.ok(plan.warnings.some((warning) => /without a state filter/.test(warning)));
+  assert.ok(plan.warnings.some((warning) => /raw.*internal/i.test(warning)));
+});
+
+test("source limitation notes are validated and preserved in the durable run plan", async () => {
+  const config = offlineConfig();
+  config.sources['state-fixture'].coverage_notes = ['License evidence only; not proof of operations.'];
+  const plan = buildIndustryPlan(config);
+  assert.ok(plan.warnings.includes('state-fixture: License evidence only; not proof of operations.'));
+  await withRunDirectory(async (outputRoot) => {
+    const result = await runIndustryPlan(config, plan, { outputRoot, executor: async () => ({ code: 0 }) });
+    assert.deepEqual(result.receipt.plan.warnings, plan.warnings);
+    assert.deepEqual(JSON.parse(await readFile(path.join(outputRoot, 'plan.json'), 'utf8')).warnings, plan.warnings);
+  });
+  config.sources['state-fixture'].coverage_notes = [null];
+  assert.throws(() => validateIndustryConfig(config), /coverage_notes/);
+  config.sources['state-fixture'].coverage_notes = [''];
+  assert.throws(() => validateIndustryConfig(config), /coverage_notes/);
+  config.sources['state-fixture'].coverage_notes = ['x'.repeat(501)];
+  assert.throws(() => validateIndustryConfig(config), /coverage_notes/);
+});
+
+test("a plan cannot drop source policy limitations before execution", async () => {
+  const config = offlineConfig();
+  config.sources['state-fixture'].coverage_notes = ['Filing address only; not a verified business site.'];
+  const plan = buildIndustryPlan(config);
+  plan.warnings = [];
+  await withRunDirectory(async (outputRoot) => {
+    let calls = 0;
+    await assert.rejects(runIndustryPlan(config, plan, { outputRoot, executor: async () => { calls += 1; return { code: 0 }; } }), /Plan does not match/);
+    assert.equal(calls, 0);
+  });
+});

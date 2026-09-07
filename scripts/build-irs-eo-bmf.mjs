@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildIrsEoBmf } from "../runner/irs-eo-bmf.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed IRS EO Business Master File organization release.
@@ -53,6 +55,7 @@ try {
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     sourceDirectory: options.sourceDirectory ? assertInsideApp(path.resolve(APP_ROOT, options.sourceDirectory)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
+    signal: cancellation.signal,
   });
   process.stdout.write(`${JSON.stringify({
     release_id: result.manifest.release_id,
@@ -63,4 +66,6 @@ try {
 } catch (error) {
   process.stderr.write(`IRS EO BMF build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

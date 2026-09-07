@@ -39,6 +39,7 @@ export function validateIndustryConfig(config, source = "config") {
     assertInsideApp(path.resolve(APP_ROOT, source.script));
     if (typeof source.state_filter_supported !== "boolean") fail(`${id}.state_filter_supported must be boolean`);
     if (!Array.isArray(source.prerequisites)) fail(`${id}.prerequisites must be an array`);
+    if (source.coverage_notes !== undefined && (!Array.isArray(source.coverage_notes) || source.coverage_notes.length > 5 || source.coverage_notes.some((note) => typeof note !== "string" || !note.trim() || note.length > 500))) fail(`${id}.coverage_notes must contain at most five non-empty strings of at most 500 characters`);
     for (const prerequisite of source.prerequisites) {
       if (typeof prerequisite !== "string" || !prerequisite) fail(`${id}.prerequisites must contain paths`);
       assertInsideApp(path.resolve(APP_ROOT, prerequisite));
@@ -64,6 +65,7 @@ export function buildIndustryPlan(config, { industries, states, runId = randomUU
   const warnings = [];
   for (const sourceId of ids) {
     const source = config.sources[sourceId];
+    for (const note of source.coverage_notes ?? []) warnings.push(`${sourceId}: ${note}`);
     if (source.scope === "national") {
       if (selectedStates.length && !source.state_filter_supported) warnings.push(`${sourceId} is national and will run once without a state filter; state selection is recorded for coverage only.`);
       tasks.push({ id: `${sourceId}:national`, sourceId, scope: "national", states: selectedStates, industries: selectedIndustries.filter((i) => config.industries[i].includes(sourceId)), script: source.script, prerequisites: source.prerequisites });
@@ -134,7 +136,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
   }
   const runDir = assertInsideApp(path.resolve(APP_ROOT, outputRoot));
   const canonical = buildIndustryPlan(config, { industries: plan.industries, states: plan.states, runId: plan.runId });
-  if (JSON.stringify(canonical.tasks) !== JSON.stringify(plan.tasks) || JSON.stringify(canonical.gaps) !== JSON.stringify(plan.gaps) || canonical.maxConcurrency !== plan.maxConcurrency) throw new Error("Plan does not match the validated configuration.");
+  if (JSON.stringify(canonical.tasks) !== JSON.stringify(plan.tasks) || JSON.stringify(canonical.gaps) !== JSON.stringify(plan.gaps) || JSON.stringify(canonical.warnings) !== JSON.stringify(plan.warnings) || canonical.maxConcurrency !== plan.maxConcurrency) throw new Error("Plan does not match the validated configuration.");
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(plan.runId)) throw new Error("runId must be a short filesystem-safe identifier.");
   await mkdir(path.dirname(runDir), { recursive: true });
   await mkdir(runDir);

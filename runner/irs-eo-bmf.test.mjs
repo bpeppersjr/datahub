@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { createGunzip } from "node:zlib";
@@ -10,9 +10,13 @@ import {
   discoverIrsEoBmf,
   IRS_EO_BMF_HEADERS,
   IRS_EO_BMF_SCHEMA_FINGERPRINT,
+  IRS_EO_BMF_TEST_HOOKS,
   normalizeIrsEoOrganization,
   verifyIrsEoBmf,
 } from "./irs-eo-bmf.mjs";
+import { APP_ROOT } from "./paths.mjs";
+
+async function testRoot(prefix) { const base = path.join(APP_ROOT, "data", "tmp"); await mkdir(base, { recursive: true }); return mkdtemp(path.join(base, prefix)); }
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -166,7 +170,7 @@ test("normalizes an IRS exempt organization without inferring a physical site or
 });
 
 test("builds and independently verifies a governed IRS EO BMF organization release", async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), "datahub-irs-eo-test-"));
+  const root = await testRoot("irs-eo-test-");
   t.after(async () => rm(root, { recursive: true, force: true }));
   const rowsByRegion = [
     [organization({ SORT_NAME: "ICO" }), organization({ EIN: "223456789", NAME: "New York Arts Trust", CITY: "New York", STATE: "NY", ZIP: "10001", ORGANIZATION: "2", STATUS: "02" })],
@@ -204,7 +208,7 @@ test("builds and independently verifies a governed IRS EO BMF organization relea
 });
 
 test("blocks unpinned IRS EO BMF schema drift", async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), "datahub-irs-eo-drift-test-"));
+  const root = await testRoot("irs-eo-drift-test-");
   t.after(async () => rm(root, { recursive: true, force: true }));
   const sourceDirectory = path.join(root, "source");
   const headers = [...IRS_EO_BMF_HEADERS, "UNEXPECTED"];
@@ -220,4 +224,44 @@ test("blocks unpinned IRS EO BMF schema drift", async (t) => {
     logger: () => {},
     now: () => new Date("2026-08-30T18:00:00.000Z"),
   }), /schema changed/);
+});
+
+async function assertCancelledOutput(output) {
+  await assert.rejects(readFile(path.join(output, "current.json")), /ENOENT/);
+  const staging = path.join(output, ".staging");
+  assert.deepEqual(await readdir(staging).catch((error) => error.code === "ENOENT" ? [] : Promise.reject(error)), []);
+}
+
+test("caller cancellation is honored before acquisition and during a response stream", async (t) => {
+  const root = await testRoot("irs-eo-cancel-acquire-"); t.after(() => rm(root, { recursive: true, force: true }));
+  const zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const pre = new AbortController(); pre.abort(); const preOutput = path.join(root, "pre");
+  await assert.rejects(buildIrsEoBmf({ outputRoot: preOutput, zbpPointer, discoveryHtml: discoveryHtml(1), signal: pre.signal }), /abort/i); await assertCancelledOutput(preOutput);
+  const middle = new AbortController(); const streamOutput = path.join(root, "stream");
+  const fetchImpl = async () => new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode(csv(IRS_EO_BMF_HEADERS, [organization()]))); setTimeout(() => middle.abort(), 5); } }), { status: 200, headers: { "content-type": "text/csv" } });
+  await assert.rejects(buildIrsEoBmf({ outputRoot: streamOutput, zbpPointer, discoveryHtml: discoveryHtml(1), fetchImpl, signal: middle.signal, minimumOrganizations: 1 }), /abort/i); await assertCancelledOutput(streamOutput);
+});
+
+test("caller cancellation during CSV normalization closes writers and never publishes", async (t) => {
+  const root = await testRoot("irs-eo-cancel-normalize-"); t.after(() => rm(root, { recursive: true, force: true }));
+  const sourceDirectory = path.join(root, "source"); const rows = [1, 2, 3, 4].map((value) => [organization({ EIN: `${value}23456789` })]);
+  rows[0].push(organization({ EIN: "123456780" }));
+  const metadata = await writeRegions(sourceDirectory, rows);
+  const controller = new AbortController(); const output = path.join(root, "output"); const progress = [];
+  await assert.rejects(buildIrsEoBmf({ outputRoot: output, zbpPointer: await writeBaseline(path.join(root, "zbp")), sourceDirectory, discoveryHtml: discoveryHtml(5), sourceMetadata: metadata, minimumOrganizations: 1, signal: controller.signal, progressInterval: 1, logger: (message) => { progress.push(message); if (message.startsWith("Normalized")) controller.abort(); } }), /abort/i);
+  assert.deepEqual(progress, ["Normalized 1 IRS EO BMF source records."]);
+  await assertCancelledOutput(output);
+});
+
+test("cancellation interrupts a gzip backpressure drain waiter", async () => {
+  const controller = new AbortController(); const gzip = new EventEmitter(); gzip.write = () => false;
+  const writer = { gzip, records: 0 };
+  const pending = IRS_EO_BMF_TEST_HOOKS.writeGzipRecord(writer, { id: 1 }, controller.signal);
+  assert.equal(gzip.listenerCount("drain"), 1);
+  assert.equal(gzip.listenerCount("error"), 1);
+  controller.abort();
+  await assert.rejects(pending, /abort/i);
+  assert.equal(writer.records, 0);
+  assert.equal(gzip.listenerCount("drain"), 0);
+  assert.equal(gzip.listenerCount("error"), 0);
 });

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable, Transform } from "node:stream";
 import { finished, pipeline } from "node:stream/promises";
@@ -74,10 +74,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
   for await (const chunk of createReadStream(filename)) {
+    signal?.throwIfAborted();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -253,13 +254,13 @@ export function discoverIrsEoBmf(html, pageUrl = IRS_EO_BMF_PAGE_URL) {
   return { sourcePostingDate, recordCount, regions: REGION_FILES.map((name) => ({ name, url: regions.get(name) })) };
 }
 
-async function request(urlValue, { fetchImpl, type, method = "GET", accept }) {
+async function request(urlValue, { fetchImpl, type, method = "GET", accept, signal }) {
   const url = assertAllowedUrl(urlValue, type);
   const response = await fetchImpl(url, {
     method,
     headers: { Accept: accept, "Accept-Encoding": "identity", "User-Agent": "CoTive-Collector/0.1" },
     redirect: "error",
-    signal: AbortSignal.timeout(method === "HEAD" || type === "page" ? 60_000 : 30 * 60_000),
+    signal: AbortSignal.any([AbortSignal.timeout(method === "HEAD" || type === "page" ? 60_000 : 30 * 60_000), ...(signal ? [signal] : [])]),
   });
   if (!response.ok) throw new Error(`IRS EO BMF ${method} ${url.pathname} failed with HTTP ${response.status} ${response.statusText}.`);
   return response;
@@ -283,19 +284,20 @@ async function validateSourceFile(filename, maximumBytes = 800_000_000) {
   return fileStat.size;
 }
 
-async function acquireRegion({ region, destination, sourceDirectory, metadata, fetchImpl }) {
+async function acquireRegion({ region, destination, sourceDirectory, metadata, fetchImpl, signal }) {
+  signal?.throwIfAborted();
   if (sourceDirectory) {
     const source = path.join(sourceDirectory, region.name);
     const inputBytes = await validateSourceFile(source);
     let sourceMetadata = metadata?.[region.name] ?? null;
-    if (!sourceMetadata) sourceMetadata = responseMetadata(await request(region.url, { fetchImpl, type: "csv", method: "HEAD", accept: "text/csv" }));
+    if (!sourceMetadata) sourceMetadata = responseMetadata(await request(region.url, { fetchImpl, type: "csv", method: "HEAD", accept: "text/csv", signal }));
     if (!sourceMetadata.content_encoding && sourceMetadata.content_length !== null && sourceMetadata.content_length !== inputBytes) throw new Error(`${region.name} local size does not match official metadata.`);
     const temporary = `${destination}.tmp-${randomUUID()}`;
-    await copyFile(source, temporary);
+    await pipeline(createReadStream(source), createWriteStream(temporary, { flags: "wx" }), { signal });
     await rename(temporary, destination);
     return { ...sourceMetadata, access_method: "explicit-local-copy-validated-against-official-metadata" };
   }
-  const response = await request(region.url, { fetchImpl, type: "csv", accept: "text/csv" });
+  const response = await request(region.url, { fetchImpl, type: "csv", accept: "text/csv", signal });
   if (!response.body) throw new Error(`${region.name} response has no body.`);
   const sourceMetadata = responseMetadata(response);
   const temporary = `${destination}.tmp-${randomUUID()}`;
@@ -307,14 +309,14 @@ async function acquireRegion({ region, destination, sourceDirectory, metadata, f
       else callback(null, chunk);
     },
   });
-  await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(temporary, { flags: "wx" }));
+  await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(temporary, { flags: "wx" }), { signal });
   if (!sourceMetadata.content_encoding && sourceMetadata.content_length !== null && sourceMetadata.content_length !== bytes) throw new Error(`${region.name} size does not match Content-Length.`);
   await validateSourceFile(temporary);
   await rename(temporary, destination);
   return { ...sourceMetadata, access_method: "streamed-official-https-download" };
 }
 
-async function forEachCsvRow(filename, expectedFingerprint, consume) {
+async function forEachCsvRow(filename, expectedFingerprint, consume, signal) {
   let schemaFingerprint = null;
   const parser = parse({
     bom: true,
@@ -332,10 +334,17 @@ async function forEachCsvRow(filename, expectedFingerprint, consume) {
   const source = createReadStream(filename);
   source.on("error", (error) => parser.destroy(error));
   source.pipe(parser);
+  const cancel = () => { const reason = signal.reason instanceof Error ? signal.reason : new DOMException("The operation was aborted", "AbortError"); source.destroy(reason); parser.destroy(reason); };
+  signal?.addEventListener("abort", cancel, { once: true });
   let records = 0;
-  for await (const row of parser) {
-    await consume(row);
-    records += 1;
+  try {
+    for await (const row of parser) {
+      signal?.throwIfAborted();
+      await consume(row);
+      records += 1;
+    }
+  } finally {
+    signal?.removeEventListener("abort", cancel); source.destroy(); parser.destroy();
   }
   if (!schemaFingerprint) throw new Error(`${path.basename(filename)} has no header row.`);
   return { records, schemaFingerprint };
@@ -361,30 +370,36 @@ async function openGzipWriter(stagingDirectory, relativePath) {
   return { relativePath, destination, temporary, output, gzip, records: 0 };
 }
 
-async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+async function writeGzipRecord(writer, record, signal) {
+  signal?.throwIfAborted();
+  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain", signal ? { signal } : undefined);
   writer.records += 1;
 }
 
-async function closeGzipWriters(writers, artifactType) {
+async function closeGzipWriters(writers, artifactType, signal) {
+  signal?.throwIfAborted();
   const completion = writers.map((writer) => finished(writer.output));
+  const cancel = () => { void abortGzipWriters(writers); };
+  signal?.addEventListener("abort", cancel, { once: true });
   for (const writer of writers) writer.gzip.end();
-  await Promise.all(completion);
+  try { await Promise.all(completion); } finally { signal?.removeEventListener("abort", cancel); }
   const artifacts = [];
   for (const writer of writers) {
     await rename(writer.temporary, writer.destination);
-    artifacts.push({ path: writer.relativePath, ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType });
+    artifacts.push({ path: writer.relativePath, ...(await hashFile(writer.destination, signal)), record_count: writer.records, artifact_type: artifactType });
   }
   return artifacts;
 }
 
-function abortGzipWriters(writers) {
+async function abortGzipWriters(writers) {
+  const closures = writers.map((writer) => finished(writer.output));
   for (const writer of writers) {
     writer.gzip.on("error", () => {});
     writer.output.on("error", () => {});
     writer.gzip.destroy();
     writer.output.destroy();
   }
+  await Promise.allSettled(closures);
 }
 
 function assertContained(parent, child, label) {
@@ -457,19 +472,27 @@ export async function buildIrsEoBmf({
   fetchImpl = globalThis.fetch,
   logger = console.log,
   now = () => new Date(),
+  signal,
+  progressInterval = 10_000,
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
   if (!Number.isInteger(minimumOrganizations) || minimumOrganizations < 1) throw new Error("minimumOrganizations must be a positive integer.");
   if (!Number.isFinite(maximumQuarantineRate) || maximumQuarantineRate < 0 || maximumQuarantineRate > 1) throw new Error("maximumQuarantineRate must be from 0 through 1.");
+  if (!Number.isInteger(progressInterval) || progressInterval < 1) throw new Error("progressInterval must be a positive integer.");
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `irs-eo-bmf-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
+  let activeWriters = [];
+  signal?.throwIfAborted();
+  try {
   await mkdir(path.join(stagingDirectory, "source"), { recursive: true });
+  signal?.throwIfAborted();
   const baseline = await loadZbpBaseline(zbpPointer);
+  signal?.throwIfAborted();
   let sourcePageMetadata = null;
   if (!discoveryHtml) {
-    const pageResponse = await request(IRS_EO_BMF_PAGE_URL, { fetchImpl, type: "page", accept: "text/html" });
+    const pageResponse = await request(IRS_EO_BMF_PAGE_URL, { fetchImpl, type: "page", accept: "text/html", signal });
     sourcePageMetadata = responseMetadata(pageResponse);
     discoveryHtml = await pageResponse.text();
   }
@@ -477,16 +500,18 @@ export async function buildIrsEoBmf({
   if (discovery.sourcePostingDate > retrievedAt.slice(0, 10)) throw new Error("IRS EO BMF source posting date is after retrieval date.");
   const acquisitions = [];
   for (const region of discovery.regions) {
+    signal?.throwIfAborted();
     const destination = path.join(stagingDirectory, "source", region.name);
-    const metadata = await acquireRegion({ region, destination, sourceDirectory, metadata: sourceMetadata, fetchImpl });
-    acquisitions.push({ ...region, ...metadata, ...(await hashFile(destination)) });
+    const metadata = await acquireRegion({ region, destination, sourceDirectory, metadata: sourceMetadata, fetchImpl, signal });
+    acquisitions.push({ ...region, ...metadata, ...(await hashFile(destination, signal)) });
   }
   const sourceDigest = sha256(`${discovery.sourcePostingDate}\u0000${acquisitions.map((item) => item.sha256).join("\u0000")}`);
   const sourceReleaseId = `irs-eo-bmf-${discovery.sourcePostingDate}-${sourceDigest.slice(0, 16)}`;
   const context = { runId, retrievedAt, sourcePostingDate: discovery.sourcePostingDate, sourceReleaseId, baselineByZip: baseline.byZip };
   const writers = new Map();
-  for (const prefix of "0123456789") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/organizations/ein-prefix=${prefix}.jsonl.gz`));
+  for (const prefix of "0123456789") { const writer = await openGzipWriter(stagingDirectory, `derived/organizations/ein-prefix=${prefix}.jsonl.gz`); writers.set(prefix, writer); activeWriters.push(writer); }
   const quarantineWriter = await openGzipWriter(stagingDirectory, "quarantine/records.jsonl.gz");
+  activeWriters.push(quarantineWriter);
   const eins = new Set();
   const countsByZip = new Map();
   const stateCounts = new Map();
@@ -509,6 +534,7 @@ export async function buildIrsEoBmf({
     for (const acquisition of acquisitions) {
       const filename = path.join(stagingDirectory, "source", acquisition.name);
       const table = await forEachCsvRow(filename, schemaFingerprint, async (source) => {
+        signal?.throwIfAborted();
         sourceRecords += 1;
         for (const [field, counts] of observedSourceCodeCounts) {
           const value = String(source[field] ?? "").trim() || "(blank)";
@@ -529,7 +555,7 @@ export async function buildIrsEoBmf({
         try {
           const normalized = normalizeIrsEoOrganization(source, context);
           assertNormalizedUsPostalFieldsDeep(normalized);
-          await writeGzipRecord(writers.get(ein[0]), normalized);
+          await writeGzipRecord(writers.get(ein[0]), normalized, signal);
           const zipCode = normalized.reported_filing_address.zip_code;
           countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
           stateCounts.set(state, (stateCounts.get(state) ?? 0) + 1);
@@ -540,10 +566,12 @@ export async function buildIrsEoBmf({
           accepted += 1;
         } catch (error) {
           quarantineReasonCounts.set(error.message, (quarantineReasonCounts.get(error.message) ?? 0) + 1);
-          await writeGzipRecord(quarantineWriter, { source_type: "organization", source_id: /^\d{9}$/.test(ein) ? ein : null, reason: error.message });
+          if (signal?.aborted || error.name === "AbortError") throw error;
+          await writeGzipRecord(quarantineWriter, { source_type: "organization", source_id: /^\d{9}$/.test(ein) ? ein : null, reason: error.message }, signal);
           quarantined += 1;
         }
-      });
+        if (sourceRecords % progressInterval === 0) logger(`Normalized ${sourceRecords.toLocaleString("en-US")} IRS EO BMF source records.`);
+      }, signal);
       regionCounts[acquisition.name] = table.records;
       acquisition.schema_fingerprint = table.schemaFingerprint;
       acquisition.record_count = table.records;
@@ -556,7 +584,7 @@ export async function buildIrsEoBmf({
       throw new Error(`IRS EO BMF quarantine rate exceeds ${maximumQuarantineRate * 100}%; reasons=${JSON.stringify(Object.fromEntries([...quarantineReasonCounts].sort((left, right) => right[1] - left[1])))}`);
     }
   } catch (error) {
-    abortGzipWriters([...writers.values(), quarantineWriter]);
+    await abortGzipWriters([...writers.values(), quarantineWriter]);
     throw error;
   }
   const artifacts = acquisitions.map((item) => ({
@@ -567,8 +595,8 @@ export async function buildIrsEoBmf({
     artifact_type: "irs-eo-bmf-source-region-csv",
     export_policy: "internal",
   }));
-  artifacts.push(...await closeGzipWriters([...writers.values()], "normalized-irs-eo-organization-jsonl-gzip"));
-  artifacts.push(...await closeGzipWriters([quarantineWriter], "quarantine-jsonl-gzip"));
+  artifacts.push(...await closeGzipWriters([...writers.values()], "normalized-irs-eo-organization-jsonl-gzip", signal));
+  artifacts.push(...await closeGzipWriters([quarantineWriter], "quarantine-jsonl-gzip", signal));
   const coverageRows = buildZipCoverage(baseline.rows, countsByZip, context);
   const observedSourceCodes = Object.fromEntries([...observedSourceCodeCounts].map(([field, counts]) => [
     field,
@@ -663,9 +691,12 @@ export async function buildIrsEoBmf({
     ],
     artifacts: artifacts.sort((left, right) => left.path.localeCompare(right.path)),
   };
+  signal?.throwIfAborted();
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
+  signal?.throwIfAborted();
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
+  signal?.throwIfAborted(); // Final cooperative boundary; release rename begins the non-interruptible atomic publication sequence.
   await rename(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${runId}`;
@@ -675,7 +706,14 @@ export async function buildIrsEoBmf({
   if (!(await stat(releaseDirectory)).isDirectory()) throw new Error("Published IRS EO BMF release is not a directory.");
   logger(`Published ${accepted.toLocaleString("en-US")} current IRS exempt organizations.`);
   return { manifest, releaseDirectory, pointerPath };
+  } catch (error) {
+    await abortGzipWriters(activeWriters);
+    if (signal?.aborted || error.name === "AbortError") { assertContained(path.resolve(outputRoot), path.resolve(stagingDirectory), "IRS EO BMF cancellation staging cleanup"); await rm(stagingDirectory, { recursive: true, force: true }); }
+    throw error;
+  }
 }
+
+export const IRS_EO_BMF_TEST_HOOKS = Object.freeze({ writeGzipRecord });
 
 async function forEachGzipRecord(filename, consume) {
   const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
