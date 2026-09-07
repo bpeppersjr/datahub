@@ -2,6 +2,8 @@
 
 ## Objective
 
+New Jersey childcare source handoff (2026-09-07): [bounded production-service validation](states/NJ-CHILDCARE-ACCESS-2026-09-07.md) confirms public NJDEP metadata/count access, 4,075 source rows and a successful one-row selected-field/WGS84 probe. Public-school inclusion differs from MA. Preserve publisher metadata/terms and explicit source-date semantics; build the connector preflight and offline contract before app enrollment or bulk acquisition. No NJ dataset or reporting coverage increase is claimed yet.
+
 Massachusetts local integration preparation (2026-09-07): [verified registry conversion](MA-CHILDCARE-CONNECTOR.md#verified-local-registry-conversion) reuses the acquired immutable release, producing source-scoped provisional site/establishment assertions without downloads, ownership inference, automatic matching or reporting publication. The loader verifies membership and checksums before conversion. National writer/verifier, coordinate reporting and measured coverage integration remain explicit gates while the existing candidate reconciliation runs against pinned implementations.
 
 Massachusetts first live acquisition (2026-09-07): [independent release verification](MA-CHILDCARE-CONNECTOR.md#verified-first-acquisition) confirms app run `ma-app-acquisition-20260907-02` succeeded with 3,007 accepted center-based childcare program records and 9 quarantined rows out of 3,016. The standalone worker finished and released its locks. Reuse this immutable local-review release for subsequent registry integration; no repull, national completeness claim, or production promotion is needed to preserve the newly obtained evidence.
