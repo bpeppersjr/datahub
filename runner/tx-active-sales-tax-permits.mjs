@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
@@ -62,10 +63,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -246,25 +248,41 @@ export async function requestTxJson(urlValue, {
   type = "data",
   fetchImpl = fetch,
   signal,
-  sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  sleep,
   attempts = 4,
   maximumResponseBytes = 80_000_000,
+  requestTimeoutMs = 60_000,
 } = {}) {
   const url = assertAllowedUrl(urlValue, type);
+  const pause = async (milliseconds) => {
+    signal?.throwIfAborted();
+    if (!sleep) return delay(milliseconds, undefined, { signal });
+    let cancel;
+    try {
+      await Promise.race([Promise.resolve().then(() => sleep(milliseconds, signal)), new Promise((_, reject) => {
+        cancel = () => reject(signal.reason);
+        signal?.addEventListener("abort", cancel, { once: true });
+        if (signal?.aborted) cancel();
+      })]);
+    } finally { signal?.removeEventListener("abort", cancel); }
+    signal?.throwIfAborted();
+  };
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
     let response;
     try {
-      response = await fetchImpl(url, { redirect: "manual", signal, headers: { accept: "application/json" } });
+      response = await fetchImpl(url, { redirect: "manual", signal: AbortSignal.any([AbortSignal.timeout(requestTimeoutMs), ...(signal ? [signal] : [])]), headers: { accept: "application/json" } });
+      signal?.throwIfAborted();
     } catch (error) {
-      if (error?.name === "AbortError" || attempt + 1 >= attempts) throw error;
-      await sleep(500 * (2 ** attempt));
+      if (signal?.aborted || error?.name === "AbortError" || attempt + 1 >= attempts) throw error;
+      await pause(500 * (2 ** attempt));
       continue;
     }
     if (response.status >= 300 && response.status < 400) throw new Error(`Texas ${type} redirect rejected (${response.status}).`);
     if (!response.ok) {
       if ((response.status === 429 || response.status >= 500) && attempt + 1 < attempts) {
-        await sleep(retryDelay(response, attempt));
+        await response.body?.cancel();
+        await pause(retryDelay(response, attempt));
         continue;
       }
       throw new Error(`Texas ${type} request failed with HTTP ${response.status}.`);
@@ -272,6 +290,7 @@ export async function requestTxJson(urlValue, {
     const declaredBytes = Number(response.headers.get("content-length"));
     if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error(`Texas ${type} response exceeds the byte limit.`);
     const buffer = Buffer.from(await response.arrayBuffer());
+    signal?.throwIfAborted();
     if (buffer.length > maximumResponseBytes) throw new Error(`Texas ${type} response exceeds the byte limit.`);
     try {
       return JSON.parse(buffer.toString("utf8"));
@@ -321,29 +340,39 @@ async function openGzipWriter(stagingDirectory, relativePath) {
   const temporary = `${destination}.tmp-${randomUUID()}`;
   const output = createWriteStream(temporary, { flags: "wx" });
   const gzip = createGzip();
+  gzip.on("error", (error) => output.destroy(error));
+  output.on("error", (error) => gzip.destroy(error));
   gzip.pipe(output);
   return { relativePath, destination, temporary, output, gzip, records: 0 };
 }
 
-async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+export async function writeTxGzipRecord(writer, record, signal) {
+  signal?.throwIfAborted();
+  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain", signal ? { signal } : undefined);
+  signal?.throwIfAborted();
   writer.records += 1;
 }
 
-async function closeGzipWriter(writer, artifactType, metadata = {}) {
+async function closeGzipWriter(writer, artifactType, metadata = {}, signal) {
+  signal?.throwIfAborted();
   const completion = finished(writer.output);
+  const cancel = () => { writer.gzip.destroy(); writer.output.destroy(); };
+  signal?.addEventListener("abort", cancel, { once: true });
   writer.gzip.end();
-  await completion;
+  try { await completion; } finally { signal?.removeEventListener("abort", cancel); }
+  signal?.throwIfAborted();
   await renameWithRetry(writer.temporary, writer.destination);
-  return { path: writer.relativePath.replaceAll("\\", "/"), ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType, ...metadata };
+  return { path: writer.relativePath.replaceAll("\\", "/"), ...(await hashFile(writer.destination, signal)), record_count: writer.records, artifact_type: artifactType, ...metadata };
 }
 
 async function abortGzipWriters(writers) {
   const active = writers.filter(Boolean);
+  const closures = active.map((writer) => finished(writer.output));
   for (const writer of active) {
-    if (!writer.gzip.destroyed && !writer.gzip.writableEnded) writer.gzip.end();
+    writer.gzip.destroy();
+    writer.output.destroy();
   }
-  await Promise.allSettled(active.map((writer) => finished(writer.output)));
+  await Promise.allSettled(closures);
 }
 
 async function writeArtifact(directory, relativePath, content, metadata = {}) {
@@ -361,7 +390,8 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
-async function loadZbpBaseline(pointerPath) {
+async function loadZbpBaseline(pointerPath, signal) {
+  signal?.throwIfAborted();
   const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
   const base = path.dirname(pointerPath);
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
@@ -373,16 +403,23 @@ async function loadZbpBaseline(pointerPath) {
   if (!artifact) throw new Error("Census ZBP baseline has no ZIP coverage artifact.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const buffer = await readFile(artifactPath);
+  const buffer = await readFile(artifactPath, { signal });
   if (buffer.length !== artifact.bytes || sha256(buffer) !== artifact.sha256) throw new Error("Census ZBP coverage checksum failed.");
   const rows = buffer.toString("utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const input = createReadStream(filename).pipe(createGunzip());
+async function* gzipRecords(filename, signal) {
+  signal?.throwIfAborted();
+  const source = createReadStream(filename, { signal });
+  const input = createGunzip();
+  source.on("error", (error) => input.destroy(error));
+  source.pipe(input);
   const lines = createInterface({ input, crlfDelay: Infinity });
-  for await (const line of lines) if (line.trim()) yield JSON.parse(line);
+  try {
+    for await (const line of lines) { signal?.throwIfAborted(); if (line.trim()) yield JSON.parse(line); }
+    signal?.throwIfAborted();
+  } finally { lines.close(); source.destroy(); input.destroy(); }
 }
 
 function sourceSafeRecord(record) {
@@ -396,7 +433,7 @@ async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, 
   if (sourceRecords) {
     for (const row of sourceRecords) {
       if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
-      await writeGzipRecord(writer, sourceSafeRecord(row));
+      await writeTxGzipRecord(writer, sourceSafeRecord(row), signal);
       count += 1;
     }
   } else {
@@ -408,7 +445,7 @@ async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, 
       });
       if (!Array.isArray(rows) || !rows.length) throw new Error(`Texas source page at offset ${offset} was empty before the expected count.`);
       for (const row of rows) {
-        await writeGzipRecord(writer, sourceSafeRecord(row));
+        await writeTxGzipRecord(writer, sourceSafeRecord(row), signal);
         count += 1;
       }
       logger(`Acquired ${count.toLocaleString()} of ${expectedCount.toLocaleString()} Texas active sales-tax permit rows.`);
@@ -475,25 +512,36 @@ export async function buildTxActiveSalesTaxPermits({
   const runId = randomUUID();
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
+  const canonicalStaging = await realpath(stagingDirectory);
+  const canonicalOutput = await realpath(outputRoot);
+  if (canonicalStaging !== path.join(canonicalOutput, ".staging", runId)) throw new Error("Texas staging must not redirect outside its owned output path.");
+  const activeWriters = [];
+  const openWriter = async (relativePath) => {
+    signal?.throwIfAborted();
+    const writer = await openGzipWriter(stagingDirectory, relativePath);
+    activeWriters.push(writer);
+    return writer;
+  };
+  try {
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
   const metadata = catalogMetadata ?? await requestTxJson(TX_ACTIVE_SALES_TAX_METADATA_URL, { fetchImpl, signal, sleep, type: "metadata" });
   const catalog = validateCatalogMetadata(metadata, expectedSchemaFingerprint);
   const expectedCount = sourceRecords ? Number(metadata.sourceRecordCount) : await sourceCount({ fetchImpl, signal, sleep });
   if (!Number.isInteger(expectedCount) || expectedCount < minimumOutlets) throw new Error(`Texas source count ${expectedCount} is below the minimum ${minimumOutlets}.`);
-  const sourceWriter = await openGzipWriter(stagingDirectory, "source/selected-records.jsonl.gz");
+  const sourceWriter = await openWriter("source/selected-records.jsonl.gz");
   try {
     await acquireSource({ writer: sourceWriter, sourceRecords, expectedCount, fetchImpl, signal, sleep, pageSize, logger });
   } catch (error) {
     await abortGzipWriters([sourceWriter]);
     throw error;
   }
-  const sourceArtifact = await closeGzipWriter(sourceWriter, "tx-active-sales-tax-permit-source-jsonl-gzip", { export_policy: "internal" });
+  const sourceArtifact = await closeGzipWriter(sourceWriter, "tx-active-sales-tax-permit-source-jsonl-gzip", { export_policy: "internal" }, signal);
   const sourceReleaseId = `tx-active-sales-tax-${catalog.rowsUpdatedAt.slice(0, 10)}-${sourceArtifact.sha256.slice(0, 16)}`;
   const releaseId = `tx-active-sales-tax-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const context = { runId, retrievedAt, sourceRowsUpdatedAt: catalog.rowsUpdatedAt, sourceReleaseId, baselineByZip: baseline.byZip };
   const normalizedWriters = new Map();
-  for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/outlets/prefix=${prefix}.jsonl.gz`));
-  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz");
+  for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openWriter(`normalized/outlets/prefix=${prefix}.jsonl.gz`));
+  const quarantineWriter = await openWriter("quality/quarantine.jsonl.gz");
   const zipCounts = new Map();
   const quarantineReasons = new Map();
   const outletIdentities = new Set();
@@ -503,7 +551,7 @@ export async function buildTxActiveSalesTaxPermits({
   let outsideCityCount = 0;
   let unreportedCityCount = 0;
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
       if (signal?.aborted) throw new DOMException("The operation was aborted.", "AbortError");
       const identity = `${textValue(source.taxpayer_number) ?? "<blank>"}:${textValue(source.outlet_number) ?? "<blank>"}`;
       if (outletIdentities.has(identity)) throw new Error(`Duplicate Texas taxpayer/outlet identity ${identity}.`);
@@ -512,7 +560,7 @@ export async function buildTxActiveSalesTaxPermits({
         const normalized = normalizeTxActiveSalesTaxOutlet(source, context);
         assertNormalizedUsPostalFieldsDeep(normalized, "Texas active sales-tax outlet");
         const prefix = sha256(identity)[0];
-        await writeGzipRecord(normalizedWriters.get(prefix), normalized);
+        await writeTxGzipRecord(normalizedWriters.get(prefix), normalized, signal);
         normalizedCount += 1;
         taxpayers.add(normalized.external_identifiers[0].value);
         increment(zipCounts, normalized.physical_address.zip_code);
@@ -520,16 +568,17 @@ export async function buildTxActiveSalesTaxPermits({
         else if (normalized.permit_profile.inside_city_limits === false) outsideCityCount += 1;
         else unreportedCityCount += 1;
       } catch (error) {
+        if (signal?.aborted || error?.name === "AbortError") throw error;
         const reason = error.message;
         if (!QUARANTINE_REASONS.has(reason)) throw error;
         increment(quarantineReasons, reason);
-        await writeGzipRecord(quarantineWriter, {
+        await writeTxGzipRecord(quarantineWriter, {
           schema_version: TX_ACTIVE_SALES_TAX_SCHEMA_VERSION,
           source_record_id: identity,
           reason,
           source_release_id: sourceReleaseId,
           export_policy: "internal",
-        });
+        }, signal);
       }
     }
   } catch (error) {
@@ -546,8 +595,8 @@ export async function buildTxActiveSalesTaxPermits({
     throw new Error("Texas normalized outlet count is below the governed minimum after quarantine.");
   }
   const normalizedArtifacts = [];
-  for (const writer of normalizedWriters.values()) normalizedArtifacts.push(await closeGzipWriter(writer, "normalized-tx-active-sales-tax-outlet-jsonl-gzip", { export_policy: "local-review-only" }));
-  const quarantineArtifact = await closeGzipWriter(quarantineWriter, "tx-active-sales-tax-permit-quarantine-jsonl-gzip", { export_policy: "internal" });
+  for (const writer of normalizedWriters.values()) normalizedArtifacts.push(await closeGzipWriter(writer, "normalized-tx-active-sales-tax-outlet-jsonl-gzip", { export_policy: "local-review-only" }, signal));
+  const quarantineArtifact = await closeGzipWriter(quarantineWriter, "tx-active-sales-tax-permit-quarantine-jsonl-gzip", { export_policy: "internal" }, signal);
   if (!sourceRecords) {
     const finalMetadata = await requestTxJson(TX_ACTIVE_SALES_TAX_METADATA_URL, { fetchImpl, signal, sleep, type: "metadata" });
     const finalCatalog = validateCatalogMetadata(finalMetadata, expectedSchemaFingerprint);
@@ -638,27 +687,44 @@ export async function buildTxActiveSalesTaxPermits({
     ],
     artifacts,
   };
-  await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
-  await verifyTxActiveSalesTaxPermits(path.join(stagingDirectory, "manifest.json"));
-  return publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  signal?.throwIfAborted();
+  await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest), { signal });
+  return await publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
+  } catch (error) {
+    await abortGzipWriters(activeWriters);
+    if (signal?.aborted || error?.name === "AbortError") {
+      const currentPath = await realpath(stagingDirectory).catch((failure) => { if (failure.code === "ENOENT") return null; throw failure; });
+      if (currentPath && currentPath !== canonicalStaging) throw new Error("Texas cancelled staging path changed; cleanup refused.");
+      if (currentPath) await rm(canonicalStaging, { recursive: true, force: true });
+      signal?.throwIfAborted();
+    }
+    throw error;
+  }
 }
 
-export async function publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
   if (!outputRoot || !stagingRunId) throw new Error("outputRoot and stagingRunId are required.");
+  signal?.throwIfAborted();
+  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(stagingRunId)) throw new Error("Texas staging run ID must be a UUID.");
   const stagingDirectory = path.join(outputRoot, ".staging", stagingRunId);
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Texas staging release ID mismatch.");
-  await verifyTxActiveSalesTaxPermits(manifestPath);
+  await verifyTxActiveSalesTaxPermits(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
+  if (typeof manifest.release_id !== "string" || !/^tx-active-sales-tax-[a-zA-Z0-9-]+$/.test(manifest.release_id)) throw new Error("Invalid Texas release ID.");
+  const canonicalOutput = await realpath(outputRoot);
+  if (await realpath(stagingDirectory) !== path.join(canonicalOutput, ".staging", stagingRunId)) throw new Error("Texas staging path redirected.");
   await mkdir(releasesDirectory, { recursive: true });
+  if (await realpath(releasesDirectory) !== path.join(canonicalOutput, "releases")) throw new Error("Texas releases path redirected.");
   try {
     await stat(releaseDirectory);
     throw new Error(`Texas release ${manifest.release_id} already exists.`);
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
+  signal?.throwIfAborted(); // Atomic publication begins here; finish pointer publication once the release moves.
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const pointer = {
@@ -680,7 +746,8 @@ function containsExcludedField(value) {
   return [...EXCLUDED_SOURCE_FIELDS].some((field) => serialized.includes(`"${field}"`));
 }
 
-export async function verifyTxActiveSalesTaxPermits(manifestPath) {
+export async function verifyTxActiveSalesTaxPermits(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
@@ -699,9 +766,10 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const digest = await hashFile(filename);
+      const digest = await hashFile(filename, signal);
       if (digest.bytes !== artifact.bytes || digest.sha256 !== artifact.sha256) throw new Error("checksum or byte count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: error.message });
     }
   }
@@ -709,13 +777,14 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
   let sourceCount = 0;
   try {
     if (!sourceArtifact || sourceArtifact.export_policy !== "internal") throw new Error("missing or misclassified selected source artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path), signal)) {
       sourceCount += 1;
       if (containsExcludedField(record)) throw new Error("excluded source field leaked");
       if (Object.keys(record).some((field) => !TX_ACTIVE_SALES_TAX_SOURCE_FIELDS.includes(field))) throw new Error("unapproved selected source field");
     }
     if (sourceCount !== sourceArtifact.record_count || sourceCount !== manifest.coverage.source_outlet_permits) throw new Error("source record count mismatch");
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: sourceArtifact?.path ?? "source/selected-records.jsonl.gz", reason: error.message });
   }
   const normalizedArtifacts = artifacts.filter((artifact) => artifact.artifact_type === "normalized-tx-active-sales-tax-outlet-jsonl-gzip");
@@ -727,7 +796,7 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
     try {
       if (artifact.export_policy !== "local-review-only") throw new Error("normalized artifact lost local-review-only policy");
       let artifactCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         artifactCount += 1;
         normalizedCount += 1;
         if (normalizedIds.has(record.normalized_record_id)) throw new Error(`duplicate normalized record ${record.normalized_record_id}`);
@@ -745,6 +814,7 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
       }
       if (artifactCount !== artifact.record_count) throw new Error("normalized artifact record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: error.message });
     }
   }
@@ -755,19 +825,21 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
   let quarantineCount = 0;
   try {
     if (!quarantineArtifact || quarantineArtifact.export_policy !== "internal") throw new Error("missing or misclassified quarantine artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path), signal)) {
       quarantineCount += 1;
       if (!QUARANTINE_REASONS.has(record.reason) || record.export_policy !== "internal") throw new Error("invalid quarantine record");
     }
     if (quarantineCount !== quarantineArtifact.record_count || quarantineCount !== manifest.coverage.quarantined_source_records) throw new Error("quarantine count mismatch");
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: quarantineArtifact?.path ?? "quality/quarantine.jsonl.gz", reason: error.message });
   }
   if (sourceCount !== normalizedCount + quarantineCount) failures.push({ path: "manifest.json", reason: "source, normalized, and quarantine counts do not reconcile" });
   const zipArtifact = artifacts.find((artifact) => artifact.artifact_type === "tx-active-sales-tax-permit-zip-coverage-jsonl");
   try {
     if (!zipArtifact || zipArtifact.distribution_policy !== "public-aggregate-with-source-limitations") throw new Error("missing or misclassified ZIP artifact");
-    const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+    signal?.throwIfAborted();
+    const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), { encoding: "utf8", signal })).trim().split("\n").filter(Boolean).map(JSON.parse);
     if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage.zip_union_records) throw new Error("ZIP row count mismatch");
     if (new Set(rows.map((row) => row.zip_code)).size !== rows.length) throw new Error("duplicate ZIP coverage row");
     const contributionCount = rows.reduce((sum, row) => sum + (row.tx_active_sales_tax_snapshot?.permitted_outlet_count ?? 0), 0);
@@ -777,12 +849,15 @@ export async function verifyTxActiveSalesTaxPermits(manifestPath) {
       if (row?.tx_active_sales_tax_snapshot?.permitted_outlet_count !== count) throw new Error(`ZIP ${zipCode} contribution mismatch`);
     }
   } catch (error) {
+    signal?.throwIfAborted();
     failures.push({ path: zipArtifact?.path ?? "derived/zip-coverage.jsonl", reason: error.message });
   }
   if (failures.length) {
+    signal?.throwIfAborted();
     const error = new Error(`Texas active-sales-tax verification failed for ${failures.length} check(s).`);
     error.failures = failures;
     throw error;
   }
+  signal?.throwIfAborted();
   return { dataset_id: manifest.dataset_id, release_id: manifest.release_id, source_release_id: manifest.source_release_id, artifact_count: artifacts.length, coverage: manifest.coverage };
 }

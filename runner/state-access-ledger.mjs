@@ -14,6 +14,7 @@ const PROFILE_IDS = Object.freeze({
   "state-ny-retail-food": "new-york-agriculture-markets-retail-food-stores",
   "state-ca-abc": "california-abc-daily-active-licenses",
   "state-wa-contractors": null,
+  "state-tx-sales-tax": "texas-comptroller-active-sales-tax-permits",
   "national-irs-eo-bmf": null,
 });
 const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];

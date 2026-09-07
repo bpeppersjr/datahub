@@ -160,6 +160,17 @@ test("IRS standalone plan preserves cross-industry and filing-address limitation
   assert.ok(plan.warnings.some((warning) => /raw.*internal/i.test(warning)));
 });
 
+test('Texas app plan is a scoped cross-industry sales-tax task, not a nationwide retail claim', async () => {
+  const config = await loadIndustryConfig();
+  const plan = buildIndustryPlan(config, { industries: ['sales-tax-outlets'], states: ['TX', 'GA'] });
+  assert.equal(plan.taskCount, 1); assert.equal(plan.tasks[0].sourceId, 'state-tx-sales-tax');
+  assert.equal(plan.tasks[0].state, 'TX');
+  assert.equal(plan.tasks[0].script, 'scripts/build-tx-active-sales-tax-permits.mjs');
+  assert.ok(plan.gaps.some(gap => gap.state === 'GA'));
+  assert.ok(plan.warnings.some(warning => /cross-industry/i.test(warning)));
+  assert.ok(plan.warnings.some(warning => /local-review-only/i.test(warning)));
+});
+
 test("source limitation notes are validated and preserved in the durable run plan", async () => {
   const config = offlineConfig();
   config.sources['state-fixture'].coverage_notes = ['License evidence only; not proof of operations.'];

@@ -39,6 +39,19 @@ The run acquires the four national regional files once; NY/CA selection does not
 
 Optional per-source `coverage_notes` are validated, displayed in plan warnings, and persisted in the run receipt. The IRS notes explicitly preserve the cross-industry, address, operational-status, and export limitations. Cancellation propagates from the runner into the IRS request/stream/normalization lifecycle; once immutable publication begins it finishes its atomic pointer sequence. No live IRS refresh was started merely by adding this bucket. A completed refresh still requires the separate governed national reconciliation chain before appearing in production views.
 
+## Texas sales-tax outlet refresh
+
+The `sales-tax-outlets` bucket exposes the existing governed Texas Comptroller publisher as `state-tx-sales-tax`, only for Texas. This is cross-industry tax-permit outlet evidence, not a retail-only classification or a census of Texas businesses.
+
+```text
+update-industry.bat plan --industry sales-tax-outlets --state TX
+update-industry.bat run --industry sales-tax-outlets --state TX
+```
+
+The verified Census ZBP baseline is required. The connector independently enforces its official Socrata host and selected fields, one provider request at a time, pages of at most 50,000 records, metadata/count drift and minimum-count gates, bounded retries, quarantine limits, and immutable publication. Source-reported NAICS and outlet addresses remain source claims. An active sales-tax permit does not independently prove continuous operation, public access, a currently occupied physical site, or every licensing requirement. Taxpayer mailing fields are excluded, no parent/network relationship is inferred, and normalized record-level data remains local-review-only because names and outlet addresses may identify natural persons or residences.
+
+Managed cancellation propagates through IPC into request, retry, normalization, compression, hashing, and verification work. Cancellation before the publication boundary removes only the run-owned staging directory and leaves existing releases and `current.json` untouched. Once immutable publication starts, its pointer sequence completes atomically. Catalog enrollment does not itself download, submit a queue job, or establish recurring scheduling; the application remains responsible for a separately authorized run.
+
 ## FSIS food-processing prerequisite
 
 The governed FSIS MPI connector covers regulated meat, poultry, and egg-product establishments, but it is not yet an industry selector. Its offline-only CLI requires two explicitly supplied official CSV files and the source date printed beside both download links:

@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { buildTxActiveSalesTaxPermits, publishTxActiveSalesTaxPermitsStaging } from "../runner/tx-active-sales-tax-permits.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Build the governed Texas Comptroller active sales-tax permit outlet release.
@@ -49,6 +50,7 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
@@ -57,12 +59,13 @@ try {
   }
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   const result = options.resumeStagingRun
-    ? await publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishTxActiveSalesTaxPermitsStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildTxActiveSalesTaxPermits({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       pageSize: options.pageSize,
       minimumOutlets: options.minimumOutlets,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -76,4 +79,6 @@ try {
   process.stderr.write(`Texas active-sales-tax permit build failed: ${error.message}\n`);
   if (error.failures) process.stderr.write(`${JSON.stringify(error.failures, null, 2)}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

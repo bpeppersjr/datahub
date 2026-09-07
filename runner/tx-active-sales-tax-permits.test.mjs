@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { EventEmitter } from "node:events";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { gunzipSync } from "node:zlib";
+import { APP_ROOT } from "./paths.mjs";
 import {
   buildTxActiveSalesTaxPermits,
   normalizeTxActiveSalesTaxOutlet,
   requestTxJson,
+  writeTxGzipRecord,
+  publishTxActiveSalesTaxPermitsStaging,
   schemaFingerprint,
   TX_ACTIVE_SALES_TAX_FIELDS,
   TX_ACTIVE_SALES_TAX_SCHEMA,
@@ -213,4 +217,50 @@ test("blocks schema drift, unapproved fields, duplicate outlets, excess quaranti
     outputRoot: path.join(root, "cancelled"), zbpPointer, catalogMetadata: metadata({ sourceRecordCount: 1 }),
     sourceRecords: [outlet()], minimumOutlets: 1, signal: controller.signal, logger: () => {},
   }), { name: "AbortError" });
+});
+
+test('Texas retry sleep is interrupted by cancellation without another request', async () => {
+  const controller = new AbortController(); let calls = 0;
+  await assert.rejects(requestTxJson('https://data.texas.gov/api/views/jrea-zgmq', {
+    type: 'metadata', signal: controller.signal,
+    fetchImpl: async () => { calls += 1; return new Response('busy', { status: 503 }); },
+    sleep: () => { setImmediate(() => controller.abort()); return new Promise(() => {}); },
+  }), { name: 'AbortError' });
+  assert.equal(calls, 1);
+});
+
+test('Texas pending gzip drain is cancellable and removes wait listeners', async () => {
+  const gzip = new EventEmitter(); gzip.write = () => false;
+  const writer = { gzip, records: 0 }; const controller = new AbortController();
+  const pending = writeTxGzipRecord(writer, { fixture: true }, controller.signal);
+  controller.abort(); await assert.rejects(pending, { name: 'AbortError' });
+  assert.equal(writer.records, 0); assert.equal(gzip.listenerCount('drain'), 0);
+});
+
+test('Texas page cancellation cleans only this run and preserves existing publication', async (t) => {
+  const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
+  const root = await mkdtemp(path.join(temp, 'tx-app-cancel-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, 'output'); const other = path.join(outputRoot, '.staging', 'other-run'); await mkdir(other, { recursive: true });
+  await writeFile(path.join(other, 'keep.txt'), 'keep'); await writeFile(path.join(outputRoot, 'current.json'), 'previous-pointer');
+  const controller = new AbortController(); let pages = 0;
+  await assert.rejects(buildTxActiveSalesTaxPermits({ outputRoot, zbpPointer: await writeBaseline(path.join(root, 'zbp')),
+    catalogMetadata: metadata(), minimumOutlets: 1, pageSize: 1, signal: controller.signal,
+    fetchImpl: async url => {
+      const count = new URL(url).searchParams.get('$select') === 'count(*)';
+      if (!count) pages += 1;
+      return new Response(JSON.stringify(count ? [{ count: '2' }] : [outlet()]), { headers: { 'content-type': 'application/json' } });
+    }, logger: () => controller.abort(),
+  }), { name: 'AbortError' });
+  assert.equal(pages, 1); assert.equal(await readFile(path.join(outputRoot, 'current.json'), 'utf8'), 'previous-pointer');
+  assert.deepEqual(await readdir(path.join(outputRoot, '.staging')), ['other-run']);
+  assert.equal(await readFile(path.join(other, 'keep.txt'), 'utf8'), 'keep');
+});
+
+test('Texas cancelled resume does not modify retained staging', async (t) => {
+  const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
+  const root = await mkdtemp(path.join(temp, 'tx-resume-cancel-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const stagingRunId = '00000000-0000-4000-8000-000000000001'; const staging = path.join(root, '.staging', stagingRunId); await mkdir(staging, { recursive: true });
+  await writeFile(path.join(staging, 'keep.txt'), 'retained'); const controller = new AbortController(); controller.abort();
+  await assert.rejects(publishTxActiveSalesTaxPermitsStaging({ outputRoot: root, stagingRunId, signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(await readFile(path.join(staging, 'keep.txt'), 'utf8'), 'retained');
 });

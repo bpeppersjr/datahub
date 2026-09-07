@@ -8,7 +8,8 @@
     "financial-services": ["national-fdic-bankfind", "national-ncua-quarterly"],
     "transportation": ["national-fmcsa-census"],
     "construction": ["state-wa-contractors"],
-    "tax-exempt-organizations": ["national-irs-eo-bmf"]
+    "tax-exempt-organizations": ["national-irs-eo-bmf"],
+    "sales-tax-outlets": ["state-tx-sales-tax"]
   },
   "sources": {
     "national-irs-eo-bmf": {
@@ -77,6 +78,17 @@
       "states": ["WA"],
       "state_filter_supported": true,
       "prerequisites": ["data/business-baselines/census-zbp/current.json"]
+    },
+    "state-tx-sales-tax": {
+      "script": "scripts/build-tx-active-sales-tax-permits.mjs",
+      "scope": "state",
+      "states": ["TX"],
+      "state_filter_supported": true,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"],
+      "coverage_notes": [
+        "Cross-industry active sales-tax permit outlet evidence; it is not a retail-only classification, a census of all Texas businesses, or independent proof of continuous operations or public access.",
+        "Source-reported NAICS and physical outlet addresses are preserved as source claims, not independently verified premises or classifications. Taxpayer mailing fields are excluded, no parent or network relationship is inferred, and record-level artifacts remain local-review-only because names and addresses may identify natural persons or residences."
+      ]
     }
   }
 }
