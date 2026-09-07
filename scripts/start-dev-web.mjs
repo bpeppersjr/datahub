@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { createControlToken } from "../runner/control-plane-security.mjs";
+import { createDevStopControl } from "../runner/dev-stop-control.mjs";
 
 const runnerPort = Number(process.env.RUNNER_PORT) || 4300;
 const uiPort = Number(process.env.DATAHUB_DEV_UI_PORT) || 3000;
@@ -18,29 +19,31 @@ const environment = {
   VITE_DATAHUB_RUNNER_URL: `http://127.0.0.1:${runnerPort}`,
 };
 
+const stopControl = await createDevStopControl({ stop: () => stop(0, false) });
 const children = [
   spawn(process.execPath, [path.resolve("runner", "server.mjs")], { env: environment, stdio: ["inherit", "inherit", "inherit", "ipc"], windowsHide: true }),
   spawn(process.execPath, [path.resolve("node_modules", "vinext", "dist", "cli.js"), "dev", "--port", String(uiPort)], { env: environment, stdio: "inherit", windowsHide: true }),
 ];
 
 let stoppingPromise;
-function terminateChild(child) {
+function terminateChild(child, allowForce) {
   return new Promise((resolve) => {
     if (child.exitCode !== null) return resolve();
-    const forceTimer = setTimeout(() => child.kill("SIGKILL"), 5_000);
-    forceTimer.unref();
+    const forceTimer = allowForce ? setTimeout(() => child.kill("SIGKILL"), 30_000) : null;
+    forceTimer?.unref();
     child.once("exit", () => {
       clearTimeout(forceTimer);
       resolve();
     });
-    if (child.connected) child.send("shutdown", (error) => { if (error && child.exitCode === null) child.kill(); });
+    if (child.connected) child.send("shutdown", (error) => { if (error && child.exitCode === null && allowForce) child.kill(); });
     else child.kill();
   });
 }
 
-async function stop(exitCode = 0) {
+async function stop(exitCode = 0, allowForce = true) {
   if (stoppingPromise) return stoppingPromise;
-  stoppingPromise = Promise.all(children.map(terminateChild)).then(() => {
+  stoppingPromise = Promise.all(children.map((child) => terminateChild(child, allowForce))).then(async () => {
+    await stopControl.close();
     process.exitCode = exitCode;
     if (process.connected) process.disconnect();
   });

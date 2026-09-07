@@ -245,6 +245,8 @@ D.C. cancellation preparation: CLI IPC, native retry waits, stream backpressure/
 
 D.C. network safeguards: shared HTTP guards now enforce streamed/declared response byte limits, a per-attempt deadline through body reading, publisher Retry-After delays without truncation, and fail-closed excessive wait deferral. Six offline network regressions complement cancellation tests. The production-pinned connector contract update and scheduler enrollment remain pending; no new provider request or production data change was made.
 
+Local development shutdown: an explicit [stop command](LOCAL-DEVELOPMENT-SHUTDOWN.md) now asks the unique local launcher to stop through IPC, confirms a terminal receipt, and avoids force-killing its runner on the file-request path. This replaces manual terminal termination for development checks; it does not claim crash recovery or Electron/Windows-service lifecycle coverage. No credentials are stored in stop receipts, and independent reconciliation controllers are not targeted.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

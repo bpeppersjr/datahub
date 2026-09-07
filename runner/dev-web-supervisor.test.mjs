@@ -6,6 +6,8 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { requestDevStop, readDevSession } from "./dev-stop-control.mjs";
+import { access } from "node:fs/promises";
 
 async function unusedPort() {
   const server = net.createServer();
@@ -65,9 +67,11 @@ test("development supervisor closes both direct child services", async (context)
 
   await waitUntil(async () => await listening(runnerPort) && await listening(uiPort, "localhost"))
     .catch((error) => { throw new Error(`${error.message}\n${output}`, { cause: error }); });
-  child.send("shutdown");
+  const request = await requestDevStop({ root: path.join(runtimeRoot, "data", "dev-runtime") });
   const [code] = await once(child, "exit");
   assert.equal(code, 0, output);
+  assert.equal((await readDevSession({ root: path.join(runtimeRoot, "data", "dev-runtime"), id: request.id })).status, "STOPPED");
+  await assert.rejects(access(path.join(runtimeRoot, "data", "refresh-schedules", "owner.lock")), { code: "ENOENT" });
   await waitUntil(async () => !(await listening(runnerPort)) && !(await listening(uiPort, "localhost")), 5_000);
 });
 
