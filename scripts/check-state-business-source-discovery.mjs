@@ -9,6 +9,7 @@ import {
   summarizeStateBusinessSourceRevalidation,
 } from "../runner/state-business-source-revalidation.mjs";
 import { assessStateBusinessSourceReadiness } from "../runner/business-state-source-readiness.mjs";
+import { loadStateCoverageReassessment, currentCoverageProjection } from "../runner/state-coverage-reassessment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const QUEUE_PATHS = [
@@ -374,8 +375,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const revalidation = await loadStateBusinessSourceRevalidation(DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH);
   const currentCoveragePointer = JSON.parse(await readFile(CURRENT_COVERAGE_POINTER_PATH, "utf8"));
   if (currentCoveragePointer.dataset_id !== "national-business-coverage-views" || !/^national-business-coverage-views-/.test(currentCoveragePointer.release_id ?? "")) fail("current coverage pointer is invalid");
-  if (currentCoveragePointer.release_id !== EXPECTED_COVERAGE_RELEASE_ID || queues.some((queue) => queue.coverage_release_id !== currentCoveragePointer.release_id)) fail("discovery queue coverage release does not match the current production pointer");
-  const stateRows = await loadVerifiedStateCoverageRows(currentCoveragePointer);
+  if (queues.some((queue) => queue.coverage_release_id !== EXPECTED_COVERAGE_RELEASE_ID)) fail("discovery queue historical evidence differs");
+  const reassessment=currentCoveragePointer.release_id!==EXPECTED_COVERAGE_RELEASE_ID?await loadStateCoverageReassessment(currentCoveragePointer):null;
+  const stateRows = reassessment?.currentRows ?? await loadVerifiedStateCoverageRows(currentCoveragePointer);
   for (const [queueId, queueLabel, validator] of [
     [QUEUE_6_ID, "Queue 6", validateQueue6RankedSelection],
     [QUEUE_7_ID, "Queue 7", validateQueue7RankedSelection],
@@ -387,11 +389,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       ...revalidation.states.map((state) => state.state_abbreviation),
       ...queues.slice(0, queueIndex).flatMap((candidate) => candidate.scope),
     ];
-    validator(queue, stateRows, priorStateAbbreviations);
+    const projectedQueue=reassessment?{...queue,states:queue.states.map(state=>{
+      const row=stateRows.find(row=>row.postal_abbreviation===state.state_abbreviation);
+      if(!row)fail('Reassessment state is missing');
+      return {...state,current_coverage:currentCoverageProjection(row)};
+    })}:queue;
+    validator(projectedQueue, stateRows, priorStateAbbreviations);
     console.log(`Ranked ${queueLabel} selection: PASS (${queue.scope.join(", ")})`);
   }
   const summary = summarizeStateBusinessSourceRevalidation(revalidation, currentCoveragePointer.release_id);
-  if (summary.coverage_release_matches_current !== true) fail("revalidation coverage release does not match the current production pointer");
+  if (summary.coverage_release_matches_current !== true && !reassessment) fail("revalidation coverage release does not match the current production pointer");
+  if(reassessment)console.log(`Coverage reassessment ${reassessment.id}: PASS; current ranks rechecked; historical source-policy decisions and dates unchanged.`);
   console.log(`State-source revalidation ${summary.revalidation_id}: PASS`);
   console.log(`Revalidated: ${summary.jurisdictions_revalidated}; holds: ${summary.hold_decisions}; bounded connectors: ${summary.bounded_connector_decisions}; autonomous acquisitions authorized: ${summary.autonomous_acquisitions_authorized}; production-ready: ${summary.production_ready_jurisdictions}`);
 }

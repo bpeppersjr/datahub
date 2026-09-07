@@ -784,7 +784,7 @@ export async function buildDcBasicBusinessLicenses({
   const manifest = {
     schema_version: DC_BASIC_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "dc-basic-business-license-sites",
-    connector: { id: "dc-basic-business-licenses", version: "1.0.1" },
+    connector: { id: "dc-basic-business-licenses", version: "1.0.2" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     status: "complete",

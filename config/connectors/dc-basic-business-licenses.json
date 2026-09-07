@@ -1,6 +1,6 @@
 {
   "connector_id": "dc-basic-business-licenses",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Publishes privacy-minimized, source-defined active District of Columbia Basic Business License customer/premise groups while preserving activity rows and official geocodes.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
@@ -26,13 +26,15 @@
     "maximum_page_records": 2000,
     "default_page_records": 2000,
     "maximum_response_bytes": 50000000,
+    "request_timeout_ms": 60000,
+    "maximum_request_attempts": 4,
     "minimum_active_license_records": 50000,
     "maximum_quarantine_rate": 0.25
   },
-  "retry": "Retry HTTP 429, 5xx, and transient transport failures with bounded exponential backoff. Do not retry redirects, other 4xx responses, ArcGIS errors, selected-schema drift, duplicate GlobalID, refresh drift, or quality-gate failures.",
+  "retry": "At most four attempts for HTTP 429, 5xx, request timeout, and transient transport failures. Each attempt has a 60000ms header/body deadline and 50000000-byte JSON limit. Honor publisher Retry-After; waits exceeding one day defer rather than being shortened. Do not retry user cancellation, redirects, other 4xx responses, invalid JSON, ArcGIS errors, selected-schema drift, duplicate GlobalID, refresh drift, or quality-gate failures.",
   "checkpoint": "Acquire the exact Active/Business License query in deterministic OBJECTID order and hash the complete selected-field snapshot before grouped normalization. Recheck metadata and count before publication; publish the manifest and current pointer last and atomically.",
   "idempotency": "The uniform DATAREFRESHEDON value, exact source filter, selected-field schema fingerprint, and selected-source SHA-256 identify a source release. Customer Number identifies one provisional license organization/site group regardless of activity-row count.",
-  "cancellation": "Abort network and local grouping cooperatively, close partition streams, retain unpublished run-scoped staging for diagnosis, and do not change current.json.",
+  "cancellation": "SIGINT, SIGTERM and parent IPC cancel abort acquisition, retry waits, grouping and pre-publication verification cooperatively. Close all streams and remove only this run's generated UUID staging directory on cancellation; retain ordinary failed staging for diagnosis and preserve prior/sibling releases. Publication checks cancellation immediately before its immutable rename commit boundary; once that boundary is crossed, finish publication consistently instead of partially rolling it back.",
   "source_policy": "config/source-policies/dc-basic-business-licenses.json",
   "retention_profile": "Retain immutable internal selected-field source snapshots and local-review-only normalized releases until an approved retention operation removes them.",
   "produced_entities": ["organization-candidate", "physical-site-candidate", "establishment-candidate", "active-municipal-license-assertion", "reported-premise-address-assertion", "business-activity-assertion"],

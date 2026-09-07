@@ -2,6 +2,8 @@
 
 ## Objective
 
+Latest app handoff (2026-09-07): D.C. connector contract 1.0.2 is enrolled in the cross-industry `local-business-licenses` bucket, with publisher-jurisdiction scope and local-review-only record outputs. [Coverage reassessment](STATE-COVERAGE-REASSESSMENT.md) resolves the post-rebuild historical-catalog gate using pinned old/new state evidence and current rank calculations without renewing source-policy decisions. Combined verification: 521 tests passed. The next D.C. operation is an isolated app-owned refresh; production import/promotion and recurring scheduling remain separate actions.
+
 Build a standalone, local-first data hub that can acquire, validate, normalize, reconcile, catalog, and publish mixed public and licensed datasets with durable workflows and operator-visible provenance.
 
 Latest source prerequisite (2026-09-07): [Massachusetts childcare preflight](MA-CHILDCARE-PREFLIGHT.md) is implemented as a standalone metadata/count-only CLI with immutable receipts. Final live observation: 3,016 source rows; no row acquisition, export approval or scheduler enrollment. Full check: 511 tests passed. Acquisition/normalization and governed industry enrollment remain next work for this source.

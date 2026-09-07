@@ -9,9 +9,22 @@
     "transportation": ["national-fmcsa-census"],
     "construction": ["state-wa-contractors"],
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
-    "sales-tax-outlets": ["state-tx-sales-tax"]
+    "sales-tax-outlets": ["state-tx-sales-tax"],
+    "local-business-licenses": ["state-dc-basic-licenses"]
   },
   "sources": {
+    "state-dc-basic-licenses": {
+      "script": "scripts/build-dc-basic-business-licenses.mjs",
+      "scope": "state",
+      "states": ["DC"],
+      "state_filter_supported": false,
+      "prerequisites": ["data/business-baselines/census-zbp/current.json"],
+      "coverage_notes": [
+        "Cross-industry District of Columbia Basic Business License evidence, not a retail-only classification or a census of every business. DC selection scopes the publisher jurisdiction; reported out-of-district premises remain source claims rather than being silently dropped.",
+        "Active is a source-defined license status, not independent proof of current operations, occupancy or public access. Multiple activity rows for one Customer Number form one provisional customer/premise group.",
+        "Selected source rows stay internal; normalized records remain local-review-only. Owner, agent, billing and parcel fields are excluded. Aggregate reuse requires DLCP/Open Data DC attribution and CC BY 4.0 notice. No parent company or cross-source identity is inferred."
+      ]
+    },
     "national-irs-eo-bmf": {
       "script": "scripts/build-irs-eo-bmf.mjs",
       "scope": "national",

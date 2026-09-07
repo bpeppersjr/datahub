@@ -248,6 +248,24 @@ test('Texas app plan is a scoped cross-industry sales-tax task, not a nationwide
   assert.ok(plan.warnings.some(warning => /local-review-only/i.test(warning)));
 });
 
+test('DC app enrollment isolates publisher scope and preserves cross-industry privacy limits', async () => {
+  const config=await loadIndustryConfig();
+  const plan=buildIndustryPlan(config,{industries:['local-business-licenses'],states:['DC','MD','VA']});
+  assert.equal(plan.taskCount,1);
+  assert.equal(plan.tasks[0].sourceId,'state-dc-basic-licenses');
+  assert.equal(plan.tasks[0].state,'DC');
+  assert.equal(config.sources['state-dc-basic-licenses'].state_filter_supported,false);
+  assert.equal(plan.tasks[0].script,'scripts/build-dc-basic-business-licenses.mjs');
+  assert.deepEqual(plan.tasks[0].prerequisites,['data/business-baselines/census-zbp/current.json']);
+  assert.deepEqual(plan.gaps.map(gap=>gap.state).sort(),['MD','VA']);
+  for(const pattern of [/cross-industry/i,/out-of-district/i,/local-review-only/i,/CC BY 4.0/i])assert.ok(plan.warnings.some(warning=>pattern.test(warning)));
+  const contract=JSON.parse(await readFile(path.join(APP_ROOT,'config/connectors/dc-basic-business-licenses.json'),'utf8'));
+  assert.equal(contract.version,'1.0.2');
+  assert.equal(contract.execution_limits.maximum_request_attempts,4);
+  assert.equal(contract.execution_limits.request_timeout_ms,60000);
+  assert.match(contract.cancellation,/remove only this run/);
+});
+
 test("source limitation notes are validated and preserved in the durable run plan", async () => {
   const config = offlineConfig();
   config.sources['state-fixture'].coverage_notes = ['License evidence only; not proof of operations.'];
