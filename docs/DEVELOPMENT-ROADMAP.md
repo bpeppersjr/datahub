@@ -2,6 +2,8 @@
 
 ## Objective
 
+Massachusetts first live acquisition (2026-09-07): [independent release verification](MA-CHILDCARE-CONNECTOR.md#verified-first-acquisition) confirms app run `ma-app-acquisition-20260907-02` succeeded with 3,007 accepted center-based childcare program records and 9 quarantined rows out of 3,016. The standalone worker finished and released its locks. Reuse this immutable local-review release for subsequent registry integration; no repull, national completeness claim, or production promotion is needed to preserve the newly obtained evidence.
+
 Massachusetts app enrollment (2026-09-07): [managed childcare acquisition](MA-CHILDCARE-CONNECTOR.md#managed-industry-handoff) uses the existing standalone industry worker, source reservation, IPC cancellation and durable receipts. The new versioned source/policy contracts match the verified release builder. MA is acquisition-enabled; national reporting evidence remains unmeasured pending registry integration. No recurring cadence or production reporting promotion is implied.
 
 Massachusetts release workflow (2026-09-07): [standalone build and verification](MA-CHILDCARE-CONNECTOR.md#standalone-release-commands) adds local artifact publication, source-bound normalization/quarantine reproduction and app IPC cancellation. This remains separate from managed industry enrollment and live acquisition; no new provider records or production reporting pointers are claimed by the implementation.

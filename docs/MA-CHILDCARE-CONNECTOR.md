@@ -60,6 +60,23 @@ After the correction, the full repository check passed (tests, lint, web/desktop
 
 Replacement app-owned run `ma-app-acquisition-20260907-02` started at 19:09:41.589Z with expected plan SHA-256 `0af9d96585a3590a7f9b904ebe2270495eefd1837b50d4a5c36a9c5421623408`. Controller PID 24300 and acquisition worker PID 10804 were confirmed live after launch. Inspect `data/industry-segments/runs/ma-app-acquisition-20260907-02/receipt.json` for its current state; launch is not completion evidence. This separate run preserves the failed first attempt and does not require a live AI session for ongoing acquisition.
 
+### Verified first acquisition
+
+Run `ma-app-acquisition-20260907-02` subsequently completed successfully at 19:10:25.516Z. Its controller and worker exited. The independent release CLI reproduced and verified all four artifacts (7,132,377 bytes total); a separate integrity check verified the app receipt's worker-log hash, current-pointer manifest hash, empty staging and released publication/source locks. No data was repulled for these checks.
+
+- Release: `ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6`.
+- Manifest: `data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json`.
+- Manifest SHA-256: `c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc`.
+- App receipt SHA-256: `d5d45ad2753cdc7b9584d1117e5767967d41c0265103e59bf93b1c4458e03774`.
+- Source rows: 3,016; accepted program records: 3,007; quarantine: 9 (approximately 0.30%, within the 5% gate).
+- Acquisition evidence: 31 bounded feature batches, plus metadata/count/ID inventory before and after; observed interval 19:09:41.656Z–19:10:25.331Z on September 7, 2026.
+
+This is the first acquired local-review source release, not a national reporting promotion. All source rows were accounted for against the observed inventory, but that does not establish complete childcare coverage, unique entities, current operating status, or current USPS validity. Publisher editing dates remain separate from this observation interval. The existing failed run, production reporting pointers, and active D.C. candidate reconciliation are unchanged. Subsequent local integration must reuse this release rather than download it again merely to promote or reconcile it.
+
+Independent read-only semantic review found all nine quarantines were `invalid-postal-code`. Accepted source statuses were Current (2,561), Renewal in progress (431), Expired (13), and Regional Enrollment Freeze (2); these are retained source licensing labels, not inferred active/inactive business decisions. All 3,007 accepted records have publisher coordinates, but no independent geocode or boundary verification. ZIP4 is present separately in 1,113 records; every accepted postal_code alias equals ZIP5, and normalized records have no geometry field. Distinct source/provider identifiers do not establish distinct businesses. All accepted records retain local-review-only policy and explicit unverified identity, operations, ownership and postal-validity claims.
+
+Verification of this evidence-recording increment: all 570 repository tests, lint, web/desktop builds and desktop smoke passed; TypeScript passed and the production dependency audit found zero vulnerabilities. Only documentation changed. Rolling back this documentation does not delete the acquired release or alter its pointers.
+
 ### Direct release commands
 
 Release-workflow verification: eight release tests and two CLI tests passed as part of the full 561-test repository check, including lint, web/desktop builds and desktop smoke. TypeScript passed; the production dependency audit found zero vulnerabilities. Tests used offline fixtures, including real subprocess cancellation; no live Massachusetts acquisition or managed-app enrollment is claimed.
