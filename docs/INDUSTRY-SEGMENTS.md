@@ -39,6 +39,20 @@ The run acquires the four national regional files once; NY/CA selection does not
 
 Optional per-source `coverage_notes` are validated, displayed in plan warnings, and persisted in the run receipt. The IRS notes explicitly preserve the cross-industry, address, operational-status, and export limitations. Cancellation propagates from the runner into the IRS request/stream/normalization lifecycle; once immutable publication begins it finishes its atomic pointer sequence. No live IRS refresh was started merely by adding this bucket. A completed refresh still requires the separate governed national reconciliation chain before appearing in production views.
 
+## Cross-process acquisition exclusion
+
+App-managed and CLI industry runs now reserve every selected source before launching any acquisition worker. Reservations live under `data/industry-segments/source-locks/`, with source identity, run ID, PID, and an ownership token. National reservations ignore state selection; two state requests cannot concurrently acquire the same shared national source. Independent publishers can still run in parallel within each run's configured limit.
+
+The fixed publisher executable is also reserved, so renaming a source in a custom configuration cannot bypass exclusion. A configuration may not assign one executable to multiple source IDs; reference the existing source ID from multiple industries instead. These builders currently receive no state argument, so using one executable as multiple state publishers is not supported.
+
+All reservations are acquired before any worker starts. A conflict fails the new run with a durable receipt and unwinds only its owned partial reservations; it does not queue a retry or interfere with the existing owner. Reservations are released only after all workers settle and the terminal receipt is persisted. Persistence failures trigger cooperative cancellation and drain active workers. If terminal persistence or ownership verification fails, remaining reservations stay in place for inspection; release errors are recorded when receipt storage is writable.
+
+These are exclusion records, not expiring leases. An old timestamp, missing PID, malformed record, or interrupted app does not authorize automatic deletion or retry. Inspect actual processes, child ownership, run receipts, and artifacts before recovery. Do not delete locks merely to force a new download. Direct connector scripts bypass the industry runner and are not covered by these reservations.
+
+This prevents simultaneous duplicate acquisition, not sequential redundant refreshes. Freshness-based reuse, durable recurring scheduling, global resource budgets across disjoint runs, and automatic interrupted-run recovery remain separate work. No live provider request is made by enrolling the protection.
+
+The increment passed all 452 repository tests, lint, web/desktop builds, desktop control-plane smoke, TypeScript, and the production dependency audit (zero vulnerabilities). The 24 focused industry/lock tests include a competing real Node process and a real receipt-write fault while another worker remains active. No production download was started for this change, and the test-created reservations were released. Existing valid configurations and data releases need no migration; custom configs with duplicate executable aliases must reference a single source ID instead. Before downgrading to a version without this protection, let active industry runs finish and investigate retained locks; do not remove them as a rollback step.
+
 ## Texas sales-tax outlet refresh
 
 The `sales-tax-outlets` bucket exposes the existing governed Texas Comptroller publisher as `state-tx-sales-tax`, only for Texas. This is cross-industry tax-permit outlet evidence, not a retail-only classification or a census of Texas businesses.

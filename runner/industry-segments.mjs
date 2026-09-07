@@ -5,6 +5,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
+import { acquireIndustrySourceLocks } from "./industry-source-locks.mjs";
 
 export const DEFAULT_CONFIG = path.join(APP_ROOT, "config", "industry-segments.json");
 export const MAX_CONCURRENCY = 10;
@@ -29,6 +30,7 @@ export function validateIndustryConfig(config, source = "config") {
   if (!Array.isArray(config.states) || config.states.some((s) => typeof s !== "string" || !/^[A-Z]{2}$/.test(s))) fail("states must be uppercase two-letter codes");
   if (!config.industries || typeof config.industries !== "object" || Array.isArray(config.industries)) fail("industries must be an object");
   if (!config.sources || typeof config.sources !== "object" || Array.isArray(config.sources)) fail("sources must be an object");
+  const configuredScripts = new Set();
   for (const [id, source] of Object.entries(config.sources)) {
     if (!/^[-a-z0-9]+$/.test(id)) fail(`source id ${id} is invalid`);
     if (!source || typeof source.script !== "string" || !source.script.endsWith(".mjs")) fail(`${id}.script is required`);
@@ -37,6 +39,9 @@ export function validateIndustryConfig(config, source = "config") {
     if (source.scope === "state" && (!Array.isArray(source.states) || source.states.length === 0 || source.states.some((s) => !config.states.includes(s)))) fail(`${id}.states must contain configured states`);
     if (source.scope === "state" && source.states.length !== 1) fail(`${id}: state builders must have one publisher state until state arguments are supported`);
     assertInsideApp(path.resolve(APP_ROOT, source.script));
+    const scriptIdentity = process.platform === "win32" ? path.resolve(APP_ROOT, source.script).toLowerCase() : path.resolve(APP_ROOT, source.script);
+    if (configuredScripts.has(scriptIdentity)) fail(`${id}.script duplicates another source executable`);
+    configuredScripts.add(scriptIdentity);
     if (typeof source.state_filter_supported !== "boolean") fail(`${id}.state_filter_supported must be boolean`);
     if (!Array.isArray(source.prerequisites)) fail(`${id}.prerequisites must be an array`);
     if (source.coverage_notes !== undefined && (!Array.isArray(source.coverage_notes) || source.coverage_notes.length > 5 || source.coverage_notes.some((note) => typeof note !== "string" || !note.trim() || note.length > 500))) fail(`${id}.coverage_notes must contain at most five non-empty strings of at most 500 characters`);
@@ -129,7 +134,9 @@ function executeChild(task, { runDir, runId, outputRoot, signal }) {
   });
 }
 
-export async function runIndustryPlan(config, plan, { executor = executeChild, outputRoot = path.join("data", "industry-segments", "runs", plan.runId), signal } = {}) {
+export async function runIndustryPlan(config, plan, { executor = executeChild, outputRoot = path.join("data", "industry-segments", "runs", plan.runId), signal: requestedSignal } = {}) {
+  const controller = new AbortController();
+  const signal = requestedSignal ? AbortSignal.any([requestedSignal, controller.signal]) : controller.signal;
   validateIndustryConfig(config);
   for (const [id, source] of Object.entries(config.sources)) {
     try { await access(assertInsideApp(path.resolve(APP_ROOT, source.script))); } catch { throw new Error(`${id}.script does not exist: ${source.script}`); }
@@ -145,7 +152,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
   await writeFile(path.join(runDir, "plan.json"), JSON.stringify(plan, null, 2));
   const receipt = { run_id: plan.runId, status: "running", started_at: new Date().toISOString(), plan: { industries: plan.industries, states: plan.states, gaps: plan.gaps, warnings: plan.warnings }, tasks: [], log_sha256: {} };
   let receiptWrite = Promise.resolve();
-  const persist = () => { receiptWrite = receiptWrite.then(async () => { const temp = `${receiptPath}.tmp`; await writeFile(temp, JSON.stringify(receipt, null, 2)); const { rename } = await import("node:fs/promises"); await rename(temp, receiptPath); }); return receiptWrite; };
+  const persist = () => { receiptWrite = receiptWrite.catch(() => {}).then(async () => { const temp = `${receiptPath}.tmp`; await writeFile(temp, JSON.stringify(receipt, null, 2)); const { rename } = await import("node:fs/promises"); await rename(temp, receiptPath); }); return receiptWrite; };
   await persist();
   if (plan.tasks.length === 0) { receipt.status = "failed"; receipt.error = "Plan contains no executable tasks."; receipt.finished_at = new Date().toISOString(); await persist(); return { receiptPath, receipt }; }
   const prerequisiteErrors = [];
@@ -154,6 +161,22 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
     for (const task of plan.tasks) { const failure = prerequisiteErrors.find((item) => item.task.id === task.id); receipt.tasks.push({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: failure ? "failed" : "cancelled", error: failure?.error.message }); }
     receipt.status = "failed"; receipt.finished_at = new Date().toISOString(); await persist(); return { receiptPath, receipt };
   }
+  if (signal.aborted) {
+    receipt.status = "cancelled"; receipt.finished_at = new Date().toISOString();
+    receipt.tasks = plan.tasks.map((task) => ({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: "cancelled" }));
+    await persist(); return { receiptPath, receipt };
+  }
+  let reservation;
+  try {
+    reservation = await acquireIndustrySourceLocks(plan.tasks, { runId: plan.runId });
+    receipt.source_locks = reservation.locks;
+  } catch (error) {
+    receipt.status = "failed"; receipt.error = error.message; receipt.finished_at = new Date().toISOString();
+    receipt.tasks = plan.tasks.map((task) => ({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: "cancelled" }));
+    await persist(); return { receiptPath, receipt };
+  }
+  let terminalPersisted = false;
+  try {
   let cursor = 0;
   const worker = async () => {
     while (cursor < plan.tasks.length && !signal?.aborted) {
@@ -170,11 +193,14 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
       record.finished_at = new Date().toISOString(); await persist();
     }
   };
-  const workers = Array.from({ length: Math.min(plan.maxConcurrency, plan.tasks.length || 1) }, () => worker());
-  await Promise.all(workers);
-  if (signal?.aborted) receipt.status = "cancelled";
+  const workers = Array.from({ length: Math.min(plan.maxConcurrency, plan.tasks.length || 1) }, () => worker().catch((error) => { controller.abort(); throw error; }));
+  const outcomes = await Promise.allSettled(workers);
+  const workerFailure = outcomes.find((outcome) => outcome.status === "rejected");
+  if (workerFailure) { receipt.status = "failed"; receipt.error = workerFailure.reason?.message ?? "Industry worker failed."; }
+  else if (signal?.aborted) receipt.status = "cancelled";
   else receipt.status = receipt.tasks.some((task) => task.status === "failed") ? "failed" : "succeeded";
   receipt.finished_at = new Date().toISOString();
+  for (const task of receipt.tasks) if (task.status === "running") { task.status = workerFailure ? "failed" : "cancelled"; task.finished_at = receipt.finished_at; }
   for (const task of plan.tasks) if (!receipt.tasks.some((item) => item.task_id === task.id)) receipt.tasks.push({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: "cancelled" });
   for (const task of receipt.tasks) if (task.log) {
     try {
@@ -187,5 +213,18 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
     }
   }
   await persist();
+  terminalPersisted = true;
   return { receiptPath, receipt };
+  } finally {
+    // A failed terminal write retains reservations for explicit operator recovery.
+    if (terminalPersisted) {
+      try { await reservation.release(); }
+      catch (error) {
+        receipt.lock_release_status = "inspection-required";
+        receipt.lock_release_error = error.message;
+        await persist();
+        throw error;
+      }
+    }
+  }
 }

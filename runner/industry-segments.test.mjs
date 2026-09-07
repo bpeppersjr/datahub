@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { buildIndustryPlan, loadIndustryConfig, runIndustryPlan, validateIndustryConfig } from "./industry-segments.mjs";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
@@ -69,7 +69,8 @@ test("every prerequisite is checked before any executor starts", async () => {
   await withRunDirectory(async (outputRoot, parent) => {
     const config = offlineConfig();
     config.sources["state-fixture"].states = ["CA"];
-    config.sources["missing-fixture"] = { ...config.sources["state-fixture"], states: ["NY"], prerequisites: [path.join(parent, "missing-prerequisite.json")] };
+    config.sources["missing-fixture"] = { ...config.sources["ny-fixture"], prerequisites: [path.join(parent, "missing-prerequisite.json")] };
+    delete config.sources["ny-fixture"];
     config.industries.retail = ["state-fixture", "missing-fixture"];
     const plan = buildIndustryPlan(config);
     let calls = 0;
@@ -78,6 +79,82 @@ test("every prerequisite is checked before any executor starts", async () => {
     assert.equal(result.receipt.status, "failed");
     assert.match(result.receipt.tasks.find((task) => task.source_id === "missing-fixture").error, /prerequisite is missing/);
     assert.equal(result.receipt.tasks.find((task) => task.source_id === "state-fixture").status, "cancelled");
+  });
+});
+
+test("independent industry runs cannot acquire an overlapping source until its owner finishes", async () => {
+  await withRunDirectory(async (outputRoot, parent) => {
+    const config = offlineConfig(1); config.industries.retail = ["state-fixture"];
+    const firstPlan = buildIndustryPlan(config, { runId: "source-owner" });
+    let started, finish; const begun = new Promise((resolve) => { started = resolve; }), gate = new Promise((resolve) => { finish = resolve; });
+    const first = runIndustryPlan(config, firstPlan, { outputRoot, executor: async () => { started(); await gate; return { code: 0 }; } });
+    await begun;
+    try {
+      let calls = 0;
+      const second = await runIndustryPlan(config, buildIndustryPlan(config, { runId: "source-conflict" }), { outputRoot: path.join(parent, "second"), executor: async () => { calls += 1; return { code: 0 }; } });
+      assert.equal(second.receipt.status, "failed"); assert.equal(calls, 0);
+      assert.deepEqual(JSON.parse(await readFile(second.receiptPath)), second.receipt);
+    } finally { finish(); }
+    assert.equal((await first).receipt.status, "succeeded");
+    let calls = 0;
+    const third = await runIndustryPlan(config, buildIndustryPlan(config, { runId: "source-next" }), { outputRoot: path.join(parent, "third"), executor: async () => { calls += 1; return { code: 0 }; } });
+    assert.equal(third.receipt.status, "succeeded"); assert.equal(calls, 1);
+  });
+});
+
+test("different config source names cannot bypass exclusion for the same acquisition script", async () => {
+  await withRunDirectory(async (outputRoot, parent) => {
+    const config = offlineConfig(1); config.industries.retail = ["state-fixture"];
+    const alias = structuredClone(config); alias.sources["aliased-source"] = alias.sources["state-fixture"]; delete alias.sources["state-fixture"]; alias.industries.retail = ["aliased-source"];
+    let started, finish; const begun = new Promise((resolve) => { started = resolve; }), gate = new Promise((resolve) => { finish = resolve; });
+    const first = runIndustryPlan(config, buildIndustryPlan(config, { runId: "script-owner" }), { outputRoot, executor: async () => { started(); await gate; return { code: 0 }; } });
+    await begun;
+    try {
+      let calls = 0;
+      const other = await runIndustryPlan(alias, buildIndustryPlan(alias, { runId: "script-alias" }), { outputRoot: path.join(parent, "alias"), executor: async () => { calls += 1; return { code: 0 }; } });
+      assert.equal(other.receipt.status, "failed"); assert.equal(calls, 0);
+    } finally { finish(); }
+    assert.equal((await first).receipt.status, "succeeded");
+  });
+});
+
+test("one industry configuration cannot name the same executable as multiple source aliases", () => {
+  const config = offlineConfig(); config.sources["duplicate-source"] = { ...config.sources["state-fixture"] };
+  assert.throws(() => validateIndustryConfig(config), /script|duplicate|alias/i);
+});
+
+test("receipt write failure drains active siblings and holds source reservations until terminal persistence recovers", async () => {
+  await withRunDirectory(async (outputRoot, parent) => {
+    const config = offlineConfig(2); config.industries.retail = ["state-fixture", "ny-fixture"];
+    let bothStarted, firstFinish, secondFinish, sawAbort, starts = 0;
+    const begun = new Promise((resolve) => { bothStarted = resolve; });
+    const firstGate = new Promise((resolve) => { firstFinish = resolve; }), secondGate = new Promise((resolve) => { secondFinish = resolve; });
+    const aborted = new Promise((resolve) => { sawAbort = resolve; });
+    const first = runIndustryPlan(config, buildIndustryPlan(config, { runId: "persistence-owner" }), { outputRoot, executor: async (task, { signal }) => {
+      starts += 1; if (starts === 2) bothStarted();
+      signal.addEventListener("abort", sawAbort, { once: true });
+      await (task.state === "CA" ? firstGate : secondGate); return { code: 0 };
+    } });
+    await begun;
+    const receiptPath = path.join(outputRoot, "receipt.json"), original = await readFile(receiptPath);
+    let obstructed = false;
+    try {
+      await unlink(receiptPath); await mkdir(receiptPath); obstructed = true; firstFinish();
+      let watchdog;
+      try { await Promise.race([aborted, new Promise((_, reject) => { watchdog = setTimeout(() => reject(new Error("Expected internal cancellation after persistence failure")), 3000); })]); }
+      finally { clearTimeout(watchdog); }
+      let calls = 0;
+      const conflict = await runIndustryPlan(config, buildIndustryPlan(config, { runId: "persistence-conflict" }), { outputRoot: path.join(parent, "conflict"), executor: async () => { calls += 1; return { code: 0 }; } });
+      assert.equal(conflict.receipt.status, "failed"); assert.equal(calls, 0);
+    } finally {
+      if (obstructed) { await rmdir(receiptPath); await writeFile(receiptPath, original); }
+      firstFinish(); secondFinish();
+    }
+    const result = await first;
+    assert.equal(result.receipt.status, "failed"); assert.ok(result.receipt.tasks.every((task) => task.status !== "running"));
+    assert.deepEqual(JSON.parse(await readFile(receiptPath)), result.receipt);
+    const next = await runIndustryPlan(config, buildIndustryPlan(config, { runId: "persistence-recovered" }), { outputRoot: path.join(parent, "recovered"), executor: async () => ({ code: 0 }) });
+    assert.equal(next.receipt.status, "succeeded");
   });
 });
 
