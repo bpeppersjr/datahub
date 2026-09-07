@@ -1,6 +1,6 @@
 # Massachusetts childcare acquisition and normalization
 
-Implemented modules: `runner/ma-childcare-acquisition.mjs` and `runner/ma-childcare-normalization.mjs`. These are application-side functions, not AI-dependent execution. They are not yet a published dataset, managed job, or complete connector. No live row request was made for this increment.
+Implemented modules cover acquisition, normalization and local release publication/verification. These are application-side functions, not AI-dependent execution. No live Massachusetts dataset has been acquired by these implementation increments, and managed industry enrollment is still pending.
 
 ## Acquisition contract
 
@@ -12,7 +12,7 @@ Missing, extra or duplicate IDs, selected-field drift, truncated batches, change
 
 ## Normalized program records
 
-`normalizeMaChildcareFeature` requires run ID, source release ID, UTC observation time and verified WGS84 output context. A future release builder must supply these from real acquisition evidence, not arbitrary fixture labels. The source OBJECTID is scoped to the release; EEC provider number and MassGIS address ID remain external identifiers with unverified lifecycle. Same-address programs are not silently merged into one business.
+`normalizeMaChildcareFeature` requires run ID, source release ID, UTC observation time and verified WGS84 output context. The release builder supplies these from its acquisition evidence; direct callers must not substitute arbitrary fixture labels for live provenance. The source OBJECTID is scoped to the release; EEC provider number and MassGIS address ID remain external identifiers with unverified lifecycle. Same-address programs are not silently merged into one business.
 
 The function requires Center-based Care and Licensed scope fields, excludes undeclared fields, and rejects missing names/addresses, P.O. boxes, malformed postal fields and invalid capacity. ZIP5 and ZIP4 are separate strings; the compatibility postal_code alias contains ZIP5 only. Massachusetts/U.S. address jurisdiction derives from publisher scope and is marked as not boundary-verified.
 
@@ -20,8 +20,22 @@ Output business records have longitude/latitude, not feature geometries. Missing
 
 ## Remaining work before app execution
 
-Build run-scoped immutable raw/normalized artifacts and manifest linkage, controlled record quarantine versus whole-source scope rejection, independent artifact verification, cancellation-safe publication and recovery. Include explicit first/last observations and disappearance semantics in versioned comparisons rather than turning a missing row into a closure. Integrate the validated connector with an explicit childcare industry bucket and app-owned scheduling only after those checks pass.
+Standalone CLI execution is implemented below. Managed app enrollment, versioned first/last-observation comparisons, disappearance handling and explicit crash-recovery workflows remain. A missing row must not become a closure assertion. Integrate the validated connector with an explicit childcare industry bucket only after source-contract and runtime plan checks pass.
 
 The metadata-only preflight remains unchanged and correctly reports connector_ready false. Existing production pointers, pinned source configuration and current reconciliation are untouched. See [source/policy evidence](states/MA-CHILDCARE-ACCESS-2026-09-07.md). No migration is required for these additive modules; removing them does not remove existing releases.
 
 Verification: 14 focused tests and the final full 551-test repository check passed, including lint, web/desktop builds and desktop smoke. TypeScript passed and the production audit found zero vulnerabilities. Peer review prompted rejection of contradictory per-feature CRS identifiers; both acquisition and normalization now test that case. These are offline code checks, not evidence of a published Massachusetts release.
+
+## Standalone release commands
+
+Release-workflow verification: eight release tests and two CLI tests passed as part of the full 561-test repository check, including lint, web/desktop builds and desktop smoke. TypeScript passed; the production dependency audit found zero vulnerabilities. Tests used offline fixtures, including real subprocess cancellation; no live Massachusetts acquisition or managed-app enrollment is claimed.
+
+`npm run ma-childcare:build -- --output <path-inside-datahub>` acquires the fixed selected layer, normalizes it, verifies the resulting immutable release and publishes a local pointer. Omit --output for `data/business-sources/ma-licensed-center-based-childcare`. This command makes real provider requests unless a test explicitly injects transport. It needs neither Codex nor credentials. `--help` does not acquire anything.
+
+`npm run ma-childcare:verify -- <release-manifest.json>` verifies an existing local manifest without network access. Supply the manifest path reported by the build, not current.json. Both commands accept the app's IPC cancellation and process signals.
+
+The builder retains four checksummed artifacts: selected-features.jsonl (internal), normalized.jsonl (local-review-only), quarantine.jsonl (internal), and source-observation.json (internal). Raw selected point features are provenance artifacts; normalized business records contain only longitude/latitude. Source identity binds selected feature content and acquisition evidence. Immutable release manifests record policy, transformation version, counts and explicit non-completeness/non-operating claims.
+
+Scope or private-field drift fails the whole source; record-level validation failures may be quarantined only up to five percent, with at least one accepted record. Verification hashes the retained artifacts and reproduces normalization and quarantine from selected features. It structurally checks source observation evidence; it cannot independently rehash full publisher metadata/count/ID responses that acquisition retained only as digests. This is not a source-authenticity signature or proof that the publisher supplied a transactional snapshot.
+
+An exclusive per-output-root lock prevents simultaneous publishers and is never reclaimed merely because it looks stale. Cancellation before the commit boundary cleans only owned staging; ordinary failed staging remains inspectable. After release rename starts, pointer commit is not interrupted by cooperative cancellation. Disk failure or abrupt termination can still leave a release without a new pointer or a retained lock; automatic crash recovery is not claimed. Prior releases and unrelated preflight receipts are preserved.

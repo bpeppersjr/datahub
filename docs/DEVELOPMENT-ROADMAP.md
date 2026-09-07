@@ -2,6 +2,8 @@
 
 ## Objective
 
+Massachusetts release workflow (2026-09-07): [standalone build and verification](MA-CHILDCARE-CONNECTOR.md#standalone-release-commands) adds local artifact publication, source-bound normalization/quarantine reproduction and app IPC cancellation. This remains separate from managed industry enrollment and live acquisition; no new provider records or production reporting pointers are claimed by the implementation.
+
 Massachusetts connector implementation (2026-09-07): [bounded acquisition and conservative normalization](MA-CHILDCARE-CONNECTOR.md) now have offline request, consistency, privacy, ZIP/coordinate/status and integration tests. They produce in-memory source/record results without AI, but immutable publication, independent release verification and managed enrollment are still required. No live childcare records or source pointers changed.
 
 Massachusetts source-policy follow-up (2026-09-07): [indexed official scope/reuse evidence](states/MA-CHILDCARE-ACCESS-2026-09-07.md#scope-and-reuse-recheck--september-7-follow-up) corroborates center-based licensed-only locations and MassGIS public-data attribution guidance, despite direct-page 403 responses. Public item metadata was independently rechecked without row requests. Proceed to the bounded acquisition/normalization implementation; do not treat blank item license metadata as an indefinite development hold or metadata success as completed enrollment.
