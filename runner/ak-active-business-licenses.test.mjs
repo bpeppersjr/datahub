@@ -241,6 +241,117 @@ test("Alaska network backoff is bounded and invalid retry budgets never fetch", 
   assert.deepEqual(waits, [500, 1000, 2000, 4000, 8000, 8000]);
 });
 
+const downloadUrl = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
+const csvHeaders = { "content-type": "text/csv", "content-disposition": "attachment; filename=BusinessLicenseDownload.csv" };
+
+test("Alaska validates network budgets before any request", async () => {
+  for (const options of [{ requestTimeoutMs: 0 }, { requestTimeoutMs: 300001 }, { requestTimeoutMs: NaN }, { maximumResponseBytes: NaN }, { maximumResponseBytes: 0 }, { maximumResponseBytes: 1.5 }]) {
+    await assert.rejects(requestAkCsv(downloadUrl, { ...options, fetchImpl: async () => assert.fail("must not fetch") }), /must be/);
+  }
+});
+
+test("Alaska header deadline retries only within the attempt budget", { timeout: 3000 }, async () => {
+  let calls = 0;
+  await assert.rejects(requestAkCsv(downloadUrl, {
+    requestTimeoutMs: 20, attempts: 2, sleep: async () => {},
+    fetchImpl: async (_url, { signal }) => { calls++; return new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })); },
+  }), { code: "AK_REQUEST_TIMEOUT" });
+  assert.equal(calls, 2);
+});
+
+test("Alaska body deadline and caller cancellation stop stalled reads without replay", { timeout: 3000 }, async () => {
+  for (const callerAbort of [false, true]) {
+    const controller = new AbortController(); let cancelled = 0, calls = 0;
+    const result = await requestAkCsv(downloadUrl, {
+      signal: controller.signal, requestTimeoutMs: callerAbort ? 1000 : 30,
+      fetchImpl: async () => { calls++; return new Response(new ReadableStream({ cancel() { cancelled++; return new Promise(() => {}); } }), { headers: csvHeaders }); },
+    });
+    const reading = result.response.text();
+    if (callerAbort) controller.abort();
+    await assert.rejects(reading, callerAbort ? { name: "AbortError" } : { code: "AK_REQUEST_TIMEOUT" });
+    assert.equal(cancelled, 1); assert.equal(calls, 1);
+  }
+});
+
+test("Alaska rejects invalid response metadata and releases each body", async () => {
+  for (const responseOptions of [
+    { status: 302, headers: csvHeaders }, { status: 403, headers: csvHeaders },
+    { headers: { ...csvHeaders, "content-type": "text/html" } },
+    { headers: { ...csvHeaders, "content-disposition": "attachment; filename=wrong.csv" } },
+    { headers: { ...csvHeaders, "content-length": "100" } },
+    { headers: { ...csvHeaders, date: "not-a-date" } },
+  ]) {
+    let cancelled = 0;
+    await assert.rejects(requestAkCsv(downloadUrl, { maximumResponseBytes: 50, fetchImpl: async () => new Response(new ReadableStream({ cancel() { cancelled++; } }), responseOptions) }));
+    assert.equal(cancelled, 1);
+  }
+});
+
+test("Alaska completed CSV disposes deadline and consumer cancellation releases body", { timeout: 3000 }, async () => {
+  let requestSignal;
+  const result = await requestAkCsv(downloadUrl, { requestTimeoutMs: 30, fetchImpl: async (_url, { signal }) => { requestSignal = signal; return new Response("ok", { headers: csvHeaders }); } });
+  assert.equal(await result.response.text(), "ok");
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(requestSignal.aborted, false);
+  let cancelled = 0;
+  const abandoned = await requestAkCsv(downloadUrl, { fetchImpl: async () => new Response(new ReadableStream({ cancel() { cancelled++; } }), { headers: csvHeaders }) });
+  await abandoned.response.body.cancel();
+  assert.equal(cancelled, 1);
+});
+
+test("Alaska body and parser failures reject builds instead of hanging or publishing", { timeout: 10000 }, async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-stream-test-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const header = `${AK_BUSINESS_LICENSE_HEADERS.join(",")}\n`;
+  for (const kind of ["oversize", "body-error", "bad-schema", "malformed", "deadline"]) {
+    let cancelled = 0, calls = 0, sent = false;
+    const outputRoot = path.join(root, kind);
+    const body = new ReadableStream({
+      pull(controller) {
+        if (sent) {
+          if (kind === "body-error") controller.error(new Error("fixture stream failure"));
+          return;
+        }
+        sent = true;
+        const content = kind === "oversize" ? "x".repeat(2001) : kind === "bad-schema" ? "Wrong,Header\nx,y\n" : kind === "malformed" ? `${header}bad\"quote,x\nx,y\n` : header;
+        controller.enqueue(new TextEncoder().encode(content));
+      },
+      cancel() { cancelled++; },
+    });
+    const started = performance.now();
+    await assert.rejects(buildAkActiveBusinessLicenses({
+      outputRoot, zbpPointer, minimumLicenseRows: 1, maximumResponseBytes: 2000, requestTimeoutMs: kind === "deadline" ? 100 : 5000,
+      fetchImpl: async () => { calls++; return new Response(body, { headers: csvHeaders }); }, logger: () => {},
+    }), kind === "oversize" ? /byte limit/ : kind === "body-error" ? /fixture stream failure/ : kind === "deadline" ? /deadline/ : /schema|quote/i);
+    assert.ok(performance.now() - started < 2000, `${kind} must not wait for the five-second request deadline`);
+    assert.equal(calls, 1);
+    if (kind !== "body-error") assert.equal(cancelled, 1);
+    await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  }
+});
+
+test("Alaska guarded streaming CSV builds a verified release from both fixed downloads", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-csv-success-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const calls = [];
+  const csv = (headers, row) => `${headers.join(",")}\n${headers.map((key) => `"${String(row[key]).replaceAll('"', '""')}"`).join(",")}\n`;
+  const result = await buildAkActiveBusinessLicenses({
+    outputRoot: path.join(root, "output"), zbpPointer: await writeBaseline(path.join(root, "zbp")), minimumLicenseRows: 1,
+    fetchImpl: async (url) => {
+      calls.push(String(url));
+      const licenses = String(url) === downloadUrl;
+      return new Response(csv(licenses ? AK_BUSINESS_LICENSE_HEADERS : AK_BUSINESS_NAICS_HEADERS, licenses ? rawLicense() : rawNaics()), {
+        headers: { ...csvHeaders, "content-disposition": `attachment; filename=${licenses ? "BusinessLicenseDownload" : "NaicsDownload"}.csv`, date: "Tue, 01 Sep 2026 12:00:00 GMT" },
+      });
+    }, logger: () => {}, now: () => new Date("2026-09-01T12:01:00Z"),
+  });
+  assert.deepEqual(calls, [downloadUrl, "https://www.commerce.alaska.gov/cbp/main/DbDownload/NaicsDownload"]);
+  assert.equal(result.manifest.coverage.source_active_license_rows, 1);
+  assert.equal(result.manifest.coverage.provisional_physical_sites, 1);
+  await verifyAkActiveBusinessLicenses(path.join(result.releaseDirectory, "manifest.json"));
+});
+
 test("builds and independently verifies a privacy-minimized Alaska active-license release", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-business-test-"));
   t.after(async () => rm(root, { recursive: true, force: true }));

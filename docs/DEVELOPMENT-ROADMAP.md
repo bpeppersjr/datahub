@@ -2,6 +2,8 @@
 
 ## Objective
 
+Alaska handoff preparation (2026-09-07): [network safeguards](AK-ACTIVE-BUSINESS-LICENSES.md) now bound CSV header/body execution, propagate stream/parser errors and cancel rejected bodies. Seven additional offline tests include successful fixture acquisition and failure-before-publication checks. Complete CLI/writer/verification/publication cancellation remains required before industry enrollment; no Alaska repull or production mutation occurred.
+
 Minnesota food-source assessment (2026-09-07): [MDA location-contract findings](states/MN-FOOD-ACCESS-2026-09-07.md) identify a legacy/current license-classification mismatch and one-license/multiple-location semantics. Resolve selected-view scope and premises identity before building the app-owned connector. Only public guidance and form metadata were inspected; no rows, enrollment or coverage increase is claimed. The separate SOS hold remains unchanged.
 
 Latest cohort review (2026-09-07): [D.C. candidate comparison](DC-CANDIDATE-COHORT-REVIEW-20260907.md) confirms only D.C. differs among 25 source manifests. Its candidate adds 120 activity rows and 18 accepted provisional sites, with quarantine still below the declared limit. Candidate-controller benchmark status handling is corrected and 524 tests passed. Isolated plan `candidate-dc-refresh-20260907-01` is ready for app-owned local reconciliation; inspect its runtime receipt before claiming completion. Production remains unchanged.

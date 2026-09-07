@@ -5,7 +5,7 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
-import { finished } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
@@ -360,56 +360,113 @@ export async function requestAkCsv(urlValue, {
   sleep = (milliseconds, options) => delay(milliseconds, undefined, options),
   attempts = 4,
   maximumResponseBytes = 50_000_000,
+  requestTimeoutMs = 60_000,
   now = () => new Date(),
 } = {}) {
   const url = assertAllowedUrl(urlValue, type);
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) throw new Error("Alaska attempts must be an integer from 1 through 10.");
+  if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1) throw new Error("Alaska maximumResponseBytes must be a positive safe integer.");
+  if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 300_000) throw new Error("Alaska requestTimeoutMs must be from 1 through 300000.");
   const expectedFilename = type === "licenses" ? "BusinessLicenseDownload.csv" : "NaicsDownload.csv";
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
+    const controller = new AbortController();
+    const abort = () => controller.abort(signal.reason);
+    signal?.addEventListener("abort", abort, { once: true });
+    const timer = setTimeout(() => controller.abort(Object.assign(new Error("Alaska source request deadline exceeded."), { code: "AK_REQUEST_TIMEOUT" })), requestTimeoutMs);
+    const dispose = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); };
     let response;
     try {
-      response = await fetchImpl(url, { redirect: "manual", signal, headers: { accept: "text/csv" } });
+      response = await fetchImpl(url, { redirect: "manual", signal: controller.signal, headers: { accept: "text/csv" } });
+      controller.signal.throwIfAborted();
     } catch (error) {
+      dispose();
+      void response?.body?.cancel().catch(() => {});
       signal?.throwIfAborted?.();
-      if (error?.name === "AbortError" || attempt + 1 >= attempts) throw error;
+      if (attempt + 1 >= attempts) throw controller.signal.aborted ? controller.signal.reason : error;
       await sleep(Math.min(500 * (2 ** attempt), 8_000), { signal });
       continue;
     }
-    if (response.status >= 300 && response.status < 400) throw new Error("Alaska source redirect rejected.");
-    if (response.status === 429 || response.status >= 500) {
-      await response.body?.cancel();
-      signal?.throwIfAborted?.();
-      if (attempt + 1 >= attempts) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
-      await sleep(retryDelay(response, attempt, now), { signal });
-      continue;
+    try {
+      if (response.status >= 300 && response.status < 400) throw new Error("Alaska source redirect rejected.");
+      if (response.status === 429 || response.status >= 500) {
+        dispose();
+        void response.body?.cancel().catch(() => {});
+        signal?.throwIfAborted?.();
+        if (attempt + 1 >= attempts) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
+        await sleep(retryDelay(response, attempt, now), { signal });
+        continue;
+      }
+      if (!response.ok) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
+      if (!String(response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/csv")) throw new Error("Alaska source response is not CSV.");
+      const disposition = String(response.headers.get("content-disposition") ?? "");
+      if (!disposition.toLowerCase().includes(`filename=${expectedFilename.toLowerCase()}`)) throw new Error(`Alaska source response filename is not ${expectedFilename}.`);
+      const declaredBytes = Number(response.headers.get("content-length"));
+      if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
+      const dateHeader = response.headers.get("date");
+      const observedAt = dateHeader ? isoInstant(dateHeader, "Alaska source Date header") : now().toISOString();
+      response = boundedCsvResponse(response, controller.signal, maximumResponseBytes, dispose);
+      return { response, observedAt, expectedFilename, maximumResponseBytes };
+    } catch (error) {
+      dispose();
+      void response.body?.cancel().catch(() => {});
+      throw error;
     }
-    if (!response.ok) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
-    if (!String(response.headers.get("content-type") ?? "").toLowerCase().startsWith("text/csv")) throw new Error("Alaska source response is not CSV.");
-    const disposition = String(response.headers.get("content-disposition") ?? "");
-    if (!disposition.toLowerCase().includes(`filename=${expectedFilename.toLowerCase()}`)) throw new Error(`Alaska source response filename is not ${expectedFilename}.`);
-    const declaredBytes = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
-    const dateHeader = response.headers.get("date");
-    const observedAt = dateHeader ? isoInstant(dateHeader, "Alaska source Date header") : now().toISOString();
-    return { response, observedAt, expectedFilename, maximumResponseBytes };
   }
   throw new Error("Alaska source request exhausted retries.");
 }
 
-async function* limitedBody(body, maximumResponseBytes) {
-  if (!body) throw new Error("Alaska source response body is missing.");
-  let bytes = 0;
-  for await (const chunk of Readable.fromWeb(body)) {
-    bytes += chunk.length;
-    if (bytes > maximumResponseBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
-    yield chunk;
-  }
+// Retain the request deadline through body consumption, including a stalled read.
+// A partial body is never retried inside this stream: callers must fail the run.
+function boundedCsvResponse(response, signal, maximumBytes, dispose) {
+  if (!response.body) throw new Error("Alaska source response body is missing.");
+  const reader = response.body.getReader();
+  let bytes = 0, settled = false;
+  const cleanup = () => { dispose(); signal.removeEventListener("abort", abort); };
+  let streamController;
+  const fail = (error) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    streamController.error(error);
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
+  };
+  const abort = () => fail(signal.reason);
+  const body = new ReadableStream({
+    start(value) {
+      streamController = value;
+      signal.addEventListener("abort", abort, { once: true });
+      if (signal.aborted) abort();
+    },
+    async pull(value) {
+      try {
+        const next = await reader.read();
+        if (settled) return;
+        signal.throwIfAborted();
+        if (next.done) { settled = true; cleanup(); reader.releaseLock(); value.close(); return; }
+        bytes += next.value.byteLength;
+        if (bytes > maximumBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
+        value.enqueue(next.value);
+      } catch (error) { fail(error); }
+    },
+    cancel() {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      void reader.cancel().catch(() => {});
+      reader.releaseLock();
+    },
+  });
+  return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
 
 async function* csvResponseRows(responseInfo, expectedHeaders, fingerprint, label) {
   let headerSeen = false;
-  const parser = Readable.from(limitedBody(responseInfo.response.body, responseInfo.maximumResponseBytes)).pipe(parse({
+  // The response already enforces bytes/deadlines. Keep the direct adapter so
+  // pipeline destruction interrupts pending body reads on parser failure.
+  const source = Readable.fromWeb(responseInfo.response.body);
+  const parser = parse({
     bom: true,
     columns: (headers) => {
       validateHeaders(headers, expectedHeaders, fingerprint, label);
@@ -419,9 +476,17 @@ async function* csvResponseRows(responseInfo, expectedHeaders, fingerprint, labe
     skip_empty_lines: true,
     relax_column_count: false,
     max_record_size: 1_000_000,
-  }));
-  for await (const record of parser) yield record;
-  if (!headerSeen) throw new Error(`Alaska ${label} source has no header row.`);
+  });
+  const completion = pipeline(source, parser);
+  void completion.catch(() => {});
+  try {
+    for await (const record of parser) yield record;
+    await completion;
+    if (!headerSeen) throw new Error(`Alaska ${label} source has no header row.`);
+  } finally {
+    source.destroy(); parser.destroy();
+    await Promise.allSettled([completion]);
+  }
 }
 
 async function openGzipWriter(stagingDirectory, relativePath) {
@@ -564,6 +629,7 @@ export async function buildAkActiveBusinessLicenses({
   maximumQuarantineRate = 0.01,
   minimumNaicsCoverageRate = 0.99,
   maximumResponseBytes = 50_000_000,
+  requestTimeoutMs = 60_000,
   fetchImpl = globalThis.fetch,
   signal,
   sleep,
@@ -596,7 +662,7 @@ export async function buildAkActiveBusinessLicenses({
       licenseObservedAt = isoInstant(sourceMetadata?.licenseObservedAt, "Alaska fixture license observation time");
       sourceIterable = rows;
     } else {
-      const responseInfo = await requestAkCsv(AK_BUSINESS_LICENSE_URL, { type: "licenses", fetchImpl, signal, sleep, maximumResponseBytes, now });
+      const responseInfo = await requestAkCsv(AK_BUSINESS_LICENSE_URL, { type: "licenses", fetchImpl, signal, sleep, maximumResponseBytes, requestTimeoutMs, now });
       licenseObservedAt = responseInfo.observedAt;
       sourceIterable = csvResponseRows(responseInfo, AK_BUSINESS_LICENSE_HEADERS, AK_BUSINESS_LICENSE_SCHEMA_FINGERPRINT, "license");
     }
@@ -640,7 +706,7 @@ export async function buildAkActiveBusinessLicenses({
       naicsObservedAt = isoInstant(sourceMetadata?.naicsObservedAt, "Alaska fixture NAICS observation time");
       sourceIterable = rows;
     } else {
-      const responseInfo = await requestAkCsv(AK_BUSINESS_NAICS_URL, { type: "naics", fetchImpl, signal, sleep, maximumResponseBytes, now });
+      const responseInfo = await requestAkCsv(AK_BUSINESS_NAICS_URL, { type: "naics", fetchImpl, signal, sleep, maximumResponseBytes, requestTimeoutMs, now });
       naicsObservedAt = responseInfo.observedAt;
       sourceIterable = csvResponseRows(responseInfo, AK_BUSINESS_NAICS_HEADERS, AK_BUSINESS_NAICS_SCHEMA_FINGERPRINT, "NAICS");
     }
