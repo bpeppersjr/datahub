@@ -1,6 +1,12 @@
 # App-owned scheduled industry refreshes
 
-The local Co*Tive runner now owns a durable interval scheduler. It needs the application service running, not Codex or ChatGPT. Installation creates no schedule and enables no download. The existing Data Operations screen is unchanged; this increment exposes authenticated local API controls.
+The local Co*Tive runner owns a durable interval scheduler. It needs the application service running, not Codex or ChatGPT. Installation creates no schedule and enables no download. Data Operations now includes automatic refresh controls backed by the authenticated local API.
+
+## On-screen workflow
+
+Open Data Operations and use **Automatic industry refreshes**. Select explicit industries and publisher states, enter an interval in hours, and choose **Create disabled schedule**. Review the saved scope before choosing **Enable — due now**. The list shows enabled status, runtime status, next due time, latest operation ID, and inspection reasons. **Pause schedule** prevents future dispatches but does not cancel an active collection; use operation history for cancellation.
+
+Schedules refresh from the runner every five seconds. A scheduler outage disables schedule controls without disabling the separate manual collection/export surface. Older list responses cannot overwrite successful changes, duplicate in-flight clicks are suppressed, and interrupted responses advise checking the authoritative refreshed list before retrying. This UI does not add automatic source promotion, schedule editing/deletion, or full occurrence history.
 
 ## Operator controls
 
@@ -37,10 +43,12 @@ Enabled schedules cannot share a source or executable, including a shared nation
 
 On restart, linked successful operation receipts advance the schedule without replaying them. Failed, cancelled, missing, or ambiguous operations pause for inspection; only an explicitly retryable busy response defers normally. An old timestamp or missing PID does not automatically authorize removal of a scheduler/source lock. A hard termination may therefore require operator investigation. Graceful IPC shutdown in the local launcher releases scheduler ownership; it is distinct from forced Windows task termination.
 
-The schedule record exposes only its latest occurrence. Older executions remain in `data/managed-operations/<operation-id>/receipt.json` and the corresponding immutable industry run records; this is not a separate complete scheduler-history index. Persistent Windows-service installation, automatic stale-lock recovery, configuration editing/deletion, richer schedule history, UI controls, and freshness-based reuse remain follow-up work.
+The schedule record exposes only its latest occurrence. Older executions remain in `data/managed-operations/<operation-id>/receipt.json` and the corresponding immutable industry run records; this is not a separate complete scheduler-history index. Persistent Windows-service installation, automatic stale-lock recovery, configuration editing/deletion, richer schedule history, and freshness-based reuse remain follow-up work.
 
 ## Verification and rollback
 
 The increment passed 478 repository tests, lint, web/desktop builds, desktop control-plane smoke, TypeScript, and a production dependency audit with zero vulnerabilities. Focused tests cover deterministic dispatch, real child CLI plan rejection, local timer execution, restart adoption, overlap rejection, busy/ambiguous conflicts, storage faults, disabled API creation, authentication, and actual IPC shutdown with ownership cleanup. No production schedules or source downloads were created for this increment; fixture execution is not evidence of a completed live provider refresh.
 
 This is additive and does not migrate existing business data. To stop scheduling, pause configured schedules and stop the application gracefully. Preserve schedule/operation receipts and investigate any retained ownership before downgrading; do not delete locks as a rollback shortcut.
+
+The UI increment passed 483 repository tests, lint, web/desktop builds, desktop smoke, TypeScript, and a zero-vulnerability production audit. Five non-browser component-handler tests cover scope/interval validation, disabled creation, enable/pause requests, stale reads, duplicate clicks, and interrupted-response reconciliation; these are not browser interaction or visual QA. No live schedule was created or enabled. The local terminal's Ctrl-C stop left PID 35712's owner lock behind despite the tested IPC shutdown path. After confirming the process was absent and persisted schedules were empty, the lock was retained as `owner-stopped-35712-20260907.lock` before restarting the app. This is inspected operational recovery, not automatic stale-lock reclamation or proof that every Windows stop mode is graceful.

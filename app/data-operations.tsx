@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
+import RefreshSchedules from './refresh-schedules';
 
 type Catalog = {
   industries: Array<{ id: string; label?: string }>;
@@ -104,6 +105,7 @@ export default function DataOperations() {
         <button className="primary-button" disabled={!catalog || !fields.length || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/exports', { categories: category ? [category] : [], states: exportStates, fields, format, policyMode })))}>Build file</button>
       </section>
     </div>
+    <RefreshSchedules catalog={catalog} />
     <section className="operations-history" aria-labelledby="operations-history-title"><h3 id="operations-history-title">Operation history</h3>
       {locked && <p className="operations-note">An operation is active. Additional starts become available when it finishes.</p>}
       {!operations.length && <p className="operations-note">{catalog ? 'No managed operations yet. Preview a collection or build a file above.' : 'Connecting to the local runner…'}</p>}
