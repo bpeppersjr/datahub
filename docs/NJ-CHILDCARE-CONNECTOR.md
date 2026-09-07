@@ -17,6 +17,14 @@ Publication uses an exclusive lock, owned UUID staging, flush-before-rename and 
 
 ## Managed industry handoff
 
+### Verified first acquisition
+
+App run `nj-app-acquisition-20260907-01` completed successfully at 2026-09-07T20:05:27.830Z. Release `nj-childcare-cb963752-d6bb-49bd-aeb3-916f169cb5de` retained all 4,075 selected source rows, accepted 3,952 and quarantined 123 (about 3.02%, below the 5% gate). A separate verifier invocation replayed all five artifacts successfully; manifest SHA-256 is `2e66cc8db58c91e24f46ecd85d151f85f95b69971aef12821a9f5768df4aa2a2`. The receipt SHA-256 is `c9ba557d72cba3d28c576a9fc01e56c628d20df1dc8129a162983a39ef9740e4`. Root review also matched the worker log hash and pointer/manifest hash, confirmed empty staging and released publication lock, and observed the worker had exited.
+
+The five artifacts total 16,242,115 bytes. All 3,952 accepted records have publisher coordinates; none contains a supplied ZIP+4, so that separate field remains null. These are source records, not independently verified unique or operating businesses. Production reporting and national completeness remain unchanged.
+
+Local diagnosis of retained selected rows found all 123 quarantine records failed the strict text check in the optional `sessions` field due to U+000A linefeeds. No missing names, addresses or postal fields were identified as that rejection cause. Do not silently discard the source rows, loosen address/identifier validation globally or redownload them. Next is explicit transformation-version dispatch and sessions-only LF preservation followed by offline reprocessing from retained evidence, preserving the original release and its verifier compatibility. Other fields and control characters must keep their existing rules. The initial release remains valid under its declared transformation.
+
 The `childcare` industry has a separate `state-nj-childcare` source, limited to NJ and independent of MA. Its connector and policy versions are `nj-licensed-childcare-centers@1.0.0` and `njdep-childcare-local-review@1.0.0`. The app's industry worker executes the same standalone builder with a run-scoped output, source reservation, cooperative IPC cancellation and durable receipt/log hashes. No Census acquisition is a hidden prerequisite.
 
 ```powershell
