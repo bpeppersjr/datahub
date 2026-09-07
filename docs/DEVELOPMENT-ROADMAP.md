@@ -2,6 +2,8 @@
 
 ## Objective
 
+New Jersey preflight implementation (2026-09-07): [standalone metadata checks](NJ-CHILDCARE-CONNECTOR.md) validate fixed NJDEP layer/item identity, selected schema, counts and source-date aggregates with bounded requests and immutable receipts. No business rows, industry enrollment or coverage increase is implied. Full XML metadata retention and the acquisition/normalization/release contract remain prerequisites to app-owned collection.
+
 New Jersey childcare source handoff (2026-09-07): [bounded production-service validation](states/NJ-CHILDCARE-ACCESS-2026-09-07.md) confirms public NJDEP metadata/count access, 4,075 source rows and a successful one-row selected-field/WGS84 probe. Public-school inclusion differs from MA. Preserve publisher metadata/terms and explicit source-date semantics; build the connector preflight and offline contract before app enrollment or bulk acquisition. No NJ dataset or reporting coverage increase is claimed yet.
 
 Massachusetts local integration preparation (2026-09-07): [verified registry conversion](MA-CHILDCARE-CONNECTOR.md#verified-local-registry-conversion) reuses the acquired immutable release, producing source-scoped provisional site/establishment assertions without downloads, ownership inference, automatic matching or reporting publication. The loader verifies membership and checksums before conversion. National writer/verifier, coordinate reporting and measured coverage integration remain explicit gates while the existing candidate reconciliation runs against pinned implementations.

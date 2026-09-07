@@ -25,6 +25,7 @@
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
+    "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
     "ma-childcare:build": "node scripts/build-ma-childcare.mjs",
     "ma-childcare:verify": "node scripts/verify-ma-childcare.mjs",
     "usda-organic-integrity:preflight": "node scripts/preflight-usda-organic-integrity.mjs",
