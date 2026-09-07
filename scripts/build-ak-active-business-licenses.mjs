@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { buildAkActiveBusinessLicenses, publishAkActiveBusinessLicensesStaging } from "../runner/ak-active-business-licenses.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Build the governed Alaska DCCED active business-license release.
@@ -55,6 +56,7 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
@@ -63,13 +65,14 @@ try {
   }
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   const result = options.resumeStagingRun
-    ? await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildAkActiveBusinessLicenses({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       minimumLicenseRows: options.minimumLicenseRows,
       maximumQuarantineRate: options.maximumQuarantineRate,
       minimumNaicsCoverageRate: options.minimumNaicsCoverageRate,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -81,4 +84,6 @@ try {
 } catch (error) {
   process.stderr.write(`Alaska active business-license build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

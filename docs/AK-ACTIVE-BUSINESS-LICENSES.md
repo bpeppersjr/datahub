@@ -27,6 +27,8 @@ The build pins both CSV schemas, requires the two downloads to be observed withi
 
 ## Application handoff readiness — September 7
 
+Historical audit: the implementation gaps below are addressed incrementally in the subsequent network and cancellation sections. Industry enrollment and a source-contract update remain separate from those repairs.
+
 A read-only peer audit found that this connector must not yet be enrolled in automatic industry refreshes. Its explicit baseline and isolated `--output` are compatible, but the CLI does not wire parent IPC cancellation; cancellation during verification/publication, owned staging cleanup, and network timeouts still need implementation and active fault tests. The existing pre-aborted build test does not prove these paths. Ordinary failed/resumable staging must remain distinct from cancelled staging. No Alaska schedule or source download was started by this audit.
 
 The first prerequisite repair corrects acquisition backoff. Missing/invalid `Retry-After` uses bounded exponential delay instead of accidentally converting a missing header to zero. Seconds and HTTP dates follow the [HTTP Retry-After definition](https://www.rfc-editor.org/rfc/rfc9110.html#section-10.2.3); valid publisher delays are not shortened to 30 seconds. A delay exceeding the one-day local wait budget fails with `AK_RETRY_DEFERRED` rather than retrying early or overflowing a timer. This is a terminal acquisition error requiring a later operator decision, not a durable queued retry. Native waits accept the build AbortSignal, discarded retry-response bodies are cancelled, and request attempts are bounded from 1 through 10. No per-request timeout or complete CLI cancellation lifecycle is claimed by this change.
@@ -44,3 +46,15 @@ Seven additional offline tests cover budgets, header/body stalls, caller cancell
 This is not scheduler enrollment or a full cancellation lifecycle. CLI IPC wiring, writer-error/backpressure handling, verifier/publication cancellation and cleanup of only owned cancelled staging remain required. Connector configuration is unchanged while the existing reconciliation pins it; no source download, source-policy change or production pointer change accompanies this repair.
 
 Verification: the final full `npm run check` passed (531 tests, lint, web/desktop builds and desktop smoke), as did TypeScript and the zero-vulnerability production audit. No dataset migration is required. Reverting these two runner-file changes restores the prior unbounded/stalled stream behavior; keep enrollment disabled if reverting.
+
+## Cooperative cancellation handoff — September 7, 2026
+
+Build and verification CLIs now accept parent IPC cancellation and SIGINT/SIGTERM through the shared cancellation adapter. Builds, baseline reads, artifact hashing, gzip pipelines and verification share the signal. Long record loops yield to the event loop so cancellation messages can be processed. Failed writers and blocked backpressure reject rather than leaving acquisition waiting.
+
+Before publication, a cancelled build closes its owned writers and removes only its new UUID staging directory after directory identity and canonical path checks. Prior releases, pointers and sibling staging are preserved. Ordinary failed staging remains for diagnosis. Cancelling an explicit `--resume-staging-run` publication retains that pre-existing staging for another verified attempt.
+
+The publisher honors cancellation through verification and its final pre-rename check. Once staging-to-release rename begins, it completes the release/pointer commit without further cancellation checks. This is a cooperative commit boundary, not a guarantee against disk failure or process termination between those operations. Inspect retained artifacts after such a failure rather than assuming rollback or automatic resume.
+
+Offline acceptance covers phase-boundary cancellation, prior/sibling preservation, resumed staging preservation, missing-gzip verifier failure, writer backpressure/error handling and actual CLI IPC cancellation without provider calls. The pinned connector JSON and industry catalog remain unchanged; update their declared cancellation/deadline contract and complete enrollment review before scheduling Alaska refreshes. No new source data or production changes are claimed by this work.
+
+Verification: 23 focused Alaska tests and the full 537-test repository check passed, including lint, web/desktop builds and desktop smoke. TypeScript passed and the production audit found zero vulnerabilities. A directory-replacement regression confirms cleanup fails closed and preserves both replacement and moved staging. No data migration is needed; reverting cancellation wiring must also keep unattended enrollment disabled.

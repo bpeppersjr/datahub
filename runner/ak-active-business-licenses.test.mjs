@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, cp } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { readdirSync, renameSync, mkdirSync, writeFileSync } from "node:fs";
+import { once } from "node:events";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createGunzip } from "node:zlib";
+import { PassThrough } from "node:stream";
 import {
   AK_BUSINESS_LICENSE_HEADERS,
   AK_BUSINESS_LICENSE_SCHEMA_FINGERPRINT,
@@ -13,8 +17,10 @@ import {
   buildAkActiveBusinessLicenses,
   headerFingerprint,
   normalizeAkBusinessLicense,
+  publishAkActiveBusinessLicensesStaging,
   requestAkCsv,
   verifyAkActiveBusinessLicenses,
+  writeGzipRecord,
 } from "./ak-active-business-licenses.mjs";
 
 function sha256(value) {
@@ -407,6 +413,123 @@ test("builds and independently verifies a privacy-minimized Alaska active-licens
   assert.equal("PhysicalLine2" in selected[0], false);
   assert.equal(Object.keys(selected[0]).some((key) => key.startsWith("mailing")), false);
   assert.equal(JSON.stringify(selected).includes("PRIVATE OWNER"), false);
+});
+
+function cancellationFixture(outputRoot, zbpPointer) {
+  return {
+    outputRoot, zbpPointer, licenseRows: [rawLicense()], naicsRows: [rawNaics()], minimumLicenseRows: 1,
+    sourceMetadata: { licenseHeaders: AK_BUSINESS_LICENSE_HEADERS, naicsHeaders: AK_BUSINESS_NAICS_HEADERS, licenseObservedAt: "2026-09-01T12:00:00Z", naicsObservedAt: "2026-09-01T12:00:30Z" },
+    logger() {}, now: () => new Date("2026-09-01T12:01:00Z"),
+  };
+}
+
+test("Alaska failed writers and blocked backpressure reject without leaking waiters", async () => {
+  const failed = new PassThrough();
+  failed.on("error", () => {});
+  failed.destroy(new Error("fixture output failure"));
+  await new Promise((resolve) => setImmediate(resolve));
+  await assert.rejects(writeGzipRecord({ gzip: failed, records: 1 }, {}), /fixture output failure/);
+  const blocked = new PassThrough({ highWaterMark: 1 });
+  const controller = new AbortController();
+  const writing = writeGzipRecord({ gzip: blocked, records: 1, signal: controller.signal }, { value: "fixture" });
+  controller.abort();
+  await assert.rejects(writing, { name: "AbortError" });
+  assert.equal(blocked.listenerCount("drain"), 0);
+  blocked.destroy();
+});
+
+test("Alaska phase cancellation removes only owned staging and preserves prior releases", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-cancel-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const common = cancellationFixture(outputRoot, zbpPointer);
+  const prior = await buildAkActiveBusinessLicenses(common);
+  const pointer = await readFile(path.join(outputRoot, "current.json"), "utf8");
+  const sibling = path.join(outputRoot, ".staging", "unrelated");
+  await mkdir(sibling); await writeFile(path.join(sibling, "keep.txt"), "keep");
+  for (const phase of ["Acquired", "Normalizing", "Verifying", "Publishing"]) {
+    const controller = new AbortController(); let reached = false;
+    await assert.rejects(buildAkActiveBusinessLicenses({ ...common, signal: controller.signal,
+      logger(message) { if (message.startsWith(phase)) { reached = true; controller.abort(); } },
+    }), { name: "AbortError" });
+    assert.equal(reached, true, phase);
+    assert.equal(await readFile(path.join(outputRoot, "current.json"), "utf8"), pointer);
+    assert.deepEqual(await readdir(path.join(outputRoot, ".staging")), ["unrelated"]);
+    assert.deepEqual(await readdir(path.join(outputRoot, "releases")), [prior.manifest.release_id]);
+    assert.equal(await readFile(path.join(sibling, "keep.txt"), "utf8"), "keep");
+  }
+});
+
+test("Alaska cancellation refuses removal when its staging identity was replaced", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-ownership-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const controller = new AbortController(); let ownedPath, retainedPath;
+  await assert.rejects(buildAkActiveBusinessLicenses({ ...cancellationFixture(outputRoot, zbpPointer), signal: controller.signal,
+    logger(message) {
+      if (!message.startsWith("Acquired")) return;
+      const stagingRoot = path.join(outputRoot, ".staging");
+      ownedPath = path.join(stagingRoot, readdirSync(stagingRoot)[0]);
+      retainedPath = `${ownedPath}.retained`;
+      renameSync(ownedPath, retainedPath);
+      mkdirSync(ownedPath); writeFileSync(path.join(ownedPath, "keep.txt"), "replacement must survive");
+      controller.abort();
+    },
+  }), /cleanup requires inspection/);
+  assert.equal(await readFile(path.join(ownedPath, "keep.txt"), "utf8"), "replacement must survive");
+  assert.ok((await readdir(retainedPath)).includes("source"));
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+});
+
+test("Alaska ordinary failures and cancelled resumed publication retain recoverable staging", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-resume-cancel-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const failedRoot = path.join(root, "failed");
+  await assert.rejects(buildAkActiveBusinessLicenses({ ...cancellationFixture(failedRoot, zbpPointer), licenseRows: [rawLicense({ SSN: "excluded" })] }), /Unexpected/);
+  assert.equal((await readdir(path.join(failedRoot, ".staging"))).length, 1);
+  const prior = await buildAkActiveBusinessLicenses(cancellationFixture(path.join(root, "prior"), zbpPointer));
+  const outputRoot = path.join(root, "resume"), stagingRunId = prior.manifest.run_id;
+  const staging = path.join(outputRoot, ".staging", stagingRunId);
+  await cp(prior.releaseDirectory, staging, { recursive: true, errorOnExist: true, force: false });
+  const original = await readFile(path.join(staging, "manifest.json"));
+  const controller = new AbortController();
+  const publication = publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId, signal: controller.signal });
+  setImmediate(() => controller.abort());
+  await assert.rejects(publication, { name: "AbortError" });
+  assert.deepEqual(await readFile(path.join(staging, "manifest.json")), original);
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  await assert.rejects(publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: "../escape" }), /valid stagingRunId/);
+});
+
+test("Alaska verifier cancellation and missing gzip terminate without hanging", { timeout: 10000 }, async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-verify-cancel-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const result = await buildAkActiveBusinessLicenses(cancellationFixture(path.join(root, "output"), await writeBaseline(path.join(root, "zbp"))));
+  const manifestPath = path.join(result.releaseDirectory, "manifest.json");
+  const controller = new AbortController();
+  const verification = verifyAkActiveBusinessLicenses(manifestPath, { signal: controller.signal });
+  setImmediate(() => controller.abort());
+  await assert.rejects(verification, { name: "AbortError" });
+  const artifact = result.manifest.artifacts.find((item) => item.path.startsWith("source/selected"));
+  await rm(path.join(result.releaseDirectory, artifact.path));
+  await assert.rejects(verifyAkActiveBusinessLicenses(manifestPath), /verification failed/i);
+});
+
+test("Alaska real CLI accepts IPC cancellation and cleans its request staging", { timeout: 10000 }, async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-cli-cancel-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const child = spawn(process.execPath, ["--import", "./runner/fixtures/ak-cancel-fetch.mjs", "scripts/build-ak-active-business-licenses.mjs", "--output", outputRoot, "--zbp", zbpPointer, "--minimum-license-rows", "1"], { cwd: process.cwd(), stdio: ["ignore", "pipe", "pipe", "ipc"], windowsHide: true });
+  const exit = once(child, "exit"); let output = "", messages = 0;
+  child.stdout.on("data", (chunk) => { output += chunk; }); child.stderr.on("data", (chunk) => { output += chunk; });
+  const watchdog = setTimeout(() => child.kill(), 5000);
+  t.after(() => { clearTimeout(watchdog); if (child.exitCode === null && child.signalCode === null) child.kill(); });
+  child.on("message", (message) => { if (message.type === "fixture-request") { messages++; child.send({ type: "cancel" }); } });
+  const [code, signal] = await exit;
+  assert.equal(messages, 1, output); assert.equal(code, 1, output); assert.equal(signal, null, output);
+  assert.deepEqual(await readdir(path.join(outputRoot, ".staging")), []);
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
 });
 
 test("blocks schema drift, unexpected fields, duplicate identities, orphan classifications, and cancellation", async (t) => {

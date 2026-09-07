@@ -1,12 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
-import { finished, pipeline } from "node:stream/promises";
-import { setTimeout as delay } from "node:timers/promises";
+import { pipeline } from "node:stream/promises";
+import { setImmediate as yieldTurn, setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
@@ -60,10 +60,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -489,33 +490,51 @@ async function* csvResponseRows(responseInfo, expectedHeaders, fingerprint, labe
   }
 }
 
-async function openGzipWriter(stagingDirectory, relativePath) {
+async function openGzipWriter(stagingDirectory, relativePath, ownedWriters, signal) {
+  signal?.throwIfAborted();
   const destination = path.join(stagingDirectory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${randomUUID()}`;
   const output = createWriteStream(temporary, { flags: "wx" });
   const gzip = createGzip({ level: 9 });
-  gzip.pipe(output);
-  return { relativePath: relativePath.replaceAll("\\", "/"), destination, temporary, output, gzip, records: 0 };
+  // The build owns one abort listener for all partition writers; avoid one
+  // signal listener per partition while still coupling stream failures.
+  const completion = pipeline(gzip, output);
+  const writer = { relativePath: relativePath.replaceAll("\\", "/"), destination, temporary, output, gzip, records: 0, signal, completion, error: null };
+  void completion.catch((error) => { writer.error = error; });
+  ownedWriters.push(writer);
+  return writer;
 }
 
-async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+export async function writeGzipRecord(writer, record) {
+  writer.signal?.throwIfAborted();
+  const assertWritable = () => {
+    if (writer.error || writer.gzip.errored || writer.output?.errored) throw writer.error ?? writer.gzip.errored ?? writer.output.errored;
+    if (writer.gzip.destroyed || writer.gzip.writableEnded || writer.output?.destroyed || writer.output?.writableEnded) throw new Error("Alaska artifact writer closed unexpectedly.");
+  };
+  assertWritable();
+  const ready = writer.gzip.write(`${JSON.stringify(record)}\n`);
+  assertWritable();
+  if (!ready) await once(writer.gzip, "drain", { signal: writer.signal });
   writer.records += 1;
+  if (writer.records % 256 === 0) await yieldTurn(undefined, { signal: writer.signal });
 }
 
 async function closeGzipWriter(writer, artifactType, metadata = {}) {
+  writer.signal?.throwIfAborted();
   writer.gzip.end();
-  await finished(writer.output);
+  await writer.completion;
+  writer.signal?.throwIfAborted();
   await renameWithRetry(writer.temporary, writer.destination);
-  return { path: writer.relativePath, ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType, ...metadata };
+  return { path: writer.relativePath, ...(await hashFile(writer.destination, writer.signal)), record_count: writer.records, artifact_type: artifactType, ...metadata };
 }
 
-function abortGzipWriters(writers) {
+async function abortGzipWriters(writers) {
   for (const writer of writers) {
     writer.gzip.destroy();
     writer.output.destroy();
   }
+  await Promise.allSettled(writers.map((writer) => writer.completion));
 }
 
 async function renameWithRetry(sourcePath, destinationPath, attempts = 12) {
@@ -533,12 +552,14 @@ async function renameWithRetry(sourcePath, destinationPath, attempts = 12) {
   throw lastError;
 }
 
-async function writeArtifact(directory, relativePath, content, metadata = {}) {
+async function writeArtifact(directory, relativePath, content, metadata = {}, signal) {
+  signal?.throwIfAborted();
   const destination = path.join(directory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
   const temporary = `${destination}.tmp-${randomUUID()}`;
-  await writeFile(temporary, buffer, { flag: "wx" });
+  await writeFile(temporary, buffer, { flag: "wx", signal });
+  signal?.throwIfAborted();
   await renameWithRetry(temporary, destination);
   return { path: relativePath.replaceAll("\\", "/"), bytes: buffer.length, sha256: sha256(buffer), ...metadata };
 }
@@ -548,28 +569,55 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
-async function loadZbpBaseline(pointerPath) {
+async function loadZbpBaseline(pointerPath, signal) {
   const absolutePointer = path.resolve(pointerPath);
-  const pointer = JSON.parse(await readFile(absolutePointer, "utf8"));
+  const pointer = JSON.parse(await readFile(absolutePointer, { encoding: "utf8", signal }));
   const base = path.dirname(absolutePointer);
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
   assertContained(base, manifestPath, "Census ZBP manifest");
-  const manifestBuffer = await readFile(manifestPath);
+  const manifestBuffer = await readFile(manifestPath, { signal });
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "census-zbp-baseline" || !manifest.complete_national_release) throw new Error("A complete Census ZBP baseline release is required.");
   const artifact = manifest.artifacts.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
   if (!artifact) throw new Error("Census ZBP ZIP coverage artifact is missing.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const actual = await hashFile(artifactPath);
+  const actual = await hashFile(artifactPath, signal);
   if (artifact.bytes !== actual.bytes || artifact.sha256 !== actual.sha256) throw new Error("Census ZBP ZIP coverage artifact failed checksum validation.");
-  const rows = (await readFile(artifactPath, "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+  const rows = await readJsonLines(artifactPath, signal);
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+async function* gzipRecords(filename, signal) {
+  signal?.throwIfAborted();
+  const input = createReadStream(filename);
+  const gunzip = createGunzip();
+  const completion = pipeline(input, gunzip, { signal });
+  void completion.catch(() => {});
+  const lines = createInterface({ input: gunzip, crlfDelay: Infinity });
+  let count = 0;
+  try {
+    for await (const line of lines) {
+      signal?.throwIfAborted();
+      if (++count % 256 === 0) await yieldTurn(undefined, { signal });
+      if (line) yield JSON.parse(line);
+    }
+    await completion;
+  } finally {
+    lines.close(); input.destroy(); gunzip.destroy();
+    await Promise.allSettled([completion]);
+  }
+}
+
+async function readJsonLines(filename, signal) {
+  const text = await readFile(filename, { encoding: "utf8", signal });
+  const rows = [];
+  for (const line of text.split(/\r?\n/)) {
+    signal?.throwIfAborted();
+    if (line) rows.push(JSON.parse(line));
+    if (rows.length % 256 === 0) await yieldTurn(undefined, { signal });
+  }
+  return rows;
 }
 
 function increment(map, key, amount = 1) {
@@ -645,10 +693,23 @@ export async function buildAkActiveBusinessLicenses({
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `ak-active-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
-  const stagingDirectory = path.join(outputRoot, ".staging", runId);
-  await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
-  const selectedLicenseWriter = await openGzipWriter(stagingDirectory, "source/selected-active-business-licenses.jsonl.gz");
+  const stagingRoot = path.resolve(outputRoot, ".staging");
+  await mkdir(stagingRoot, { recursive: true });
+  const stagingDirectory = path.join(stagingRoot, runId);
+  if (await realpath(stagingRoot) !== stagingRoot) throw new Error("Alaska staging root must not be a filesystem alias.");
+  await mkdir(stagingDirectory);
+  const ownedIdentity = await lstat(stagingDirectory);
+  const ownedWriters = [];
+  const abortOwnedWriters = () => {
+    for (const writer of ownedWriters) {
+      writer.gzip.destroy(signal.reason);
+      writer.output.destroy(signal.reason);
+    }
+  };
+  signal?.addEventListener("abort", abortOwnedWriters, { once: true });
+  try {
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
+  const selectedLicenseWriter = await openGzipWriter(stagingDirectory, "source/selected-active-business-licenses.jsonl.gz", ownedWriters, signal);
   const licenseIds = new Set();
   const licenseNames = new Map();
   const line2Dispositions = new Map();
@@ -687,12 +748,12 @@ export async function buildAkActiveBusinessLicenses({
     }
     if (count < minimumLicenseRows) throw new Error(`Alaska active-license row count ${count} is below the ${minimumLicenseRows} quality floor.`);
   } catch (error) {
-    abortGzipWriters([selectedLicenseWriter]);
+    await abortGzipWriters([selectedLicenseWriter]);
     throw error;
   }
   const selectedLicenseArtifact = await closeGzipWriter(selectedLicenseWriter, "ak-active-business-license-selected-source-jsonl-gzip", { export_policy: "internal" });
 
-  const selectedNaicsWriter = await openGzipWriter(stagingDirectory, "source/selected-license-naics.jsonl.gz");
+  const selectedNaicsWriter = await openGzipWriter(stagingDirectory, "source/selected-license-naics.jsonl.gz", ownedWriters, signal);
   const classificationsByLicense = new Map();
   let naicsObservedAt;
   let duplicateNaicsRows = 0;
@@ -738,10 +799,12 @@ export async function buildAkActiveBusinessLicenses({
       if (count % 50_000 === 0) logger(`Acquired ${count.toLocaleString("en-US")} Alaska license NAICS rows.`);
     }
   } catch (error) {
-    abortGzipWriters([selectedNaicsWriter]);
+    await abortGzipWriters([selectedNaicsWriter]);
     throw error;
   }
   const selectedNaicsArtifact = await closeGzipWriter(selectedNaicsWriter, "ak-active-business-license-naics-selected-source-jsonl-gzip", { export_policy: "internal" });
+  logger("Acquired Alaska license and NAICS source artifacts.");
+  signal?.throwIfAborted();
   const window = observationWindow(licenseObservedAt, naicsObservedAt);
   const naicsCoverageRate = licenseIds.size ? classificationsByLicense.size / licenseIds.size : 0;
   if (naicsCoverageRate < minimumNaicsCoverageRate) throw new Error(`Alaska NAICS coverage rate ${naicsCoverageRate} is below ${minimumNaicsCoverageRate}.`);
@@ -756,8 +819,8 @@ export async function buildAkActiveBusinessLicenses({
     baselineByZip: baseline.byZip,
   };
   const writers = new Map();
-  for (const prefix of "0123456789abcdef") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/licenses/id-hash-prefix=${prefix}.jsonl.gz`));
-  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantined-license-records.jsonl.gz");
+  for (const prefix of "0123456789abcdef") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/licenses/id-hash-prefix=${prefix}.jsonl.gz`, ownedWriters, signal));
+  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantined-license-records.jsonl.gz", ownedWriters, signal);
   const organizationAddressCounts = new Map();
   const siteCounts = new Map();
   const siteIneligibilityReasons = new Map();
@@ -769,7 +832,9 @@ export async function buildAkActiveBusinessLicenses({
   let organizationAddressContributions = 0;
   let acceptedNaicsPairs = 0;
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, selectedLicenseArtifact.path))) {
+    logger("Normalizing Alaska license address evidence.");
+    signal?.throwIfAborted();
+    for await (const source of gzipRecords(path.join(stagingDirectory, selectedLicenseArtifact.path), signal)) {
       signal?.throwIfAborted?.();
       try {
         const normalized = normalizeAkBusinessLicense(source, classificationsByLicense.get(source.license_number) ?? [], context);
@@ -802,19 +867,22 @@ export async function buildAkActiveBusinessLicenses({
       }
     }
   } catch (error) {
-    abortGzipWriters([...writers.values(), quarantineWriter]);
+    await abortGzipWriters([...writers.values(), quarantineWriter]);
     throw error;
   }
   const quarantineRate = selectedLicenseArtifact.record_count ? quarantineWriter.records / selectedLicenseArtifact.record_count : 0;
   if (quarantineRate > maximumQuarantineRate) {
-    abortGzipWriters([...writers.values(), quarantineWriter]);
+    await abortGzipWriters([...writers.values(), quarantineWriter]);
     throw new Error(`Alaska quarantine rate ${quarantineRate} exceeds the maximum ${maximumQuarantineRate}.`);
   }
   if (organizations + quarantineWriter.records !== selectedLicenseArtifact.record_count) throw new Error("Alaska normalized and quarantined licenses do not reconcile to source rows.");
+  // Bound simultaneous hashing/read signal listeners while completing partitions.
+  const normalizedArtifacts = [];
+  for (const writer of writers.values()) normalizedArtifacts.push(await closeGzipWriter(writer, "normalized-ak-active-business-license-jsonl-gzip", { export_policy: "local-review-only" }));
   const artifacts = [
     selectedLicenseArtifact,
     selectedNaicsArtifact,
-    ...await Promise.all([...writers.values()].map((writer) => closeGzipWriter(writer, "normalized-ak-active-business-license-jsonl-gzip", { export_policy: "local-review-only" }))),
+    ...normalizedArtifacts,
     await closeGzipWriter(quarantineWriter, "ak-active-business-license-quarantine-jsonl-gzip", { export_policy: "internal" }),
   ];
   const zipRows = buildZipCoverage(baseline.rows, organizationAddressCounts, siteCounts, context);
@@ -822,7 +890,7 @@ export async function buildAkActiveBusinessLicenses({
     artifact_type: "ak-active-business-license-zip-coverage-jsonl",
     record_count: zipRows.length,
     distribution_policy: "local-aggregate-review-required",
-  }));
+  }, signal));
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-summary.json", json({
     source_active_license_rows: selectedLicenseArtifact.record_count,
     active_license_organizations: organizations,
@@ -842,7 +910,7 @@ export async function buildAkActiveBusinessLicenses({
     reported_address_states: sortedCounts(reportedStates),
     reported_address_countries: sortedCounts(reportedCountries),
     naics_codes: sortedCounts(naicsCodes),
-  }), { artifact_type: "ak-active-business-license-source-summary" }));
+  }), { artifact_type: "ak-active-business-license-source-summary" }, signal));
   artifacts.push(await writeArtifact(stagingDirectory, "source/release-metadata.json", json({
     publisher: "State of Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing",
     license_download_url: AK_BUSINESS_LICENSE_URL,
@@ -858,7 +926,7 @@ export async function buildAkActiveBusinessLicenses({
     persisted_license_fields: SELECTED_LICENSE_FIELDS,
     persisted_naics_fields: SELECTED_NAICS_FIELDS,
     excluded_before_persistence: ["Owners", "all Mailing* fields", "raw PhysicalLine2 except a conservative non-contact unit value", "duplicate BusinessName from NAICS download"],
-  }), { artifact_type: "ak-active-business-license-source-release-metadata" }));
+  }), { artifact_type: "ak-active-business-license-source-release-metadata" }, signal));
   const manifest = {
     schema_version: AK_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "ak-active-business-licenses",
@@ -934,10 +1002,30 @@ export async function buildAkActiveBusinessLicenses({
     ],
     artifacts,
   };
-  await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
-  const publication = await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest), { signal });
+  const publication = await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal, logger });
   logger(`Published ${organizations.toLocaleString("en-US")} Alaska active-license organizations and ${physicalSites.toLocaleString("en-US")} provisional physical sites.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
+  } catch (error) {
+    await abortGzipWriters(ownedWriters);
+    if (signal?.aborted) {
+      try {
+        assertContained(stagingRoot, stagingDirectory, "Cancelled Alaska staging");
+        const current = await lstat(stagingDirectory);
+        if (path.dirname(stagingDirectory) !== stagingRoot || path.basename(stagingDirectory) !== runId
+          || current.isSymbolicLink() || !current.isDirectory() || current.dev !== ownedIdentity.dev || current.ino !== ownedIdentity.ino
+          || await realpath(stagingDirectory) !== stagingDirectory || await realpath(stagingRoot) !== stagingRoot) {
+          throw new Error("Cancelled Alaska staging ownership changed; inspection required.");
+        }
+        await rm(stagingDirectory, { recursive: true });
+      } catch (cleanupError) {
+        if (cleanupError.code !== "ENOENT") throw new AggregateError([error, cleanupError], "Alaska cancellation cleanup requires inspection.");
+      }
+    }
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", abortOwnedWriters);
+  }
 }
 
 function containsExcludedField(value) {
@@ -950,7 +1038,8 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => forbiddenKeys.has(key) || /^Mailing/.test(key) || containsExcludedField(child));
 }
 
-export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal, logger = () => {} } = {}) {
+  signal?.throwIfAborted();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -958,22 +1047,30 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Alaska staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(manifestPath, { encoding: "utf8", signal }));
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "ak-active-business-licenses" || manifest.status !== "published") {
     throw new Error("Alaska staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Alaska staging release ID does not match the build result.");
-  await verifyAkActiveBusinessLicenses(manifestPath);
+  logger("Verifying Alaska staged release.");
+  signal?.throwIfAborted();
+  await verifyAkActiveBusinessLicenses(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
+  assertContained(releasesDirectory, releaseDirectory, "Alaska release");
+  if (path.dirname(path.resolve(releaseDirectory)) !== path.resolve(releasesDirectory)) throw new Error("Invalid Alaska release ID.");
   try {
     await stat(releaseDirectory);
     throw new Error(`Alaska release destination already exists: ${manifest.release_id}.`);
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await delay(250, undefined, { signal });
+  logger("Publishing Alaska verified release.");
+  signal?.throwIfAborted();
+  // Commit boundary: once rename begins, finish the release and pointer commit.
+  // Cancellation of a resumed staging publication never deletes that staging.
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -988,10 +1085,11 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyAkActiveBusinessLicenses(manifestPath) {
+export async function verifyAkActiveBusinessLicenses(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
-  const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(absoluteManifestPath, { encoding: "utf8", signal }));
   const failures = [];
   if (manifest.dataset_id !== "ak-active-business-licenses" || manifest.status !== "published" || !manifest.complete_active_license_snapshot) failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
   if (manifest.coverage?.complete_all_businesses !== false || manifest.policy?.record_level_distribution !== "local-review-only"
@@ -1003,9 +1101,10 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -1028,7 +1127,7 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
   let sourceLicenseRows = 0;
   if (sourceLicenseArtifact) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceLicenseArtifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceLicenseArtifact.path), signal)) {
         if (Object.keys(record).some((field) => !SELECTED_LICENSE_FIELDS.includes(field))) throw new Error("unapproved selected license field");
         if (containsExcludedField(record)) throw new Error("owner, mailing, contact, or raw PhysicalLine2 field leaked");
         const id = textValue(record.license_number);
@@ -1039,6 +1138,7 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
       }
       if (sourceLicenseRows !== sourceLicenseArtifact.record_count || sourceLicenseRows !== manifest.coverage?.source_active_license_rows) throw new Error("source license count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: sourceLicenseArtifact.path, reason: `source license validation failed: ${error.message}` });
     }
   }
@@ -1048,7 +1148,7 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
   const sourceClassificationsByLicense = new Map();
   if (sourceNaicsArtifact) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceNaicsArtifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceNaicsArtifact.path), signal)) {
         if (Object.keys(record).some((field) => !SELECTED_NAICS_FIELDS.includes(field)) || containsExcludedField(record)) throw new Error("unapproved selected NAICS field");
         const id = textValue(record.license_number);
         if (!licenseIds.has(id)) throw new Error(`orphan NAICS license ${id}`);
@@ -1066,6 +1166,7 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
       if (distinctPairs.size !== manifest.coverage?.distinct_license_naics_pairs || duplicateNaicsRows !== manifest.coverage?.duplicate_license_naics_rows_collapsed) throw new Error("source NAICS pair counts mismatch");
       if (sourceClassificationsByLicense.size !== manifest.coverage?.licenses_with_naics || licenseIds.size - sourceClassificationsByLicense.size !== manifest.coverage?.licenses_without_naics) throw new Error("source NAICS license coverage mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: sourceNaicsArtifact.path, reason: `source NAICS validation failed: ${error.message}` });
     }
   }
@@ -1079,7 +1180,7 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const id = record.external_identifiers?.find((item) => item.type === "alaska_business_license_number")?.value;
         if (!id || normalizedIds.has(id) || sha256(id)[0] !== prefix || !licenseIds.has(id)) throw new Error(`duplicate, missing, or incorrectly partitioned license ${id}`);
         normalizedIds.add(id);
@@ -1110,18 +1211,20 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
       }
       if (partitionCount !== artifact.record_count) throw new Error("partition count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
   let quarantineRows = 0;
   if (quarantineArtifact) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path), signal)) {
         if (!QUARANTINE_REASONS.has(record.reason) || record.export_policy !== "internal" || containsExcludedField(record)) throw new Error("invalid quarantine record");
         quarantineRows += 1;
       }
       if (quarantineRows !== quarantineArtifact.record_count || quarantineRows !== manifest.coverage?.quarantined_source_records) throw new Error("quarantine count mismatch");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: quarantineArtifact.path, reason: `quarantine validation failed: ${error.message}` });
     }
   }
@@ -1133,11 +1236,14 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
   if ([...organizationAddressCounts.values()].reduce((sum, value) => sum + value, 0) !== manifest.coverage?.reported_us_address_zip_contributions) failures.push({ path: "manifest.json", reason: "reported U.S. address ZIP counts do not reconcile" });
   if (zipArtifact) {
     try {
-      const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+      const rows = await readJsonLines(path.join(releaseDirectory, zipArtifact.path), signal);
       if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage?.zip_union_records) throw new Error("ZIP row count mismatch");
       let organizationTotal = 0;
       let siteTotal = 0;
+      let count = 0;
       for (const row of rows) {
+        signal?.throwIfAborted();
+        if (++count % 256 === 0) await yieldTurn(undefined, { signal });
         const snapshot = row.ak_active_business_license_snapshot;
         if ((organizationAddressCounts.get(row.zip_code) ?? 0) !== snapshot?.active_license_organization_reported_address_count
           || (siteCounts.get(row.zip_code) ?? 0) !== snapshot?.provisional_physical_site_count) throw new Error(`ZIP ${row.zip_code} does not reconcile`);
@@ -1147,9 +1253,11 @@ export async function verifyAkActiveBusinessLicenses(manifestPath) {
       }
       if (organizationTotal !== manifest.coverage?.reported_us_address_zip_contributions || siteTotal !== manifest.coverage?.provisional_physical_sites) throw new Error("ZIP totals do not reconcile");
     } catch (error) {
+      signal?.throwIfAborted();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }
+  signal?.throwIfAborted();
   if (failures.length) {
     const error = new Error(`Alaska active business-license release verification failed for ${failures.length} check(s).`);
     error.failures = failures;
