@@ -60,6 +60,20 @@ Next: acquire and verify a first live release through the enrolled app worker, t
 
 ## Source normalization
 
+### Verified registry conversion
+
+`loadNjChildcareRegistryInput(manifestPath, {signal})` verifies the complete original or reprocessed release before converting any record. It rechecks manifest and normalized-artifact byte counts/checksums after verification, bounds local reads, and supports cooperative cancellation. It accepts no transport options and neither downloads nor publishes data. The result explicitly reports `nationalReportingIntegrated: false`.
+
+The pure `reconcileNjChildcareCenter(record, {manifest, manifestSha256})` adapter checks the exact normalization contract and creates provisional physical-site and establishment candidates linked by `located_at`. Caller-supplied digest syntax alone is not record-membership proof; use the verified loader. No organization, corporate ownership, automatic match profile or operating-business claim is produced. ZIP5/ZIP4 remain separate, and location assertions use a latitude/longitude object rather than business geometry.
+
+Candidate IDs are scoped to dataset, source release and source row. They stay stable when the same retained source is reprocessed, but are not cross-release business identity keys. Original observation dates remain distinct from processing time. Reprocessed contributions retain parent-manifest lineage, transformation and policy evidence; source assertions remain local-review-only. First/last-seen values describe the single source observation, not independently established lifecycle dates.
+
+This is preparation for registry integration, not enrollment in the national writer, a reporting publication or a completeness increase. Those consumers must explicitly support the source's policy, scope, point assertions and provenance before counting its contributions. Do not merge original and reprocessed versions as separate businesses or discard the preserved original release.
+
+A network-blocked local conversion of verified release `nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812` (manifest SHA-256 `b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e`) converted all 4,075 accepted records successfully. It produced 8,150 distinct provisional candidate IDs (4,075 sites and 4,075 establishments), 36,675 assertions and 4,075 location relationships, with zero organizations and zero match profiles. These counts describe in-memory source contributions, not additional businesses or a persisted national registry release. All outputs remained local-review-only and explicitly unintegrated. Original observation time 2026-09-07T20:05:27.313Z, separate processing time and parent manifest lineage were retained.
+
+Verification: ten focused adapter/loader tests passed, including both transformation versions, real repository schemas, tamper rejection, cancellation and network-blocked conversion. The full repository check, TypeScript and production dependency audit passed; the audit found zero vulnerabilities. This additive preparation has no data migration. Removing these unused conversion modules does not alter retained releases or production reporting.
+
 ### Versioned offline reprocessing
 
 ```powershell
