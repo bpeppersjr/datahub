@@ -1,6 +1,6 @@
-# New Jersey childcare preflight
+# New Jersey childcare connector development
 
-The application-side preflight checks the fixed public NJDEP source described in the [source handoff](states/NJ-CHILDCARE-ACCESS-2026-09-07.md). This is not a business-record downloader or an enrolled industry source. Acquisition, normalization, release verification, national integration and refresh scheduling remain separate work.
+The application-side preflight checks the fixed public NJDEP source described in the [source handoff](states/NJ-CHILDCARE-ACCESS-2026-09-07.md). Its CLI remains metadata-only. Acquisition and normalization modules are developed separately; an immutable release builder/verifier and industry enrollment are still required before managed bulk collection. No national integration or refresh schedule is implied.
 
 ## Command and retained evidence
 
@@ -22,9 +22,23 @@ Malformed/oversized bodies, changed identities/schemas/counts/dates/terms, mixed
 
 Publisher download and item modification dates remain distinct from observation time and license validity. Stable checks do not establish a transactional snapshot, current operations, unique business identity or complete childcare coverage. New Jersey's public-school inclusion differs from Massachusetts; do not treat the sources as identical denominators.
 
-Next: preserve the full publisher metadata package and versioned policy contract; implement bounded ID/batch acquisition, source-specific normalization and release checks with offline fixtures; then hand collection to Co*Tive's childcare industry workers. Business entities will contain latitude/longitude only, and ZIP5/ZIP4 will remain separate. No production data migration is required for this additive preflight.
+Next: implement immutable retention of the full publisher metadata package and versioned policy contract, connect acquisition and normalization to release checks with offline fixtures, then hand collection to Co*Tive's childcare industry workers. Business entities contain latitude/longitude only, and ZIP5/ZIP4 remain separate. No production data migration is required for these additive modules.
+
+## Source normalization
+
+`normalizeNjChildcareFeature(feature, context)` is a pure transformation with explicit run/release identity, canonical UTC observation time, WGS84 output and expected publisher download-date context. It rejects undeclared or missing attributes, out-of-state records, invalid identifiers/dates/capacities, postal-box-only primary addresses and malformed postal values rather than repairing or guessing them. Missing source coordinates remain null; present coordinates must pass CRS and a broad NJ plausibility envelope, which does not prove geographic boundary membership.
+
+The normalized record preserves the DCF center identifier as a string, ZIP5 and ZIP4 separately, nullable source license dates, source capacity and operational descriptors. FOIPS values remain source strings, not inferred booleans or ownership. Publisher download dates are distinct from observation time. Active-layer membership does not establish current business activity, occupancy, renewal validity, unique business identity or nationwide completeness. No parent company is inferred, and there is no cross-release closure detection or cross-source entity merging.
+
+Business records contain latitude/longitude only, with source geocoding descriptors; retained input features will remain internal evidence. Every record hashes its input feature and carries run/release identity and transformation `nj-childcare-normalization@1.0.0`. Outputs stay `local-review-only` and explicitly require publisher metadata and the derived-publication notice. This transformation does not itself persist the required metadata, approve exports, create a registry contribution or publish a release.
 
 ## Acquisition handoff contract
+
+`acquireNjChildcare()` now implements the bounded in-memory acquisition stage with fixed source URLs and transport/clock/cancellation injection only. It returns sorted selected `features`, complete JSON `source.observations`, source identity/date/CRS evidence, and before/after raw XML in `publisher_metadata`. XML observation hashes refer to those raw bytes, whereas JSON observation hashes refer to serialized payloads. No CLI, filesystem publication, resume or industry enrollment is provided by this module.
+
+Feature batches are greedily packed within both 100 IDs and 2,000 encoded URL bytes. Each JSON response is capped at 8 MB; cumulative serialized selected responses are capped at 100 MB. This is an evidence-byte budget, not a process-RSS guarantee. Three bounded transient attempts, a 30-second header/body deadline, one-second observation spacing, publisher Retry-After deferral and cancellation are enforced. Exact selected attributes, scalar-only values, ID coverage, source-date consistency and WGS84 response/feature CRS are checked before successful return. Invalid scalar record values are left for normalization/quarantine; nested objects and undeclared/private fields fail acquisition.
+
+Verification for acquisition and normalization: nine acquisition tests (including actual cumulative-byte overflow and stage integration) plus six normalization tests passed. Full repository checks passed 610 tests, lint, web/desktop builds and desktop smoke; TypeScript passed and the production dependency audit found zero vulnerabilities. The final nested-value guard was followed by all 15 focused tests and scoped lint. All feature acquisition in this increment used offline fixtures, not a live bulk pull. A live source release remains unbuilt.
 
 The next acquisition stage must preserve raw publisher XML bytes alongside the complete layer/item JSON and count/date/ID observations. The raw XML endpoint is not the rendered HTML metadata page, and its structure must not be assumed to match an FGDC title path. Retention is byte-for-byte: do not parse and reserialize the stored artifact or fetch links embedded in it. XML envelope checks are not schema validation, authenticity signatures or legal approval.
 

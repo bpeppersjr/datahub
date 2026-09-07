@@ -95,6 +95,7 @@ function inspectDates(value, count) {
     || attrs.download_date_count !== count) throw new Error("New Jersey childcare download dates are null, mixed or inconsistent with count.");
   return { download_date_epoch_ms: attrs.download_date_min, download_date_at: new Date(attrs.download_date_min).toISOString() };
 }
+export { inspectItem as inspectNjChildcareItem, inspectCount as inspectNjChildcareCount, inspectDates as inspectNjChildcareDates };
 function requestUrl(kind) {
   if (kind === "metadata") return `${NJ_CHILDCARE_LAYER}?f=json`;
   if (kind === "item") return `${NJ_CHILDCARE_ITEM_URL}?f=json`;

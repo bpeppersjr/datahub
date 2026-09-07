@@ -2,6 +2,8 @@
 
 ## Objective
 
+New Jersey acquisition/normalization implementation (2026-09-07): [bounded source stages](NJ-CHILDCARE-CONNECTOR.md#acquisition-handoff-contract) preserve raw publisher XML and complete JSON evidence in memory, verify ID/date/metadata consistency, enforce resource budgets and exclude private fields. Pure normalization preserves separate ZIP5/ZIP4, lat/lon-only business geocodes, source FOIPS/date semantics and local-review provenance. Fifteen focused tests and 610 full-suite tests passed. These modules are not yet an enrolled downloader: immutable release publication, independent verification and source-policy/industry contracts remain necessary before app-owned live collection. Production is unchanged.
+
 New Jersey preflight implementation (2026-09-07): [standalone metadata checks](NJ-CHILDCARE-CONNECTOR.md) validate fixed NJDEP layer/item identity, selected schema, counts and source-date aggregates with bounded requests and immutable receipts. No business rows, industry enrollment or coverage increase is implied. Full XML metadata retention and the acquisition/normalization/release contract remain prerequisites to app-owned collection.
 
 New Jersey childcare source handoff (2026-09-07): [bounded production-service validation](states/NJ-CHILDCARE-ACCESS-2026-09-07.md) confirms public NJDEP metadata/count access, 4,075 source rows and a successful one-row selected-field/WGS84 probe. Public-school inclusion differs from MA. Preserve publisher metadata/terms and explicit source-date semantics; build the connector preflight and offline contract before app enrollment or bulk acquisition. No NJ dataset or reporting coverage increase is claimed yet.
