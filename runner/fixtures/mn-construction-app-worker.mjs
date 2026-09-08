@@ -23,6 +23,7 @@ const fetchImpl=async(url,options)=>{
   assert.ok(MN_CONSTRUCTION_EXPORTS.includes(url));
   const body=source(url===MN_CONSTRUCTION_EXPORTS[0]);
   const headers={'content-length':String(body.length),'content-type':'application/octet-stream',etag:'"fixture-source"','last-modified':'Tue, 08 Sep 2026 11:00:00 GMT'};
+  if(mode==='held-version' && url===MN_CONSTRUCTION_EXPORTS[0])headers.etag='"06cd86f3fdd1:0"';
   if(options.method==='HEAD')return new Response(null,{headers});
   if(options.headers.Range)return new Response(body.subarray(0,4096),{status:206,headers:{...headers,'content-length':'4096','content-range':`bytes 0-4095/${body.length}`}});
   if(mode==='cancel-transfer')controller.abort();
@@ -70,6 +71,12 @@ if(mode==='success' || mode==='tamper' || mode==='mixed-encoding'){
   assert.equal(result.status,mode.startsWith('cancel')||mode==='failed-cohort-tamper'?'CANCELLED':'FAILED');
   if(['cancel-after-commit','late-failure','checkpoint-tamper','failed-cohort-tamper'].includes(mode))assert.equal(result.acquisition.counts.accepted_records,60);
   else assert.equal(result.acquisition,null);
+  if(mode==='held-version') {
+    assert.equal(result.failure_diagnostic,'source-version-held');
+    assert.equal(calls.length,8); // Two notices and two HEAD/range/HEAD prerequisites; no full export.
+    assert.equal(calls.filter(c=>c.method==='GET'&&!c.range&&MN_CONSTRUCTION_EXPORTS.includes(c.url)).length,0);
+    assert.ok(!(await readdir(path.dirname(result.receipt_path))).includes('selected'));
+  }
   if(mode==='invalid-utf8') {
     const file=path.join(path.dirname(result.receipt_path),'diagnostic.json'),diagnostic=JSON.parse(await readFile(file,'utf8'));
     assert.equal(diagnostic.code,'source-csv-column-count');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);

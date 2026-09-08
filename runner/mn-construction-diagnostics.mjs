@@ -12,7 +12,7 @@ const csvCodes = new Map([
 ]);
 const codes = new Set(['source-utf8-invalid','source-byte-limit','source-csv-invalid','selected-frame-failed',
   'source-stream-failed','transport-request-failed','transport-body-failed','transport-final-check-failed',
-  'retained-selection-failed','acquisition-selection-failed','app-finalization-failed','source-csv-header-mismatch',...csvCodes.values()]);
+  'retained-selection-failed','acquisition-selection-failed','app-finalization-failed','source-csv-header-mismatch','source-version-held',...csvCodes.values()]);
 const classified = new WeakMap();
 export function mnConstructionFailure(error, fallback) {
   if (!codes.has(fallback)) throw new Error('Invalid Minnesota diagnostic classification.');

@@ -3,6 +3,7 @@ import { Readable, addAbortSignal } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { validateMnConstructionPreflight } from './mn-construction-preflight.mjs';
 import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
+import { assertMnConstructionSourceNotHeld } from './mn-construction-source-holds.mjs';
 
 const check = (value, reason) => { if (!value) throw new Error(`Minnesota export transport rejected: ${reason}.`); };
 const time = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -34,6 +35,7 @@ export function createMnConstructionExportStream(options = {}) {
   validateMnConstructionPreflight(options.preflight);
   const preflight = structuredClone(options.preflight), observation = preflight.observations[cohort === 'registrations' ? 0 : 1];
   const expected = observation.source_identity, url = observation.url;
+  assertMnConstructionSourceNotHeld(cohort,expected);
   check(expected.file_bytes <= 50000000, '50 MB source ceiling');
   const controller = new AbortController(), combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
   const clock = () => { const value = now().toISOString(); check(time(value), 'clock'); return value; };

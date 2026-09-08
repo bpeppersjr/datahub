@@ -443,6 +443,8 @@ Retained credential visibility (September 8): the coverage explorer now has a se
 
 Selective app investigation (September 8): manual industry/API collection can select individual applicable source IDs, preserving default scheduled behavior and source reservations. This allows registrations-only Minnesota work without re-downloading retained residential data. CSV errors now have specific fixed classifications without retaining parser text or loosening validation. [Recovery evidence and limitations](MN-CONSTRUCTION-SELECTIVE-RECOVERY.md) distinguish partial frames from completed acquisitions; this is not automatic retry or national promotion.
 
+Source recovery safeguards (September 8): Minnesota's registrations-only investigation confirmed malformed closing quotes, so a reviewed exact-ETag hold now prevents repeated full transfers of that version without affecting residential replay. In parallel, Delaware's existing license HTTP helper gained streamed byte caps, deadlines, body cleanup and cancellable publisher cooldowns. No source was repulled for these repairs. Delaware CLI/publication cancellation remains a prerequisite to managed enrollment. See [Minnesota recovery](MN-CONSTRUCTION-SELECTIVE-RECOVERY.md#verified-outcome-and-exact-version-hold) and [Delaware transport](DE-BUSINESS-LICENSES.md#bounded-transport-prerequisite-september-8-2026).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

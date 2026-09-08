@@ -7,6 +7,7 @@ import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+import { publisherRetryDelay } from "./source-http-guards.mjs";
 
 export const DE_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.1";
@@ -261,47 +262,100 @@ function assertAllowedUrl(urlValue, type) {
   return url;
 }
 
-function retryDelay(response, attempt) {
-  const retryAfter = Number(response?.headers?.get?.("retry-after"));
-  if (Number.isFinite(retryAfter) && retryAfter >= 0) return Math.min(10_000, retryAfter * 1000);
-  return Math.min(4_000, 250 * (2 ** attempt));
+function deAbortable(work, signal) {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal?.removeEventListener("abort", abort);
+    const abort = () => { cleanup(); reject(signal.reason); };
+    signal?.addEventListener("abort", abort, { once: true });
+    Promise.resolve().then(() => { signal?.throwIfAborted(); return work(); }).then(
+      (value) => { cleanup(); resolve(value); },
+      (error) => { cleanup(); reject(error); },
+    );
+  });
+}
+
+async function deWait(milliseconds, signal, sleep) {
+  if (sleep) return deAbortable(() => sleep(milliseconds, signal), signal);
+  let timer;
+  try { await deAbortable(() => new Promise((resolve) => { timer = setTimeout(resolve, milliseconds); }), signal); }
+  finally { clearTimeout(timer); }
 }
 
 export async function requestDeJson(urlValue, {
   fetchImpl = globalThis.fetch,
   signal,
-  sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  sleep,
   maximumResponseBytes = 80_000_000,
+  timeoutMs = 60_000,
   type = "data",
   attempts = 5,
 } = {}) {
   const url = assertAllowedUrl(urlValue, type);
+  if (!Number.isInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 80_000_000 || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000 || !Number.isInteger(attempts) || attempts < 1 || attempts > 5) throw new Error("Invalid Delaware transport limits.");
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
+    const controller = new AbortController();
+    const deadline = performance.now() + timeoutMs;
+    const abort = () => controller.abort(signal.reason);
+    signal?.addEventListener("abort", abort, { once: true });
+    const timer = setTimeout(() => controller.abort(Object.assign(new Error("Delaware source request deadline exceeded."), { code: "DE_TIMEOUT" })), timeoutMs);
+    let response, reader, complete = false, retryMs = null;
     try {
-      const response = await fetchImpl(url, {
+      const pending = Promise.resolve().then(() => { controller.signal.throwIfAborted(); return fetchImpl(url, {
         method: "GET",
         redirect: "manual",
-        signal,
+        signal: controller.signal,
         headers: { accept: "application/json", "user-agent": "Co*Tive-Collector/0.1 governed-public-data-connector" },
-      });
+      }); });
+      void pending.then((late) => { if (controller.signal.aborted) void late.body?.cancel().catch(() => {}); }, () => {});
+      response = await deAbortable(() => pending, controller.signal);
       if (response.status >= 300 && response.status < 400) throw new Error("Delaware source redirect rejected.");
       if ((response.status === 429 || response.status >= 500) && attempt < attempts - 1) {
-        await sleep(retryDelay(response, attempt));
-        continue;
+        retryMs = publisherRetryDelay(response.headers.get("retry-after"), { fallbackMs: 250 * (2 ** attempt) });
+      } else {
+        if (!response.ok) throw new Error(`Delaware source request failed with HTTP ${response.status}.`);
+        const declaredBytes = Number(response.headers?.get?.("content-length"));
+        if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Delaware source response exceeds the configured byte limit.");
+        if (!response.body) throw new Error("Delaware source response body is missing.");
+        reader = response.body.getReader();
+        const chunks = []; let bytes = 0;
+        while (true) {
+          const { done, value } = await deAbortable(() => reader.read(), controller.signal);
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes > maximumResponseBytes) throw new Error("Delaware source response exceeds the configured byte limit.");
+          chunks.push(value);
+        }
+        let payload;
+        try { payload = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, bytes))); }
+        catch { throw Object.assign(new Error("Delaware source JSON encoding or syntax is invalid."), { code: "DE_INVALID_JSON" }); }
+        if (performance.now() >= deadline) controller.abort(Object.assign(new Error("Delaware source request deadline exceeded."), { code: "DE_TIMEOUT" }));
+        controller.signal.throwIfAborted();
+        complete = true;
+        return payload;
       }
-      if (!response.ok) throw new Error(`Delaware source request failed with HTTP ${response.status}.`);
-      const declaredBytes = Number(response.headers?.get?.("content-length"));
-      if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Delaware source response exceeds the configured byte limit.");
-      const body = await response.text();
-      if (Buffer.byteLength(body) > maximumResponseBytes) throw new Error("Delaware source response exceeds the configured byte limit.");
-      return JSON.parse(body);
     } catch (error) {
-      lastError = error;
-      if (error.name === "AbortError" || /redirect rejected|byte limit|HTTP 4\d\d/.test(error.message) || attempt === attempts - 1) throw error;
-      await sleep(250 * (2 ** attempt));
+      signal?.throwIfAborted();
+      lastError = controller.signal.aborted ? controller.signal.reason : error;
+      if (error.code === "SOURCE_RETRY_DEFERRED") throw new Error("Delaware publisher retry delay exceeds the local wait budget; defer this acquisition.");
+      if (error.code === "DE_INVALID_JSON") throw new Error("Delaware source JSON encoding or syntax is invalid.");
+      if (/redirect rejected/.test(error.message)) throw new Error("Delaware source redirect rejected.");
+      if (/byte limit/.test(error.message)) throw new Error("Delaware source response exceeds the configured byte limit.");
+      if (/HTTP 4\d\d|body is missing/.test(error.message)) throw new Error("Delaware source response rejected.");
+      if (attempt === attempts - 1) throw new Error(lastError.code === "DE_TIMEOUT" ? "Delaware source request deadline exceeded." : "Delaware source transport failed.");
+      retryMs = 250 * (2 ** attempt);
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      if (!complete) {
+        if (reader) void reader.cancel().catch(() => {});
+        else if (response?.body) void response.body.cancel().catch(() => {});
+      }
+      reader?.releaseLock();
     }
+    await deWait(retryMs, signal, sleep);
   }
   throw lastError;
 }

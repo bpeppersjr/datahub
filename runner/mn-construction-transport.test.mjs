@@ -33,6 +33,22 @@ async function fixture(change = () => {}, observedAt = at) {
 }
 async function consume(transport) { const chunks = []; for await (const chunk of transport.stream) chunks.push(chunk); return Buffer.concat(chunks); }
 
+test('MN known malformed registrations version is held before transfer without blocking residential',async()=>{
+  const f=await fixture();f.options.cohort='registrations';
+  f.options.preflight.observations[0].source_identity.etag='"06cd86f3fdd1:0"';
+  for(const content_type of ['application/octet-stream','text/csv']) {
+    f.options.preflight.observations[0].source_identity.content_type=content_type;
+    assert.throws(()=>createMnConstructionExportStream(f.options),error=>mnConstructionDiagnostic(error)==='source-version-held');
+  }
+  assert.equal(f.calls.length,0);
+  // Matching ETag on the other fixed export does not identify the held resource.
+  f.options.cohort='residential';f.options.preflight.observations[1].source_identity.etag='"06cd86f3fdd1:0"';
+  const fetchImpl=f.options.fetchImpl;
+  f.options.fetchImpl=async(...args)=>{const response=await fetchImpl(...args);response.headers.set('etag','"06cd86f3fdd1:0"');return response;};
+  await consume(createMnConstructionExportStream(f.options));assert.equal(f.calls.length,3);
+  const other=await fixture();other.options.cohort='registrations';await consume(createMnConstructionExportStream(other.options));assert.equal(other.calls.length,3);
+});
+
 test('MN diagnostics distinguish initial request failure from final identity failure', async () => {
   for(const failedCall of [1,3]) {
     const f=await fixture(call=>call===failedCall?new Response(null,{status:412}):undefined);
