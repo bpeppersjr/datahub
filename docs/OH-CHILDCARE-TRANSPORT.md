@@ -36,7 +36,7 @@ Freshness is revalidated after the hook and before each inventory/page attempt, 
 
 Six additional tests cover awaited persistence, cloned evidence, rejected/incomplete gates, stale prerequisites, cancellation, availability drift and body limits, configuration drift before requests, and a peer-found final clock rollback. The four public error-page bodies are retained as portable fixtures in `runner/fixtures/oh-childcare-availability.json`, after direct checks confirmed the recorded status/size/hash values. This adds retained test bodies without rewriting older research records that truthfully said raw bodies were not retained at their observation time. No facility record requests occurred for this fixture capture.
 
-Native collection remains un-enrolled. The next implementation must persist and independently replay these before/after packages in the acquired-release and operation lifecycle, then enroll the fixed native path. Do not call this mode app-owned execution merely because its persistence hook exists.
+The [retained acquisition lifecycle](OH-CHILDCARE-ACQUIRED-RELEASE.md) now persists and independently replays these packages and an ordered response journal. Native collection remains un-enrolled pending the fixed native app path and operation handoff. Do not call injected transport tests live app-owned execution.
 
 The required-source-use follow-up passed the full repository check: all 904 tests, source checks, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. The original eight transport tests remain compatible; the six added tests include the independently identified final-clock regression and its fix.
 
@@ -44,6 +44,8 @@ Eight synthetic tests cover the source-to-release flow, fixed options, disabled 
 
 The full repository check passed all 894 tests, source checks, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. These tests prove synthetic transport behavior, not current publisher access or nationwide completeness.
 
-Next bind current available source notices and explicit unavailable-resource observations to the scoped acquisition decision, then add the app-owned lifecycle and durable operation receipt. Download execution must be released to Co*Tive after accepted dispatch, not supervised by an occupied agent. Existing verified releases remain reusable for downstream promotion.
+The optional `onObservation` hook receives a clone only after inventory/page validation and is awaited before the next request. A hook failure is not retried as an HTTP failure. The acquired-release lifecycle uses it to sync each successful source observation. The existing transport's no-hook behavior remains compatible.
+
+Next enroll the fixed native path and persist its app operation receipt. Download execution must be released to Co*Tive after accepted dispatch, not supervised by an occupied agent. Existing verified releases remain reusable for downstream promotion.
 
 Rollback is additive code-only. This increment changes no source policy, production pointer, existing release or schedule.

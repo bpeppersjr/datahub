@@ -51,11 +51,12 @@ async function readBytes(response, maximum, signal, meter) {
  * No default network transport. The caller must supply synthetic responses for offline tests.
  */
 export async function acquireOhChildcareWithTransport(options = {}) {
-  check(optionsValid(options, ["fetchImpl", "signal", "sleep", "now", "timeoutMs", "maximumBytes", "sourceUseRequired", "onSourceUseBound"]), "unsupported options");
+  check(optionsValid(options, ["fetchImpl", "signal", "sleep", "now", "timeoutMs", "maximumBytes", "sourceUseRequired", "onSourceUseBound", "onObservation"]), "unsupported options");
   const { fetchImpl, signal, sleep = (ms, opts) => delay(ms, undefined, opts), now = () => new Date(), timeoutMs = 15_000, maximumBytes = 100_000_000, sourceUseRequired = false, onSourceUseBound } = options;
   check([fetchImpl, sleep, now].every((v) => typeof v === "function") && (signal === undefined || signal instanceof AbortSignal)
     && Number.isInteger(timeoutMs) && timeoutMs >= 1 && timeoutMs <= 60_000 && Number.isSafeInteger(maximumBytes) && maximumBytes >= 1024 && maximumBytes <= 100_000_000, "transport options");
   check(typeof sourceUseRequired === "boolean" && (sourceUseRequired ? typeof onSourceUseBound === "function" : onSourceUseBound === undefined), "source-use gate options");
+  check(options.onObservation === undefined || typeof options.onObservation === "function", "observation retention hook");
   if (sourceUseRequired) assertOhChildcareSourceUseConfiguration();
   signal?.throwIfAborted(); const startedAt = now().toISOString();
   const allowed = new Set([...metadataUrls, ohInventoryUrl(), ...(sourceUseRequired ? noticeUrls : [])]);
@@ -131,13 +132,17 @@ export async function acquireOhChildcareWithTransport(options = {}) {
     // is awaited but is not itself proof of durable storage or an authorization token.
     await onSourceUseBound(structuredClone(sourceUseBefore)); signal?.throwIfAborted(); assertCurrentSourceUse();
   }
-  const first = await observe("inventory", ohInventoryUrl()), ids = ohInventory(first.payload, before.source.source_record_count); observations.push(first);
+  async function retain(observation) {
+    await options.onObservation?.(structuredClone(observation)); signal?.throwIfAborted();
+    observations.push(observation);
+  }
+  const first = await observe("inventory", ohInventoryUrl()), ids = ohInventory(first.payload, before.source.source_record_count); await retain(first);
   for (const batch of ohBatches(ids)) {
     const url = ohFeatureUrl(batch); allowed.add(url);
-    const o = await observe("features", url); ohFeatures(o.payload, batch, before); observations.push(o);
+    const o = await observe("features", url); ohFeatures(o.payload, batch, before); await retain(o);
   }
   const last = await observe("inventory", ohInventoryUrl());
-  check(isDeepStrictEqual(ids, ohInventory(last.payload, ids.length)), "final inventory drift"); observations.push(last);
+  check(isDeepStrictEqual(ids, ohInventory(last.payload, ids.length)), "final inventory drift"); await retain(last);
   await sleep(1000, { signal }); signal?.throwIfAborted();
   const after = await preflightOhChildcare(preflightOptions);
   const sourceUseAfter = sourceUseRequired ? await sourceUseFor(after) : null;

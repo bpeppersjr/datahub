@@ -18,6 +18,10 @@ const FILES = [
 ];
 function requireValue(ok, label) { if (!ok) throw new Error(`Ohio childcare release rejected: ${label}.`); }
 function strictOptions(options, keys) { requireValue(options && typeof options === "object" && !Array.isArray(options) && Object.keys(options).every((key) => keys.includes(key)), "unsupported options"); }
+// Shared by the acquisition lifecycle; keep the existing offline publisher's
+// ownership and bounded-I/O behavior identical for retained historical releases.
+export { canonical as ohioCanonicalPath, boundedRead as ohioBoundedRead,
+  outputLocation as ohioOutputLocation, durableWrite as ohioDurableWrite };
 async function canonical(target, create = false, signal) {
   requireValue(typeof target === "string" && target.length <= 1024 && path.resolve(target) === target, "absolute canonical path");
   const absolute = assertInsideApp(target); requireValue(absolute !== APP_ROOT, "application root is not an output");
