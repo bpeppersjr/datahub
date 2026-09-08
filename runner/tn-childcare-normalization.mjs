@@ -3,6 +3,7 @@ import { TN_CHILDCARE_LAYER, TN_CHILDCARE_SCHEMA, TN_CHILDCARE_WHERE } from "./t
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const TN_CHILDCARE_TRANSFORMATION = "tn-childcare-normalization@1.0.0";
+export const TN_CHILDCARE_REPROCESS_TRANSFORMATION = "tn-childcare-normalization@1.0.1";
 const fields = new Set(TN_CHILDCARE_SCHEMA.map(([name]) => name));
 const object = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const controls = /[\u0000-\u001f\u007f]/u;
@@ -22,7 +23,10 @@ function contextValue(value, name) {
 
 /** Pure source transformation; no acquisition, geocoding, matching or publication. */
 export function normalizeTnChildcareFeature(feature, context = {}) {
-  if (!object(context) || Object.keys(context).some((key) => !["runId", "sourceReleaseId", "observedAt", "outputWkid", "editingInfo", "itemModifiedEpochMs"].includes(key))) throw new Error("Unsupported Tennessee childcare normalization context.");
+  if (!object(context) || Object.keys(context).some((key) => !["runId", "sourceReleaseId", "observedAt", "outputWkid", "editingInfo", "itemModifiedEpochMs", "transformationVersion"].includes(key))) throw new Error("Unsupported Tennessee childcare normalization context.");
+  const transformationVersion = context.transformationVersion === undefined ? TN_CHILDCARE_TRANSFORMATION : context.transformationVersion;
+  if (![TN_CHILDCARE_TRANSFORMATION, TN_CHILDCARE_REPROCESS_TRANSFORMATION].includes(transformationVersion)) throw new Error("Unsupported Tennessee childcare transformation version.");
+  const missingZipSupported = transformationVersion === TN_CHILDCARE_REPROCESS_TRANSFORMATION;
   const runId = contextValue(context.runId, "runId"), sourceReleaseId = contextValue(context.sourceReleaseId, "sourceReleaseId"), observedAt = contextValue(context.observedAt, "observedAt");
   if (!Number.isFinite(Date.parse(observedAt)) || new Date(observedAt).toISOString() !== observedAt) throw new Error("Tennessee childcare observedAt must be a canonical UTC timestamp.");
   if (context.outputWkid !== 4326) throw new Error("Tennessee childcare normalization requires WGS84 output.");
@@ -37,11 +41,19 @@ export function normalizeTnChildcareFeature(feature, context = {}) {
   // Compare raw scope values: whitespace/case variants do not expand the fixed filter.
   if (attributes.Provider_Status !== "Active" || attributes.Provider_Type !== "Child Care" || attributes.Child_Care_Type !== "Child Care Center") reject("source-scope-drift");
   const selected = {};
-  for (const [name, type, maximum] of TN_CHILDCARE_SCHEMA) if (type === "esriFieldTypeString") selected[name] = text(attributes[name], maximum, !["Street_Address_2", "County"].includes(name));
+  let zipUnavailableReason = null;
+  for (const [name, type, maximum] of TN_CHILDCARE_SCHEMA) if (type === "esriFieldTypeString") {
+    if (name === "Zip" && missingZipSupported && (attributes.Zip === null
+      || (typeof attributes.Zip === "string" && attributes.Zip.length <= maximum && !controls.test(attributes.Zip) && attributes.Zip.trim() === ""))) {
+      selected.Zip = null; zipUnavailableReason = "missing-source-zip";
+    } else if (name === "Zip" && missingZipSupported && attributes.Zip === "0") {
+      selected.Zip = null; zipUnavailableReason = "invalid-source-zip-placeholder";
+    } else selected[name] = text(attributes[name], maximum, !["Street_Address_2", "County"].includes(name));
+  }
   if (selected.State !== "TN") reject("source-state-drift");
   if (/^(?:P\.?\s*O\.?\s*(?:BOX|B\b)|POST\s+OFFICE\s+BOX|GENERAL\s+DELIVERY)\b/i.test(selected.Street_Address)) reject("nonphysical-address");
   const postal = /^(\d{5})(?:-(\d{4}))?$/.exec(selected.Zip);
-  if (!postal || postal[1] === "00000") reject("invalid-postal-code");
+  if (!zipUnavailableReason && (!postal || postal[1] === "00000")) reject("invalid-postal-code");
   let latitude = null, longitude = null;
   if (feature.geometry !== null && feature.geometry !== undefined) {
     const geometry = feature.geometry, sr = geometry?.spatialReference;
@@ -57,18 +69,19 @@ export function normalizeTnChildcareFeature(feature, context = {}) {
     business_name: selected.Provider_Name,
     external_identifiers: attributes.Provider_ID === null ? [] : [{ type: "tennessee_dhs_provider_id", value: String(attributes.Provider_ID) }],
     physical_address: { street: selected.Street_Address, street2: selected.Street_Address_2, city: selected.City, county_source: selected.County,
-      state: "TN", country: "US", state_country_basis: "publisher-record-and-dataset-scope-not-boundary-verification", zip_code: postal[1], postal_code: postal[1], zip4: postal[2] ?? null },
+      state: "TN", country: "US", state_country_basis: "publisher-record-and-dataset-scope-not-boundary-verification", zip_code: postal?.[1] ?? null, postal_code: postal?.[1] ?? null, zip4: postal?.[2] ?? null },
     geocode: { latitude, longitude, crs: "EPSG:4326", source: "Tennessee STS GIS / DHS", status: latitude === null ? "missing-source-point" : "publisher-geocoded-not-independently-verified" },
     industry: { category: "childcare", provider_type_source: selected.Provider_Type, childcare_type_source: selected.Child_Care_Type },
     source_status: { status_source: selected.Provider_Status, status_interpretation: "publisher-active-center-extract-membership-only", active_business_verified: false },
     affiliation: { parent_company: null, ownership_verified: false },
     provenance: { source_url: TN_CHILDCARE_LAYER, source_filter: TN_CHILDCARE_WHERE, source_object_id: attributes.OBJECTID, source_release_id: sourceReleaseId,
       ingest_run_id: runId, observed_at: observedAt, publisher_editing_info: editingInfo === null ? null : structuredClone(editingInfo), publisher_item_modified_epoch_ms: modified,
-      publisher_timestamp_interpretation: "service-and-item-change-observations-not-license-or-business-operating-dates", transformation_version: TN_CHILDCARE_TRANSFORMATION,
+      publisher_timestamp_interpretation: "service-and-item-change-observations-not-license-or-business-operating-dates", transformation_version: transformationVersion,
       input_feature_sha256: createHash("sha256").update(JSON.stringify(feature)).digest("hex"), attribution: "Tennessee Department of Human Services; State of Tennessee STS GIS",
       policy_id: "tn-childcare-local-review", policy_profile: "tn-childcare-local-review@1.0.0",
       publisher_metadata_required: true, publisher_notices_required: true },
-    quality: { unique_business_identity_verified: false, current_usps_validity: "unverified", geographic_boundary_verified: false, provider_identifier_missing: attributes.Provider_ID === null },
+    quality: { unique_business_identity_verified: false, current_usps_validity: "unverified", geographic_boundary_verified: false, provider_identifier_missing: attributes.Provider_ID === null,
+      ...(missingZipSupported ? { zip_unavailable_reason: zipUnavailableReason } : {}) },
     export_policy: "local-review-only",
   });
 }

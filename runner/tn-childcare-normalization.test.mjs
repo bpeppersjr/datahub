@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { normalizeTnChildcareFeature, TN_CHILDCARE_TRANSFORMATION } from "./tn-childcare-normalization.mjs";
+import { normalizeTnChildcareFeature, TN_CHILDCARE_TRANSFORMATION, TN_CHILDCARE_REPROCESS_TRANSFORMATION } from "./tn-childcare-normalization.mjs";
 import { TN_CHILDCARE_SCHEMA, TN_CHILDCARE_WHERE } from "./tn-childcare-preflight.mjs";
 
 const context = { runId: "fixture-run", sourceReleaseId: "fixture-release", observedAt: "2026-09-07T20:00:00.000Z", outputWkid: 4326,
@@ -10,6 +10,36 @@ function feature() { return { attributes: { OBJECTID: 1, Provider_ID: 123, Provi
   Provider_Name: " Fixture Center ", Street_Address: " 10 Main Street ", Street_Address_2: null, City: "Nashville", State: "TN", Zip: "37201-0123", County: "Davidson" }, geometry: { x: -86.78, y: 36.16, spatialReference: { wkid: 4326, latestWkid: 4326 } } }; }
 const normalize = (value = feature(), extra = {}) => normalizeTnChildcareFeature(value, { ...context, ...extra });
 const rejected = (mutate, reason) => { const value = feature(); mutate(value); assert.throws(() => normalize(value), (error) => error.code === "TN_CHILDCARE_RECORD_REJECTED" && (!reason || error.reason === reason)); };
+
+test("TN explicit1.0.1 represents missing or exact placeholder ZIP without invention; legacy stays unchanged", () => {
+  const ordinary = feature(), legacy = normalize(ordinary);
+  assert.deepEqual(normalize(ordinary, { transformationVersion: TN_CHILDCARE_TRANSFORMATION }), legacy);
+  assert.equal(Object.hasOwn(legacy.quality, "zip_unavailable_reason"), false);
+  for (const Zip of [null, "", "   ", "\u00a0\u2003", "0"]) {
+    const raw = feature(); raw.attributes.Zip = Zip; const before = structuredClone(raw);
+    assert.throws(() => normalize(raw), (e) => e.code === "TN_CHILDCARE_RECORD_REJECTED");
+    const record = normalize(raw, { transformationVersion: TN_CHILDCARE_REPROCESS_TRANSFORMATION });
+    assert.deepEqual([record.physical_address.zip_code, record.physical_address.postal_code, record.physical_address.zip4], [null, null, null]);
+    assert.equal(record.quality.zip_unavailable_reason, Zip === "0" ? "invalid-source-zip-placeholder" : "missing-source-zip");
+    assert.equal(record.provenance.transformation_version, TN_CHILDCARE_REPROCESS_TRANSFORMATION);
+    assert.equal(record.provenance.input_feature_sha256, createHash("sha256").update(JSON.stringify(raw)).digest("hex"));
+    assert.equal(record.provenance.observed_at, context.observedAt); assert.equal(record.geocode.latitude, 36.16); assert.deepEqual(raw, before);
+  }
+  const current = normalize(ordinary, { transformationVersion: TN_CHILDCARE_REPROCESS_TRANSFORMATION });
+  assert.equal(current.quality.zip_unavailable_reason, null); current.provenance.transformation_version = TN_CHILDCARE_TRANSFORMATION; delete current.quality.zip_unavailable_reason;
+  assert.deepEqual(current, legacy);
+});
+test("TN1.0.1 does not expand malformed ZIPs required premises scope or other text rules", () => {
+  const extra = { transformationVersion: TN_CHILDCARE_REPROCESS_TRANSFORMATION };
+  for (const Zip of ["00000", "00", "0 ", " 0", "372010123", "37201-123", "37201+0123", "n/a", 0, undefined, " ".repeat(8001), "\u0000", "\n", "\t", "\r", " \t\n ", "37201\n"]) {
+    const raw = feature(); raw.attributes.Zip = Zip; assert.throws(() => normalize(raw, extra), (e) => e.code === "TN_CHILDCARE_RECORD_REJECTED");
+  }
+  for (const field of ["Provider_Name", "Street_Address", "City", "State"]) for (const value of [null, "", "\t", "name\nprivate"]) {
+    const raw = feature(); raw.attributes.Zip = "0"; raw.attributes[field] = value; assert.throws(() => normalize(raw, extra));
+  }
+  const raw = feature(); raw.attributes.Zip = "0"; raw.attributes.Child_Care_Type = "Family Child Care Home"; assert.throws(() => normalize(raw, extra));
+  for (const transformationVersion of ["1.0.1", "tn-childcare-normalization@1.0.2", 1, null]) assert.throws(() => normalize(feature(), { transformationVersion }), /version/);
+});
 
 test("TN normalization preserves exact source provenance, split postal fields and unverified source status", () => {
   const value = feature(), original = structuredClone(value), result = normalize(value);

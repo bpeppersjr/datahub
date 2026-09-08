@@ -1,5 +1,26 @@
 # Tennessee childcare connector development
 
+## First acquisition outcome and offline recovery boundary
+
+App run `tn-app-acquisition-20260907-01` finished **failed** at `2026-09-08T00:36:36.778Z`. Acquisition completed, but normalization 1.0.0 accepted only 1,691 of 1,863 selected records. The 172 rejected records exceed the unchanged five-percent quarantine gate: 145 contain source ZIP string `0`, and 27 contain an empty ZIP. These are unavailable postal values, not compact ZIP+4 formatting. No source release or current pointer was published. Do not rerun acquisition to repair these retained values.
+
+The exact retained directory is `data/industry-segments/runs/tn-app-acquisition-20260907-01/state-tn-childcare-TN/.staging/f295bca2-7509-4d5e-ae13-84504c86a1b7`. Offline acquisition replay confirmed all 1,863 records and exact selected JSONL/XML byte agreement. Evidence pins:
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| Failed app receipt | 4,388 | `b6762d1a12619d9ad90b59b40b8cbe82af78b0b8de1a680d1ed687a063125033` |
+| selected-features.jsonl | 707,895 | `67a0adc8ef8edf18d26c46e085123145db0e865c3dcaf3537b6b1a8192ad02bc` |
+| source-observation.json | 1,462,063 | `3da6b88326e6932fb5ba6ece8aebcee08cacee18492b2fd6e2bbcb81c71706ce` |
+| publisher-metadata.xml | 104,930 | `6e90fe62991c07898a09dac1aad44ab699078effc358e4532be3a99e54cab8f6` |
+
+Recovery must preserve the failed receipt and all retained source bytes. An additive transformation can represent unavailable ZIPs as null ZIP5, postal alias and ZIP4 with an explicit reason; it must never replace them with a guessed ZIP, zero padding or a ZCTA identifier. Missing ZIPs remain a postal coverage gap even when source coordinates exist. Historical transformation 1.0.0 and its rejection results remain reproducible. A future recovered release must have a new identity, original source observation time, separate processing time and parent evidence hashes. A failed staging directory is not a published parent release. National reporting, automatic recovery publication and scheduled refreshes remain separate gates.
+
+`tn-childcare-normalization@1.0.1` is an explicit opt-in pure transformation. Null, empty and control-free blank source ZIPs produce `missing-source-zip`; exactly the raw string `0` produces `invalid-source-zip-placeholder`. All three normalized postal fields are null in those cases. Other malformed ZIPs, compact nine-digit strings, padded zero placeholders and control characters still reject. Valid ZIP5 and hyphenated ZIP+4 behavior is unchanged. Names, street addresses, city, state, coordinates, scope and policy retain their existing checks. The release builder still selects historical 1.0.0; this additive transformation alone neither publishes data nor bypasses a quality gate.
+
+Use `npm run tn-childcare:inspect-recovery -- --help` for the read-only inspector. It requires explicit failed-receipt and retained-staging paths plus SHA-256 pins for the receipt and all three retained artifacts. It verifies the receipt-pinned failure log, exact lineage/roster, acquisition replay and legacy normalization failure without provider requests or writes. `eligible-for-recovery-review` is not a recovered release, updated source observation, export approval or national reporting contribution.
+
+The inspector was executed against the real pinned files above and reproduced 1,691 accepted / 172 quarantined historical records. Independent local execution of explicit 1.0.1 accepted all 1,863, preserving 172 unavailable ZIPs and three missing point pairs. Nothing was published or downloaded by these checks. Six inspector tests, 17 normalization/legacy-release tests, independent review, all 706 repository tests, lint, builds, desktop smoke, TypeScript and a zero-vulnerability production dependency audit passed. Rollback: stop invoking the additive inspector/version; original acquisition evidence and legacy release behavior are preserved.
+
 ## Standalone release and app-worker contract
 
 The source builder and verifier expose `npm run tn-childcare:build` and `npm run tn-childcare:verify -- <immutable-manifest-path>`. The build accepts only an optional output path inside `datahub`; verification accepts a release manifest rather than `current.json` and must not request provider data. Both commands support cooperative signals and app IPC.
