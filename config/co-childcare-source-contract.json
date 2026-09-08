@@ -1,0 +1,34 @@
+{
+  "id": "a9rr-k8mu",
+  "name": "Colorado Licensed Child Care Facilities Report",
+  "description": "This dataset includes all non-24 hour licensed child care facilities  in the State of Colorado. It is updated monthly, and is intended for public use. It includes CDEC-issued child care license numbers, legal business names as they appear in the licensing application, the types of service the programs provide, the physical location addresses of the programs as they appear in the licensing application, the valid Colorado Shines quality rating levels (if applicable), total licensed capacities, and CCCAP authorization and fiscal agreement.\n\nDisclaimer: The Colorado Department of Early Childhood (CDEC) makes no promises or guarantees whatsoever, with respect to the use of data provided, regardless of its format or the means of transmission. There is no guarantee or representation to the user regarding the accuracy, currency, suitability, or reliability of this data for any purpose. The user accepts the data “as is”. The State of Colorado assumes no responsibility for loss or damage incurred as a result of any user reliance on this data.\n\nUsers of this information should review or consult the primary data and information sources to ascertain the usability of the information. The State of Colorado and CDEC do not endorse any interpretations or products derived from the data provided.",
+  "attribution": "CDEC - Department of Early Childhood",
+  "owner": {"id": "3afb-cw7i", "displayName": "TranxxQD"},
+  "licenseId": "PDDL",
+  "license": {"name": "Open Data Commons Public Domain Dedication and License", "termsLink": "http://opendatacommons.org/licenses/pddl/1.0/"},
+  "fieldTypes": {
+    "provider_id": "number", "provider_name": "text", "provider_service_type": "text", "street_address": "text", "city": "text", "state": "text", "zip": "text", "county": "text",
+    "ecc": "text", "ccrr": "text", "school_district_operated_program": "checkbox", "school_district": "text", "quality_rating": "text", "award_date": "calendar_date", "expiration_date": "calendar_date", "total_licensed_capacity": "number", "cccap_fa_status_d1": "checkbox", "cccap_authorization_status": "checkbox", "licensed_home_capacity": "number", "licensed_infant_capacity": "number", "licensed_toddler_capacity": "number", "licensed_preschool_capacity": "number", "licensed_school_age_capacity": "number", "licensed_preschool_and_school_age_capacity": "number", "licensed_resident_camp_capacity": "number", "licensed_nyo_capacity": "number", "governing_body": "text"
+  },
+  "selectedFields": ["provider_id", "provider_name", "provider_service_type", "street_address", "city", "state", "zip", "county", "total_licensed_capacity"],
+  "descriptions": {
+    "provider_id": "Unique CDEC-issued license number",
+    "provider_name": "Legal business name as it appears in the licensing application",
+    "provider_service_type": "License type based on type of service; values include ‘Child Care Center’, ‘Preschool’, ‘Family Child Care Home’, ‘Family Child Care Home 3, ‘Experienced Child Care Provider’, ‘Infant /toddler home’, ‘Large child care home’, 'Neighborhood Youth Organization', 'Resident Camp', and 'School age child care'; does not include 24-hour license types (e.g., day treatment) or license-exempt child care.",
+    "street_address": "Full physical location street address as it appears in the licensing application",
+    "city": "Physical location city name as it appears in the licensing application",
+    "state": "Physical location state name as it appears in the licensing application",
+    "zip": "Physical location ZIP postal code as it appears in the licensing application",
+    "county": "The name of the county for each program’s location as it appears in the licensing application",
+    "total_licensed_capacity": "The maximum number of children for whom care can be provided at any point in time",
+    "award_date": "Award/assign date of QUALITY RATING LEVEL; if rating level is greater than 1 and Quality Rating Effective Date is blank, this indicates that the program obtained that rating through an alternative pathway",
+    "expiration_date": "Expiration date of QUALITY RATING LEVEL; if rating level is greater than 1 and Quality Rating Effective Date is blank, this indicates that the program obtained that rating through an alternative pathway"
+  },
+  "custom": {
+    "Data Quality": {"Expected Update Frequency": "Monthly"},
+    "Data Updates": {"Update Schedule": "Monthly", "Update Method": "Manual Upload"},
+    "Dataset Coverage": {"Geographic Coverage": "State of Colorado", "Unit of Analysis": "Licensed Child Care Provider"},
+    "Geospatial": {"Horizontal Coordinate System": "UTM NAD83 Zone 13N", "Collection Method": "Point address based geocoding"},
+    "Publisher": {"Publisher Name": "CDEC Analytics & Reporting Team", "Publisher Parent Organization": "CDEC"}
+  }
+}

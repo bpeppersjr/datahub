@@ -21,6 +21,23 @@ const validPolicy = {
   redistribution: "Not authorized.",
 };
 
+test("Colorado preflight is metadata-only with a distinct nine-field future center projection", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../config/connectors/co-childcare-preflight.json", import.meta.url), "utf8"));
+  const contract = JSON.parse(await readFile(new URL("../config/co-childcare-source-contract.json", import.meta.url), "utf8"));
+  const policy = JSON.parse(await readFile(new URL("../config/source-policies/co-childcare-preflight.json", import.meta.url), "utf8"));
+  assert.equal(manifest.execution_limits.facility_rows_requested, 0);
+  assert.equal(manifest.execution_limits.maximum_requests, 6);
+  assert.equal(manifest.execution_limits.max_parallel_requests, 1);
+  assert.equal(Object.keys(contract.fieldTypes).length, 27);
+  assert.equal(contract.selectedFields.length, 9);
+  assert.equal(contract.selectedFields.includes('governing_body'), false);
+  assert.equal(contract.selectedFields.includes('expiration_date'), false);
+  assert.equal(Object.hasOwn(contract.fieldTypes, 'latitude'), false);
+  assert.equal(policy.catalog_license, 'PDDL');
+  assert.equal(policy.facility_acquisition_authorized, false);
+  assert.match(contract.descriptions.expiration_date, /QUALITY RATING/);
+});
+
 test("TN fresh acquisition uses gap-aware normalization while pinned offline recovery remains separate", async () => {
   const manifest = JSON.parse(await readFile(new URL("../config/connectors/tn-dhs-active-childcare-centers.json", import.meta.url), "utf8"));
   assert.equal(manifest.version, "1.1.0");
@@ -80,7 +97,7 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 67);
+  assert.equal(registry.connectorCount, 68);
   assert.equal(registry.get("vt-childcare-centers-app").version, "1.0.0");
   assert.equal(registry.get("vt-childcare-centers-normalization").resource_class, "bounded-offline-normalization");
   assert.equal(registry.get("vt-childcare-centers-acquisition").version, "1.0.0");
@@ -103,7 +120,7 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("ak-active-business-licenses-app").version, "1.0.0");
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
-  assert.equal(registry.policyProfileCount, 54);
+  assert.equal(registry.policyProfileCount, 55);
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
   }

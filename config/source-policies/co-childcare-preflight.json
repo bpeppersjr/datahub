@@ -1,0 +1,23 @@
+{
+  "policy_id": "co-childcare-preflight",
+  "version": "1.0.0",
+  "publisher": "Colorado Department of Early Childhood",
+  "ownership": "CDEC licensed childcare report a9rr-k8mu; CDEC Analytics & Reporting Team.",
+  "source_dataset": "https://data.colorado.gov/resource/a9rr-k8mu.json",
+  "terms_url": "http://opendatacommons.org/licenses/pddl/1.0/",
+  "catalog_license": "PDDL",
+  "source_access": "Anonymous fixed metadata and aggregate queries.",
+  "allowed_use": ["Metadata/schema/notice validation", "Provider-category and center-only aggregate counts", "Sanitized immutable internal preflight receipt"],
+  "prohibited_use": ["Facility acquisition or scheduler enrollment under this metadata-only profile", "Cached provider sample or contact-value retention", "Inferring coordinates from obsolete geospatial descriptions", "Using quality-rating dates as license dates", "Claiming current unique businesses or national completeness from aggregate rows"],
+  "export_policy": "internal",
+  "field_export_policy": {"selected_metadata_and_aggregates": "internal", "cached_samples_and_contact_values": "excluded-before-retention", "coordinates": "not-present-not-inferred"},
+  "attribution": "CDEC - Department of Early Childhood; Colorado Information Marketplace; PDDL notice retained for provenance.",
+  "retention": "Keep sanitized immutable receipts; no automatic deletion.",
+  "redistribution": "PDDL permits reuse of covered rights; this implementation emits internal metadata evidence only and does not implement record-level export.",
+  "contains_personal_data": false,
+  "personal_data_handling": "Strip cached row samples and contact metadata; no provider rows or identifier inventories requested.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false
+}
