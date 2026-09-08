@@ -1,5 +1,17 @@
 # Tennessee childcare connector development
 
+## Fresh-release geographic reporting preparation
+
+`createFreshTnChildcareGeographicEvidence` / `validateFreshTnChildcareGeographicEvidence` implement schema 1.1.0, bound to fresh adapter 1.1.0 and ordinary release IDs. They retain source address and nullable lat/lon, separated ZIP5/ZIP4, unavailable-ZIP reasons, source observation, policy and an assertion digest. Fresh origin is explicit; recovery and unrecorded processing time stay null. The creator independently reconstructs every assertion, entity and relationship. The row validator proves shape and cross-field consistency, not source membership or publisher authenticity on its own.
+
+`loadFreshTnChildcareReportingInput` starts with the twice-verified immutable fresh-release input, rejects duplicate source-row identities and binds each row to the verified release/hash/source/observation. Its accepted-row summary must equal the release's verified ZIP availability, reason counts and missing-point counts. It does not infer ZIPs, merge same-name businesses, assign counties, write business polygons, download data or publish national reporting. Each row remains local-review-only and ineligible for identity matching.
+
+Recovered geography exports remain strict schema 1.0.0. Cross-version inputs are rejected in both directions. Root loaded the actual recovered release and compared every one of its 1,863 reporting rows against the prior implementation at `310e69a`; outputs, including assertion digests, are byte-identical. Existing production sources and coverage were untouched.
+
+Next explicitly migrate registry/dependency selection and downstream resolution, coverage, map and export validation for the fresh format. Existing production consumers deliberately continue using recovered validators until that migration is complete. Select one Tennessee source release per reporting run; never sum recovered and fresh copies as additional establishments. Rollback can remove the additive fresh preparation path without rewriting retained recovered outputs.
+
+Verification: all 856 test cases passed across the main run and an exclusive rerun. The initial main run passed 855 and hit the known active-preview supervisor conflict; the exclusive lifecycle and affected-contract rerun passed all 13 tests. Source discovery, source assessments, connector checks, lint, TypeScript, web/desktop builds and desktop smoke passed; dependency audit found zero vulnerabilities. Independent review found no actionable defect. No acquisition, schedule activation or production publication was performed.
+
 ## Verified fresh-release candidate input
 
 `loadFreshTnChildcareRegistryInput` in `runner/tn-childcare-fresh-registry-input.mjs` accepts only immutable connector 1.1.0 releases. It independently verifies the full source release, bounds and hashes normalized membership, converts records through `reconcileFreshTnChildcareCenter`, then repeats verification and file hashes before returning. Pointer/staging inputs, aliases, tampering, unsupported options and cancellation are covered by tests. No source request or publication occurs.

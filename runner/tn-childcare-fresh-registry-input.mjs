@@ -77,5 +77,5 @@ export async function loadFreshTnChildcareRegistryInput(manifestPath, options = 
     sourceReleaseId: manifest.source_release_id, observedAt: manifest.observed_at, processedAt: null,
     transformationVersion: manifest.transformation_version, recoveryVersion: null,
     failedRunId: null, acquisitionKind: "ordinary-verified-local-release", parentManifestSha256: null },
-  counts: { ...manifest.counts }, exportPolicy: "local-review-only", contributions, nationalReportingIntegrated: false };
+  counts: { ...manifest.counts }, acceptedRecordQuality: structuredClone(manifest.accepted_record_quality), exportPolicy: "local-review-only", contributions, nationalReportingIntegrated: false };
 }
