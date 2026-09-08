@@ -65,3 +65,15 @@ The managed collection API then accepted one Ohio childcare task with HTTP 202:
 - Acceptance-observation SHA-256: `a44a098fde28a7b1221b5a1bf1e225fbce022b77ce6bae51986efc05008246eb`.
 
 No agent is retained to poll or supervise ordinary acquisition progress. Acceptance does not prove launch, completion or record counts. Co*Tive owns execution, prerequisite checks and terminal receipts. No national promotion, schedule or public export was enabled. This maintenance turn changed runtime evidence and documentation, not application source; the preceding 937-test validation remains the latest full code check.
+
+## Completed app acquisition independently verified
+
+During the next development lifecycle safety check, operation `bd35c825-a6d0-4922-8508-7954ce00f5d5` was terminal `SUCCEEDED`, finished `2026-09-08T08:31:23.415Z`. The standalone verifier then independently replayed its completed app receipt and both linked releases, without network access:
+
+- App job: `87bc8228-dcf9-4d0f-9921-55ef33bc9a66`, execution mode `fixed-native-fetch`.
+- Receipt under `state-oh-childcare-OH/jobs/87bc8228-dcf9-4d0f-9921-55ef33bc9a66/receipt.json`, SHA-256 `753fc3190e4a5ce0306f9a25aba8ad02ad70f0920d1783bca60bc114afb42caa`.
+- Acquired release: `oh-acquisition-e7f375dd-a65b-456b-8c1e-37a641d9e6a5`, manifest SHA-256 `0e122461fa4c49f0abb1b7c1a9765f099ff967040536586345e03a1cc1ee9b1a`.
+- Normalized release: `oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee`, manifest SHA-256 `e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171`.
+- Selected and accepted records: **4,237**; quarantined: **0**.
+
+All relative locations above are under `data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/`. Acquisition and normalization occurred in the standalone application; no Codex polling loop supervised the download. Subsequent integration must reuse these verified immutable releases, not reacquire them for promotion. National reporting integration and public export remain false. Counts describe the publisher's selected Open Child Care Center records, not all childcare, independently verified operating businesses or national completeness.

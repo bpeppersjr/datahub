@@ -82,3 +82,15 @@ Read-only verification of the retained production Alaska release `ak-active-busi
 Remaining app-enrollment work includes native policy/contract integrity validation, pre-acquisition disk checks, declared cancellation/deadline contract migration and a managed industry entry with subprocess acceptance evidence. Existing runtime tests do not prove those missing requirements. No schedule was enabled.
 
 Verification: 31 focused Alaska tests and the complete 937-test repository suite passed, including lint, web/desktop builds and desktop smoke; the production audit found zero vulnerabilities. Rollback is code-only and preserves releases, but restores the late output rejection and separate hash/read baseline gap. Keep unattended Alaska enrollment disabled if reverting.
+
+## Configuration and disk prerequisites — September 8, 2026
+
+New builds validate the bounded, canonical connector and source-policy files before staging or requests. Canonical JSON SHA-256 pins are connector `c5930d1fe5c8d40bc0c4f3eb41b8f5634776f0d3c796cde6b53bfe9301ff8043` and policy `e5444e478e878f49c1f71f12dfefdfc1ed873e7af0b48a692108d488f2b50d38`. Drift stops acquisition for review. These pins prove local reviewed configuration identity, not fresh publisher terms, changed legal permissions or independent source authenticity. Historical verification and explicit staging resume do not depend on these new-build gates.
+
+Build response budgets must be positive safe integers no greater than 50 MB; deadlines must be integer milliseconds from 1 through 300,000. Invalid values fail before output inspection or baseline reads. Existing fixture quality thresholds remain usable. The default provider pacing and request counts are unchanged.
+
+Before staging, `statfs` checks the nearest existing canonical output directory and requires at least 500 MB available. This is point-in-time headroom, not a disk reservation or a guarantee against later exhaustion. A subprocess regression substitutes an empty filesystem-capacity result and proves the real builder performs zero fetches and creates no output directory. The app exposes no disk-check bypass. Policy/contract drift and malformed budget tests complement existing cancellation, path, publication and retained-source regressions.
+
+No Alaska source refresh or production pointer change accompanied this work. The pinned contract still needs its deliberate cancellation/deadline declaration migration before managed industry enrollment, followed by actual managed subprocess acceptance evidence. Rollback removes these preflight safeguards only; preserve existing releases and do not treat rollback as permission to enroll an unchecked connector.
+
+Verification: all 940 repository tests passed, including 34 Alaska tests, followed by lint, web/desktop builds and desktop smoke. The production dependency audit found zero vulnerabilities, and independent read-only review found no concrete defect. The local management page was restored successfully.

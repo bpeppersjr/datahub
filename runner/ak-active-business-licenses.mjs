@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, statfs, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -13,6 +13,13 @@ import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 
 export const AK_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const AK_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "ak-active-business-licenses@1.0.1";
+export function validateAkAcquisitionConfiguration(connector, policy) {
+  if (sha256(JSON.stringify(connector)) !== "c5930d1fe5c8d40bc0c4f3eb41b8f5634776f0d3c796cde6b53bfe9301ff8043"
+    || sha256(JSON.stringify(policy)) !== "e5444e478e878f49c1f71f12dfefdfc1ed873e7af0b48a692108d488f2b50d38") throw new Error("Alaska acquisition configuration drift requires review.");
+}
+export function assertAkAcquisitionDiskSpace(availableBytes) {
+  if (typeof availableBytes !== "bigint" || availableBytes < 500_000_000n) throw new Error("Alaska acquisition requires at least 500 MB available disk space.");
+}
 export const AK_BUSINESS_LICENSE_URL = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
 export const AK_BUSINESS_NAICS_URL = "https://www.commerce.alaska.gov/cbp/main/DbDownload/NaicsDownload";
 export const AK_BUSINESS_LICENSE_PAGE_URL = "https://www.commerce.alaska.gov/cbp/main/";
@@ -720,13 +727,30 @@ export async function buildAkActiveBusinessLicenses({
   now = () => new Date(),
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
+  if (!Number.isSafeInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 50_000_000) throw new Error("Alaska maximumResponseBytes must be from 1 through 50000000.");
+  if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1 || requestTimeoutMs > 300_000) throw new Error("Alaska requestTimeoutMs must be from 1 through 300000.");
   if (!Number.isInteger(minimumLicenseRows) || minimumLicenseRows < 1) throw new Error("minimumLicenseRows must be a positive integer.");
   if (!Number.isFinite(maximumQuarantineRate) || maximumQuarantineRate < 0 || maximumQuarantineRate > 1) throw new Error("maximumQuarantineRate must be between 0 and 1.");
   if (!Number.isFinite(minimumNaicsCoverageRate) || minimumNaicsCoverageRate < 0 || minimumNaicsCoverageRate > 1) throw new Error("minimumNaicsCoverageRate must be between 0 and 1.");
   if ((licenseRows === null) !== (naicsRows === null)) throw new Error("licenseRows and naicsRows fixtures must be supplied together.");
   signal?.throwIfAborted?.();
   outputRoot = await validateAkOutputRoot(outputRoot, signal);
+  const configuration = [];
+  for (const filename of ["config/connectors/ak-active-business-licenses.json", "config/source-policies/ak-active-business-licenses.json"]) {
+    configuration.push(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode((await publicationRead(path.join(APP_ROOT, filename), 100_000, signal)).bytes)));
+  }
+  validateAkAcquisitionConfiguration(...configuration);
   const baseline = await loadZbpBaseline(zbpPointer, signal);
+  let diskDirectory = outputRoot;
+  for (;;) {
+    try { if (!(await lstat(diskDirectory)).isDirectory()) throw new Error("Alaska acquisition disk ancestor must be a directory."); break; }
+    catch (error) { if (error.code !== "ENOENT" || diskDirectory === APP_ROOT) throw error; diskDirectory = path.dirname(diskDirectory); }
+  }
+  if (diskDirectory === APP_ROOT) publicationCheck(await realpath(APP_ROOT) === APP_ROOT, "application disk root alias");
+  else await publicationPath(diskDirectory, signal);
+  const disk = await statfs(diskDirectory, { bigint: true });
+  assertAkAcquisitionDiskSpace(disk.bavail * disk.bsize);
+  signal?.throwIfAborted();
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `ak-active-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;

@@ -15,6 +15,8 @@ import {
   AK_BUSINESS_NAICS_HEADERS,
   AK_BUSINESS_NAICS_SCHEMA_FINGERPRINT,
   buildAkActiveBusinessLicenses,
+  validateAkAcquisitionConfiguration,
+  assertAkAcquisitionDiskSpace,
   headerFingerprint,
   normalizeAkBusinessLicense,
   publishAkActiveBusinessLicensesStaging,
@@ -591,6 +593,41 @@ test("Alaska baseline preflight rejects identity, checksum and duplicate ZIP def
     await assert.rejects(readdir(outputRoot), { code: "ENOENT" });
   }
   assert.equal(calls, 0);
+});
+
+test("Alaska acquisition configuration pins and disk floor fail closed", async () => {
+  const connector = JSON.parse(await readFile(new URL('../config/connectors/ak-active-business-licenses.json', import.meta.url)));
+  const policy = JSON.parse(await readFile(new URL('../config/source-policies/ak-active-business-licenses.json', import.meta.url)));
+  validateAkAcquisitionConfiguration(connector, policy);
+  assert.throws(() => validateAkAcquisitionConfiguration({ ...connector, allowed_hosts: ['PRIVATE_CANARY'] }, policy), /configuration drift/);
+  assert.throws(() => validateAkAcquisitionConfiguration(connector, { ...policy, allowed_use: ['PRIVATE_CANARY'] }), /configuration drift/);
+  for (const bytes of [undefined, 500_000_000, -1n, 499_999_999n]) assert.throws(() => assertAkAcquisitionDiskSpace(bytes), /disk/);
+  assertAkAcquisitionDiskSpace(500_000_000n);
+});
+
+test("Alaska build rejects unsafe network budgets before creating output or fetching", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), 'datahub-ak-budget-preflight-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const bad of [{ maximumResponseBytes: 50_000_001 }, { maximumResponseBytes: 0 }, { maximumResponseBytes: 1.5 }, { requestTimeoutMs: 0 }, { requestTimeoutMs: 300_001 }]) {
+    const outputRoot = path.join(root, 'untouched');
+    await assert.rejects(buildAkActiveBusinessLicenses({ outputRoot, zbpPointer: path.join(root, 'missing'), ...bad, fetchImpl() { assert.fail('No request permitted'); } }), /maximumResponseBytes|requestTimeoutMs/);
+    await assert.rejects(readdir(outputRoot), { code: 'ENOENT' });
+  }
+});
+
+test("Alaska actual builder refuses insufficient disk before staging or network", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), 'datahub-ak-low-disk-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const zbpPointer = await writeBaseline(path.join(root, 'zbp')), outputRoot = path.join(root, 'untouched');
+  const code = `import fs from 'node:fs'; import {syncBuiltinESMExports} from 'node:module'; import assert from 'node:assert/strict';
+    fs.promises.statfs = async () => ({bavail:0n,bsize:4096n}); syncBuiltinESMExports();
+    const {buildAkActiveBusinessLicenses} = await import(${JSON.stringify(import.meta.url.replace('ak-active-business-licenses.test.mjs', 'ak-active-business-licenses.mjs'))});
+    let calls=0; await assert.rejects(buildAkActiveBusinessLicenses({outputRoot:${JSON.stringify(outputRoot)},zbpPointer:${JSON.stringify(zbpPointer)},fetchImpl(){calls++;throw new Error('unexpected fetch');}}),/available disk/);
+    assert.equal(calls,0);`;
+  const child = spawn(process.execPath, ['--input-type=module', '-e', code], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  let diagnostic = ''; child.stderr.on('data', (chunk) => { diagnostic += chunk; });
+  const [exitCode] = await once(child, 'exit'); assert.equal(exitCode, 0, diagnostic);
+  await assert.rejects(readdir(outputRoot), { code: 'ENOENT' });
 });
 
 test("Alaska rejects post-verification mutation before publishing or replacing its prior pointer", async (t) => {
