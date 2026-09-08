@@ -30,6 +30,12 @@ ZIP5 and ZIP4 stay separate, with ZIP4 unavailable from this source. Geocodes ar
 
 App enrollment and local artifacts do not update national reporting or current-source pointers. The state-access ledger therefore keeps Maryland coverage unmeasured until verified local or national reporting integration. Rollback disables this source entry for future work while preserving receipts and releases.
 
+## Accepted application handoff
+
+Implementation commit `82dd0d0` was pushed before dispatch. The authenticated plan resolved exactly one Maryland childcare task with all six prerequisites. On September 8, 2026 at 19:38:30.221 UTC, the collection API accepted operation `1009c617-581f-46a5-a500-86acbb0fb88d` (HTTP 202). The immediate persisted receipt at `data/managed-operations/1009c617-581f-46a5-a500-86acbb0fb88d/receipt.json` recorded RUNNING, supervisor PID 28520 and worker PID 29672. Its handoff-time SHA-256 was `8cdf3cf6c890586cc68610a3d68238e227f6489f9233e4a66f3f5f32fb5ee9e6`; this managed receipt evolves as the app runs and is not a terminal artifact pin.
+
+No retained Maryland acquisition was found before this first dispatch. Co*Tive owns the download and normalization from this point; no routine Codex progress polling is scheduled. This records acceptance only, not completed acquisition, verified row counts, reporting enrollment or national promotion. The app must remain running; this enrollment does not add automatic restart or recurring refresh.
+
 ## Verification — September 8, 2026
 
 Full repository check passed: 1,294 tests, 1,283 passed, 11 skipped, zero failures, plus lint, web/desktop builds and desktop control-plane smoke. TypeScript checking passed; production dependency audit reported zero vulnerabilities; all 82 pending production file pins remain unchanged. The first full run encountered the existing development-supervisor 20-second startup timeout. Its unchanged isolated rerun passed, as did the unchanged full rerun; no timeout or concurrency settings were weakened. Logs are retained locally at `data/tmp/md-childcare-app-full-check.log` and `data/tmp/md-childcare-app-full-check-2.log`.
