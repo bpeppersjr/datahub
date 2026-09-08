@@ -24,14 +24,22 @@ Ten observations replay successfully: 4,237 publisher-open center rows, 102 Inac
 
 ## Remaining acquisition work
 
+The offline acquisition contract is now implemented in `runner/oh-childcare-acquisition.mjs` (`oh-childcare-acquisition@1.0.0`). It builds fixed selected-field queries with numeric sorted ID batches capped at 100 records and 2,000 encoded URL bytes. Replay checks two fully reconstructed preflights, unchanged projected metadata/status counts, matching before/after inventories, exact page membership, hashes, chronology, and 8 MB individual/100 MB cumulative declared-response and serialized-payload ceilings. Agreement between inventories does not excuse pages with different members. These are supplied-evidence checks, not proof of actual network traffic or a transactional snapshot.
+
+Returned records must contain exactly the ten selected native fields, with publisher `Open`/`Child Care Center` and Ohio scope. Contact and mailing fields are rejected. Point responses must explicitly identify EPSG:4326; missing, empty, zero, globally impossible and outside-padded-Ohio points carry distinct quality reasons. Partial/nonnumeric points, incompatible CRS and nonpoint geometry fail. The padded envelope is not a governed boundary or address verification. Nullable/blank ZIP strings and native finite Double program-number anomalies are retained for later normalization, not silently converted into identifiers. ZIP5/ZIP4 normalization and typed identifier validation are still pending.
+
+Seven synthetic offline tests cover membership replacement, privacy/schema drift, scope, point quality, resource ceilings, evidence chronology, cancellation and input preservation. Replay performs no network, file publication, agreement acceptance or policy authorization; its authorization/export/transport-verification flags remain false. The development policy is not promoted by passing these tests. Raw-source retention, bounded HTTP execution, normalization, immutable release verification and app enrollment remain required before a live acquisition handoff.
+
 - Follow-up [notice/XML availability review](states/OH-CHILDCARE-NOTICES-2026-09-08.md) confirms unchanged retained item notice strings, explicit XML errors and unavailable linked department notices. The new `oh-childcare-local-review@1.0.0` development policy fixes scope without granting live acquisition. The map includes rated and unrated programs; do not label this cohort SUTQ-rated-only. Earlier preflight receipts remain unchanged.
 - Review complete available linked notices and retain explicit XML availability evidence; bind a source-use policy. Missing XML by itself is not a permanent universal prohibition, but this partial metadata check is not policy approval.
-- Implement bounded deterministic ID/page acquisition, before/after reconciliation, validated publisher-returned WGS84 points, source-native retention, normalization with separate ZIP5/ZIP4, temporal provenance, quarantine and independent immutable-release replay.
+- Connect the offline ID/page and point contract to bounded HTTP acquisition, source-native retention, normalization with separate ZIP5/ZIP4, temporal provenance, quarantine and independent immutable-release replay.
 - Enroll the validated connector in Co*Tive with a persisted operation ID and receipt. The app owns routine downloads/refreshes. Do not occupy an agent with progress polling or repull retained data for promotion.
 
 Rollback is code-only for this additive prerequisite. Preserve retained research/preflight receipts and existing business releases. No production pointer or schedule is changed by this implementation.
 
 ## Verification boundaries
+
+September 8 acquisition-contract follow-up: the full repository check now passes all 870 tests, source checks, lint, web/desktop builds and desktop control-plane smoke; the production dependency audit reports zero vulnerabilities. The additional peer-requested same-inventory/different-page regression also passed in the focused seven-test suite. The older prerequisite-only failure below is historical and was resolved by the separate Tennessee reassessment work. No live source acquisition or production data changes were performed for the offline acquisition contract.
 
 Ten Ohio tests pass, including independent-review regressions rejecting nested unvalidated field lengths. The live receipt replays after that fix. The full test invocation covered 843 tests: 842 passed, with the development-supervisor test blocked by the active preview. An exclusive rerun with TEMP/TMP inside datahub passed both supervisor tests and all ten Ohio tests. Lint, TypeScript, web/desktop builds, desktop control-plane smoke and the production dependency audit (zero vulnerabilities) passed.
 
