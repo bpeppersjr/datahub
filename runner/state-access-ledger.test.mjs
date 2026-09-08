@@ -82,6 +82,25 @@ test('VT app enrollment is explicitly unmeasured and does not imply records or s
   assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);
   assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
   assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
+  assert.deepEqual(cell.localPublisherCohortEvidence,{status:'not-enrolled'});
+});
+
+test('VT publisher cohort enrollment is separate from address coverage and missing data is not zero',async t=>{
+  const f=await fixture(t),before=await buildStateAccessLedger(f);
+  await copyFile(path.join(APP_ROOT,'config/vt-childcare-reporting-enrollment.json'),path.join(f.root,'config/vt-childcare-reporting-enrollment.json'));
+  const after=await buildStateAccessLedger(f);
+  assert.deepEqual(after.summary,before.summary);
+  for(const jurisdiction of after.jurisdictions){
+    const cell=jurisdiction.industries.find(r=>r.industry==='childcare');
+    const prior=before.jurisdictions.find(r=>r.state===jurisdiction.state).industries.find(r=>r.industry==='childcare');
+    assert.deepEqual(cell.evidence,prior.evidence);assert.deepEqual(cell.appHandoff,prior.appHandoff);
+    assert.deepEqual(cell.localSourceCandidateEvidence,prior.localSourceCandidateEvidence);
+    if(jurisdiction.state==='VT'){
+      assert.equal(cell.localPublisherCohortEvidence.status,'unavailable');
+      assert.equal(cell.localPublisherCohortEvidence.reason,'enrolled-receipt-not-installed');
+      assert.equal(cell.localPublisherCohortEvidence.publisherCohortRows,undefined);
+    }else assert.equal(cell.localPublisherCohortEvidence,undefined);
+  }
 });
 
 test('CT reporting enrollment without installed files is unavailable, separate from PA facility evidence',async t=>{
