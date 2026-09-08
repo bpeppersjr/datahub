@@ -20,7 +20,7 @@ MAX_GLYPHS = 500_000
 MAX_OUTPUT = 64_000_000
 
 
-def decode(source, expected_sha256, edition):
+def decode(source, expected_sha256, edition, guard=None):
     import pdfplumber
     import pdfminer
     from pdfminer.pdftypes import resolve1
@@ -49,6 +49,8 @@ def decode(source, expected_sha256, edition):
         if any(resolve1(pdf.doc.catalog.get(key)) for key in ("Names", "OpenAction", "AA", "AcroForm")):
             raise ValueError("unreviewed catalog content")
         for number, page in enumerate(pdf.pages, 1):
+            if guard:
+                guard.check_cancelled()
             if page.rotation or page.width != 792 or page.height != 612:
                 raise ValueError("unsupported page geometry")
             if page.annots or page.images:
@@ -59,6 +61,8 @@ def decode(source, expected_sha256, edition):
                 raise ValueError("ambiguous header grid")
             glyphs = []
             for char in page.chars:
+                if guard:
+                    guard.check_cancelled()
                 total += 1
                 if total > MAX_GLYPHS or not char["upright"]:
                     raise ValueError("unsupported glyph inventory")
@@ -78,18 +82,37 @@ def decode(source, expected_sha256, edition):
 
 def main():
     logging.disable(logging.CRITICAL)
+    guard = None
     try:
-        if len(sys.argv) != 4:
+        args = sys.argv[1:]
+        managed = args[:1] == ["--managed"]
+        if managed:
+            from pdf_process_guard import ProcessGuard
+            guard = ProcessGuard().start()
+            args = args[1:]
+        if len(args) != 3:
             raise ValueError("expected source path, sha256, report edition")
-        result = decode(*sys.argv[1:])
+        result = decode(*args, guard=guard)
+        if guard:
+            guard.check_cancelled()
+            result = {"document": result, "guard": {"backend": guard.backend,
+                      "memory_bytes": guard.memory_bytes, "timeout_seconds": guard.timeout_seconds}}
         encoded = json.dumps(result, ensure_ascii=True, allow_nan=False, separators=(",", ":")).encode("ascii")
         if len(encoded) > MAX_OUTPUT:
             raise ValueError("decoded output exceeds budget")
+        if guard:
+            guard.check_cancelled()
         sys.stdout.buffer.write(encoded)
+        sys.stdout.buffer.flush()
+        if guard:
+            guard.check_cancelled()
     except Exception:
         # Never expose source records, paths, or decoder exception excerpts.
         sys.stderr.write("Utah PDF decoding prerequisite rejected.\n")
         return 1
+    finally:
+        if guard:
+            guard.close()
     return 0
 
 

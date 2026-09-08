@@ -16,7 +16,7 @@ The decoder has a 500,000-byte input cap, 64-page and 500,000-glyph limits, and 
 
 Decoded stdout contains the complete source inventory, including nonselected categories and phone fields. Never forward it to user-visible logs, export it as a business dataset, or persist it as an unrestricted artifact. Keep it inside the supervised decoding/layout process. Only the selected derivative may proceed to a future reviewed internal-only normalization stage. Preserve the unmodified source separately.
 
-Before app enrollment, provision and verify an app-owned interpreter and its pinned dependency environment beneath `datahub`; do not use a Codex cache path as application configuration. Add supervised child execution with enforced elapsed-time/memory/output limits, cancellation and exit cleanup, version evidence, and run-scoped, hash-verified, manifest-last receipts. Bind source hash/length, decoder versions and validated output hash in those receipts; decoded JSON alone is not provenance evidence. Test these behaviors before enabling acquisition or scheduled refresh. No production enrollment is supplied by these files.
+The subsequent [app-owned runtime increment](UT-CHILDCARE-PDF-RUNTIME.md) implements the independent environment, guarded subprocess, cancellation and internal manifest-last receipt path. The original decoder without `--managed` remains a read-only development interface, not the application execution route. Acquisition-origin linkage, normalization and managed refresh enrollment remain separate work; decoded JSON alone is not provenance evidence.
 
 ## Verification commands
 
