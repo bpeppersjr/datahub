@@ -4,7 +4,7 @@ import { readFile, mkdir, symlink, readdir } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { preflightWiChildcare, validateWiChildcarePreflight, writeWiChildcarePreflight, WI_LAYER, WI_LAYER_ITEM, WI_SERVICE_ITEM, WI_FIELDS, WI_WHERE } from "./wi-childcare-preflight.mjs";
+import { preflightWiChildcare, validateWiChildcarePreflight, writeWiChildcarePreflight, WI_LAYER, WI_LAYER_ITEM, WI_SERVICE_ITEM, WI_NOTICE_ITEM, WI_FIELDS, WI_WHERE } from "./wi-childcare-preflight.mjs";
 
 // Synthetic contract fixtures: no facility records, contacts or copied private metadata.
 function layer() {
@@ -14,6 +14,12 @@ function layer() {
     fields: [...Object.entries(strings).map(([name, length]) => ({ name, type: "esriFieldTypeString", length, domain: null })), ...Object.entries({ OBJECTID: "OID", Latitude: "Double", Longitude: "Double", Capacity: "Integer", Shape: "Geometry" }).map(([name, type]) => ({ name, type: `esriFieldType${type}`, domain: null }))] };
 }
 function payload(url) {
+  if (url.endsWith("/metadata")) return '<?xml version="1.0"?><metadata><name>Child_Care_Providers</name><title>Wisconsin Child Care Providers</title><credit>Wisconsin Department of Health Services</credit><crs>GCS_WGS_1984 WGS_1984_Web_Mercator_Auxiliary_Sphere</crs><identCode code="3857"/><useLimit>AS IS no warranty</useLimit></metadata>';
+  if (url.includes("/iteminfo?")) return { title: "Wisconsin Child Care Providers", accessInformation: "Wisconsin Department of Health Services", licenseInfo: "AS IS no warranty legal, engineering or surveying" };
+  if (url.includes(WI_NOTICE_ITEM)) {
+    if (url.includes("/data?")) return { values: { sites: [{ id: "e7f90e89d76c4098b31dd589c0fe294a", title: "Wisconsin Department of Health Services Open Spatial Data Portal" }], updatedAt: "2024-12-06T17:21:02.116Z", updatedBy: "DHS_GIS", layout: { sections: [{ rows: [{ cards: [{ component: { name: "markdown-card", settings: { markdown: "GIS Data Disclaimer USE OF THIS DATA CONSTITUTES ACCEPTANCE DISCLAIMER OF LIABILITY DISCLAIMER OF WARRANTIES AND ACCURACY OF DATA DISCLAIMER OF ENDORSEMENT CHOICE OF LAW rights of any third parties" } } }] }] }] } } };
+    return { id: WI_NOTICE_ITEM, owner: "DHS_GIS", orgId: "ISZ89Z51ft1G16OK", access: "public", type: "Hub Page", title: "GIS Data Disclaimer", modified: 1733505663000 };
+  }
   if (url.includes("/rest/info?")) return { owningSystemUrl: "https://dhsgis.wi.gov/arcgis", privateUrl: "DO-NOT-RETAIN" };
   if (url.includes("/query?")) return { count: 2382 };
   if (url === `${WI_LAYER}?f=json`) return layer();
@@ -24,13 +30,13 @@ function payload(url) {
 function fixture(change = () => {}) {
   const calls = [], waits = [];
   return { calls, waits, options: { now: () => new Date("2026-09-08T04:00:00.000Z"), sleep: async (ms, { signal } = {}) => { signal?.throwIfAborted(); waits.push(ms); }, fetchImpl: async (url, options) => {
-    calls.push({ url, options }); const value = payload(url); change(value, url, calls.length); return Response.json(value);
+    calls.push({ url, options }); const value = payload(url); const changed = change(value, url, calls.length) ?? value; return typeof changed === "string" ? new Response(changed) : Response.json(changed);
   } } };
 }
 test("WI exact metadata-only itinerary preserves two item roles and never grants acquisition", async () => {
   const f = fixture(), receipt = await preflightWiChildcare(f.options);
   assert.equal(validateWiChildcarePreflight(receipt), receipt);
-  assert.equal(f.calls.length, 10); assert.deepEqual(f.waits, Array(9).fill(1000));
+  assert.equal(f.calls.length, 18); assert.deepEqual(f.waits, Array(17).fill(1000));
   assert.equal(receipt.source.source_record_count, 2382); assert.deepEqual(receipt.source.selected_fields, WI_FIELDS);
   assert.equal(receipt.acquisition.acquisition_authorized, false); assert.equal(receipt.acquisition.row_data_requests, 0);
   assert.equal(JSON.stringify(receipt).includes("DO-NOT-RETAIN"), false);
@@ -53,15 +59,15 @@ test("WI rejects identity, schema, capabilities, CRS, notices and row payload dr
     (v) => { if (v.fields) v.fields[0].domain = {}; },
     (v) => { if (v.extent) v.extent.spatialReference.latestWkid = 4326; },
     (v) => { if (v.advancedQueryCapabilities) v.advancedQueryCapabilities.supportsPagination = false; },
-    (v) => { v.features = []; }, (v) => { v.error = { code: 499 }; },
+    (v) => { if (typeof v === "object") v.features = []; }, (v) => { if (typeof v === "object") v.error = { code: 499 }; },
     (v) => { if (v.count) v.count = 0; }, (v) => { if (v.count) v.count = 50_001; },
   ];
   for (const change of mutations) await assert.rejects(preflightWiChildcare(fixture(change).options));
 });
 test("WI count can change between runs but not during a preflight", async () => {
   assert.equal((await preflightWiChildcare(fixture((v) => { if (v.count) v.count = 2400; }).options)).source.source_record_count, 2400);
-  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 6) v.count++; }).options), /source changed/);
-  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 7) v.modified++; }).options), /source changed/);
+  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 10) v.count++; }).options), /source changed/);
+  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 15) v.modified++; }).options), /source changed/);
 });
 test("WI rejects forged receipt claims, request targets, hashes and clocks", async () => {
   const original = await preflightWiChildcare(fixture().options);
@@ -100,7 +106,7 @@ test("WI deadline covers a stalled response body and explicit cancellation relea
 test("WI honors Retry-After and defers excessive waits without requests", async () => {
   const f = fixture(), base = f.options.fetchImpl; let attempts = 0;
   f.options.fetchImpl = async (...args) => ++attempts === 1 ? new Response("busy", { status: 429, headers: { "retry-after": "4" } }) : base(...args);
-  await preflightWiChildcare(f.options); assert.equal(f.waits[0], 4000); assert.equal(attempts, 11);
+  await preflightWiChildcare(f.options); assert.equal(f.waits[0], 4000); assert.equal(attempts, 19);
   const g = fixture(); g.options.fetchImpl = async () => new Response("busy", { status: 429, headers: { "retry-after": "120" } });
   await assert.rejects(preflightWiChildcare(g.options), /defer|budget/i); assert.equal(g.waits.length, 0);
 });
@@ -135,4 +141,43 @@ test("WI refuses redirected receipt storage without writing through the junction
   const receipt = await preflightWiChildcare(fixture().options);
   await assert.rejects(writeWiChildcarePreflight(receipt, { outputRoot: redirected }), /redirected/);
   assert.deepEqual(await readdir(target), []);
+});
+test("WI retains complete disclaimer cards and exact XML without approving acquisition", async () => {
+  const receipt = await preflightWiChildcare(fixture((value) => {
+    if (value.values) value.values.sites[0].privateUrl = "NEVER-RETAIN-NESTED-PRIVATE";
+  }).options);
+  assert.equal(JSON.stringify(receipt).includes("NEVER-RETAIN-NESTED-PRIVATE"), false);
+  assert.equal(receipt.transformation_version, "1.1.0");
+  assert.equal(receipt.metadata_evidence.full_disclaimer_cards_retained, true);
+  assert.equal(receipt.metadata_evidence.attribute_coordinate_datum_verified, false);
+  const xml = receipt.observations.find((v) => v.kind === "xml").payload;
+  assert.equal(Buffer.from(xml.base64, "base64").toString("utf8"), payload(`${WI_LAYER}/metadata`));
+  assert.equal(receipt.acquisition.acquisition_authorized, false);
+  for (const change of [
+    (v, u) => { if (u.endsWith("/metadata")) return v.replace("<metadata>", '<!DOCTYPE metadata [<!ENTITY x SYSTEM "file:///secret">]><metadata>'); },
+    (v, u) => { if (u.endsWith("/metadata")) return v.replace("GCS_WGS_1984", "NAD_1983"); },
+    (v) => { if (v.values) v.values.layout.sections[0].rows[0].cards[0].component.name = "iframe-card"; },
+    (v) => { if (v.values) v.values.layout.sections[0].rows[0].cards[0].component.settings.markdown = "incomplete"; },
+    (v) => { if (v.values) v.values.sites[0].id = "unrelated"; },
+    (v) => { if (v.id === WI_NOTICE_ITEM) v.access = "private"; },
+  ]) await assert.rejects(preflightWiChildcare(fixture(change).options));
+});
+test("WI rejects paired XML/disclaimer changes and forged retained-byte evidence", async () => {
+  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 11) return v.replace("</metadata>", "<change/> </metadata>"); }).options), /source changed/);
+  await assert.rejects(preflightWiChildcare(fixture((v, u, n) => { if (n === 12) v.values.layout.sections[0].rows[0].cards[0].component.settings.markdown += " changed"; }).options), /source changed/);
+  const receipt = await preflightWiChildcare(fixture().options);
+  receipt.observations.find((v) => v.kind === "xml").payload.base64 += "AAAA";
+  assert.throws(() => validateWiChildcarePreflight(receipt), /XML/);
+});
+test("WI reconstructs prior version receipts without upgrading their evidence claims", async () => {
+  const receipt = await preflightWiChildcare(fixture().options);
+  receipt.transformation_version = "1.0.0";
+  receipt.observations = receipt.observations.filter((v) => !["iteminfo", "notice-item", "notice-data", "xml"].includes(v.kind));
+  delete receipt.metadata_evidence;
+  receipt.evidence_scope = "Selected public metadata fields and complete item licenseInfo strings, not raw HTTP bodies or complete linked publisher metadata.";
+  receipt.remaining_gates[0] = "Retain and review complete linked GIS disclaimer, layer iteminfo and available metadata XML before acquisition.";
+  validateWiChildcarePreflight(receipt);
+  assert.equal(receipt.acquisition.acquisition_authorized, false);
+  receipt.transformation_version = "1.1.0";
+  assert.throws(() => validateWiChildcarePreflight(receipt), /roster/);
 });

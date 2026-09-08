@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Wisconsin full notice retention: preflight v1.1.0 now retains the linked disclaimer's complete markdown content, layer iteminfo notice and exact XML bytes, with paired drift checks and unchanged v1.0 receipt replay. The live 18-request receipt observed 2,382 selected source rows and no facility records. A parallel coordinate review specifies publisher-returned EPSG:4326 points rather than unverified coordinate attributes. Next bind a reviewed local-use policy and implement selected-ID acquisition/normalization/release verification before app handoff. See [evidence and remaining gates](WI-CHILDCARE-PREFLIGHT.md). No production pointers, downloads or schedules changed.
+
 Wisconsin prerequisite implementation: [standalone contract preflight](WI-CHILDCARE-PREFLIGHT.md) now checks distinct service/layer item identities, schema, native CRS, selected counts and paired metadata consistency with bounded transport and immutable receipt publication. A live run observed 2,382 licensed-group source rows without requesting facilities. Complete linked notices/XML, coordinate handling and verified acquisition/app enrollment remain required; no new coverage or acquisition approval is claimed. Tennessee retained-data processing and its pinned implementation remain untouched.
 
 ## Objective
