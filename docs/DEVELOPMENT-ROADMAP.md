@@ -491,6 +491,8 @@ Connecticut retained local reporting (September 8): [verified source-candidate s
 
 Maryland childcare prerequisites (September 8): a tested [standalone metadata/count preflight](MD-CHILDCARE-PREFLIGHT.md) now retains unchanged item notices, pins the exact nine-field contract and rejects unexpected record payloads, source drift and unsafe receipt replay. The native immutable receipt verified 1,772 center rows through six bounded requests without facility acquisition. The February 13 cohort date remains separate from observation/edit dates. Next: bounded ID-batch acquisition and immutable retained release, then normalization and app-owned collection enrollment; no national promotion or routine-download agent loop was started.
 
+Maryland center acquisition (September 8): [bounded ID-batch acquisition and immutable retained evidence](MD-CHILDCARE-ACQUISITION.md) add prerequisite/page journals, count/membership/CRS reconciliation, cancellation and independent offline replay. A bounded delivery sample established the actual ArcGIS response schema without creating a bulk release. Normalization and app-worker enrollment remain next. The same validation cycle also surfaced and addressed the [CSV parser security advisory](CSV-PARSER-SECURITY-2026-09-08.md); retained data and national production pointers were not rewritten.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
