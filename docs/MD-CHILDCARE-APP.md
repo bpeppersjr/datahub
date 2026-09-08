@@ -36,6 +36,16 @@ Implementation commit `82dd0d0` was pushed before dispatch. The authenticated pl
 
 No retained Maryland acquisition was found before this first dispatch. Co*Tive owns the download and normalization from this point; no routine Codex progress polling is scheduled. This records acceptance only, not completed acquisition, verified row counts, reporting enrollment or national promotion. The app must remain running; this enrollment does not add automatic restart or recurring refresh.
 
+## Verified application outcome — September 8, 2026
+
+The managed operation completed successfully at 19:39:13.097 UTC without a Codex download polling loop. Subsequent offline replay through `verify-md-childcare-app.mjs` verified native app job `78f61bcd-8c4c-4003-9af2-9de0aae372a4` and both immutable child releases. No second acquisition was dispatched.
+
+- App receipt: `data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/jobs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/receipt.json`, SHA-256 `58279d0c23a503b62efbc68f4934e64e5d7c649bf4404517c3eea62e226a3a95`.
+- Acquired run `12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706`, manifest SHA-256 `64edb619767c381b4f8909146f8f73c7bfe8f5f6c3e618284ef2239111c77b3a`.
+- Normalized run `88d211f0-428f-4447-9b20-1fe3274f5e90`, manifest SHA-256 `15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b`.
+
+Independent aggregation agrees with replay: 1,772 source rows, 1,772 accepted, zero quarantine; 1,771 valid-format ZIP5 values across 300 distinct ZIP5s, one out-of-range source ZIP kept as a gap; zero ZIP4 values; 1,772 complete provider-returned point pairs; all reported states MD; 1,772 distinct license IDs with no repetition. This is the publisher's February 13, 2026 licensed center cohort, not 1,772 independently verified current businesses. The May 27 item modification, September 8 row observations, address verification and current-operation status remain distinct. No national promotion or automatic recurring schedule is implied.
+
 ## Verification — September 8, 2026
 
 Full repository check passed: 1,294 tests, 1,283 passed, 11 skipped, zero failures, plus lint, web/desktop builds and desktop control-plane smoke. TypeScript checking passed; production dependency audit reported zero vulnerabilities; all 82 pending production file pins remain unchanged. The first full run encountered the existing development-supervisor 20-second startup timeout. Its unchanged isolated rerun passed, as did the unchanged full rerun; no timeout or concurrency settings were weakened. Logs are retained locally at `data/tmp/md-childcare-app-full-check.log` and `data/tmp/md-childcare-app-full-check-2.log`.
