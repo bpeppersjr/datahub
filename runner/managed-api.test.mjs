@@ -91,6 +91,17 @@ async function waitForOperation(base, id) {
   throw new Error("managed export did not finish");
 }
 
+test('production status HTTP API is authenticated, projected and strictly read-only',{timeout:20000},async t=>{
+  const f=await makeFixture(t),route='/api/data-operations/production-runs';
+  assert.equal((await request(f.base,route,{authenticated:false})).status,401);
+  const directory=path.join(f.root,'data/reconciliations/production-runs/test-run');await mkdir(directory,{recursive:true});
+  const receipt={schemaVersion:1,mode:'production',runId:'test-run',status:'RUNNING',startedAt:'2026-09-08T09:46:24.268Z',finishedAt:null,stopRequested:false,owner:{pid:process.pid,token:'SECRET'},error:'SECRET',stages:[{id:'registry-build',status:'RUNNING',startedAt:'2026-09-08T09:46:24.268Z',finishedAt:null}],outputs:{}};
+  const file=path.join(directory,'receipt.json');await writeFile(file,JSON.stringify(receipt));const before=await readFile(file);
+  const response=await request(f.base,route);assert.equal(response.status,200);const payload=await response.json();assert.equal(payload.runs[0].runId,'test-run');assert.doesNotMatch(JSON.stringify(payload),/SECRET/);
+  for(const suffix of ['', '/test-run/stop','/test-run/retry','/start'])assert.equal((await request(f.base,route+suffix,{method:'POST',body:{}})).status,404);
+  assert.deepEqual(await readFile(file),before);
+});
+
 test("managed operation HTTP API authenticates, validates, exports, and downloads governed artifacts", { timeout: 20_000 }, async (t) => {
   const fixture = await makeFixture(t);
 

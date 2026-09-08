@@ -17,6 +17,7 @@ import { APP_ROOT, resolveAppPath } from './paths.mjs';
 import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
 import { createConnectorRegistry } from './connector-registry.mjs';
 import { createManagedOperations } from './managed-operations.mjs';
+import { listProductionRunStatus } from './production-run-status.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 
 try {
@@ -251,6 +252,11 @@ const server = http.createServer(async (request, response) => {
 
     if (segments[0] === 'api' && segments[1] === 'data-operations') {
       const endpoint = segments[2];
+      if (endpoint === 'production-runs' && segments.length === 3 && request.method === 'GET') {
+        try { json(response, 200, await listProductionRunStatus()); }
+        catch { json(response, 503, { error: 'Production rebuild history cannot be safely inspected. No job was changed.' }); }
+        return;
+      }
       if (endpoint === 'schedules') {
         if (refreshSchedulerUnavailable) { json(response, 503, { error: 'Refresh scheduler unavailable; inspect stored state and process ownership. Manual operations remain available.' }); return; }
         if (segments.length === 3 && request.method === 'GET') { json(response, 200, await refreshScheduler.list()); return; }

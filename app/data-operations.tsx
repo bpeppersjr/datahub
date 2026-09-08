@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 import RefreshSchedules from './refresh-schedules';
+import ProductionRuns from './production-runs';
 
 type Catalog = {
   industries: Array<{ id: string; label?: string }>;
@@ -106,6 +107,7 @@ export default function DataOperations() {
       </section>
     </div>
     <RefreshSchedules catalog={catalog} />
+    <ProductionRuns />
     <section className="operations-history" aria-labelledby="operations-history-title"><h3 id="operations-history-title">Operation history</h3>
       {locked && <p className="operations-note">An operation is active. Additional starts become available when it finishes.</p>}
       {!operations.length && <p className="operations-note">{catalog ? 'No managed operations yet. Preview a collection or build a file above.' : 'Connecting to the local runner…'}</p>}
