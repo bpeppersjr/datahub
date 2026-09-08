@@ -77,3 +77,15 @@ During the next development lifecycle safety check, operation `bd35c825-a6d0-492
 - Selected and accepted records: **4,237**; quarantined: **0**.
 
 All relative locations above are under `data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/`. Acquisition and normalization occurred in the standalone application; no Codex polling loop supervised the download. Subsequent integration must reuse these verified immutable releases, not reacquire them for promotion. National reporting integration and public export remain false. Counts describe the publisher's selected Open Child Care Center records, not all childcare, independently verified operating businesses or national completeness.
+
+## Verified national-input boundary
+
+`runner/oh-childcare-registry-input.mjs` adds the read-only `loadOhChildcareRegistryInput(receiptPath, { signal })` boundary. It requires a completed independently verified app receipt, not an unbound normalized manifest. It repeats acquisition/normalization verification, hashes the exact consumed record bytes and rechecks the snapshot after cooperative processing. It performs no network requests or writes.
+
+The returned records preserve original page-level observation times, processing times, typed identifiers, nullable coordinates, separate ZIP5/ZIP4 and missing-data reasons. Counts conserve accepted and quarantined membership. Acquisition receipt and manifest hashes remain separate from the offline normalization policy. Injected test executions stay explicitly labeled; they do not become native acquisition evidence.
+
+The retained native release above was successfully loaded: 4,237 selected and accepted rows, zero quarantine, 4,237 with ZIP5, zero with ZIP4, and no missing-point reasons. Normalized artifact SHA-256: `c20715ea64e5515aa8faebb75087fa69d4e7b2de22823c1dffc8f4e34f3d9b03`. No source was downloaded again and no production pointer changed.
+
+This is an input boundary, not national enrollment. Candidate projection, registry/coverage consumer integration, production dependency pins and a verified production rebuild remain required. Identity matching, governed geographic assignment and public export remain disabled. Reverting this module and its tests does not change retained releases or production data.
+
+Verification: all 943 repository tests passed, including three new import tests for exact accepted membership/provenance, option/cancellation rejection and altered records/receipt claims. Lint, web and desktop builds and desktop smoke passed; production dependency audit reported zero vulnerabilities. An independent read-only review found no concrete issue. Full check log: `data/tmp/oh-registry-input-check.log` (local, ignored).
