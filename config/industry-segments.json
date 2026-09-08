@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers"]
   },
   "sources": {
+    "state-vt-childcare-centers": {
+      "script": "scripts/build-vt-childcare.mjs",
+      "scope": "state", "states": ["VT"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/vt-childcare-centers-app.json", "config/connectors/vt-childcare-centers-acquisition.json", "config/connectors/vt-childcare-centers-normalization.json", "config/source-policies/vt-childcare-centers-internal.json", "config/connectors/vt-childcare-preflight.json", "config/source-policies/vt-childcare-preflight.json"],
+      "coverage_notes": [
+        "Vermont licensed CBCCPP and CBCCPP - Non-Recurring source candidates only. Exact reporting period remains unknown; monthly cohort membership does not verify current businesses, private ownership, identity or premises.",
+        "Co*Tive owns bounded POST collection with three reconciled traversals, paired metadata and aggregate checks, durable journals and publisher exclusion. Enrollment enables no automatic retry, restart or recurring schedule.",
+        "ZIP5 and ZIP4 stay separate. Reported state and geocodes remain null rather than inferred; deliberately jittered publisher coordinates are excluded. Address role remains unspecified and missing values remain visible gaps.",
+        "Immutable app receipts bind verified acquired and normalized releases; explicit retained reuse avoids repulling. Enrollment does not promote national reporting or replace existing source pointers."
+      ]
+    },
     "state-md-childcare-centers": {
       "script": "scripts/build-md-childcare.mjs",
       "scope": "state", "states": ["MD"], "state_filter_supported": false,

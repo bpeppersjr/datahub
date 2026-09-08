@@ -67,6 +67,23 @@ test('MD childcare app enrollment remains separate from measured national covera
   assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
 });
 
+test('VT app enrollment is explicitly unmeasured and does not imply records or submitted jobs',async t=>{
+  const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8'));
+  for(const prerequisite of config.sources['state-vt-childcare-centers'].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='VT').industries.find(r=>r.industry==='childcare');
+  assert.equal(ledger.summary.industryCells,459);
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status,'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.appHandoff.configuredSources.length,1);
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId,'state-vt-childcare-centers');
+  assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor,'cotive-app');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');
+  assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);
+  assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+  assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
+});
+
 test('CT reporting enrollment without installed files is unavailable, separate from PA facility evidence',async t=>{
   const f=await fixture(t);await copyFile(path.join(APP_ROOT,'config/ct-childcare-reporting-enrollment.json'),path.join(f.root,'config/ct-childcare-reporting-enrollment.json'));
   const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='CT').industries.find(r=>r.industry==='childcare');

@@ -36,7 +36,7 @@ Preserve source attribution and ODbL notice and keep the source layer internal. 
 
 Unknown reporting period and unspecified address role remain visible quality gaps. Preserve raw source dates and reporting filename; do not infer state from publisher jurisdiction or exact coordinates from deliberately jittered source points. Subsequent normalization must keep ZIP5 and ZIP4 separate and conserve missing or invalid values rather than silently dropping source candidates.
 
-Normalization, industry enrollment and the standalone app lifecycle are separate next steps. This module alone does not schedule refreshes or establish an accepted application operation. No native bulk acquisition is performed as part of its synthetic acceptance tests. Once the app lifecycle is verified, hand collection to Co*Tive with an operation ID and persisted receipt and release the agent from routine download supervision.
+The [normalizer](VT-CHILDCARE-NORMALIZATION.md) and [standalone app lifecycle](VT-CHILDCARE-APP.md) are separately versioned stages. This acquisition module alone does not schedule refreshes or establish an accepted application operation. No native bulk acquisition is performed as part of its synthetic acceptance tests. App handoff requires an operation ID and persisted receipt; routine download supervision does not require an agent.
 
 Rollback disables future use of this acquisition stage while preserving retained releases and journals. Downstream promotion must reuse verified retained data rather than downloading it again merely for promotion.
 

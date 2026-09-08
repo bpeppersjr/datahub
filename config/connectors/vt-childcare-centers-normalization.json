@@ -1,0 +1,23 @@
+{
+  "connector_id": "vt-childcare-centers-normalization",
+  "version": "1.0.0",
+  "description": "Offline Vermont center-source normalization with separate postal fields, explicit temporal/address gaps and no inferred geocodes.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["verified-vt-childcare-acquired-manifest"],
+  "output_artifact_types": ["vt-childcare-normalized-jsonl", "vt-childcare-quarantine-jsonl", "vt-childcare-normalization-summary", "vt-childcare-normalized-manifest"],
+  "allowed_hosts": [],
+  "redirect_policy": "No source requests; independently verify retained inputs inside datahub.",
+  "provider_budget_key": "vt-childcare-offline-normalization",
+  "resource_class": "bounded-offline-normalization",
+  "execution_limits": {"network_requests":0,"maximum_source_rows":20000,"maximum_jsonl_line_bytes":65536,"maximum_normalized_bytes":200000000,"maximum_quarantine_bytes":30000000,"minimum_disk_free_bytes":500000000},
+  "retry": "No automatic retry or source repull. Preserve acquired input for explicit offline reuse.",
+  "checkpoint": "Immutable source-linked records, quarantine and reconciled summary, independently replayed before manifest-last publication.",
+  "idempotency": "Bind acquired manifest path, hash, run, mode and transformation version; preserve inputs and prior normalized releases.",
+  "cancellation": "Cooperative replay and drained writes; remove only owned incomplete cancellation output and preserve uncertain publication.",
+  "source_policy": "config/source-policies/vt-childcare-centers-internal.json",
+  "retention_profile": "Internal source candidates with selected raw provenance, unknown reporting period and unspecified address role. Null geocodes; separate ZIP5 and ZIP4.",
+  "produced_entities": ["publisher-listed-childcare-source-candidate", "quarantined-source-record-reference"],
+  "produced_identifiers": ["vt-childcare-release-scoped-file-license-key", "vt-childcare-license-number", "zip5", "zip4"]
+}

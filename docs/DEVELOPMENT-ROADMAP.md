@@ -507,6 +507,8 @@ Vermont selected delivery (September 8): [bounded source validation](states/VT-C
 
 Vermont bounded acquisition (September 8): the [internal collector and immutable release verifier](VT-CHILDCARE-ACQUISITION.md) add fixed POST bodies, baseline/selected/final traversal with empty terminal pages, prerequisite and page journals, composite-key and aggregate reconciliation, bounded transport and cancellation, and offline replay. Synthetic acceptance does not claim a native release or app dispatch. Next: source-candidate normalization and app-owned lifecycle, with separate postal fields and no inferred exact geocodes or current business identity.
 
+Vermont standalone processing (September 8): [offline normalization](VT-CHILDCARE-NORMALIZATION.md) preserves composite release-scoped identities, split postal fields, raw dates/capacities, null geography and reconciled quarantine. The [app lifecycle](VT-CHILDCARE-APP.md) adds native publisher exclusion, durable child checkpoints, explicit retained reuse and independent verification. Industry enrollment selects one Vermont worker without promoting national coverage. Handoff requires a recorded accepted operation; configuration and synthetic tests alone do not prove native collection.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
