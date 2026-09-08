@@ -1,0 +1,23 @@
+{
+  "connector_id": "pa-childcare-preflight",
+  "version": "1.0.0",
+  "description": "Metadata/count-only readiness for Pennsylvania DHS listed Child Care Centers; not a facility acquisition connector.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["pa-open-data-policy-html", "pa-dhs-childcare-catalog-metadata", "pa-center-only-aggregate-counts"],
+  "output_artifact_types": ["pa-childcare-preflight-receipt-json"],
+  "allowed_hosts": ["data.pa.gov"],
+  "redirect_policy": "Reject redirects. Only the fixed portal policy, ajn5-kaxt catalog and center-only aggregate requests are permitted.",
+  "provider_budget_key": "pa-dhs-childcare-soda2",
+  "resource_class": "bounded-metadata-only",
+  "execution_limits": {"max_parallel_requests":1,"maximum_requests":6,"minimum_request_spacing_ms":1000,"maximum_response_bytes":2000000,"request_timeout_ms":30000,"cooperative_execution_deadline_ms":120000,"facility_rows_requested":0},
+  "retry": "No automatic retries; provider errors stop readiness without facility acquisition or API fallback.",
+  "checkpoint": "Persist only a complete independently validated immutable preflight receipt. Retain complete notices and selected schema/aggregates, never raw catalog samples.",
+  "idempotency": "Every explicit successful receipt publication uses a new immutable identity; no source/current pointer is replaced.",
+  "cancellation": "Abort active transport and local pacing cooperatively. Publication is manifest/receipt-last; uncertain postcommit output requires inspection, not an automatic retry.",
+  "source_policy": "config/source-policies/pa-childcare-preflight.json",
+  "retention_profile": "Internal metadata/count evidence and accompanying complete portal-policy fragment; no record-level exports or retained raw metadata caches.",
+  "produced_entities": ["source-readiness-assertion"],
+  "produced_identifiers": ["pa-dhs-catalog-id"]
+}

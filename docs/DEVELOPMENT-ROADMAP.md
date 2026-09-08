@@ -463,6 +463,8 @@ Alaska handoff follow-up (September 8): current-state inspection superseded stal
 
 Alaska app ownership (September 8): the separate app connector now enrolls an Alaska-only local-business-license job with fixed native acquisition, a cooperative wrapper deadline and immutable start/terminal receipts. Retained standalone job `f67a2428-ced8-48e6-80a2-25226a058bca` succeeded and independently reverified 94,884 license-backed candidates without downloading again. Routine collection belongs to Co*Tive workers, not occupied Codex agents. No live refresh, schedule or national promotion was dispatched. See [app evidence and limitations](AK-BUSINESS-APP.md).
 
+Pennsylvania childcare readiness (September 8): a new [metadata/count preflight](PA-CHILDCARE-PREFLIGHT.md) verified the complete portal notice, sanitized selected catalog schema and paired center-only aggregates through six bounded native requests. Its immutable receipt records 4,995 listed centers, 4,995 distinct location keys and 4,930 non-null points; the 65 missing points are an explicit gap. No facility rows, managed collection, schedule or national promotion occurred. Next is a bounded facility connector and tested standalone app operation/receipt handoff. Parallel [Florida/Oregon triage](states/FL-OR-SOURCE-TRIAGE-2026-09-08.md) records unresolved delivery/schema contracts without bypassing access controls or submitting paid records requests.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

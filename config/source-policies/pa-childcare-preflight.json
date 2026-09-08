@@ -1,0 +1,22 @@
+{
+  "policy_id": "pa-childcare-preflight",
+  "version": "1.0.0",
+  "publisher": "Pennsylvania Department of Human Services / PA Open Data Portal",
+  "ownership": "Publisher-listed childcare and early-learning dataset ajn5-kaxt; this profile covers metadata/count readiness only.",
+  "source_dataset": "https://data.pa.gov/resource/ajn5-kaxt.json",
+  "terms_url": "https://data.pa.gov/data-policy",
+  "allowed_use": ["anonymous bounded catalog-schema and center-only aggregate checks", "immutable internal retention of sanitized metadata, complete portal policy fragment and aggregate receipts"],
+  "prohibited_use": ["facility-row acquisition or scheduling under this preflight-only profile", "retaining catalog cachedContents, contact/person samples or unselected legal-entity fields", "claiming source membership verifies operations, complete industry coverage or unique businesses", "using public-domain catalog labels as unrestricted personal-data export approval"],
+  "export_policy": "internal",
+  "field_export_policy": {"selected_schema_and_counts": "internal", "portal_notice": "internal-accompanying-evidence", "cachedContents_and_record_samples": "excluded-before-retention"},
+  "attribution": "Pennsylvania Department of Human Services; data retrieved from data.pa.gov",
+  "retention": "Preserve immutable preflight receipts locally. No automatic deletion or source acquisition.",
+  "redistribution": "No record-level export is authorized by this readiness profile.",
+  "contains_personal_data": false,
+  "personal_data_handling": "Raw catalog responses may contain cached personal samples; consume only in memory, retain a strict selected-schema projection, and never log raw bodies.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "reviewed_policy_fragment_sha256": "a250152c4dbaab52a3e1047bb57bf4346261bd7d9d6d40d2a1922147b3c7edf3"
+}
