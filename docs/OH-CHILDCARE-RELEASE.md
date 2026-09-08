@@ -48,4 +48,6 @@ The full repository check passed all 886 tests, source checks, lint, web/desktop
 
 Next implement bounded source HTTP execution and bind current available notice evidence to the reviewed acquisition use; then enroll the validated connector as an app-owned operation with its own durable receipt. Production promotion requires separate quality and downstream integration checks. Do not repull an already verified release merely to promote it.
 
+Transport follow-up: [bounded HTTP execution](OH-CHILDCARE-TRANSPORT.md) now passes synthetic end-to-end acquisition-to-release tests. Its native entry is still closed pending current notice/use binding and app lifecycle enrollment. The earlier next-step sentence records the release-stage boundary; passing injected transport tests does not grant acquisition authorization.
+
 Rollback is code-only: revert this additive implementation if needed, preserving existing releases, retained evidence and production pointers. This increment changes none of the production source selections or schedules.
