@@ -17,7 +17,7 @@ Seven direct bounded HTTP GETs fetched layer/item/organization metadata, total c
 - [Service](https://services1.arcgis.com/YuVBSS7Y1of2Qud1/ArcGIS/rest/services/Active_ChildCare_Locations/FeatureServer) and [layer metadata](https://services1.arcgis.com/YuVBSS7Y1of2Qud1/ArcGIS/rest/services/Active_ChildCare_Locations/FeatureServer/0?f=pjson).
 - [Item metadata](https://www.arcgis.com/sharing/rest/content/items/bfe29552601b4d8793b1fba580c2e3fd?f=pjson): ID `bfe29552601b4d8793b1fba580c2e3fd`, owner `kwinchester_sts`, matching organization, public access, Feature Service, title `Active Statewide Childcare Locations`, credit to TN Department of Human Services. Item URL points to the same service (lowercase `arcgis` path spelling).
 
-The item describes a monthly DHS-derived active-location extract, excluding education-department facilities and records under review; STS-GIS identifies DHS as data owner. This is narrower than the official locator and workbook. Crucially, aggregate inspection also found one Authorized Provider outside the item's stated childcare-only scope: **never rely on the service title/description as a row filter**.
+The publisher's item metadata narrative describes a monthly DHS-derived active-location extract, excluding education-department facilities and records under review; STS-GIS identifies DHS as data owner. Follow-up direct inspection found the JSON description empty and the purpose/scope narrative in the item's XML metadata. This is narrower than the official locator and workbook. Crucially, aggregate inspection also found one Authorized Provider outside the stated childcare-only scope: **never rely on the service title/description as a row filter**.
 
 ## Observed metadata and category counts
 
@@ -65,6 +65,6 @@ Normalize ZIP5 as a five-character string and ZIP4 as separate nullable four-cha
 
 ## Policy and remaining gaps
 
-Item terms disclaim accuracy/fitness, put verification responsibility on the user, and include an as-is/liability notice. Public accessibility and `Extract` capability are **not** legal approval or an unrestricted redistribution license. Proposed initial profile: local governed review, retain attribution and full notices, no public export until the application policy explicitly authorizes it. No legal determination was made.
+Item terms disclaim accuracy/fitness, put verification responsibility and the entire risk on the user, and include a hold-harmless condition for Tennessee and its staff. Public accessibility and `Extract` capability are **not** legal approval or an unrestricted redistribution license. Proposed initial profile: local governed review, retain attribution and full notices, no public export until the application policy explicitly authorizes it. No legal determination was made.
 
 There is no technical access blocker for bounded connector implementation. Remaining gates are full metadata/terms retention, policy implementation, stability checks and offline tests—not another ZIP-by-ZIP search or an account. This source cannot establish coverage of TDOE facilities, pending/review records, excluded care types, verified open businesses, or all Tennessee childcare licenses. All readiness flags remain false until implementation and verification: `connector_ready=false`, `scheduled=false`, `export_authorized=false`.

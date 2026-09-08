@@ -26,6 +26,7 @@
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
     "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
+    "tn-childcare:preflight": "node scripts/preflight-tn-childcare.mjs",
     "nj-childcare:build": "node scripts/build-nj-childcare.mjs",
     "nj-childcare:verify": "node scripts/verify-nj-childcare.mjs",
     "nj-childcare:reprocess": "node scripts/reprocess-nj-childcare.mjs",
