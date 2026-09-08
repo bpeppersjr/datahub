@@ -1,5 +1,7 @@
 # Wisconsin licensed-group childcare prerequisite
 
+Current source-use recheck (September 8, 2026, 09:50Z): [review record](states/WI-CHILDCARE-USE-REVIEW-2026-09-08.json) binds a new 18-observation receipt, 2,382 selected count, zero facility requests and all five unchanged policy notice fingerprints. This supersedes the earlier observation time below, not its historical evidence. Live acquisition remains unapproved pending the operator's decision on internal use under the publisher's notice, followed by bounded transport and app enrollment. Offline normalization/release work is already implemented.
+
 The standalone command `node scripts/preflight-wi-childcare.mjs` checks the fixed public Wisconsin DHS source before a future acquisition connector runs. It requires no Codex session, API key or account. It saves an immutable, checksummed receipt inside `data/business-sources/wi-dhs-licensed-group-childcare/preflights`; it does not collect facility rows, enroll a worker, schedule refreshes or publish coverage.
 
 ## Executed contract

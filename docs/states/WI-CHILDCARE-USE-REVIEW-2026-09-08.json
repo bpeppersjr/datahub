@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "state": "WI",
+  "industry": "childcare",
+  "source_id": "wi-dhs-licensed-group-childcare",
+  "status": "awaiting-operator-source-use-decision",
+  "review_scope": "Current public metadata, notices and selected count only; no facility acquisition or agreement acceptance.",
+  "receipt": {
+    "path": "data/business-sources/wi-dhs-licensed-group-childcare/preflights/b868758e-3ff7-429c-8625-57bac5367a9e.json",
+    "sha256": "33dcdd06296167ccd58e4105563c7674790c17cf167f19684b1f198a13b72426",
+    "bytes": 83140,
+    "started_at": "2026-09-08T09:50:15.673Z",
+    "finished_at": "2026-09-08T09:50:39.691Z",
+    "observations": 18,
+    "source_record_count": 2382,
+    "row_data_requests": 0
+  },
+  "policy": {
+    "path": "config/source-policies/wi-childcare-local-review.json",
+    "id": "wi-childcare-local-review",
+    "version": "1.0.0",
+    "canonical_sha256": "cd62a0a4b83c84b5b5e7107dfd3281f87f67cc34f18d99e5dcacce665f1a328b",
+    "current_notice_fingerprints_match": true,
+    "matched_notice_kinds": ["service-item", "layer-item", "iteminfo", "notice-data", "xml"]
+  },
+  "operator_question": "Do you authorize Co*Tive to collect the selected Wisconsin licensed-group childcare data for internal local-review use under the publisher's GIS terms?",
+  "terms_url": "https://data.dhsgis.wi.gov/pages/gis-data-disclaimer",
+  "terms_summary": "The retained notice states that data use constitutes acceptance. It includes liability and warranty disclaimers, potential staleness, no implied endorsement, Wisconsin governing law and respect for third-party rights. This summary is not legal advice or a finding of enforceability.",
+  "acquisition_authorized": false,
+  "agreement_acceptance_performed": false,
+  "legal_approval": false,
+  "public_export_authorized": false,
+  "app_enrolled": false,
+  "scheduled": false,
+  "business_rows_acquired": 0,
+  "remaining_implementation": ["bounded HTTP acquisition", "current notice/source-use binding", "durable app worker enrollment and accepted receipt", "verified retained-source integration"],
+  "limitations": [
+    "2,382 is a source query count, not acquired records, unique businesses, verified operations or completeness.",
+    "Approval alone would not complete implementation or authorize public redistribution.",
+    "Offline acquisition replay, normalization and release assembly already exist; do not duplicate them.",
+    "Ohio's active production rebuild and its pinned Alaska connector declaration remain unchanged."
+  ]
+}
