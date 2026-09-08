@@ -1,5 +1,19 @@
 # Childcare reporting integration
 
+## Completed app-owned recovery
+
+`production-childcare-resolution-recovery-20260907-01` completed all six remaining build/verify stages with exit code zero at `2026-09-08T02:13:52.029Z`. Its terminal receipt SHA-256 is `f6f80d9bbd0cf61899371167d41102d031c6b3ec878d3e0a9a40edfd8841cd1b`. Controller/stage processes and controller lock were absent at terminal inspection; the six stage logs matched their receipt hashes and lengths. The original failed run and verified registry were retained without source downloads or registry reconstruction.
+
+Published downstream releases:
+
+- Resolution: `business-entity-resolution-20260908-020912906Z-d507fe9d`, manifest SHA-256 `5a2cd694ac08bfdc5638ed852120dc2f6424a3c8a40ec7d48a454b1bbb149540`.
+- Benchmark: `business-entity-resolution-benchmark-sample-20260908-021245415Z-200c67aa`, manifest SHA-256 `1d8308a7189d721ed98b9c9901d095aee9c92e605cf652c5cf1ddf8cae0f33b8`.
+- Coverage: `national-business-coverage-views-20260908-021343856Z-ac4a5790`, manifest SHA-256 `b01948f88932a2cbe3059e3a3583e4a036fd3455c6e20bc7c9551a47fa0e322a`.
+
+Current coverage contains 7,082 reporting-only childcare records (MA 3,007; NJ 4,075), all county-assigned, alongside 8,011,835 matching profiles. The reviewed transition pins both the preceding DC release and the current release; only the exact MA/NJ source additions are accepted, with existing matching/source counts conserved. Runtime readiness policy 1.1.0 now identifies those states' scoped childcare evidence without changing historical broad-registry holds or authorizations. These are collected source records, not unique-business or nationwide completeness counts. Resolution is not applied to the coverage view; the benchmark has 1,275 samples, zero independent labels and no passing precision gate. Tennessee and Michigan are not integrated by this run.
+
+The application owns ongoing acquisition and processing after source-specific validation and worker enrollment. It must enforce provider rates, resource limits, durable receipts, retries and cancellation without a live AI session. Available memory does not override those safeguards, and worker capability alone does not enable a recurring refresh schedule.
+
 ## Resolution compatibility failure and retained-registry recovery
 
 Recovery dispatched to the standalone app at `2026-09-08T02:09:10.176Z`: controller PID 12644 and resolution worker PID 27088 were confirmed live by process identity/parentage. The durable receipt records resolution-build running, and its log progressed through ZIP2 partitions beyond the former compatibility rejection. The remaining five stages were pending at inspection. No source acquisition or registry rebuild is part of this run. Inspect its terminal receipt before claiming resolution/benchmark/coverage publication; do not restart a live controller or modify its pinned implementation files.

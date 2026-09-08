@@ -262,7 +262,7 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     general_business_operating_status_asserted: 0,
   });
   assert.deepEqual(overview.state_source_readiness_summary, {
-    policy_version: "1.0.0",
+    policy_version: "1.1.0",
     jurisdictions_in_scope: 1,
     broad_jurisdiction_organization_layers: 0,
     missing_broad_jurisdiction_organization_layers: 1,

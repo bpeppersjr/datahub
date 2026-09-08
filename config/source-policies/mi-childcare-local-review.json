@@ -1,0 +1,51 @@
+{
+  "policy_id": "mi-childcare-local-review",
+  "version": "1.0.0",
+  "status": "pending-review",
+  "publisher": "Michigan Department of Lifelong Education, Advancement, and Potential; State of Michigan GIS",
+  "ownership": "Publisher-listed childcare center evidence from the fixed official Michigan GIS item and linked layer.",
+  "source_dataset": "https://utility.arcgis.com/usrsvcs/servers/a79c3b0caedf412599085941e2af91d4/rest/services/CSS/CSS_LARA/MapServer/5",
+  "terms_url": "https://www.arcgis.com/sharing/rest/content/items/a79c3b0caedf412599085941e2af91d4",
+  "publisher_metadata_url": "https://www.arcgis.com/sharing/rest/content/items/a79c3b0caedf412599085941e2af91d4/info/metadata/metadata.xml",
+  "catalog_item_id": "a79c3b0caedf412599085941e2af91d4",
+  "catalog_license": null,
+  "terms_license_info_sha256": "9124e857a97635f9871e53ed293bb48d81f4ee980ebc4fb5149fd3e842649df4",
+  "publisher_xml_sha256": "347d450cc6c910ed241474f0dbac51a81f31bde0ff9ff386901149f26e09ef0b",
+  "allowed_use": [
+    "offline validation and immutable internal retention of supplied evidence for source-policy review",
+    "local-review normalization with preserved source fields, observation time and explicit uncertainty"
+  ],
+  "prohibited_use": [
+    "treating this pending policy or a caller review reference as independently verified acquisition authorization",
+    "accepting agreements, accessing provider accounts or enrolling routine acquisition under this policy",
+    "requesting non-center categories, private contacts or unselected record fields",
+    "inferring operating status, license dates, ownership, closure, verified identity or source freshness",
+    "labeling source coordinate attributes as WGS84 or assigning governed geography before datum verification",
+    "redistribution or unrestricted export without a separate approved decision"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_center_records": "local-review-only",
+    "quarantine_and_source_observations": "internal",
+    "publisher_metadata": "internal-accompanying-evidence",
+    "unselected_fields": "excluded-at-query-time"
+  },
+  "export_policy": "local-review-only",
+  "acquisition_authorized": false,
+  "export_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "attribution": "Michigan Department of Lifelong Education, Advancement, and Potential; State of Michigan GIS",
+  "publisher_notice_requirement": "Retain full current JSON terms and exact publisher XML separately. Preserve inherited XML item/date discrepancies; its public-information narrative does not override current release, defense, indemnity and hold-harmless conditions. Retention is not legal approval.",
+  "coordinate_handling": "Preserve nullable source latitude/longitude attributes with crs null and governed geographic assignment ineligible until datum is independently established. Business entities receive no polygons.",
+  "retention": "Immutable local review evidence; operator-governed deletion. No automatic retention cleanup or claim of publisher authorization is implemented.",
+  "redistribution": "Not authorized; internal evidence and local-review normalized records only.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Names and addresses may identify people. Publisher staff contacts in XML remain restricted accompanying metadata and must not become business attributes or committed public fixtures.",
+  "contains_secrets": false,
+  "evidence": {
+    "record": "docs/states/MI-CHILDCARE-ACCESS-2026-09-07.md",
+    "basis": "Bounded metadata validation and synthetic acquisition conformance; no actual facility record acquisition or legal approval established.",
+    "limitations": "Center counts are source rows, not verified unique active businesses or a national completeness denominator. ZIP validity, coordinate datum, operating status and source freshness remain unverified."
+  }
+}

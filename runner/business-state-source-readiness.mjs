@@ -1,4 +1,5 @@
-export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.0.0";
+export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.1.0";
+const STATE_CHILDCARE_REPORTING = Object.freeze({ MA: "ma-licensed-center-based-childcare", NJ: "nj-licensed-childcare-centers" });
 
 const BROAD_ORGANIZATION_LAYERS = Object.freeze({
   CO: "co_business_registry_good_standing_or_delinquent_organizations",
@@ -50,7 +51,12 @@ export function assessStateBusinessSourceReadiness(row) {
   if (!/^[A-Z]{2}$/.test(abbreviation)) throw new Error("State source readiness requires a two-letter postal abbreviation.");
   const inNationalPeerScope = row?.is_50_states_or_dc === true && FIFTY_STATES_AND_DC.includes(abbreviation);
   const broadSource = BROAD_ORGANIZATION_LAYERS[abbreviation] ?? null;
-  const scopedSources = STATEWIDE_SCOPED_LAYERS[abbreviation] ?? [];
+  const evidence = row?.registry_evidence, childcareSource = STATE_CHILDCARE_REPORTING[abbreviation];
+  const childcareCount = evidence?.source_profile_counts_by_reported_address_state?.[childcareSource];
+  const hasChildcare = inNationalPeerScope && childcareSource && Number.isSafeInteger(childcareCount) && childcareCount > 0
+    && evidence.reporting_only_count === childcareCount && Number.isSafeInteger(evidence.matching_profile_count) && evidence.matching_profile_count >= 0
+    && evidence.matching_profile_count + childcareCount === evidence.reported_address_profile_count;
+  const scopedSources = hasChildcare ? [childcareSource] : STATEWIDE_SCOPED_LAYERS[abbreviation] ?? [];
   const localSources = LOCAL_LAYERS[abbreviation] ?? [];
   let sourceScopeStatus = "outside-50-states-and-dc-peer-scope";
   if (inNationalPeerScope && broadSource) sourceScopeStatus = "broad-jurisdiction-organization-layer";
@@ -74,6 +80,8 @@ export function assessStateBusinessSourceReadiness(row) {
       source_key: null,
     },
     statewide_scoped_source_keys: scopedSources,
+    ...(hasChildcare ? { statewide_reporting_industry_evidence: { industry: "childcare", source_id: childcareSource, reported_source_rows: childcareCount,
+      identity_matching_eligible: false, broad_business_coverage: false, source_policy_revalidated: false, acquisition_authorization_changed: false } } : {}),
     local_source_keys: localSources,
     national_sector_evidence_present: inNationalPeerScope && nationalSectorEvidencePresent,
     reported_location_profile_count: reportedProfiles,
@@ -90,7 +98,7 @@ export function assessStateBusinessSourceReadiness(row) {
 }
 
 export function summarizeStateBusinessSourceReadiness(rows) {
-  const peers = rows.map((row) => row.state_source_readiness ?? assessStateBusinessSourceReadiness(row))
+  const peers = rows.map((row) => row.state_source_readiness?.policy_version === BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION ? row.state_source_readiness : assessStateBusinessSourceReadiness(row))
     .filter((row) => row.in_50_states_and_dc_peer_scope);
   const summary = {
     policy_version: BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION,

@@ -47,7 +47,7 @@ test("summarizes the production source-scope model without converting profiles i
   const rows = FIFTY_STATES_AND_DC.map((abbreviation) => state(abbreviation, 100, 10));
   const result = summarizeStateBusinessSourceReadiness(rows);
   assert.deepEqual(result, {
-    policy_version: "1.0.0",
+    policy_version: "1.1.0",
     jurisdictions_in_scope: 51,
     broad_jurisdiction_organization_layers: 8,
     missing_broad_jurisdiction_organization_layers: 43,
@@ -60,4 +60,20 @@ test("summarizes the production source-scope model without converting profiles i
     coordinate_assignment_percent: 10,
     complete_all_active_businesses: false,
   });
+});
+
+test("current MA/NJ reporting-only childcare is scoped industry evidence, not broad coverage or matching", () => {
+  for (const [abbreviation, source] of [["MA", "ma-licensed-center-based-childcare"], ["NJ", "nj-licensed-childcare-centers"]]) {
+    const historical = state(abbreviation); const current = structuredClone(historical);
+    current.registry_evidence.source_profile_counts_by_reported_address_state[source] = 3;
+    Object.assign(current.registry_evidence, { matching_profile_count: 100, reporting_only_count: 3, reported_address_profile_count: 103 });
+    current.state_source_readiness = assessStateBusinessSourceReadiness(historical); current.state_source_readiness.policy_version = "1.0.0";
+    const result = assessStateBusinessSourceReadiness(current);
+    assert.equal(result.source_scope_status, "statewide-scoped-layer-only"); assert.equal(result.broad_jurisdiction_organization_layer.status, "missing");
+    assert.equal(result.statewide_reporting_industry_evidence.identity_matching_eligible, false);
+    assert.equal(assessStateBusinessSourceReadiness(historical).source_scope_status, "national-sector-layers-only");
+    assert.equal(summarizeStateBusinessSourceReadiness([current]).statewide_scoped_layers_without_broad_layer, 1);
+    current.registry_evidence.reporting_only_count = 2;
+    assert.equal(assessStateBusinessSourceReadiness(current).source_scope_status, "national-sector-layers-only");
+  }
 });

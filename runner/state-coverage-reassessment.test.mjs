@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareStateCoverageForReassessment, currentCoverageProjection, loadStateCoverageReassessment, COVERAGE_REASSESSMENT, COVERAGE_REASSESSMENTS } from './state-coverage-reassessment.mjs';
+import { compareStateCoverageForReassessment, compareChildcareCoverageForReassessment, currentCoverageProjection, loadStateCoverageReassessment, COVERAGE_REASSESSMENT, COVERAGE_REASSESSMENTS } from './state-coverage-reassessment.mjs';
 
 function rows(){return Array.from({length:56},(_,i)=>({postal_abbreviation:String.fromCharCode(65+Math.floor(i/26),65+i%26),state_fips:String(i),is_50_states_or_dc:i<51,
   registry_evidence:{reported_address_profile_count:100,coordinate_assigned_profile_count:10,source_profile_counts_by_reported_address_state:{}},
@@ -25,13 +25,32 @@ test('coverage reassessment rejects changes in reported source roster',()=>{
   assert.throws(()=>compareStateCoverageForReassessment(old,current),/source roster changed/);
 });
 
-test('both exact reviewed transitions retain historical policy authority and verified 56-state evidence',async()=>{
+test('all exact reviewed transitions retain historical policy authority and verified 56-state evidence',async()=>{
   for(const proof of COVERAGE_REASSESSMENTS){
     const result=await loadStateCoverageReassessment({dataset_id:'national-business-coverage-views',release_id:proof.currentRelease,manifest:`releases/${proof.currentRelease}/manifest.json`});
     assert.equal(result.states.length,56);assert.equal(result.currentManifestSha256,proof.currentManifestSha256);
-    assert.equal(result.historicalRelease,'national-business-coverage-views-20260902-115337634Z-ba689784');
+    assert.equal(result.historicalRelease,proof.historicalRelease);
     assert.equal(result.sourcePolicyRevalidated,false);assert.equal(result.sourceDecisionsCarriedForward,true);
     assert.ok(result.states.every(row=>row.source_policy_revalidated===false&&row.acquisition_authorization_changed===false));
+  }
+});
+
+test('reviewed childcare adds only MA3007/NJ4075 without changing matching profiles or broad-registry holds',async()=>{
+  const prior = COVERAGE_REASSESSMENTS[1], latest = COVERAGE_REASSESSMENT;
+  const load = proof => loadStateCoverageReassessment({dataset_id:'national-business-coverage-views',release_id:proof.currentRelease,manifest:`releases/${proof.currentRelease}/manifest.json`});
+  const before = await load(prior), current = await load(latest);
+  assert.deepEqual(current.reviewedTransitionChangedStates,['MA','NJ']);
+  assert.equal(current.historicalRelease,'national-business-coverage-views-20260902-115337634Z-ba689784');
+  assert.deepEqual(current.reviewedIndustryAdditions,{MA:3007,NJ:4075});
+  assert.equal(current.states.filter(row=>row.reviewed_industry_addition).length,2);
+  for(const row of current.states.filter(row=>row.reviewed_industry_addition)){
+    assert.equal(row.historical_source_scope_status,'national-sector-layers-only');assert.equal(row.source_scope_status,'statewide-scoped-layer-only');
+    assert.equal(row.reviewed_industry_addition.broad_business_coverage,false);assert.equal(row.acquisition_authorization_changed,false);
+  }
+  for(const mutate of [rows=>{rows.find(r=>r.postal_abbreviation==='MA').registry_evidence.matching_profile_count++;},
+    rows=>{rows.find(r=>r.postal_abbreviation==='NJ').registry_evidence.source_profile_counts_by_reported_address_state['nj-licensed-childcare-centers']++;},
+    rows=>{rows[0].registry_evidence.source_profile_counts_by_reported_address_state.future=1;}]){
+    const altered=structuredClone(current.currentRows);mutate(altered);assert.throws(()=>compareChildcareCoverageForReassessment(before.currentRows,altered));
   }
 });
 

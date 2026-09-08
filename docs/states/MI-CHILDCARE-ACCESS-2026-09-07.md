@@ -34,6 +34,16 @@ Implement bounded deadlines/body limits, cancellation, retries, deterministic or
 
 ## Remaining gates and truthful reporting
 
+### Offline immutable source releases
+
+The offline release boundary accepts already-retained acquisition evidence, not a URL or live transport. `buildMiChildcareRelease` must replay the evidence, normalize every selected row with transformation 1.0.0 and retain normalization rejects explicitly. The quality gate requires at least one accepted record and at most five percent quarantined; a failed gate preserves inspectable source evidence rather than triggering another acquisition. Missing ZIPs accepted by the normalizer remain missing, and all coordinate pairs retain unverified datum/assignment-ineligible status.
+
+Exactly five artifacts belong to each immutable release: `selected-features.jsonl`, `normalized.jsonl`, `quarantine.jsonl`, `source-observation.json` and `publisher-metadata.xml`. Selected records, quarantine, full JSON terms and XML remain internal evidence; normalized records remain local-review-only. `observed_at` stays the original acquisition time and `processed_at` describes offline processing, not new source freshness. Normalized `policy_status: proposed-not-approved` and configuration `status: pending-review` remain distinct, exact unapproved contracts.
+
+The policy file `config/source-policies/mi-childcare-local-review.json` has parsed-JSON SHA-256 `c3efbc31f7c13c1b4def1a0667e4490e78e0fc4ba74e00b63597b8f6567340e0`. It permits only internal review operations; it is not a publisher-rights grant or approval for acquisition, agreement acceptance, export or app enrollment. A verified release proves internally consistent retained evidence, not that the caller's review reference was independently approved or that source rows represent active unique businesses.
+
+The standalone verifier is `node scripts/verify-mi-childcare.mjs <immutable-manifest.json>`. It must independently replay selected evidence and normalized/quarantine bytes, check the exact artifact roster, hashes, counts, metadata, policy and split-postal/coordinate semantics. No network call, repair, source refresh or publication is part of verification. Canonical datahub paths, exclusive ownership and cooperative cancellation protect local artifacts. A failure after immutable-directory publication may leave an unpointed release; preserve it for inspection, do not claim that every exception rolls back all output, and never delete or reacquire data automatically.
+
 ### Bounded acquisition contract
 
 Verification: 11 focused metadata/acquisition tests and all 754 repository tests passed with zero skips using the ignored exact-hash XML fixture and synthetic facility responses. Lint, web/desktop builds, desktop smoke and TypeScript passed; production dependency audit reported zero vulnerabilities. Independent review closed compressed-length, strict UTF-8 and upstream-cancellation findings. All 29 running production script/implementation pins remained unchanged. Rollback is additive: stop invoking these modules; no source or national pointer was published. Default checkouts without the explicitly supplied private XML fixture skip six fixture-dependent focused tests; that reduced run is not equivalent evidence to the full local run.

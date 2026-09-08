@@ -9,7 +9,7 @@ import {
   summarizeStateBusinessSourceRevalidation,
 } from "../runner/state-business-source-revalidation.mjs";
 import { assessStateBusinessSourceReadiness } from "../runner/business-state-source-readiness.mjs";
-import { loadStateCoverageReassessment, currentCoverageProjection } from "../runner/state-coverage-reassessment.mjs";
+import { loadStateCoverageReassessment, currentCoverageProjection, getReviewedHistoricalEligibilityRows } from "../runner/state-coverage-reassessment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const QUEUE_PATHS = [
@@ -269,16 +269,17 @@ function coverageFromStateRow(row) {
   };
 }
 
-function validateRankedSelection(queue, expectedQueueId, queueLabel, stateRows, priorStateAbbreviations) {
+function validateRankedSelection(queue, expectedQueueId, queueLabel, stateRows, priorStateAbbreviations, reassessment) {
   if (queue?.queue_id !== expectedQueueId) fail(`ranked selection requires ${queueLabel}`);
   for (const state of queue.states) {
     const sourceRow = stateRows.find((row) => row.postal_abbreviation === state.state_abbreviation);
     if (!sourceRow || JSON.stringify(state.current_coverage) !== JSON.stringify(coverageFromStateRow(sourceRow))) fail(`${queueLabel} ${state.state_abbreviation} coverage does not match the current state view`);
   }
   const prior = new Set(priorStateAbbreviations);
+  const eligibility = new Map((reassessment === undefined ? stateRows : getReviewedHistoricalEligibilityRows(reassessment,stateRows)).map(row=>[row.postal_abbreviation,row]));
   const ranked = stateRows
     .filter((row) => row.is_50_states_or_dc
-      && assessStateBusinessSourceReadiness(row).source_scope_status === "national-sector-layers-only"
+      && assessStateBusinessSourceReadiness(eligibility.get(row.postal_abbreviation)).source_scope_status === "national-sector-layers-only"
       && !prior.has(row.postal_abbreviation)
       && Number.isSafeInteger(row.nonemployer_baseline?.nonemployer_establishments))
     .map((row) => ({
@@ -291,16 +292,16 @@ function validateRankedSelection(queue, expectedQueueId, queueLabel, stateRows, 
   return queue;
 }
 
-export function validateQueue6RankedSelection(queue, stateRows, priorStateAbbreviations) {
-  return validateRankedSelection(queue, QUEUE_6_ID, "Queue 6", stateRows, priorStateAbbreviations);
+export function validateQueue6RankedSelection(queue, stateRows, priorStateAbbreviations, reassessment) {
+  return validateRankedSelection(queue, QUEUE_6_ID, "Queue 6", stateRows, priorStateAbbreviations, reassessment);
 }
 
-export function validateQueue7RankedSelection(queue, stateRows, priorStateAbbreviations) {
-  return validateRankedSelection(queue, QUEUE_7_ID, "Queue 7", stateRows, priorStateAbbreviations);
+export function validateQueue7RankedSelection(queue, stateRows, priorStateAbbreviations, reassessment) {
+  return validateRankedSelection(queue, QUEUE_7_ID, "Queue 7", stateRows, priorStateAbbreviations, reassessment);
 }
 
-export function validateQueue8RankedSelection(queue, stateRows, priorStateAbbreviations) {
-  return validateRankedSelection(queue, QUEUE_8_ID, "Queue 8", stateRows, priorStateAbbreviations);
+export function validateQueue8RankedSelection(queue, stateRows, priorStateAbbreviations, reassessment) {
+  return validateRankedSelection(queue, QUEUE_8_ID, "Queue 8", stateRows, priorStateAbbreviations, reassessment);
 }
 
 export function validateStateBusinessSourceDiscoveryQueue(queue) {
@@ -394,8 +395,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       if(!row)fail('Reassessment state is missing');
       return {...state,current_coverage:currentCoverageProjection(row)};
     })}:queue;
-    validator(projectedQueue, stateRows, priorStateAbbreviations);
-    console.log(`Ranked ${queueLabel} selection: PASS (${queue.scope.join(", ")})`);
+    validator(projectedQueue, stateRows, priorStateAbbreviations, reassessment ?? undefined);
+    console.log(`Ranked ${queueLabel} selection: PASS (${queue.scope.join(", ")})${reassessment ? "; verified historical broad-registry eligibility, current coverage gaps" : ""}`);
   }
   const summary = summarizeStateBusinessSourceRevalidation(revalidation, currentCoveragePointer.release_id);
   if (summary.coverage_release_matches_current !== true && !reassessment) fail("revalidation coverage release does not match the current production pointer");

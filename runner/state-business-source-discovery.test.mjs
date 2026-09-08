@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { COVERAGE_REASSESSMENT, loadStateCoverageReassessment, currentCoverageProjection } from "./state-coverage-reassessment.mjs";
+import { loadStateBusinessSourceRevalidation } from "./state-business-source-revalidation.mjs";
+import { assessStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 import {
   loadVerifiedStateCoverageRows,
   validateQueue6RankedSelection,
@@ -224,7 +226,8 @@ test("proves Queue 7 is the next ranked eligible state wave", async () => {
 });
 
 test("verifies the on-disk state coverage artifact before ranking", async () => {
-  const coverageRoot = await mkdtemp(path.join(tmpdir(), "datahub-state-coverage-"));
+  await mkdir(path.join(ROOT, "data/tmp"), { recursive: true });
+  const coverageRoot = await mkdtemp(path.join(ROOT, "data/tmp/datahub-state-coverage-"));
   try {
     const releaseId = "national-business-coverage-views-test";
     const releaseDirectory = path.join(coverageRoot, "releases", releaseId);
@@ -259,6 +262,26 @@ test("verifies the on-disk state coverage artifact before ranking", async () => 
   } finally {
     await rm(coverageRoot, { recursive: true, force: true });
   }
+});
+
+test("Queue 6 keeps verified historical broad-registry eligibility while reporting current MA childcare counts", async () => {
+  const proof = COVERAGE_REASSESSMENT;
+  const reassessment = await loadStateCoverageReassessment({ dataset_id: "national-business-coverage-views", release_id: proof.currentRelease, manifest: `releases/${proof.currentRelease}/manifest.json` });
+  const queue = JSON.parse(await readFile(QUEUE_6_PATH, "utf8")), original = JSON.stringify(queue);
+  const previous = await Promise.all([QUEUE_PATH, WAVE_2_PATH, WAVE_3_PATH, QUEUE_5_PATH].map(async file => JSON.parse(await readFile(file, "utf8"))));
+  const revalidation = await loadStateBusinessSourceRevalidation();
+  const prior = [...revalidation.states.map(row => row.state_abbreviation), ...previous.flatMap(q => q.scope)];
+  const current = reassessment.currentRows;
+  const projected = { ...queue, states: queue.states.map(state => ({ ...state, current_coverage: currentCoverageProjection(current.find(row => row.postal_abbreviation === state.state_abbreviation)) })) };
+  assert.equal(assessStateBusinessSourceReadiness(current.find(row => row.postal_abbreviation === "MA")).source_scope_status, "statewide-scoped-layer-only");
+  assert.throws(() => validateQueue6RankedSelection(projected, current, prior), /not the next ranked/);
+  assert.equal(validateQueue6RankedSelection(projected, current, prior, reassessment), projected);
+  assert.throws(() => validateQueue6RankedSelection(projected, current, prior, structuredClone(reassessment)), /verified coverage reassessment/);
+  const changed = structuredClone(current); changed[0].registry_evidence.reported_address_profile_count++;
+  assert.throws(() => validateQueue6RankedSelection(projected, changed, prior, reassessment), /verified coverage reassessment/);
+  const staleProjection = structuredClone(projected); staleProjection.states.find(state => state.state_abbreviation === "MA").current_coverage.reported_profiles--;
+  assert.throws(() => validateQueue6RankedSelection(staleProjection, current, prior, reassessment), /current state view/);
+  assert.equal(JSON.stringify(queue), original);
 });
 
 test("accepts the governed four-workstream Queue 8 decision", async () => {
