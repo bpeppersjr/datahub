@@ -1,0 +1,23 @@
+{
+  "connector_id": "vt-childcare-centers-acquisition",
+  "version": "1.0.0",
+  "description": "Bounded Vermont licensed-center cohort acquisition and immutable offline replay; not verified operating businesses.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["paired-vt-childcare-preflight-evidence", "ordered-license-rosters-and-selected-center-pages"],
+  "output_artifact_types": ["vt-childcare-immutable-acquired-evidence"],
+  "allowed_hosts": ["data.vermont.gov"],
+  "redirect_policy": "Reject redirects and omit credentials. Fixed catalog/aggregate GET preflights and SODA3 query.json POST record requests; no method or endpoint fallback.",
+  "provider_budget_key": "vt-childcare-soda3",
+  "resource_class": "bounded-state-industry-acquisition",
+  "execution_limits": {"max_parallel_requests":1,"maximum_requests":135,"minimum_request_spacing_ms":1000,"maximum_response_bytes":8000000,"maximum_non_page_response_bytes":2000000,"maximum_consumed_body_bytes":150000000,"request_timeout_ms":30000,"cooperative_execution_deadline_ms":900000,"page_size":500,"maximum_source_rows":20000,"minimum_disk_free_bytes":500000000},
+  "retry": "No automatic retries or access workaround; denial or publisher deferral stops the attempt.",
+  "checkpoint": "Persist prerequisite before roster requests and each validated observation before proceeding; reconcile baseline, selected rows, final roster and postflight.",
+  "idempotency": "Immutable UUID acquisitions and independent offline replay. Reuse verified retained releases; partial journals are inspectable, not automatic restart or resume.",
+  "cancellation": "Abort headers, body and pacing; drain retained writes, clean only owned incomplete cancellation artifacts and preserve uncertain publications.",
+  "source_policy": "config/source-policies/vt-childcare-centers-internal.json",
+  "retention_profile": "Internal selected center-only records and sanitized metadata; omit contacts, person IDs, home-provider rows and jittered coordinates.",
+  "produced_entities": ["publisher-listed-childcare-source-candidate"],
+  "produced_identifiers": ["vt-childcare-release-scoped-file-license-key", "vt-childcare-license-number"]
+}

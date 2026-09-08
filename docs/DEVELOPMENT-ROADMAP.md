@@ -505,6 +505,8 @@ Vermont prerequisites (September 8): the [metadata-only preflight](VT-CHILDCARE-
 
 Vermont selected delivery (September 8): [bounded source validation](states/VT-CHILDCARE-SELECTED-DELIVERY-2026-09-08.md) found GET returned unwanted system columns despite suppression flags; documented POST JSON returned only the selected fields across two tiny pages. Unknown reporting period and address role remain explicit quality gaps, not artificial acquisition blockers. Next is the pinned internal collector with page journals, membership/count reconciliation and offline replay, followed by app-owned collection. No bulk release or operation was created by the sample.
 
+Vermont bounded acquisition (September 8): the [internal collector and immutable release verifier](VT-CHILDCARE-ACQUISITION.md) add fixed POST bodies, baseline/selected/final traversal with empty terminal pages, prerequisite and page journals, composite-key and aggregate reconciliation, bounded transport and cancellation, and offline replay. Synthetic acceptance does not claim a native release or app dispatch. Next: source-candidate normalization and app-owned lifecycle, with separate postal fields and no inferred exact geocodes or current business identity.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
