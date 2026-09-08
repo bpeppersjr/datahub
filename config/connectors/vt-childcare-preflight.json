@@ -1,0 +1,66 @@
+{
+  "connector_id": "vt-childcare-preflight",
+  "version": "1.0.0",
+  "description": "Vermont licensed center metadata and aggregate preflight only; no provider records.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "vt-childcare-catalog-metadata",
+    "vt-childcare-reporting-file-groups",
+    "vt-childcare-center-aggregate-counts"
+  ],
+  "output_artifact_types": [
+    "vt-childcare-preflight-receipt-json"
+  ],
+  "output_schema_contract": {
+    "version": "vt-childcare-preflight@1.0.0",
+    "scope": "license_type='Licensed Provider' AND provider_program_type IN('CBCCPP','CBCCPP - Non-Recurring')",
+    "row_unit": "source licensed-center cohort rows, not unique active businesses",
+    "reporting_period": "One reporting file required; no date inferred from filename",
+    "coordinates": "Excluded from future selected projection; publisher coordinates are jittered, not exact geocodes"
+  },
+  "allowed_hosts": [
+    "data.vermont.gov"
+  ],
+  "redirect_policy": "Fixed SODA v3 query.json and catalog URLs; reject redirects, omit credentials.",
+  "provider_budget_key": "vt-childcare-soda3",
+  "resource_class": "bounded-metadata-only",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_requests": 6,
+    "minimum_request_spacing_ms": 1000,
+    "maximum_response_bytes": 2000000,
+    "request_timeout_ms": 30000,
+    "cooperative_execution_deadline_ms": 120000,
+    "maximum_source_rows": 20000,
+    "maximum_groups": 200,
+    "facility_rows_requested": 0
+  },
+  "retry": "No retries or legacy endpoint fallback.",
+  "checkpoint": "Complete paired sanitized metadata/group/count observations only; cached values discarded.",
+  "idempotency": "Immutable UUID receipt; no overwrite or current pointer.",
+  "cancellation": "Abort pacing/headers/body; await writer and retain ambiguous committed receipt for inspection.",
+  "source_policy": "config/source-policies/vt-childcare-preflight.json",
+  "retention_profile": "Internal sanitized metadata and aggregates only.",
+  "produced_entities": [
+    "source-readiness-assertion"
+  ],
+  "produced_identifiers": [
+    "vt-childcare-catalog-id"
+  ]
+}

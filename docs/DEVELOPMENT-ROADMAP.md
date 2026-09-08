@@ -501,6 +501,8 @@ Maryland standalone processing (September 8): [offline source-candidate normaliz
 
 Maryland retained reporting (September 8): the app completed its first collection independently. Offline verification confirms 1,772 accepted source candidates, no quarantine and one invalid-range ZIP gap. [Local cohort reporting](MD-CHILDCARE-REPORTING.md) adds pinned retained evidence, reported-state/ZIP grouping and explicit cohort denominators without a second download or national promotion. The publisher's February 13 cohort is not reinterpreted as September current-operation evidence.
 
+Vermont prerequisites (September 8): the [metadata-only preflight](VT-CHILDCARE-PREFLIGHT.md) now verifies paired catalog and aggregate evidence, preserves ODbL and coordinate-jitter notices, and refuses provider-row payloads. Native execution verified 503 center-license candidates within 1,057 source rows; no facility records were downloaded. Acquisition, address-role validation, record-use policy and standalone app enrollment remain explicit next gates, not implied by this prerequisite success.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

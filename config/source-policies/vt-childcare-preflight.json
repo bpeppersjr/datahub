@@ -1,0 +1,37 @@
+{
+  "policy_id": "vt-childcare-preflight",
+  "version": "1.0.0",
+  "publisher": "Vermont Department for Children and Families (DCF), Child Development Division",
+  "ownership": "Vermont Child Care Provider Data ctdw-tmfz; Child Development Division Data Unit.",
+  "source_dataset": "https://data.vermont.gov/api/v3/views/ctdw-tmfz/query.json",
+  "terms_url": "http://opendatacommons.org/licenses/odbl/1.0/",
+  "catalog_license": "OPEN_DATABASE_LICENSE",
+  "source_access": "Anonymous fixed metadata and aggregate queries only.",
+  "allowed_use": [
+    "Metadata/schema/notice validation",
+    "Reporting-file/type/license aggregate counts",
+    "Internal sanitized immutable preflight receipt"
+  ],
+  "prohibited_use": [
+    "Facility acquisition, app enrollment or schedules under this profile",
+    "Catalog cached samples, contact values, person keys or raw HTTP body retention",
+    "Exact geocode claims from jittered publisher coordinates",
+    "Inferring current operation or exact source reporting dates",
+    "Unrestricted combined database or record-level public export"
+  ],
+  "export_policy": "internal",
+  "field_export_policy": {
+    "selected_metadata_and_aggregates": "internal",
+    "cached_samples_contacts_person_identifiers": "excluded-before-retention",
+    "coordinates": "no points selected"
+  },
+  "attribution": "Vermont DCF Child Development Division; data.vermont.gov; Open Database License 1.0 notice retained.",
+  "retention": "Keep sanitized immutable receipts, without provider rows or automatic deletion.",
+  "redistribution": "ODbL conditional notice/share-alike/access obligations require separate public export governance; no record-level export approved by this profile.",
+  "contains_personal_data": false,
+  "personal_data_handling": "Strip metadata cached contents before retention; no phone/email/person fields or coordinates requested.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false
+}
