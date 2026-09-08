@@ -56,6 +56,34 @@ test("Delaware actual source rows cannot silently exceed preflight count", async
   await assert.rejects(readFile(path.join(options.outputRoot, "current.json")), { code: "ENOENT" });
 });
 
+test("Delaware resource gate fails before staging, baseline read or source requests", async (t) => {
+  const { options } = await fixture(t);
+  let calls = 0;
+  await assert.rejects(buildDeBusinessLicenses({ ...options, zbpPointer: path.join(options.outputRoot, "missing-baseline"), resourceProbe: async () => ({ availableDiskBytes: 1n, freeMemoryBytes: 2 ** 31, heapLimitBytes: 2 ** 30 }), fetchImpl: async () => { calls++; throw new Error("unexpected source"); } }), { code: "DE_RESOURCE_PREFLIGHT" });
+  assert.equal(calls, 0);
+  assert.deepEqual(await readdir(options.outputRoot), []);
+});
+
+test("Delaware whole-build deadline stops a stalled resource probe and source request", async (t) => {
+  const { options } = await fixture(t);
+  await assert.rejects(buildDeBusinessLicenses({ ...options, executionTimeoutMs: 50, resourceProbe: async () => new Promise(() => {}) }), { code: "DE_EXECUTION_DEADLINE" });
+  assert.deepEqual(await readdir(options.outputRoot), []);
+  await assert.rejects(buildDeBusinessLicenses({ ...options, catalogMetadata: null, sourceRecords: null, executionTimeoutMs: 100, resourceProbe: async () => ({ availableDiskBytes: 2n ** 40n, freeMemoryBytes: 2 ** 31, heapLimitBytes: 2 ** 30 }), fetchImpl: async () => new Promise(() => {}) }), { code: "DE_EXECUTION_DEADLINE" });
+  assert.deepEqual(await readdir(path.join(options.outputRoot, ".staging")), []);
+  await assert.rejects(readFile(path.join(options.outputRoot, "current.json")), { code: "ENOENT" });
+});
+
+test("Delaware elapsed checks prevent precommit publication but expiry after commit finishes", async (t) => {
+  const { options } = await fixture(t);
+  const prior = await buildDeBusinessLicenses(options);
+  const pointer = await readFile(prior.pointerPath);
+  await assert.rejects(buildDeBusinessLicenses({ ...options, executionTimeoutMs: 1000, onBeforeCommit: () => { const end = performance.now() + 1005; while (performance.now() < end) { /* Delay timer delivery deliberately. */ } } }), { code: "DE_EXECUTION_DEADLINE" });
+  assert.deepEqual(await readFile(prior.pointerPath), pointer);
+  const result = await buildDeBusinessLicenses({ ...options, executionTimeoutMs: 1000, onAfterCommit: async () => { await new Promise(resolve => setTimeout(resolve, 1100)); } });
+  await verifyDeBusinessLicenses(path.join(result.releaseDirectory, "manifest.json"));
+  assert.ok(result.resourcePreflight.observations.availableDiskBytes);
+});
+
 test("Delaware build shares request ceiling across metadata, count, page and final checks", async (t) => {
   const { options } = await fixture(t);
   const requests = [];

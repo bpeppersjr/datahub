@@ -41,3 +41,11 @@ test('Delaware CLIs forward and dispose cancellation; malformed flags fail befor
   for(const args of [['--output','--zbp'],['--output','data/tmp/unused','--output','data/tmp/unused2']])await assert.rejects(exec(process.execPath,['scripts/build-de-business-licenses.mjs',...args],{cwd:APP_ROOT}),error=>error.code===1 && /requires a value|only be supplied once/.test(error.stderr));
   const result=await exec(process.execPath,['scripts/build-de-business-licenses.mjs','--help'],{cwd:APP_ROOT});assert.match(result.stdout,/resume-staging-run/);
 });
+
+test('Delaware real CLI refuses a low-heap process before baseline or network acquisition',async()=>{
+  const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/de-cli-resource-'));
+  const output=path.join(root,'output');
+  const exec=promisify(execFile);
+  await assert.rejects(exec(process.execPath,['--max-old-space-size=128','--import','./runner/fixtures/de-cli-stalled-fetch.mjs','scripts/build-de-business-licenses.mjs','--output',output,'--zbp',path.join(root,'missing.json')],{cwd:APP_ROOT,timeout:5000,windowsHide:true}),error=>error.code===1 && /resource prerequisite failed/.test(error.stderr));
+  assert.deepEqual(await readdir(output),[]);
+});

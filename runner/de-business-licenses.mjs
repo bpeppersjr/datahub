@@ -10,6 +10,8 @@ import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.
 import { publisherRetryDelay } from "./source-http-guards.mjs";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 import { createDeAcquisitionBudget } from "./de-acquisition-budget.mjs";
+import { preflightDeResources } from "./de-resource-preflight.mjs";
+import { createDeExecutionDeadline } from "./de-execution-deadline.mjs";
 
 export const DE_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.1";
@@ -646,7 +648,13 @@ function buildZipCoverage(baselineRows, countsByZip, context) {
   });
 }
 
-export async function buildDeBusinessLicenses({
+export async function buildDeBusinessLicenses(options = {}) {
+  const deadline = createDeExecutionDeadline({ signal: options.signal, timeoutMs: options.executionTimeoutMs });
+  try { return await buildDeBusinessLicensesInternal({ ...options, signal: deadline.signal, checkExecutionDeadline: deadline.check }); }
+  finally { deadline.dispose(); }
+}
+
+async function buildDeBusinessLicensesInternal({
   outputRoot,
   zbpPointer,
   catalogMetadata = null,
@@ -663,6 +671,8 @@ export async function buildDeBusinessLicenses({
   onBeforeCommit,
   onAfterCommit,
   acquisitionLimits,
+  resourceProbe,
+  checkExecutionDeadline,
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
   if (!Number.isInteger(minimumLicenseRows) || minimumLicenseRows < 1) throw new Error("minimumLicenseRows must be a positive integer.");
@@ -675,6 +685,8 @@ export async function buildDeBusinessLicenses({
   const releaseId = `de-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   await deCanonicalDirectory(outputRoot, true);
+  const resourcePreflight = await preflightDeResources({ outputRoot, signal, probe: resourceProbe });
+  checkExecutionDeadline();
   await deCanonicalDirectory(path.dirname(stagingDirectory), true);
   await mkdir(stagingDirectory);
   const stageIdentity = await lstat(stagingDirectory, { bigint: true });
@@ -903,10 +915,10 @@ export async function buildDeBusinessLicenses({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest), {}, signal);
-  const publication = await publishDeBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal, onBeforeCommit, onAfterCommit });
+  const publication = await publishDeBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal, onBeforeCommit: async () => { await onBeforeCommit?.(); checkExecutionDeadline(); }, onAfterCommit });
   try { logger(`Published ${organizations.toLocaleString("en-US")} Delaware current-license organization candidates.`); }
   catch { throw Object.assign(new Error("Delaware post-publication reporting failed; inspect retained publication evidence."), { code: "DE_PUBLICATION_INCOMPLETE", phase: "post-publication", releaseId }); }
-  return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
+  return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath, resourcePreflight };
   } catch (error) {
     abortGzipWriters(allWriters);
     await Promise.allSettled(allWriters.map((writer) => writer.completion));

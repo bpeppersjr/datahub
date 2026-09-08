@@ -81,6 +81,7 @@ try {
       release_directory: result.releaseDirectory,
       manifest: path.join(result.releaseDirectory, "manifest.json"),
       coverage: result.manifest.coverage,
+      ...(result.resourcePreflight ? { resource_preflight: result.resourcePreflight } : {}),
     }, null, 2)}\n`);
   }
 } catch (error) {
