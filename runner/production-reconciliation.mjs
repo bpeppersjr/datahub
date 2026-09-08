@@ -13,6 +13,7 @@ import { verifyNjChildcareRelease } from './nj-childcare-release.mjs';
 import { verifyTnChildcareRecoveredRelease } from './tn-childcare-recovered-release.mjs';
 import { verifyTnChildcareRelease } from './tn-childcare-release.mjs';
 import { writeReconciliationReceipt as atomic } from './reconciliation-receipt.mjs';
+import { productionMemoryPolicy, productionMemoryArguments } from './production-memory.mjs';
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const DEFINITION = 'config/migrations/normalized-us-postal-fields-v1.json';
@@ -74,7 +75,9 @@ function stageDefinitions(sources,optionalSources=[]) {
   args[0].push(...optionalSources.flatMap(source=>[CHILDCARE[source.sourceKey]?.flag,source.receiptPath??source.manifestPath]));
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,memoryProfile,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+  const memoryPolicy = productionMemoryPolicy(memoryProfile);
+  if(memoryPolicy&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('Memory profile requires a fresh retained-data plan, not historical recovery.');
   if(tnChildcare!==undefined&&tnFreshChildcare!==undefined)throw new Error('Choose one Tennessee source: fresh and recovered are mutually exclusive.');
   if(recoverBenchmarkFrom!==undefined&&recoverResolutionFrom!==undefined)throw new Error('Recovery modes are mutually exclusive.');
   if(ohChildcareReceipt!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('Ohio requires a fresh retained-data production plan, not historical recovery.');
@@ -106,9 +109,11 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
     for(const selected of optionalSourcePins){const prefix=CHILDCARE[selected.sourceKey].prefix;for(const suffix of ['registry-input','registry-adapter','release','normalization','preflight','acquisition',...(prefix==='nj'?['metadata']:[])])modules.push(`runner/${prefix}-childcare-${suffix}.mjs`);}
   }
   if(ohio)modules.push(...ohio.OH_PRODUCTION_MODULES);
+  if(memoryPolicy)modules.push('runner/production-memory.mjs','runner/production-reconciliation.mjs');
   const implementationPins = []; for(const file of modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
   const outputRoot = `data/reconciliations/production-runs/${runId}`; await safe(root,outputRoot,false);
   const plan = {schemaVersion:1,mode:'production',runId,createdAt:new Date().toISOString(),outputRoot,readinessPlanSha256:report.plan_sha256,definitionSha256:hash(definitionBytes),sourcePins,inputPins,previousOutputs,scriptPins,implementationPins,stages};
+  if(memoryPolicy)plan.memoryPolicy=memoryPolicy;
   if(optionalSourcePins.length)plan.optionalSourcePins=optionalSourcePins;
   if(recoverBenchmarkFrom !== undefined) {
     plan.recovery = await benchmarkRecovery(root,plan,recoverBenchmarkFrom);
@@ -117,10 +122,11 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   if(recoverResolutionFrom!==undefined){plan.recovery=await resolutionRecovery(root,plan,recoverResolutionFrom);plan.stages=stages.slice(2);}
   plan.planSha256 = hash(JSON.stringify(plan)); return plan;
 }
-function execute(stage,{cwd,logPath,onSpawn}) {
+export function executeProductionStage(stage,{cwd,logPath,onSpawn,memoryPolicy}) {
+  const nodeArgs=productionMemoryArguments(memoryPolicy);
   return new Promise(resolve => {
     const log = createWriteStream(logPath,{flags:'wx'}); const done = finished(log).then(()=>null,error=>error);
-    const child = spawn(process.execPath,[stage.script,...stage.args],{cwd,shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']});
+    const child = spawn(process.execPath,[...nodeArgs,stage.script,...stage.args],{cwd,shell:false,windowsHide:true,stdio:['ignore','pipe','pipe']});
     const ownership = Promise.resolve().then(()=>onSpawn(child.pid)).catch(error=>error); let spawnError;
     child.once('error',error=>{spawnError=error;}); child.stdout.pipe(log,{end:false}); child.stderr.pipe(log,{end:false});
     log.once('error',()=>{child.stdout.unpipe(log);child.stderr.unpipe(log);child.stdout.resume();child.stderr.resume();});
@@ -276,14 +282,15 @@ async function resolutionRecovery(root,current,fromRunId) {
     artifactProofBoundary:'Current bytes pinned for resolution matching/reporting evidence only; original verifier log and immutable manifest attest other registry artifacts, which downstream consumers verify when read.',
     semantics:'Reuse the verified registry; build and verify resolution, benchmark and coverage with unchanged source inputs. No downloads or completed registry rebuild.'};
 }
-export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessInspector=inspectNormalizedUsPostalMigration,executor=execute,signal}={}) {
+export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessInspector=inspectNormalizedUsPostalMigration,executor=executeProductionStage,signal}={}) {
   root=await realpath(path.resolve(root));
   if(plan?.schemaVersion !== 1 || plan.mode !== 'production' || !ID.test(plan.runId??'') || hash(JSON.stringify(Object.fromEntries(Object.entries(plan).filter(([key])=>key!=='planSha256')))) !== plan.planSha256) throw new Error('Invalid production reconciliation plan.');
   if(plan.optionalSourcePins!==undefined&&(!Array.isArray(plan.optionalSourcePins)||!plan.optionalSourcePins.length||plan.optionalSourcePins.length>4||plan.optionalSourcePins.some(p=>!p||!Object.hasOwn(CHILDCARE,p.sourceKey))||new Set(plan.optionalSourcePins.map(p=>p.sourceKey)).size!==plan.optionalSourcePins.length))throw new Error('Invalid optional childcare input cohort.');
   const selected=Object.fromEntries((plan.optionalSourcePins??[]).map(p=>[p.sourceKey,p.sourceKey==='ohChildcareReceipt'?p.receiptPath:p.manifestPath]));
   if(plan.recovery&&!['benchmark-status-classification','resolution-registry-compatibility'].includes(plan.recovery.kind))throw new Error('Unknown production recovery kind.');
   const recoveryOptions=plan.recovery?.kind==='resolution-registry-compatibility'?{recoverResolutionFrom:plan.recovery.fromRunId}:{recoverBenchmarkFrom:plan.recovery?.fromRunId};
-  const current = await planProductionReconciliation({root,runId:plan.runId,...recoveryOptions,...selected,readinessInspector});
+  if(Object.hasOwn(plan,'memoryPolicy')&&!isDeepStrictEqual(plan.memoryPolicy,productionMemoryPolicy(plan.memoryPolicy?.id)))throw new Error('Production memory policy changed.');
+  const current = await planProductionReconciliation({root,runId:plan.runId,...recoveryOptions,...selected,memoryProfile:plan.memoryPolicy?.id,readinessInspector});
   for(const key of Object.keys(current).filter(key=>!['createdAt','planSha256'].includes(key))) if(JSON.stringify(current[key]) !== JSON.stringify(plan[key])) throw new Error(`Production reconciliation plan changed: ${key}.`);
   const runRoot=await safe(root,plan.outputRoot,false), lockPath=await safe(root,'data/reconciliations/controller.lock',false); await mkdir(path.dirname(lockPath),{recursive:true}); await safe(root,path.dirname(lockPath));
   let lock; const token=randomUUID();
@@ -291,6 +298,7 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
   const receipt={schemaVersion:1,mode:'production',runId:plan.runId,status:'RUNNING',startedAt:new Date().toISOString(),finishedAt:null,owner:{pid:process.pid},stopRequested:false,previousOutputs:plan.previousOutputs,outputs:{},stages:plan.stages.map(s=>({id:s.id,status:'PENDING',pid:null,exitCode:null,startedAt:null,finishedAt:null,log:null,error:null})),error:null};
   const receiptPath=path.join(runRoot,'receipt.json'), planPath=path.join(runRoot,'plan.json'); let initialized=false, persistenceError=null, saves=Promise.resolve(), poll=null, pendingPoll=null;
   if(plan.recovery)receipt.recovery=plan.recovery;
+  if(plan.memoryPolicy)receipt.memoryPolicy=plan.memoryPolicy;
   const save=()=>{saves=saves.catch(()=>{}).then(()=>atomic(receiptPath,receipt));return saves;};
   const requestStop=()=>{receipt.stopRequested=true;if(initialized)void save().catch(error=>{persistenceError=error;});};
   const inspectStop=async()=>{try{const file=await safe(root,path.join(runRoot,'stop-request.json'));const request=JSON.parse(await readFile(file,'utf8'));if(request.runId!==plan.runId)throw new Error('Stop request run identity differs.');if(!receipt.stopRequested)requestStop();}catch(error){if(error.code!=='ENOENT')throw error;}};
@@ -303,7 +311,7 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
       await inspectStop();if(persistenceError)throw persistenceError;
       if(signal?.aborted||receipt.stopRequested){receipt.status='STOPPED';receipt.stopRequested=true;break;}
       await checkPins(root,plan,outputs); const stage=plan.stages[index],record=receipt.stages[index];record.status='RUNNING';record.startedAt=new Date().toISOString();await save();
-      const logPath=path.join(runRoot,`${stage.id}.log`);const result=await executor(stage,{cwd:root,logPath,onSpawn:async pid=>{record.pid=pid;await save();}});
+      const logPath=path.join(runRoot,`${stage.id}.log`);const result=await executor(stage,{cwd:root,logPath,memoryPolicy:plan.memoryPolicy,onSpawn:async pid=>{record.pid=pid;await save();}});
       record.exitCode=result?.exitCode??1;record.pid??=result?.pid??null;record.finishedAt=new Date().toISOString();record.log={path:path.basename(logPath),...await fileHash(logPath)};
       if(record.exitCode!==0)throw new Error(`Stage ${stage.id} failed with exit code ${record.exitCode}.`);
       if(stage.kind==='build') {const group=stage.id.split('-')[0];const expected=group==='registry'?[...plan.sourcePins,...(plan.optionalSourcePins??[])]:group==='resolution'?[outputs.registry]:group==='benchmark'?[outputs.registry,outputs.resolution]:[outputs.registry,outputs.resolution,outputs.benchmark,...plan.inputPins.filter(p=>p.id!=='zbp')];outputs[group]=await emitted(root,group,plan.previousOutputs[group],expected,plan.optionalSourcePins?.find(p=>p.sourceKey==='ohChildcareReceipt'));receipt.outputs[group]=outputs[group];record.release=outputs[group];}

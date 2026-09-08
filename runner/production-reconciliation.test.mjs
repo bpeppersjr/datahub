@@ -79,6 +79,21 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   return { exitCode: 0 };
 }
 
+test('Production memory profile is pinned, propagated and rejects rehashed policy drift', async t=>{
+  const f=await fixture(t);
+  for(const name of ['production-memory','production-reconciliation'])await copyFile(path.join(APP_ROOT,'runner',`${name}.mjs`),path.join(f.root,'runner',`${name}.mjs`));
+  const plan=await planProductionReconciliation({...f,runId:'memory-profile',memoryProfile:'national-12g'});
+  assert.equal(plan.memoryPolicy.oldSpaceMiB,12288);
+  assert.ok(plan.implementationPins.some(p=>p.path==='runner/production-memory.mjs'));
+  for(const mutation of [p=>{p.memoryPolicy.oldSpaceMiB=65536;},p=>{p.memoryPolicy.minimumFreeMiB=0;},p=>{p.memoryPolicy.extra=true;},p=>{p.memoryPolicy={};}]){
+    const changed=structuredClone(plan);mutation(changed);delete changed.planSha256;changed.planSha256=sha(JSON.stringify(changed));
+    await assert.rejects(runProductionReconciliation(changed,{...f,executor:()=>assert.fail('No launch on drift')}),/memory policy/);
+  }
+  const result=await runProductionReconciliation(plan,{...f,executor:async(stage,context)=>{assert.deepEqual(context.memoryPolicy,plan.memoryPolicy);return executeFixture(f,stage,context);}});
+  assert.equal(result.receipt.status,'SUCCEEDED');assert.deepEqual(result.receipt.memoryPolicy,plan.memoryPolicy);
+  await assert.rejects(planProductionReconciliation({...f,memoryProfile:'national-12g',recoverResolutionFrom:'old'}),/fresh retained-data plan/);
+});
+
 test('Ohio production pins the completed native-entry fixture and hands retained files through all stages without fetching', {timeout:120000}, async t=>{
   const f=await fixture(t), transport=await gatedTransport();
   t.mock.method(globalThis,'fetch',transport.options.fetchImpl);
