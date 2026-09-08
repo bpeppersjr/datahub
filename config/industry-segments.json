@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers"]
   },
   "sources": {
+    "state-pa-childcare-centers": {
+      "script": "scripts/build-pa-childcare.mjs",
+      "scope": "state", "states": ["PA"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/pa-childcare-centers-app.json", "config/connectors/pa-childcare-centers-acquisition.json", "config/connectors/pa-childcare-centers-normalization.json", "config/source-policies/pa-childcare-centers-internal.json", "config/connectors/pa-childcare-preflight.json", "config/source-policies/pa-childcare-preflight.json"],
+      "coverage_notes": [
+        "Pennsylvania DHS publisher-listed Child Care Centers only; source inclusion and catalog update time do not prove current operations, unique businesses or a national completeness denominator.",
+        "Co*Tive owns fixed anonymous source requests with paired policy/schema/count checks, durable prerequisite and page retention, exact ID reconciliation, serial pacing, bounded bytes and cancellation. No automatic retries, restart or schedule activation.",
+        "Records stay internal with separate ZIP5 and ZIP4, nullable source points and explicit normalization quarantine. Business entities receive no polygons; identity matching and public export are not authorized.",
+        "UUID app receipts link independently verified acquisition and normalization manifests. Retained acquisition can be normalized again without another download. App enrollment and local output do not promote national reporting or replace its pinned source releases."
+      ]
+    },
     "state-ak-business-licenses": {
       "script": "scripts/run-ak-business-app.mjs",
       "scope": "state", "states": ["AK"], "state_filter_supported": false,

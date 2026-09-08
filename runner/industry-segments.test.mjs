@@ -27,6 +27,21 @@ function offlineConfig(concurrency = 2) {
   };
 }
 
+test('PA childcare enrollment selects one fixed app task without broadening source scope',async()=>{
+  const config=await loadIndustryConfig();
+  assert.equal(Object.keys(config.sources).length,20);assert.equal(config.industries.childcare.length,5);
+  assert.equal(Object.keys(config.industries).length,9);assert.equal(config.states.length,51);
+  const selected={industries:['childcare'],states:['PA','WI'],sourceIds:['state-pa-childcare-centers']};
+  const plan=buildIndustryPlan(config,selected);
+  assert.equal(plan.taskCount,1);assert.equal(plan.tasks[0].sourceId,'state-pa-childcare-centers');assert.equal(plan.tasks[0].state,'PA');
+  assert.equal(plan.tasks[0].script,'scripts/build-pa-childcare.mjs');assert.ok(plan.tasks[0].prerequisites.includes('config/connectors/pa-childcare-centers-app.json'));
+  assert.ok(plan.gaps.some(g=>g.state==='WI'));assert.ok(plan.warnings.some(w=>w.includes('do not promote national reporting')));
+  assert.equal(buildIndustryPlan(config,{industries:['childcare'],states:['PA']}).taskCount,1);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);
+  assert.equal(config.sources['state-pa-childcare-centers'].state_filter_supported,false);
+});
+
 test("explicit manual sources narrow MN without altering omitted selections", async () => {
   const config = await loadIndustryConfig(), input = {industries:['construction'],states:['MN'],runId:'selection-test'};
   const legacy = buildIndustryPlan(config,input), selected = buildIndustryPlan(config,{...input,sourceIds:['state-mn-contractor-registrations']});

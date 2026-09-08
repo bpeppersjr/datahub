@@ -26,9 +26,9 @@ The default output root is `data/business-sources/pa-childcare-centers/normalize
 
 Source links use canonical local paths. Moving a bundle alone to another machine does not make it self-contained: relocation/export needs a separately verified dependency relocation process. Public redistribution is not authorized by this internal-use profile.
 
-## Application handoff remaining
+## Application handoff
 
-Normalization and acquisition are separate so downstream repairs can reuse saved source evidence. The next milestone is an end-to-end Co*Tive worker that records start, acquired-input and terminal receipts, uses shared source reservations, exposes actionable failures, and supports an explicit retained-input path. Enrollment alone is not a completed handoff: a real app operation ID and persisted receipt are required before routine collection is considered transferred to the app.
+Normalization and acquisition are separate so downstream repairs can reuse saved source evidence. The end-to-end Co*Tive worker now records start, acquired-input, normalized-output and terminal receipts, uses native publisher exclusion, and supports explicit retained-input reuse. See [standalone application handoff](PA-CHILDCARE-APP.md). Enrollment alone is not a completed handoff: a real app operation ID and persisted receipt are required before routine collection is considered transferred to the app.
 
 Rollback: stop using this new derivation entry point; no existing source or national pointer changes. Preserve completed source and derived releases for audit and reuse.
 

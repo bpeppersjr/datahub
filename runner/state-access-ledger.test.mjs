@@ -30,6 +30,17 @@ test('state ledger has exactly one workstream per state and DC separately withou
   await assert.rejects(readdir(path.join(f.root, 'data/state-access/reports')), /ENOENT/);
 });
 
+test('PA childcare enrollment identifies app execution without fabricated coverage or submission',async t=>{
+  const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8'));
+  for(const prerequisite of config.sources['state-pa-childcare-centers'].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='PA').industries.find(r=>r.industry==='childcare');
+  assert.equal(ledger.summary.industryCells,459);assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status,'NOT_READY_EVIDENCE_UNMEASURED');assert.equal(cell.appHandoff.configuredSources.length,1);
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId,'state-pa-childcare-centers');assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor,'cotive-app');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+});
+
 test('Alaska enrollment identifies app execution without claiming a new dispatch', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
   const cell = ledger.jurisdictions.find(r => r.state === 'AK').industries.find(r => r.industry === 'local-business-licenses');

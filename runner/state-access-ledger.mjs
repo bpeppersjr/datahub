@@ -28,6 +28,7 @@ const PROFILE_IDS = Object.freeze({
   // Native collection is enrolled, but no national reporting adapter/release
   // exists yet. Configuration or local downloads cannot manufacture coverage.
   "state-oh-childcare": null,
+  "state-pa-childcare-centers": null,
   "national-irs-eo-bmf": null,
 });
 // The coverage view retains this historical count-field name for both evidence
