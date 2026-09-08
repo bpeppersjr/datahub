@@ -479,6 +479,8 @@ Additional childcare source validation (September 8): the [NC follow-up](states/
 
 Connecticut childcare prerequisite (September 8): the [tested metadata/count preflight](CT-CHILDCARE-PREFLIGHT.md) completed four bounded native requests and retained an immutable sanitized receipt. It confirms 1,390 active-center source rows, 1,364 distinct credentials and one missing street-address value; repeated credentials must not collapse source rows. No facility acquisition, app enrollment, refresh schedule or national promotion occurred. Resolve address/key semantics and implement the bounded facility connector before handing routine downloads to standalone Co*Tive workers. Parallel [Maryland follow-up](states/MD-CHILDCARE-TRIAGE-2026-09-08.md) established an official public-use context and an aggregate center predicate, not a completed acquisition contract.
 
+Connecticut selected-source acquisition (September 8): the [bounded acquisition and immutable replay layer](CT-CHILDCARE-ACQUISITION.md) preserves release-scoped opaque row keys, repeated credentials and role-unverified reported addresses. Prerequisite and observation journals complete before dependent requests, and completed acquisition can be reused offline. Maryland's parallel schema follow-up identified duplicate `USER_*` aliases and coordinate-type differences that a future collector must not confuse with original fields. No native CT facility rows, app operation, schedule or national promotion were dispatched in this increment; normalization and tested standalone worker enrollment remain next.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

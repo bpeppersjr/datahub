@@ -1,0 +1,23 @@
+{
+  "connector_id": "ct-childcare-centers-acquisition",
+  "version": "1.0.0",
+  "description": "Bounded OEC active-center source-row acquisition and immutable offline replay, without premises or business identity verification.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["live-paired-ct-childcare-preflights", "center-only-membership-and-selected-pages"],
+  "output_artifact_types": ["ct-childcare-immutable-acquired-evidence"],
+  "allowed_hosts": ["data.ct.gov"],
+  "redirect_policy": "Reject redirects; fixed h8mr-dn95 catalog and SODA2 endpoints only, no credentials or fallback.",
+  "provider_budget_key": "ct-oec-childcare-soda2",
+  "resource_class": "bounded-state-industry-acquisition",
+  "execution_limits": {"max_parallel_requests":1,"maximum_requests":80,"minimum_request_spacing_ms":1000,"maximum_response_bytes":8000000,"maximum_non_page_response_bytes":2000000,"maximum_consumed_body_bytes":150000000,"request_timeout_ms":30000,"cooperative_execution_deadline_ms":900000,"page_size":500,"maximum_source_rows":20000,"minimum_disk_free_bytes":500000000},
+  "retry": "No automatic retry or fallback; publisher deferral stops the attempt.",
+  "checkpoint": "Await durable prerequisite before membership and each validated observation journal before subsequent requests. Preserve complete acquisition independently of normalization.",
+  "idempotency": "Immutable UUID-scoped acquisitions; reuse verified retained evidence offline. Partial journals are inspectable, not an automatic resume promise.",
+  "cancellation": "Abort transport and pacing; drain cooperative retention hooks and owned writers. Clean only owned incomplete cancellation output and preserve uncertain publications.",
+  "source_policy": "config/source-policies/ct-childcare-centers-internal.json",
+  "retention_profile": "Internal allowlisted source rows and sanitized metadata; no catalog cached samples or person/contact enrichment.",
+  "produced_entities": ["publisher-listed-childcare-source-candidate"],
+  "produced_identifiers": ["ct-oec-release-scoped-source-row-key", "ct-oec-credential-identifier", "ct-oec-license-number"]
+}

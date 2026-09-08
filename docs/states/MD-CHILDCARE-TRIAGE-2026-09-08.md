@@ -35,3 +35,9 @@ An aggregate-only query grouped `Provider_Type` and counted `OBJECTID`, with `re
 | null provider type | 85 |
 
 The total is 7,252 source rows, not unique businesses. The initial local diagnostic rejected the null category; a subsequent bounded diagnostic preserved it explicitly. No facility record or geometry was requested. `LOC` semantics remain unknown; it and other categories must not be silently included in a center-only cohort. The observed exact center predicate is `Provider_Type='Child Care Center'`, pending paired metadata/count checks in a tested preflight. These one-time aggregate observations do not establish an atomic snapshot or supersede the source's February vintage.
+
+## Selected-field follow-up
+
+A bounded [layer metadata](https://services.arcgis.com/njFNhDsUCentVYJW/ArcGIS/rest/services/ChildCare_All_Active_Providers_May_20_2024/FeatureServer/0?f=json) read at `2026-09-08T17:51:12.518Z` returned 23,544 bytes. Original selected names are `OBJECTID` (OID), `Facility_Name`, `DBA_Name`, `License_Number`, `Provider_Type`, `Street_Address`, `City`, `State`, `Full_Address` (String, length 8000), `Zip_Code` (Integer), and `Latitude_API`/`Longitude_API` (Double). Domains are null. No facility records or new aggregate counts were requested.
+
+Select exact field names, not aliases: `USER_*` fields duplicate aliases and `USER_Latitude_API`/`USER_Longitude_API` are Integer rather than the original Double fields. Exclude phone and unnecessary geocoder fields. The source coordinate datum is not documented; a future geometry query could request `outSR=4326` and validate its returned CRS under the [ArcGIS query contract](https://developers.arcgis.com/rest/services-reference/enterprise/query-feature-service-layer/), rather than silently labeling unknown API coordinates WGS84. Integer `Zip_Code` supplies no ZIP4; do not substitute geocoder `PostalExt`. The February 13 cohort date and remaining preflight/notice gates remain in force.

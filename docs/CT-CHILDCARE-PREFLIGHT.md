@@ -22,6 +22,8 @@ Selected fields cover source key/credential/license/name/type/status, non-mailin
 
 This is a metadata/count-only policy and implementation. A successful receipt does not approve record-level acquisition, address semantics, identity matching, public export, national reporting or scheduling. Before a dependent facility connector is enrolled, resolve address/key semantics, test ordered membership/page reconciliation, implement normalization and privacy limits, and complete an app-owned operation/receipt handoff. Retain source version and observation timestamps separately; daily refresh cadence does not imply real-time operations.
 
+The subsequent [acquisition contract](CT-CHILDCARE-ACQUISITION.md) resolves how to represent these uncertainties conservatively: opaque release-scoped source keys, repeated credentials retained, and reported addresses without premises verification. It does not change this preflight's metadata-only policy or claim the uncertain semantics have been independently verified.
+
 ## Native validation evidence — September 8, 2026
 
 The tested four-request preflight completed from `2026-09-08T17:44:01.608Z` to `2026-09-08T17:44:06.831Z`. Both aggregates confirmed 1,390 source rows and unique source keys, 1,364 distinct credentials, 1,389 nonnull street-address values and 1,390 nonnull ZIP values. Both sanitized metadata observations agreed on source update `2026-09-07T08:15:33.000Z`.
