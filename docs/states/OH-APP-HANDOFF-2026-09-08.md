@@ -25,3 +25,16 @@ Continue independent state/source validation while Co*Tive owns this job. If the
 Before stopping development services for Alaska validation, the persisted operation receipt was checked to avoid interrupting app-owned work. It records `FAILED`, finished `2026-09-08T07:49:00.672Z`. A bounded read-only peer inspection found that source-use prerequisites passed and an inventory of 4,237 IDs was retained, but the first feature batch failed `Ohio acquisition rejected: batch envelope, CRS or truncation.` No completed acquisition or normalized release exists from this operation; no blocking acquisition/app lock remains.
 
 The rejected response was not retained, so the local evidence cannot distinguish the individual structural checks within that error. Metadata, IDs and a rejected batch were downloaded; this is not a zero-download failure. The next connector repair is privacy-safe structural diagnostics followed by a separately controlled bounded diagnostic, not a blind collection retry. No new acquisition was dispatched during this inspection.
+
+## Corrected connector handoff — 08:18 UTC
+
+After the envelope and query-field metadata repairs (`6aabfe5`, `77ddd5b`), a retained first-page diagnostic independently validated 100 selected records. Full checks passed 934 tests, lint, builds and desktop smoke; the production dependency audit found zero vulnerabilities. No completed acquisition was present in the original failed operation or the default Ohio source location. The original terminal failed receipt was explicitly recognized without deleting or changing it; any other existing Ohio operation still blocks this dispatch helper.
+
+The managed collection API accepted exactly one Ohio childcare task with HTTP 202:
+
+- Operation: `7d93702e-1558-48c0-8676-c77cb40fe05e`.
+- Acceptance observed: `2026-09-08T08:18:14.151Z`; persisted status then `QUEUED`.
+- Receipt: `data/managed-operations/7d93702e-1558-48c0-8676-c77cb40fe05e/receipt.json`.
+- Acceptance-observation receipt SHA-256: `2e9f66b2206737cc9cf44244a9a320b81967ddeaa3d7ea4405b5499118d20816`.
+
+This mutable receipt hash proves only the observed acceptance state, not completion. Co*Tive owns subsequent execution and fresh source-use verification. No Codex progress polling or download supervision follows handoff. No recurring schedule, national promotion or public export was enabled. Use the app's Data Operations view for status; downstream work must reuse a completed verified acquisition rather than repull for promotion.
