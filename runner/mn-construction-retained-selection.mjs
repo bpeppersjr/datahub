@@ -87,7 +87,7 @@ async function inspect(directory,manifest,signal,manifestName) {
   check(JSON.stringify(manifest.counts)===JSON.stringify(result.counts),'manifest conservation');
   const snapshots=Object.fromEntries(Object.keys(FILES).map((name,index)=>[path.join(directory,name),[frameMeter,receiptMeter,normalizedMeter][index].identity]));
   for(const [file,identity]of Object.entries(snapshots))check(stableFile(identity,await lstat(file,{bigint:true})),'cross-file stability');
-  return {manifest,verification:result,snapshots};
+  return {manifest,verification:result,snapshots,selection_receipt:receipt};
 }
 export async function verifyMnConstructionRetainedSelection(manifestPath,{signal}={}) {
   try{check(typeof manifestPath==='string'&&path.basename(manifestPath)==='manifest.json','manifest path');const directory=path.dirname(manifestPath);
@@ -95,7 +95,7 @@ export async function verifyMnConstructionRetainedSelection(manifestPath,{signal
     const manifest=await readJson(manifestPath,100000,signal,before);const result=await inspect(directory,manifest,signal,'manifest.json');
     await readJson(manifestPath,100000,signal,after);check(before.sha256===after.sha256&&stableFile(before.identity,after.identity)&&sameDirectory(owner,await lstat(directory,{bigint:true})),'manifest or directory changed');
     for(const [file,identity]of Object.entries(result.snapshots))check(stableFile(identity,await lstat(file,{bigint:true})),'final artifact stability');
-    return {manifest:result.manifest,verification:result.verification};
+    return {manifest:result.manifest,verification:result.verification,selection_receipt:result.selection_receipt};
   }catch{signal?.throwIfAborted();throw new Error('Minnesota retained selection verification failed.');}
 }
 export async function buildMnConstructionRetainedSelection(source,{context,signal,outputRoot=path.join(APP_ROOT,'data/business-sources/mn-dli-construction/retained')}={}) {
