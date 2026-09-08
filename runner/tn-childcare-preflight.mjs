@@ -142,6 +142,10 @@ function assemble(observations, startedAt, observedAt) {
     caveats: ["Active means publisher extract status, not independently verified business operation or licensure dates.", "Centers only: family/group homes, drop-in, authorized providers and TDOE facilities excluded.", "Counts are source records, not unique businesses or a nationwide completeness denominator.", "Item/edit timestamps are separate from observation and do not establish source freshness or transactional isolation."],
   };
 }
+export function validateTnChildcarePreflight(receipt) {
+  requireValue(JSON.stringify(receipt) === JSON.stringify(assemble(receipt?.observations, receipt?.started_at, receipt?.observed_at)), "receipt reconstruction");
+  return receipt;
+}
 export async function preflightTnChildcare(options = {}) {
   optionsOnly(options, ["fetchImpl", "signal", "sleep", "timeoutMs", "now"]);
   const { fetchImpl = fetch, signal, sleep = (ms, opts) => delay(ms, undefined, opts), timeoutMs = 30_000, now = () => new Date() } = options;

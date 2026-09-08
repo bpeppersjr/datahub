@@ -1,0 +1,47 @@
+{
+  "policy_id": "tn-childcare-local-review",
+  "version": "1.0.0",
+  "publisher": "Tennessee Department of Human Services / State of Tennessee STS GIS",
+  "ownership": "Official STS GIS distribution of DHS-derived childcare location evidence.",
+  "source_home": "https://www.tn.gov/humanservices/for-families/child-care-services/find-child-care.html",
+  "source_dataset": "https://services1.arcgis.com/YuVBSS7Y1of2Qud1/ArcGIS/rest/services/Active_ChildCare_Locations/FeatureServer/0",
+  "terms_url": "https://www.arcgis.com/sharing/rest/content/items/bfe29552601b4d8793b1fba580c2e3fd",
+  "publisher_metadata_url": "https://www.arcgis.com/sharing/rest/content/items/bfe29552601b4d8793b1fba580c2e3fd/info/metadata/metadata.xml",
+  "catalog_item_id": "bfe29552601b4d8793b1fba580c2e3fd",
+  "catalog_license": null,
+  "allowed_use": [
+    "fixed public HTTPS metadata, terms, center-filtered count, ID inventory and selected-field queries",
+    "immutable internal selected source retention with complete publisher XML bytes and JSON terms",
+    "local-review normalization preserving source status, attribution and semantic limitations"
+  ],
+  "prohibited_use": [
+    "retrieving family homes, group homes, drop-in centers or authorized-provider records under this center-only scope",
+    "requesting unselected contact, owner, telephone, email or private record fields",
+    "inferring current operation, license validity dates, ownership, parents or unique-business identity from source inclusion",
+    "claiming TDOE or nationwide childcare completeness from this DHS-only selected extract",
+    "inferring closure from disappearance or treating modification dates as observation or license dates",
+    "redistribution without a separate export decision"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_center_records": "local-review-only",
+    "quarantine_and_source_observations": "internal",
+    "publisher_metadata": "internal-accompanying-evidence",
+    "unselected_fields": "excluded-at-query-time"
+  },
+  "export_policy": "local-review-only",
+  "attribution": "Tennessee Department of Human Services; State of Tennessee STS GIS",
+  "publisher_notice_requirement": "Retain complete item terms, including user-assumed risk and hold-harmless conditions, and publisher XML unchanged. No legal determination or new agreement acceptance is authorized by this policy. Authorized downstream use must preserve applicable notices and attribution.",
+  "coordinate_handling": "Retain explicitly requested WGS84 point evidence; normalized entities contain latitude/longitude only. Coordinate plausibility is not boundary verification or geocoding accuracy approval.",
+  "retention": "Immutable local source evidence; operator-governed deletion. No automatic retention cleanup is implemented.",
+  "redistribution": "Not authorized by this implementation; local-review-only.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names and premises can identify people; exclude residential provider categories and unselected contacts before retrieval. Keep selected raw evidence internal and normalized records local-review-only.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-09-07",
+  "evidence": {
+    "record": "docs/states/TN-CHILDCARE-ACCESS-2026-09-07.md",
+    "basis": "Bounded official source validation and verified metadata-preflight receipt; each acquisition must independently retain and validate its source evidence.",
+    "limitations": "Source Active is publisher extract status, not independently verified operation. TDOE and other care types are outside scope. No source-native license expiry, cross-release identity stability, current USPS validity or nationwide denominator is established."
+  }
+}
