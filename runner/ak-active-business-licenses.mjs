@@ -361,6 +361,19 @@ function retryDelay(response, attempt, now) {
   return Math.max(fallback, milliseconds);
 }
 
+function akTransportRace(work, signal) {
+  signal?.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal?.removeEventListener("abort", abort);
+    const abort = () => { cleanup(); reject(signal.reason); };
+    signal?.addEventListener("abort", abort, { once: true });
+    Promise.resolve().then(() => { signal?.throwIfAborted(); return work(); }).then(
+      (value) => { cleanup(); resolve(value); },
+      (error) => { cleanup(); reject(error); },
+    );
+  });
+}
+
 export async function requestAkCsv(urlValue, {
   type = "licenses",
   fetchImpl = fetch,
@@ -379,20 +392,24 @@ export async function requestAkCsv(urlValue, {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
     const controller = new AbortController();
+    const deadline = performance.now() + requestTimeoutMs;
     const abort = () => controller.abort(signal.reason);
     signal?.addEventListener("abort", abort, { once: true });
     const timer = setTimeout(() => controller.abort(Object.assign(new Error("Alaska source request deadline exceeded."), { code: "AK_REQUEST_TIMEOUT" })), requestTimeoutMs);
     const dispose = () => { clearTimeout(timer); signal?.removeEventListener("abort", abort); };
     let response;
     try {
-      response = await fetchImpl(url, { redirect: "manual", signal: controller.signal, headers: { accept: "text/csv" } });
+      const pending = Promise.resolve().then(() => { controller.signal.throwIfAborted(); return fetchImpl(url, { redirect: "manual", signal: controller.signal, headers: { accept: "text/csv" } }); });
+      void pending.then((late) => { if (controller.signal.aborted) void late.body?.cancel().catch(() => {}); }, () => {});
+      response = await akTransportRace(() => pending, controller.signal);
+      if (performance.now() >= deadline) controller.abort(Object.assign(new Error("Alaska source request deadline exceeded."), { code: "AK_REQUEST_TIMEOUT" }));
       controller.signal.throwIfAborted();
-    } catch (error) {
+    } catch {
       dispose();
       void response?.body?.cancel().catch(() => {});
       signal?.throwIfAborted?.();
-      if (attempt + 1 >= attempts) throw controller.signal.aborted ? controller.signal.reason : error;
-      await sleep(Math.min(500 * (2 ** attempt), 8_000), { signal });
+      if (attempt + 1 >= attempts) throw controller.signal.aborted ? controller.signal.reason : new Error("Alaska source transport failed.");
+      await akTransportRace(() => sleep(Math.min(500 * (2 ** attempt), 8_000), { signal }), signal).catch(() => { signal?.throwIfAborted(); throw new Error("Alaska retry wait failed."); });
       continue;
     }
     try {
@@ -402,7 +419,7 @@ export async function requestAkCsv(urlValue, {
         void response.body?.cancel().catch(() => {});
         signal?.throwIfAborted?.();
         if (attempt + 1 >= attempts) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
-        await sleep(retryDelay(response, attempt, now), { signal });
+        await akTransportRace(() => sleep(retryDelay(response, attempt, now), { signal }), signal);
         continue;
       }
       if (!response.ok) throw new Error(`Alaska source request failed with HTTP ${response.status}.`);
@@ -413,12 +430,15 @@ export async function requestAkCsv(urlValue, {
       if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
       const dateHeader = response.headers.get("date");
       const observedAt = dateHeader ? isoInstant(dateHeader, "Alaska source Date header") : now().toISOString();
-      response = boundedCsvResponse(response, controller.signal, maximumResponseBytes, dispose);
+      response = boundedCsvResponse(response, controller.signal, maximumResponseBytes, dispose, deadline);
       return { response, observedAt, expectedFilename, maximumResponseBytes };
     } catch (error) {
       dispose();
       void response.body?.cancel().catch(() => {});
-      throw error;
+      signal?.throwIfAborted();
+      if (error.code === "AK_RETRY_DEFERRED") throw Object.assign(new Error("Alaska publisher requested a retry beyond the one-day wait budget; defer this acquisition."), { code: "AK_RETRY_DEFERRED" });
+      if (/^Alaska source (redirect rejected\.|response is not CSV\.|response filename is not (BusinessLicenseDownload|NaicsDownload)\.csv\.|response exceeds the configured byte limit\.|response body is missing\.|request failed with HTTP \d{3}\.)$/.test(error.message)) throw error;
+      throw new Error("Alaska source response or retry wait failed.");
     }
   }
   throw new Error("Alaska source request exhausted retries.");
@@ -426,7 +446,7 @@ export async function requestAkCsv(urlValue, {
 
 // Retain the request deadline through body consumption, including a stalled read.
 // A partial body is never retried inside this stream: callers must fail the run.
-function boundedCsvResponse(response, signal, maximumBytes, dispose) {
+function boundedCsvResponse(response, signal, maximumBytes, dispose, deadline) {
   if (!response.body) throw new Error("Alaska source response body is missing.");
   const reader = response.body.getReader();
   let bytes = 0, settled = false;
@@ -452,11 +472,14 @@ function boundedCsvResponse(response, signal, maximumBytes, dispose) {
         const next = await reader.read();
         if (settled) return;
         signal.throwIfAborted();
+        if (performance.now() >= deadline) throw Object.assign(new Error("Alaska source request deadline exceeded."), { code: "AK_REQUEST_TIMEOUT" });
         if (next.done) { settled = true; cleanup(); reader.releaseLock(); value.close(); return; }
         bytes += next.value.byteLength;
         if (bytes > maximumBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
         value.enqueue(next.value);
-      } catch (error) { fail(error); }
+      } catch (error) {
+        fail(signal.aborted ? signal.reason : error.code === "AK_REQUEST_TIMEOUT" ? new Error("Alaska source request deadline exceeded.") : error.message === "Alaska source response exceeds the configured byte limit." ? new Error("Alaska source response exceeds the configured byte limit.") : new Error("Alaska source body transport failed."));
+      }
     },
     cancel() {
       if (settled) return;
@@ -1064,11 +1087,12 @@ export async function buildAkActiveBusinessLicenses({
   };
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest), { signal });
   const publication = await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal, logger });
-  logger(`Published ${organizations.toLocaleString("en-US")} Alaska active-license organizations and ${physicalSites.toLocaleString("en-US")} provisional physical sites.`);
+  try { await logger(`Published ${organizations.toLocaleString("en-US")} Alaska active-license organizations and ${physicalSites.toLocaleString("en-US")} provisional physical sites.`); }
+  catch { throw akPublicationIncomplete("post-publication", releaseId); }
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
   } catch (error) {
     await abortGzipWriters(ownedWriters);
-    if (signal?.aborted) {
+    if (signal?.aborted && error.code !== "AK_PUBLICATION_INCOMPLETE") {
       try {
         assertContained(stagingRoot, stagingDirectory, "Cancelled Alaska staging");
         const current = await lstat(stagingDirectory, { bigint: true });
@@ -1100,6 +1124,9 @@ function containsExcludedField(value) {
 
 function publicationCheck(ok, reason) {
   if (!ok) throw new Error(`Alaska publication rejected: ${reason}.`);
+}
+function akPublicationIncomplete(phase, releaseId) {
+  return Object.assign(new Error("Alaska publication did not finalize cleanly; preserve and inspect retained publication evidence before any retry."), { code: "AK_PUBLICATION_INCOMPLETE", phase, releaseId });
 }
 async function validateAkOutputRoot(outputRoot, signal) {
   const root = await publicationPath(path.resolve(outputRoot), signal);
@@ -1205,7 +1232,7 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
   const lock = await open(lockPath, "wx"), lockIdentity = await lock.stat({ bigint: true });
   const lockBytes = Buffer.from(json({ run_id: stagingRunId, pid: process.pid }));
   const pointerPath = path.join(root, "current.json"), temporaryPointer = path.join(root, ".current-" + randomUUID() + ".tmp");
-  let temporaryIdentity, failure;
+  let temporaryIdentity, failure, commitReleaseId = null, commitPhase = null;
   async function owned(filename, expected) {
     if (!expected) return false;
     try { await publicationPath(filename); const actual = await lstat(filename, { bigint: true }); return sameIdentity(actual, expected); } catch { return false; }
@@ -1257,7 +1284,9 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
     publicationCheck(await ownLock() && await owned(releasesDirectory, releasesIdentity) && await priorUnchanged() && await absent(releaseDirectory), "publication ownership or prior pointer changed");
     signal?.throwIfAborted();
     // Commit boundary: complete release and pointer finalization without cancellation.
+    commitReleaseId = manifest.release_id; commitPhase = "release-rename";
     await renameWithRetry(stagingDirectory, releaseDirectory);
+    commitPhase = "pointer-write";
     const pointerBytes = Buffer.from(json({ dataset_id: manifest.dataset_id, release_id: manifest.release_id, manifest: "releases/" + manifest.release_id + "/manifest.json", updated_at: manifest.retrieved_at }));
     const pointer = await open(temporaryPointer, "wx");
     try {
@@ -1267,14 +1296,21 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
     } finally { await pointer.close(); }
     publicationCheck(await ownLock() && await owned(temporaryPointer, temporaryIdentity) && await priorUnchanged(), "pointer commit ownership changed; retained release requires inspection");
     publicationCheck((await publicationRead(temporaryPointer, 10_000)).bytes.equals(pointerBytes), "temporary pointer contents changed; retained release requires inspection");
+    commitPhase = "pointer-rename";
     await renameWithRetry(temporaryPointer, pointerPath);
+    commitPhase = "post-publication";
     return { manifest, releaseDirectory, pointerPath };
-  } catch (error) { failure = error; throw error; }
+  } catch (error) { failure = commitReleaseId ? akPublicationIncomplete(commitPhase, commitReleaseId) : error; throw failure; }
   finally {
-    await lock.close(); const lockOwned = await ownLock();
-    if (lockOwned) await unlink(lockPath);
-    if (await owned(temporaryPointer, temporaryIdentity)) await unlink(temporaryPointer);
-    if (!lockOwned && !failure) throw new Error("Alaska publication lock ownership changed; inspect retained evidence.");
+    let cleanupFailure;
+    try { await lock.close(); } catch (error) { cleanupFailure = error; }
+    try {
+      const lockOwned = await ownLock();
+      if (lockOwned) await unlink(lockPath);
+      else throw new Error("Alaska publication lock ownership changed; inspect retained evidence.");
+    } catch (error) { cleanupFailure ??= error; }
+    try { if (await owned(temporaryPointer, temporaryIdentity)) await unlink(temporaryPointer); } catch (error) { cleanupFailure ??= error; }
+    if (cleanupFailure && !failure) throw commitReleaseId ? akPublicationIncomplete("post-publication", commitReleaseId) : cleanupFailure;
   }
 }
 export async function verifyAkActiveBusinessLicenses(manifestPath, { signal } = {}) {

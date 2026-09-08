@@ -455,6 +455,8 @@ Delaware resource prerequisite (September 8): fresh builds now fail closed befor
 
 Delaware app enrollment (September 8): a distinct app connector contract and strict run/verify CLIs now back the Delaware-only `local-business-licenses` source. Native acquisition uses job-specific output; retained mode independently verifies existing immutable releases without download or pointer changes. Standalone retained job `982fb5e2-9bd8-4f33-95c5-3f923e8b6ec5` succeeded and its receipt reverified the 66,667 license candidates. Synthetic native-path tests cover 60,000 rows, cross-job borrowing rejection and configuration drift without provider calls. No fresh managed collection, recurring schedule or national promotion was dispatched. See [receipt and scope evidence](DE-BUSINESS-APP.md).
 
+Alaska handoff follow-up (September 8): current-state inspection superseded stale audit gaps and found remaining noncooperative header/cooldown waits and untyped postcommit failures. These are repaired with abort races, monotonic deadline checks, redacted transport errors and `AK_PUBLICATION_INCOMPLETE` outcomes preserved through concurrent cancellation. Forty-seven focused tests passed, and the retained 94,884 license-backed candidates reverified with unchanged pointer/manifest hashes. App contract/receipt enrollment remains next; no source repull or industry dispatch occurred. See [current evidence](AK-ACTIVE-BUSINESS-LICENSES.md#transport-completion-and-publication-outcomes--september-8-2026).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

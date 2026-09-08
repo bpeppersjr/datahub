@@ -36,12 +36,15 @@ function parseArguments(args) {
     minimumNaicsCoverageRate: 0.99,
     resumeStagingRun: null,
   };
+  const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (argument === "--help") return { help: true };
+    if (argument === "--help") { if (args.length !== 1) throw new Error("--help must be used alone."); return { help: true }; }
     if (["--output", "--zbp", "--minimum-license-rows", "--maximum-quarantine-rate", "--minimum-naics-coverage-rate", "--resume-staging-run"].includes(argument)) {
       const value = args[index + 1];
-      if (!value) throw new Error(`${argument} requires a value.`);
+      if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value.`);
+      if (seen.has(argument)) throw new Error(`${argument} may only be supplied once.`);
+      seen.add(argument);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--zbp") options.zbp = value;
@@ -61,8 +64,7 @@ try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     process.stdout.write(usage());
-    process.exit(0);
-  }
+  } else {
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   const result = options.resumeStagingRun
     ? await publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
@@ -81,8 +83,16 @@ try {
     manifest: path.join(result.releaseDirectory, "manifest.json"),
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
+  }
 } catch (error) {
-  process.stderr.write(`Alaska active business-license build failed: ${error.message}\n`);
+  if (error.code === "AK_PUBLICATION_INCOMPLETE") {
+    process.stderr.write("Alaska publication did not finalize cleanly; a release or pointer may already exist. Preserve and inspect evidence before another build or resume.\n");
+    process.stderr.write(JSON.stringify({ status: "PUBLICATION_INCOMPLETE", phase: ["release-rename", "pointer-write", "pointer-rename", "post-publication"].includes(error.phase) ? error.phase : null, release_id: typeof error.releaseId === "string" && /^ak-active-business-licenses-[0-9TZ-]+-[a-f0-9]{8}$/.test(error.releaseId) ? error.releaseId : null }) + "\n");
+  } else if (cancellation.signal.aborted) {
+    process.stderr.write("Alaska build cancelled; inspect retained run evidence before resuming.\n");
+  } else {
+    process.stderr.write("Alaska build failed. Check arguments and prerequisites, and inspect retained run evidence before retrying; publication may require inspection.\n");
+  }
   process.exitCode = 1;
 } finally {
   cancellation.dispose();

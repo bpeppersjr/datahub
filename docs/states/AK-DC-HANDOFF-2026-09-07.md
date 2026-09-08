@@ -1,5 +1,7 @@
 # Alaska and D.C. application handoff audit
 
+Historical audit: later implementation and current limitations are recorded in [Alaska's connector evidence](../AK-ACTIVE-BUSINESS-LICENSES.md). Do not treat this September 7 gap list as current runtime state or as a new acquisition receipt.
+
 Scope: one read-only Alaska peer audit in parallel with the integrator's D.C. connector inspection. These are code/contract readiness findings, not new live-source access, new state agents for other states, or newly acquired records. The existing production registry controller and child were confirmed alive and left independent of this work.
 
 ## Alaska

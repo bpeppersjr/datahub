@@ -245,7 +245,7 @@ test("Alaska network backoff is bounded and invalid retry budgets never fetch", 
   const url = "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload";
   for (const attempts of [0, 11, 1.5]) await assert.rejects(requestAkCsv(url, { attempts, fetchImpl: async () => assert.fail("invalid budget") }), /attempts/);
   const waits = [];
-  await assert.rejects(requestAkCsv(url, { attempts: 7, fetchImpl: async () => { throw new TypeError("fixture network failure"); }, sleep: async (ms) => waits.push(ms) }), /fixture network failure/);
+  await assert.rejects(requestAkCsv(url, { attempts: 7, fetchImpl: async () => { throw new TypeError("fixture network failure"); }, sleep: async (ms) => waits.push(ms) }), /Alaska source transport failed/);
   assert.deepEqual(waits, [500, 1000, 2000, 4000, 8000, 8000]);
 });
 
@@ -331,7 +331,7 @@ test("Alaska body and parser failures reject builds instead of hanging or publis
     await assert.rejects(buildAkActiveBusinessLicenses({
       outputRoot, zbpPointer, minimumLicenseRows: 1, maximumResponseBytes: 2000, requestTimeoutMs: kind === "deadline" ? 100 : 5000,
       fetchImpl: async () => { calls++; return new Response(body, { headers: csvHeaders }); }, logger: () => {},
-    }), kind === "oversize" ? /byte limit/ : kind === "body-error" ? /fixture stream failure/ : kind === "deadline" ? /deadline/ : /schema|quote/i);
+    }), kind === "oversize" ? /byte limit/ : kind === "body-error" ? /Alaska source body transport failed/ : kind === "deadline" ? /deadline/ : /schema|quote/i);
     assert.ok(performance.now() - started < 2000, `${kind} must not wait for the five-second request deadline`);
     assert.equal(calls, 1);
     if (kind !== "body-error") assert.equal(cancelled, 1);
