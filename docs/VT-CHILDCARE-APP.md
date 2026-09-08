@@ -35,3 +35,11 @@ Focused tests passed 47/47 across normalization, normalized publication, app lif
 The first full run exposed an omitted explicit state-ledger profile mapping for the new industry source. The mapping now marks Vermont as unmeasured rather than manufacturing published coverage; all 26 state-ledger tests, including a new Vermont boundary regression, passed. The ledger does not inspect actual app dispatch, so its enrollment status is not a substitute for an operation receipt. The initial full-run log remains at `data/tmp/vt-childcare-app-full-check.log`.
 
 The corrected full `npm run check` passed: 1,332 tests, 1,321 passed, 11 skipped, zero failures, plus lint, web/desktop builds and desktop control-plane smoke. Evidence: `data/tmp/vt-childcare-app-full-check-2.log`. Type checking passed, production dependency audit reported zero vulnerabilities, and all 82 pending production pins remained unchanged. The idle development app was restored after verification; no production launch was attempted.
+
+## Accepted application handoff — September 8, 2026
+
+Implementation `85416bb` was pushed before dispatch. The authenticated plan resolved exactly one Vermont task with six prerequisites. No retained Vermont acquisition or managed Vermont source folder was found before this first collection; only the earlier metadata preflight existed.
+
+At `2026-09-08T21:03:38.452Z`, the collection API accepted operation `52b06724-fa4e-4873-9388-27c1a5f1424d` with HTTP 202 and API status RUNNING. The immediate persisted managed receipt at `data/managed-operations/52b06724-fa4e-4873-9388-27c1a5f1424d/receipt.json` still showed its QUEUED transition and supervisor PID 5108. Its handoff-time SHA-256 was `6c92ff37fb52108bd949c5e00cbd442977babe72f037138f1f6261a569f232b0`; this evolving control receipt is not a terminal artifact pin. The persisted plan was checked for the exact Vermont source and state.
+
+Co*Tive owns acquisition and normalization after acceptance. No agent download-progress polling or recurring refresh was started. This records handoff, not completed collection, verified row counts, reporting integration or national promotion. Keep the application service running; automatic restart is not provided by this enrollment.
