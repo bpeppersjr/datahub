@@ -14,14 +14,14 @@ const hash = () => createHash('sha256');
 const exact = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every(k=>Object.hasOwn(v,k));
 const check = (v, why) => { if (!v) throw new Error(`Minnesota selected stream rejected: ${why}.`); };
 const emptyRow = () => Object.fromEntries(MN_CONSTRUCTION_COLUMNS.map(k=>[k,'']));
-function validateContext(context) {
+export function validateMnConstructionSelectionContext(context) {
   check(exact(context,['runId','sourceReleaseId','observedAt','cohort']),'context fields');
   // Validate metadata through the same normalizer before consuming any input.
   normalizeMnConstructionRecord({...emptyRow(),Bus_Pers:'Business',Status:'Issued',Name:'Context validation',Lic_Number:context.cohort==='registrations'?'IR000001':'BC000001'},
     {...context,sourceFileSha256:'0'.repeat(64),rowNumber:1});
 }
 function settings(context, emit, signal) {
-  validateContext(context); check(typeof emit === 'function' && (signal === undefined || signal instanceof AbortSignal),'sink or cancellation'); signal?.throwIfAborted();
+  validateMnConstructionSelectionContext(context); check(typeof emit === 'function' && (signal === undefined || signal instanceof AbortSignal),'sink or cancellation'); signal?.throwIfAborted();
 }
 const encode = frame => `${JSON.stringify(frame)}\n`;
 const claims = () => ({ native_acquisition_verified:false, source_authenticity_verified:false, discarded_rejection_values_replayed:false, public_export_authorized:false, national_reporting_integrated:false });
