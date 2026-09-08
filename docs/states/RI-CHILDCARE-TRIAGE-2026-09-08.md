@@ -11,3 +11,7 @@ The [RI.gov copyright policy](https://www.ri.gov/policies/copyright/) provides p
 Next: identify a publisher-documented anonymous export/API or metadata interface, then establish the center predicate, selected-field schema, licensing-status semantics, update cadence and applicable notices. Do not build a success-capable acquisition preflight by guessing undocumented endpoints. Equally, the evidence does not establish that Rhode Island bulk access is prohibited, paid or account-only.
 
 No facility records, ID inventory, retained release, app dispatch or national coverage claim resulted from this discovery. Maryland processing continued independently.
+
+## Parallel follow-up — September 8, 2026
+
+A second bounded official-documentation review while Vermont retained verification proceeded found no documented statewide bulk delivery contract. The RISES page (displayed update January 5, 2026) still provides no Consumer Portal delivery specification; its provider dashboard and printable-license descriptions concern provider workflows, not demonstrated public bulk access. The previously failing consumer-search surface was not retried. No provider rows, IDs, accounts or contact requests were used. The next actionable prerequisite remains a documented export/API and center-only schema/status contract; this negative discovery is not evidence that bulk access is prohibited or account-only.

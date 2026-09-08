@@ -43,3 +43,29 @@ Implementation `85416bb` was pushed before dispatch. The authenticated plan reso
 At `2026-09-08T21:03:38.452Z`, the collection API accepted operation `52b06724-fa4e-4873-9388-27c1a5f1424d` with HTTP 202 and API status RUNNING. The immediate persisted managed receipt at `data/managed-operations/52b06724-fa4e-4873-9388-27c1a5f1424d/receipt.json` still showed its QUEUED transition and supervisor PID 5108. Its handoff-time SHA-256 was `6c92ff37fb52108bd949c5e00cbd442977babe72f037138f1f6261a569f232b0`; this evolving control receipt is not a terminal artifact pin. The persisted plan was checked for the exact Vermont source and state.
 
 Co*Tive owns acquisition and normalization after acceptance. No agent download-progress polling or recurring refresh was started. This records handoff, not completed collection, verified row counts, reporting integration or national promotion. Keep the application service running; automatic restart is not provided by this enrollment.
+
+## Verified retained completion — September 8, 2026
+
+A subsequent downstream-readiness check found managed operation `52b06724-fa4e-4873-9388-27c1a5f1424d` terminal SUCCEEDED. The standalone app receipt records start `2026-09-08T21:03:38.605Z` and finish `2026-09-08T21:04:05.091Z`, with execution mode `fixed-native-fetch`. No collection was resubmitted. Offline verification succeeded using:
+
+```powershell
+node scripts/verify-vt-childcare-app.mjs --receipt 'C:\Master Data\datahub\data\industry-segments\runs\52b06724-fa4e-4873-9388-27c1a5f1424d\state-vt-childcare-centers-VT\jobs\4f721905-454e-4f16-b11f-98594d035640\receipt.json'
+```
+
+The verifier checks the app checkpoints and child bindings, replays retained acquisition evidence and recomputes normalization, including artifact contents and hashes. It does not independently attest the network execution or publisher authenticity.
+
+| Retained artifact | Run ID | SHA-256 |
+| --- | --- | --- |
+| Terminal app receipt | `4f721905-454e-4f16-b11f-98594d035640` | `7b82339cffcafd56569561d82c004e1184e8fe4daf943fed0ed38c7bc794f485` |
+| Acquired manifest | `c56ad1bb-a80d-4612-b7f5-f97f0a4037e0` | `2af5a986fd2036b4cede77dc0ec70026059ca195e0033e69b33482f107d8fdae` |
+| Normalized manifest | `b6fda9fd-718e-4c99-abcd-a51fbbf1bf92` | `76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166` |
+
+The verified summary conserves 503 selected source rows as 503 normalized candidates and zero quarantined rows. All 503 have syntactically accepted ZIP5 values; a separate local aggregation found 172 distinct reported ZIP5 values. Two records retain a separate ZIP4. All 503 lack a source-reported state and selected coordinates; the Vermont publisher scope is not silently substituted for address state. ZIP syntax acceptance does not prove USPS assignment or ZCTA membership. Dates and capacities parsed without unavailable-value counts, but neither current operations nor the exact reporting period is verified.
+
+These are internal source candidates, not a count of distinct active businesses or a national coverage percentage. National reporting integration and public export remain false. The next integration step must consume these retained, verified manifests, keep publisher scope distinct from reported geography, and preserve the missing-geocode/current-status gaps. No new source download is required for that step.
+
+### Retained reporting integration boundary
+
+A parallel review of Maryland's enrollment and the state-access ledger identified a required Vermont distinction: do not project `by_reported_state` onto VT, which would yield a misleading zero or require inventing state assignments. Add separately labeled local publisher-cohort evidence, with `publisherJurisdiction: VT`, null reported address state, 503 publisher-cohort rows and 503 missing-address-state rows. Preserve the null-state aggregation bucket and source clocks without decoding a reporting period from the filename. A native receipt enrollment must pin and reverify the retained chain; missing artifacts mean unavailable, not zero. ZIP metrics must distinguish distinct reported values from rows and must not imply polygon assignment. Acceptance tests must cover null-state conservation, publisher-only placement, missing enrollment, injected-mode rejection, tampering and unchanged national ledger counts. This is the reviewed next implementation contract, not an implemented reporting feature.
+
+Completion-evidence validation: `npm run check` passed again (1,332 tests; 1,321 passed, 11 skipped, zero failed; lint, builds and desktop smoke passed), with log `data/tmp/vt-retained-completion-check.log`. Type checking passed and the production dependency audit reported zero vulnerabilities. All 82 pending production pins remained unchanged. Both app queues were confirmed empty before the temporary development-service stop required for desktop verification; the service was restored afterward. This change records retained evidence and the reporting boundary only; it does not add runtime behavior or alter production data.

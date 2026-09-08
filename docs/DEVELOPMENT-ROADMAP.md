@@ -520,3 +520,5 @@ Every milestone must pass:
 - signed, checksummed release artifacts with release and migration notes.
 
 Remote access, multi-user operation, or production data claims remain out of scope until the security, lifecycle, and release gates have passed.
+
+Vermont retained completion (September 8): [independent offline verification](VT-CHILDCARE-APP.md#verified-retained-completion--september-8-2026) passed for the app-owned collection. The release contains 503 normalized source candidates, zero quarantine, 172 distinct reported ZIP5 values and two separate ZIP4 values. No selected geocodes or source-reported state are available. Next: integrate retained local reporting without conflating publisher scope with address geography or claiming national completeness; reuse the verified release rather than recollecting it.
