@@ -1,18 +1,50 @@
 import { createHash, randomUUID } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gunzipSync } from "node:zlib";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
 export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.8.0";
+export const TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.9.0";
+const TN_SOURCE = "tn-dhs-active-childcare-centers";
+const TN_KEY = "tn_childcare_centers";
+function emptyTnReporting() {
+  return { records: 0, with_zip: 0, without_zip: 0, missing_zip_reasons: { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 }, missing_points: 0, zip_inferred: false };
+}
+function addTnReporting(stats, row) {
+  stats.records++;
+  if (row.zip_code === null) { stats.without_zip++; stats.missing_zip_reasons[row.evidence.zip_unavailable_reason]++; }
+  else stats.with_zip++;
+  if (row.location.latitude === null && row.location.longitude === null) stats.missing_points++;
+}
+function sumTnReporting(rows) {
+  const total = emptyTnReporting();
+  for (const row of rows) {
+    for (const key of ["records", "with_zip", "without_zip", "missing_points"]) total[key] += row[key];
+    for (const key of Object.keys(total.missing_zip_reasons)) total.missing_zip_reasons[key] += row.missing_zip_reasons[key];
+  }
+  return total;
+}
+function checkTnReporting(value) {
+  const empty = emptyTnReporting();
+  if (!value || !isDeepStrictEqual(Object.keys(value).sort(), Object.keys(empty).sort())
+    || ![value.records, value.with_zip, value.without_zip, value.missing_points].every(n => Number.isSafeInteger(n) && n >= 0)
+    || value.with_zip + value.without_zip !== value.records || value.missing_points > value.records || value.zip_inferred !== false
+    || !value.missing_zip_reasons || !isDeepStrictEqual(Object.keys(value.missing_zip_reasons).sort(), Object.keys(empty.missing_zip_reasons).sort())
+    || !Object.values(value.missing_zip_reasons).every(n => Number.isSafeInteger(n) && n >= 0)
+    || Object.values(value.missing_zip_reasons).reduce((sum, n) => sum + n, 0) !== value.without_zip) throw new Error("TN reporting ZIP accounting is invalid.");
+  return value;
+}
 
 const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   usda_snap_retailers: "usda-snap-current-retailers",
@@ -35,6 +67,7 @@ const SOURCE_KEY_TO_PROFILE_SOURCE_ID = Object.freeze({
   wa_lni_active_contractor_organizations: null,
   ma_childcare_centers: "ma-licensed-center-based-childcare",
   nj_childcare_centers: "nj-licensed-childcare-centers",
+  tn_childcare_centers: TN_SOURCE,
 });
 
 function sha256(value) {
@@ -175,6 +208,7 @@ async function resolveDataset(inputPath, expectedDatasetId) {
     manifest,
     manifestPath,
     manifestSha256: sha256(manifestBuffer),
+    manifestBuffer,
     releaseDirectory: path.dirname(manifestPath),
   };
 }
@@ -687,6 +721,14 @@ export async function buildNationalBusinessCoverageViews({
     resolveDataset(benchmarkPointerPath, "national-business-entity-resolution-benchmark"),
     resolveDataset(nonemployerPointerPath, "census-nonemployer-baseline"),
   ]);
+  const tnSupported = registry.manifest.publisher?.version === "2.13.0";
+  if (versionAtLeast(registry.manifest.publisher?.version, "2.13.0") && !tnSupported) throw new Error("Unreviewed registry publisher version for coverage.");
+  const tnDependencies = registry.manifest.dependencies?.filter(row => row.dataset_id === TN_SOURCE) ?? [];
+  const tnDependency = tnDependencies[0];
+  if (tnDependencies.length !== Number(tnSupported)) throw new Error("TN reporting requires exact registry 2.13 and retained source dependency.");
+  const transformationVersion = tnSupported ? TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION : COVERAGE_VIEWS_TRANSFORMATION_VERSION;
+  const tnTotal = emptyTnReporting(), tnStates = new Map(), tnCounties = new Map();
+  let tnCoordinateAssigned = 0;
   if (!geography.manifest.complete_national_release || !crosswalk.manifest.complete_national_release) {
     throw new Error("Complete national geography and ZCTA crosswalk releases are required.");
   }
@@ -810,29 +852,57 @@ export async function buildNationalBusinessCoverageViews({
   const reportingArtifacts = (registry.manifest.artifacts ?? []).filter((artifact) => artifact.artifact_type === "business-reporting-location-evidence-jsonl-gzip");
   const reportingRows = [], reportingSiteIds = new Set();
   for (const artifact of reportingArtifacts) {
+    let verifiedRows;
+    if (tnSupported) {
+      if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > 100_000_000) throw new Error("Reporting artifact byte limit.");
+      const hash = createHash("sha256"), chunks = []; let bytes = 0;
+      for await (const chunk of createReadStream(artifactPath(registry, artifact))) {
+        bytes += chunk.length; if (bytes > artifact.bytes) throw new Error("Reporting artifact byte mismatch."); hash.update(chunk); chunks.push(chunk);
+      }
+      if (bytes !== artifact.bytes || hash.digest("hex") !== artifact.sha256) throw new Error("Reporting artifact checksum mismatch.");
+      // Decode only the bytes just verified, never a second mutable path read.
+      const decoded = gunzipSync(Buffer.concat(chunks, bytes), { maxOutputLength: 100_000_000 });
+      verifiedRows = new TextDecoder("utf-8", { fatal: true }).decode(decoded).split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+    }
     let count = 0;
-    for await (const row of streamGzipJsonLines(artifactPath(registry, artifact))) {
-      validateChildcareGeographicEvidence(row);
+    for await (const row of verifiedRows ?? streamGzipJsonLines(artifactPath(registry, artifact))) {
+      if (row.source?.source_id === TN_SOURCE) {
+        if (!tnSupported) throw new Error("TN reporting requires registry 2.13.");
+        validateTnChildcareGeographicEvidence(row);
+        const zip2 = row.zip_code?.slice(0, 2) ?? "unassigned";
+        if (artifact.path !== `reporting/location-evidence/zip2=${zip2}/records.jsonl.gz` || artifact.export_policy !== "local-review-only"
+          || row.evidence.release_id !== tnDependency.release_id || row.evidence.manifest_sha256 !== tnDependency.manifest_sha256) throw new Error("TN reporting partition or dependency differs.");
+        addTnReporting(tnTotal, row);
+      } else validateChildcareGeographicEvidence(row);
       if (reportingSiteIds.has(row.site_entity_id)) throw new Error("Duplicate reporting-only site evidence.");
       reportingSiteIds.add(row.site_entity_id); reportingRows.push(row); count++;
     }
     if (count !== artifact.record_count) throw new Error("Reporting-only artifact record count mismatch.");
   }
   if (reportingRows.length !== (registry.manifest.coverage.reporting_location_evidence ?? 0)) throw new Error("Reporting-only registry count mismatch.");
+  if (tnSupported && (!tnTotal.records || tnTotal.records !== registry.manifest.coverage.tn_childcare_center_sites
+    || tnTotal.with_zip !== registry.manifest.coverage.tn_childcare_center_sites_with_zip
+    || tnTotal.without_zip !== registry.manifest.coverage.tn_childcare_center_sites_without_zip
+    || tnTotal.without_zip !== registry.manifest.coverage.reporting_location_evidence_without_zip
+    || JSON.stringify(tnTotal.missing_zip_reasons) !== JSON.stringify(registry.manifest.coverage.tn_childcare_missing_zip_reasons))) throw new Error("TN reporting ZIP counts differ from registry.");
   for (const [sourceId, sourceKey, countKey] of [
     ["ma-licensed-center-based-childcare", "ma_childcare_centers", "ma_childcare_center_sites"],
     ["nj-licensed-childcare-centers", "nj_childcare_centers", "nj_childcare_center_sites"],
+    ...(tnSupported ? [[TN_SOURCE, TN_KEY, "tn_childcare_center_sites"]] : []),
   ]) {
     const byZip = new Map(); let count = 0;
     for (const row of reportingRows.filter((entry) => entry.source.source_id === sourceId)) {
+      count++;
+      if (row.zip_code === null) continue;
       if (!zipByCode.has(row.zip_code)) throw new Error("Reporting-only ZIP is missing from registry coverage.");
-      byZip.set(row.zip_code, (byZip.get(row.zip_code) ?? 0) + 1); count++;
+      byZip.set(row.zip_code, (byZip.get(row.zip_code) ?? 0) + 1);
     }
     if (count !== (registry.manifest.coverage[countKey] ?? 0)) throw new Error("Reporting-only source count mismatch.");
     for (const row of registryZipRows) {
       if ((row.source_contributions?.[sourceKey]?.reported_center_count ?? 0) !== (byZip.get(row.zip_code) ?? 0)) throw new Error("Reporting-only ZIP source contribution mismatch.");
     }
   }
+  const reportingEstablishmentIds = new Set(reportingRows.map(row => row.establishment_entity_id));
   const geographicArtifacts = [...profileArtifacts, { reportingOnly: true }];
   let processedProfiles = 0;
   for (const artifact of geographicArtifacts) {
@@ -840,7 +910,8 @@ export async function buildNationalBusinessCoverageViews({
     for await (const profile of reportingOnly ? reportingRows : streamGzipJsonLines(artifactPath(registry, artifact))) {
       if (!reportingOnly) {
         if (reportingSiteIds.has(profile.site_entity_id)) throw new Error("Reporting-only site also appears in identity-matching profiles.");
-        if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"].includes(profile.source?.source_id)) throw new Error("Childcare reporting-only source cannot be an identity-matching profile.");
+        if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE].includes(profile.source?.source_id)
+          || reportingEstablishmentIds.has(profile.establishment_entity_id)) throw new Error("Childcare reporting-only source cannot be an identity-matching profile.");
         processedProfiles += 1;
       }
       const sourceId = profile.source?.source_id ?? "unknown-source";
@@ -851,6 +922,10 @@ export async function buildNationalBusinessCoverageViews({
       updateProfileStats(source, sourceId, observedAt, reportingOnly);
       const reportedState = stateByAbbreviation.get(profile.normalized_address?.state ?? profile.address?.state ?? "");
       if (reportedState) {
+        if (sourceId === TN_SOURCE) {
+          if (!tnStates.has(reportedState.geoid)) tnStates.set(reportedState.geoid, emptyTnReporting());
+          addTnReporting(tnStates.get(reportedState.geoid), profile);
+        }
         profileSummary.reported_state_assigned_count += 1;
         source.reported_state_assigned_count += 1;
         const stats = stateStats.get(reportedState.geoid);
@@ -890,6 +965,11 @@ export async function buildNationalBusinessCoverageViews({
         source.reporting_only_coordinate_assigned_count++;
       }
       const county = countyStats.get(assignment.county.geoid);
+      if (sourceId === TN_SOURCE) {
+        tnCoordinateAssigned++;
+        if (!tnCounties.has(assignment.county.geoid)) tnCounties.set(assignment.county.geoid, emptyTnReporting());
+        addTnReporting(tnCounties.get(assignment.county.geoid), profile);
+      }
       updateProfileStats(county, sourceId, observedAt, reportingOnly);
       if (reportingOnly) county.reporting_only_coordinate_assigned_count++;
       const coordinateState = stateStats.get(assignment.county.stateFips);
@@ -917,6 +997,7 @@ export async function buildNationalBusinessCoverageViews({
     source_counts: undefined,
   })).sort((left, right) => left.source_id.localeCompare(right.source_id));
   const lineage = createLineage(registry, geography, crosswalk, resolution, benchmark, nonemployer);
+  lineage.transformation_version = transformationVersion;
   const identitySemantics = {
     entity_resolution_applied: false,
     count_semantics: "source-preserving-geographic-evidence-including-reporting-only-not-deduplicated-businesses",
@@ -951,6 +1032,7 @@ export async function buildNationalBusinessCoverageViews({
         matching_profile_count: stats.matching_profile_count,
         reporting_only_count: stats.reporting_only_count,
         reporting_only_coordinate_assigned_count: stats.reporting_only_coordinate_assigned_count,
+        ...(tnSupported ? { tn_childcare_reporting: tnStates.get(state.geoid) ?? emptyTnReporting() } : {}),
         coordinate_assigned_profile_count: stats.coordinate_assigned_single_count,
         reported_coordinate_state_conflict_count: stats.reported_coordinate_state_conflict_count,
         source_profile_counts_by_reported_address_state: sortedObject(stats.source_counts),
@@ -996,6 +1078,7 @@ export async function buildNationalBusinessCoverageViews({
       },
       registry_evidence: {
         coordinate_assigned_profile_count: stats.profile_count,
+        ...(tnSupported ? { tn_childcare_reporting: tnCounties.get(county.geoid) ?? emptyTnReporting() } : {}),
         matching_profile_count: stats.matching_profile_count,
         reporting_only_count: stats.reporting_only_count,
         source_profile_counts: sortedObject(stats.source_counts),
@@ -1082,6 +1165,11 @@ export async function buildNationalBusinessCoverageViews({
     };
   }).sort((left, right) => left.zip_code.localeCompare(right.zip_code));
 
+  if (tnSupported && !sourceContributionSummaries.has(TN_KEY)) {
+    const first = reportingRows.find(row => row.source.source_id === TN_SOURCE);
+    sourceContributionSummaries.set(TN_KEY, { source_key: TN_KEY, profile_source_id: TN_SOURCE, zip_level_counts: { reported_center_count: 0 },
+      release_metadata: { source_release_id: first.source.source_release_id, observed_at: first.observed_at, record_level_distribution: "local-review-only", active_business_verified: false }, zip_rows_with_contribution: 0 });
+  }
   const sourceViews = [...sourceContributionSummaries.values()].map((summary) => {
     const profiles = summary.profile_source_id ? sourceStats.get(summary.profile_source_id) ?? emptyProfileStats() : emptyProfileStats();
     return {
@@ -1111,10 +1199,12 @@ export async function buildNationalBusinessCoverageViews({
         latest_observed_at: profiles.latest_observed_at,
       },
       complete_source_for_all_businesses: false,
+      ...(tnSupported && summary.source_key === TN_KEY ? { tn_childcare_reporting: tnTotal, source_manifest: { ...tnDependency } } : {}),
       ...(profiles.reporting_only_count > 0 ? {
         identity_matching_eligible: false,
         export_policy: "local-review-only",
-        industry_scope: summary.source_key === "ma_childcare_centers"
+        industry_scope: summary.source_key === TN_KEY ? "Tennessee DHS Active Child Care Center source rows; source status is not verified operation; TDOE and other care types excluded"
+          : summary.source_key === "ma_childcare_centers"
           ? "MassGIS/EEC center-based childcare; source scope is not identical to NJDEP/DCF"
           : "NJDEP/DCF licensed childcare centers including public-school facilities; not all childcare businesses",
       } : {}),
@@ -1170,6 +1260,7 @@ export async function buildNationalBusinessCoverageViews({
       },
       registry_evidence: {
         reported_address_profile_count: selectedStates.reduce((sum, state) => sum + state.registry_evidence.reported_address_profile_count, 0),
+        ...(tnSupported ? { tn_childcare_reporting: sumTnReporting(selectedStates.map(state => state.registry_evidence.tn_childcare_reporting)) } : {}),
         matching_profile_count: selectedStates.reduce((sum, state) => sum + state.registry_evidence.matching_profile_count, 0),
         reporting_only_count: selectedStates.reduce((sum, state) => sum + state.registry_evidence.reporting_only_count, 0),
         coordinate_assigned_profile_count: selectedCounties.reduce((sum, county) => sum + county.registry_evidence.coordinate_assigned_profile_count, 0),
@@ -1195,6 +1286,7 @@ export async function buildNationalBusinessCoverageViews({
       name: "All supported U.S. and territory records in the selected registry release",
       registry_manifest_coverage: registry.manifest.coverage,
       profile_geography_summary: profileSummary,
+      ...(tnSupported ? { tn_childcare_reporting: tnTotal } : {}),
       zip_union: {
         row_count: zipViews.length,
         rows_with_record_level_source_contribution: zipViews.filter((row) => row.registry_coverage.status === "record-level-source-contribution").length,
@@ -1230,6 +1322,10 @@ export async function buildNationalBusinessCoverageViews({
     nonemployer,
     lineage,
   });
+  if (tnSupported && tnTotal.without_zip) gapViews.push({ gap_id: "gap:tn-childcare-source-zip-unavailable", gap_type: "reporting-source-zip-unavailable", scope_type: "source", scope_id: TN_KEY,
+    schema_version: COVERAGE_VIEWS_SCHEMA_VERSION, view_type: "coverage-gap", status: "open", severity: "declared-limitation",
+    evidence: { source_id: TN_SOURCE, record_count: tnTotal.without_zip, reasons: tnTotal.missing_zip_reasons, zip_inferred: false },
+    consequence: "Retained in source and reported-state totals; valid points may contribute to counties. No ZIP or ZCTA inferred from coordinates.", lineage });
   const zipViewsWithZcta = zipViews.filter(hasZctaGeography).length;
   if (zipViewsWithZcta !== zctaSummaries.length) {
     throw new Error(`Registry ZIP views contain ${zipViewsWithZcta} ZCTA rows; the crosswalk contains ${zctaSummaries.length}.`);
@@ -1257,6 +1353,11 @@ export async function buildNationalBusinessCoverageViews({
     json(profileSummary),
     { artifact_type: "profile-geography-summary-json", record_count: 1 },
   ));
+  if (tnSupported) {
+    if (registry.manifestBuffer.length > 4_000_000) throw new Error("Registry declaration exceeds retained evidence limit.");
+    artifacts.push(await writeArtifact(stagingDirectory, "evidence/registry-manifest.json", registry.manifestBuffer,
+      { artifact_type: "retained-registry-manifest-json", record_count: 1, export_policy: "internal" }));
+  }
   const dependencies = [registry, geography, crosswalk, resolution, benchmark, nonemployer].map((dataset) => ({
     dataset_id: dataset.manifest.dataset_id,
     release_id: dataset.manifest.release_id,
@@ -1267,7 +1368,7 @@ export async function buildNationalBusinessCoverageViews({
   const manifest = {
     schema_version: COVERAGE_VIEWS_SCHEMA_VERSION,
     dataset_id: "national-business-coverage-views",
-    publisher: { id: "national-business-coverage-views", version: COVERAGE_VIEWS_TRANSFORMATION_VERSION.split("@")[1] },
+    publisher: { id: "national-business-coverage-views", version: transformationVersion.split("@")[1] },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -1287,6 +1388,8 @@ export async function buildNationalBusinessCoverageViews({
     export_policy: "local-aggregate-review-required",
     dependencies,
     coverage: {
+      ...(tnSupported ? { tn_childcare_reporting: tnTotal, tn_childcare_coordinate_assigned: tnCoordinateAssigned,
+        tn_childcare_without_county_assignment: tnTotal.records - tnCoordinateAssigned } : {}),
       national_views: nationalViews.length,
       state_views: stateViews.length,
       county_views: countyViews.length,
@@ -1451,6 +1554,8 @@ export async function buildNationalBusinessCoverageViews({
       absence: "no integrated source evidence is not evidence of no active business",
     },
     limitations: [
+      ...(tnSupported ? ["TN DHS recovered childcare source rows remain local-review-only, reporting-only and not verified operating businesses. Missing source ZIPs remain unassigned to ZIP/ZCTA while reported state and valid point-derived county evidence are retained. Original source observation is not refreshed by recovery or coverage publication.",
+        "The retained registry manifest binds TN counts and source dependency declarations to the recorded hash; this is not a fresh scan or replay of the registry's full assertions or underlying recovered acquisition."] : []),
       "MA/NJ childcare rows contribute separately counted reporting-only geographic evidence, never identity-matching candidates. Geographic profile-compatible fields include both evidence classes; location_profiles_assessed and coordinate_assigned_profiles retain matching-only totals. Neither class is a deduplicated or independently verified active-business count.",
       "MassGIS/EEC center-based childcare and NJDEP/DCF licensed centers have different source scopes, including NJ public-school facilities. Their shares are not comparable completeness percentages. Record-level childcare evidence remains local-review-only; NJ publisher metadata and prescribed notices remain mandatory for any separately authorized distribution.",
       "This is a partial governed coverage view, not a complete census of active U.S. businesses.",
@@ -1513,7 +1618,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   if (manifest.dataset_id !== "national-business-coverage-views") throw new Error(`Unexpected dataset_id ${manifest.dataset_id ?? "missing"}.`);
   if (manifest.publisher?.id !== "national-business-coverage-views"
-    || !["2.7.0", COVERAGE_VIEWS_TRANSFORMATION_VERSION.split("@")[1]].includes(manifest.publisher?.version)) {
+    || !["2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version)) {
     throw new Error(`Unexpected publisher version ${manifest.publisher?.version ?? "missing"}.`);
   }
   if (manifest.status !== "published-partial-local-aggregate") throw new Error(`Unexpected release status ${manifest.status ?? "missing"}.`);
@@ -1579,6 +1684,15 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   ];
   for (const type of expectedTypes) if (!artifacts.has(type)) throw new Error(`Missing ${type} artifact.`);
   const coverage = manifest.coverage;
+  const tnSupported = manifest.publisher.version === "2.9.0";
+  const tnTotal = tnSupported ? checkTnReporting(coverage.tn_childcare_reporting) : emptyTnReporting();
+  if (!tnSupported && ["tn_childcare_reporting", "tn_childcare_coordinate_assigned", "tn_childcare_without_county_assignment"].some(key => Object.hasOwn(coverage, key))) throw new Error("TN accounting requires coverage 2.9.");
+  if (tnSupported && (!tnTotal.records || !Number.isSafeInteger(coverage.tn_childcare_coordinate_assigned) || coverage.tn_childcare_coordinate_assigned < 0
+    || coverage.tn_childcare_coordinate_assigned > tnTotal.records - tnTotal.missing_points
+    || coverage.tn_childcare_without_county_assignment !== tnTotal.records - coverage.tn_childcare_coordinate_assigned)) throw new Error("TN county accounting is invalid.");
+  const tnStateTotals = [], tnCountyTotals = [], tnNationalRows = [];
+  let tnSourceCount = 0, tnZipCount = 0, tnMissingGapCount = 0, tnSourceDeclaration;
+  if (!tnSupported && artifacts.has("retained-registry-manifest-json")) throw new Error("Retained registry declaration requires coverage 2.9.");
   const reportingSupported = versionAtLeast(manifest.publisher.version, "2.8.0");
   const checkSplit = (row, total) => {
     if (!reportingSupported) return;
@@ -1586,12 +1700,20 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
       || row.matching_profile_count + row.reporting_only_count !== total) throw new Error("Matching/reporting-only geography split is inconsistent.");
   };
   const nationalCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("national-coverage-view-jsonl").path), (row) => {
+    if (!tnSupported && (Object.hasOwn(row, "tn_childcare_reporting") || Object.hasOwn(row.registry_evidence ?? {}, "tn_childcare_reporting"))) throw new Error("TN national accounting requires coverage 2.9.");
+    if (tnSupported) { checkTnReporting(row.tn_childcare_reporting ?? row.registry_evidence?.tn_childcare_reporting); tnNationalRows.push(row); }
     if (row.complete_all_businesses !== false || row.identity_semantics?.entity_resolution_applied !== false) throw new Error(`${row.view_id} has invalid completeness semantics.`);
     if (!row.nonemployer_baseline || row.nonemployer_baseline.current_named_business_status !== false) throw new Error(`${row.view_id} has invalid Nonemployer baseline semantics.`);
   });
   let stateNonemployerEstablishments = 0;
   let stateViewsWithNonemployerBaseline = 0;
   const stateCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("state-coverage-view-jsonl").path), (row) => {
+    if (!tnSupported && Object.hasOwn(row.registry_evidence, "tn_childcare_reporting")) throw new Error("TN state accounting requires coverage 2.9.");
+    if (tnSupported) {
+      const counts = checkTnReporting(row.registry_evidence.tn_childcare_reporting);
+      if (counts.records !== (row.registry_evidence.source_profile_counts_by_reported_address_state[TN_SOURCE] ?? 0)) throw new Error("TN state counts differ.");
+      tnStateTotals.push(counts);
+    }
     checkSplit(row.registry_evidence, row.registry_evidence.reported_address_profile_count);
     if (row.complete_all_businesses !== false || row.employer_baseline_allocation !== null) throw new Error(`${row.view_id} has unsupported state completeness/allocation.`);
     if (!row.nonemployer_baseline || row.nonemployer_baseline.current_named_business_status !== false) throw new Error(`${row.view_id} has invalid Nonemployer semantics.`);
@@ -1605,6 +1727,12 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   let countyNonemployerEstablishments = 0;
   let countyViewsWithNonemployerBaseline = 0;
   const countyCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("county-coverage-view-jsonl").path), (row) => {
+    if (!tnSupported && Object.hasOwn(row.registry_evidence, "tn_childcare_reporting")) throw new Error("TN county accounting requires coverage 2.9.");
+    if (tnSupported) {
+      const counts = checkTnReporting(row.registry_evidence.tn_childcare_reporting);
+      if (counts.missing_points !== 0 || counts.records !== (row.registry_evidence.source_profile_counts[TN_SOURCE] ?? 0)) throw new Error("TN county counts differ.");
+      tnCountyTotals.push(counts);
+    }
     checkSplit(row.registry_evidence, row.registry_evidence.coordinate_assigned_profile_count);
     if (row.complete_all_businesses !== false || row.zip_business_count_allocation !== null) throw new Error(`${row.view_id} has unsupported county completeness/allocation.`);
     countyAssignedProfiles += row.registry_evidence.coordinate_assigned_profile_count;
@@ -1624,6 +1752,11 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const includedZctaCodes = new Set();
   const excludedSpatialZipCodes = new Set();
   const zipCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("zip-coverage-view-jsonl").path), (row) => {
+    if (tnSupported) {
+      const n = row.registry_coverage.tn_childcare_center_site_count;
+      if (!Number.isSafeInteger(n) || n < 0 || (row.source_contributions?.[TN_KEY]?.reported_center_count ?? 0) !== n) throw new Error("TN ZIP contributions differ.");
+      tnZipCount += n;
+    }
     if (row.complete_all_businesses !== false || row.registry_coverage.complete_all_businesses !== false) throw new Error(`${row.view_id} has invalid ZIP completeness semantics.`);
     if (row.nonemployer_baseline_allocation !== null || !row.coverage_gap_codes.includes("no-census-nonemployer-zip-allocation")) throw new Error(`${row.view_id} has unsupported Nonemployer ZIP allocation.`);
     if (!/^\d{5}$/.test(row.zip_code) || row.view_id !== `zip:${row.zip_code}`) throw new Error(`${row.view_id} has an invalid ZIP5 key.`);
@@ -1656,6 +1789,15 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   let sourceCoordinateAssignedTotal = 0;
   let nonemployerSourceViews = 0;
   const sourceCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("source-coverage-view-jsonl").path), (row) => {
+    if (row.source_key === TN_KEY || row.profile_source_id === TN_SOURCE) {
+      tnSourceDeclaration = row.source_manifest;
+      if (!tnSupported || row.source_key !== TN_KEY || row.profile_source_id !== TN_SOURCE || ++tnSourceCount !== 1
+        || !isDeepStrictEqual(checkTnReporting(row.tn_childcare_reporting), tnTotal)
+        || row.location_profile_geography.reporting_only_count !== tnTotal.records || row.location_profile_geography.matching_profile_count !== 0
+        || row.location_profile_geography.coordinate_missing_count !== tnTotal.missing_points
+        || row.location_profile_geography.coordinate_assigned_single_count !== coverage.tn_childcare_coordinate_assigned
+        || row.zip_level_counts.reported_center_count !== tnTotal.with_zip) throw new Error("TN source accounting differs.");
+    }
     checkSplit(row.location_profile_geography, row.location_profile_geography.profile_count);
     if (reportingSupported && row.location_profile_geography.reporting_only_count > 0
       && (row.identity_matching_eligible !== false || row.export_policy !== "local-review-only")) throw new Error("Reporting-only source lost its identity/export restrictions.");
@@ -1674,6 +1816,11 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const gapCountsByType = {};
   const excludedSpatialGapZipCodes = new Set();
   const gapCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("coverage-gap-view-jsonl").path), (row) => {
+    if (row.gap_type === "reporting-source-zip-unavailable") {
+      if (!tnSupported || !tnTotal.without_zip || ++tnMissingGapCount !== 1 || row.gap_id !== "gap:tn-childcare-source-zip-unavailable"
+        || row.scope_type !== "source" || row.scope_id !== TN_KEY || row.evidence?.source_id !== TN_SOURCE || row.evidence.record_count !== tnTotal.without_zip
+        || row.evidence.zip_inferred !== false || !isDeepStrictEqual(row.evidence.reasons, tnTotal.missing_zip_reasons)) throw new Error("TN missing ZIP gap differs.");
+    }
     increment(gapCountsByType, row.gap_type);
     if (row.gap_type === "reported-zip5-not-in-census-zcta5-polygon-denominator") {
       if (row.scope_type !== "zip" || !/^\d{5}$/.test(row.scope_id ?? "") || row.gap_id !== `gap:reported-zip5-outside-zcta:${row.scope_id}`) {
@@ -1734,6 +1881,30 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   if (sourceCoordinateAssignedTotal !== profileSummary.coordinate_assigned_single_count) throw new Error("Source-view coordinate counts do not reconcile to the profile summary.");
   const registryDependency = manifest.dependencies.find((dependency) => dependency.dataset_id === "national-business-registry");
   if (!registryDependency) throw new Error("Registry dependency is missing.");
+  if (tnSupported !== (registryDependency.publisher_version === "2.13.0")) throw new Error("TN coverage version and registry dependency differ.");
+  if (tnSupported) {
+    const artifact = artifacts.get("retained-registry-manifest-json");
+    if (!artifact || artifact.path !== "evidence/registry-manifest.json" || artifact.bytes > 4_000_000 || artifact.export_policy !== "internal" || artifact.sha256 !== registryDependency.manifest_sha256) throw new Error("TN retained registry declaration differs from dependency.");
+    const declared = JSON.parse(await readFile(path.join(releaseDirectory, artifact.path), "utf8"));
+    const counts = declared.coverage;
+    if (declared.dataset_id !== registryDependency.dataset_id || declared.release_id !== registryDependency.release_id
+      || declared.publisher?.version !== "2.13.0" || declared.publisher.id !== "national-business-registry" || declared.status !== "published-partial" || declared.complete_national_business_registry !== false
+      || counts?.tn_childcare_center_sites !== tnTotal.records || counts.tn_childcare_center_sites_with_zip !== tnTotal.with_zip
+      || counts.tn_childcare_center_sites_without_zip !== tnTotal.without_zip || counts.reporting_location_evidence_without_zip !== tnTotal.without_zip
+      || !isDeepStrictEqual(counts.tn_childcare_missing_zip_reasons, tnTotal.missing_zip_reasons)
+      || counts.resolution_location_profiles !== coverage.location_profiles_assessed || counts.reporting_location_evidence !== coverage.reporting_only_locations_assessed
+      || counts.physical_sites !== coverage.geographic_evidence_assessed) throw new Error("TN totals differ from retained registry declaration.");
+    const sourceDeclarations = declared.dependencies?.filter(row => row.dataset_id === TN_SOURCE) ?? [];
+    if (sourceDeclarations.length !== 1 || !/^tn-childcare-recovered-[a-f0-9-]{36}$/.test(sourceDeclarations[0].release_id ?? "")
+      || !/^[a-f0-9]{64}$/.test(sourceDeclarations[0].manifest_sha256 ?? "")
+      || !isDeepStrictEqual(sourceDeclarations[0], tnSourceDeclaration)) throw new Error("TN source declaration differs from retained registry dependency.");
+    const countyTotals = sumTnReporting(tnCountyTotals);
+    if (tnSourceCount !== 1 || tnZipCount !== tnTotal.with_zip || tnMissingGapCount !== Number(tnTotal.without_zip > 0)
+      || !isDeepStrictEqual(sumTnReporting(tnStateTotals), tnTotal)
+      || countyTotals.records !== coverage.tn_childcare_coordinate_assigned || countyTotals.with_zip > tnTotal.with_zip || countyTotals.without_zip > tnTotal.without_zip
+      || Object.keys(tnTotal.missing_zip_reasons).some(reason => countyTotals.missing_zip_reasons[reason] > tnTotal.missing_zip_reasons[reason])
+      || tnNationalRows.some(row => !isDeepStrictEqual(row.tn_childcare_reporting ?? row.registry_evidence?.tn_childcare_reporting, tnTotal))) throw new Error("TN reporting source/state/county/ZIP totals do not reconcile.");
+  }
   const expectedPostalMigrationStatus = versionAtLeast(registryDependency.publisher_version, "2.10.0")
     ? "enforced-in-registry-release" : "pre-migration-registry-release";
   if (postalMigration.registry_publisher_version !== registryDependency.publisher_version
@@ -1760,7 +1931,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     throw new Error("County Nonemployer baseline coverage does not match the manifest.");
   }
   if (countyNonemployerEstablishments !== coverage.county_nonemployer_establishments) throw new Error("County Nonemployer establishments do not match the manifest.");
-  if (zipPhysicalSites !== profileSummary.profile_count) throw new Error("ZIP physical-site totals do not reconcile to location profiles.");
+  if (zipPhysicalSites + tnTotal.without_zip !== profileSummary.profile_count) throw new Error("ZIP physical-site totals do not reconcile to location profiles.");
   return {
     dataset_id: manifest.dataset_id,
     release_id: manifest.release_id,

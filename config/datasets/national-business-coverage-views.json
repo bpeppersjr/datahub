@@ -46,6 +46,16 @@
     "zcta_relationships": "polygon-area-only-not-business-location",
     "nonemployer": "annual aggregate for businesses with no paid employees; no ZIP allocation and no current named-business assertion"
   },
+  "tennessee_reporting_preparation": {
+    "publisher_version": "2.9.0",
+    "registry_publisher_version": "2.13.0",
+    "existing_non_tennessee_publisher_version": "2.8.0",
+    "accounting": "tn_childcare_reporting separates records, with_zip, without_zip, missing_zip_reasons and missing_points across source, reported-state, assigned-county and national views",
+    "postal_boundary": "ZIP views include only source ZIP-attributed records; state and source totals retain ZIP-unavailable records; zip_inferred remains false",
+    "county_boundary": "County counts require a usable source point assigned to a governed Census county, independently of source ZIP availability",
+    "production_promoted": false,
+    "remaining_consumers": ["map category percentages and non-ZIP name browsing", "policy-filtered flat-file extraction", "standalone production planner and dependency pins", "verified production run and exact source reassessment"]
+  },
   "completeness_claim": false,
   "entity_resolution_applied": false,
   "export_policy": "local-aggregate-review-required",

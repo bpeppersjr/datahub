@@ -16,6 +16,9 @@ import {
   verifyBusinessEntityResolution,
 } from "./business-entity-resolution.mjs";
 
+import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
+
+
 function profile({
   sourceId,
   recordId,
@@ -121,6 +124,48 @@ async function writeFixtureRegistry(root, profiles, { reporting = false } = {}) 
   return pointerPath;
 }
 
+test("registry 2.13 TN reporting conserves missing ZIP reasons and excludes both matching endpoints", async t => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/resolution-tn-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), [profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" })]);
+  const pointer = JSON.parse(await readFile(registryPointer)), manifestPath = path.join(path.dirname(registryPointer), pointer.manifest), directory = path.dirname(manifestPath), manifest = JSON.parse(await readFile(manifestPath));
+  const rows = ["37201-0123", null, "0"].map((zip, index) => {
+    return createTnChildcareReportingFixture({ zip, attributes: { OBJECTID: index + 1 } }).row;
+  });
+  for (const zip2 of ["37", "unassigned"]) {
+    const records = rows.filter(r => (r.zip_code?.slice(0, 2) ?? "unassigned") === zip2), bytes = gzipSync(records.map(r => JSON.stringify(r)).join("\n") + "\n"), relative = `reporting/location-evidence/zip2=${zip2}/records.jsonl.gz`;
+    await mkdir(path.dirname(path.join(directory, relative)), { recursive: true }); await writeFile(path.join(directory, relative), bytes);
+    manifest.artifacts.push({ path: relative, bytes: bytes.length, sha256: sha256(bytes), record_count: records.length, artifact_type: "business-reporting-location-evidence-jsonl-gzip", export_policy: "local-review-only" });
+  }
+  manifest.publisher.version = "2.13.0";
+  Object.assign(manifest.coverage, { physical_sites: 4, reporting_location_evidence: 3, ma_childcare_center_sites: 0, nj_childcare_center_sites: 0, tn_childcare_center_sites: 3, tn_childcare_center_sites_with_zip: 1, tn_childcare_center_sites_without_zip: 2, reporting_location_evidence_without_zip: 2, tn_childcare_missing_zip_reasons: { "missing-source-zip": 1, "invalid-source-zip-placeholder": 1 } });
+  manifest.dependencies = [{ dataset_id: rows[0].source.source_id, release_id: rows[0].evidence.release_id, manifest_sha256: rows[0].evidence.manifest_sha256 }];
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const originalFetch = globalThis.fetch; globalThis.fetch = () => { throw new Error("No network"); }; t.after(() => { globalThis.fetch = originalFetch; });
+  const result = await buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} });
+  assert.equal(result.manifest.coverage.profiles, 1); assert.equal(result.manifest.dependency.manifest_sha256, sha256(await readFile(manifestPath)));
+  await verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json"));
+  for (const mutate of [m => { m.publisher.version = "2.12.0"; }, m => { m.publisher.version = "2.14.0"; }, m => { m.dependencies = []; }, m => { m.coverage.tn_childcare_center_sites++; }, m => { m.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, m => { m.coverage.reporting_location_evidence_without_zip--; }, m => { m.dependencies[0].manifest_sha256 = "e".repeat(64); }]) {
+    const candidate = structuredClone(manifest); mutate(candidate); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "bad"), logger() {} }));
+  }
+  const a = manifest.artifacts.find(a => a.artifact_type.includes("location-profile") && a.record_count), file = path.join(directory, a.path), original = await readFile(file);
+  for (const endpoint of ["site_entity_id", "establishment_entity_id"]) {
+    const p = JSON.parse(gunzipSync(original).toString()); p[endpoint] = rows[0][endpoint];
+    const bytes = gzipSync(`${JSON.stringify(p)}\n`), candidate = structuredClone(manifest), entry = candidate.artifacts.find(r => r.path === a.path); entry.bytes = bytes.length; entry.sha256 = sha256(bytes);
+    await writeFile(file, bytes); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "collision"), logger() {} }), /failed record validation/);
+  }
+  await writeFile(file, original);
+  const geographic = manifest.artifacts.find(a => a.path.includes("zip2=unassigned/")), geographicFile = path.join(directory, geographic.path), clean = await readFile(geographicFile);
+  for (const mutate of [r => { r.zip_code = "00000"; }, r => { r.source.source_id = "nj-licensed-childcare-centers"; }, r => { r.evidence.recovery.network_requests = 1; }, r => { r.identity_matching_eligible = true; }, r => { r.evidence.processed_at = r.observed_at = "2026-09-10T00:00:00.000Z"; }, r => { r.address.owner = "Synthetic private field"; }]) {
+    const records = gunzipSync(clean).toString().trim().split("\n").map(JSON.parse); mutate(records[0]);
+    const bytes = gzipSync(records.map(r => JSON.stringify(r)).join("\n") + "\n"), candidate = structuredClone(manifest), entry = candidate.artifacts.find(a => a.path === geographic.path);
+    entry.bytes = bytes.length; entry.sha256 = sha256(bytes); await writeFile(geographicFile, bytes); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "tampered"), logger() {} }));
+  }
+});
+
 test("normalizes conservative complete street addresses while preserving units and excluding PO Boxes", () => {
   const first = normalizeBusinessAddress({ street: "10 North Main Street", unit_or_additional: "Suite 2", city: "Chicago", state: "IL", zip_code: "60601" });
   const second = normalizeBusinessAddress({ street: "10 N. Main St.", unit_or_additional: "Suite 2", city: "CHICAGO", state: "IL", zip_code: "60601" });
@@ -224,7 +269,7 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("declares registry publisher compatibility through 2.12.0 without dropping prior versions", async () => {
+test("declares registry publisher compatibility through 2.13.0 without dropping prior versions", async () => {
   const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
   assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
@@ -234,11 +279,12 @@ test("declares registry publisher compatibility through 2.12.0 without dropping 
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.10.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.11.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.12.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.13.0"));
 });
 
 test("reporting-only rows cannot be relabeled as eligible match profiles", () => {
   const valid = profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" });
-  for (const id of ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"]) {
+  for (const id of ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", "tn-dhs-active-childcare-centers"]) {
     assert.throws(() => profile({ sourceId: id, recordId: "1", name: "Synthetic Childcare" }), /Reporting-only/);
     const forged = structuredClone(valid); forged.source.source_id = id;
     assert.throws(() => resolveLocationProfiles([forged]), /Reporting-only/);

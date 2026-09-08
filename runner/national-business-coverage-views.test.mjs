@@ -5,6 +5,8 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { createRequire } from "node:module";
+import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 import {
   assignPointToCounty,
   buildNationalBusinessCoverageViews,
@@ -909,4 +911,107 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   reportingRows[0].identity_matching_eligible = true;
   await writeFile(path.join(registryRelease, reportingArtifact.path), gzipSync(jsonLines(reportingRows)));
   await assert.rejects(buildWithReporting("invalid-reporting-coverage"), /reporting-only childcare/);
+  // TN's ZIP-null rows remain geographic evidence, including when every row lacks ZIP.
+  for (const allMissing of [false, true]) {
+    const tnRows = [
+      createTnChildcareReportingFixture({ zip: allMissing ? null : "12345", attributes: { OBJECTID: 1 } }).row,
+      createTnChildcareReportingFixture({ zip: null, attributes: { OBJECTID: 2 } }).row,
+      createTnChildcareReportingFixture({ zip: "0", attributes: { OBJECTID: 3 }, geometry: null }).row,
+    ];
+    const missing = allMissing ? 3 : 2, available = 3 - missing;
+    const tnRegistry = structuredClone(updatedRegistry);
+    tnRegistry.publisher = { id: "national-business-registry", version: "2.13.0" };
+    tnRegistry.dependencies = [{ dataset_id: "tn-dhs-active-childcare-centers", release_id: tnRows[0].evidence.release_id, manifest_sha256: tnRows[0].evidence.manifest_sha256 }];
+    tnRegistry.artifacts = tnRegistry.artifacts.filter(a => a.artifact_type !== "business-reporting-location-evidence-jsonl-gzip");
+    Object.assign(tnRegistry.coverage, { physical_sites: 12, establishments: 12, reporting_location_evidence: 3, ma_childcare_center_sites: 0, nj_childcare_center_sites: 0,
+      tn_childcare_center_sites: 3, tn_childcare_center_sites_with_zip: available, tn_childcare_center_sites_without_zip: missing,
+      reporting_location_evidence_without_zip: missing, tn_childcare_missing_zip_reasons: { "missing-source-zip": missing - 1, "invalid-source-zip-placeholder": 1 } });
+    const tnZipRows = structuredClone(zipRows);
+    for (const row of tnZipRows) {
+      row.registry_coverage.tn_childcare_center_site_count = row.zip_code === "12345" ? available : 0;
+      delete row.source_contributions.ma_childcare_centers; delete row.source_contributions.nj_childcare_centers;
+      row.registry_coverage.ma_childcare_center_site_count = 0; row.registry_coverage.nj_childcare_center_site_count = 0;
+      row.source_contributions.tn_childcare_centers = { reported_center_count: row.registry_coverage.tn_childcare_center_site_count,
+        source_release_id: tnRows[0].source.source_release_id, observed_at: tnRows[0].observed_at, record_level_distribution: "local-review-only", active_business_verified: false };
+    }
+    tnZipRows[0].registry_coverage.physical_site_count = 9 + available;
+    tnZipRows[0].registry_coverage.establishment_count = 9 + available;
+    // Exercise independent source-summary seeding, not just zero contributions on ZIP rows.
+    if (allMissing) for (const row of tnZipRows) delete row.source_contributions.tn_childcare_centers;
+    Object.assign(tnRegistry.artifacts[0], await writeArtifact(registryRelease, "derived/zip-coverage.jsonl", jsonLines(tnZipRows), { artifact_type: "registry-zip-coverage-jsonl", record_count: tnZipRows.length }));
+    for (const [partition, rows] of [["12", tnRows.filter(row => row.zip_code !== null)], ["unassigned", tnRows.filter(row => row.zip_code === null)]]) {
+      if (!rows.length) continue;
+      tnRegistry.artifacts.push(await writeArtifact(registryRelease, `reporting/location-evidence/zip2=${partition}/records.jsonl.gz`, gzipSync(jsonLines(rows)),
+        { artifact_type: "business-reporting-location-evidence-jsonl-gzip", record_count: rows.length, export_policy: "local-review-only" }));
+    }
+    await writeFile(registryManifestPath, json(tnRegistry));
+    stateIndex[0].postal_abbreviation = "TN";
+    Object.assign(updatedGeography.artifacts[0], await writeArtifact(geographyRelease, "derived/index/states.jsonl", jsonLines(stateIndex)));
+    Object.assign(updatedGeography.artifacts[3], await writeArtifact(geographyRelease, "source/counties/state=01.geojson",
+      json({ type: "FeatureCollection", features: [polygonFeature({ GEOID: "01001" }, -87, 35, -86, 37)] }), { geography_type: "county" }));
+    await writeFile(path.join(geographyRelease, "manifest.json"), json(updatedGeography));
+    const built = await buildWithReporting(`tn-${allMissing}`), target = path.join(built.releaseDirectory, "manifest.json");
+    await verifyNationalBusinessCoverageViewsRelease(target);
+    assert.equal(built.manifest.publisher.version, "2.9.0");
+    assert.equal(built.manifest.coverage.location_profiles_assessed, 9);
+    assert.equal(built.manifest.coverage.tn_childcare_reporting.without_zip, missing);
+    assert.equal(built.manifest.coverage.tn_childcare_coordinate_assigned, 2);
+    const readRows = async name => (await readFile(path.join(built.releaseDirectory, `views/${name}.jsonl`), "utf8")).trim().split("\n").map(JSON.parse);
+    const source = (await readRows("sources")).find(row => row.source_key === "tn_childcare_centers");
+    assert.equal(source.location_profile_geography.reporting_only_count, 3);
+    assert.equal(source.location_profile_geography.coordinate_missing_count, 1);
+    assert.equal(source.tn_childcare_reporting.with_zip, available);
+    assert.equal((await readRows("states"))[0].registry_evidence.tn_childcare_reporting.records, 3);
+    assert.equal((await readRows("counties"))[0].registry_evidence.tn_childcare_reporting.records, 2);
+    assert.ok((await readRows("zips")).every(row => /^\d{5}$/.test(row.zip_code)));
+    const require = createRequire(import.meta.url);
+    const Ajv2020 = createRequire(require.resolve("ajv-formats/package.json"))("ajv/dist/2020.js").default;
+    const gapSchema = JSON.parse(await readFile(new URL("../config/schemas/business-coverage-gap.schema.json", import.meta.url), "utf8"));
+    const validateGap = new Ajv2020({ strict: false }).compile(gapSchema);
+    for (const gap of await readRows("coverage-gaps")) assert.equal(validateGap(gap), true, JSON.stringify(validateGap.errors));
+    const clean = await readFile(target), bad = JSON.parse(clean); bad.coverage.tn_childcare_reporting.without_zip--;
+    await writeFile(target, json(bad)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target), /TN/); await writeFile(target, clean);
+    // Rehashed output corruption must not pass aggregate-only self consistency.
+    for (const [name, mutate] of [
+      ["states", rows => { rows[0].registry_evidence.tn_childcare_reporting.records++; }],
+      ["counties", rows => { const value = rows[0].registry_evidence.tn_childcare_reporting.missing_zip_reasons; value["invalid-source-zip-placeholder"] += value["missing-source-zip"]; value["missing-source-zip"] = 0; }],
+      ["sources", rows => { rows.find(row => row.source_key === "tn_childcare_centers").source_key = "forged-source"; }],
+      ["coverage-gaps", rows => { rows.splice(rows.findIndex(row => row.gap_type === "reporting-source-zip-unavailable"), 1); }],
+    ]) {
+      // In the mixed case there is one point-assigned missing ZIP; make it exceed the sole missing-placeholder source count.
+      if (name === "counties" && !allMissing) continue;
+      const file = path.join(built.releaseDirectory, `views/${name}.jsonl`), original = await readFile(file), rows = original.toString().trim().split("\n").map(JSON.parse);
+      mutate(rows); const changed = Buffer.from(jsonLines(rows)), manifest = JSON.parse(clean), artifact = manifest.artifacts.find(a => a.path === `views/${name}.jsonl`);
+      Object.assign(artifact, { bytes: changed.length, sha256: sha256(changed), record_count: rows.length });
+      await writeFile(file, changed); await writeFile(target, json(manifest)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target));
+      await writeFile(file, original); await writeFile(target, clean);
+    }
+    const inputArtifact = tnRegistry.artifacts.find(a => a.artifact_type === "business-reporting-location-evidence-jsonl-gzip");
+    const inputPath = path.join(registryRelease, inputArtifact.path), originalInput = await readFile(inputPath), originalDescriptor = { ...inputArtifact };
+    // A self-consistently hashed compressed artifact still must decode strictly.
+    const malformedUtf8 = gzipSync(Buffer.from([0xff]));
+    await writeFile(inputPath, malformedUtf8);
+    Object.assign(inputArtifact, { bytes: malformedUtf8.length, sha256: sha256(malformedUtf8) });
+    await writeFile(registryManifestPath, json(tnRegistry));
+    await assert.rejects(buildWithReporting(`invalid-utf8-${allMissing}`), /encoded data|encoding/i);
+    await writeFile(inputPath, originalInput); Object.assign(inputArtifact, originalDescriptor);
+    tnRegistry.dependencies.push(tnRegistry.dependencies[0]); await writeFile(registryManifestPath, json(tnRegistry));
+    await assert.rejects(buildWithReporting(`duplicate-${allMissing}`), /dependency/); tnRegistry.dependencies.pop();
+    const declarationPath = path.join(built.releaseDirectory, "evidence/registry-manifest.json"), declarationBytes = await readFile(declarationPath);
+    for (const kind of ["dependency", "status", "counts"]) {
+      const declaration = JSON.parse(declarationBytes), manifest = JSON.parse(clean);
+      if (kind === "dependency") declaration.dependencies = [];
+      if (kind === "status") declaration.status = "unverified";
+      if (kind === "counts") declaration.coverage.tn_childcare_center_sites++;
+      const bytes = Buffer.from(json(declaration)), artifact = manifest.artifacts.find(a => a.artifact_type === "retained-registry-manifest-json");
+      artifact.bytes = bytes.length; artifact.sha256 = sha256(bytes);
+      manifest.dependencies.find(d => d.dataset_id === "national-business-registry").manifest_sha256 = artifact.sha256;
+      await writeFile(declarationPath, bytes); await writeFile(target, json(manifest)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target), /TN/);
+      await writeFile(declarationPath, declarationBytes); await writeFile(target, clean);
+    }
+    for (const version of ["2.13.1", "2.14.0"]) {
+      tnRegistry.publisher.version = version; await writeFile(registryManifestPath, json(tnRegistry));
+      await assert.rejects(buildWithReporting(`future-${version}-${allMissing}`), /Unreviewed/);
+    }
+  }
 });
