@@ -467,6 +467,8 @@ Pennsylvania childcare readiness (September 8): a new [metadata/count preflight]
 
 Pennsylvania acquisition layer (September 8): [bounded center acquisition and durable source reuse](PA-CHILDCARE-ACQUISITION.md) now implements ordered membership/page reconciliation, paired source preflights, privacy allowlists and drained cancellation. The immutable writer awaits prerequisites and observation journals before subsequent requests and supports offline replay, so later normalization can reuse a completed acquisition without repulling. Seven grouped synthetic tests pass. No live facility rows, managed operation, schedule or national promotion was dispatched. Next is normalized facility evidence and tested app-worker enrollment/handoff. npm test-file concurrency is capped at four after reproducible 28-way startup contention; app concurrency is unchanged.
 
+Pennsylvania normalized facility evidence (September 8): the [offline normalization/release layer](PA-CHILDCARE-NORMALIZATION.md) now preserves separate ZIP5/ZIP4, nullable address points, typed source identifiers, license dates and capacity text, page-level observation lineage and accepted-plus-quarantine conservation. Immutable derived releases bind the exact acquired manifest and replay against it; reprocessing makes no network requests and preserves existing input/releases. Nine focused tests pass, including cancellation after output-job creation and rejected rehashed substitutions. No live facility collection, managed operation, schedule or national promotion occurred. Next is end-to-end app-worker enrollment with explicit acquired/normalized receipt linkage and retained-input reuse.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

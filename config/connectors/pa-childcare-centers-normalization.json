@@ -1,0 +1,23 @@
+{
+  "connector_id": "pa-childcare-centers-normalization",
+  "version": "1.0.0",
+  "description": "Offline normalized facility evidence from a verified immutable Pennsylvania childcare acquisition; no requests, entity matching or national publication.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["verified-pa-childcare-acquired-manifest"],
+  "output_artifact_types": ["pa-childcare-normalized-jsonl", "pa-childcare-quarantine-jsonl", "pa-childcare-normalization-summary", "pa-childcare-normalized-manifest"],
+  "allowed_hosts": [],
+  "redirect_policy": "No network requests or redirects; all inputs must already be retained within datahub.",
+  "provider_budget_key": "pa-dhs-childcare-offline-normalization",
+  "resource_class": "bounded-offline-normalization",
+  "execution_limits": {"network_requests":0,"maximum_source_rows":20000,"maximum_jsonl_line_bytes":65536,"maximum_normalized_bytes":200000000,"maximum_quarantine_bytes":30000000,"minimum_disk_free_bytes":500000000},
+  "retry": "No automatic retries. Verification or quality failures preserve acquired source inputs for inspection and local reprocessing without downloading again.",
+  "checkpoint": "Read and independently replay the immutable acquired manifest. Publish normalized, quarantine and summary artifacts under a new UUID; manifest last.",
+  "idempotency": "Never overwrite acquired data or existing normalized releases. Exact source manifest hash and transformation version identify the derivation; explicit reprocessing may create another immutable release.",
+  "cancellation": "Cooperative checks and event-loop yields during replay, normalization and precommit persistence. Clean only owned incomplete output; preserve uncertain postcommit publication for inspection.",
+  "source_policy": "config/source-policies/pa-childcare-centers-internal.json",
+  "retention_profile": "Internal immutable derived facility records, source-linked quarantine references and conservation evidence; original acquisition remains separate and unchanged.",
+  "produced_entities": ["publisher-listed-childcare-facility-candidate", "quarantined-source-record-reference"],
+  "produced_identifiers": ["pa-dhs-master-provider-location-index", "pa-dhs-license-number"]
+}
