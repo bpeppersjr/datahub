@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -74,6 +74,94 @@ import { buildNjChildcareRelease, reprocessNjChildcareRelease } from "./nj-child
 import { MA_CHILDCARE_SCHEMA, MA_CHILDCARE_ITEM } from "./ma-childcare-preflight.mjs";
 import { NJ_CHILDCARE_SCHEMA, NJ_CHILDCARE_ITEM, NJ_CHILDCARE_LAYER } from "./nj-childcare-preflight.mjs";
 import { validateChildcareGeographicEvidence, CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE } from "./childcare-geographic-evidence.mjs";
+import { APP_ROOT } from "./paths.mjs";
+import { acquireTnChildcare } from "./tn-childcare-acquisition.mjs";
+import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
+import { recoverTnChildcareRelease } from "./tn-childcare-recovered-release.mjs";
+
+async function tnRecoveredRegistryFixture(t, allMissing = false) {
+  const runId = `tn-national-fixture-${randomUUID()}`, runRoot = path.join(APP_ROOT, "data/industry-segments/runs", runId);
+  const stagingPath = path.join(runRoot, "state-tn-childcare-TN/.staging", randomUUID()), receiptPath = path.join(runRoot, "receipt.json");
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const outputRoot = await mkdtemp(path.join(APP_ROOT, "data/tmp/tn-national-input-"));
+  t.after(async () => { await rm(runRoot, { recursive: true, force: true }); await rm(outputRoot, { recursive: true, force: true }); });
+  await mkdir(stagingPath, { recursive: true }); await mkdir(path.join(runRoot, "logs"));
+  const acquired = await acquireTnChildcare({ fetchImpl: createTnChildcareFixture({ count: 20, mutate: (p, k) => {
+    if (k === "features") { p.features[0].attributes.Zip = "0"; p.features[1].attributes.Zip = null; if (allMissing) for (const row of p.features) row.attributes.Zip = null; p.features[2].attributes.Provider_ID = null; }
+  } }).fetchImpl, sleep: async () => {}, now: () => new Date("2026-09-08T00:00:01.000Z") });
+  const expectedHashes = {};
+  for (const [key, name, bytes] of [["selectedFeatures", "selected-features.jsonl", Buffer.from(acquired.features.map(r => `${JSON.stringify(r)}\n`).join(""))],
+    ["sourceObservation", "source-observation.json", Buffer.from(`${JSON.stringify(acquired.evidence)}\n`)], ["publisherMetadata", "publisher-metadata.xml", acquired.publisher_metadata.before.raw]]) {
+    await writeFile(path.join(stagingPath, name), bytes); expectedHashes[key] = sha256(bytes);
+  }
+  const logRelative = `data/industry-segments/runs/${runId}/logs/state-tn-childcare-TN.log`, log = Buffer.from("acquire\nnormalize\nTennessee childcare build failed: Tennessee childcare release rejected: quarantine exceeds 5% or no accepted records.\n");
+  await writeFile(path.join(APP_ROOT, logRelative), log);
+  const receipt = { run_id: runId, status: "failed", started_at: "2026-09-08T00:00:00.000Z", finished_at: "2026-09-08T00:00:02.000Z", plan: { industries: ["childcare"], states: ["TN"] },
+    tasks: [{ task_id: "state-tn-childcare:TN", source_id: "state-tn-childcare", state: "TN", status: "failed", code: 1, signal: null,
+      started_at: "2026-09-08T00:00:00.000Z", finished_at: "2026-09-08T00:00:02.000Z", log: logRelative }], log_sha256: { "state-tn-childcare:TN": sha256(log) } };
+  const bytes = Buffer.from(JSON.stringify(receipt)); await writeFile(receiptPath, bytes); expectedHashes.receipt = sha256(bytes);
+  const release = await recoverTnChildcareRelease({ receiptPath, stagingPath, expectedHashes, outputRoot, now: () => new Date("2026-09-09T00:00:00.000Z") });
+  return { release, outputRoot };
+}
+
+for (const allMissing of [false, true]) test(`TN recovered reporting preserves ${allMissing ? "all" : "mixed"} missing ZIP membership offline`, async (t) => {
+  const { release, outputRoot } = await tnRecoveredRegistryFixture(t, allMissing);
+  const snapPointer = await writeFixtureSnapRelease(path.join(outputRoot, "snap"));
+  const priorFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("Network forbidden"); };
+  t.after(() => { globalThis.fetch = priorFetch; });
+  const result = await buildNationalBusinessRegistry({ snapPointer, tnChildcareManifest: release.manifest_path, outputRoot: path.join(outputRoot, "registry"), logger: () => {} });
+  const m = result.manifest, manifestPath = path.join(result.releaseDirectory, "manifest.json"), missing = allMissing ? 20 : 2;
+  assert.equal(m.publisher.version, "2.13.0"); assert.equal(m.coverage.physical_sites, 22);
+  assert.equal(m.coverage.resolution_location_profiles, 2); assert.equal(m.coverage.reporting_location_evidence, 20);
+  assert.equal(m.coverage.tn_childcare_center_sites_without_zip, missing);
+  assert.equal(m.coverage.tn_childcare_center_sites_with_zip, 20 - missing);
+  assert.deepEqual(m.coverage.tn_childcare_missing_zip_reasons, { "missing-source-zip": allMissing ? 20 : 1, "invalid-source-zip-placeholder": allMissing ? 0 : 1 });
+  const unassigned = m.artifacts.filter(a => a.path.includes("unassigned")); assert.equal(unassigned.length, 5);
+  for (const a of unassigned.filter(a => !a.artifact_type.includes("assertion"))) assert.equal(a.record_count, missing);
+  await verifyNationalBusinessRegistry(manifestPath);
+  for (const mutate of [x => { x.publisher.version = "2.12.0"; }, x => { x.coverage.tn_childcare_center_sites_without_zip++; }, x => { x.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, x => { x.dependencies = x.dependencies.filter(d => d.dataset_id !== "tn-dhs-active-childcare-centers"); }]) {
+    const candidate = structuredClone(m); mutate(candidate); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+  }
+  await writeFile(manifestPath, JSON.stringify(m));
+  for (const kind of ["assertion", "relationship"]) {
+    const a = unassigned.find(a => a.artifact_type.includes(kind)), file = path.join(result.releaseDirectory, a.path), original = await readFile(file);
+    const rows = gunzipSync(original).toString().trim().split("\n").map(JSON.parse);
+    rows[0].source.source_id = "usda-snap-retailers";
+    const candidate = structuredClone(m), bytes = gzipSync(rows.map(r => JSON.stringify(r)).join("\n") + "\n"), entry = candidate.artifacts.find(r => r.path === a.path);
+    entry.sha256 = sha256(bytes); entry.bytes = bytes.length;
+    await writeFile(file, bytes); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath), undefined, `spoofed ${kind} source`);
+    await writeFile(file, original); await writeFile(manifestPath, JSON.stringify(m));
+  }
+  for (const a of unassigned) {
+    const file = path.join(result.releaseDirectory, a.path), original = await readFile(file), candidate = structuredClone(m);
+    const rows = gunzipSync(original).toString().trim().split("\n").map(JSON.parse); rows.pop();
+    const bytes = gzipSync(rows.map(r => JSON.stringify(r)).join("\n") + "\n"), entry = candidate.artifacts.find(r => r.path === a.path);
+    entry.sha256 = sha256(bytes); entry.bytes = bytes.length; entry.record_count--;
+    await writeFile(file, bytes); await writeFile(manifestPath, JSON.stringify(candidate));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath), undefined, a.path);
+    await writeFile(file, original); await writeFile(manifestPath, JSON.stringify(m));
+  }
+  const assertionArtifact = unassigned.find(a => a.artifact_type.includes("assertion")), geoArtifact = unassigned.find(a => a.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE);
+  const assertionFile = path.join(result.releaseDirectory, assertionArtifact.path), geoFile = path.join(result.releaseDirectory, geoArtifact.path);
+  const cleanAssertions = await readFile(assertionFile), cleanGeo = await readFile(geoFile);
+  for (const mutation of ["private-classification", "unknown-predicate"]) {
+    const assertions = gunzipSync(cleanAssertions).toString().trim().split("\n").map(JSON.parse), geo = gunzipSync(cleanGeo).toString().trim().split("\n").map(JSON.parse);
+    const record = assertions.find(r => r.predicate === "establishment.source-classification"); assert.ok(record);
+    if (mutation === "private-classification") record.value.private_owner = { name: "Synthetic private value" };
+    else record.predicate = "establishment.owner";
+    record.assertion_id = `assertion:${sha256(JSON.stringify([record.subject_entity_id, record.predicate, record.value, record.source.source_release_id, record.source.source_record_id])).slice(0, 32)}`;
+    for (const row of geo) row.evidence.assertions_sha256 = sha256(JSON.stringify(assertions.filter(a => [row.site_entity_id, row.establishment_entity_id].includes(a.subject_entity_id)).sort((a,b) => a.assertion_id.localeCompare(b.assertion_id))));
+    const candidate = structuredClone(m);
+    for (const [artifact, file, rows] of [[assertionArtifact, assertionFile, assertions], [geoArtifact, geoFile, geo]]) {
+      const bytes = gzipSync(rows.map(r => JSON.stringify(r)).join("\n") + "\n"), entry = candidate.artifacts.find(a => a.path === artifact.path);
+      entry.sha256 = sha256(bytes); entry.bytes = bytes.length; await writeFile(file, bytes);
+    }
+    await writeFile(manifestPath, JSON.stringify(candidate)); await assert.rejects(verifyNationalBusinessRegistry(manifestPath), undefined, mutation);
+    await writeFile(assertionFile, cleanAssertions); await writeFile(geoFile, cleanGeo); await writeFile(manifestPath, JSON.stringify(m));
+  }
+});
 
 function sourceFeature(recordId, zipCode, overrides = {}) {
   return {
@@ -202,6 +290,11 @@ test("registry integrates verified childcare as disjoint reporting evidence, not
   // Rewrite both artifact hashes and the geographic assertion digest: rejection must
   // come from the source contract, not merely from a stale checksum.
   const cleanManifest = structuredClone(m);
+  for (const key of ["tn_childcare_center_sites", "tn_childcare_center_sites_with_zip", "tn_childcare_center_sites_without_zip", "reporting_location_evidence_without_zip", "tn_childcare_missing_zip_reasons"]) {
+    const candidate = structuredClone(m); candidate.coverage[key] = 0;
+    await writeFile(manifestPath, JSON.stringify(candidate)); await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+  }
+  await writeFile(manifestPath, JSON.stringify(m));
   for (const mutation of ["source-field", "private-classification", "unknown-predicate", "relationship-owner", "relationship-status", "relationship-confidence", "relationship-validity"]) {
     const candidate = structuredClone(cleanManifest), backups = [];
     const relationship = mutation.startsWith("relationship-");

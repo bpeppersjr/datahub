@@ -1,5 +1,22 @@
 # Tennessee childcare connector development
 
+## National registry enrollment preparation
+
+Verification passed: 34 focused registry tests and all 778 repository tests with zero failures/skips; source/connector checks, lint, web/desktop builds, desktop smoke and TypeScript passed. Production dependency audit reported zero vulnerabilities. Mixed and all-ZIP-unavailable synthetic recovered inputs were built and verified with network access forbidden; rehashed artifact removal, source-ownership, count/reason, version and roster tampering were rejected. Independent review closed cross-source endpoint and version-scoping gaps. Full-check evidence is retained locally at `data/tmp/tn-registry-integration-full-check.log`. No production pointer changed. Rollback is to stop selecting the optional Tennessee input; preserve retained source releases and receipts, and do not repull.
+
+The retained recovered release was reverified and converted again offline: manifest SHA-256 `98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d`, 1,863 accepted contributions and zero quarantine. Original observation time remains `2026-09-08T00:36:36.628Z`; recovery processing time remains distinct at `2026-09-08T00:57:19.864Z`. No network request or source mutation was required.
+
+Explicit Tennessee selection uses a new registry 2.13.0 contract; builds without Tennessee retain 2.12.0. Tennessee's 172 ZIP-unavailable records must survive in explicit unassigned canonical and reporting partitions, without creating a fake ZIP row. National sites equal ZIP-attributed sites plus ZIP-unavailable sites; matching profiles remain unchanged and exclude all Tennessee childcare evidence. The 27 missing-source and 145 invalid-placeholder reasons remain distinguishable. Existing historical releases and compatibility checks must remain intact.
+
+This preparation does not enroll a production CLI flag, schedule, or national reporting release. Before a promotion, the following dependencies must be implemented and verified together:
+
+- Resolution must explicitly understand 2.13.0 reporting partitions, verify Tennessee provenance and reject its sites from matching and benchmark inputs.
+- Coverage must dispatch the Tennessee validator, conserve source/state totals with null ZIPs, assign counties only from usable governed points, and retain the three missing-coordinate gaps. Source summaries must include sources whose entire evidence has no ZIP.
+- Map and export consumers must retain nullable postal evidence and distinguish selected-geography rows from records lacking a source ZIP. An unavailable ZIP is not a ZCTA-derived replacement.
+- In particular, `runner/business-map-store.mjs` currently sums ZIP rows for state/national categories and its names endpoint is ZIP-scoped. Include disjoint ZIP-unavailable totals in the relevant state/national denominators and provide explicit state/county or missing-ZIP browsing. `scripts/compose-flat-business-export.mjs` already preserves null ZIP fields in projection but still needs Tennessee artifact/source validation and selection; public-only exports must continue to exclude these local-review records.
+- The standalone app planner must pin Tennessee's recovered-release dependencies and execute the full verified pipeline. A successful source or registry fixture alone is not production reporting completion.
+- After the app publishes, the exact new source roster and state readiness transition require review; historical broad-business holds remain unchanged.
+
 ## Geographic reporting preparation
 
 Verified preparation: the retained recovered release converted offline into 1,863 reporting rows: 1,691 with source ZIPs and 172 without (27 missing, 145 invalid placeholders); three coordinate pairs remain missing. The loader conserves all accepted rows and returns `nationalReportingIntegrated: false`. No network request, source mutation or national publication occurred. Seven focused tests and all 730 repository tests passed, together with lint, web/desktop builds, desktop smoke and TypeScript; the production dependency audit reported zero vulnerabilities. Independent review found no remaining issue within this scope. Rollback is additive: stop selecting these new Tennessee reporting modules; existing production inputs and their 29 implementation pins are unchanged.

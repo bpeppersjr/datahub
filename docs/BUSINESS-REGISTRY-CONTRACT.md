@@ -40,6 +40,12 @@ Source priority depends on the field, not a global winner:
 
 Conflicts remain separate assertions until a versioned resolution rule selects a published value. Every field retains its source record, release, ingest run, transformation version, policy, and export classification.
 
+## Records with unavailable source ZIPs
+
+An unavailable source ZIP does not erase a site or its assertions. The Tennessee reporting-only 2.13.0 preparation keeps such records in explicit unassigned partitions, with nullable ZIP5/ZIP4 and a source-missing or invalid-placeholder reason. It must conserve their entire entity/assertion/relationship graph and the separate reporting row. No `site.zip-code` assertion or synthetic ZIP coverage entry is emitted for an unavailable ZIP. National site totals reconcile as ZIP-attributed plus ZIP-unavailable sites, not the ZIP subtotal alone.
+
+These records remain ineligible for identity matching. Geographic assignment from a usable point is a separate downstream operation; it cannot substitute a Census ZCTA for the missing source ZIP. Consumers must explicitly support this version before it enters a production reporting chain. Builds without Tennessee retain the 2.12.0 contract.
+
 ## ZIP coverage definition
 
 Spatial ZIP-shaped coverage is measured over the complete selected Census-published ZCTA5 polygon set from a pinned, verified `us-census-geography` release. That set is the authoritative spatial polygon denominator within its declared Census layer and vintage. It is not an assertion that every USPS ZIP has a polygon or that a ZCTA is an exact delivery boundary. For each ZIP/ZCTA view, publish:

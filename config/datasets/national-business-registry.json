@@ -31,6 +31,18 @@
     "central_publication_gate": true,
     "migration_sequence": "rebuild corrected source releases, then registry, entity resolution, benchmark, and coverage"
   },
+  "tennessee_reporting_preparation": {
+    "publisher_version_when_explicitly_selected": "2.13.0",
+    "existing_build_publisher_version": "2.12.0",
+    "input": "verified immutable recovered Tennessee childcare manifest; transformation tn-childcare-normalization@1.0.1",
+    "scope": "publisher-listed Active Child Care Centers, retained as provisional local-review evidence",
+    "postal_conservation": "all source sites = source ZIP-attributed sites + source ZIP-unavailable sites; null ZIP5 and ZIP4 stay null",
+    "missing_postal_storage": "explicit unassigned partitions; never a fabricated ZIP coverage row",
+    "identity_matching_eligible": false,
+    "production_cli_enrolled": false,
+    "national_reporting_promoted": false,
+    "remaining_gates": ["entity-resolution compatibility and matching exclusion", "coverage conservation for missing ZIP and coordinates", "map and export consumers", "app production orchestration and dependency pinning", "verified production run and explicit source reassessment"]
+  },
   "implemented_source_layers": [
     {
       "dataset_id": "usda-snap-retailers",
