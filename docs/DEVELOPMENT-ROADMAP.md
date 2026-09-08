@@ -489,6 +489,8 @@ Connecticut completed collection audit (September 8): Co*Tive operation `efd15ce
 
 Connecticut retained local reporting (September 8): [verified source-candidate summaries](CT-CHILDCARE-REPORTING.md) now expose nullable reported-state/ZIP groups, cohort-denominator percentages and reconciled quality gaps from the pinned native app receipt. A fresh state-access report includes 1,390 local CT candidates across 230 ZIP5 groups while retaining the separate unmeasured national status. Missing installed files are unavailable, not zero; repeated credentials do not become business identities or capacity totals. No source repull, national promotion or scheduler change occurred.
 
+Maryland childcare prerequisites (September 8): a tested [standalone metadata/count preflight](MD-CHILDCARE-PREFLIGHT.md) now retains unchanged item notices, pins the exact nine-field contract and rejects unexpected record payloads, source drift and unsafe receipt replay. The native immutable receipt verified 1,772 center rows through six bounded requests without facility acquisition. The February 13 cohort date remains separate from observation/edit dates. Next: bounded ID-batch acquisition and immutable retained release, then normalization and app-owned collection enrollment; no national promotion or routine-download agent loop was started.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
