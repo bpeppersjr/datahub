@@ -42,7 +42,7 @@ async function fixture(t) {
   for (const [directory, dataset] of [['data/geography', 'us-census-geography'], ['data/zcta-jurisdiction-crosswalk', 'us-census-zcta-jurisdiction-crosswalk'], ['data/business-baselines/census-nonemployer', 'census-nonemployer-baseline'], ['data/business-baselines/census-zbp', 'census-zbp-baseline']]) await release(root, directory, dataset, `fixture-${dataset}`);
   for (const [key, directory] of Object.entries(outputs)) await release(root, directory, datasets[key], `previous-${key}`);
   for (const script of scripts) { const file = path.join(root, 'scripts', `${script}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture exits zero but emits no release.\n'); }
-  for (const implementation of ['business-registry', 'business-entity-resolution', 'entity-resolution-benchmark', 'national-business-coverage-views','childcare-geographic-evidence','normalized-us-postal-code']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
+  for (const implementation of ['business-registry', 'business-entity-resolution', 'entity-resolution-benchmark', 'national-business-coverage-views','childcare-geographic-evidence','normalized-us-postal-code','tn-childcare-fresh-registry-input','tn-childcare-release']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
   const readinessInspector = async (options) => {
     assert.equal(options.useCandidatePointers, false);
     const sources = [];
@@ -336,7 +336,7 @@ test('production enrolls recovered Tennessee with MA/NJ and pins seven retained 
     assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,3);
     const tn=plan.optionalSourcePins.find(p=>p.sourceKey==='tnChildcare');assert.equal(tn.artifacts.length,7);assert.equal(tn.configurationPins.length,2);
     assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--tn-childcare')+1],tn.manifestPath);
-    const pins=plan.implementationPins.map(p=>p.path);assert.equal(new Set(pins).size,pins.length);assert.equal(pins.length,32);
+    const pins=plan.implementationPins.map(p=>p.path);assert.equal(new Set(pins).size,pins.length);assert.equal(pins.length,34);
     // Check the declared roster against actual relative stage imports, including
     // unselected source code. This is not runtime/package or dynamic-import proof.
     const closure=new Set(),visit=async(relative)=>{
@@ -350,6 +350,16 @@ test('production enrolls recovered Tennessee with MA/NJ and pins seven retained 
     const result=await runProductionReconciliation(plan,{...f,executor:(s,c)=>executeFixture(f,s,c)});assert.equal(result.receipt.status,'SUCCEEDED');
     const emitted=JSON.parse(await readFile(path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json')));assert.equal(emitted.dependencies.length,28);
   }finally{globalThis.fetch=previousFetch;}
+});
+
+test('new plans pin fresh static imports even without selecting Tennessee and reject their drift',async(t)=>{
+  const f=await fixture(t), plan=await planProductionReconciliation({...f,runId:'fresh-static-pins'});
+  for(const relative of ['runner/tn-childcare-fresh-registry-input.mjs','runner/tn-childcare-release.mjs']) {
+    assert.ok(plan.implementationPins.some(pin=>pin.path===relative));
+    const file=path.join(f.root,relative), before=await readFile(file);await writeFile(file,'changed');
+    try { await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('must not launch')})); }
+    finally { await writeFile(file,before); }
+  }
 });
 
 test('Tennessee planner rejects invalid selections and artifact policy or recovery implementation drift',async(t)=>{

@@ -12,12 +12,14 @@ import { assertNormalizedUsPostalFields } from "./normalized-us-postal-code.mjs"
 import { loadMaChildcareRegistryInput } from "./ma-childcare-registry-input.mjs";
 import { loadNjChildcareRegistryInput } from "./nj-childcare-registry-input.mjs";
 import { loadTnChildcareRegistryInput } from "./tn-childcare-registry-input.mjs";
-import { createTnChildcareGeographicEvidence, validateTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { loadFreshTnChildcareRegistryInput } from "./tn-childcare-fresh-registry-input.mjs";
+import { createTnChildcareGeographicEvidence, validateTnChildcareGeographicEvidence, createFreshTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 import { createChildcareGeographicEvidence, validateChildcareGeographicEvidence, CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE } from "./childcare-geographic-evidence.mjs";
 
 export const REGISTRY_SCHEMA_VERSION = "1.0.0";
 export const REGISTRY_TRANSFORMATION_VERSION = "national-business-registry@2.12.0";
 export const TN_REPORTING_REGISTRY_PUBLISHER_VERSION = "2.13.0";
+export const TN_FRESH_REPORTING_REGISTRY_PUBLISHER_VERSION = "2.14.0";
 const TN_CHILDCARE_DATASET = "tn-dhs-active-childcare-centers";
 export const SNAP_SERVICE_ENTITY_ID = "service:usda_snap_authorization";
 export const UNVERIFIED_USPS_OPERATIONAL_STATUS_REASON = "No governed authoritative current USPS operational ZIP evidence is integrated for this row; Census or source-reported ZIP5 evidence does not establish current USPS operational status.";
@@ -2862,17 +2864,23 @@ export async function buildNationalBusinessRegistry({
   maChildcareManifest = null,
   njChildcareManifest = null,
   tnChildcareManifest = null,
+  tnFreshChildcareManifest = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
   if (!outputRoot) throw new Error("outputRoot is required.");
   if (!snapPointer) throw new Error("snapPointer is required.");
+  if (tnChildcareManifest !== null && tnFreshChildcareManifest !== null) throw new Error("Select one Tennessee release: fresh and recovered inputs are mutually exclusive.");
   const childcareInputs = [];
   if (maChildcareManifest) childcareInputs.push({ ...await loadMaChildcareRegistryInput(maChildcareManifest), key: "ma_childcare_centers", datasetId: "ma-licensed-center-based-childcare" });
   if (njChildcareManifest) childcareInputs.push({ ...await loadNjChildcareRegistryInput(njChildcareManifest), key: "nj_childcare_centers", datasetId: "nj-licensed-childcare-centers" });
   if (tnChildcareManifest !== null) {
     if (typeof tnChildcareManifest !== "string" || !tnChildcareManifest) throw new Error("An explicit immutable TN recovered manifest is required.");
     childcareInputs.push({ ...await loadTnChildcareRegistryInput(tnChildcareManifest), key: "tn_childcare_centers", datasetId: TN_CHILDCARE_DATASET });
+  }
+  if (tnFreshChildcareManifest !== null) {
+    if (typeof tnFreshChildcareManifest !== "string" || !tnFreshChildcareManifest) throw new Error("An explicit immutable TN fresh manifest is required.");
+    childcareInputs.push({ ...await loadFreshTnChildcareRegistryInput(tnFreshChildcareManifest), key: "tn_childcare_centers", datasetId: TN_CHILDCARE_DATASET });
   }
   const reportingLocationCount = childcareInputs.reduce((total, input) => total + input.contributions.length, 0);
   const tnInput = childcareInputs.find(input => input.datasetId === TN_CHILDCARE_DATASET);
@@ -4027,7 +4035,7 @@ export async function buildNationalBusinessRegistry({
   }
   for (const input of childcareInputs) {
     for (const contribution of input.contributions) {
-      const geo = input.datasetId === TN_CHILDCARE_DATASET ? createTnChildcareGeographicEvidence(contribution) : createChildcareGeographicEvidence(contribution);
+      const geo = input.datasetId === TN_CHILDCARE_DATASET ? (tnFreshChildcareManifest !== null ? createFreshTnChildcareGeographicEvidence : createTnChildcareGeographicEvidence)(contribution) : createChildcareGeographicEvidence(contribution);
       const prefix = contribution.zipCode?.[0] ?? "unassigned", zip2 = contribution.zipCode?.slice(0, 2) ?? "unassigned";
       if (!reportingWriters.has(zip2)) reportingWriters.set(zip2, await openGzipWriter(stagingDirectory, `reporting/location-evidence/zip2=${zip2}/records.jsonl.gz`));
       for (const entity of contribution.entities) await writeGzipRecord((entity.entity_type === "physical_site" ? siteWriters : establishmentWriters).get(prefix), entity);
@@ -4642,7 +4650,7 @@ export async function buildNationalBusinessRegistry({
   const manifest = {
     schema_version: REGISTRY_SCHEMA_VERSION,
     dataset_id: "national-business-registry",
-    publisher: { id: "national-business-registry", version: tnInput ? TN_REPORTING_REGISTRY_PUBLISHER_VERSION : "2.12.0" },
+    publisher: { id: "national-business-registry", version: tnFreshChildcareManifest !== null ? TN_FRESH_REPORTING_REGISTRY_PUBLISHER_VERSION : tnInput ? TN_REPORTING_REGISTRY_PUBLISHER_VERSION : "2.12.0" },
     release_id: releaseId,
     run_id: runId,
     created_at: createdAt,
@@ -5362,12 +5370,18 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const failures = [];
   const separatedPostalFieldsRequired = versionAtLeast(manifest.publisher?.version, "2.10.0");
   const reportingEvidenceSupported = versionAtLeast(manifest.publisher?.version, "2.12.0");
-  const tnReportingSupported = manifest.publisher?.version === TN_REPORTING_REGISTRY_PUBLISHER_VERSION;
+  const tnFreshReportingSupported = manifest.publisher?.version === TN_FRESH_REPORTING_REGISTRY_PUBLISHER_VERSION;
+  const tnReportingSupported = manifest.publisher?.version === TN_REPORTING_REGISTRY_PUBLISHER_VERSION || tnFreshReportingSupported;
   const childcareSourceIds = new Set(["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_CHILDCARE_DATASET]);
   const childcareDependencies = (manifest.dependencies ?? []).filter((dependency) => childcareSourceIds.has(dependency.dataset_id));
   if (new Set(childcareDependencies.map((entry) => entry.dataset_id)).size !== childcareDependencies.length
     || (childcareDependencies.length && !reportingEvidenceSupported)) failures.push({ path: "manifest.json", reason: "childcare source/version dependencies are invalid" });
-  if (childcareDependencies.some(d => d.dataset_id === TN_CHILDCARE_DATASET) !== tnReportingSupported) failures.push({ path: "manifest.json", reason: "TN recovered reporting requires explicit registry 2.13 and source dependency" });
+  if (childcareDependencies.some(d => d.dataset_id === TN_CHILDCARE_DATASET) !== tnReportingSupported) failures.push({ path: "manifest.json", reason: "TN reporting requires explicit registry 2.13 recovered or 2.14 fresh and source dependency" });
+  if (tnReportingSupported) {
+    const dependency = childcareDependencies.find(d => d.dataset_id === TN_CHILDCARE_DATASET);
+    const releasePattern = tnFreshReportingSupported ? /^tn-childcare-[a-f0-9-]{36}$/ : /^tn-childcare-recovered-[a-f0-9-]{36}$/;
+    if (!releasePattern.test(dependency?.release_id ?? "")) failures.push({ path: "manifest.json", reason: "TN source release origin differs from registry version" });
+  }
   if (!tnReportingSupported && ["tn_childcare_center_sites", "tn_childcare_center_sites_with_zip", "tn_childcare_center_sites_without_zip", "reporting_location_evidence_without_zip", "tn_childcare_missing_zip_reasons"].some(key => Object.hasOwn(manifest.coverage, key))) failures.push({ path: "manifest.json", reason: "TN coverage fields require registry 2.13" });
   const illinoisDependency = manifest.dependencies?.find((dependency) => dependency.dataset_id === "il-business-registry-active-organizations");
   const illinoisOrganizationCount = manifest.coverage?.il_business_registry_active_organization_records ?? 0;
@@ -5477,7 +5491,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   }
 
   let resolutionProfileCount = 0;
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0"].includes(manifest.publisher?.version) && resolutionProfileArtifacts.length !== 100) {
     failures.push({ path: "resolution/location-profiles", reason: `expected 100 match-profile partitions; found ${resolutionProfileArtifacts.length}` });
   }
   const profileIds = new Set();
@@ -5494,7 +5508,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (row) => {
         if (row.source?.source_id === TN_CHILDCARE_DATASET) {
           if (!tnReportingSupported) throw new Error("TN reporting version");
-          validateTnChildcareGeographicEvidence(row);
+          (tnFreshReportingSupported ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row);
         } else validateChildcareGeographicEvidence(row);
         const dependency = childcareDependencies.find((entry) => entry.dataset_id === row.source.source_id);
         if ((row.zip_code?.slice(0, 2) ?? "unassigned") !== zip2 || reportingRows.has(row.site_entity_id)
@@ -5573,7 +5587,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       failures.push({ path: artifact.path, reason: `match-profile validation failed: ${error.message}` });
     }
   }
-  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0"].includes(manifest.publisher?.version)
+  if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0"].includes(manifest.publisher?.version)
     && (resolutionProfileCount !== manifest.coverage?.resolution_location_profiles || resolutionProfileCount + (reportingEvidenceSupported ? reportingRows.size : 0) !== manifest.coverage?.physical_sites)) {
     failures.push({ path: "manifest.json", reason: "entity-resolution profile counts do not reconcile" });
   }
@@ -5912,7 +5926,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
     if (geo.source.source_id === TN_CHILDCARE_DATASET) {
       try {
         const evidence = structuredClone(geo.evidence); delete evidence.assertions_sha256;
-        const reproduced = createTnChildcareGeographicEvidence({ zipCode: geo.zip_code, entities: [tnEntities.get(siteId), tnEntities.get(geo.establishment_entity_id)],
+        const reproduced = (tnFreshReportingSupported ? createFreshTnChildcareGeographicEvidence : createTnChildcareGeographicEvidence)({ zipCode: geo.zip_code, entities: [tnEntities.get(siteId), tnEntities.get(geo.establishment_entity_id)],
           assertions: rows, relationships: [tnRelationships.get(siteId)], matchProfiles: [], exportPolicy: "local-review-only", evidence });
         if (!isDeepStrictEqual(reproduced, geo)) throw new Error("TN reporting replay mismatch");
         const prefix = geo.zip_code?.[0] ?? "unassigned";

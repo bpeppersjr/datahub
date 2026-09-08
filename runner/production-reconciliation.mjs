@@ -19,13 +19,14 @@ const OUTPUTS = { registry:'data/business-registry', resolution:'data/business-e
 const DATASETS = { registry:'national-business-registry', resolution:'national-business-entity-resolution', benchmark:'national-business-entity-resolution-benchmark', coverage:'national-business-coverage-views' };
 const INPUTS = { geography:'data/geography/current.json', crosswalk:'data/zcta-jurisdiction-crosswalk/current.json', nonemployer:'data/business-baselines/census-nonemployer/current.json', zbp:'data/business-baselines/census-zbp/current.json' };
 const STAGES = [ ['registry-build','build','scripts/build-business-registry.mjs'], ['registry-verify','verify','scripts/verify-business-registry.mjs'], ['resolution-build','build','scripts/build-business-entity-resolution.mjs'], ['resolution-verify','verify','scripts/verify-business-entity-resolution.mjs'], ['benchmark-build','build','scripts/build-entity-resolution-benchmark.mjs'], ['benchmark-verify','verify','scripts/verify-entity-resolution-benchmark.mjs'], ['coverage-build','build','scripts/build-national-business-coverage-views.mjs'], ['coverage-verify','verify','scripts/verify-national-business-coverage-views.mjs'] ];
-const MODULES = ['runner/business-registry.mjs','runner/business-entity-resolution.mjs','runner/entity-resolution-benchmark.mjs','runner/national-business-coverage-views.mjs'];
-// Stage static-import closure for the TN-enabled chain. Keep historical non-TN
-// rosters unchanged: recovery must compare the original pins, not migrate them.
+const MODULES = ['runner/business-registry.mjs','runner/business-entity-resolution.mjs','runner/entity-resolution-benchmark.mjs','runner/national-business-coverage-views.mjs','runner/tn-childcare-fresh-registry-input.mjs','runner/tn-childcare-release.mjs'];
+// Pin newly imported fresh modules even when TN is not selected. Saved plans
+// remain immutable; historical recovery still requires its exact original pins.
+// TN-enabled plans additionally cover the full relative static-import closure.
 const TN_MODULES = [...new Set([...MODULES,
   ...['census-geography','childcare-geographic-evidence','normalized-us-postal-code','normalized-us-postal-cutover','normalized-us-postal-migration','paths','source-http-guards'].map(name=>`runner/${name}.mjs`),
   ...['ma','nj'].flatMap(prefix=>['acquisition','normalization','preflight','registry-adapter','registry-input','release',...(prefix==='nj'?['metadata']:[])].map(suffix=>`runner/${prefix}-childcare-${suffix}.mjs`)),
-  ...['acquisition','geographic-evidence','normalization','preflight','recovered-release','recovery-inspection','registry-adapter','registry-input'].map(suffix=>`runner/tn-childcare-${suffix}.mjs`),
+  ...['acquisition','geographic-evidence','normalization','preflight','recovered-release','recovery-inspection','registry-adapter','registry-input','fresh-registry-input','release'].map(suffix=>`runner/tn-childcare-${suffix}.mjs`),
 ])].sort();
 const CHILDCARE = {
   maChildcare: { flag:'--ma-childcare', dataset:'ma-licensed-center-based-childcare', prefix:'ma', policy:'massgis-eec-childcare-local-review', verify:verifyMaChildcareRelease },

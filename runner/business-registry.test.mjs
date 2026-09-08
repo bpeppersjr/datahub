@@ -78,6 +78,17 @@ import { APP_ROOT } from "./paths.mjs";
 import { acquireTnChildcare } from "./tn-childcare-acquisition.mjs";
 import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
 import { recoverTnChildcareRelease } from "./tn-childcare-recovered-release.mjs";
+import { buildTnChildcareRelease } from "./tn-childcare-release.mjs";
+
+async function tnFreshRegistryFixture(t, allMissing) {
+  const outputRoot = await mkdtemp(path.join(APP_ROOT, "data/tmp/tn-fresh-national-"));
+  t.after(() => rm(outputRoot, { recursive: true, force: true }));
+  const release = await buildTnChildcareRelease({ outputRoot, fetchImpl: createTnChildcareFixture({ count: 20, mutate: (p, kind) => {
+    if (kind === "features") { p.features[0].attributes.Zip = "0"; p.features[1].attributes.Zip = null; p.features[0].geometry = null;
+      if (allMissing) for (const row of p.features) row.attributes.Zip = null; }
+  } }).fetchImpl, sleep: async () => {}, now: () => new Date("2026-09-08T00:00:01.000Z") });
+  return { release, outputRoot };
+}
 
 async function tnRecoveredRegistryFixture(t, allMissing = false) {
   const runId = `tn-national-fixture-${randomUUID()}`, runRoot = path.join(APP_ROOT, "data/industry-segments/runs", runId);
@@ -104,14 +115,25 @@ async function tnRecoveredRegistryFixture(t, allMissing = false) {
   return { release, outputRoot };
 }
 
-for (const allMissing of [false, true]) test(`TN recovered reporting preserves ${allMissing ? "all" : "mixed"} missing ZIP membership offline`, async (t) => {
-  const { release, outputRoot } = await tnRecoveredRegistryFixture(t, allMissing);
+for (const fresh of [false, true]) for (const allMissing of [false, true]) test(`TN ${fresh ? "fresh" : "recovered"} reporting preserves ${allMissing ? "all" : "mixed"} missing ZIP membership offline`, async (t) => {
+  const { release, outputRoot } = await (fresh ? tnFreshRegistryFixture : tnRecoveredRegistryFixture)(t, allMissing);
   const snapPointer = await writeFixtureSnapRelease(path.join(outputRoot, "snap"));
   const priorFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("Network forbidden"); };
   t.after(() => { globalThis.fetch = priorFetch; });
-  const result = await buildNationalBusinessRegistry({ snapPointer, tnChildcareManifest: release.manifest_path, outputRoot: path.join(outputRoot, "registry"), logger: () => {} });
+  const selection = { [fresh ? "tnFreshChildcareManifest" : "tnChildcareManifest"]: release.manifest_path };
+  const options = { snapPointer, ...selection, outputRoot: path.join(outputRoot, "registry"), logger: () => {} };
+  await assert.rejects(buildNationalBusinessRegistry({ ...options, tnChildcareManifest: release.manifest_path, tnFreshChildcareManifest: release.manifest_path }), /mutually exclusive/);
+  await assert.rejects(buildNationalBusinessRegistry({ ...options, [fresh ? "tnFreshChildcareManifest" : "tnChildcareManifest"]: null, [fresh ? "tnChildcareManifest" : "tnFreshChildcareManifest"]: release.manifest_path }));
+  const sourceBytes = await readFile(release.manifest_path), sourcePointer = await readFile(path.join(outputRoot, "current.json"));
+  const result = await buildNationalBusinessRegistry(options);
   const m = result.manifest, manifestPath = path.join(result.releaseDirectory, "manifest.json"), missing = allMissing ? 20 : 2;
-  assert.equal(m.publisher.version, "2.13.0"); assert.equal(m.coverage.physical_sites, 22);
+  assert.equal(m.publisher.version, fresh ? "2.14.0" : "2.13.0"); assert.equal(m.coverage.physical_sites, 22);
+  assert.deepEqual(await readFile(release.manifest_path), sourceBytes); assert.deepEqual(await readFile(path.join(outputRoot, "current.json")), sourcePointer);
+  if (fresh) {
+    const baseline = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(outputRoot, "baseline"), logger: () => {} });
+    const profiles = manifest => manifest.artifacts.filter(a => a.artifact_type === "entity-resolution-location-profile-jsonl-gzip").map(a => ({ path: a.path, sha256: a.sha256, records: a.record_count }));
+    assert.deepEqual(profiles(m), profiles(baseline.manifest));
+  }
   assert.equal(m.coverage.resolution_location_profiles, 2); assert.equal(m.coverage.reporting_location_evidence, 20);
   assert.equal(m.coverage.tn_childcare_center_sites_without_zip, missing);
   assert.equal(m.coverage.tn_childcare_center_sites_with_zip, 20 - missing);
@@ -119,7 +141,7 @@ for (const allMissing of [false, true]) test(`TN recovered reporting preserves $
   const unassigned = m.artifacts.filter(a => a.path.includes("unassigned")); assert.equal(unassigned.length, 5);
   for (const a of unassigned.filter(a => !a.artifact_type.includes("assertion"))) assert.equal(a.record_count, missing);
   await verifyNationalBusinessRegistry(manifestPath);
-  for (const mutate of [x => { x.publisher.version = "2.12.0"; }, x => { x.coverage.tn_childcare_center_sites_without_zip++; }, x => { x.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, x => { x.dependencies = x.dependencies.filter(d => d.dataset_id !== "tn-dhs-active-childcare-centers"); }]) {
+  for (const mutate of [x => { x.publisher.version = fresh ? "2.13.0" : "2.14.0"; }, x => { x.publisher.version = "2.15.0"; }, x => { x.publisher.version = "2.12.0"; }, x => { x.coverage.tn_childcare_center_sites_without_zip++; }, x => { x.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, x => { x.dependencies = x.dependencies.filter(d => d.dataset_id !== "tn-dhs-active-childcare-centers"); }]) {
     const candidate = structuredClone(m); mutate(candidate); await writeFile(manifestPath, JSON.stringify(candidate));
     await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
   }

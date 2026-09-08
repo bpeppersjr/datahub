@@ -43,6 +43,17 @@
     "national_reporting_promoted": false,
     "remaining_gates": ["verified production run and explicit source reassessment"]
   },
+  "tennessee_fresh_registry_preparation": {
+    "publisher_version_when_explicitly_selected": "2.14.0",
+    "input_option": "tnFreshChildcareManifest",
+    "input": "verified immutable fresh connector 1.1.0 Tennessee childcare manifest",
+    "exclusive_with": "tnChildcareManifest",
+    "geographic_schema_version": "1.1.0",
+    "identity_matching_eligible": false,
+    "production_cli_enrolled": false,
+    "national_reporting_promoted": false,
+    "remaining_gates": ["resolution, coverage, map and export exact-version migration", "production planner and CLI enrollment", "verified production run and exact source reassessment"]
+  },
   "implemented_source_layers": [
     {
       "dataset_id": "usda-snap-retailers",
