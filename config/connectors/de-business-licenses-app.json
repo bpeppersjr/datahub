@@ -1,0 +1,43 @@
+{
+  "connector_id": "de-business-licenses-app",
+  "version": "1.0.0",
+  "description": "Standalone Delaware job wrapper with explicit retained-release reuse or fixed native acquisition, durable receipts and separate license-based organization semantics. This contract does not replace historical de-business-licenses manifests.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "outputRoot": { "type": "string" },
+      "retainedManifest": { "type": "string", "description": "Explicit immutable local release to verify and reuse without acquisition or pointer changes. Omission requests a fresh acquisition." }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["de-dor-socrata-current-business-license-query", "census-zbp-baseline-release", "retained-de-business-license-release"],
+  "output_artifact_types": ["de-business-app-start-json", "de-business-app-receipt-json", "dataset-manifest-json"],
+  "allowed_hosts": ["data.delaware.gov"],
+  "redirect_policy": "Reject redirects; fixed HTTPS metadata and selected-field resource paths for dataset 5zy2-grhr. Retained mode performs no network requests.",
+  "provider_budget_key": "de-dor-business-licenses-public-socrata",
+  "resource_class": "bounded-state-source",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_page_records": 50000,
+    "maximum_response_bytes": 80000000,
+    "maximum_request_attempts": 1000,
+    "maximum_consumed_response_bytes": 1000000000,
+    "maximum_source_rows": 1000000,
+    "minimum_free_disk_bytes": 4294967296,
+    "minimum_free_memory_bytes": 1073741824,
+    "minimum_heap_limit_bytes": 536870912,
+    "cooperative_execution_deadline_ms": 1800000,
+    "source_cancel_grace_ms": 60000,
+    "supervisor_cancel_grace_ms": 75000
+  },
+  "retry": "At most five serial attempts per response. Honor Retry-After without shortening; waits exceeding one day defer. Whole-build deadline and cumulative limits can stop earlier. No automatic job restart or blind reacquisition after failure.",
+  "checkpoint": "Persist immutable start and terminal job receipts. A successful receipt binds an independently verified immutable release manifest and its coverage. Retained mode references existing evidence without rewriting it. Failed or cancelled jobs preserve diagnostics and any published release; inspect before recovery.",
+  "idempotency": "Each invocation allocates a new UUID job. Explicit retained mode avoids a duplicate download; omission is a fresh acquisition, not an implicit freshness cache. Historical jobs and source releases are not overwritten.",
+  "cancellation": "Cooperative before publication; fresh owned staging cleanup only when ownership is certain. After the source commit boundary finish bounded publication or report DE_PUBLICATION_INCOMPLETE. Cancelled control outcomes may retain complete or partial publication and require inspection, not rollback assumptions. Forced process death and OS stalls are not transactionally recovered.",
+  "source_policy": "config/source-policies/de-business-licenses.json",
+  "retention_profile": "Internal selected evidence and local-review-only normalized records; preserve immutable source releases and durable job receipts. No automatic deletion or public record-level export.",
+  "produced_entities": ["organization-candidate", "de-current-license-status-assertion", "reported-business-address-assertion", "trade-name-assertion", "business-activity-assertion"],
+  "produced_identifiers": ["de-division-of-revenue-business-license-number", "zip5", "zip4", "zcta5"]
+}

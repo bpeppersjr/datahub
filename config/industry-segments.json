@@ -10,10 +10,21 @@
     "construction": ["state-wa-contractors", "state-mn-contractor-registrations", "state-mn-residential-contractors"],
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
-    "local-business-licenses": ["state-dc-basic-licenses"],
+    "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses"],
     "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]
   },
   "sources": {
+    "state-de-business-licenses": {
+      "script": "scripts/run-de-business-app.mjs",
+      "scope": "state", "states": ["DE"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/de-business-licenses-app.json", "config/source-policies/de-business-licenses.json", "data/business-baselines/census-zbp/current.json"],
+      "coverage_notes": [
+        "Delaware Division of Revenue current licenses across industries, not every business, verified operations or physical sites. Reported addresses may lie outside Delaware; ZIP5/ZIP4 remain separate.",
+        "Explicit collection requests use the fixed native app wrapper with resource, request, byte, row and elapsed safeguards. Source metadata and counts are checked before and after acquisition; records remain internal/local-review-only.",
+        "Each app job retains start and terminal receipts linked to a verified immutable release. A cancelled control outcome may leave published output; inspect evidence before retrying. No automatic restart or schedule activation.",
+        "For downstream promotion use explicit retained-manifest mode through the standalone CLI instead of collecting again. Fresh managed output is run-scoped and does not replace the historical national source pointer or automatically enter national reporting."
+      ]
+    },
     "state-mn-contractor-registrations": {
       "script": "scripts/build-mn-contractor-registrations.mjs",
       "scope": "state", "states": ["MN"], "state_filter_supported": false,

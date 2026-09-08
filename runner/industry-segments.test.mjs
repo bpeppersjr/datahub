@@ -38,6 +38,18 @@ test("explicit manual sources narrow MN without altering omitted selections", as
   assert.throws(()=>buildIndustryPlan(config,{...input,states:['WI'],sourceIds:['state-mn-contractor-registrations']}),/not applicable/);
 });
 
+test("Delaware app plan isolates its publisher and preserves reuse and non-site limitations", async () => {
+  const config = await loadIndustryConfig();
+  const plan = buildIndustryPlan(config, { industries: ["local-business-licenses"], states: ["DE", "PA"], sourceIds: ["state-de-business-licenses"] });
+  assert.equal(plan.tasks.length, 1);
+  assert.equal(plan.tasks[0].state, "DE");
+  assert.equal(plan.tasks[0].script, "scripts/run-de-business-app.mjs");
+  assert.ok(plan.gaps.some(gap => gap.state === "PA"));
+  assert.ok(plan.warnings.some(note => note.includes("retained-manifest")));
+  assert.ok(plan.warnings.some(note => note.includes("physical sites")));
+  assert.ok(plan.tasks[0].prerequisites.includes("config/connectors/de-business-licenses-app.json"));
+});
+
 test("selected source run conserves selected tasks and rejects expanded canonical plans", async () => {
   const config=offlineConfig(),plan=buildIndustryPlan(config,{sourceIds:['state-fixture'],runId:'source-selection'});
   await withRunDirectory(async outputRoot=>{

@@ -1,5 +1,7 @@
 # Delaware current business licenses
 
+Standalone follow-up: [Delaware app jobs](DE-BUSINESS-APP.md) now provide a separate pinned app contract, explicit retained-release reuse, fixed native acquisition entry point and durable job receipts. Historical prerequisites below describe the staged migration; the app document records current enrollment and actual execution evidence. New source output does not automatically replace national reporting inputs.
+
 This source adapter ingests the official Delaware Department of Finance, Division of Revenue `Delaware Business Licenses` dataset (`5zy2-grhr`). The catalog describes the feed as businesses currently licensed in Delaware, marks it Public Domain, and reports daily publication.
 
 The adapter selects thirteen business-license and address fields plus the Socrata row identifier. It does not query owner, officer, principal, registered-agent, phone, email, or contact data. An immutable, checksummed selected-field snapshot is retained internally.

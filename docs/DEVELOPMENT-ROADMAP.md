@@ -453,6 +453,8 @@ Collection cancellation alignment (September 8): shared 60-second source-worker 
 
 Delaware resource prerequisite (September 8): fresh builds now fail closed before staging/baseline/network on insufficient or unavailable disk, RAM or heap observations. A 30-minute cooperative deadline covers precommit work and preserves the existing commit-boundary behavior. Native preflight passed on this host and the retained 66,667 license candidates reverified offline. These checks are not resource reservations or a peak-memory guarantee. Next is the separate app connector contract and fixed wrapper/receipt enrollment, with retained-release reuse distinguished from a needed refresh. See [resource evidence and limitations](DE-BUSINESS-LICENSES.md#resource-prerequisite-and-cooperative-deadline-september-8-2026).
 
+Delaware app enrollment (September 8): a distinct app connector contract and strict run/verify CLIs now back the Delaware-only `local-business-licenses` source. Native acquisition uses job-specific output; retained mode independently verifies existing immutable releases without download or pointer changes. Standalone retained job `982fb5e2-9bd8-4f33-95c5-3f923e8b6ec5` succeeded and its receipt reverified the 66,667 license candidates. Synthetic native-path tests cover 60,000 rows, cross-job borrowing rejection and configuration drift without provider calls. No fresh managed collection, recurring schedule or national promotion was dispatched. See [receipt and scope evidence](DE-BUSINESS-APP.md).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
