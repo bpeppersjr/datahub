@@ -23,3 +23,17 @@ Tests exercise policy shape and exact limits, boundary capacity, malformed obser
 Rollback reverts the memory helper, controller/CLI integration and tests while retaining historical evidence. Do not alter these pinned modules during an accepted run. Reverting restores the implicit heap limit, so do not retry the failed national workload with the same uncorrected launch settings.
 
 Final verification on September 8, 2026: `npm run check` passed all 996 tests, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit found zero vulnerabilities. Peer review identified the inherited heap-option risk, now guarded and covered by a real-launch no-child/no-log regression. Log: `data/tmp/production-memory-final-check.log`. The replacement plan retains exactly the previous source, optional-source, baseline and output selections; none were repulled or substituted.
+
+## Replacement handoff: planned, not launched
+
+Implementation commit: `e25f4a6`. Replacement plan: `data/reconciliations/production-plans/production-oh-memory-20260908-02.json`, SHA-256 `28722e4355179217ee1b7fbe3b219c3fc258c538b5e5c392214a83633a4a4bb7`. It has 49 implementation pins, including the controller and memory helper. Its source pins, optional-source pins, input pins and previous outputs are identical to the failed run's selections.
+
+The session execution policy rejected the background `Start-Process` launch before command execution. Subsequent read-only checks found neither this run's receipt nor a controller lock. There is no accepted replacement job or running-process claim. The local management page remains available (HTTP 200); no browser visual QA was performed.
+
+To launch from a local PowerShell terminal in `C:\Master Data\datahub`:
+
+```powershell
+node scripts/reconcile-business-production.mjs run --run-id production-oh-memory-20260908-02 --confirm 28722e4355179217ee1b7fbe3b219c3fc258c538b5e5c392214a83633a4a4bb7
+```
+
+Keep that terminal open while the standalone app controller runs. It does not require Codex; its persisted receipt and management-page run view provide progress. The controller first revalidates retained inputs and implementation pins; if these have changed, create a reviewed new plan rather than editing this one or weakening its checks. Do not start a duplicate after an accepted receipt appears. This is a local rebuild with no new source acquisition.
