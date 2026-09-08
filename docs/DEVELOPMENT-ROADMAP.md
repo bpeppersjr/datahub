@@ -445,6 +445,8 @@ Selective app investigation (September 8): manual industry/API collection can se
 
 Source recovery safeguards (September 8): Minnesota's registrations-only investigation confirmed malformed closing quotes, so a reviewed exact-ETag hold now prevents repeated full transfers of that version without affecting residential replay. In parallel, Delaware's existing license HTTP helper gained streamed byte caps, deadlines, body cleanup and cancellable publisher cooldowns. No source was repulled for these repairs. Delaware CLI/publication cancellation remains a prerequisite to managed enrollment. See [Minnesota recovery](MN-CONSTRUCTION-SELECTIVE-RECOVERY.md#verified-outcome-and-exact-version-hold) and [Delaware transport](DE-BUSINESS-LICENSES.md#bounded-transport-prerequisite-september-8-2026).
 
+Delaware local lifecycle (September 8): build/verify/resume now honor cooperative cancellation, close compressed streams, preserve resumed and uncertain staging, and explicitly report incomplete publication after commit errors. Real CLI IPC and filesystem fault tests complement the transport regressions. The retained 66,667 license-based candidates were independently reverified without a download; no active-business count is inferred. Managed enrollment still requires the pinned contract migration and aligning commit timing with the worker's forced-cancel grace. See [lifecycle evidence](DE-BUSINESS-LICENSES.md#lifecycle-verification-and-retained-data-continuity).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

@@ -1,13 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile, lstat, realpath, rm, open } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 import { publisherRetryDelay } from "./source-http-guards.mjs";
+import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 
 export const DE_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.1";
@@ -58,14 +59,71 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
     bytes += chunk.length;
     hash.update(chunk);
   }
   return { bytes, sha256: hash.digest("hex") };
+}
+
+async function deYield(signal) {
+  signal?.throwIfAborted();
+  await new Promise((resolve) => setImmediate(resolve));
+  signal?.throwIfAborted();
+}
+
+async function deCanonicalDirectory(directory, create = false) {
+  const absolute = assertInsideApp(path.resolve(directory));
+  if (absolute === path.resolve(APP_ROOT)) throw new Error("Delaware output cannot be the app root.");
+  const relative = path.relative(APP_ROOT, absolute);
+  let current = APP_ROOT;
+  for (const part of relative.split(path.sep)) {
+    current = path.join(current, part);
+    let info;
+    try { info = await lstat(current, { bigint: true }); }
+    catch (error) {
+      if (error.code !== "ENOENT" || !create) throw error;
+      await mkdir(current);
+      info = await lstat(current, { bigint: true });
+    }
+    if (!info.isDirectory() || info.isSymbolicLink() || path.resolve(await realpath(current)).toLowerCase() !== path.resolve(current).toLowerCase()) throw new Error("Delaware directory must be canonical and non-symlink.");
+  }
+  return absolute;
+}
+
+async function deSameDirectory(directory, expected) {
+  try {
+    await deCanonicalDirectory(directory);
+    const actual = await lstat(directory, { bigint: true });
+    return actual.dev === expected.dev && actual.ino === expected.ino;
+  } catch { return false; }
+}
+
+async function dePublicationSnapshot(directory, signal) {
+  signal?.throwIfAborted();
+  const manifestPath = path.join(directory, "manifest.json");
+  const manifestInfo = await lstat(manifestPath, { bigint: true });
+  if (!manifestInfo.isFile() || manifestInfo.isSymbolicLink() || manifestInfo.nlink !== 1n || manifestInfo.size > 2_000_000n) throw new Error("Unsafe Delaware manifest.");
+  const bytes = await readFile(manifestPath);
+  const manifest = JSON.parse(bytes);
+  if (!Array.isArray(manifest.artifacts) || manifest.artifacts.length > 64) throw new Error("Invalid Delaware artifact roster.");
+  const snapshot = [{ path: "manifest.json", sha256: sha256(bytes), ino: String(manifestInfo.ino) }];
+  const seen = new Set();
+  for (const artifact of manifest.artifacts) {
+    await deYield(signal);
+    if (typeof artifact.path !== "string" || seen.has(artifact.path) || artifact.path.includes("\\") || artifact.path.split("/").some((part) => !part || part === "." || part === "..")) throw new Error("Unsafe Delaware artifact path.");
+    seen.add(artifact.path);
+    const filename = path.resolve(directory, artifact.path);
+    assertContained(directory, filename, "Delaware artifact");
+    await deCanonicalDirectory(path.dirname(filename));
+    const info = await lstat(filename, { bigint: true });
+    if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1n) throw new Error("Unsafe Delaware artifact file.");
+    snapshot.push({ path: artifact.path, ...(await hashFile(filename, signal)), ino: String(info.ino) });
+  }
+  return JSON.stringify(snapshot);
 }
 
 function json(value) {
@@ -386,57 +444,72 @@ async function sourceCounts(options) {
   return { records, distinctLicenses };
 }
 
-async function openGzipWriter(stagingDirectory, relativePath) {
+async function openGzipWriter(stagingDirectory, relativePath, registry = [], signal) {
+  signal?.throwIfAborted();
   const destination = path.join(stagingDirectory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${randomUUID()}`;
   const output = createWriteStream(temporary, { flags: "wx" });
   const gzip = createGzip({ level: 9 });
+  const completion = Promise.allSettled([finished(output), finished(gzip)]).then((results) => {
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed) throw failed.reason;
+  });
+  void completion.catch(() => {});
+  gzip.on("error", (error) => output.destroy(error));
+  output.on("error", (error) => gzip.destroy(error));
   gzip.pipe(output);
-  return { relativePath: relativePath.replaceAll("\\", "/"), destination, temporary, output, gzip, records: 0 };
+  const writer = { relativePath: relativePath.replaceAll("\\", "/"), destination, temporary, output, gzip, completion, signal, records: 0 };
+  registry.push(writer);
+  if (signal?.aborted) abortGzipWriters([writer], new Error("Delaware build cancelled."));
+  return writer;
 }
 
 async function writeGzipRecord(writer, record) {
+  writer.signal?.throwIfAborted();
   if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
   writer.records += 1;
 }
 
 async function closeGzipWriter(writer, artifactType, metadata = {}) {
+  writer.signal?.throwIfAborted();
   writer.gzip.end();
-  await finished(writer.output);
-  await renameWithRetry(writer.temporary, writer.destination);
-  return { path: writer.relativePath, ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType, ...metadata };
+  await writer.completion;
+  await renameWithRetry(writer.temporary, writer.destination, 12, writer.signal);
+  return { path: writer.relativePath, ...(await hashFile(writer.destination, writer.signal)), record_count: writer.records, artifact_type: artifactType, ...metadata };
 }
 
-function abortGzipWriters(writers) {
+function abortGzipWriters(writers, error) {
   for (const writer of writers) {
-    writer.gzip.destroy();
-    writer.output.destroy();
+    writer.gzip.destroy(error);
+    writer.output.destroy(error);
   }
 }
 
-async function renameWithRetry(sourcePath, destinationPath, attempts = 12) {
+async function renameWithRetry(sourcePath, destinationPath, attempts = 12, signal) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    signal?.throwIfAborted();
     try {
       await rename(sourcePath, destinationPath);
       return;
     } catch (error) {
       lastError = error;
       if (!["EACCES", "EBUSY", "EPERM"].includes(error.code) || attempt === attempts - 1) break;
-      await new Promise((resolve) => setTimeout(resolve, Math.min(4_000, 50 * (2 ** attempt))));
+      await deWait(Math.min(4_000, 50 * (2 ** attempt)), signal);
     }
   }
   throw lastError;
 }
 
-async function writeArtifact(directory, relativePath, content, metadata = {}) {
+async function writeArtifact(directory, relativePath, content, metadata = {}, signal) {
+  signal?.throwIfAborted();
   const destination = path.join(directory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content, "utf8");
   const temporary = `${destination}.tmp-${randomUUID()}`;
-  await writeFile(temporary, buffer, { flag: "wx" });
-  await renameWithRetry(temporary, destination);
+  await writeFile(temporary, buffer, { flag: "wx", signal });
+  await renameWithRetry(temporary, destination, 12, signal);
   return { path: relativePath.replaceAll("\\", "/"), bytes: buffer.length, sha256: sha256(buffer), ...metadata };
 }
 
@@ -445,26 +518,44 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
-async function loadZbpBaseline(pointerPath) {
+async function loadZbpBaseline(pointerPath, signal) {
   const absolutePointer = path.resolve(pointerPath);
-  const pointer = JSON.parse(await readFile(absolutePointer, "utf8"));
+  const pointer = JSON.parse(await readFile(absolutePointer, { encoding: "utf8", signal }));
   const base = path.dirname(absolutePointer);
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
   assertContained(base, manifestPath, "Census ZBP manifest");
-  const manifestBuffer = await readFile(manifestPath);
+  const manifestBuffer = await readFile(manifestPath, { signal });
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "census-zbp-baseline" || !manifest.complete_national_release) throw new Error("A complete Census ZBP baseline release is required.");
   const artifact = manifest.artifacts.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
   if (!artifact) throw new Error("Census ZBP ZIP coverage artifact is missing.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const rows = (await readFile(artifactPath, "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+  const rows = [];
+  for (const line of (await readFile(artifactPath, { encoding: "utf8", signal })).split(/\r?\n/)) {
+    if (rows.length % 128 === 0) await deYield(signal);
+    if (line) rows.push(JSON.parse(line));
+  }
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+async function* gzipRecords(filename, signal) {
+  const input = createReadStream(filename, { signal });
+  const gzip = createGunzip();
+  const completion = Promise.allSettled([finished(input), finished(gzip)]);
+  input.on("error", (error) => gzip.destroy(error));
+  gzip.on("error", (error) => input.destroy(error));
+  const lines = createInterface({ input: input.pipe(gzip), crlfDelay: Infinity });
+  let count = 0;
+  try {
+    for await (const line of lines) {
+      signal?.throwIfAborted();
+      if (++count % 128 === 0) await deYield(signal);
+      if (line) yield JSON.parse(line);
+    }
+  } finally {
+    lines.close(); input.destroy(); gzip.destroy(); await completion;
+  }
 }
 
 function sourceSafeRecord(record) {
@@ -493,6 +584,7 @@ async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, 
     previousSocrataId = rowId;
     await writeGzipRecord(writer, record);
     count += 1;
+    if (count % 128 === 0) await deYield(signal);
   };
   if (sourceRecords) {
     for (const record of sourceRecords) await consume(record);
@@ -561,6 +653,8 @@ export async function buildDeBusinessLicenses({
   sleep,
   logger = console.log,
   now = () => new Date(),
+  onBeforeCommit,
+  onAfterCommit,
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
   if (!Number.isInteger(minimumLicenseRows) || minimumLicenseRows < 1) throw new Error("minimumLicenseRows must be a positive integer.");
@@ -571,8 +665,16 @@ export async function buildDeBusinessLicenses({
   const runId = randomUUID();
   const releaseId = `de-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
-  await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
+  await deCanonicalDirectory(outputRoot, true);
+  await deCanonicalDirectory(path.dirname(stagingDirectory), true);
+  await mkdir(stagingDirectory);
+  const stageIdentity = await lstat(stagingDirectory, { bigint: true });
+  const allWriters = [];
+  const abortWriters = () => abortGzipWriters(allWriters, new Error("Delaware build cancelled."));
+  signal?.addEventListener("abort", abortWriters, { once: true });
+  try {
+  signal?.throwIfAborted();
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
   const requestOptions = { fetchImpl, signal, sleep, type: "metadata" };
   const initialMetadata = catalogMetadata ?? await requestDeJson(DE_BUSINESS_LICENSE_METADATA_URL, requestOptions);
   const catalog = validateCatalogMetadata(initialMetadata, schemaFingerprintExpected);
@@ -585,7 +687,7 @@ export async function buildDeBusinessLicenses({
   if (!Number.isInteger(counts.records) || !Number.isInteger(counts.distinctLicenses) || counts.records < minimumLicenseRows || counts.distinctLicenses < 1 || counts.distinctLicenses > counts.records) {
     throw new Error(`Delaware current-license row count ${counts.records} is below the ${minimumLicenseRows} quality floor or is inconsistent.`);
   }
-  const rawWriter = await openGzipWriter(stagingDirectory, "source/current-business-licenses.jsonl.gz");
+  const rawWriter = await openGzipWriter(stagingDirectory, "source/current-business-licenses.jsonl.gz", allWriters, signal);
   let sourceArtifact;
   try {
     await acquireSource({ writer: rawWriter, sourceRecords, expectedCount: counts.records, fetchImpl, signal, sleep, pageSize, logger });
@@ -606,8 +708,8 @@ export async function buildDeBusinessLicenses({
   const sourceReleaseId = `de-business-licenses-${catalog.rowsUpdatedAtIso.slice(0, 10)}-${sourceReleaseDigest.slice(0, 16)}`;
   const context = { runId, retrievedAt, sourceRowsUpdatedAt: catalog.rowsUpdatedAtIso, sourceReleaseId, baselineByZip: baseline.byZip };
   const writers = new Map();
-  for (const prefix of "0123456789abcdef") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/organizations/id-hash-prefix=${prefix}.jsonl.gz`));
-  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantined-license-groups.jsonl.gz");
+  for (const prefix of "0123456789abcdef") writers.set(prefix, await openGzipWriter(stagingDirectory, `derived/organizations/id-hash-prefix=${prefix}.jsonl.gz`, allWriters, signal));
+  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantined-license-groups.jsonl.gz", allWriters, signal);
   const licenseIds = new Set();
   const countsByZip = new Map();
   const businessActivities = new Map();
@@ -664,7 +766,7 @@ export async function buildDeBusinessLicenses({
     group = [];
   };
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
       signal?.throwIfAborted?.();
       if (group.length && source.license_number !== group[0].license_number) await emitGroup();
       group.push(source);
@@ -687,7 +789,7 @@ export async function buildDeBusinessLicenses({
     await closeGzipWriter(quarantineWriter, "de-business-license-quarantine-jsonl-gzip", { export_policy: "internal" }),
   ];
   const coverageRows = buildZipCoverage(baseline.rows, countsByZip, context);
-  artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(coverageRows), { artifact_type: "de-business-licenses-zip-coverage-jsonl", record_count: coverageRows.length }));
+  artifacts.push(await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(coverageRows), { artifact_type: "de-business-licenses-zip-coverage-jsonl", record_count: coverageRows.length }, signal));
   artifacts.push(await writeArtifact(stagingDirectory, "derived/source-summary.json", json({
     source_current_license_rows: counts.records,
     accepted_current_license_rows: acceptedLicenseRows,
@@ -704,7 +806,7 @@ export async function buildDeBusinessLicenses({
     reported_address_states: sortedCounts(addressStates),
     reported_address_countries: sortedCounts(countries),
     postal_code_statuses: sortedCounts(postalStatuses),
-  }), { artifact_type: "de-business-licenses-source-summary" }));
+  }), { artifact_type: "de-business-licenses-source-summary" }, signal));
   artifacts.push(await writeArtifact(stagingDirectory, "source/release-metadata.json", json({
     dataset_id: DE_BUSINESS_LICENSE_DATASET_ID,
     dataset_name: initialMetadata.name,
@@ -720,7 +822,7 @@ export async function buildDeBusinessLicenses({
     expected_source_record_count: counts.records,
     expected_distinct_license_count: counts.distinctLicenses,
     source_urls: { metadata: DE_BUSINESS_LICENSE_METADATA_URL, api: DE_BUSINESS_LICENSE_API_URL, dataset_page: DE_BUSINESS_LICENSE_PAGE_URL },
-  }), { artifact_type: "de-business-licenses-source-release-metadata" }));
+  }), { artifact_type: "de-business-licenses-source-release-metadata" }, signal));
   const manifest = {
     schema_version: DE_BUSINESS_LICENSE_SCHEMA_VERSION,
     dataset_id: "de-business-licenses-current",
@@ -789,10 +891,20 @@ export async function buildDeBusinessLicenses({
     ],
     artifacts,
   };
-  await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishDeBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
-  logger(`Published ${organizations.toLocaleString("en-US")} Delaware current-license organization candidates.`);
+  await writeArtifact(stagingDirectory, "manifest.json", json(manifest), {}, signal);
+  const publication = await publishDeBusinessLicensesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal, onBeforeCommit, onAfterCommit });
+  try { logger(`Published ${organizations.toLocaleString("en-US")} Delaware current-license organization candidates.`); }
+  catch { throw Object.assign(new Error("Delaware post-publication reporting failed; inspect retained publication evidence."), { code: "DE_PUBLICATION_INCOMPLETE", phase: "post-publication", releaseId }); }
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
+  } catch (error) {
+    abortGzipWriters(allWriters);
+    await Promise.allSettled(allWriters.map((writer) => writer.completion));
+    if (error.code !== "DE_PUBLICATION_INCOMPLETE" && signal?.aborted && await deSameDirectory(stagingDirectory, stageIdentity)) await rm(stagingDirectory, { recursive: true });
+    if (error.code !== "DE_PUBLICATION_INCOMPLETE") signal?.throwIfAborted();
+    throw error;
+  } finally {
+    signal?.removeEventListener("abort", abortWriters);
+  }
 }
 
 function containsExcludedField(value) {
@@ -801,22 +913,33 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishDeBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishDeBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal, onBeforeCommit, onAfterCommit } = {}) {
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
   const stagingRoot = path.join(outputRoot, ".staging");
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Delaware staging run");
+  signal?.throwIfAborted();
+  await deCanonicalDirectory(outputRoot);
+  await deCanonicalDirectory(stagingDirectory);
+  const stageIdentity = await lstat(stagingDirectory, { bigint: true });
+  const lockPath = path.join(outputRoot, ".publish.lock");
+  const lock = await open(lockPath, "wx");
+  const lockIdentity = await lock.stat({ bigint: true });
+  let committedReleaseId = null, primaryError = null;
+  try {
   const manifestPath = path.join(stagingDirectory, "manifest.json");
+  const beforeSnapshot = await dePublicationSnapshot(stagingDirectory, signal);
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "de-business-licenses-current" || manifest.status !== "published") {
     throw new Error("Delaware staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Delaware staging release ID does not match the build result.");
-  await verifyDeBusinessLicenses(manifestPath);
+  if (!/^de-business-licenses-[0-9TZ-]+-[0-9a-f]{8}$/.test(manifest.release_id)) throw new Error("Invalid Delaware release identity.");
+  await verifyDeBusinessLicenses(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
-  await mkdir(releasesDirectory, { recursive: true });
+  await deCanonicalDirectory(releasesDirectory, true);
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
   try {
     await stat(releaseDirectory);
@@ -824,9 +947,31 @@ export async function publishDeBusinessLicensesStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
-  await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
+  let prior = null;
+  try {
+    const info = await lstat(pointerPath, { bigint: true });
+    if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1n) throw new Error("Unsafe Delaware pointer.");
+    prior = await readFile(pointerPath);
+    const value = JSON.parse(prior);
+    if (value.dataset_id !== manifest.dataset_id || !/^de-business-licenses-[0-9TZ-]+-[0-9a-f]{8}$/.test(value.release_id) || value.manifest !== `releases/${value.release_id}/manifest.json`) throw new Error("Foreign Delaware pointer.");
+  } catch (error) { if (error.code !== "ENOENT") throw error; }
+  await onBeforeCommit?.();
+  await verifyDeBusinessLicenses(manifestPath, { signal });
+  if (!await deSameDirectory(stagingDirectory, stageIdentity)) throw new Error("Delaware staging ownership changed.");
+  if (beforeSnapshot !== await dePublicationSnapshot(stagingDirectory, signal)) throw new Error("Delaware publication artifacts changed.");
+  let current = null;
+  const pointerInfo = await lstat(pointerPath, { bigint: true }).catch((error) => { if (error.code === "ENOENT") return null; throw error; });
+  if (pointerInfo && (!pointerInfo.isFile() || pointerInfo.isSymbolicLink() || pointerInfo.nlink !== 1n)) throw new Error("Unsafe Delaware pointer.");
+  try { current = await readFile(pointerPath); } catch (error) { if (error.code !== "ENOENT") throw error; }
+  if ((prior === null) !== (current === null) || (prior && !prior.equals(current))) throw new Error("Delaware prior pointer changed.");
+  await deYield(signal);
+  // Commit boundary: finish bounded local publication without observing cancellation.
+  let phase = "release-rename";
+  committedReleaseId = manifest.release_id;
+  try {
+  await renameWithRetry(stagingDirectory, releaseDirectory);
+  phase = "pointer-write";
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
   await writeFile(temporaryPointer, json({
     dataset_id: manifest.dataset_id,
@@ -834,12 +979,34 @@ export async function publishDeBusinessLicensesStaging({ outputRoot, stagingRunI
     manifest: `releases/${manifest.release_id}/manifest.json`,
     updated_at: manifest.retrieved_at,
   }), { flag: "wx" });
+  phase = "pointer-rename";
   await renameWithRetry(temporaryPointer, pointerPath);
+  phase = "post-publication";
+  await onAfterCommit?.();
   if (!(await stat(releaseDirectory)).isDirectory()) throw new Error("Published Delaware business-license release is not a directory.");
   return { manifest, releaseDirectory, pointerPath };
+  } catch {
+    throw Object.assign(new Error("Delaware publication commit requires inspection; retained evidence must not be retried or removed automatically."), { code: "DE_PUBLICATION_INCOMPLETE", phase, releaseId: manifest.release_id });
+  }
+  } catch (error) {
+    primaryError = error;
+    throw error;
+  } finally {
+    try {
+      await lock.close();
+      const actual = await lstat(lockPath, { bigint: true }).catch(() => null);
+      if (actual?.dev === lockIdentity.dev && actual?.ino === lockIdentity.ino) await rm(lockPath);
+    } catch (error) {
+      if (!primaryError) {
+        if (committedReleaseId) throw Object.assign(new Error("Delaware post-publication cleanup failed; inspect retained publication evidence."), { code: "DE_PUBLICATION_INCOMPLETE", phase: "post-publication", releaseId: committedReleaseId });
+        throw error;
+      }
+    }
+  }
 }
 
-export async function verifyDeBusinessLicenses(manifestPath) {
+export async function verifyDeBusinessLicenses(manifestPath, { signal } = {}) {
+  await deYield(signal);
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
@@ -847,10 +1014,11 @@ export async function verifyDeBusinessLicenses(manifestPath) {
   if (manifest.dataset_id !== "de-business-licenses-current" || manifest.status !== "published" || !manifest.complete_current_license_snapshot) failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
   if (manifest.policy?.record_level_distribution !== "local-review-only" || manifest.coverage?.physical_sites !== null || manifest.coverage?.establishments !== null) failures.push({ path: "manifest.json", reason: "privacy or non-site policy was overstated" });
   for (const artifact of manifest.artifacts ?? []) {
+    await deYield(signal);
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
@@ -870,7 +1038,7 @@ export async function verifyDeBusinessLicenses(manifestPath) {
       let distinctLicenses = 0;
       let previousLicense = null;
       let previousRowId = null;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
         for (const field of Object.keys(record)) if (!DE_BUSINESS_LICENSE_SOURCE_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const licenseNumber = textValue(record.license_number);
         const rowId = textValue(record.socrata_row_id);
@@ -895,10 +1063,11 @@ export async function verifyDeBusinessLicenses(manifestPath) {
   let suspiciousGeocodes = 0;
   let acceptedLicenseRows = 0;
   for (const artifact of normalizedArtifacts) {
+    await deYield(signal);
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const id = record.external_identifiers?.find((item) => item.type === "de_division_of_revenue_business_license_number")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned license number ${id}`);
         ids.add(id);
@@ -935,7 +1104,7 @@ export async function verifyDeBusinessLicenses(manifestPath) {
     try {
       let quarantinedRows = 0;
       let quarantinedGroups = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path), signal)) {
         if (!QUARANTINE_REASONS.has(record.reason) || record.export_policy !== "internal" || !Number.isInteger(record.source_record_count) || record.source_record_count < 1 || record.source_record_ids?.length !== record.source_record_count) throw new Error("invalid quarantine record");
         quarantinedRows += record.source_record_count;
         quarantinedGroups += 1;
@@ -955,6 +1124,7 @@ export async function verifyDeBusinessLicenses(manifestPath) {
       const total = rows.reduce((sum, row) => sum + row.de_business_license_snapshot.organization_reported_business_address_count, 0);
       if (total !== eligibleAddresses) throw new Error("ZIP organization address counts do not reconcile");
       for (const row of rows) {
+        await deYield(signal);
         if ((countsByZip.get(row.zip_code) ?? 0) !== row.de_business_license_snapshot.organization_reported_business_address_count) throw new Error(`ZIP ${row.zip_code} does not reconcile`);
         if (row.current_usps_validity?.status !== "unverified") throw new Error(`ZIP ${row.zip_code} has unsupported USPS validity`);
         if (row.de_business_license_snapshot.physical_site_count !== null || row.de_business_license_snapshot.physical_site_inference_permitted !== false) throw new Error(`ZIP ${row.zip_code} implies a physical site`);
@@ -963,6 +1133,7 @@ export async function verifyDeBusinessLicenses(manifestPath) {
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }
+  signal?.throwIfAborted();
   if (failures.length) {
     const error = new Error(`Delaware business-license release verification failed for ${failures.length} check(s).`);
     error.failures = failures;
