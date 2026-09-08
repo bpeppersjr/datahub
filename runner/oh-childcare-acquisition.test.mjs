@@ -75,6 +75,34 @@ test("Ohio selected pages reject scope, private fields, nested schemas and coord
   ]) { const p = page([1, 2, 3]); change(p); assert.throws(() => ohFeatures(p, [1, 2, 3], e.preflight_before), (err) => /Ohio/.test(err.message) && !err.message.includes("PRIVATE")); }
   assert.throws(() => ohFeatures(page([1, 2]), [2, 1], e.preflight_before), /Ohio/);
 });
+test("Ohio batch rejection diagnostics distinguish structural gates without copying provider data", async () => {
+  const e = await fixture();
+  const cases = [
+    [() => null, "batch envelope fields"],
+    [(p) => ({ ...p, PRIVATE_CANARY: "PRIVATE_CANARY" }), "batch envelope fields"],
+    [(p) => ({ ...p, geometryType: "PRIVATE_CANARY" }), "batch geometry type"],
+    [(p) => ({ ...p, spatialReference: { wkid: "PRIVATE_CANARY" } }), "batch WGS84 CRS"],
+    [(p) => ({ ...p, hasZ: true }), "batch extra dimensions"],
+    [(p) => ({ ...p, hasM: "PRIVATE_CANARY" }), "batch extra dimensions"],
+    [(p) => ({ ...p, exceededTransferLimit: "PRIVATE_CANARY" }), "batch transfer limit"],
+    [(p) => ({ ...p, objectIdFieldName: "PRIVATE_CANARY" }), "batch object ID field"],
+    [(p) => ({ ...p, displayFieldName: "PRIVATE_CANARY" }), "batch display field"],
+    [(p) => ({ ...p, features: "PRIVATE_CANARY" }), "batch feature array"],
+    [(p) => ({ ...p, features: [] }), "batch feature count"],
+  ];
+  for (const [change, reason] of cases) {
+    assert.throws(() => ohFeatures(change(page([1])), [1], e.preflight_before), (error) => {
+      assert.equal(error.message, `Ohio acquisition rejected: ${reason}.`);
+      assert.ok(!JSON.stringify(error).includes("PRIVATE_CANARY"));
+      return true;
+    });
+  }
+  for (const displayFieldName of [undefined, "", "program_name"]) {
+    assert.equal(ohFeatures({ ...page([1]), displayFieldName }, [1], e.preflight_before).length, 1);
+  }
+  assert.equal(ohFeatures({ ...page([1]), hasZ: false, hasM: false }, [1], e.preflight_before).length, 1);
+});
+
 test("Ohio acquisition preserves native Double anomalies for later normalization, not typed identifiers", async () => {
   const e = await fixture();
   for (const value of [null, 1.5, Number.MAX_SAFE_INTEGER + 1, -1]) {

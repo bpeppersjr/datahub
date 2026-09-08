@@ -47,12 +47,18 @@ export function ohPoint(geometry, spatialReference) {
   return { latitude: geometry.y, longitude: geometry.x, reason: "publisher-returned-epsg4326-not-address-verified" };
 }
 function features(payload, ids, schema) {
-  check(keys(payload, ["objectIdFieldName", "displayFieldName", "fieldAliases", "fields", "features", "geometryType", "spatialReference", "exceededTransferLimit"])
-    && payload.geometryType === "esriGeometryPoint" && crs(payload.spatialReference)
-    && (payload.exceededTransferLimit === undefined || payload.exceededTransferLimit === false)
-    && (payload.objectIdFieldName === undefined || payload.objectIdFieldName === "objectid")
-    && (payload.displayFieldName === undefined || ["", "program_name"].includes(payload.displayFieldName))
-    && Array.isArray(payload.features) && payload.features.length === ids.length, "batch envelope, CRS or truncation");
+  // Fixed diagnostics survive app receipts without retaining rejected provider data.
+  // ArcGIS may explicitly report absent Z/M dimensions. Only false is compatible
+  // with our fixed two-dimensional query; unknown fields and actual Z/M still fail.
+  check(keys(payload, ["objectIdFieldName", "displayFieldName", "fieldAliases", "fields", "features", "geometryType", "spatialReference", "exceededTransferLimit", "hasZ", "hasM"]), "batch envelope fields");
+  check(payload.geometryType === "esriGeometryPoint", "batch geometry type");
+  check(crs(payload.spatialReference), "batch WGS84 CRS");
+  check((payload.hasZ === undefined || payload.hasZ === false) && (payload.hasM === undefined || payload.hasM === false), "batch extra dimensions");
+  check(payload.exceededTransferLimit === undefined || payload.exceededTransferLimit === false, "batch transfer limit");
+  check(payload.objectIdFieldName === undefined || payload.objectIdFieldName === "objectid", "batch object ID field");
+  check(payload.displayFieldName === undefined || ["", "program_name"].includes(payload.displayFieldName), "batch display field");
+  check(Array.isArray(payload.features), "batch feature array");
+  check(payload.features.length === ids.length, "batch feature count");
   if (payload.fieldAliases !== undefined) check(exact(payload.fieldAliases, OH_FIELDS) && Object.values(payload.fieldAliases).every((v) => typeof v === "string" && v.length <= 255), "aliases");
   if (payload.fields !== undefined) {
     check(Array.isArray(payload.fields) && payload.fields.length === OH_FIELDS.length && payload.fields.every(object) && new Set(payload.fields.map((f) => f.name)).size === OH_FIELDS.length, "returned schema roster");

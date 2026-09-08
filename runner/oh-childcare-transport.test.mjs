@@ -34,6 +34,20 @@ test("OH injected acquisition executes fixed serial preflights and pages and pro
   const release = await buildOhChildcareRelease({ evidence: result.evidence, outputRoot: path.join(APP_ROOT, "data/tmp", `oh-transport-${randomUUID()}`), now: () => new Date("2026-09-09T00:00:00.000Z") });
   assert.equal((await verifyOhChildcareRelease(release.manifest_path)).counts.accepted, 3);
 });
+test("OH invalid batch emits a fixed diagnostic without retaining it or requesting subsequent pages", async () => {
+  const retained = [];
+  const f = await fixture(({ payload }) => {
+    if (payload.features?.[0]?.attributes?.program_name) payload.displayFieldName = "PRIVATE_CANARY";
+  });
+  await assert.rejects(acquireOhChildcareWithTransport({ ...f.options, onObservation(o) { retained.push(o); } }), (error) => {
+    assert.equal(error.message, "Ohio acquisition rejected: batch display field.");
+    return true;
+  });
+  assert.deepEqual(retained.map((o) => o.kind), ["inventory"]);
+  assert.equal(f.calls.filter((c) => new URL(c.url).searchParams.has("objectIds")).length, 1);
+  assert.ok(!JSON.stringify(retained).includes("PRIVATE_CANARY"));
+});
+
 test("OH live entry is disabled before any network; injected transport requires explicit valid options", async () => {
   await assert.rejects(acquireOhChildcare(), { code: "OH_CHILDCARE_LIVE_NOT_ENROLLED" });
   await assert.rejects(acquireOhChildcare({ fetchImpl() { throw new Error("must not call"); } }), /unsupported/);
