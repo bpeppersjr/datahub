@@ -27,6 +27,7 @@ test('state ledger has exactly one workstream per state and DC separately withou
   assert.equal(ledger.jurisdictions.find(r => r.state === 'DC').jurisdictionKind, 'district');
   assert.equal(ledger.evidence.coverageReleaseId, f.manifest.release_id);
   for(const state of ledger.jurisdictions)assert.deepEqual(state.industries.find(cell=>cell.industry==='construction').localCredentialEvidence,{status:'not-enrolled'});
+  for(const state of ledger.jurisdictions)assert.deepEqual(state.industries.find(cell=>cell.industry==='childcare').localFacilityEvidence,{status:'not-enrolled'});
   await assert.rejects(readdir(path.join(f.root, 'data/state-access/reports')), /ENOENT/);
 });
 
@@ -39,6 +40,13 @@ test('PA childcare enrollment identifies app execution without fabricated covera
   assert.equal(cell.appHandoff.configuredSources[0].sourceId,'state-pa-childcare-centers');assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor,'cotive-app');
   assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
   assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+});
+
+test('PA reporting binding with uninstalled retained files is unavailable rather than zero coverage',async t=>{
+  const f=await fixture(t);await copyFile(path.join(APP_ROOT,'config/pa-childcare-reporting-enrollment.json'),path.join(f.root,'config/pa-childcare-reporting-enrollment.json'));
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='PA').industries.find(r=>r.industry==='childcare');
+  assert.equal(cell.localFacilityEvidence.status,'unavailable');assert.equal(cell.localFacilityEvidence.reason,'enrolled-receipt-not-installed');assert.equal(cell.localFacilityEvidence.facilityRows,undefined);
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');assert.equal(cell.appHandoff.jobSubmitted,false);
 });
 
 test('Alaska enrollment identifies app execution without claiming a new dispatch', async (t) => {

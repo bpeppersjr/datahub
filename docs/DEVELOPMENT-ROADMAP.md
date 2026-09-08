@@ -473,6 +473,8 @@ Pennsylvania app handoff (September 8): the standalone worker and managed indust
 
 Parallel childcare source triage (September 8): [Georgia/North Carolina findings](states/GA-NC-CHILDCARE-TRIAGE-2026-09-08.md) distinguish Georgia's official but currently unverified export delivery contract from an incomplete North Carolina investigation. Neither was enrolled or downloaded. Historical schema documentation, indexed legal material and absent evidence are not substitutes for current source prerequisites.
 
+Pennsylvania local reporting (September 8): a [verified retained-cohort projection](PA-CHILDCARE-REPORTING.md) now provides state, reported-county and ZIP summaries, source-cohort percentages and quality gaps. State-access reports separately expose the fixed native app receipt as local facility evidence. Missing local data is unavailable rather than zero; other states are outside this publisher's scope. No source download, national pointer migration or scheduler change is part of this reporting step.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
