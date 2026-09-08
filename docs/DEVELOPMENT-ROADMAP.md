@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Wisconsin prerequisite implementation: [standalone contract preflight](WI-CHILDCARE-PREFLIGHT.md) now checks distinct service/layer item identities, schema, native CRS, selected counts and paired metadata consistency with bounded transport and immutable receipt publication. A live run observed 2,382 licensed-group source rows without requesting facilities. Complete linked notices/XML, coordinate handling and verified acquisition/app enrollment remain required; no new coverage or acquisition approval is claimed. Tennessee retained-data processing and its pinned implementation remain untouched.
+
 ## Objective
 
 Wisconsin evidence correction: the [new metadata/count recheck](states/WI-CHILDCARE-RECHECK-2026-09-07.md) supplements, rather than replaces, its original source assessment. The original one-row probe, separate public portal item and disclaimer findings are preserved unchanged. Wisconsin is an existing candidate revalidated in parallel with Ohio research, not newly discovered coverage.
