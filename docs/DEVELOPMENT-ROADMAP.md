@@ -503,6 +503,8 @@ Maryland retained reporting (September 8): the app completed its first collectio
 
 Vermont prerequisites (September 8): the [metadata-only preflight](VT-CHILDCARE-PREFLIGHT.md) now verifies paired catalog and aggregate evidence, preserves ODbL and coordinate-jitter notices, and refuses provider-row payloads. Native execution verified 503 center-license candidates within 1,057 source rows; no facility records were downloaded. Acquisition, address-role validation, record-use policy and standalone app enrollment remain explicit next gates, not implied by this prerequisite success.
 
+Vermont selected delivery (September 8): [bounded source validation](states/VT-CHILDCARE-SELECTED-DELIVERY-2026-09-08.md) found GET returned unwanted system columns despite suppression flags; documented POST JSON returned only the selected fields across two tiny pages. Unknown reporting period and address role remain explicit quality gaps, not artificial acquisition blockers. Next is the pinned internal collector with page journals, membership/count reconciliation and offline replay, followed by app-owned collection. No bulk release or operation was created by the sample.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

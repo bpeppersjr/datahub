@@ -30,3 +30,5 @@ Remaining delivery gaps are GET option coverage, actual selected-row serializati
 After the documentation-only review, two serial anonymous GET aggregate requests tested `SELECT provider_program_type,count(*) AS source_rows GROUP BY provider_program_type ORDER BY provider_program_type`, with `pageSize=1`. Page 1 returned HTTP 200 at `2026-09-08T20:09:01.827Z` (83 bytes), containing only Afterschool Child Care Program, count 149. Page 2 returned HTTP 200 at `2026-09-08T20:09:03.362Z` (59 bytes), containing only CBCCPP, count 489. Requests were paced and bounded; no provider records were requested or retained.
 
 This establishes observed GET `pageNumber` and `pageSize` behavior for grouped queries on this endpoint. It does not establish facility delivery, all GET options, future availability, or snapshot consistency.
+
+Later [selected-field validation](VT-CHILDCARE-SELECTED-DELIVERY-2026-09-08.md) found GET suppression options ineffective for record queries and verified the documented POST JSON form on two tiny pages. Use that newer evidence for the acquisition method; do not generalize successful aggregate GETs to record projection.
