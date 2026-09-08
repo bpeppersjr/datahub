@@ -28,4 +28,6 @@ Verification: `npm run check` ran 822 tests, with 821 passing and the known prev
 
 No actual Wisconsin business release has been built or published. Still needed: the source-use decision, bounded live acquisition, immutable release assembly and independent verification, app-worker enrollment and actual accepted handoff. The pending policy is not changed by successful offline normalization.
 
+Follow-up: [offline immutable bundle assembly and verification](WI-CHILDCARE-RELEASE.md) are now implemented and tested with synthetic evidence. This does not establish an actual publisher-derived Wisconsin business release, change source-use authorization or enroll live collection.
+
 Rollback removes the new normalizer/tests and restores inline acquisition fixtures if desired. No source pointer, schedule, retained business data or production-pinned implementation was changed.
