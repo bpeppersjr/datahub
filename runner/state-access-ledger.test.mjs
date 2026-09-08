@@ -26,6 +26,7 @@ test('state ledger has exactly one workstream per state and DC separately withou
   assert.equal(ledger.jurisdictions.filter(r => r.jurisdictionKind === 'state').length, 50);
   assert.equal(ledger.jurisdictions.find(r => r.state === 'DC').jurisdictionKind, 'district');
   assert.equal(ledger.evidence.coverageReleaseId, f.manifest.release_id);
+  for(const state of ledger.jurisdictions)assert.deepEqual(state.industries.find(cell=>cell.industry==='construction').localCredentialEvidence,{status:'not-enrolled'});
   await assert.rejects(readdir(path.join(f.root, 'data/state-access/reports')), /ENOENT/);
 });
 

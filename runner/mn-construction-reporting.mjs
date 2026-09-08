@@ -7,6 +7,9 @@ const states=new Set('AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME M
 const check=(value)=>{if(!value)throw Error('Minnesota reporting evidence rejected.');};
 const bump=(map,key)=>map.set(key,(map.get(key)??0)+1);
 const sorted=map=>[...map].sort(([a],[b])=>a.localeCompare(b,'en'));
+export function mnReportingObservation(selection,transport) {
+  return {observed_at:selection.context.observedAt,transport_started_at:transport.started_at};
+}
 
 /** Aggregate credential rows, never infer businesses/sites or USPS membership. */
 export async function aggregateMnConstructionReporting(records,{signal}={}) {
@@ -35,6 +38,9 @@ export async function summarizeMnConstructionAppJob(receiptPath,{signal}={}) {
   check(parent.receipt_sha256===app.acquisition.sha256 && parent.manifest_sha256===app.acquisition.child_manifest_sha256);
   const manifestPath=parent.receipt.evidence.bundle.manifest_path;
   const manifestMeter={},manifest=await mnSelectionReadJson(manifestPath,100000,signal,manifestMeter);check(manifestMeter.sha256===parent.manifest_sha256);
+  const selectionArtifact=manifest.artifacts.find(a=>a.path==='selection-receipt.json');check(selectionArtifact);
+  const selectionMeter={},selection=await mnSelectionReadJson(path.join(path.dirname(manifestPath),selectionArtifact.path),100000,signal,selectionMeter);
+  check(selectionMeter.sha256===selectionArtifact.sha256 && selectionMeter.bytes===selectionArtifact.bytes);
   const artifact=manifest.artifacts.find(a=>a.path==='normalized.jsonl');check(artifact);
   const meter={};const aggregates=await aggregateMnConstructionReporting(mnSelectionReadLines(path.join(path.dirname(manifestPath),artifact.path),1000000000,signal,meter),{signal});
   check(meter.sha256===artifact.sha256 && meter.bytes===artifact.bytes && meter.records===artifact.records
@@ -43,7 +49,7 @@ export async function summarizeMnConstructionAppJob(receiptPath,{signal}={}) {
   return {schema_version:'mn-construction-reporting-summary@1.0.0',cohort:app.cohort,app_status:app.status,
     provenance:{app_receipt_path:receiptPath,app_receipt_sha256:app.receipt_sha256,acquisition_receipt_sha256:parent.receipt_sha256,
       child_manifest_sha256:parent.manifest_sha256,normalized_sha256:artifact.sha256,source_release_id:parent.source_release_id,
-      source_file_sha256:parent.receipt.evidence.transport.source_file_sha256,observed_at:parent.receipt.evidence.transport.started_at},
+      source_file_sha256:parent.receipt.evidence.transport.source_file_sha256,...mnReportingObservation(selection,parent.receipt.evidence.transport)},
     source_row_dispositions:parent.counts,...aggregates,
     semantics:{record_unit:'publisher-business-credential-row',percentage_denominator:'accepted rows in this source cohort only, not all US businesses',
       address_basis:'publisher-reported address, not verified physical location',zip5_basis:'format-validated reported value, not verified current USPS assignment',

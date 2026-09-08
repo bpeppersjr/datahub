@@ -29,7 +29,7 @@ Managed operation `a01b1819-420b-4036-a5fb-40f9c29ba861` failed overall because 
 
 Credential categories: residential building contractor 10,835; residential remodeler 425; residential roofer 139; manufactured-home installer 57. Reported MN addresses represent approximately 95.138% of this **accepted cohort**, not 95.138% of Minnesota businesses or national industry coverage. Out-of-state addresses do not establish out-of-state operations.
 
-Source observation: `2026-09-08T13:11:41.686Z`. Source release: `ebfad910-440e-46bb-b42b-2fc44b6d32f3-residential`.
+Record observation: `2026-09-08T13:11:41.678Z`; transfer start: `2026-09-08T13:11:41.686Z`. The original record timestamp is preserved separately rather than replaced by transfer start. Source release: `ebfad910-440e-46bb-b42b-2fc44b6d32f3-residential`.
 
 | Evidence | SHA-256 |
 | --- | --- |

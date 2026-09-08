@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { aggregateMnConstructionReporting as aggregate } from './mn-construction-reporting.mjs';
+import { aggregateMnConstructionReporting as aggregate, mnReportingObservation } from './mn-construction-reporting.mjs';
+test('MN reporting preserves original selection observation separately from later transport start',()=>{
+  assert.deepEqual(mnReportingObservation({context:{observedAt:'2026-09-08T12:00:00.000Z'}},{started_at:'2026-09-08T12:01:00.000Z'}),{observed_at:'2026-09-08T12:00:00.000Z',transport_started_at:'2026-09-08T12:01:00.000Z'});
+});
 const row=(state='MN',zip='55001',zip4=null)=>({dataset_id:'mn-dli-construction-business-credentials',export_policy:'local-review-only',credential:{category:'residential-building-contractor',active_business_verified:false},quality:{matching_eligible:false,physical_site_eligible:false},reported_address:{state,zip_code:zip,zip4},business_name:'PRIVATE NAME'});
 test('MN reporting denominators describe credential rows and preserve reported ZIP gaps',async()=>{
   const result=await aggregate([row(),row('WI','00501','0012'),row('WI',null),row('foreign',null)]);
