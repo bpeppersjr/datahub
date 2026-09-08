@@ -10,13 +10,13 @@ import { loadIndustryConfig, buildIndustryPlan } from "./industry-segments.mjs";
 import { verifyTnChildcareRelease } from "./tn-childcare-release.mjs";
 import { TN_CHILDCARE_SCHEMA, TN_CHILDCARE_WHERE } from "./tn-childcare-preflight.mjs";
 
-test("TN childcare enrollment remains state-scoped with unmeasured reporting and no common completeness denominator", async () => {
+test("TN childcare enrollment separates retained reporting from fresh acquisition gaps and completeness", async () => {
   const config = await loadIndustryConfig(), plan = buildIndustryPlan(config, { industries: ["childcare"], states: ["TN", "MA", "NJ", "KY", "DC"] });
   assert.equal(plan.taskCount, 3); assert.deepEqual(plan.gaps.map((gap) => gap.state), ["KY", "DC"]);
   const task = plan.tasks.find((item) => item.sourceId === "state-tn-childcare");
   assert.equal(task.script, "scripts/build-tn-childcare.mjs"); assert.equal(task.state, "TN"); assert.deepEqual(task.prerequisites, []);
   const source = config.sources[task.sourceId]; assert.equal(source.state_filter_supported, false); assert.deepEqual(source.states, ["TN"]);
-  for (const expression of [/Family homes/, /drop-in/, /TDOE/, /Scope differs from MA and NJ/, /no common denominator/, /unmeasured/, /does not enable scheduled/, /local-review-only/]) assert.ok(source.coverage_notes.some((note) => expression.test(note)));
+  for (const expression of [/Family homes/, /drop-in/, /TDOE/, /Scope differs from MA and NJ/, /no common denominator/, /retained recovered release contributes reporting-only/, /Fresh acquisition still needs/, /does not enable scheduled/, /local-review-only/]) assert.ok(source.coverage_notes.some((note) => expression.test(note)));
   const contract = JSON.parse(await readFile(path.join(APP_ROOT, "config/connectors/tn-dhs-active-childcare-centers.json"), "utf8"));
   const policy = JSON.parse(await readFile(path.join(APP_ROOT, contract.source_policy), "utf8"));
   assert.equal(contract.version, "1.0.0"); assert.equal(contract.output_schema_contract.source_filter, TN_CHILDCARE_WHERE);

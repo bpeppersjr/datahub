@@ -47,7 +47,7 @@ test("summarizes the production source-scope model without converting profiles i
   const rows = FIFTY_STATES_AND_DC.map((abbreviation) => state(abbreviation, 100, 10));
   const result = summarizeStateBusinessSourceReadiness(rows);
   assert.deepEqual(result, {
-    policy_version: "1.1.0",
+    policy_version: "1.2.0",
     jurisdictions_in_scope: 51,
     broad_jurisdiction_organization_layers: 8,
     missing_broad_jurisdiction_organization_layers: 43,
@@ -62,11 +62,12 @@ test("summarizes the production source-scope model without converting profiles i
   });
 });
 
-test("current MA/NJ reporting-only childcare is scoped industry evidence, not broad coverage or matching", () => {
-  for (const [abbreviation, source] of [["MA", "ma-licensed-center-based-childcare"], ["NJ", "nj-licensed-childcare-centers"]]) {
+test("current MA/NJ/TN reporting-only childcare is scoped industry evidence, not broad coverage or matching", () => {
+  for (const [abbreviation, source] of [["MA", "ma-licensed-center-based-childcare"], ["NJ", "nj-licensed-childcare-centers"], ["TN", "tn-dhs-active-childcare-centers"]]) {
     const historical = state(abbreviation); const current = structuredClone(historical);
     current.registry_evidence.source_profile_counts_by_reported_address_state[source] = 3;
     Object.assign(current.registry_evidence, { matching_profile_count: 100, reporting_only_count: 3, reported_address_profile_count: 103 });
+    if (abbreviation === "TN") current.registry_evidence.tn_childcare_reporting = { records: 3, with_zip: 1, without_zip: 2, missing_zip_reasons: { "missing-source-zip": 1, "invalid-source-zip-placeholder": 1 }, missing_points: 1, zip_inferred: false };
     current.state_source_readiness = assessStateBusinessSourceReadiness(historical); current.state_source_readiness.policy_version = "1.0.0";
     const result = assessStateBusinessSourceReadiness(current);
     assert.equal(result.source_scope_status, "statewide-scoped-layer-only"); assert.equal(result.broad_jurisdiction_organization_layer.status, "missing");
@@ -75,5 +76,16 @@ test("current MA/NJ reporting-only childcare is scoped industry evidence, not br
     assert.equal(summarizeStateBusinessSourceReadiness([current]).statewide_scoped_layers_without_broad_layer, 1);
     current.registry_evidence.reporting_only_count = 2;
     assert.equal(assessStateBusinessSourceReadiness(current).source_scope_status, "national-sector-layers-only");
+  }
+});
+
+test("Tennessee readiness cannot erase missing ZIP reasons or infer postal codes", () => {
+  const current = state("TN", 103);
+  Object.assign(current.registry_evidence, { matching_profile_count: 100, reporting_only_count: 3,
+    source_profile_counts_by_reported_address_state: { "cms-nppes-monthly-v2": 100, "tn-dhs-active-childcare-centers": 3 },
+    tn_childcare_reporting: { records: 3, with_zip: 1, without_zip: 2, missing_zip_reasons: { "missing-source-zip": 1, "invalid-source-zip-placeholder": 1 }, missing_points: 1, zip_inferred: false } });
+  for (const mutate of [r => { r.zip_inferred = true; }, r => { r.without_zip = 0; }, r => { delete r.missing_zip_reasons; }, r => { r.missing_zip_reasons["missing-source-zip"] = 0; }, r => { r.missing_points = 4; }]) {
+    const copy = structuredClone(current); mutate(copy.registry_evidence.tn_childcare_reporting);
+    assert.equal(assessStateBusinessSourceReadiness(copy).source_scope_status, "national-sector-layers-only");
   }
 });

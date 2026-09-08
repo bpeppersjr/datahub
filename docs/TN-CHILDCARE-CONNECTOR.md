@@ -1,5 +1,29 @@
 # Tennessee childcare connector development
 
+## Completed retained-data production and exact coverage reassessment
+
+Co*Tive run `production-tn-childcare-20260908-01` finished `SUCCEEDED` at `2026-09-08T05:02:04.618Z`. All eight stages have success/zero-exit evidence. Root checked every stage log's byte count/hash and all four output pointers/manifests against the terminal receipt; receipt SHA-256 is `a55b1936e67b945cfcc99a2bca4f7ac83a29ff5171efaa78a74829aca3bcca8d`. This run reprocessed the retained recovered Tennessee release, without repulling any source.
+
+Published coverage is `national-business-coverage-views-20260908-050200409Z-eff2f522`, manifest SHA-256 `213b3c09ba2ec7f32e8f22fadac4f0482521cde2ee99f49d60d16ad3ce8c3276`, state-artifact SHA-256 `66d48b510544a68a27093edfd9eb73774f8e65f2ee04e98842151422e26f026d`. Its exact predecessor is the retained MA/NJ release `national-business-coverage-views-20260908-021343856Z-ac4a5790`.
+
+| Reporting measure | Before | After |
+| --- | ---: | ---: |
+| Tennessee reported source evidence | 91,467 | 93,330 |
+| Tennessee matching profiles | 91,467 | 91,467 |
+| Tennessee coordinate-assigned evidence | 8,676 | 10,536 |
+| National reporting-only records | 7,082 | 8,945 |
+| National matching profiles | 8,011,835 | 8,011,835 |
+
+The Tennessee addition conserves all 1,863 reporting records: 1,691 with source ZIPs and 172 without (27 missing-source, 145 invalid placeholders). There are 1,860 county assignments and three missing points. ZIPs are not inferred; ZIP5/ZIP4 remain separate. MA/NJ, all other source counts, matching profiles, Census baselines and geography are unchanged. Source observation remains `2026-09-08T00:36:36.628Z`, distinct from publication time.
+
+`state-coverage-reassessment.mjs` now permits only this pinned transition: reconstruct all 56 expected state rows, changing only the three reviewed downstream release IDs/version, the measured Tennessee evidence and zero-valued Tennessee reporting fields elsewhere. A recursive predecessor proof preserves the original September 2 historical eligibility, source assessments and broad-registry holds. Future releases, altered matching counts, missing-ZIP losses, false inference, reassigned sources, unrelated state changes and spoofed historical eligibility remain rejected.
+
+Readiness policy 1.2.0 recognizes conserved Tennessee childcare reporting as a scoped industry layer, not broad business coverage, identity matching or new acquisition authority. The state ledger now identifies its positive published count as direct-state reporting evidence; absent integration remains unmeasured. Existing publisher restrictions, local-review-only export policy and incomplete national coverage remain explicit.
+
+Fresh Tennessee acquisition still requires the recovered missing-ZIP behavior to be integrated into the normal acquisition lifecycle. Do not schedule repeated failures or mistake this retained-data promotion for a repaired fresh downloader. Rollback preserves all immutable releases/receipts; reverting the reassessment code alone deliberately makes the newer pointer fail its guard, so do not present that as a working rollback without separately reviewing the application rollback plan.
+
+Verification: all 846 tests passed in the final exclusive run, including exact-transition negatives, historical eligibility, state-ledger counts and corrected retained-vs-fresh acquisition notes. Source discovery/assessment and connector checks, lint, TypeScript, web/desktop builds and desktop smoke passed; production dependency audit found zero vulnerabilities. The initial `npm run check` encountered the active-preview lifecycle conflict; final component checks and the complete test rerun passed, not a claimed clean exit from that initial command. Independent read-only review found no actionable defects. The management preview was restored afterward; no production release was rewritten or source downloaded.
+
 ## ZIP-unavailable map control
 
 The right-hand Heatmap Builder name panel now offers **Address scope → ZIP unavailable in this state**, separate from selected-ZIP browsing. State/category/ZIP changes reset the control; query changes clear prior names immediately, and obsolete responses cannot replace current results. The UI preserves address line 2, labels null ZIPs, keeps ZIP4 separate, discloses local-review policy and uses published percentage-assignment semantics. See [the operator workflow](BUSINESS-HEAT-MAPS.md#browsing-records-without-a-source-zip). This UI capability is not Tennessee production-completion evidence.

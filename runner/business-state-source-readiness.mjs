@@ -1,5 +1,5 @@
-export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.1.0";
-const STATE_CHILDCARE_REPORTING = Object.freeze({ MA: "ma-licensed-center-based-childcare", NJ: "nj-licensed-childcare-centers" });
+export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.2.0";
+const STATE_CHILDCARE_REPORTING = Object.freeze({ MA: "ma-licensed-center-based-childcare", NJ: "nj-licensed-childcare-centers", TN: "tn-dhs-active-childcare-centers" });
 
 const BROAD_ORGANIZATION_LAYERS = Object.freeze({
   CO: "co_business_registry_good_standing_or_delinquent_organizations",
@@ -53,7 +53,14 @@ export function assessStateBusinessSourceReadiness(row) {
   const broadSource = BROAD_ORGANIZATION_LAYERS[abbreviation] ?? null;
   const evidence = row?.registry_evidence, childcareSource = STATE_CHILDCARE_REPORTING[abbreviation];
   const childcareCount = evidence?.source_profile_counts_by_reported_address_state?.[childcareSource];
+  const tn = evidence?.tn_childcare_reporting;
+  const tnGapsConserved = abbreviation !== "TN" || tn && tn.zip_inferred === false
+    && [tn.records, tn.with_zip, tn.without_zip, tn.missing_points, ...Object.values(tn.missing_zip_reasons ?? {})].every(value => Number.isSafeInteger(value) && value >= 0)
+    && tn.records === childcareCount && tn.with_zip + tn.without_zip === tn.records && tn.missing_points <= tn.records
+    && Object.keys(tn.missing_zip_reasons ?? {}).sort().join(",") === "invalid-source-zip-placeholder,missing-source-zip"
+    && Object.values(tn.missing_zip_reasons).reduce((a, b) => a + b, 0) === tn.without_zip;
   const hasChildcare = inNationalPeerScope && childcareSource && Number.isSafeInteger(childcareCount) && childcareCount > 0
+    && tnGapsConserved
     && evidence.reporting_only_count === childcareCount && Number.isSafeInteger(evidence.matching_profile_count) && evidence.matching_profile_count >= 0
     && evidence.matching_profile_count + childcareCount === evidence.reported_address_profile_count;
   const scopedSources = hasChildcare ? [childcareSource] : STATEWIDE_SCOPED_LAYERS[abbreviation] ?? [];

@@ -18,12 +18,12 @@ const PROFILE_IDS = Object.freeze({
   "state-dc-basic-licenses": "dc-dlcp-active-basic-business-licenses",
   "state-ma-childcare": "ma-licensed-center-based-childcare",
   "state-nj-childcare": "nj-licensed-childcare-centers",
-  "state-tn-childcare": null,
+  "state-tn-childcare": "tn-dhs-active-childcare-centers",
   "national-irs-eo-bmf": null,
 });
 // The coverage view retains this historical count-field name for both evidence
 // classes. These sources are reporting-only, never identity-matching profiles.
-const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcare"]);
+const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcare", "state-tn-childcare"]);
 const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 const CANONICAL = new Set(STATES);
 const digest = (value) => createHash("sha256").update(value).digest("hex");

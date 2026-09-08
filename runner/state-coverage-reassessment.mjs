@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { APP_ROOT } from "./paths.mjs";
 import { assessStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 
@@ -29,7 +30,19 @@ export const COVERAGE_REASSESSMENT = Object.freeze({
   currentManifestSha256: "b01948f88932a2cbe3059e3a3583e4a036fd3455c6e20bc7c9551a47fa0e322a",
   currentStatesSha256: "659b1ef7519e12cb288df439e887345afeeb092d7b08715500a444ab1ff8018b",
 });
-export const COVERAGE_REASSESSMENTS = Object.freeze([INITIAL_REASSESSMENT, DC_REASSESSMENT, COVERAGE_REASSESSMENT]);
+export const TN_COVERAGE_REASSESSMENT = Object.freeze({
+  id: "state-coverage-reassessment-20260908-tn-childcare",
+  historicalRelease: INITIAL_REASSESSMENT.historicalRelease,
+  historicalManifestSha256: INITIAL_REASSESSMENT.historicalManifestSha256,
+  historicalStatesSha256: INITIAL_REASSESSMENT.historicalStatesSha256,
+  predecessorRelease: COVERAGE_REASSESSMENT.currentRelease,
+  predecessorManifestSha256: COVERAGE_REASSESSMENT.currentManifestSha256,
+  predecessorStatesSha256: COVERAGE_REASSESSMENT.currentStatesSha256,
+  currentRelease: "national-business-coverage-views-20260908-050200409Z-eff2f522",
+  currentManifestSha256: "213b3c09ba2ec7f32e8f22fadac4f0482521cde2ee99f49d60d16ad3ce8c3276",
+  currentStatesSha256: "66d48b510544a68a27093edfd9eb73774f8e65f2ee04e98842151422e26f026d",
+});
+export const COVERAGE_REASSESSMENTS = Object.freeze([INITIAL_REASSESSMENT, DC_REASSESSMENT, COVERAGE_REASSESSMENT, TN_COVERAGE_REASSESSMENT]);
 const REVIEWED_CHILDCARE_ADDITIONS = Object.freeze({ MA: Object.freeze(["ma-licensed-center-based-childcare", 3007]), NJ: Object.freeze(["nj-licensed-childcare-centers", 4075]) });
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const verifiedEligibility = new WeakMap();
@@ -116,13 +129,56 @@ async function checkedFile(root,file) {
   return readFile(absolute);
 }
 
+/** Reviewed MA/NJ -> TN transition, including unavailable ZIPs and points. */
+export function compareTennesseeCoverageForReassessment(historical, current) {
+  const states = compareStateCoverageForReassessment(historical, historical);
+  if (!Array.isArray(current) || current.length !== 56 || new Set(current.map(row => row.postal_abbreviation)).size !== 56
+    || historical.filter(row => row.postal_abbreviation === "TN").length !== 1) throw new Error("Tennessee reassessment requires 56 unique jurisdictions including TN.");
+  for (const old of historical) {
+    const state = old.postal_abbreviation, isTn = state === "TN", latest = current.find(row => row.postal_abbreviation === state), expected = structuredClone(old);
+    const evidence = expected.registry_evidence, source = "tn-dhs-active-childcare-centers";
+    if (!evidence || Object.hasOwn(evidence, "tn_childcare_reporting") || Object.hasOwn(evidence.source_profile_counts_by_reported_address_state ?? {}, source)
+      || Object.hasOwn(evidence.source_profile_counts_by_coordinate_assigned_state ?? {}, source)) throw new Error("Tennessee predecessor already contains unreviewed source evidence.");
+    expected.lineage = { ...expected.lineage,
+      registry_release_id: "national-business-registry-20260908-033936268Z-663f4b84",
+      entity_resolution_release_id: "business-entity-resolution-20260908-045749556Z-3bd1103d",
+      entity_resolution_benchmark_release_id: "business-entity-resolution-benchmark-sample-20260908-050109576Z-eb138cf9",
+      transformation_version: "national-business-coverage-views@2.9.0" };
+    evidence.tn_childcare_reporting = { records: isTn ? 1863 : 0, with_zip: isTn ? 1691 : 0, without_zip: isTn ? 172 : 0,
+      missing_zip_reasons: { "missing-source-zip": isTn ? 27 : 0, "invalid-source-zip-placeholder": isTn ? 145 : 0 }, missing_points: isTn ? 3 : 0, zip_inferred: false };
+    if (isTn) {
+      evidence.reported_address_profile_count += 1863;
+      evidence.reporting_only_count += 1863;
+      evidence.reporting_only_coordinate_assigned_count += 1860;
+      evidence.coordinate_assigned_profile_count += 1860;
+      evidence.source_profile_counts_by_reported_address_state[source] = 1863;
+      evidence.source_profile_counts_by_coordinate_assigned_state[source] = 1860;
+      evidence.latest_observed_at = "2026-09-08T00:36:36.628Z";
+    }
+    if (!isDeepStrictEqual(expected, latest)) throw new Error(`Unreviewed Tennessee transition evidence for ${state}.`);
+    const reviewed = states.find(row => row.state === state), readiness = assessStateBusinessSourceReadiness(latest);
+    reviewed.historical_source_scope_status = reviewed.source_scope_status;
+    reviewed.source_scope_status = readiness.source_scope_status;
+    reviewed.current_coverage = currentCoverageProjection(latest);
+    reviewed.source_profile_counts = latest.registry_evidence.source_profile_counts_by_reported_address_state;
+    reviewed.classification_basis = "reviewed-current-readiness-policy-1.2.0-not-historical-snapshot-rewrite";
+    if (isTn) {
+      if (reviewed.historical_source_scope_status !== "national-sector-layers-only" || reviewed.source_scope_status !== "statewide-scoped-layer-only") throw new Error("Unexpected Tennessee classification transition.");
+      reviewed.reviewed_industry_addition = readiness.statewide_reporting_industry_evidence;
+      reviewed.reviewed_postal_coordinate_gaps = structuredClone(evidence.tn_childcare_reporting);
+    } else if (reviewed.historical_source_scope_status !== reviewed.source_scope_status) throw new Error("Unreviewed non-Tennessee classification change.");
+  }
+  return states;
+}
+
 export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) {
   const proof=COVERAGE_REASSESSMENTS.find(item=>item.currentRelease===pointer?.release_id);
   if(!proof || pointer?.dataset_id!=="national-business-coverage-views" || pointer.release_id!==proof.currentRelease
     || pointer.manifest!==`releases/${proof.currentRelease}/manifest.json`)throw new Error("Current coverage has no reviewed reassessment transition.");
   root=path.resolve(root);
   const rows=[];
-  for(const side of proof.intermediateRelease ? ['historical','intermediate','current'] : ['historical','current']){
+  const isTennessee = proof.id === TN_COVERAGE_REASSESSMENT.id;
+  for(const side of isTennessee ? ['predecessor','current'] : proof.intermediateRelease ? ['historical','intermediate','current'] : ['historical','current']){
     const release=proof[`${side}Release`], directory=`data/business-coverage-views/releases/${release}`;
     const manifestBytes=await checkedFile(root,`${directory}/manifest.json`);
     if(hash(manifestBytes)!==proof[`${side}ManifestSha256`])throw new Error("Reassessment manifest evidence changed.");
@@ -135,8 +191,15 @@ export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) 
     rows.push(bytes.toString('utf8').split(/\r?\n/).filter(Boolean).map(JSON.parse));
   }
   const isChildcare = proof.id === COVERAGE_REASSESSMENT.id;
-  let states, reviewedTransitionChangedStates=[];
-  if(isChildcare){
+  let states, reviewedTransitionChangedStates=[], historicalEligibilityRows=rows[0];
+  if(isTennessee){
+    const previous = await loadStateCoverageReassessment({ dataset_id: pointer.dataset_id, release_id: proof.predecessorRelease, manifest: `releases/${proof.predecessorRelease}/manifest.json` }, { root });
+    if (!isDeepStrictEqual(previous.currentRows, rows[0]) || previous.currentManifestSha256 !== proof.predecessorManifestSha256 || previous.currentStatesSha256 !== proof.predecessorStatesSha256) throw new Error("Tennessee predecessor proof changed.");
+    states=compareTennesseeCoverageForReassessment(rows[0],rows[1]);
+    reviewedTransitionChangedStates=['TN'];
+    historicalEligibilityRows=getReviewedHistoricalEligibilityRows(previous,rows[0]);
+    for(const state of states)state.historical_coverage=previous.states.find(prior=>prior.state===state.state).historical_coverage;
+  }else if(isChildcare){
     const historical=compareStateCoverageForReassessment(rows[0],rows[1]);
     states=compareChildcareCoverageForReassessment(rows[1],rows[2]);
     reviewedTransitionChangedStates=states.filter(state=>JSON.stringify(state.historical_coverage)!==JSON.stringify(state.current_coverage)).map(state=>state.state);
@@ -145,9 +208,10 @@ export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) 
   const result={schemaVersion:1,...proof,states,currentRows:rows.at(-1),sourcePolicyRevalidated:false,sourceDecisionsCarriedForward:true,
     reviewedTransitionChangedStates,
     coverageProjectionChangedStates:states.filter(state=>JSON.stringify(state.historical_coverage)!==JSON.stringify(state.current_coverage)).map(state=>state.state),
-    reviewedIndustryAdditions:isChildcare ? { MA:3007, NJ:4075 } : {},
-    semantics:isChildcare ? "Explicit reviewed MA/NJ childcare reporting-only addition; current industry scope is derived under policy 1.1.0. Historical broad-registry observations, holds and authorizations remain unchanged. Counts are source rows, not unique businesses or completeness percentages."
+    reviewedIndustryAdditions:isTennessee ? { TN:1863 } : isChildcare ? { MA:3007, NJ:4075 } : {},
+    semantics:isTennessee ? "Exact reviewed MA/NJ-to-Tennessee reporting-only transition under readiness policy 1.2.0; preserves all 172 unavailable ZIPs, three missing points and historical eligibility/holds. No identity matching, source-policy approval, new acquisition authority or complete-business claim."
+      : isChildcare ? "Explicit reviewed MA/NJ childcare reporting-only addition; current industry scope is derived under policy 1.1.0. Historical broad-registry observations, holds and authorizations remain unchanged. Counts are source rows, not unique businesses or completeness percentages."
       : "Coverage-only reassessment; retain historical source observations, holds and authorizations. Counts are profiles, not business completeness percentages."};
-  verifiedEligibility.set(result,{historicalRows:structuredClone(rows[0]),currentRowsSha256:hash(JSON.stringify(rows.at(-1)))});
+  verifiedEligibility.set(result,{historicalRows:structuredClone(historicalEligibilityRows),currentRowsSha256:hash(JSON.stringify(rows.at(-1)))});
   return result;
 }
