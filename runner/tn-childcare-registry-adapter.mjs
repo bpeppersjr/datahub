@@ -4,6 +4,7 @@ import { normalizeTnChildcareFeature, TN_CHILDCARE_TRANSFORMATION, TN_CHILDCARE_
 import { TN_CHILDCARE_LAYER, TN_CHILDCARE_WHERE } from "./tn-childcare-preflight.mjs";
 
 export const TN_CHILDCARE_REGISTRY_TRANSFORMATION = "tn-childcare-registry-adapter@1.0.0";
+export const TN_CHILDCARE_FRESH_REGISTRY_TRANSFORMATION = "tn-childcare-registry-adapter@1.1.0";
 const DATASET = "tn-dhs-active-childcare-centers", POLICY_HASH = "a5f642f28fba1a3ba80cf31b3b080011c96cc7bc201a043c981bea46090cee2f";
 const hash = (v) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 const hex = (v) => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
@@ -52,6 +53,34 @@ function validateManifest(manifest, manifestSha256) {
  * Produces local-review candidates only; no enrollment, matching or publication. */
 export function reconcileTnChildcareCenter(record, { manifest, manifestSha256 } = {}) {
   validateManifest(manifest, manifestSha256);
+  return projectCenter(record, manifest, manifestSha256, false);
+}
+
+/** Fresh-release candidates are a distinct contract, not fabricated recoveries.
+ * Caller must verify the immutable release and record membership independently. */
+export function reconcileFreshTnChildcareCenter(record, { manifest, manifestSha256 } = {}) {
+  requireValue(exact(manifest, ["schema_version", "dataset_id", "connector_id", "connector_version", "transformation_version", "run_id", "release_id", "source_release_id", "status", "observed_at", "source_url", "source_filter", "policy", "counts", "quarantine_max_fraction", "scope", "claims", "evidence_limit", "accepted_record_quality", "artifacts"])
+    && manifest.schema_version === "1.0.0" && manifest.dataset_id === DATASET && manifest.connector_id === DATASET && manifest.connector_version === "1.1.0"
+    && manifest.transformation_version === TN_CHILDCARE_REPROCESS_TRANSFORMATION && uuid(manifest.run_id) && manifest.release_id === `tn-childcare-${manifest.run_id}`
+    && /^tn-childcare-[a-f0-9]{64}$/.test(manifest.source_release_id) && manifest.status === "complete" && utc(manifest.observed_at)
+    && manifest.source_url === TN_CHILDCARE_LAYER && manifest.source_filter === TN_CHILDCARE_WHERE && hex(manifestSha256), "fresh manifest context");
+  const policy = manifest.policy;
+  requireValue(policy?.profile === "tn-childcare-local-review@1.0.0" && policy.configuration_sha256 === POLICY_HASH
+    && hash(Object.fromEntries(Object.entries(policy).filter(([key]) => !["profile", "configuration_sha256"].includes(key)))) === POLICY_HASH, "fresh source policy");
+  requireValue(isDeepStrictEqual(manifest.claims, { active_business_verified: false, license_dates_verified: false, unique_business_identity_verified: false,
+    national_coverage_complete: false, current_usps_validity_verified: false, disappearance_means_closure: false, legal_approval: false, export_authorized: false }), "fresh source claims");
+  const totals = manifest.counts, quality = manifest.accepted_record_quality;
+  requireValue(exact(totals, ["selected", "accepted", "quarantined"]) && Object.values(totals).every(count) && totals.selected >= 1 && totals.selected <= 20_000
+    && totals.accepted >= 1 && totals.accepted + totals.quarantined === totals.selected && manifest.quarantine_max_fraction === 0.05 && totals.quarantined / totals.selected <= 0.05, "fresh counts");
+  requireValue(exact(quality, ["with_source_zip", "without_source_zip", "missing_zip_reasons", "missing_points", "zip_inferred"])
+    && [quality.with_source_zip, quality.without_source_zip, quality.missing_points].every(count) && quality.zip_inferred === false
+    && quality.with_source_zip + quality.without_source_zip === totals.accepted && quality.missing_points <= totals.accepted
+    && exact(quality.missing_zip_reasons, ["missing-source-zip", "invalid-source-zip-placeholder"]) && Object.values(quality.missing_zip_reasons).every(count)
+    && Object.values(quality.missing_zip_reasons).reduce((a, b) => a + b, 0) === quality.without_source_zip, "fresh quality conservation");
+  return projectCenter(record, manifest, manifestSha256, true);
+}
+
+function projectCenter(record, manifest, manifestSha256, fresh) {
   const p = record?.provenance, address = record?.physical_address, identifiers = record?.external_identifiers;
   requireValue(p?.source_release_id === manifest.source_release_id && p.ingest_run_id === manifest.run_id && p.observed_at === manifest.observed_at
     && hex(p.input_feature_sha256) && address && Array.isArray(identifiers), "record provenance or structure");
@@ -74,7 +103,7 @@ export function reconcileTnChildcareCenter(record, { manifest, manifestSha256 } 
   requireValue(isDeepStrictEqual(record, reproduced), "normalization contract");
   const suffix = `tn_childcare_${hash([DATASET, manifest.source_release_id, p.source_object_id]).slice(0, 32)}`, siteId = `site:${suffix}`, establishmentId = `establishment:${suffix}`, observedAt = manifest.observed_at;
   const source = { source_id: DATASET, source_release_id: p.source_release_id, source_record_id: record.source_record_id, ingest_run_id: p.ingest_run_id,
-    transformation_version: `${p.transformation_version} -> ${TN_CHILDCARE_REGISTRY_TRANSFORMATION}`, policy_id: "tn-childcare-local-review" };
+    transformation_version: `${p.transformation_version} -> ${fresh ? TN_CHILDCARE_FRESH_REGISTRY_TRANSFORMATION : TN_CHILDCARE_REGISTRY_TRANSFORMATION}`, policy_id: "tn-childcare-local-review" };
   const entity = (id, type) => ({ schema_version: "1.0.0", entity_id: id, entity_type: type, identity_status: "provisional", created_at: observedAt, updated_at: observedAt, superseded_by: null });
   const assertion = (subject, predicate, value, valueType, field) => ({ schema_version: "1.0.0", assertion_id: `assertion:${hash([subject, predicate, value, p.source_release_id, record.source_record_id]).slice(0, 32)}`,
     subject_entity_id: subject, predicate, value: structuredClone(value), value_type: valueType, assertion_status: "active", valid_from: null, valid_to: null,
@@ -92,10 +121,11 @@ export function reconcileTnChildcareCenter(record, { manifest, manifestSha256 } 
       relationship_type: "located_at", subject_entity_id: establishmentId, object_entity_id: siteId, status: "active", valid_from: null, valid_to: null, observed_at: observedAt, confidence: 1, source: { ...source } }],
     matchProfiles: [], exportPolicy: "local-review-only", evidence: { manifest_sha256: manifestSha256, policy_profile: "tn-childcare-local-review@1.0.0", release_id: manifest.release_id,
       input_feature_sha256: p.input_feature_sha256, attribution: p.attribution, transformation_version: p.transformation_version, normalized_provenance: structuredClone(p),
-      processed_at: manifest.processed_at, recovery: structuredClone(manifest.recovery), zip_unavailable_reason: reason,
+      processed_at: fresh ? null : manifest.processed_at, recovery: fresh ? null : structuredClone(manifest.recovery), zip_unavailable_reason: reason,
+      ...(fresh ? { acquisition_kind: "ordinary-verified-local-release", processing_time_status: "not-recorded-by-source-release-contract" } : {}),
       assertion_status_semantics: "current source assertion representation, not operating-business status",
       confidence_semantics: "confidence 1 represents faithful source representation, not verified operation, identity, location accuracy or nationwide completeness",
-      temporal_scope: "source observation preserved; processed_at is recovery time, not a refreshed source observation",
+      temporal_scope: fresh ? "source observation preserved; no recovery or processing timestamp invented" : "source observation preserved; processed_at is recovery time, not a refreshed source observation",
       identity_scope: "source-release-row candidates; no deduplication, ownership verification or matching eligibility",
       publisher_metadata_required: true, publisher_notices_required: true, legal_approval: false, export_authorized: false } };
 }

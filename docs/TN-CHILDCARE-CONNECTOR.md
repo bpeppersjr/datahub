@@ -1,5 +1,17 @@
 # Tennessee childcare connector development
 
+## Verified fresh-release candidate input
+
+`loadFreshTnChildcareRegistryInput` in `runner/tn-childcare-fresh-registry-input.mjs` accepts only immutable connector 1.1.0 releases. It independently verifies the full source release, bounds and hashes normalized membership, converts records through `reconcileFreshTnChildcareCenter`, then repeats verification and file hashes before returning. Pointer/staging inputs, aliases, tampering, unsupported options and cancellation are covered by tests. No source request or publication occurs.
+
+Fresh candidate lineage uses adapter `tn-childcare-registry-adapter@1.1.0`, the actual source observation, source-release identity, run ID, manifest hash and normalized provenance. `processed_at`, recovery metadata, recovery version and failed-run ID are explicitly null because the ordinary source manifest does not record those facts. `acquisition_kind` identifies the ordinary verified local release; no recovery history or timestamp is fabricated. ZIP5/ZIP4 and unavailable reasons survive; candidates contain no match profiles and retain local-review policy. Confidence describes faithful source representation, not verified business operation.
+
+The recovered adapter remains `@1.0.0` and its separate input loader is unchanged. A read-only comparison against the previous implementation at `d570270` confirmed byte-identical candidate output for every one of the 1,863 retained recovered records. Existing immutable source and national releases were not rewritten.
+
+This is **candidate preparation, not fresh-release national enrollment**. Geographic evidence still validates the recovery-specific schema, reporting input reads recovery lineage, registry selection calls the recovered loader and coverage dependencies expect recovered releases. Resolver/map/export consumers inherit those checks. The next migration must explicitly support the fresh evidence version through that full chain, retain old-release verification and select only one Tennessee release per reporting run. Do not combine a recovered and fresh copy as separate businesses or relax the checks globally.
+
+Verification covered 852 test cases: the full invocation passed 851 and hit the known preview lifecycle conflict; the exclusive 13-test rerun passed both lifecycle tests and every affected fresh/recovered adapter/input test. Source/assessment/connector checks, lint, TypeScript, builds and desktop smoke passed, with zero production dependency vulnerabilities. Independent review found no blocker. These are combined component results, not a clean exit claim for the initial `npm run check`. Rollback is additive code-only; existing recovered candidate bytes and production releases are unchanged.
+
 ## Fresh acquisition missing-ZIP repair
 
 Connector 1.1.0 now explicitly uses the existing `tn-childcare-normalization@1.0.1` in its ordinary acquisition/release lifecycle. Null or bounded blank ZIPs become `missing-source-zip`; the exact observed `"0"` placeholder becomes `invalid-source-zip-placeholder`. Otherwise usable premises remain accepted with null ZIP5/postal_code/ZIP4, not guessed postal codes. Other malformed ZIPs still quarantine under the unchanged five-percent gate. Valid ZIP5/ZIP4 stay separate, and missing points stay null.
