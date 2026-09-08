@@ -10,7 +10,7 @@ The native entry `acquireOhChildcare()` deliberately fails before any request wi
 
 ## Request and resource contract
 
-The sequence is a complete ten-observation preflight, initial ID inventory, deterministic selected pages, final ID inventory, and another complete ten-observation preflight. Every request uses an exact generated URL on `maps.ohio.gov`, rejects redirects, omits credentials and stays within 2,000 encoded URL bytes. No arbitrary endpoint, query filter, field list, token, proxy or CSV access-code option is accepted.
+The baseline sequence is a complete ten-observation preflight, initial ID inventory, deterministic selected pages, final ID inventory, and another complete ten-observation preflight. Metadata and record queries use exact generated URLs on `maps.ohio.gov`, reject redirects, omit credentials and stay within 2,000 encoded URL bytes. The optional required-source-use mode below adds four fixed notice URLs on `maps.ohio.gov` and `childrenandyouth.ohio.gov`. No arbitrary endpoint, query filter, field list, token, proxy or CSV access-code option is accepted.
 
 Pages contain at most 100 IDs, exactly the ten selected fields, publisher Open-center scope and explicit EPSG:4326 point geometry. Every page is validated before continuing. A final replay rejects changed metadata, status counts or ID membership even when total counts agree. Paired checks do not establish transactional snapshot isolation, source freshness or actual business operation.
 
@@ -23,6 +23,22 @@ Metadata bodies are capped at 128 KiB; query bodies at 8 MB; cumulative consumed
 Cancellation is checked before requests, during pacing and body reads, between stages and before returning a completed result. Tests also cover cancellation on the final metadata response. This module does not publish files, create a schedule, retry entire jobs automatically or recover interrupted acquisitions.
 
 ## Verification and remaining handoff
+
+### Required source-use execution mode
+
+The internal transport seam now accepts `sourceUseRequired: true` only with an `onSourceUseBound` function. Incomplete gate options fail before any request; supplying that hook with the gate disabled is also rejected. The versioned policy/decision integrity check runs before network activity, so a modified notice URL cannot be fetched first and rejected only afterward.
+
+This mode obtains the exact four reviewed availability responses after the initial preflight, then calls `bindOhChildcareSourceUse` against that same preflight and the freshly measured statuses, sizes, hashes and timestamps. It consumes expected 400/404 notice bodies under a 1 MiB cap because these bodies are the reviewed availability evidence. Other HTTP error bodies, including 429/5xx, remain cancelled unread with Retry-After honored. Notice bytes and partial failed reads count toward the same global body budget as metadata and queries.
+
+The mode awaits `onSourceUseBound` with a deep-cloned prerequisite package before requesting even the ID inventory. The app-owned caller must persist it before returning. Hook failure or cancellation stops acquisition; mutations or replacement return values from the hook cannot change the internal evidence or grant approval. Hook completion alone is not independently verified durable storage. No generic API or scheduler caller currently exposes this option.
+
+Freshness is revalidated after the hook and before each inventory/page attempt, including retries after pacing or provider cooldown. The four notice responses are collected and bound again after the final preflight, and changes prevent success. Chronology checks include availability after prerequisite completion, query timestamps after source-use checks, and completion no earlier than the final binding. Paired packages are returned as `source_use_evidence`; they are not silently inserted into the older acquisition/release schema or represented as a persisted app operation.
+
+Six additional tests cover awaited persistence, cloned evidence, rejected/incomplete gates, stale prerequisites, cancellation, availability drift and body limits, configuration drift before requests, and a peer-found final clock rollback. The four public error-page bodies are retained as portable fixtures in `runner/fixtures/oh-childcare-availability.json`, after direct checks confirmed the recorded status/size/hash values. This adds retained test bodies without rewriting older research records that truthfully said raw bodies were not retained at their observation time. No facility record requests occurred for this fixture capture.
+
+Native collection remains un-enrolled. The next implementation must persist and independently replay these before/after packages in the acquired-release and operation lifecycle, then enroll the fixed native path. Do not call this mode app-owned execution merely because its persistence hook exists.
+
+The required-source-use follow-up passed the full repository check: all 904 tests, source checks, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. The original eight transport tests remain compatible; the six added tests include the independently identified final-clock regression and its fix.
 
 Eight synthetic tests cover the source-to-release flow, fixed options, disabled native entry, cooldowns, malformed/oversized/private responses, consumed-byte accounting across partial failures, header/body deadlines, late response cleanup, cancellation and same-count drift. Independent read-only review found no actionable defect.
 

@@ -11,12 +11,16 @@ const exact = (v, names) => v && typeof v === "object" && !Array.isArray(v) && O
 const time = (v) => typeof v === "string" && Number.isFinite(Date.parse(v)) && new Date(v).toISOString() === v;
 const check = (v, reason) => { if (!v) throw new Error(`Ohio source-use binding rejected: ${reason}.`); };
 
+export function assertOhChildcareSourceUseConfiguration() {
+  check(hash(policy) === POLICY_HASH && hash(decision) === DECISION_HASH, "versioned policy or decision drift");
+}
+
 /** Binds supplied current prerequisite evidence to a scoped decision. Not a request,
  * publisher authentication, legal approval, or an app dispatch permission token.
  */
 export function bindOhChildcareSourceUse(preflight, availability, options = {}) {
   check(exact(options, ["checkedAt"]) && time(options.checkedAt), "explicit canonical check time");
-  check(hash(policy) === POLICY_HASH && hash(decision) === DECISION_HASH, "versioned policy or decision drift");
+  assertOhChildcareSourceUseConfiguration();
   validateOhChildcarePreflight(preflight);
   const { checkedAt } = options, now = Date.parse(checkedAt);
   check(checkedAt >= decision.decided_at, "check precedes decision");

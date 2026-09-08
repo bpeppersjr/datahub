@@ -9,6 +9,9 @@ import { ohInventoryUrl } from "./oh-childcare-acquisition.mjs";
 import { acquireOhChildcare, acquireOhChildcareWithTransport } from "./oh-childcare-transport.mjs";
 import { buildOhChildcareRelease, verifyOhChildcareRelease } from "./oh-childcare-release.mjs";
 import { APP_ROOT } from "./paths.mjs";
+import publisherNotices from "./fixtures/oh-childcare-publisher-notices.json" with { type: "json" };
+import availabilityBodies from "./fixtures/oh-childcare-availability.json" with { type: "json" };
+import useDecision from "../docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json" with { type: "json" };
 
 async function fixture(change = () => {}) {
   const e = await evidence(), calls = [], waits = [];
@@ -102,4 +105,87 @@ test("OH final metadata and ID replacement fail despite unchanged counts", async
   await assert.rejects(acquireOhChildcareWithTransport(ids.options), /inventory drift/); assert.equal(ids.calls.length, 13);
   const metadata = await fixture(({ call, kind, payload }) => { if (call >= 14 && kind === "item") payload.licenseInfo += " changed"; });
   await assert.rejects(acquireOhChildcareWithTransport(metadata.options), /metadata\/count drift/); assert.equal(metadata.calls.length, 23);
+});
+
+async function gatedFixture(change = () => {}) {
+  const base = await fixture(({ payload, kind, ...rest }) => {
+    if (kind === "item") Object.assign(payload, publisherNotices);
+    return change({ payload, kind, ...rest });
+  });
+  const fetchBase = base.options.fetchImpl;
+  base.options.fetchImpl = async (url, options) => {
+    const notice = availabilityBodies.find((o) => o.url === url);
+    if (!notice) return fetchBase(url, options);
+    base.calls.push({ url, options });
+    const changed = await change({ url, kind: "notice", call: base.calls.length, options });
+    return changed ?? new Response(Buffer.from(notice.body_base64, "base64"), { status: notice.http_status });
+  };
+  base.options.now = () => new Date("2026-09-08T07:05:00.000Z");
+  base.options.sourceUseRequired = true;
+  base.options.onSourceUseBound = async () => {};
+  return base;
+}
+test("OH gated transport awaits prerequisite persistence before IDs and returns paired fresh source-use evidence", async () => {
+  const f = await gatedFixture(); let releaseHook, entered;
+  const enteredPromise = new Promise((resolve) => { entered = resolve; });
+  const hookPromise = new Promise((resolve) => { releaseHook = resolve; });
+  const pending = acquireOhChildcareWithTransport({ ...f.options, onSourceUseBound: async (snapshot) => {
+    assert.equal(f.calls.length, 14); assert.equal(snapshot.binding.source_use_authorized, true); assert.equal(snapshot.binding.dispatch_authorized, false);
+    snapshot.availability[0].http_status = 200; snapshot.preflight.source.source_record_count = 999;
+    entered(); await hookPromise; return { dispatch_authorized: true };
+  } });
+  await enteredPromise; assert.equal(f.calls.length, 14); releaseHook();
+  const r = await pending; assert.equal(f.calls.length, 31); assert.deepEqual(f.waits, Array(30).fill(1000));
+  assert.equal(r.features.length, 3); assert.equal(r.source_use_evidence.before.availability[0].http_status, 404);
+  assert.equal(r.source_use_evidence.before.preflight.source.source_record_count, 3);
+  assert.equal(r.source_use_evidence.after.binding.source_use_authorized, true); assert.equal(r.source.acquisition_authorized, false);
+  assert.equal(r.transport.requests, 31);
+  const plain = await acquireOhChildcareWithTransport({ ...f.options, sourceUseRequired: false, onSourceUseBound: undefined });
+  assert.equal(r.transport.consumed_body_bytes - plain.transport.consumed_body_bytes, 2 * availabilityBodies.reduce((sum, o) => sum + Buffer.from(o.body_base64, "base64").length, 0));
+});
+test("OH source-use rejection, hook failure and hook cancellation prevent every inventory and page request", async () => {
+  const changed = await gatedFixture(({ kind }) => kind === "notice" ? new Response("new terms", { status: 200 }) : undefined);
+  await assert.rejects(acquireOhChildcareWithTransport(changed.options), /review required/); assert.equal(changed.calls.length, 14);
+  const failure = await gatedFixture(); await assert.rejects(acquireOhChildcareWithTransport({ ...failure.options, onSourceUseBound: async () => { throw new Error("persistence failed"); } }), /persistence failed/); assert.equal(failure.calls.length, 14);
+  const cancelled = await gatedFixture(), controller = new AbortController();
+  await assert.rejects(acquireOhChildcareWithTransport({ ...cancelled.options, signal: controller.signal, onSourceUseBound: () => { controller.abort(); } }), { name: "AbortError" }); assert.equal(cancelled.calls.length, 14);
+  for (const opts of [{ sourceUseRequired: true, onSourceUseBound: undefined }, { sourceUseRequired: "true" }, { sourceUseRequired: false, onSourceUseBound: () => {} }]) await assert.rejects(acquireOhChildcareWithTransport({ ...failure.options, ...opts }), /gate options/);
+});
+test("OH source-use freshness is rechecked after persistence and before subsequent pages", async () => {
+  let clock = "2026-09-08T07:05:00.000Z";
+  const delayed = await gatedFixture();
+  await assert.rejects(acquireOhChildcareWithTransport({ ...delayed.options, now: () => new Date(clock), onSourceUseBound: () => { clock = "2026-09-08T07:21:00.000Z"; } }), /fresh preflight/); assert.equal(delayed.calls.length, 14);
+  clock = "2026-09-08T07:05:00.000Z";
+  const rows = await gatedFixture(({ call }) => { if (call === 15) clock = "2026-09-08T07:21:00.000Z"; });
+  await assert.rejects(acquireOhChildcareWithTransport({ ...rows.options, now: () => new Date(clock) }), /fresh preflight/); assert.equal(rows.calls.length, 15);
+  clock = "2026-09-08T07:05:00.000Z";
+  const reversal = await gatedFixture();
+  await assert.rejects(acquireOhChildcareWithTransport({ ...reversal.options, now: () => new Date(clock), onSourceUseBound: () => { clock = "2026-09-08T07:04:59.000Z"; } }), /clock reversal/); assert.equal(reversal.calls.length, 14);
+});
+test("OH availability drift after records prevents success and retained error pages obey body limits", async () => {
+  const after = await gatedFixture(({ call }) => call === 28 ? new Response("new policy", { status: 200 }) : undefined);
+  await assert.rejects(acquireOhChildcareWithTransport(after.options), /review required/); assert.equal(after.calls.length, 31);
+  const oversized = await gatedFixture(({ kind }) => kind === "notice" ? new Response("x".repeat(1_048_577), { status: 404 }) : undefined);
+  await assert.rejects(acquireOhChildcareWithTransport(oversized.options), /Ohio/); assert.equal(oversized.calls.length, 11);
+  const partial = await gatedFixture(({ kind }) => kind === "notice" ? new Response(new ReadableStream({}), { status: 404 }) : undefined);
+  await assert.rejects(acquireOhChildcareWithTransport({ ...partial.options, timeoutMs: 10 }), /Ohio/); assert.equal(partial.calls.length, 13);
+  const cooldown = await gatedFixture(({ call }) => call === 11 ? new Response(new ReadableStream({}), { status: 429, headers: { "retry-after": "120" } }) : undefined);
+  await assert.rejects(acquireOhChildcareWithTransport(cooldown.options), { code: "SOURCE_RETRY_DEFERRED" }); assert.equal(cooldown.calls.length, 11);
+});
+test("OH source-use configuration drift is rejected before any metadata or notice request", async () => {
+  const f = await gatedFixture(), original = useDecision.availability_observations[0].url;
+  try {
+    useDecision.availability_observations[0].url = "https://example.com/unreviewed";
+    await assert.rejects(acquireOhChildcareWithTransport(f.options), /decision drift/); assert.equal(f.calls.length, 0);
+  } finally { useDecision.availability_observations[0].url = original; }
+});
+test("OH completion cannot precede the final notice binding even after final metadata has completed", async () => {
+  const start = Date.parse("2026-09-08T07:05:00.000Z"); let clocks = 0;
+  const baseline = await gatedFixture();
+  await acquireOhChildcareWithTransport({ ...baseline.options, now: () => new Date(start + (++clocks) * 1000) });
+  const totalClocks = clocks; clocks = 0;
+  const rollback = await gatedFixture();
+  await assert.rejects(acquireOhChildcareWithTransport({ ...rollback.options, now: () => {
+    clocks++; return new Date(start + (clocks === totalClocks ? clocks - 2 : clocks) * 1000);
+  } }), /completion precedes final source-use binding/);
 });
