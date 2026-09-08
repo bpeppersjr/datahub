@@ -105,6 +105,19 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .empty-state .run-button { margin-top: 8px; }
 
 .coverage-panel { margin-top: 18px; overflow: hidden; }
+.retained-credentials { margin: 18px; padding: 18px; border: 1px solid var(--border); border-left: 3px solid var(--amber); border-radius: 8px; font-size: 1rem; line-height: 1.5; }
+.retained-credentials h3 { margin: 0; font-size: 1.15rem; }
+.retained-credentials p { margin: 10px 0; }
+.retained-heading,.retained-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.retained-credentials button,.retained-credentials select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: #101820; color: #e5edf2; font-size: .875rem; }
+.retained-credentials button:disabled { opacity: .5; }
+.retained-credentials label { font-size: .875rem; }
+.retained-table-scroll { overflow-x: auto; }
+.retained-credentials table { width: 100%; margin: 14px 0; border-collapse: collapse; font-size: .875rem; }
+.retained-credentials th,.retained-credentials td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+.retained-credentials caption { text-align: left; font-weight: 600; }
+.retained-credentials code { overflow-wrap: anywhere; }
+.retained-credentials :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 .coverage-heading { gap: 18px; }
 .coverage-heading h2 em { display: inline-block; max-width: 310px; vertical-align: bottom; overflow: hidden; color: #61707c; text-overflow: ellipsis; white-space: nowrap; }
 .coverage-release-state { display: flex; align-items: center; gap: 9px; }

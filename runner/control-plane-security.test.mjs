@@ -151,6 +151,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/connectors/us-census-geography"],
     ["POST", "/api/connectors/us-census-geography/validate", "{}"],
     ["GET", "/api/business-coverage"],
+    ["GET", "/api/retained-credentials"],
     ["GET", "/api/business-coverage/states"],
     ["GET", "/api/business-map/catalog"],
     ["GET", "/api/business-map/features?level=states"],
@@ -226,6 +227,10 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(authorized.status, 200);
   assert(Array.isArray(JSON.parse(authorized.body)));
+  const retained=await rawRequest({port,hostHeader,pathname:'/api/retained-credentials',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(retained.status,200);assert.equal(retained.headers['cache-control'],'no-store');assert.equal(JSON.parse(retained.body).available,false);
+  const invalidRetained=await rawRequest({port,hostHeader,pathname:'/api/retained-credentials?state=ZZ',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(invalidRetained.status,400);
+  const foreignRetained=await rawRequest({port,hostHeader,origin:'https://evil.example',pathname:'/api/retained-credentials',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(foreignRetained.status,403);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],

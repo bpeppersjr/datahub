@@ -439,6 +439,8 @@ Local development shutdown: an explicit [stop command](LOCAL-DEVELOPMENT-SHUTDOW
 
 State access refresh: the seven-bucket ledger now measures 357 jurisdiction/industry cells (202 national evidence, three direct state evidence, 100 missing, 52 unmeasured) against the still-published September 2 coverage artifact. Texas's new selector expands inventory scope, not actual acquisitions. Scheduling observation is explicitly unknown rather than falsely unimplemented; reports never imply a configured source is queued. See [current report evidence](STATE-ACCESS-COORDINATION.md#september-7-evidence).
 
+Retained credential visibility (September 8): the coverage explorer now has a separate authenticated, read-only state/ZIP aggregate panel backed by checksum-verified Minnesota residential evidence. Its percentages describe the accepted credential cohort, not U.S. business completeness; national totals remain unchanged. It does not dispatch or supervise downloads. See [retained evidence and boundaries](MN-CONSTRUCTION-STATE-REPORT.md#read-only-dashboard-follow-up).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

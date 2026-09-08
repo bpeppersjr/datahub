@@ -4,7 +4,7 @@ The state-access reporting command now includes a separate `localCredentialEvide
 
 Enrollment is recorded in `config/mn-construction-reporting-enrollment.json`. The accepted source must be the residential cohort, with a `SUCCEEDED` app receipt using its fixed native-fetch entry point and the configured exact receipt SHA-256. A missing enrollment is `not-enrolled`; an absent installed receipt is `unavailable`. Invalid configured evidence fails verification rather than becoming a zero count. This validates retained evidence and execution metadata, not independent publisher authentication.
 
-Run `node scripts/report-state-access.mjs` to produce a new immutable local report. This is CLI/JSON report visibility, **not a new dashboard/API display**. Existing national `accessEvidenceStatus`, status totals and `appHandoff` semantics remain unchanged; the added section describes a separate local evidence layer, not a national promotion or dispatch by the ledger.
+Run `node scripts/report-state-access.mjs` to produce a new immutable local report. The initial integration provided CLI/JSON visibility; the follow-up below adds a separate dashboard/API panel. Existing national `accessEvidenceStatus`, status totals and `appHandoff` semantics remain unchanged; the added section describes a separate local evidence layer, not a national promotion or dispatch by the ledger.
 
 ## Actual report evidence
 
@@ -28,6 +28,16 @@ Active-business count and physical-site count remain null; current USPS assignme
 
 Validation: final `npm run check` passed with 1,076 tests passed, 11 skipped and zero failures, plus lint, web/desktop builds and desktop smoke. The dependency audit found zero vulnerabilities. Tests cover missing enrollment versus unavailable data, rejected path/pin/configuration changes, cross-state cohort percentages, unchanged fixture national evidence, and distinct record-observation/transfer timestamps.
 
-National registry/coverage integration still needs an explicit credential-only projection and a newly reviewed production plan; do not reuse a childcare physical-site projection. Dashboard visibility is separate implementation work. The local report makes verified acquired evidence visible without claiming those unimplemented steps.
+National registry/coverage integration still needs an explicit credential-only projection and a newly reviewed production plan; do not reuse a childcare physical-site projection. The local report and separate panel make verified acquired evidence visible without claiming national integration.
 
 To disable this local enrollment, remove its configuration only after preserving its Git history; retained receipts and reports are not deleted. Never change a receipt hash to match unverified files or point enrollment at a failed/injected cohort simply to obtain counts.
+
+## Read-only dashboard follow-up
+
+The coverage explorer now includes a separate **Retained credential evidence** panel, including when the national coverage release is unavailable. Operators can select a reported-address state, page through ZIP5 groups, inspect receipt provenance, and recheck local evidence. Every percentage retains the full accepted-cohort denominator. Unique active businesses and physical sites remain unknown; registrations remain excluded. No company names, contacts, street addresses, or local artifact paths are returned by this aggregate view.
+
+`GET /api/retained-credentials` uses the existing loopback host/origin/bearer-token guards and no-store responses. It accepts only `state`, `offset`, and `limit` (maximum 100). Invalid filters fail before loading evidence. Concurrent reads share one in-flight local verification; completed evidence is not cached. Missing enrollment, unavailable retained data, and verification failures remain distinct from verified zero cohort rows. The client aborts obsolete reads and clears results on filter/page changes. This panel has no download dispatch or polling timer: Co*Tive's existing managed workers own acquisitions.
+
+Verification includes aggregate projection, denominator conservation, pagination, invalid-filter rejection, concurrent-read coalescing, redacted failures, protected live fixture routes, and source-level client wiring checks. These are not browser rendering or interactive visual QA. Rollback removes the panel and read-only route without deleting acquired data, enrollment history, or reports.
+
+Follow-up validation: `npm run check` passed (1,081 tests passed, 11 skipped, zero failed), including lint, web/desktop builds, and desktop control-plane smoke. `tsc --noEmit` passed; the production dependency audit found zero vulnerabilities; all 82 pending production code/configuration pins remained unchanged. After restoring the local preview, HTTP GET returned 200 and the authenticated MN aggregate request returned 200 with `Cache-Control: no-store`, 11,456 accepted cohort rows, 10,899 MN-address rows, 744 MN ZIP5 groups, and the enrolled app receipt hash. No source request or production promotion was performed by this follow-up.

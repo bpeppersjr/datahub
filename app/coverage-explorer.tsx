@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { runnerJson } from './runner-client';
+import RetainedCredentials from './retained-credentials';
 type Dimension = 'states' | 'counties' | 'zips' | 'sources' | 'gaps';
 
 type Overview = {
@@ -574,6 +575,7 @@ export default function CoverageExplorer() {
         </div>
       </div>
 
+      <RetainedCredentials />
       {unavailable && <div className="coverage-empty"><strong>No coverage release</strong><span>Run <code>npm run coverage-views:build</code> to publish the first governed overall view.</span></div>}
       {!unavailable && (
         <>

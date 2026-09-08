@@ -18,7 +18,9 @@ import { createLocalControlPlaneGuard } from './control-plane-security.mjs';
 import { createConnectorRegistry } from './connector-registry.mjs';
 import { createManagedOperations } from './managed-operations.mjs';
 import { listProductionRunStatus } from './production-run-status.mjs';
+import { createRetainedCredentialsView } from './retained-credentials-view.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
+const retainedCredentialsView=createRetainedCredentialsView();
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -356,6 +358,9 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
+      json(response,200,await retainedCredentialsView.get(url.searchParams));return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
       const [overview, postalMigration, postalCandidates, postalCutover] = await Promise.all([
         businessCoverageViews.getOverview(),
