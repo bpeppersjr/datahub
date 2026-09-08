@@ -36,6 +36,8 @@ node scripts/verify-ct-childcare-acquired.mjs --manifest <absolute-manifest-path
 
 The default retention root is `data/business-sources/ct-childcare/acquired`. Recorded execution mode is not independent network attestation. No native facility collection, app operation, recurring schedule or national pointer update is part of this increment. Next: normalize source candidates with explicit gaps and provenance, enroll the complete tested worker with app resource/source reservations, then dispatch with an app operation ID and receipt. Release the agent after accepted dispatch; Co*Tive owns routine downloads.
 
+The subsequent [offline normalization layer](CT-CHILDCARE-NORMALIZATION.md) derives source candidates from verified retained acquisitions, preserving missing-field gaps and separate ZIP5/ZIP4. It does not itself dispatch collection or enroll a worker.
+
 Rollback disables use of this new acquisition layer. Preserve all retained evidence and existing source/national releases; no source-current pointer is replaced here.
 
 ## Verification — September 8, 2026

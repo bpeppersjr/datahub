@@ -481,6 +481,8 @@ Connecticut childcare prerequisite (September 8): the [tested metadata/count pre
 
 Connecticut selected-source acquisition (September 8): the [bounded acquisition and immutable replay layer](CT-CHILDCARE-ACQUISITION.md) preserves release-scoped opaque row keys, repeated credentials and role-unverified reported addresses. Prerequisite and observation journals complete before dependent requests, and completed acquisition can be reused offline. Maryland's parallel schema follow-up identified duplicate `USER_*` aliases and coordinate-type differences that a future collector must not confuse with original fields. No native CT facility rows, app operation, schedule or national promotion were dispatched in this increment; normalization and tested standalone worker enrollment remain next.
 
+Connecticut source-candidate normalization (September 8): the [offline normalized release](CT-CHILDCARE-NORMALIZATION.md) preserves opaque row identity, repeated credentials, exact sparse selected input, reported-address gaps and separate ZIP5/ZIP4. Calendar validity does not invent a timezone; capacity parsing preserves raw evidence. Derivatives bind and replay acquired manifests, conserve accepted plus quarantined rows, and make no source requests. The app handoff review identifies remaining fixed-native/retained worker entry points, publisher exclusion, durable linked receipts and managed cancellation tests before collection dispatch.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
