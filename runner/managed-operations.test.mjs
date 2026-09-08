@@ -7,6 +7,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { createManagedOperations } from "./managed-operations.mjs";
 import { buildIndustryPlan, industryPlanFingerprint } from "./industry-segments.mjs";
 import { writeReconciliationReceipt } from "./reconciliation-receipt.mjs";
+import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS } from "./collection-cancellation.mjs";
 
 const config = { version: 1, max_concurrency: 1, states: ["TX"], industries: { retail: ["source"] }, sources: { source: { script: "scripts/run-industry-segments.mjs", scope: "national", states: "all", state_filter_supported: false, prerequisites: [] } } };
 const sha = (text) => createHash("sha256").update(text).digest("hex");
@@ -16,6 +17,45 @@ async function fixture(t, options = {}) {
   return createManagedOperations({ root: relative, configLoader: async () => config, ...options });
 }
 async function finished(service, id) { for (let i = 0; i < 100; i += 1) { const operation = await service.get(id); if (!["QUEUED", "RUNNING"].includes(operation.status)) return operation; await new Promise((resolve) => setTimeout(resolve, 5)); } throw new Error("operation did not finish"); }
+
+test("managed collection cancellation records ambiguity for successful and failed child exits", async t => {
+  for (const code of [0, 1, "throw"]) {
+    let started;
+    const ready = new Promise(resolve => { started = resolve; });
+    const service = await fixture(t, { executor: async ({ signal, cancelGraceMs }) => {
+      assert.equal(cancelGraceMs, COLLECTION_SUPERVISOR_CANCEL_GRACE_MS);
+      started();
+      await new Promise(resolve => signal.addEventListener("abort", resolve, { once: true }));
+      if (code === "throw") throw new Error("Fixture executor outcome unavailable");
+      return { code, forcedTerminationRequested: code === 1 };
+    } });
+    const operation = await service.startCollection({ industries: ["retail"], states: ["TX"] });
+    await ready; await service.cancel(operation.id);
+    await service.running.get(operation.id)?.done;
+    const result = await service.get(operation.id);
+    assert.equal(result.status, "CANCELLED");
+    assert.equal(result.result.cancellation.outputState, "inspection-required");
+    assert.equal(result.result.cancellation.forcedTerminationRequested, code === "throw" ? null : code === 1);
+    assert.match(result.error, /partially published output may exist/);
+    const disk = JSON.parse(await readFile(path.join(service.root, operation.id, "receipt.json")));
+    assert.deepEqual(disk.result.cancellation, result.result.cancellation);
+    await service.close();
+  }
+});
+
+test("managed exports preserve their shorter cancellation grace", async t => {
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const service = await fixture(t, { executor: async ({ signal, cancelGraceMs }) => {
+    assert.equal(cancelGraceMs, EXPORT_CANCEL_GRACE_MS); started();
+    await new Promise(resolve => signal.addEventListener("abort", resolve, { once: true }));
+    return { code: 1 };
+  } });
+  const operation = await service.startExport({});
+  await ready; await service.cancel(operation.id); await service.running.get(operation.id)?.done;
+  assert.equal((await service.get(operation.id)).result.cancellation, undefined);
+  await service.close();
+});
 
 test("manual source selection forwards into child and receipt, but not schedules",async t=>{
   let launched;const service=await fixture(t,{executor:async (...args)=>{launched=args;return {code:0};}});

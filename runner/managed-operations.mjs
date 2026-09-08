@@ -8,6 +8,7 @@ import { writeReconciliationReceipt } from "./reconciliation-receipt.mjs";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "./industry-segments.mjs";
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
+import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
 const FORMATS = ["csv", "jsonl", "both"];
@@ -34,28 +35,29 @@ function invalid(message) { return Object.assign(new Error(message), { statusCod
 function conflict(message) { return Object.assign(new Error(message), { code: "OPERATION_CONFLICT", statusCode: 409 }); }
 function validate(action) { try { return action(); } catch (error) { error.statusCode ??= 400; throw error; } }
 
-function defaultExecutor({ script, args, signal, onSpawn }) {
+export function executeManagedChild({ script, args, signal, onSpawn, cancelGraceMs = EXPORT_CANCEL_GRACE_MS }) {
+  if (![EXPORT_CANCEL_GRACE_MS, COLLECTION_SUPERVISOR_CANCEL_GRACE_MS].includes(cancelGraceMs)) throw new Error("Invalid managed cancellation grace period.");
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [script, ...args], { cwd: APP_ROOT, shell: false, windowsHide: true, stdio: ["ignore", "pipe", "pipe", "ipc"] });
     onSpawn?.(child.pid);
-    let output = ""; let force;
+    let output = ""; let force; let forcedTerminationRequested = false;
     child.stdout.on("data", (chunk) => { if (output.length < 65_536) output += chunk.toString("utf8", 0, 65_536 - output.length); });
     child.stderr.resume();
     const cancel = () => {
-      if (child.exitCode !== null) return;
+      if (force || child.exitCode !== null) return;
       if (child.connected) child.send({ type: "cancel" }, () => {}); else child.kill("SIGTERM");
-      force = setTimeout(() => child.kill("SIGKILL"), 15_000); force.unref();
+      force = setTimeout(() => { forcedTerminationRequested = true; child.kill("SIGKILL"); }, cancelGraceMs); force.unref();
     };
     signal.addEventListener("abort", cancel, { once: true }); if (signal.aborted) cancel();
     child.once("error", reject);
-    child.once("close", (code) => { clearTimeout(force); signal.removeEventListener("abort", cancel); resolve({ code: code ?? 1, stdout: output }); });
+    child.once("close", (code, childSignal) => { clearTimeout(force); signal.removeEventListener("abort", cancel); resolve({ code: code ?? 1, signal: childSignal, forcedTerminationRequested, stdout: output }); });
   });
 }
 
 export class ManagedOperations {
   constructor(options = {}) {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
-    this.executor = options.executor ?? defaultExecutor; this.verifyChildReceipts = !options.executor;
+    this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
@@ -181,6 +183,7 @@ export class ManagedOperations {
         const receipt = JSON.parse(await readFile(path.join(APP_ROOT, "data", "industry-segments", "runs", record.id, "receipt.json"), "utf8"));
         if (receipt.run_id === record.id && Array.isArray(receipt.tasks)) snapshot.result.tasks = receipt.tasks.map((task) => ({
           task_id: task.task_id, source_id: task.source_id, state: task.state ?? null, status: task.status,
+          ...(task.cancellation?.requested === true ? { cancellation: { requested: true, childExitSucceeded: task.cancellation.child_exit_succeeded === true, outputState: "inspection-required" } } : {}),
         }));
       } catch { /* No child receipt yet; keep the operation's recorded state. */ }
     }
@@ -242,11 +245,23 @@ export class ManagedOperations {
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
-      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if (controller.signal.aborted) record.status = "CANCELLED";
+      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind === "collection" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
+      if (controller.signal.aborted) {
+        record.status = "CANCELLED";
+        if (record.kind === "collection") {
+          record.error = COLLECTION_CANCEL_WARNING;
+          record.result.cancellation = { requested: true, forcedTerminationRequested: execution?.forcedTerminationRequested === true, outputState: "inspection-required" };
+        }
+      }
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
-    } catch (error) { record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = cleanError(error); }
+    } catch (error) {
+      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = cleanError(error);
+      if (controller.signal.aborted && record.kind === "collection") {
+        record.error = COLLECTION_CANCEL_WARNING;
+        record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
+      }
+    }
     record.finishedAt = this.now(); delete record.owner; await this.#persist(record);
   }
   async #discover(record, directory) {

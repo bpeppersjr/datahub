@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { acquireIndustrySourceLocks } from "./industry-source-locks.mjs";
+import { COLLECTION_CHILD_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 
 export const DEFAULT_CONFIG = path.join(APP_ROOT, "config", "industry-segments.json");
 export const MAX_CONCURRENCY = 10;
@@ -117,11 +118,11 @@ function executeChild(task, { runDir, runId, outputRoot, signal }) {
       stdio: ["ignore", "pipe", "pipe", "ipc"],
       windowsHide: true,
     });
-    let forceTimer;
+    let forceTimer; let forcedTerminationRequested = false;
     const cancelChild = () => {
       if (forceTimer || child.exitCode !== null) return;
       if (child.connected) child.send({ type: "cancel" }, () => {});
-      forceTimer = setTimeout(() => child.kill("SIGKILL"), 10_000);
+      forceTimer = setTimeout(() => { forcedTerminationRequested = true; child.kill("SIGKILL"); }, COLLECTION_CHILD_CANCEL_GRACE_MS);
       forceTimer.unref();
     };
     signal?.addEventListener("abort", cancelChild, { once: true });
@@ -140,7 +141,7 @@ function executeChild(task, { runDir, runId, outputRoot, signal }) {
     child.on("close", (code, sig) => {
       clearTimeout(forceTimer);
       signal?.removeEventListener("abort", cancelChild);
-      void finish({ code: spawnError || logError ? 1 : (code ?? 1), signal: sig, error: spawnError?.message || logError?.message });
+      void finish({ code: spawnError || logError ? 1 : (code ?? 1), signal: sig, forcedTerminationRequested, error: spawnError?.message || logError?.message });
     });
     child.on("error", (error) => { spawnError = error; if (!log.destroyed) log.write(`${error.message}\n`); });
   });
@@ -201,6 +202,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
         const succeeded = result?.code === 0 || result?.ok === true || result?.status === "succeeded";
         Object.assign(record, result);
         record.status = signal?.aborted ? "cancelled" : succeeded ? "succeeded" : "failed";
+        if (signal?.aborted) record.cancellation = { requested: true, child_exit_succeeded: succeeded, output_state: "inspection-required", warning: COLLECTION_CANCEL_WARNING };
       } catch (error) { record.status = "failed"; record.error = error.message; }
       record.finished_at = new Date().toISOString(); await persist();
     }
