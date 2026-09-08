@@ -1,0 +1,28 @@
+{
+  "kind": "bounded-source-research-observations",
+  "version": "1.0.0",
+  "source_layer": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0",
+  "facility_records_acquired": 0,
+  "acquisition_authorized": false,
+  "national_reporting_integrated": false,
+  "observations": [
+    {
+      "kind": "grouped-center-status-counts",
+      "observed_at": "2026-09-08T04:56:06.655Z",
+      "url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0/query?f=json&where=program_type%3D%27Child+Care+Center%27&groupByFieldsForStatistics=program_status&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22objectid%22%2C%22outStatisticFieldName%22%3A%22source_count%22%7D%5D&returnGeometry=false&orderByFields=program_status",
+      "http_status": 200,
+      "bytes": 531,
+      "sha256": "505ee4db495b114701f29b556aae8ecfdf57b89c0789a9697f0dd09cc81cbfb0",
+      "raw_body_base64": "eyJmZWF0dXJlcyI6W3siYXR0cmlidXRlcyI6eyJwcm9ncmFtX3N0YXR1cyI6IkVuZm9yY2VtZW50Iiwic291cmNlX2NvdW50Ijo1fX0seyJhdHRyaWJ1dGVzIjp7InByb2dyYW1fc3RhdHVzIjoiSW5hY3RpdmUiLCJzb3VyY2VfY291bnQiOjEwMn19LHsiYXR0cmlidXRlcyI6eyJwcm9ncmFtX3N0YXR1cyI6Ik9wZW4iLCJzb3VyY2VfY291bnQiOjQyMzd9fV0sImV4Y2VlZGVkVHJhbnNmZXJMaW1pdCI6ZmFsc2UsIm9iamVjdElkRmllbGROYW1lIjoib2JqZWN0aWQiLCJmaWVsZHMiOlt7ImRlZmF1bHRWYWx1ZSI6bnVsbCwibmFtZSI6InNvdXJjZV9jb3VudCIsImFsaWFzIjoic291cmNlX2NvdW50IiwidHlwZSI6ImVzcmlGaWVsZFR5cGVJbnRlZ2VyIn0seyJ2aXNpYmxlIjp0cnVlLCJkZWZhdWx0VmFsdWUiOm51bGwsImxlbmd0aCI6ODAwMCwidHlwZSI6ImVzcmlGaWVsZFR5cGVTdHJpbmciLCJtb2RlbE5hbWUiOiJwcm9ncmFtX3N0YXR1cyIsIm5hbWUiOiJwcm9ncmFtX3N0YXR1cyIsImFsaWFzIjoiUHJvZ3JhbSBTdGF0dXMifV19"
+    },
+    {
+      "kind": "independent-open-center-count",
+      "observed_at": "2026-09-08T04:50:44.665Z",
+      "url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0/query?f=json&where=program_type%3D%27Child+Care+Center%27+AND+program_status%3D%27Open%27&returnCountOnly=true&returnGeometry=false",
+      "http_status": 200,
+      "bytes": 14,
+      "sha256": "7600e9c2589cda40d11f5dbac304e7779cf2c9fa3d6a97aefc8db05eac4ff639",
+      "raw_body_base64": "eyJjb3VudCI6NDIzN30="
+    }
+  ]
+}
