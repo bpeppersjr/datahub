@@ -103,6 +103,35 @@ test("Ohio batch rejection diagnostics distinguish structural gates without copy
   assert.equal(ohFeatures({ ...page([1]), hasZ: false, hasM: false }, [1], e.preflight_before).length, 1);
 });
 
+test("Ohio query field metadata permits matching model names and explicit visibility without relaxing data validation", async () => {
+  const e = await fixture();
+  const queryPage = () => {
+    const p = page([1]);
+    p.fields = p.fields.map((f) => {
+      const field = { ...f, modelName: f.name, visible: true };
+      delete field.nullable; delete field.domain; return field;
+    });
+    return p;
+  };
+  assert.equal(ohFeatures(queryPage(), [1], e.preflight_before).length, 1);
+  for (const change of [
+    (f) => { f.modelName = "PRIVATE_CANARY"; },
+    (f) => { f.modelName = { value: "PRIVATE_CANARY" }; },
+    (f) => { f.visible = false; },
+    (f) => { f.visible = "PRIVATE_CANARY"; },
+    (f) => { f.sqlType = "PRIVATE_CANARY"; },
+    (f) => { f.domain = {}; },
+    (f) => { f.defaultValue = "PRIVATE_CANARY"; },
+    (f) => { f.nullable = true; },
+    (f) => { f.length = 8; },
+  ]) {
+    const p = queryPage(); change(p.fields[0]);
+    assert.throws(() => ohFeatures(p, [1], e.preflight_before), (error) => /returned schema/.test(error.message) && !error.message.includes("PRIVATE_CANARY"));
+  }
+  const p = queryPage(); p.features[0].attributes.program_number = "PRIVATE_CANARY";
+  assert.throws(() => ohFeatures(p, [1], e.preflight_before), /attribute type or length/);
+});
+
 test("Ohio acquisition preserves native Double anomalies for later normalization, not typed identifiers", async () => {
   const e = await fixture();
   for (const value of [null, 1.5, Number.MAX_SAFE_INTEGER + 1, -1]) {

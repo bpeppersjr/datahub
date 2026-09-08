@@ -65,7 +65,9 @@ function features(payload, ids, schema) {
     for (const field of payload.fields) {
       const expected = schema.get(field.name);
       check(expected && field.type === expected.type && field.length === expected.length
-        && keys(field, ["name", "type", "length", "alias", "nullable", "domain", "defaultValue"])
+        && keys(field, ["name", "type", "length", "alias", "nullable", "domain", "defaultValue", "modelName", "visible"])
+        && (field.modelName === undefined || field.modelName === field.name)
+        && (field.visible === undefined || field.visible === true)
         && (field.domain === undefined || field.domain === null) && (field.defaultValue === undefined || field.defaultValue === null)
         && (field.nullable === undefined || field.nullable === expected.nullable)
         && (field.alias === undefined || typeof field.alias === "string" && field.alias.length <= 255), "returned schema");
