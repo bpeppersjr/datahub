@@ -4,7 +4,7 @@ import path from "node:path";
 import { setImmediate as yieldLoop } from "node:timers/promises";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 import { acquireTnChildcare, replayTnChildcareAcquisition } from "./tn-childcare-acquisition.mjs";
-import { normalizeTnChildcareFeature, TN_CHILDCARE_TRANSFORMATION } from "./tn-childcare-normalization.mjs";
+import { normalizeTnChildcareFeature, TN_CHILDCARE_TRANSFORMATION, TN_CHILDCARE_REPROCESS_TRANSFORMATION } from "./tn-childcare-normalization.mjs";
 import { TN_CHILDCARE_LAYER, TN_CHILDCARE_WHERE } from "./tn-childcare-preflight.mjs";
 
 const DATASET = "tn-dhs-active-childcare-centers";
@@ -80,7 +80,8 @@ async function lines(rows, signal) {
   for (const [index, row] of rows.entries()) { if (index % 100 === 0) { await yieldLoop(); signal?.throwIfAborted(); } values.push(`${json(row)}\n`); }
   return values.join("");
 }
-async function derive(evidence, runId, signal) {
+async function derive(evidence, runId, signal, transformationVersion) {
+  requireValue([TN_CHILDCARE_TRANSFORMATION, TN_CHILDCARE_REPROCESS_TRANSFORMATION].includes(transformationVersion), "normalization version");
   signal?.throwIfAborted(); await yieldLoop(); const acquired = replayTnChildcareAcquisition(evidence, { signal });
   const { features, source } = acquired;
   const sourceReleaseId = `tn-childcare-${sha(json({ layer_url: source.layer_url, where: source.where, editing_info: source.editing_info,
@@ -90,14 +91,14 @@ async function derive(evidence, runId, signal) {
   for (const [index, feature] of features.entries()) {
     if (index % 100 === 0) { await yieldLoop(); signal?.throwIfAborted(); }
     try { normalized.push(normalizeTnChildcareFeature(feature, { runId, sourceReleaseId, observedAt: source.observed_at, outputWkid: 4326,
-      editingInfo: source.editing_info, itemModifiedEpochMs: source.item_modified_epoch_ms })); }
+      editingInfo: source.editing_info, itemModifiedEpochMs: source.item_modified_epoch_ms, transformationVersion })); }
     catch (error) {
       if (error.code !== "TN_CHILDCARE_RECORD_REJECTED") throw error;
       quarantine.push({ source_object_id: feature.attributes.OBJECTID, input_feature_sha256: sha(json(feature)), reason: error.reason });
     }
   }
   requireValue(normalized.length > 0 && quarantine.length / features.length <= 0.05, "quarantine exceeds 5% or no accepted records");
-  return { acquired, normalized, quarantine, sourceReleaseId, counts: { selected: features.length, accepted: normalized.length, quarantined: quarantine.length } };
+  return { acquired, normalized, quarantine, sourceReleaseId, transformationVersion, counts: { selected: features.length, accepted: normalized.length, quarantined: quarantine.length } };
 }
 async function contents(result, signal) {
   return [await lines(result.acquired.features, signal), await lines(result.normalized, signal), await lines(result.quarantine, signal),
@@ -110,13 +111,21 @@ function descriptors(values, counts) {
   });
 }
 function manifestFor(runId, result, artifacts, policy) {
-  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: "1.0.0", transformation_version: TN_CHILDCARE_TRANSFORMATION,
+  const current = result.transformationVersion === TN_CHILDCARE_REPROCESS_TRANSFORMATION;
+  const postalQuality = { with_source_zip: 0, without_source_zip: 0, missing_zip_reasons: { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 }, missing_points: 0, zip_inferred: false };
+  if (current) for (const record of result.normalized) {
+    if (record.physical_address.zip_code === null) { postalQuality.without_source_zip++; postalQuality.missing_zip_reasons[record.quality.zip_unavailable_reason]++; }
+    else postalQuality.with_source_zip++;
+    if (record.geocode.latitude === null) postalQuality.missing_points++;
+  }
+  return { schema_version: "1.0.0", dataset_id: DATASET, connector_id: DATASET, connector_version: current ? "1.1.0" : "1.0.0", transformation_version: result.transformationVersion,
     run_id: runId, release_id: `tn-childcare-${runId}`, source_release_id: result.sourceReleaseId, status: "complete", observed_at: result.acquired.source.observed_at,
     source_url: TN_CHILDCARE_LAYER, source_filter: TN_CHILDCARE_WHERE, policy, counts: result.counts, quarantine_max_fraction: 0.05,
     scope: "Tennessee DHS-derived Active Child Care Center source records; family/group homes, drop-in, authorized providers and TDOE facilities excluded",
     claims: { active_business_verified: false, license_dates_verified: false, unique_business_identity_verified: false, national_coverage_complete: false,
       current_usps_validity_verified: false, disappearance_means_closure: false, legal_approval: false, export_authorized: false },
-    evidence_limit: "Selected JSON payloads and complete opaque publisher XML replay the acquisition contract offline; not provider authentication, transactional snapshot isolation, XML parser/schema validation or verified current business operation.", artifacts };
+    evidence_limit: "Selected JSON payloads and complete opaque publisher XML replay the acquisition contract offline; not provider authentication, transactional snapshot isolation, XML parser/schema validation or verified current business operation.",
+    ...(current ? { accepted_record_quality: postalQuality } : {}), artifacts };
 }
 export async function verifyTnChildcareRelease(manifestPath, options = {}) {
   strictOptions(options, ["signal"]); const { signal } = options; signal?.throwIfAborted();
@@ -129,7 +138,9 @@ export async function verifyTnChildcareRelease(manifestPath, options = {}) {
   const policy = await policyFor(signal), values = [];
   for (const [name, , maximum] of FILES) values.push(await boundedRead(path.join(directory, name), maximum, signal));
   const evidence = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(values[3]));
-  const result = await derive(evidence, manifest.run_id, signal), expected = await contents(result, signal);
+  requireValue(manifest.connector_version === "1.0.0" && manifest.transformation_version === TN_CHILDCARE_TRANSFORMATION
+    || manifest.connector_version === "1.1.0" && manifest.transformation_version === TN_CHILDCARE_REPROCESS_TRANSFORMATION, "connector/normalization version pair");
+  const result = await derive(evidence, manifest.run_id, signal, manifest.transformation_version), expected = await contents(result, signal);
   requireValue(values.every((bytes, index) => bytes.equals(Buffer.from(expected[index]))), "artifact bytes differ from acquisition and normalization replay");
   requireValue(json(manifest) === json(manifestFor(manifest.run_id, result, descriptors(values, result.counts), policy)), "manifest policy, counts or integrity");
   signal?.throwIfAborted(); return { status: "verified", release_id: manifest.release_id, manifest_path: resolved, manifest_sha256: sha(rawManifest), counts: result.counts, artifact_count: FILES.length };
@@ -165,7 +176,7 @@ export async function buildTnChildcareRelease(options = {}) {
     const selected = await lines(acquired.features, signal), observation = `${json(acquired.evidence)}\n`, xml = acquired.publisher_metadata.before.raw;
     requireValue(Buffer.byteLength(selected) <= FILES[0][2] && Buffer.byteLength(observation) <= FILES[3][2] && xml.length <= FILES[4][2], "source evidence byte ceiling");
     for (const [name, bytes] of [[FILES[0][0], selected], [FILES[3][0], observation], [FILES[4][0], xml]]) await stageWrite(name, bytes);
-    await logger("normalize"); signal?.throwIfAborted(); const result = await derive(acquired.evidence, runId, signal), values = await contents(result, signal);
+    await logger("normalize"); signal?.throwIfAborted(); const result = await derive(acquired.evidence, runId, signal, TN_CHILDCARE_REPROCESS_TRANSFORMATION), values = await contents(result, signal);
     const artifacts = descriptors(values, result.counts), manifest = manifestFor(runId, result, artifacts, policy);
     for (const index of [1, 2]) await stageWrite(FILES[index][0], values[index]);
     await stageWrite("manifest.json", `${json(manifest)}\n`);

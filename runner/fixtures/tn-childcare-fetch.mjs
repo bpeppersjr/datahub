@@ -34,6 +34,7 @@ export function createTnChildcareFixture({ count = 1, mutate = () => {} } = {}) 
   return { fetchImpl, calls };
 }
 
-if (process.env.TN_CHILDCARE_FIXTURE_PRELOAD === "1") globalThis.fetch = createTnChildcareFixture({ mutate: (payload, kind) => {
+if (process.env.TN_CHILDCARE_FIXTURE_PRELOAD === "1") globalThis.fetch = createTnChildcareFixture({ count: process.env.TN_CHILDCARE_FIXTURE_MISSING_ZIP === "1" ? 3 : 1, mutate: (payload, kind) => {
   if (kind === "features" && process.env.TN_CHILDCARE_FIXTURE_INVALID === "1") payload.features[0].attributes.owner = "PRIVATE_FIXTURE";
+  if (kind === "features" && process.env.TN_CHILDCARE_FIXTURE_MISSING_ZIP === "1") { payload.features[0].attributes.Zip = null; payload.features[0].geometry = null; payload.features[1].attributes.Zip = "0"; }
 } }).fetchImpl;

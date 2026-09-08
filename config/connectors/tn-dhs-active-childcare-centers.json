@@ -1,6 +1,6 @@
 {
   "connector_id": "tn-dhs-active-childcare-centers",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Acquires and verifies exact center-filtered Tennessee DHS/STS GIS records with publisher metadata as immutable local-review evidence; not a national registry contribution or all-childcare census.",
   "implementation_status": "standalone-acquisition-and-local-release",
   "offline_recovery": {
@@ -20,10 +20,10 @@
   "input_artifact_types": ["tn-dhs-selected-center-arcgis-features", "tn-sts-publisher-metadata-xml"],
   "output_artifact_types": ["tn-childcare-selected-features-jsonl", "tn-childcare-normalized-center-jsonl", "tn-childcare-quarantine-jsonl", "tn-childcare-source-observation-json", "tn-sts-publisher-metadata-xml", "dataset-manifest-json"],
   "output_schema_contract": {
-    "dataset_id": "tn-dhs-active-childcare-centers", "schema_version": "1.0.0", "transformation_version": "tn-childcare-normalization@1.0.0",
+    "dataset_id": "tn-dhs-active-childcare-centers", "schema_version": "1.0.0", "transformation_version": "tn-childcare-normalization@1.0.1",
     "artifacts": ["selected-features.jsonl", "normalized.jsonl", "quarantine.jsonl", "source-observation.json", "publisher-metadata.xml"],
     "verification": "scripts/verify-tn-childcare.mjs accepts an immutable manifest path and replays retained acquisition evidence and normalization; no current.json input or provider request.",
-    "postal_fields": "physical_address.zip_code and postal_code contain ZIP5 only; physical_address.zip4 contains a separate four-digit string or null.",
+    "postal_fields": "physical_address.zip_code and postal_code contain ZIP5 only; physical_address.zip4 contains a separate four-digit string or null. Null/blank source ZIPs and the exact observed placeholder 0 remain accepted premises with explicit missing-source-zip or invalid-source-zip-placeholder reasons. Other malformed ZIPs remain quarantined. accepted_record_quality conserves accepted ZIP availability and missing points; no ZIP inference.",
     "geocode": "Normalized business records contain nullable latitude/longitude only, EPSG:4326. Source points remain internal evidence; broad TN bounds are not verified state/county boundary membership.",
     "source_filter": "Provider_Status = 'Active' AND Provider_Type = 'Child Care' AND Child_Care_Type = 'Child Care Center'"
   },

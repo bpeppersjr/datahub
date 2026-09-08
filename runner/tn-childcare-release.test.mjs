@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, writeFile, readdir, rm, symlink, link, unlink, lstat, truncate } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, readdir, rm, symlink, link, unlink, lstat, truncate, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 import { buildTnChildcareRelease, verifyTnChildcareRelease } from "./tn-childcare-release.mjs";
@@ -9,6 +9,37 @@ import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
 const clock = () => new Date("2026-09-08T00:00:00.000Z"), noSleep = async () => {}, hash = (v) => createHash("sha256").update(v).digest("hex");
 async function temporary(t) { const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/tn-release-")); t.after(() => rm(root, { recursive: true, force: true })); return root; }
 const build = (root, fixture = createTnChildcareFixture(), options = {}) => buildTnChildcareRelease({ outputRoot: root, fetchImpl: fixture.fetchImpl, sleep: noSleep, now: clock, ...options });
+
+test("TN fresh release retains missing ZIPs and points without recovery or relaxed malformed-ZIP quarantine", async (t) => {
+  const root = await temporary(t), fixture = createTnChildcareFixture({ count: 5, mutate: (payload, kind) => {
+    if (kind === "features") { for (const [i, zip] of [null, "", "  ", "0", "37201-0123"].entries()) payload.features[i].attributes.Zip = zip; payload.features[0].geometry = null; }
+  } });
+  const result = await build(root, fixture); assert.deepEqual(result.counts, { selected: 5, accepted: 5, quarantined: 0 });
+  const manifest = JSON.parse(await readFile(result.manifest_path, "utf8"));
+  assert.equal(manifest.connector_version, "1.1.0"); assert.equal(manifest.transformation_version, "tn-childcare-normalization@1.0.1");
+  assert.equal(Object.hasOwn(manifest, "recovery_version"), false);
+  assert.deepEqual(manifest.accepted_record_quality, { with_source_zip: 1, without_source_zip: 4, missing_zip_reasons: { "missing-source-zip": 3, "invalid-source-zip-placeholder": 1 }, missing_points: 1, zip_inferred: false });
+  const rows = (await readFile(path.join(path.dirname(result.manifest_path), "normalized.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  for (const row of rows.slice(0, 4)) assert.deepEqual([row.physical_address.zip_code, row.physical_address.postal_code, row.physical_address.zip4], [null, null, null]);
+  assert.equal(rows[4].physical_address.zip4, "0123");
+  await verifyTnChildcareRelease(result.manifest_path);
+  for (const mutate of [m => { m.accepted_record_quality.without_source_zip = 0; }, m => { m.accepted_record_quality.missing_zip_reasons["missing-source-zip"]--; }, m => { m.accepted_record_quality.zip_inferred = true; }, m => { m.transformation_version = "tn-childcare-normalization@1.0.0"; }, m => { m.connector_version = "1.0.1"; }, m => { m.connector_version = "2.0.0"; }]) {
+    const copy = structuredClone(manifest); mutate(copy); await writeFile(result.manifest_path, JSON.stringify(copy)); await assert.rejects(verifyTnChildcareRelease(result.manifest_path));
+  }
+});
+
+test("TN new verifier retains genuine legacy byte contract and can publish beside it", async (t) => {
+  const fixture = JSON.parse(await readFile(path.join(APP_ROOT, "runner/fixtures/tn-childcare-legacy-release.json"), "utf8"));
+  const root = await temporary(t), directory = path.join(root, "releases", fixture.release_id); await mkdir(directory, { recursive: true });
+  for (const [name, base64] of Object.entries(fixture.artifacts)) await writeFile(path.join(directory, name), Buffer.from(base64, "base64"));
+  const manifestPath = path.join(directory, "manifest.json"), prior = await readFile(manifestPath);
+  assert.equal(hash(prior), fixture.manifest_sha256); const legacy = JSON.parse(prior);
+  assert.equal(legacy.connector_version, "1.0.0"); assert.equal(Object.hasOwn(legacy, "accepted_record_quality"), false);
+  await verifyTnChildcareRelease(manifestPath);
+  await writeFile(path.join(root, "current.json"), JSON.stringify({ dataset_id: legacy.dataset_id, release_id: legacy.release_id, manifest: `releases/${legacy.release_id}/manifest.json`, manifest_sha256: fixture.manifest_sha256 }));
+  const current = await build(root); assert.notEqual(current.manifest_path, manifestPath); await verifyTnChildcareRelease(current.manifest_path);
+  assert.deepEqual(await readFile(manifestPath), prior); await verifyTnChildcareRelease(manifestPath);
+});
 test("TN release publishes five immutable artifacts and reproduces all evidence offline", async (t) => {
   const root = await temporary(t), fixture = createTnChildcareFixture(), result = await build(root, fixture), directory = path.dirname(result.manifest_path);
   assert.deepEqual(result.counts, { selected: 1, accepted: 1, quarantined: 0 });

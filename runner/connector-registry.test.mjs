@@ -21,10 +21,10 @@ const validPolicy = {
   redistribution: "Not authorized.",
 };
 
-test("TN connector manifest separates pinned offline recovery from the legacy acquisition contract", async () => {
+test("TN fresh acquisition uses gap-aware normalization while pinned offline recovery remains separate", async () => {
   const manifest = JSON.parse(await readFile(new URL("../config/connectors/tn-dhs-active-childcare-centers.json", import.meta.url), "utf8"));
-  assert.equal(manifest.version, "1.0.0");
-  assert.equal(manifest.output_schema_contract.transformation_version, "tn-childcare-normalization@1.0.0");
+  assert.equal(manifest.version, "1.1.0");
+  assert.equal(manifest.output_schema_contract.transformation_version, "tn-childcare-normalization@1.0.1");
   assert.equal(manifest.offline_recovery.transformation_version, "tn-childcare-normalization@1.0.1");
   assert.equal(manifest.offline_recovery.network_requests, 0);
   assert.equal(manifest.offline_recovery.implementation, "scripts/recover-tn-childcare.mjs");
