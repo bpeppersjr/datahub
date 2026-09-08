@@ -40,6 +40,8 @@ Observed category literals are `MOBL`, `Multi-Market`, `PANTRY`, `Pushcart`, `RE
 
 ## Next bounded prerequisite
 
+Follow-up: [the county use review](IN-MONROE-FOOD-USE-REVIEW-2026-09-08.md) found a published personal/noncommercial limitation and written-permission requirement for reuse. Acquisition activation now requires source-specific clarification, not merely an empty-license-field assessment. [Category research](IN-MONROE-FOOD-CATEGORIES-2026-09-08.md) also resolves the human meaning of Multi-Market without asserting a verified query-code mapping.
+
 Establish the publisher's category and status definitions, license/expiration semantics, roster completeness and identifier stability. Obtain the complete applicable use notice and record a source-specific internal-use decision: the inspected item/layer descriptions and license notices are empty, which neither grants unrestricted redistribution nor establishes a categorical prohibition. The official link chain supports provenance, not all downstream rights.
 
 Then build paired metadata/category-count preflight with exact selected fields, a policy profile and immutable receipts. Any eventual acquisition must be county-scoped, app-owned, paced and independently replayable. It must preserve missing ZIP/point/state evidence and cannot merge inspection events or declare all Indiana ZIPs covered. No app enrollment, download, refresh schedule, national pointer or existing source hold changed in this turn.
