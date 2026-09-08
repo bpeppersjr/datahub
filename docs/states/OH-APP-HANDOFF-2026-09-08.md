@@ -48,3 +48,20 @@ Managed receipt writes now reuse the tested fsynced, exclusive-temporary writer 
 The old supervisor was stopped only after the no-child audit. Both old receipt files remain preserved. No automatic replay or replacement collection was requested. Existing startup behavior keeps missing/unresolved child ownership `UNKNOWN` and blocks duplicates; reconciling this historical receipt is separate from repairing future writes. HTTP acceptance was genuine, but it did not prove that the child started or that any Ohio rows were downloaded by this operation.
 
 The repaired runtime passed all 937 repository tests, lint, builds and desktop smoke, plus the zero-vulnerability dependency audit. It was restarted successfully. Rollback reverts the writer integration and transition handling without changing the historical receipts; doing so restores the observed persistence weakness and is not recommended.
+
+## Audited incident recovery and new app handoff — 08:29 UTC
+
+The stale operation `7d93702e-1558-48c0-8676-c77cb40fe05e` was explicitly classified `FAILED` after two independent read-only inspections and a hash-pinned maintenance procedure. The old supervisor was absent, no app/industry/Ohio collection process remained during the exclusive recovery window, and no industry-run directory existed. The exact original queued and pending-running bytes differed only in status/start time; neither recorded a child PID. The audited runtime awaits the running-receipt commit before spawn. This supports a pre-launch persistence-failure classification, not a claim about the exact unrecorded OS error.
+
+Both originals are preserved under `data/managed-operations/7d93702e-1558-48c0-8676-c77cb40fe05e/recovery-prelaunch-20260908/`, alongside the candidate terminal receipt and `decision.json`. The original pending temporary file also remains in place. Original queued SHA-256 is `2e9f66b2206737cc9cf44244a9a320b81967ddeaa3d7ea4405b5499118d20816`; original pending SHA-256 is `03eb80a410c3dc2a31d623098f7ba780101ee0ec17b44484cc6f9150575e5cef`. The recovered terminal receipt SHA-256 is `d3c9359df204fb390afe4a29db531b0484e85d32b190ade7ed41cc13fe2959a1`. No files were deleted, no source data was changed, and recovery made no downloads. Restore only through another audited maintenance decision; blindly restoring the queued snapshot would reintroduce unresolved ownership.
+
+After restart, the app recognized the recovered operation as failed. The new dispatch check allowed only the two specifically inspected historical failures and rejected any other existing Ohio operation. No completed acquisition was found at the default Ohio source location or this failed operation's industry location. This is controlled redispatch following a concrete repair, not automatic retry or re-download for promotion.
+
+The managed collection API then accepted one Ohio childcare task with HTTP 202:
+
+- Operation: `bd35c825-a6d0-4922-8508-7954ce00f5d5`.
+- Acceptance observed: `2026-09-08T08:29:58.154Z`; persisted status then `QUEUED`.
+- Receipt: `data/managed-operations/bd35c825-a6d0-4922-8508-7954ce00f5d5/receipt.json`.
+- Acceptance-observation SHA-256: `a44a098fde28a7b1221b5a1bf1e225fbce022b77ce6bae51986efc05008246eb`.
+
+No agent is retained to poll or supervise ordinary acquisition progress. Acceptance does not prove launch, completion or record counts. Co*Tive owns execution, prerequisite checks and terminal receipts. No national promotion, schedule or public export was enabled. This maintenance turn changed runtime evidence and documentation, not application source; the preceding 937-test validation remains the latest full code check.
