@@ -10,10 +10,21 @@
     "construction": ["state-wa-contractors", "state-mn-contractor-registrations", "state-mn-residential-contractors"],
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
-    "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses"],
+    "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
     "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]
   },
   "sources": {
+    "state-ak-business-licenses": {
+      "script": "scripts/run-ak-business-app.mjs",
+      "scope": "state", "states": ["AK"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/ak-active-business-licenses-app.json", "config/connectors/ak-active-business-licenses.json", "config/source-policies/ak-active-business-licenses.json", "data/business-baselines/census-zbp/current.json"],
+      "coverage_notes": [
+        "Alaska DCCED active business licenses and NAICS associations across industries. License-backed candidates and provisional physical sites are not independently verified businesses or national completeness. Publisher jurisdiction is Alaska; reported addresses can be out of state.",
+        "Co*Tive executes fixed native downloads with serial requests, response limits, cooperative deadlines and source-specific validation. Source records remain internal/local-review-only; ZIP5 and ZIP4 stay separate and business entities have no polygons.",
+        "UUID app jobs retain start and terminal receipts linked to independently verified immutable releases. Failures or cancellation may leave publication evidence requiring inspection; enrollment enables no automatic retry, restart or recurring schedule.",
+        "Use standalone retained-manifest mode for promotion of already obtained data, without another download or historical pointer changes. Fresh managed output is job-scoped and does not automatically enter national reporting."
+      ]
+    },
     "state-de-business-licenses": {
       "script": "scripts/run-de-business-app.mjs",
       "scope": "state", "states": ["DE"], "state_filter_supported": false,

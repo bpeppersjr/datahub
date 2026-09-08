@@ -21,6 +21,7 @@ const PROFILE_IDS = Object.freeze({
   "state-tx-sales-tax": "texas-comptroller-active-sales-tax-permits",
   "state-dc-basic-licenses": "dc-dlcp-active-basic-business-licenses",
   "state-de-business-licenses": "delaware-division-of-revenue-current-business-licenses",
+  "state-ak-business-licenses": "alaska-dcced-active-business-licenses",
   "state-ma-childcare": "ma-licensed-center-based-childcare",
   "state-nj-childcare": "nj-licensed-childcare-centers",
   "state-tn-childcare": "tn-dhs-active-childcare-centers",

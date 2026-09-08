@@ -80,7 +80,8 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 50);
+  assert.equal(registry.connectorCount, 51);
+  assert.equal(registry.get("ak-active-business-licenses-app").version, "1.0.0");
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
   assert.equal(registry.policyProfileCount, 46);

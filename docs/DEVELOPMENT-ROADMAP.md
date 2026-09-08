@@ -457,6 +457,8 @@ Delaware app enrollment (September 8): a distinct app connector contract and str
 
 Alaska handoff follow-up (September 8): current-state inspection superseded stale audit gaps and found remaining noncooperative header/cooldown waits and untyped postcommit failures. These are repaired with abort races, monotonic deadline checks, redacted transport errors and `AK_PUBLICATION_INCOMPLETE` outcomes preserved through concurrent cancellation. Forty-seven focused tests passed, and the retained 94,884 license-backed candidates reverified with unchanged pointer/manifest hashes. App contract/receipt enrollment remains next; no source repull or industry dispatch occurred. See [current evidence](AK-ACTIVE-BUSINESS-LICENSES.md#transport-completion-and-publication-outcomes--september-8-2026).
 
+Alaska app ownership (September 8): the separate app connector now enrolls an Alaska-only local-business-license job with fixed native acquisition, a cooperative wrapper deadline and immutable start/terminal receipts. Retained standalone job `f67a2428-ced8-48e6-80a2-25226a058bca` succeeded and independently reverified 94,884 license-backed candidates without downloading again. Routine collection belongs to Co*Tive workers, not occupied Codex agents. No live refresh, schedule or national promotion was dispatched. See [app evidence and limitations](AK-BUSINESS-APP.md).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

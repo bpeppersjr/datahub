@@ -1,0 +1,78 @@
+{
+  "connector_id": "ak-active-business-licenses-app",
+  "version": "1.0.0",
+  "description": "Standalone Alaska active-license app jobs with explicit retained-release verification or fixed native acquisition. Historical source contract and manifests remain unchanged.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "outputRoot": {
+        "type": "string"
+      },
+      "retainedManifest": {
+        "type": "string",
+        "description": "Explicit immutable local Alaska release; verify without downloading or changing its pointer."
+      }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "ak-dcced-active-business-license-csv",
+    "ak-dcced-business-license-naics-csv",
+    "census-zbp-baseline-release",
+    "retained-ak-business-license-release"
+  ],
+  "output_artifact_types": [
+    "ak-business-app-start-json",
+    "ak-business-app-receipt-json",
+    "dataset-manifest-json"
+  ],
+  "allowed_hosts": [
+    "www.commerce.alaska.gov"
+  ],
+  "redirect_policy": "Reject redirects; fixed HTTPS BusinessLicenseDownload and NaicsDownload CSV endpoints. Retained verification performs no network calls.",
+  "provider_budget_key": "ak-dcced-business-license-downloads",
+  "resource_class": "bounded-state-source",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_response_bytes": 50000000,
+    "request_timeout_ms": 60000,
+    "maximum_attempts_per_response": 4,
+    "minimum_free_disk_bytes": 500000000,
+    "cooperative_execution_deadline_ms": 1800000,
+    "source_cancel_grace_ms": 60000,
+    "supervisor_cancel_grace_ms": 75000
+  },
+  "retry": "Four serial attempts per response; honor Retry-After without shortening, defer waits exceeding one day. Never retry a partially consumed CSV body. No automatic job restart.",
+  "checkpoint": "Exclusive UUID job with durable start and terminal receipts. Successful receipt binds verified immutable source manifest and counts. Failed or cancelled work retains diagnostics and any published release; inspect before retry.",
+  "idempotency": "Explicit retained mode borrows existing evidence without source writes. Omission selects fresh acquisition into this job's acquired directory; no global source pointer changes.",
+  "cancellation": "Cooperative 30-minute wrapper deadline before app receipt commit; source publication finishes its bounded noncancellable commit or reports AK_PUBLICATION_INCOMPLETE. Cancelled control outcomes may retain complete or partial publication. OS stalls and forced termination are not transactionally recovered.",
+  "source_policy": "config/source-policies/ak-active-business-licenses.json",
+  "retention_profile": "Preserve internal selected evidence, local-review-only normalized data and durable app job receipts. No automatic source deletion or record-level public export.",
+  "produced_entities": [
+    "organization-candidate",
+    "provisional-physical-site",
+    "provisional-establishment",
+    "source-active-license-status-assertion",
+    "reported-physical-address-assertion",
+    "source-naics-classification"
+  ],
+  "produced_identifiers": [
+    "alaska-business-license-number",
+    "naics-code",
+    "zip5",
+    "zip4",
+    "zcta5"
+  ]
+}

@@ -30,6 +30,16 @@ test('state ledger has exactly one workstream per state and DC separately withou
   await assert.rejects(readdir(path.join(f.root, 'data/state-access/reports')), /ENOENT/);
 });
 
+test('Alaska enrollment identifies app execution without claiming a new dispatch', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const cell = ledger.jurisdictions.find(r => r.state === 'AK').industries.find(r => r.industry === 'local-business-licenses');
+  const source = cell.appHandoff.configuredSources.find(r => r.sourceId === 'state-ak-business-licenses');
+  assert.ok(source);
+  assert.equal(source.acquisitionExecutor, 'cotive-app');
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+  assert.equal(cell.appHandoff.recurringSchedulerImplemented, null);
+});
+
 test('state ledger distinguishes observed national state records from direct state access', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
   const alabama = ledger.jurisdictions.find(r => r.state === 'AL');
