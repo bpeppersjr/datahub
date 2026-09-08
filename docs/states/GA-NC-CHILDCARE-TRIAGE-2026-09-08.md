@@ -12,8 +12,14 @@ Indexed [legal notice](https://families.decal.ga.gov/legal-notice) material date
 
 Before a row connector is enrolled, establish the actual current download URL/method/format, schema, count and update semantics through ordinary authorized access, and review the applicable complete publisher notice. A historical dictionary and indexed interface labels alone are insufficient to build the dependent acquisition process.
 
-## North Carolina: investigation incomplete, no source decision
+## North Carolina: current delivery gap verified in follow-up
 
-The bounded state task issued initial official-domain searches for NCDHHS childcare downloads and NC OneMap facilities. It returned no usable verified endpoint evidence before the investigation was stopped. Consequently this attempt establishes no bulk/API URL, field schema, count, update cadence, terms or precise provider scope. It is not evidence that an official dataset is unavailable, and it creates no policy hold or access-denial claim.
+The initial agent attempt yielded no usable endpoint evidence. A subsequent direct official-page review established the following; this supersedes the earlier investigation-only status, not the state’s overall coverage assessment.
 
-Next is a fresh bounded official metadata investigation, not facility extraction. Verify publisher ownership and the intended machine-readable delivery route before building a dependent row connector. Do not reuse guessed service names or interpret search-result absence as zero business coverage.
+The [DCDEE data page](https://ncchildcare.ncdhhs.gov/Home/Data/Dashboards/Data-Behind-the-Dashboard) currently says its download dashboard is under maintenance and directs requests for 2022–present data to its data-request portal. Published dashboard dimensions include county-level sites, enrollment, staff and funding; these aggregates are not a verified current facility roster. The regulator describes source information as updated through site visits at least annually, so source facts can lag current operations. No request was submitted.
+
+The [official facility search](https://ncchildcare.ncdhhs.gov/childcaresearch) exposes name, city, county, ZIP, facility-type and permit controls. No supported bulk route, current row schema or update receipt was established from that page. Search visibility alone does not supply a versioned acquisition contract.
+
+The [NCDOT ATLAS metadata](https://xfer.services.ncdot.gov/gisdot/Metadata/Atlas/NC%20Child%20Care%20Facilities.pdf) describes a June 2018 extract, published as an August 2019 dataset, with 6,029 records. Its documented annual maintenance intention does not prove a current refresh. Geocoding scores are match estimates, not proof of an operating business or current address. The metadata requires primary-source checks and warns against treating the layer as a substitute for field verification. This historical layer must not be labeled current statewide childcare coverage.
+
+Next: establish a current intended facility-level delivery contract and its complete usage notice, with center/home and permit scopes explicit. A new request submission or external coordination is separate from this read-only discovery step. No row download, public redistribution decision or app enrollment was made.

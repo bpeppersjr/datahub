@@ -475,6 +475,8 @@ Parallel childcare source triage (September 8): [Georgia/North Carolina findings
 
 Pennsylvania local reporting (September 8): a [verified retained-cohort projection](PA-CHILDCARE-REPORTING.md) now provides state, reported-county and ZIP summaries, source-cohort percentages and quality gaps. State-access reports separately expose the fixed native app receipt as local facility evidence. Missing local data is unavailable rather than zero; other states are outside this publisher's scope. No source download, national pointer migration or scheduler change is part of this reporting step.
 
+Additional childcare source validation (September 8): the [NC follow-up](states/GA-NC-CHILDCARE-TRIAGE-2026-09-08.md) found a current dashboard maintenance/data-request notice and established the old NCDOT extract's June 2018 vintage. [SC triage](states/SC-CHILDCARE-TRIAGE-2026-09-08.md) verified the regulator and locator but not bulk delivery. [MD metadata validation](states/MD-CHILDCARE-TRIAGE-2026-09-08.md) verified the public state GIS organization/item and layer schema, while leaving the complete linked usage-policy context and center predicate unresolved. No dataset was mislabeled current, no rows downloaded and no dependent connector enrolled.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
