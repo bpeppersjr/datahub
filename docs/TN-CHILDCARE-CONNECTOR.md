@@ -1,5 +1,15 @@
 # Tennessee childcare connector development
 
+## Fresh resolution compatibility
+
+Entity resolution now explicitly accepts registry 2.14.0 with fresh geographic schema 1.1.0. Registry 2.13.0 continues to require recovered schema 1.0.0; cross-version rows and unsupported future registry versions fail. Both inputs preserve the same dependency/hash, partition, missing-ZIP-reason, unique reporting identity and matching/reporting disjointness checks. Neither reporting site IDs nor reporting establishment IDs may be used as matching endpoints. Recovery metadata, invented postal fields and private-field injections remain rejected after artifact hashes are recomputed.
+
+Offline integration tests build an ordinary source release, registry 2.14.0, resolution, and benchmark sample using mixed and entirely unavailable ZIP fixtures. All matching-profile artifact hashes equal the no-Tennessee baseline; resolution assesses the two baseline matching profiles, not the twenty additional Tennessee reporting records. Registry, resolution and benchmark independently verify. The benchmark remains `awaiting-independent-labels`; this is pipeline compatibility, not independently validated identity accuracy or full business coverage.
+
+Coverage, map, export and fresh production CLI/planner enrollment remain to be migrated before a fresh national chain can be enabled. No download, schedule, production rebuild or historical release rewrite is performed. This local-only Sites change leaves the management interface unchanged. Rollback removes 2.14.0 resolution compatibility while retaining source and generated immutable evidence.
+
+Verification: final full `npm run check` exited zero with all 860 tests passing, zero failures/skips, source discovery/assessment and connector checks, lint, web/desktop builds and desktop smoke. TypeScript passed separately and dependency audit found zero vulnerabilities. The initial check passed 859 tests and encountered only the active-preview lifecycle conflict; the complete rerun was exclusive. Independent review found no actionable defect. Production registry and coverage pointers and manifest hashes were rechecked unchanged; preview was restored.
+
 ## Fresh registry enrollment preparation
 
 The registry builder now accepts `tnFreshChildcareManifest` as a separate internal option and emits publisher 2.14.0. It independently verifies the immutable fresh connector 1.1.0 release before projecting its records. Supplying both this option and recovered `tnChildcareManifest` fails before source loading or output creation. The existing recovered option still emits 2.13.0; no-Tennessee builds remain 2.12.0.

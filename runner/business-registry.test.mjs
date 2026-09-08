@@ -43,7 +43,8 @@ import {
   verifyNationalBusinessRegistry,
 } from "./business-registry.mjs";
 import { normalizeNppesOrganization, normalizeNppesOtherName, normalizeNppesPracticeLocation } from "./cms-nppes-organizations.mjs";
-import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
+import { createLocationMatchProfile, buildBusinessEntityResolution, verifyBusinessEntityResolution } from "./business-entity-resolution.mjs";
+import { buildEntityResolutionBenchmarkSample, verifyEntityResolutionBenchmarkSample } from "./entity-resolution-benchmark.mjs";
 import { normalizeFdicInstitution, normalizeFdicLocation } from "./fdic-bankfind.mjs";
 import { normalizeFsisEstablishment } from "./fsis-mpi.mjs";
 import { normalizeEchoFacility } from "./epa-echo.mjs";
@@ -133,6 +134,13 @@ for (const fresh of [false, true]) for (const allMissing of [false, true]) test(
     const baseline = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(outputRoot, "baseline"), logger: () => {} });
     const profiles = manifest => manifest.artifacts.filter(a => a.artifact_type === "entity-resolution-location-profile-jsonl-gzip").map(a => ({ path: a.path, sha256: a.sha256, records: a.record_count }));
     assert.deepEqual(profiles(m), profiles(baseline.manifest));
+    const resolution = await buildBusinessEntityResolution({ registryPointer: result.pointerPath, outputRoot: path.join(outputRoot, "resolution"), logger() {} });
+    assert.equal(resolution.manifest.coverage.profiles, 2);
+    assert.equal(resolution.manifest.dependency.manifest_sha256, sha256(await readFile(manifestPath)));
+    await verifyBusinessEntityResolution(path.join(resolution.releaseDirectory, "manifest.json"));
+    const benchmark = await buildEntityResolutionBenchmarkSample({ registryPointer: result.pointerPath, resolutionPointer: resolution.pointerPath, outputRoot: path.join(outputRoot, "benchmark"), logger() {} });
+    assert.equal(benchmark.manifest.status, "awaiting-independent-labels");
+    await verifyEntityResolutionBenchmarkSample(path.join(benchmark.releaseDirectory, "manifest.json"));
   }
   assert.equal(m.coverage.resolution_location_profiles, 2); assert.equal(m.coverage.reporting_location_evidence, 20);
   assert.equal(m.coverage.tn_childcare_center_sites_without_zip, missing);

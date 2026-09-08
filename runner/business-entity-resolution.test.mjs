@@ -17,6 +17,9 @@ import {
 } from "./business-entity-resolution.mjs";
 
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
+import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
+import { buildTnChildcareRelease } from "./tn-childcare-release.mjs";
+import { loadFreshTnChildcareReportingInput } from "./tn-childcare-fresh-reporting-input.mjs";
 
 
 function profile({
@@ -124,20 +127,25 @@ async function writeFixtureRegistry(root, profiles, { reporting = false } = {}) 
   return pointerPath;
 }
 
-test("registry 2.13 TN reporting conserves missing ZIP reasons and excludes both matching endpoints", async t => {
+for (const fresh of [false, true]) test(`registry ${fresh ? "2.14 fresh" : "2.13 recovered"} TN reporting conserves missing ZIP reasons and excludes both matching endpoints`, async t => {
   await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
   const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/resolution-tn-")); t.after(() => rm(root, { recursive: true, force: true }));
   const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), [profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" })]);
   const pointer = JSON.parse(await readFile(registryPointer)), manifestPath = path.join(path.dirname(registryPointer), pointer.manifest), directory = path.dirname(manifestPath), manifest = JSON.parse(await readFile(manifestPath));
-  const rows = ["37201-0123", null, "0"].map((zip, index) => {
+  let rows = ["37201-0123", null, "0"].map((zip, index) => {
     return createTnChildcareReportingFixture({ zip, attributes: { OBJECTID: index + 1 } }).row;
   });
+  if (fresh) {
+    const transport = createTnChildcareFixture({ count: 3, mutate: (p, kind) => { if (kind === "features") p.features.forEach((row, i) => { row.attributes.Zip = ["37201-0123", null, "0"][i]; }); } });
+    const release = await buildTnChildcareRelease({ outputRoot: path.join(root, "source"), fetchImpl: transport.fetchImpl, sleep: async () => {} });
+    rows = (await loadFreshTnChildcareReportingInput(release.manifest_path)).reportingRows;
+  }
   for (const zip2 of ["37", "unassigned"]) {
     const records = rows.filter(r => (r.zip_code?.slice(0, 2) ?? "unassigned") === zip2), bytes = gzipSync(records.map(r => JSON.stringify(r)).join("\n") + "\n"), relative = `reporting/location-evidence/zip2=${zip2}/records.jsonl.gz`;
     await mkdir(path.dirname(path.join(directory, relative)), { recursive: true }); await writeFile(path.join(directory, relative), bytes);
     manifest.artifacts.push({ path: relative, bytes: bytes.length, sha256: sha256(bytes), record_count: records.length, artifact_type: "business-reporting-location-evidence-jsonl-gzip", export_policy: "local-review-only" });
   }
-  manifest.publisher.version = "2.13.0";
+  manifest.publisher.version = fresh ? "2.14.0" : "2.13.0";
   Object.assign(manifest.coverage, { physical_sites: 4, reporting_location_evidence: 3, ma_childcare_center_sites: 0, nj_childcare_center_sites: 0, tn_childcare_center_sites: 3, tn_childcare_center_sites_with_zip: 1, tn_childcare_center_sites_without_zip: 2, reporting_location_evidence_without_zip: 2, tn_childcare_missing_zip_reasons: { "missing-source-zip": 1, "invalid-source-zip-placeholder": 1 } });
   manifest.dependencies = [{ dataset_id: rows[0].source.source_id, release_id: rows[0].evidence.release_id, manifest_sha256: rows[0].evidence.manifest_sha256 }];
   await writeFile(manifestPath, JSON.stringify(manifest));
@@ -145,7 +153,7 @@ test("registry 2.13 TN reporting conserves missing ZIP reasons and excludes both
   const result = await buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} });
   assert.equal(result.manifest.coverage.profiles, 1); assert.equal(result.manifest.dependency.manifest_sha256, sha256(await readFile(manifestPath)));
   await verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json"));
-  for (const mutate of [m => { m.publisher.version = "2.12.0"; }, m => { m.publisher.version = "2.14.0"; }, m => { m.dependencies = []; }, m => { m.coverage.tn_childcare_center_sites++; }, m => { m.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, m => { m.coverage.reporting_location_evidence_without_zip--; }, m => { m.dependencies[0].manifest_sha256 = "e".repeat(64); }]) {
+  for (const mutate of [m => { m.publisher.version = "2.12.0"; }, m => { m.publisher.version = fresh ? "2.13.0" : "2.14.0"; }, m => { m.publisher.version = "2.15.0"; }, m => { m.dependencies = []; }, m => { m.coverage.tn_childcare_center_sites++; }, m => { m.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }, m => { m.coverage.reporting_location_evidence_without_zip--; }, m => { m.dependencies[0].manifest_sha256 = "e".repeat(64); }]) {
     const candidate = structuredClone(manifest); mutate(candidate); await writeFile(manifestPath, JSON.stringify(candidate));
     await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "bad"), logger() {} }));
   }
@@ -158,7 +166,7 @@ test("registry 2.13 TN reporting conserves missing ZIP reasons and excludes both
   }
   await writeFile(file, original);
   const geographic = manifest.artifacts.find(a => a.path.includes("zip2=unassigned/")), geographicFile = path.join(directory, geographic.path), clean = await readFile(geographicFile);
-  for (const mutate of [r => { r.zip_code = "00000"; }, r => { r.source.source_id = "nj-licensed-childcare-centers"; }, r => { r.evidence.recovery.network_requests = 1; }, r => { r.identity_matching_eligible = true; }, r => { r.evidence.processed_at = r.observed_at = "2026-09-10T00:00:00.000Z"; }, r => { r.address.owner = "Synthetic private field"; }]) {
+  for (const mutate of [r => { r.zip_code = "00000"; }, r => { r.source.source_id = "nj-licensed-childcare-centers"; }, r => { r.evidence.recovery = { ...r.evidence.recovery, network_requests: 1 }; }, r => { r.identity_matching_eligible = true; }, r => { r.evidence.processed_at = r.observed_at = "2026-09-10T00:00:00.000Z"; }, r => { r.address.owner = "Synthetic private field"; }]) {
     const records = gunzipSync(clean).toString().trim().split("\n").map(JSON.parse); mutate(records[0]);
     const bytes = gzipSync(records.map(r => JSON.stringify(r)).join("\n") + "\n"), candidate = structuredClone(manifest), entry = candidate.artifacts.find(a => a.path === geographic.path);
     entry.bytes = bytes.length; entry.sha256 = sha256(bytes); await writeFile(geographicFile, bytes); await writeFile(manifestPath, JSON.stringify(candidate));
@@ -269,7 +277,7 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("declares registry publisher compatibility through 2.13.0 without dropping prior versions", async () => {
+test("declares registry publisher compatibility through 2.14.0 without dropping prior versions", async () => {
   const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
   assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
@@ -280,6 +288,7 @@ test("declares registry publisher compatibility through 2.13.0 without dropping 
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.11.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.12.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.13.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.14.0"));
 });
 
 test("reporting-only rows cannot be relabeled as eligible match profiles", () => {
