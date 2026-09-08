@@ -141,6 +141,9 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .scope-card strong { color: var(--cyan); font-size: 12px; }
 .scope-card small { color: #87929c; font-size: 9px; line-height: 1.4; }
 .business-name-drill { margin-top: 17px; padding-top: 16px; border-top: 1px solid var(--border); }
+.business-name-scope { display: grid; gap: 6px; margin-top: 12px; color: #dce3e9; font-size: .875rem; }
+.business-name-scope select { width: 100%; min-width: 0; min-height: 40px; padding: 8px; border: 1px solid #2d3741; border-radius: 7px; background: #0a1015; color: #dce3e9; font-size: .875rem; }
+.business-name-scope select:focus-visible { outline: 2px solid var(--cyan, #52d8da); outline-offset: 2px; }
 .name-drill-limitation { display: block; margin-top: 8px; color: #7d8993; font-size: 8px; line-height: 1.5; }
 .name-drill-heading { display: grid; gap: 10px; }
 .name-drill-heading > div span, .name-drill-heading > div strong { display: block; }

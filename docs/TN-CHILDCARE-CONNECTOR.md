@@ -1,5 +1,13 @@
 # Tennessee childcare connector development
 
+## ZIP-unavailable map control
+
+The right-hand Heatmap Builder name panel now offers **Address scope → ZIP unavailable in this state**, separate from selected-ZIP browsing. State/category/ZIP changes reset the control; query changes clear prior names immediately, and obsolete responses cannot replace current results. The UI preserves address line 2, labels null ZIPs, keeps ZIP4 separate, discloses local-review policy and uses published percentage-assignment semantics. See [the operator workflow](BUSINESS-HEAT-MAPS.md#browsing-records-without-a-source-zip). This UI capability is not Tennessee production-completion evidence.
+
+Verification covered all 793 repository test cases: the full invocation had 792 passes and the known open-preview lifecycle conflict; the unchanged exclusive lifecycle tests and six new component tests subsequently passed together, followed by desktop smoke. Lint, web/desktop builds, TypeScript and the zero-vulnerability production audit passed. Evidence is retained in `data/tmp/zip-unavailable-ui-full-check.log`, `zip-unavailable-ui-build-check-2.log` and `zip-unavailable-ui-lifecycle-check.log`. This is combined evidence, not a clean single-command result or browser visual QA. The preview was gracefully paused only after builds for exclusive tests, then restored; the separate reconciliation controller was not targeted and all 40 processing code pins matched. Independent read-only review found no blocking UI defect; its debounce-result observation was fixed and tested.
+
+Lint now excludes runtime `data/**` artifacts, which standalone jobs or tests may create/remove concurrently. Authored runner/component tests remain linted; no source/security exclusion was added. An initial parallel lint traversal failure remains recorded in the first build log. Rollback is to revert this UI/configuration change without modifying processing pins, source releases or receipts.
+
 ## Standalone retained-data production enrollment
 
 Handoff confirmed at `2026-09-08T03:39:27.109Z`: app run `production-tn-childcare-20260908-01` has a durable `RUNNING` receipt, controller PID 7416 and registry child PID 34300. Both process identities and parentage were checked after dispatch; the child command includes all three explicit childcare inputs. Seven downstream stages were pending. This is startup evidence, not terminal verification or promotion. The hidden standalone process has no Codex IPC dependency; keep Windows running. Agents are released from routine progress polling.

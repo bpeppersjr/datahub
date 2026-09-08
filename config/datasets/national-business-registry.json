@@ -41,7 +41,7 @@
     "identity_matching_eligible": false,
     "production_cli_enrolled": true,
     "national_reporting_promoted": false,
-    "remaining_gates": ["frontend control for state-level ZIP-unavailable name browsing", "verified production run and explicit source reassessment"]
+    "remaining_gates": ["verified production run and explicit source reassessment"]
   },
   "implemented_source_layers": [
     {

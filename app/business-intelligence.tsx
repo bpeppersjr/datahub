@@ -64,13 +64,14 @@ type MapResponse = {
 };
 type NameResponse = {
   available: boolean;
-  zip_code: string;
+  zip_code: string | null;
+  scope?: 'source-zip-unavailable';
   total: number;
   limitation?: string;
   local_review_only?: boolean;
   records: Array<{
     business_name: string;
-    address: { street: string | null; city: string | null; state: string | null; zip_code: string; zip4: string | null };
+    address: { street: string | null; street2?: string | null; city: string | null; state: string | null; zip_code: string | null; zip4: string | null };
     geocode: { latitude: number; longitude: number } | null;
     category_id: string;
     source_id: string;
@@ -313,36 +314,46 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
   );
 }
 
-function BusinessNames({ selectedZip, categoryId, canDrill }: { selectedZip: string; categoryId: string; canDrill: boolean }) {
+function BusinessNames({ selectedZip, stateFips, stateName, categoryId, canDrill }: { selectedZip: string; stateFips: string; stateName: string; categoryId: string; canDrill: boolean }) {
+  const [scope, setScope] = useState<'zip' | 'missing'>('zip');
   const [query, setQuery] = useState('');
   const [data, setData] = useState<NameResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const missingZip = scope === 'missing';
+  const canQuery = canDrill && Boolean(missingZip ? stateFips : selectedZip);
 
   useEffect(() => {
-    if (!selectedZip || !canDrill) return;
+    let active = true;
+    if (!canQuery) return;
     const timer = window.setTimeout(() => {
       setData(null);
       setError('');
       setLoading(true);
-      const parameters = new URLSearchParams({ zip: selectedZip, category: categoryId, query, limit: '25' });
-      void request<NameResponse>(`/api/business-map/names?${parameters}`).then(setData).catch((reason) => setError(reason instanceof Error ? reason.message : 'Unable to load names.')).finally(() => setLoading(false));
+      const parameters = new URLSearchParams({ ...(missingZip ? { state: stateFips } : { zip: selectedZip }), category: categoryId, query, limit: '25' });
+      void request<NameResponse>(`/api/business-map/${missingZip ? 'state-names' : 'names'}?${parameters}`).then(result => { if (active) setData(result); }).catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load names.'); }).finally(() => { if (active) setLoading(false); });
     }, query ? 220 : 0);
-    return () => window.clearTimeout(timer);
-  }, [canDrill, categoryId, query, selectedZip]);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [canQuery, categoryId, query, selectedZip, stateFips, missingZip]);
+
+  function changeScope(value: 'zip' | 'missing') { setScope(value); setData(null); setError(''); setLoading(false); setQuery(''); }
+  function changeQuery(value: string) { setQuery(value); setData(null); setError(''); setLoading(true); }
 
   return (
     <section className="business-name-drill">
-      <div className="name-drill-heading"><div><span>Business-name drill-down</span><strong>{selectedZip ? `ZIP ${selectedZip}` : 'Select a ZIP polygon'}</strong></div>{selectedZip && canDrill && <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter names" />}</div>
-      {!selectedZip && <p>Click a state, then county, then a five-digit ZCTA to inspect governed physical-location names.</p>}
-      {selectedZip && !canDrill && <p>This category contains organization-address assertions, not physical-location profiles, so names are not exposed by this map index.</p>}
-      {loading && <p>Scanning the matching ZIP partition…</p>}
-      {error && <p className="map-error">{error}</p>}
+      <div className="name-drill-heading"><div><span>Business-name drill-down</span><strong>{missingZip ? `${stateName || stateFips} · ZIP unavailable` : selectedZip ? `ZIP ${selectedZip}` : 'Select a ZIP polygon'}</strong></div>{canQuery && <input aria-label="Filter business names" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Filter names" />}</div>
+      {stateFips && canDrill && <label className="business-name-scope">Address scope <select aria-label="Business name address scope" value={scope} onChange={event => changeScope(event.target.value === 'missing' ? 'missing' : 'zip')}><option value="zip">Selected ZIP</option><option value="missing">ZIP unavailable in this state</option></select></label>}
+      {!selectedZip && !missingZip && <p>Click a state, then county, then a five-digit ZCTA to inspect governed physical-location names, or choose ZIP-unavailable records for the selected state.</p>}
+      {!canDrill && <p>This category contains organization-address assertions, not physical-location profiles, so names are not exposed by this map index.</p>}
+      {missingZip && <p>Source records without a usable ZIP, across the selected state—not just the selected county. ZIPs are not inferred from coordinates.</p>}
+      {loading && <p role="status">{missingZip ? 'Loading records without a source ZIP…' : 'Scanning the matching ZIP partition…'}</p>}
+      {error && <p className="map-error" role="alert">{error}</p>}
       {data?.local_review_only && <small className="local-review-label">Local review only — record-level redistribution policies still apply.</small>}
       {data?.limitation && <small className="name-drill-limitation">{data.limitation}</small>}
-      {data && !loading && canDrill && <div className="business-name-list">
+      {data && !loading && !data.available && <p>No compatible published evidence is available for this address scope.</p>}
+      {data?.available && !loading && canDrill && <div className="business-name-list">
         {!data.records.length && <p>No matching physical-location names in this category.</p>}
-        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'} · {record.address.city}, {record.address.state} {record.address.zip_code}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
+        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'}{record.address.street2 ? ` · ${record.address.street2}` : ''} · {record.address.city}, {record.address.state} {record.address.zip_code ?? 'ZIP unavailable'}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
         {data.total > data.records.length && <small>Showing {data.records.length} of {count(data.total)} distinct names.</small>}
       </div>}
     </section>
@@ -372,7 +383,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
       {stateSummary?.available && <section className="state-alignment-card">
         <div><span>National category share</span><strong>{category?.label ?? 'All source categories'}</strong></div>
         <dl><div><dt>State-assigned category evidence</dt><dd>{count(nationalCategoryCount)}</dd></div><div><dt>State-assigned all-category evidence</dt><dd>{count(stateSummary.national_all_category_evidence_count)}</dd></div><div><dt>Share of state-assigned national evidence</dt><dd>{percent(nationalCategoryShare)}</dd></div></dl>
-        <p className="entity-method-note">{stateSummary.national_percentage_basis?.geography_scope ?? '50 states and District of Columbia'}. Category count ÷ all-category count, using ZIP evidence assigned to exactly one state. Excludes {count(Number(stateSummary.assignment.excluded_ambiguous_business_evidence))} ambiguous and {count(Number(stateSummary.assignment.excluded_unmatched_business_evidence))} unmatched evidence records. Categories group source evidence and may overlap. The percentage of all U.S. businesses collected is unknown.</p>
+        <p className="entity-method-note">{stateSummary.national_percentage_basis?.geography_scope ?? '50 states and District of Columbia'}. Category count ÷ all-category count. {stateSummary.assignment.semantics} Excludes {count(Number(stateSummary.assignment.excluded_ambiguous_business_evidence))} ambiguous and {count(Number(stateSummary.assignment.excluded_unmatched_business_evidence))} unmatched evidence records. Categories group source evidence and may overlap. The percentage of all U.S. businesses collected is unknown.</p>
       </section>}
       <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or ZIP details appear here after selection.'}</small></div>
       {properties ? <>
@@ -395,7 +406,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
         <div><span>State alignment</span><strong>{state.postal_abbreviation} · {state.state_name}</strong></div>
         <dl><div><dt>Category evidence</dt><dd>{count(stateEvidence)}</dd></div><div><dt>Within state</dt><dd>{percent(withinState)}</dd></div><div><dt>Across displayed states</dt><dd>{percent(acrossNation)}</dd></div><div><dt>Assigned ZCTAs</dt><dd>{count(state.uniquely_assigned_zcta_count)}</dd></div></dl>
       </section>}
-      <BusinessNames key={`${selectedZip}:${categoryId}`} selectedZip={selectedZip} categoryId={categoryId} canDrill={category?.business_name_drilldown ?? true} />
+      <BusinessNames key={`${selectedStateFips}:${selectedZip}:${categoryId}`} selectedZip={selectedZip} stateFips={selectedStateFips} stateName={state?.state_name ?? ''} categoryId={categoryId} canDrill={category?.business_name_drilldown ?? true} />
     </aside>
   );
 }

@@ -6,7 +6,15 @@ Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over
 
 For exact coverage 2.9/registry 2.13 inputs, the backend adds Tennessee childcare to the category hierarchy. ZIP maps continue to count only source-ZIP evidence; state/national totals additionally include the disjoint ZIP-unavailable cohort by reported state. County totals add only its source points assigned to that county. Assignment labels disclose this distinction; percentages remain shares of collected evidence, not independently measured business completeness.
 
-The protected read-only endpoint `/api/business-map/state-names?state=47&category=childcare&limit=25` browses source-ZIP-unavailable names by state FIPS. It accepts an optional `query`, clamps `limit` to 1–100, and returns `scope: source-zip-unavailable`, a total, and bounded records with null ZIP, source status/recovery evidence and local-review policy. It is not a list of every business in the state. Existing ZIP name browsing remains separate. The endpoint is backend capability; this change does not add a new frontend control for it or promote Tennessee production data.
+The protected read-only endpoint `/api/business-map/state-names?state=47&category=childcare&limit=25` browses source-ZIP-unavailable names by state FIPS. It accepts an optional `query`, clamps `limit` to 1–100, and returns `scope: source-zip-unavailable`, a total, and bounded records with null ZIP, source status/recovery evidence and local-review policy. It is not a list of every business in the state. Existing ZIP name browsing remains separate. Adding the UI control does not promote Tennessee production data.
+
+## Browsing records without a source ZIP
+
+Select a state and an eligible business category. In the right-hand business-name panel, change **Address scope** to **ZIP unavailable in this state**. Results span that state, even while viewing one of its counties or ZCTAs; they are not county-filtered or assigned invented ZIPs. **Selected ZIP** restores the original ZIP-specific search. Changing the state, selected ZIP or category resets the scope and name filter. Organization-address-only categories do not expose name browsing.
+
+The name filter requests up to 25 records with a short debounce. Earlier responses cannot replace a newer scope/search, and old names are cleared immediately when the filter changes. Address line 2 is retained; unavailable ZIP is labeled explicitly and reported ZIP4 remains separate. Local-review restrictions and the source limitation are visible. A compatible publication with zero matches differs from unavailable evidence or a request error. State/national percentage explanations use the published assignment semantics, including ZIP-unavailable additions when supported; the percentage of all U.S. businesses collected remains unknown.
+
+Six non-browser component-handler tests cover scope requests, nullable postal display, ZIP4 separation, filtering, stale/unmounted responses, unsupported scopes, empty/unavailable/error states and right-panel state/key/percentage wiring. These are programmatic component checks, not browser interaction or visual QA.
 
 ## Operator workflow
 
