@@ -20,4 +20,10 @@ The CLI can run under a local operating-system process independently of Codex. K
 
 ## Verification
 
+### Tennessee retained-source enrollment
+
+`plan` accepts `--tn-childcare <immutable recovered manifest>` alongside optional MA/NJ manifests; `run` uses only its confirmed plan and rejects source-selection flags. The registry CLI forwards the same flag to `tnChildcareManifest`. Exactly one verified recovered release may be selected. Tennessee-enabled plans pin all 32 statically imported stage modules, eight scripts, selected source configurations and all retained source artifacts. The ordinary Tennessee acquisition release is not eligible. Historical non-Tennessee plan/recovery rosters remain unchanged, and changed optional source inputs cannot enter historical recovery.
+
+See [the Tennessee handoff record](TN-CHILDCARE-CONNECTOR.md#standalone-retained-data-production-enrollment) for actual plan and execution evidence. No source acquisition is part of this chain. A future coverage publication requires a separate exact-source reassessment before it becomes reviewed state-readiness evidence.
+
 The increment passed 440 repository tests, lint, web/desktop builds, desktop control-plane smoke, TypeScript, and a production dependency audit with zero vulnerabilities. Seventeen new offline tests cover plan scope, wrong/extra/inherited dependencies, old-pointer false success, source/implementation/output drift, verifier failure, duplicate runs, shared-lock exclusion, candidate-manifest redirection, junctions, and durable stage-boundary stop. A separate focused rerun passed after atomically publishing stop requests. The [September 7 launch record](PRODUCTION-RECONCILIATION-2026-09-07.md) documents actual hidden-process startup; full live-chain completion remains pending.

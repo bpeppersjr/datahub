@@ -9,6 +9,7 @@ import { APP_ROOT } from './paths.mjs';
 import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
 import { verifyMaChildcareRelease } from './ma-childcare-release.mjs';
 import { verifyNjChildcareRelease } from './nj-childcare-release.mjs';
+import { verifyTnChildcareRecoveredRelease } from './tn-childcare-recovered-release.mjs';
 import { writeReconciliationReceipt as atomic } from './reconciliation-receipt.mjs';
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -19,9 +20,17 @@ const DATASETS = { registry:'national-business-registry', resolution:'national-b
 const INPUTS = { geography:'data/geography/current.json', crosswalk:'data/zcta-jurisdiction-crosswalk/current.json', nonemployer:'data/business-baselines/census-nonemployer/current.json', zbp:'data/business-baselines/census-zbp/current.json' };
 const STAGES = [ ['registry-build','build','scripts/build-business-registry.mjs'], ['registry-verify','verify','scripts/verify-business-registry.mjs'], ['resolution-build','build','scripts/build-business-entity-resolution.mjs'], ['resolution-verify','verify','scripts/verify-business-entity-resolution.mjs'], ['benchmark-build','build','scripts/build-entity-resolution-benchmark.mjs'], ['benchmark-verify','verify','scripts/verify-entity-resolution-benchmark.mjs'], ['coverage-build','build','scripts/build-national-business-coverage-views.mjs'], ['coverage-verify','verify','scripts/verify-national-business-coverage-views.mjs'] ];
 const MODULES = ['runner/business-registry.mjs','runner/business-entity-resolution.mjs','runner/entity-resolution-benchmark.mjs','runner/national-business-coverage-views.mjs'];
+// Stage static-import closure for the TN-enabled chain. Keep historical non-TN
+// rosters unchanged: recovery must compare the original pins, not migrate them.
+const TN_MODULES = [...new Set([...MODULES,
+  ...['census-geography','childcare-geographic-evidence','normalized-us-postal-code','normalized-us-postal-cutover','normalized-us-postal-migration','paths','source-http-guards'].map(name=>`runner/${name}.mjs`),
+  ...['ma','nj'].flatMap(prefix=>['acquisition','normalization','preflight','registry-adapter','registry-input','release',...(prefix==='nj'?['metadata']:[])].map(suffix=>`runner/${prefix}-childcare-${suffix}.mjs`)),
+  ...['acquisition','geographic-evidence','normalization','preflight','recovered-release','recovery-inspection','registry-adapter','registry-input'].map(suffix=>`runner/tn-childcare-${suffix}.mjs`),
+])].sort();
 const CHILDCARE = {
   maChildcare: { flag:'--ma-childcare', dataset:'ma-licensed-center-based-childcare', prefix:'ma', policy:'massgis-eec-childcare-local-review', verify:verifyMaChildcareRelease },
   njChildcare: { flag:'--nj-childcare', dataset:'nj-licensed-childcare-centers', prefix:'nj', policy:'njdep-childcare-local-review', verify:verifyNjChildcareRelease },
+  tnChildcare: { flag:'--tn-childcare', dataset:'tn-dhs-active-childcare-centers', policy:'tn-childcare-local-review', verify:verifyTnChildcareRecoveredRelease },
 };
 const hash = value => createHash('sha256').update(value).digest('hex');
 const rel = (root, file) => path.relative(root, file).replaceAll('\\','/');
@@ -59,7 +68,7 @@ function stageDefinitions(sources,optionalSources=[]) {
   args[0].push(...optionalSources.flatMap(source=>[CHILDCARE[source.sourceKey]?.flag,source.manifestPath]));
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
   if(recoverBenchmarkFrom!==undefined&&recoverResolutionFrom!==undefined)throw new Error('Recovery modes are mutually exclusive.');
   root = await realpath(path.resolve(root)); if(!ID.test(runId)) throw new Error('Invalid production run ID.');
   const report = await readinessInspector({appRoot:root,useCandidatePointers:false});
@@ -77,13 +86,15 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   const inputPins = []; for(const [id,pointer] of Object.entries(INPUTS)) inputPins.push(await pin(root,id,pointer));
   const previousOutputs = {}; for(const [group,directory] of Object.entries(OUTPUTS)) { await safe(root,directory); const previous = await pin(root,group,`${directory}/current.json`); if(previous.datasetId !== DATASETS[group]) throw new Error('Existing production output dataset is invalid.'); previousOutputs[group]=previous; }
   const optionalSourcePins=[];
-  for(const [key,selected] of Object.entries({maChildcare,njChildcare}))if(selected!==undefined)optionalSourcePins.push(await pinChildcare(root,key,selected));
+  for(const [key,selected] of Object.entries({maChildcare,njChildcare,tnChildcare}))if(selected!==undefined)optionalSourcePins.push(await pinChildcare(root,key,selected));
   if(new Set(optionalSourcePins.map(p=>p.manifestPath)).size!==optionalSourcePins.length)throw new Error('Duplicate childcare release selection.');
   const stages = stageDefinitions(sourcePins,optionalSourcePins), scriptPins = []; for(const stage of stages) scriptPins.push({stage:stage.id,path:stage.script,...await fileHash(await safe(root,stage.script))});
-  const modules=[...MODULES];
-  if(optionalSourcePins.length)modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs','runner/source-http-guards.mjs','runner/paths.mjs');
-  else modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs');
-  for(const selected of optionalSourcePins){const prefix=CHILDCARE[selected.sourceKey].prefix;for(const suffix of ['registry-input','registry-adapter','release','normalization','preflight','acquisition',...(prefix==='nj'?['metadata']:[])])modules.push(`runner/${prefix}-childcare-${suffix}.mjs`);}
+  const modules=tnChildcare!==undefined?[...TN_MODULES]:[...MODULES];
+  if(tnChildcare===undefined){
+    if(optionalSourcePins.length)modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs','runner/source-http-guards.mjs','runner/paths.mjs');
+    else modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs');
+    for(const selected of optionalSourcePins){const prefix=CHILDCARE[selected.sourceKey].prefix;for(const suffix of ['registry-input','registry-adapter','release','normalization','preflight','acquisition',...(prefix==='nj'?['metadata']:[])])modules.push(`runner/${prefix}-childcare-${suffix}.mjs`);}
+  }
   const implementationPins = []; for(const file of modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
   const outputRoot = `data/reconciliations/production-runs/${runId}`; await safe(root,outputRoot,false);
   const plan = {schemaVersion:1,mode:'production',runId,createdAt:new Date().toISOString(),outputRoot,readinessPlanSha256:report.plan_sha256,definitionSha256:hash(definitionBytes),sourcePins,inputPins,previousOutputs,scriptPins,implementationPins,stages};
@@ -256,7 +267,7 @@ async function resolutionRecovery(root,current,fromRunId) {
 export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessInspector=inspectNormalizedUsPostalMigration,executor=execute,signal}={}) {
   root=await realpath(path.resolve(root));
   if(plan?.schemaVersion !== 1 || plan.mode !== 'production' || !ID.test(plan.runId??'') || hash(JSON.stringify(Object.fromEntries(Object.entries(plan).filter(([key])=>key!=='planSha256')))) !== plan.planSha256) throw new Error('Invalid production reconciliation plan.');
-  if(plan.optionalSourcePins!==undefined&&(!Array.isArray(plan.optionalSourcePins)||!plan.optionalSourcePins.length||plan.optionalSourcePins.length>2||plan.optionalSourcePins.some(p=>!p||!Object.hasOwn(CHILDCARE,p.sourceKey))||new Set(plan.optionalSourcePins.map(p=>p.sourceKey)).size!==plan.optionalSourcePins.length))throw new Error('Invalid optional childcare input cohort.');
+  if(plan.optionalSourcePins!==undefined&&(!Array.isArray(plan.optionalSourcePins)||!plan.optionalSourcePins.length||plan.optionalSourcePins.length>3||plan.optionalSourcePins.some(p=>!p||!Object.hasOwn(CHILDCARE,p.sourceKey))||new Set(plan.optionalSourcePins.map(p=>p.sourceKey)).size!==plan.optionalSourcePins.length))throw new Error('Invalid optional childcare input cohort.');
   const selected=Object.fromEntries((plan.optionalSourcePins??[]).map(p=>[p.sourceKey,p.manifestPath]));
   if(plan.recovery&&!['benchmark-status-classification','resolution-registry-compatibility'].includes(plan.recovery.kind))throw new Error('Unknown production recovery kind.');
   const recoveryOptions=plan.recovery?.kind==='resolution-registry-compatibility'?{recoverResolutionFrom:plan.recovery.fromRunId}:{recoverBenchmarkFrom:plan.recovery?.fromRunId};

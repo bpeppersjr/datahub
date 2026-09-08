@@ -9,6 +9,9 @@ import { APP_ROOT } from './paths.mjs';
 import { planProductionReconciliation, runProductionReconciliation, requestProductionReconciliationStop } from './production-reconciliation.mjs';
 import { buildMaChildcareRelease } from './ma-childcare-release.mjs';
 import { buildNjChildcareRelease } from './nj-childcare-release.mjs';
+import { acquireTnChildcare } from './tn-childcare-acquisition.mjs';
+import { createTnChildcareFixture } from './fixtures/tn-childcare-fetch.mjs';
+import { recoverTnChildcareRelease } from './tn-childcare-recovered-release.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const scripts = ['build-business-registry', 'verify-business-registry', 'build-business-entity-resolution', 'verify-business-entity-resolution', 'build-entity-resolution-benchmark', 'verify-entity-resolution-benchmark', 'build-national-business-coverage-views', 'verify-national-business-coverage-views'];
@@ -58,7 +61,7 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   let extra;
   if (key === 'registry') {
     extra = { dependencies: await Promise.all(f.definition.sources.map((s) => dependency(f.root, s.pointer))) };
-    for(const flag of ['--ma-childcare','--nj-childcare'])if(stage.args.includes(flag)){const bytes=await readFile(path.resolve(f.root,value(flag))), m=JSON.parse(bytes);extra.dependencies.push({dataset_id:m.dataset_id,release_id:m.release_id,manifest_sha256:sha(bytes)});}
+    for(const flag of ['--ma-childcare','--nj-childcare','--tn-childcare'])if(stage.args.includes(flag)){const bytes=await readFile(path.resolve(f.root,value(flag))), m=JSON.parse(bytes);extra.dependencies.push({dataset_id:m.dataset_id,release_id:m.release_id,manifest_sha256:sha(bytes)});}
   }
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
   if (key === 'benchmark') extra = { status: 'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
@@ -301,6 +304,74 @@ async function childcareFixture(f, prefixes=['ma','nj']) {
   return selected;
 }
 
+async function tnRecoveredFixture(t, f) {
+  const runId=`tn-planner-fixture-${randomUUID()}`, runRoot=path.join(APP_ROOT,'data/industry-segments/runs',runId);
+  t.after(()=>rm(runRoot,{recursive:true,force:true}));
+  const stagingPath=path.join(runRoot,'state-tn-childcare-TN/.staging',randomUUID()), receiptPath=path.join(runRoot,'receipt.json');
+  await mkdir(stagingPath,{recursive:true});await mkdir(path.join(runRoot,'logs'));
+  const acquired=await acquireTnChildcare({fetchImpl:createTnChildcareFixture({count:20,mutate:(payload,kind)=>{if(kind==='features'){payload.features[0].attributes.Zip='0';payload.features[1].attributes.Zip='';}}}).fetchImpl,sleep:async()=>{},now:()=>new Date('2026-09-08T00:00:01.000Z')});
+  const expectedHashes={};
+  for(const [key,name,bytes] of [
+    ['selectedFeatures','selected-features.jsonl',Buffer.from(acquired.features.map(JSON.stringify).join('\n')+'\n')],
+    ['sourceObservation','source-observation.json',Buffer.from(JSON.stringify(acquired.evidence)+'\n')],
+    ['publisherMetadata','publisher-metadata.xml',acquired.publisher_metadata.before.raw],
+  ]){await writeFile(path.join(stagingPath,name),bytes);expectedHashes[key]=sha(bytes);}
+  const logRelative=`data/industry-segments/runs/${runId}/logs/state-tn-childcare-TN.log`;
+  const log=Buffer.from('acquire\nnormalize\nTennessee childcare build failed: Tennessee childcare release rejected: quarantine exceeds 5% or no accepted records.\n');
+  await writeFile(path.join(APP_ROOT,logRelative),log);
+  const receipt={run_id:runId,status:'failed',started_at:'2026-09-08T00:00:00.000Z',finished_at:'2026-09-08T00:00:02.000Z',plan:{industries:['childcare'],states:['TN']},tasks:[{task_id:'state-tn-childcare:TN',source_id:'state-tn-childcare',state:'TN',status:'failed',code:1,signal:null,started_at:'2026-09-08T00:00:00.000Z',finished_at:'2026-09-08T00:00:02.000Z',log:logRelative}],log_sha256:{'state-tn-childcare:TN':sha(log)}};
+  const bytes=Buffer.from(JSON.stringify(receipt));await writeFile(receiptPath,bytes);expectedHashes.receipt=sha(bytes);
+  const recovered=await recoverTnChildcareRelease({receiptPath,stagingPath,expectedHashes,outputRoot:path.join(f.root,'data/childcare-tn'),now:()=>new Date('2026-09-09T00:00:00.000Z')});
+  // Copy implementation inputs only; the executor below remains a fixture, never a live build.
+  for(const name of await readdir(path.join(APP_ROOT,'runner'))){if(name.endsWith('.mjs')&&!name.endsWith('.test.mjs'))await copyFile(path.join(APP_ROOT,'runner',name),path.join(f.root,'runner',name));}
+  for(const file of ['config/connectors/tn-dhs-active-childcare-centers.json','config/source-policies/tn-childcare-local-review.json']){await mkdir(path.dirname(path.join(f.root,file)),{recursive:true});await copyFile(path.join(APP_ROOT,file),path.join(f.root,file));}
+  return {tnChildcare:recovered.manifest_path};
+}
+
+test('production enrolls recovered Tennessee with MA/NJ and pins seven retained artifacts without network',async(t)=>{
+  const f=await fixture(t),selected={...await childcareFixture(f),...await tnRecoveredFixture(t,f)};
+  const previousFetch=globalThis.fetch;globalThis.fetch=()=>assert.fail('Planning and processing retained inputs must not fetch');
+  try{
+    const plan=await planProductionReconciliation({...f,...selected,runId:'tn-retained-proof'});
+    assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,3);
+    const tn=plan.optionalSourcePins.find(p=>p.sourceKey==='tnChildcare');assert.equal(tn.artifacts.length,7);assert.equal(tn.configurationPins.length,2);
+    assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--tn-childcare')+1],tn.manifestPath);
+    const pins=plan.implementationPins.map(p=>p.path);assert.equal(new Set(pins).size,pins.length);assert.equal(pins.length,32);
+    // Check the declared roster against actual relative stage imports, including
+    // unselected source code. This is not runtime/package or dynamic-import proof.
+    const closure=new Set(),visit=async(relative)=>{
+      if(closure.has(relative))return;closure.add(relative);
+      const source=await readFile(path.join(APP_ROOT,relative),'utf8');
+      for(const match of source.matchAll(/^import\s+[\s\S]*?from\s+['"]([^'"]+)['"]/gm))if(match[1].startsWith('.'))await visit(path.relative(APP_ROOT,path.resolve(APP_ROOT,path.dirname(relative),match[1])).replaceAll('\\','/'));
+    };
+    for(const stage of plan.stages)await visit(stage.script);
+    assert.deepEqual(pins,[...closure].filter(file=>!file.startsWith('scripts/')).sort());
+    for(const moduleName of ['tn-childcare-registry-input','tn-childcare-geographic-evidence','tn-childcare-recovered-release','tn-childcare-recovery-inspection','tn-childcare-acquisition','tn-childcare-preflight','normalized-us-postal-code','source-http-guards','paths'])assert.ok(pins.includes(`runner/${moduleName}.mjs`),moduleName);
+    const result=await runProductionReconciliation(plan,{...f,executor:(s,c)=>executeFixture(f,s,c)});assert.equal(result.receipt.status,'SUCCEEDED');
+    const emitted=JSON.parse(await readFile(path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json')));assert.equal(emitted.dependencies.length,28);
+  }finally{globalThis.fetch=previousFetch;}
+});
+
+test('Tennessee planner rejects invalid selections and artifact policy or recovery implementation drift',async(t)=>{
+  const f=await fixture(t),selected=await tnRecoveredFixture(t,f);
+  for(const tnChildcare of ['',null,[],path.join(f.root,'data/childcare-tn/current.json')])await assert.rejects(planProductionReconciliation({...f,tnChildcare}));
+  await assert.rejects(planProductionReconciliation({...f,maChildcare:selected.tnChildcare}));
+  const plan=await planProductionReconciliation({...f,...selected,runId:'tn-drift-proof'}),tn=plan.optionalSourcePins[0];
+  for(const target of [tn.artifacts[0].path,tn.configurationPins[1].path,'runner/tn-childcare-recovery-inspection.mjs','runner/tn-childcare-geographic-evidence.mjs','runner/ma-childcare-acquisition.mjs','runner/nj-childcare-metadata.mjs','runner/census-geography.mjs','runner/normalized-us-postal-cutover.mjs']){
+    const file=path.join(f.root,target),before=await readFile(file);await writeFile(file,'changed');
+    try{await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('must not launch')}));}finally{await writeFile(file,before);}
+  }
+  const incomplete=structuredClone(plan);incomplete.implementationPins.pop();delete incomplete.planSha256;incomplete.planSha256=sha(JSON.stringify(incomplete));
+  await assert.rejects(runProductionReconciliation(incomplete,{...f,executor:()=>assert.fail('must not launch')}));
+});
+
+test('Tennessee cannot be appended to historical benchmark or resolution recovery',async(t)=>{
+  for(const mode of ['benchmark','resolution']){
+    const f=await (mode==='benchmark'?historicalBenchmarkFailure:historicalResolutionFailure)(t),selected=await tnRecoveredFixture(t,f);
+    await assert.rejects(planProductionReconciliation({...f,...selected,runId:`tn-incompatible-${mode}`,[mode==='benchmark'?'recoverBenchmarkFrom':'recoverResolutionFrom']:f.original.runId}),/childcare inputs/);
+  }
+});
+
 test('production independently verifies explicit childcare manifests while keeping migration cohort at 25',async(t)=>{
   const f=await fixture(t), selected=await childcareFixture(f), plan=await planProductionReconciliation({...f,...selected,runId:'childcare-proof'});
   assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,2);
@@ -353,9 +424,16 @@ test('production refuses rehashed optional-input tampering and adding childcare 
 });
 
 test('production CLI rejects repeated or non-plan childcare options without planning or launching',()=>{
-  for(const args of [['plan','--ma-childcare','a','--ma-childcare','b'],['plan','--nj-childcare'],['run','--ma-childcare','a'],['stop','--nj-childcare','a']]){
+  for(const args of [['plan','--ma-childcare','a','--ma-childcare','b'],['plan','--nj-childcare'],['run','--ma-childcare','a'],['stop','--nj-childcare','a'],['plan','--tn-childcare','a','--tn-childcare','b'],['plan','--tn-childcare'],['run','--tn-childcare','a'],['stop','--tn-childcare','a']]){
     const result=spawnSync(process.execPath,['scripts/reconcile-business-production.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',windowsHide:true});
     assert.equal(result.status,1);assert.match(result.stderr,/argument|Only plan/i);
+  }
+});
+
+test('registry CLI rejects missing and duplicate Tennessee selections before accessing production',()=>{
+  for(const args of [['--tn-childcare'],['--tn-childcare','--output','data/tmp/unused'],['--tn-childcare','a','--tn-childcare','b']]){
+    const result=spawnSync(process.execPath,['scripts/build-business-registry.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',windowsHide:true});
+    assert.equal(result.status,1);assert.match(result.stderr,/requires a value|Choose one recovered Tennessee/);
   }
 });
 

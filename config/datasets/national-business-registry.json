@@ -39,9 +39,9 @@
     "postal_conservation": "all source sites = source ZIP-attributed sites + source ZIP-unavailable sites; null ZIP5 and ZIP4 stay null",
     "missing_postal_storage": "explicit unassigned partitions; never a fabricated ZIP coverage row",
     "identity_matching_eligible": false,
-    "production_cli_enrolled": false,
+    "production_cli_enrolled": true,
     "national_reporting_promoted": false,
-    "remaining_gates": ["frontend control for state-level ZIP-unavailable name browsing", "app production orchestration and dependency pinning", "verified production run and explicit source reassessment"]
+    "remaining_gates": ["frontend control for state-level ZIP-unavailable name browsing", "verified production run and explicit source reassessment"]
   },
   "implemented_source_layers": [
     {

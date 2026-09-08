@@ -44,6 +44,7 @@ Options:
   --usps-zips <path> USPS operational ZIP assignments current.json prerequisite
   --ma-childcare <path> Optional verified Massachusetts childcare manifest.json
   --nj-childcare <path> Optional verified New Jersey childcare manifest.json (choose one release)
+  --tn-childcare <path> Optional verified recovered Tennessee childcare manifest.json
   --help           Show this help
 `;
 }
@@ -80,13 +81,14 @@ function parseArguments(args) {
     uspsZips: null,
     maChildcare: null,
     njChildcare: null,
+    tnChildcare: null,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
-    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips", "--ma-childcare", "--nj-childcare"].includes(argument)) {
+    if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips", "--ma-childcare", "--nj-childcare", "--tn-childcare"].includes(argument)) {
       const value = args[index + 1];
-      if (!value) throw new Error(`${argument} requires a value.`);
+      if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value.`);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--snap") options.snap = value;
@@ -118,6 +120,7 @@ function parseArguments(args) {
       if (argument === "--usps-zips") options.uspsZips = value;
       if (argument === "--ma-childcare") { if (options.maChildcare) throw new Error("Choose one Massachusetts childcare release."); options.maChildcare = value; }
       if (argument === "--nj-childcare") { if (options.njChildcare) throw new Error("Choose one New Jersey childcare release."); options.njChildcare = value; }
+      if (argument === "--tn-childcare") { if (options.tnChildcare) throw new Error("Choose one recovered Tennessee childcare release."); options.tnChildcare = value; }
       continue;
     }
     throw new Error(`Unknown argument ${argument}.`);
@@ -191,6 +194,7 @@ try {
     uspsZipsPointer: options.uspsZips ? assertInsideApp(path.resolve(APP_ROOT, options.uspsZips)) : null,
     maChildcareManifest: options.maChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.maChildcare)) : null,
     njChildcareManifest: options.njChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.njChildcare)) : null,
+    tnChildcareManifest: options.tnChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.tnChildcare)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({
