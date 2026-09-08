@@ -27,7 +27,19 @@ The build pins catalog identity, attribution, Public Domain status, the current-
 
 The HTTP helper now applies a 60-second per-attempt deadline through header and body delivery, an 80 MB declared/decoded streaming body ceiling, fatal UTF-8 decoding, and cancellation of unread error/retry bodies. Trusted programmatic options can lower the byte ceiling and select a deadline from 1–300,000 ms; they cannot raise the byte ceiling. No new CLI overrides are exposed. At most five attempts run serially. Retry-After seconds or dates are never shortened; waits exceeding one day defer with an error. Caller cancellation interrupts reads and retry waits. Transport and JSON errors omit response contents.
 
-These are per-response limits, not a whole-acquisition byte or elapsed-time budget. Existing source policy, connector contract and retained releases remain unchanged; no publisher-policy refresh or download is claimed.
+These transport limits apply per response; the cumulative acquisition limits below additionally apply to builds. Neither is a whole-acquisition elapsed-time budget. Existing source policy, connector contract and retained releases remain unchanged; no publisher-policy refresh or download is claimed.
+
+## Cumulative acquisition limits (September 8, 2026)
+
+Builds share one in-memory budget across initial metadata, preflight counts, pages, final metadata and final counts. The defaults and ceilings are 1,000 request attempts, 1,000,000,000 consumed decoded response bytes and 1,000,000 source rows. These are local safety ceilings, not a publisher allowance or performance target. Trusted programmatic `acquisitionLimits` may lower positive safe-integer limits but cannot raise them; malformed options fail before staging creation. No CLI or app override is exposed.
+
+Every fetch attempt, including retries, charges the shared request counter before execution. Every consumed successful-response chunk, including partial transfers that later fail, charges the byte counter before buffering. Exhaustion returns finite `DE_ACQUISITION_BUDGET` diagnostics without another retry. Accounting is not a wire-traffic meter: unread/cancelled error bodies and transport prefetch are not measured, and the first over-limit chunk may already have arrived before it is rejected. Metadata and count responses consume bytes too. Declared source counts are checked before page acquisition, and actual source rows cannot exceed either the row ceiling or the preflight count. Failed acquisitions do not publish a pointer; ordinary-failure staging remains available for diagnosis.
+
+This is not yet a disk-reservation, process-memory, elapsed-time, restart or managed-enrollment guarantee. A fresh build receives a fresh budget; it is not a persisted provider quota. Explicit offline staging verification/resume does not fetch and does not impose new source-acquisition limits on historical releases. Normalized schemas and retained artifacts remain unchanged.
+
+Thirty-five focused tests passed, including an injected five-request complete build, exhaustion before its final count request, cumulative bytes across partial failed transfers, retry attempt accounting, invalid limits before staging, source row overruns, cancellation and publication fault handling. All network fixtures are synthetic and open no sockets. The managed child/parent cancellation windows still need alignment with publication before app enrollment.
+
+Budget-increment validation: `npm run check` passed with 1,131 tests (1,120 passed, 11 skipped, zero failures), lint, web/desktop builds and desktop control-plane smoke. TypeScript checking passed; the production audit reported zero vulnerabilities. All 82 pending production code/config pins remain unchanged. The retained Delaware release was independently reverified offline with unchanged pointer/manifest hashes listed below and 66,667 published license-based candidates. Rollback reverts the budget helper and its build wiring, not retained data; budget-failed staging remains diagnostic evidence and cannot be blindly resumed as a complete release.
 
 ## Cooperative local lifecycle
 

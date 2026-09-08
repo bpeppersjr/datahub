@@ -447,6 +447,8 @@ Source recovery safeguards (September 8): Minnesota's registrations-only investi
 
 Delaware local lifecycle (September 8): build/verify/resume now honor cooperative cancellation, close compressed streams, preserve resumed and uncertain staging, and explicitly report incomplete publication after commit errors. Real CLI IPC and filesystem fault tests complement the transport regressions. The retained 66,667 license-based candidates were independently reverified without a download; no active-business count is inferred. Managed enrollment still requires the pinned contract migration and aligning commit timing with the worker's forced-cancel grace. See [lifecycle evidence](DE-BUSINESS-LICENSES.md#lifecycle-verification-and-retained-data-continuity).
 
+Delaware acquisition budgets (September 8): builds now share cumulative request-attempt, consumed-response-byte and source-row ceilings across preflight, paging and final checks. Exhaustion stops acquisition without publication or automatic retry; historical offline verification remains unchanged. Thirty-five focused synthetic tests pass. Next app-handoff prerequisites remain disk/elapsed resource budgets, nested-child cancellation/publication alignment, a separately identified app connector contract that preserves existing production pins, and a validated wrapper/receipt enrollment. No fresh download or managed enrollment is implied. See [budget limits](DE-BUSINESS-LICENSES.md#cumulative-acquisition-limits-september-8-2026).
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

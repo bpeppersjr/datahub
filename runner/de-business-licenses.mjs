@@ -9,6 +9,7 @@ import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 import { publisherRetryDelay } from "./source-http-guards.mjs";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
+import { createDeAcquisitionBudget } from "./de-acquisition-budget.mjs";
 
 export const DE_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const DE_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "de-business-licenses@1.0.1";
@@ -348,12 +349,14 @@ export async function requestDeJson(urlValue, {
   timeoutMs = 60_000,
   type = "data",
   attempts = 5,
+  acquisitionBudget,
 } = {}) {
   const url = assertAllowedUrl(urlValue, type);
   if (!Number.isInteger(maximumResponseBytes) || maximumResponseBytes < 1 || maximumResponseBytes > 80_000_000 || !Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 300_000 || !Number.isInteger(attempts) || attempts < 1 || attempts > 5) throw new Error("Invalid Delaware transport limits.");
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
+    acquisitionBudget?.beforeRequest();
     const controller = new AbortController();
     const deadline = performance.now() + timeoutMs;
     const abort = () => controller.abort(signal.reason);
@@ -382,6 +385,7 @@ export async function requestDeJson(urlValue, {
         while (true) {
           const { done, value } = await deAbortable(() => reader.read(), controller.signal);
           if (done) break;
+          acquisitionBudget?.consumeBytes(value.byteLength);
           bytes += value.byteLength;
           if (bytes > maximumResponseBytes) throw new Error("Delaware source response exceeds the configured byte limit.");
           chunks.push(value);
@@ -397,6 +401,7 @@ export async function requestDeJson(urlValue, {
     } catch (error) {
       signal?.throwIfAborted();
       lastError = controller.signal.aborted ? controller.signal.reason : error;
+      if (error.code === "DE_ACQUISITION_BUDGET") throw Object.assign(new Error("Delaware acquisition budget exceeded."), { code: "DE_ACQUISITION_BUDGET" });
       if (error.code === "SOURCE_RETRY_DEFERRED") throw new Error("Delaware publisher retry delay exceeds the local wait budget; defer this acquisition.");
       if (error.code === "DE_INVALID_JSON") throw new Error("Delaware source JSON encoding or syntax is invalid.");
       if (/redirect rejected/.test(error.message)) throw new Error("Delaware source redirect rejected.");
@@ -568,12 +573,14 @@ function compareText(left, right) {
   return left < right ? -1 : 1;
 }
 
-async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, signal, sleep, pageSize, logger }) {
+async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, signal, sleep, pageSize, logger, acquisitionBudget }) {
   let count = 0;
   let previousLicense = null;
   let previousSocrataId = null;
   const consume = async (input) => {
     signal?.throwIfAborted?.();
+    acquisitionBudget.assertRows(count + 1);
+    if (count >= expectedCount) throw new Error("Delaware source rows exceed the preflight count.");
     const record = sourceSafeRecord(input);
     const licenseNumber = textValue(record.license_number);
     const rowId = textValue(record.socrata_row_id);
@@ -595,7 +602,7 @@ async function acquireSource({ writer, sourceRecords, expectedCount, fetchImpl, 
         $order: "license_number ASC,:id ASC",
         $limit: String(pageSize),
         $offset: String(offset),
-      }), { fetchImpl, signal, sleep, type: "data" });
+      }), { fetchImpl, signal, sleep, type: "data", acquisitionBudget });
       if (!Array.isArray(rows) || rows.length > pageSize) throw new Error("Delaware source page is invalid or exceeds the page-size limit.");
       if (rows.length === 0) break;
       for (const record of rows) await consume(record);
@@ -655,11 +662,13 @@ export async function buildDeBusinessLicenses({
   now = () => new Date(),
   onBeforeCommit,
   onAfterCommit,
+  acquisitionLimits,
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
   if (!Number.isInteger(minimumLicenseRows) || minimumLicenseRows < 1) throw new Error("minimumLicenseRows must be a positive integer.");
   if (!Number.isFinite(maximumQuarantineRate) || maximumQuarantineRate < 0 || maximumQuarantineRate > 1) throw new Error("maximumQuarantineRate must be between 0 and 1.");
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50_000) throw new Error("pageSize must be from 1 through 50000.");
+  const acquisitionBudget = createDeAcquisitionBudget(acquisitionLimits);
   signal?.throwIfAborted?.();
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
@@ -675,7 +684,7 @@ export async function buildDeBusinessLicenses({
   try {
   signal?.throwIfAborted();
   const baseline = await loadZbpBaseline(zbpPointer, signal);
-  const requestOptions = { fetchImpl, signal, sleep, type: "metadata" };
+  const requestOptions = { fetchImpl, signal, sleep, type: "metadata", acquisitionBudget };
   const initialMetadata = catalogMetadata ?? await requestDeJson(DE_BUSINESS_LICENSE_METADATA_URL, requestOptions);
   const catalog = validateCatalogMetadata(initialMetadata, schemaFingerprintExpected);
   const counts = sourceRecords
@@ -683,14 +692,15 @@ export async function buildDeBusinessLicenses({
         records: Number(initialMetadata.sourceRecordCount ?? sourceRecords.length),
         distinctLicenses: Number(initialMetadata.distinctLicenseCount ?? new Set(sourceRecords.map((row) => row.license_number)).size),
       }
-    : await sourceCounts({ fetchImpl, signal, sleep, type: "data" });
+    : await sourceCounts({ fetchImpl, signal, sleep, type: "data", acquisitionBudget });
+  acquisitionBudget.assertRows(counts.records);
   if (!Number.isInteger(counts.records) || !Number.isInteger(counts.distinctLicenses) || counts.records < minimumLicenseRows || counts.distinctLicenses < 1 || counts.distinctLicenses > counts.records) {
     throw new Error(`Delaware current-license row count ${counts.records} is below the ${minimumLicenseRows} quality floor or is inconsistent.`);
   }
   const rawWriter = await openGzipWriter(stagingDirectory, "source/current-business-licenses.jsonl.gz", allWriters, signal);
   let sourceArtifact;
   try {
-    await acquireSource({ writer: rawWriter, sourceRecords, expectedCount: counts.records, fetchImpl, signal, sleep, pageSize, logger });
+    await acquireSource({ writer: rawWriter, sourceRecords, expectedCount: counts.records, fetchImpl, signal, sleep, pageSize, logger, acquisitionBudget });
     sourceArtifact = await closeGzipWriter(rawWriter, "de-business-licenses-source-jsonl-gzip", { export_policy: "internal" });
   } catch (error) {
     abortGzipWriters([rawWriter]);
@@ -699,7 +709,8 @@ export async function buildDeBusinessLicenses({
   if (!sourceRecords) {
     const finalMetadata = await requestDeJson(DE_BUSINESS_LICENSE_METADATA_URL, requestOptions);
     const finalCatalog = validateCatalogMetadata(finalMetadata, schemaFingerprintExpected);
-    const finalCounts = await sourceCounts({ fetchImpl, signal, sleep, type: "data" });
+    const finalCounts = await sourceCounts({ fetchImpl, signal, sleep, type: "data", acquisitionBudget });
+    acquisitionBudget.assertRows(finalCounts.records);
     if (finalCatalog.rowsUpdatedAt !== catalog.rowsUpdatedAt || finalCounts.records !== counts.records || finalCounts.distinctLicenses !== counts.distinctLicenses) {
       throw new Error("Delaware source changed during acquisition; the run is not publishable.");
     }

@@ -37,6 +37,43 @@ test("Delaware precommit cancellation preserves prior release and sibling stagin
   await verifyDeBusinessLicenses(path.join(published.releaseDirectory, "manifest.json"));
 });
 
+test("Delaware build rejects invalid budgets before output creation and excessive declared rows before source requests", async (t) => {
+  const { options } = await fixture(t);
+  await assert.rejects(buildDeBusinessLicenses({ ...options, acquisitionLimits: { maximumRequests: 1001 } }));
+  await assert.rejects(readdir(options.outputRoot), { code: "ENOENT" });
+  const prior = await buildDeBusinessLicenses(options);
+  const pointer = await readFile(prior.pointerPath);
+  let calls = 0;
+  await assert.rejects(buildDeBusinessLicenses({ ...options, acquisitionLimits: { maximumRows: 1 }, catalogMetadata: { ...options.catalogMetadata, sourceRecordCount: 2 }, fetchImpl: async () => { calls++; throw new Error("unexpected fetch"); } }), { code: "DE_ACQUISITION_BUDGET" });
+  assert.equal(calls, 0);
+  assert.deepEqual(await readFile(prior.pointerPath), pointer);
+});
+
+test("Delaware actual source rows cannot silently exceed preflight count", async (t) => {
+  const { options } = await fixture(t);
+  options.sourceRecords.push({ ...options.sourceRecords[0], socrata_row_id: "two" });
+  await assert.rejects(buildDeBusinessLicenses(options), /exceed the preflight count/);
+  await assert.rejects(readFile(path.join(options.outputRoot, "current.json")), { code: "ENOENT" });
+});
+
+test("Delaware build shares request ceiling across metadata, count, page and final checks", async (t) => {
+  const { options } = await fixture(t);
+  const requests = [];
+  const fetchImpl = async (value) => {
+    const url = new URL(value);
+    const stage = url.pathname.includes("/api/views/") ? "metadata" : url.searchParams.get("$select").startsWith("count(") ? "count" : "page";
+    requests.push(stage);
+    return Response.json(stage === "metadata" ? options.catalogMetadata : stage === "count" ? [{ records: "1", distinct_licenses: "1" }] : options.sourceRecords);
+  };
+  await assert.rejects(buildDeBusinessLicenses({ ...options, catalogMetadata: null, sourceRecords: null, fetchImpl, acquisitionLimits: { maximumRequests: 4 } }), { code: "DE_ACQUISITION_BUDGET" });
+  assert.deepEqual(requests, ["metadata", "count", "page", "metadata"]);
+  await assert.rejects(readFile(path.join(options.outputRoot, "current.json")), { code: "ENOENT" });
+  requests.length = 0;
+  const result = await buildDeBusinessLicenses({ ...options, catalogMetadata: null, sourceRecords: null, fetchImpl, acquisitionLimits: { maximumRequests: 5 } });
+  assert.deepEqual(requests, ["metadata", "count", "page", "metadata", "count"]);
+  await verifyDeBusinessLicenses(path.join(result.releaseDirectory, "manifest.json"));
+});
+
 test("Delaware ordinary failure retains complete staging and cancelled resume never removes it", async (t) => {
   const { options } = await fixture(t);
   await assert.rejects(buildDeBusinessLicenses({ ...options, onBeforeCommit: () => { throw new Error("fixture stop"); } }), /fixture stop/);

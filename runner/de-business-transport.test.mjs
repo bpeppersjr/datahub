@@ -1,8 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createDeAcquisitionBudget } from "./de-acquisition-budget.mjs";
 import { requestDeJson, DE_BUSINESS_LICENSE_METADATA_URL as url } from "./de-business-licenses.mjs";
 
 const options = { type: "metadata", attempts: 1 };
+
+test("Delaware shared request budget includes retries and rejects before another fetch", async () => {
+  const acquisitionBudget = createDeAcquisitionBudget({ maximumRequests: 2 });
+  let calls = 0;
+  await assert.rejects(requestDeJson(url, { type: "metadata", acquisitionBudget, sleep: async () => {}, fetchImpl: async () => { calls++; return new Response("", { status: 503 }); } }), { code: "DE_ACQUISITION_BUDGET" });
+  assert.equal(calls, 2);
+});
+
+test("Delaware cumulative bytes span requests and failed partial transfers without retrying exhaustion", async () => {
+  const acquisitionBudget = createDeAcquisitionBudget({ maximumBytes: 5 });
+  assert.deepEqual(await requestDeJson(url, { ...options, acquisitionBudget, fetchImpl: async () => new Response("{}") }), {});
+  let calls = 0, cancelled = 0;
+  await assert.rejects(requestDeJson(url, { type: "metadata", acquisitionBudget, sleep: async () => {}, fetchImpl: async () => {
+    calls++;
+    if (calls === 1) {
+      let reads = 0;
+      return new Response(new ReadableStream({ pull(controller) { if (reads++ === 0) controller.enqueue(new TextEncoder().encode("{}")); else controller.error(new Error("private transport detail")); } }));
+    }
+    return new Response(new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("{}")); }, cancel() { cancelled++; } }));
+  } }), (error) => error.code === "DE_ACQUISITION_BUDGET" && !error.message.includes("private"));
+  assert.equal(calls, 2);
+  assert.equal(cancelled, 1);
+  assert.equal(acquisitionBudget.snapshot().counts.bytes, 4);
+});
 function hanging(headers = {}) {
   let cancelled = 0;
   return { response: new Response(new ReadableStream({ cancel() { cancelled++; } }), { headers }), cancellations: () => cancelled };
