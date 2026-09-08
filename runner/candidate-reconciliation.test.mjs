@@ -219,6 +219,7 @@ test('candidate chain rejects implementation drift during the final verifier', a
 });
 
 test('candidate controller records a stop request while its active child is still running', async (t) => {
+  let stopReceipt, terminalResult;
   const f = await fixture(t); const plan = await planCandidateReconciliation({ ...f, runId: 'durable-stop' });
   const controller = new AbortController();
   let entered; const active = new Promise(resolve => { entered = resolve; });
@@ -230,12 +231,16 @@ test('candidate controller records a stop request while its active child is stil
   await active;
   try {
     controller.abort(); let receipt;
-    for (let attempt = 0; attempt < 100; attempt += 1) {
+    // Receipt persistence competes with the parallel suite's filesystem work.
+    // Keep the visibility requirement, with a bounded scheduling allowance.
+    const deadline = performance.now() + 10_000;
+    while (performance.now() < deadline) {
       receipt = JSON.parse(await readFile(path.resolve(f.root, plan.outputRoot, 'receipt.json')));
       if (receipt.stopRequested) break;
       await new Promise(resolve => setTimeout(resolve, 10));
     }
-    assert.equal(receipt.stopRequested, true);
-    assert.equal(receipt.stages[0].status, 'RUNNING');
-  } finally { releaseGate(); await running; }
+    stopReceipt = receipt;
+  } finally { releaseGate(); terminalResult = await running; }
+  assert.equal(stopReceipt.stopRequested, true, terminalResult.receipt.error ?? 'Stop request was not durably visible while child remained active.');
+  assert.equal(stopReceipt.stages[0].status, 'RUNNING');
 });

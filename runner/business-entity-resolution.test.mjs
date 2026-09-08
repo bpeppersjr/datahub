@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { gunzipSync, gzipSync } from "node:zlib";
+import { APP_ROOT } from "./paths.mjs";
 import {
   buildBusinessEntityResolution,
   COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS,
@@ -69,7 +69,7 @@ function sha256(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
-async function writeFixtureRegistry(root, profiles) {
+async function writeFixtureRegistry(root, profiles, { reporting = false } = {}) {
   const releaseId = "registry-resolution-profile-fixture";
   const releaseDirectory = path.join(root, "releases", releaseId);
   const artifacts = [];
@@ -98,6 +98,22 @@ async function writeFixtureRegistry(root, profiles) {
     coverage: { physical_sites: profiles.length, resolution_location_profiles: profiles.length },
     artifacts,
   };
+  if (reporting) {
+    const siteId = `site:ma_childcare_${"a".repeat(32)}`, sourceRelease = `ma-childcare-${"b".repeat(64)}`;
+    const row = { schema_version: "1.0.0", site_entity_id: siteId, establishment_entity_id: siteId.replace("site:", "establishment:"),
+      zip_code: "02101", address: { street: "1 Synthetic Street", city: "Boston", state: "MA", country: "US", zip_code: "02101", postal_code: "02101", zip4: null },
+      location: { latitude: null, longitude: null }, source: { source_id: "ma-licensed-center-based-childcare", source_release_id: sourceRelease,
+        source_record_id: `${sourceRelease}:object:1`, ingest_run_id: "synthetic-run", transformation_version: "synthetic-transform", policy_id: "massgis-eec-childcare-local-review" },
+      observed_at: "2026-09-08T00:00:00.000Z", identity_matching_eligible: false, export_policy: "local-review-only", category: "childcare",
+      names: [{ raw: "Synthetic Childcare" }], source_status: { status_source: null, status_interpretation: "missing-source-status", active_business_verified: false, licensed_capacity: null },
+      evidence: { manifest_sha256: "c".repeat(64), policy_profile: "massgis-eec-childcare-local-review@1.0.0", release_id: "synthetic-childcare-release" } };
+    const relativePath = "reporting/location-evidence/zip2=02/records.jsonl.gz", buffer = gzipSync(`${JSON.stringify(row)}\n`);
+    await mkdir(path.dirname(path.join(releaseDirectory, relativePath)), { recursive: true }); await writeFile(path.join(releaseDirectory, relativePath), buffer);
+    artifacts.push({ path: relativePath, bytes: buffer.length, sha256: sha256(buffer), record_count: 1, artifact_type: "business-reporting-location-evidence-jsonl-gzip", export_policy: "local-review-only" });
+    manifest.publisher.version = "2.12.0";
+    Object.assign(manifest.coverage, { physical_sites: profiles.length + 1, reporting_location_evidence: 1, ma_childcare_center_sites: 1, nj_childcare_center_sites: 0 });
+    manifest.dependencies = [{ dataset_id: row.source.source_id, release_id: row.evidence.release_id, manifest_sha256: row.evidence.manifest_sha256 }];
+  }
   await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest)}\n`);
   await mkdir(root, { recursive: true });
   const pointerPath = path.join(root, "current.json");
@@ -112,6 +128,19 @@ test("normalizes conservative complete street addresses while preserving units a
   assert.equal(first.match_key, second.match_key);
   assert.notEqual(first.match_key, anotherUnit.match_key);
   assert.equal(normalizeBusinessAddress({ street: "P.O. Box 20", city: "Chicago", state: "IL", zip_code: "60601" }).kind, "po-box");
+});
+
+test("registry 2.12 reporting-only childcare stays outside resolution while dependency hashes survive", async t => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/resolution-reporting-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const profiles = [profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" })];
+  const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), profiles, { reporting: true });
+  const pointer = JSON.parse(await readFile(registryPointer)), manifestPath = path.join(path.dirname(registryPointer), pointer.manifest);
+  const manifestBytes = await readFile(manifestPath);
+  const result = await buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} });
+  assert.equal(result.manifest.coverage.profiles, 1); assert.equal(result.manifest.coverage.site_alias_decisions, 0);
+  assert.equal(result.manifest.dependency.manifest_sha256, sha256(manifestBytes));
+  await verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json"));
 });
 
 test("builds a provenance-carrying location profile from registry reconciliation evidence", () => {
@@ -195,7 +224,7 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("declares registry publisher compatibility through 2.11.0 without dropping 2.10.0", async () => {
+test("declares registry publisher compatibility through 2.12.0 without dropping prior versions", async () => {
   const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
   assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
@@ -204,16 +233,63 @@ test("declares registry publisher compatibility through 2.11.0 without dropping 
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.9.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.10.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.11.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.12.0"));
+});
+
+test("reporting-only rows cannot be relabeled as eligible match profiles", () => {
+  const valid = profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" });
+  for (const id of ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"]) {
+    assert.throws(() => profile({ sourceId: id, recordId: "1", name: "Synthetic Childcare" }), /Reporting-only/);
+    const forged = structuredClone(valid); forged.source.source_id = id;
+    assert.throws(() => resolveLocationProfiles([forged]), /Reporting-only/);
+  }
+  assert.throws(() => resolveLocationProfiles([{ ...valid, identity_matching_eligible: false }]), /Reporting-only/);
+});
+
+test("registry 2.12 compatibility fails closed on reporting counts policy lineage partitions and versions", async t => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/resolution-reporting-reject-")); t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), [profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" })], { reporting: true });
+  const pointer = JSON.parse(await readFile(registryPointer)), manifestPath = path.join(path.dirname(registryPointer), pointer.manifest), clean = await readFile(manifestPath);
+  for (const mutate of [m => { m.coverage.reporting_location_evidence++; }, m => { m.coverage.physical_sites--; },
+    m => { m.artifacts.at(-1).export_policy = "public"; }, m => { m.dependencies[0].manifest_sha256 = "d".repeat(64); },
+    m => { m.dependencies.push(m.dependencies[0]); }, m => { m.artifacts[1] = m.artifacts[0]; },
+    m => { m.artifacts.at(-1).sha256 = "0".repeat(64); }, m => { m.publisher.version = "2.13.0"; }, m => { m.publisher.version = "2.11.0"; }]) {
+    const manifest = JSON.parse(clean); mutate(manifest); await writeFile(manifestPath, JSON.stringify(manifest));
+    await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} }));
+  }
+  await writeFile(manifestPath, clean);
+  const manifest = JSON.parse(clean), reporting = manifest.artifacts.at(-1), file = path.join(path.dirname(manifestPath), reporting.path);
+  const row = JSON.parse(gunzipSync(await readFile(file)).toString()); row.identity_matching_eligible = true;
+  const altered = gzipSync(`${JSON.stringify(row)}\n`); await writeFile(file, altered); reporting.bytes = altered.length; reporting.sha256 = sha256(altered);
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} }), /reporting-only childcare/i);
+  row.identity_matching_eligible = false;
+  const restored = gzipSync(`${JSON.stringify(row)}\n`); await writeFile(file, restored);
+  reporting.bytes = restored.length; reporting.sha256 = sha256(restored);
+  const matchArtifact = manifest.artifacts.find(a => a.artifact_type === "entity-resolution-location-profile-jsonl-gzip" && a.record_count > 0);
+  const matchPath = path.join(path.dirname(manifestPath), matchArtifact.path), matchRow = JSON.parse(gunzipSync(await readFile(matchPath)).toString());
+  matchRow.site_entity_id = row.site_entity_id;
+  const collision = gzipSync(`${JSON.stringify(matchRow)}\n`); await writeFile(matchPath, collision);
+  matchArtifact.bytes = collision.length; matchArtifact.sha256 = sha256(collision); await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, "resolution"), logger() {} }), /failed record validation/);
 });
 
 test("builds and independently verifies an immutable reviewable resolution release from registry publisher 2.7.0", async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), "business-entity-resolution-"));
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/business-entity-resolution-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const profiles = [
     profile({ sourceId: "source-a", recordId: "1", name: "Acme Health LLC" }),
     profile({ sourceId: "source-b", recordId: "2", name: "ACME HEALTH LLC", street: "10 N Main St" }),
   ];
   const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), profiles);
+  const registryCurrent = JSON.parse(await readFile(registryPointer)), registryManifestPath = path.join(path.dirname(registryPointer), registryCurrent.manifest);
+  const registryBytes = await readFile(registryManifestPath), wrongLegacy = JSON.parse(registryBytes);
+  wrongLegacy.coverage.physical_sites++;
+  await writeFile(registryManifestPath, JSON.stringify(wrongLegacy));
+  await assert.rejects(buildBusinessEntityResolution({ outputRoot: path.join(root, "resolution"), registryPointer, logger() {} }), /counts do not reconcile/);
+  await writeFile(registryManifestPath, registryBytes);
   const result = await buildBusinessEntityResolution({
     outputRoot: path.join(root, "resolution"),
     registryPointer,

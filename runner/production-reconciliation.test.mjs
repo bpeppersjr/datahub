@@ -39,7 +39,7 @@ async function fixture(t) {
   for (const [directory, dataset] of [['data/geography', 'us-census-geography'], ['data/zcta-jurisdiction-crosswalk', 'us-census-zcta-jurisdiction-crosswalk'], ['data/business-baselines/census-nonemployer', 'census-nonemployer-baseline'], ['data/business-baselines/census-zbp', 'census-zbp-baseline']]) await release(root, directory, dataset, `fixture-${dataset}`);
   for (const [key, directory] of Object.entries(outputs)) await release(root, directory, datasets[key], `previous-${key}`);
   for (const script of scripts) { const file = path.join(root, 'scripts', `${script}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture exits zero but emits no release.\n'); }
-  for (const implementation of ['business-registry', 'business-entity-resolution', 'entity-resolution-benchmark', 'national-business-coverage-views']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
+  for (const implementation of ['business-registry', 'business-entity-resolution', 'entity-resolution-benchmark', 'national-business-coverage-views','childcare-geographic-evidence','normalized-us-postal-code']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
   const readinessInspector = async (options) => {
     assert.equal(options.useCandidatePointers, false);
     const sources = [];
@@ -194,19 +194,22 @@ test('production durable stop is visible while a child runs and prevents next st
   const running = runProductionReconciliation(plan, { ...f, executor: async (stage, context) => {
     await executeFixture(f, stage, context); started(); await gate; return { exitCode: 0 };
   } });
-  await begun;
+  await begun; let result;
   try {
     await requestProductionReconciliationStop({ root: f.root, runId: plan.runId });
     const receiptPath = path.join(f.root, plan.outputRoot, 'receipt.json');
     let visible = false;
-    for (let attempt = 0; attempt < 80; attempt++) {
+    // The controller polls once per second; allow filesystem scheduling delay
+    // without turning a short test timing budget into a false runtime failure.
+    const deadline = performance.now() + 10_000;
+    while (performance.now() < deadline) {
       const receipt = JSON.parse(await readFile(receiptPath));
       if (receipt.stopRequested) { visible = true; assert.equal(receipt.status, 'RUNNING'); break; }
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
     assert.equal(visible, true);
-  } finally { finish(); }
-  const result = await running; assert.equal(result.receipt.status, 'STOPPED');
+  } finally { finish(); result = await running; }
+  assert.equal(result.receipt.status, 'STOPPED');
   assert.ok(result.receipt.stages.slice(1).every((s) => s.status === 'SKIPPED'));
 });
 
@@ -362,4 +365,91 @@ test('production detects retained childcare artifact mutation during a child bef
     calls.push(s.id);await executeFixture(f,s,c);await writeFile(path.join(f.root,plan.optionalSourcePins[0].artifacts[0].path),'changed');return {exitCode:0};
   }});
   assert.equal(result.receipt.status,'FAILED');assert.deepEqual(calls,['registry-build']);assert.match(result.receipt.error,/Pinned input or output changed/);
+});
+
+async function historicalResolutionFailure(t,{childcare=false}={}) {
+  const f=await fixture(t),selected=childcare?await childcareFixture(f):{},original=await planProductionReconciliation({...f,...selected,runId:'historical-resolution-failure'});
+  const manifestPath=path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json');
+  const result=await runProductionReconciliation(original,{...f,executor:async(stage,context)=>{
+    if(stage.id==='resolution-build'){
+      await writeFile(context.logPath,'Business entity-resolution build failed: A compatible national business registry 1.2.0 through 2.11.0 partial release with match profiles is required.\n');return {exitCode:1};
+    }
+    await executeFixture(f,stage,context);
+    const manifest=JSON.parse(await readFile(manifestPath));
+    if(stage.id==='registry-build'){
+      manifest.schema_version='1.0.0';manifest.publisher={id:'national-business-registry',version:'2.12.0'};manifest.coverage={physical_sites:2,reporting_location_evidence:1,resolution_location_profiles:1};
+      manifest.artifacts=[];
+      for(const [file,type] of [['profiles.jsonl.gz','entity-resolution-location-profile-jsonl-gzip'],['reporting.jsonl.gz','business-reporting-location-evidence-jsonl-gzip']]){
+        const bytes=Buffer.from('synthetic artifact bytes');await writeFile(path.join(path.dirname(manifestPath),file),bytes);
+        manifest.artifacts.push({path:file,artifact_type:type,bytes:bytes.length,sha256:sha(bytes)});
+      }
+      await json(manifestPath,manifest);
+      await writeFile(context.logPath,`Completed fixture registry.\n${JSON.stringify({release_id:manifest.release_id,release_directory:path.dirname(manifestPath),manifest:manifestPath,status:manifest.status,coverage:manifest.coverage},null,2)}\n`);
+    }else await writeFile(context.logPath,JSON.stringify({dataset_id:manifest.dataset_id,release_id:manifest.release_id,status:manifest.status,artifact_count:manifest.artifacts.length,coverage:manifest.coverage}));
+    return {exitCode:0};
+  }});
+  assert.equal(result.receipt.status,'FAILED');assert.equal(result.receipt.stages[2].exitCode,1);
+  await writeFile(path.join(f.root,'runner/business-entity-resolution.mjs'),'// Reviewed registry 2.12 compatibility fix.\n');
+  return {...f,...selected,original,receiptPath:result.receiptPath,manifestPath};
+}
+
+test('resolution compatibility recovery adopts verified registry and runs only six downstream stages',async(t)=>{
+  const f=await historicalResolutionFailure(t,{childcare:true}),before=await readFile(f.receiptPath);
+  const plan=await planProductionReconciliation({...f,runId:'resolution-recovery',recoverResolutionFrom:f.original.runId});
+  assert.deepEqual(plan.stages.map(s=>s.id),['resolution-build','resolution-verify','benchmark-build','benchmark-verify','coverage-build','coverage-verify']);
+  assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,2);
+  assert.equal(plan.recovery.evidencePins.length,8);assert.equal(plan.recovery.implementationChanges.length,1);
+  const calls=[],result=await runProductionReconciliation(plan,{...f,executor:async(s,c)=>{calls.push(s.id);return executeFixture(f,s,c);}});
+  assert.equal(result.receipt.status,'SUCCEEDED');assert.deepEqual(calls,plan.stages.map(s=>s.id));assert.deepEqual(await readFile(f.receiptPath),before);
+  assert.deepEqual(result.receipt.recovery,plan.recovery);
+});
+
+test('resolution recovery rejects unrelated failure, log/plan/lineage/stage/pin/output drift',async(t)=>{
+  for(const mutation of ['error','exit','verify','skipped','chronology','log','log-rehashed','plan','source','script','implementation','no-fix','registry','resolution','benchmark','coverage','dependency','artifact','verify-identity']){
+    const f=await historicalResolutionFailure(t);
+    if(['error','exit','verify','skipped','chronology'].includes(mutation)){
+      const r=JSON.parse(await readFile(f.receiptPath));
+      if(mutation==='error')r.error='Other failure';if(mutation==='exit')r.stages[2].exitCode=2;if(mutation==='verify')r.stages[1].status='FAILED';if(mutation==='skipped')r.stages[3].pid=123;
+      if(mutation==='chronology')r.stages[1].startedAt='2000-01-01T00:00:00.000Z';
+      await json(f.receiptPath,r);
+    }
+    if(mutation==='log'||mutation==='log-rehashed'){
+      const file=path.join(f.root,f.original.outputRoot,'resolution-build.log');await writeFile(file,'Other compatibility problem\n');
+      if(mutation==='log-rehashed'){const r=JSON.parse(await readFile(f.receiptPath)),bytes=await readFile(file);r.stages[2].log.sha256=sha(bytes);r.stages[2].log.bytes=bytes.length;await json(f.receiptPath,r);}
+    }
+    if(mutation==='plan')await writeFile(path.join(f.root,f.original.outputRoot,'plan.json'),'{}');
+    if(mutation==='source')await writeFile(path.join(f.root,f.definition.sources[0].connector_config),'{}');
+    if(mutation==='script')await writeFile(path.join(f.root,'scripts/build-business-entity-resolution.mjs'),'changed');
+    if(mutation==='implementation')await writeFile(path.join(f.root,'runner/entity-resolution-benchmark.mjs'),'changed');
+    if(mutation==='no-fix')await writeFile(path.join(f.root,'runner/business-entity-resolution.mjs'),'// Fixture implementation.\n');
+    if(['registry','resolution','benchmark','coverage'].includes(mutation))await release(f.root,outputs[mutation],datasets[mutation],`unrelated-${mutation}`);
+    if(mutation==='dependency'){const m=JSON.parse(await readFile(f.manifestPath));m.dependencies[0].manifest_sha256='0'.repeat(64);await json(f.manifestPath,m);}
+    if(mutation==='artifact')await writeFile(path.join(path.dirname(f.manifestPath),'profiles.jsonl.gz'),'tampered');
+    if(mutation==='verify-identity'){
+      const file=path.join(f.root,f.original.outputRoot,'registry-verify.log'),v=JSON.parse(await readFile(file));v.artifact_count++;await json(file,v);
+      const r=JSON.parse(await readFile(f.receiptPath)),bytes=await readFile(file);r.stages[1].log.sha256=sha(bytes);r.stages[1].log.bytes=bytes.length;await json(f.receiptPath,r);
+    }
+    await assert.rejects(planProductionReconciliation({...f,runId:`reject-resolution-${mutation}`,recoverResolutionFrom:f.original.runId}));
+  }
+});
+
+test('resolution recovery rejects postplan evidence/consumed artifact changes and conflicting recovery modes',async(t)=>{
+  for(const mutation of ['receipt','artifact','lock']){
+    const f=await historicalResolutionFailure(t),plan=await planProductionReconciliation({...f,runId:`recovery-resolution-${mutation}`,recoverResolutionFrom:f.original.runId});
+    if(mutation==='receipt')await writeFile(f.receiptPath,'{}');
+    if(mutation==='artifact')await writeFile(path.join(path.dirname(f.manifestPath),'reporting.jsonl.gz'),'changed');
+    if(mutation==='lock')await json(path.join(f.root,'data/reconciliations/controller.lock'),{pid:123,runId:'foreign'});
+    await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('must not launch')}));
+  }
+  await assert.rejects(planProductionReconciliation({recoverResolutionFrom:'x',recoverBenchmarkFrom:'y'}),/mutually exclusive/);
+});
+
+test('resolution recovery respects cancellation and refuses evidence mutation before downstream stage',async(t)=>{
+  for(const cancel of [true,false]){
+    const f=await historicalResolutionFailure(t),plan=await planProductionReconciliation({...f,runId:`resolution-stop-${cancel}`,recoverResolutionFrom:f.original.runId}),calls=[];
+    const result=await runProductionReconciliation(plan,{...f,signal:cancel?AbortSignal.abort():undefined,executor:async(s,c)=>{
+      calls.push(s.id);await executeFixture(f,s,c);await writeFile(path.join(path.dirname(f.manifestPath),'profiles.jsonl.gz'),'changed');return {exitCode:0};
+    }});
+    assert.equal(result.receipt.status,cancel?'STOPPED':'FAILED');assert.deepEqual(calls,cancel?[]:['resolution-build']);
+  }
 });

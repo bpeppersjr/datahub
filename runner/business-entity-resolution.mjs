@@ -4,14 +4,16 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createGunzip, gzipSync } from "node:zlib";
 import { createInterface } from "node:readline";
+import { CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE, validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 
 export const ENTITY_RESOLUTION_SCHEMA_VERSION = "1.0.0";
 export const ENTITY_RESOLUTION_PROFILE_VERSION = "business-location-match-profile@1.0.0";
 export const ENTITY_RESOLUTION_RULESET_VERSION = "business-entity-resolution@1.0.0";
 export const COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS = Object.freeze([
   "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0",
-  "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0",
+  "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0",
 ]);
+const REPORTING_ONLY_CHILDCARE_SOURCES = new Set(["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"]);
 
 const COMPATIBLE_REGISTRY_PUBLISHER_RANGE = `${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS[0]} through ${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.at(-1)}`;
 
@@ -149,6 +151,7 @@ function stringName(value) {
 }
 
 export function createLocationMatchProfile(record, reconciled) {
+  if (record.identity_matching_eligible === false || REPORTING_ONLY_CHILDCARE_SOURCES.has(record.provenance?.source_id)) throw new Error("Reporting-only source evidence cannot become a location match profile.");
   const site = reconciled.entities?.find((entity) => entity.entity_type === "physical_site");
   const establishment = reconciled.entities?.find((entity) => entity.entity_type === "establishment");
   if (!site && !establishment) return null;
@@ -318,6 +321,7 @@ export function resolveLocationProfiles(profiles, {
   if (!Number.isInteger(maximumReviewGroupSize) || maximumReviewGroupSize < 2) throw new Error("maximumReviewGroupSize must be at least two.");
   const profileIds = new Set();
   for (const profile of profiles) {
+    if (profile.identity_matching_eligible === false || REPORTING_ONLY_CHILDCARE_SOURCES.has(profile.source?.source_id)) throw new Error("Reporting-only source evidence is ineligible for identity resolution.");
     const matchKey = profile.normalized_address?.match_key;
     if (profile.schema_version !== ENTITY_RESOLUTION_SCHEMA_VERSION || profile.profile_version !== ENTITY_RESOLUTION_PROFILE_VERSION
       || !profile.profile_id || profileIds.has(profile.profile_id) || !/^\d{5}$/.test(profile.zip_code ?? "")
@@ -469,17 +473,50 @@ async function loadRegistryProfiles(pointerPath) {
   const artifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip")
     .sort((a, b) => a.path.localeCompare(b.path)) ?? [];
   if (artifacts.length !== 100) throw new Error(`Expected 100 registry location-profile partitions; found ${artifacts.length}.`);
+  const profilePaths = new Set();
   for (const artifact of artifacts) {
+    if (!/^resolution\/location-profiles\/zip2=\d{2}\.jsonl\.gz$/.test(artifact.path) || profilePaths.has(artifact.path)
+      || !Number.isSafeInteger(artifact.record_count) || artifact.record_count < 0) throw new Error("Invalid or duplicate registry profile partition.");
+    profilePaths.add(artifact.path);
     const filename = path.resolve(releaseDirectory, artifact.path);
     assertContained(releaseDirectory, filename, `Registry profile artifact ${artifact.path}`);
     const actual = await hashFile(filename);
     if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Registry profile artifact ${artifact.path} failed checksum validation.`);
   }
+  const reportingSites = new Set(), reportingSources = new Map([...REPORTING_ONLY_CHILDCARE_SOURCES].map(id => [id, 0]));
+  const reportingArtifacts = manifest.artifacts.filter(artifact => artifact.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE);
+  const supportsReporting = manifest.publisher.version === "2.12.0";
+  if (!supportsReporting && (reportingArtifacts.length || (manifest.coverage?.reporting_location_evidence ?? 0) !== 0)) throw new Error("Historical registry releases cannot add reporting-only locations.");
+  if (supportsReporting) {
+    const counts = manifest.coverage;
+    if (manifest.publisher.id !== "national-business-registry" || ![counts?.resolution_location_profiles, counts?.physical_sites, counts?.reporting_location_evidence,
+      counts?.ma_childcare_center_sites, counts?.nj_childcare_center_sites].every(n => Number.isSafeInteger(n) && n >= 0)) throw new Error("Invalid reporting-only registry coverage.");
+    const dependencies = manifest.dependencies?.filter(d => REPORTING_ONLY_CHILDCARE_SOURCES.has(d.dataset_id)) ?? [];
+    if (new Set(dependencies.map(d => d.dataset_id)).size !== dependencies.length) throw new Error("Duplicate childcare registry dependency.");
+    const paths = new Set();
+    for (const artifact of reportingArtifacts) {
+      const zip2 = artifact.path?.match(/^reporting\/location-evidence\/zip2=(\d{2})\/records\.jsonl\.gz$/)?.[1];
+      if (!zip2 || paths.has(artifact.path) || artifact.export_policy !== "local-review-only" || !Number.isSafeInteger(artifact.record_count)
+        || artifact.record_count < 1) throw new Error("Invalid reporting-only registry partition.");
+      paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path), actual = await hashFile(filename);
+      if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("Reporting-only registry partition failed checksum validation.");
+      const rows = await readGzipRecords(filename);
+      if (rows.length !== artifact.record_count) throw new Error("Reporting-only registry partition count mismatch.");
+      for (const row of rows) {
+        validateChildcareGeographicEvidence(row); const dependency = dependencies.find(d => d.dataset_id === row.source.source_id);
+        if (row.zip_code.slice(0, 2) !== zip2 || reportingSites.has(row.site_entity_id) || !dependency
+          || dependency.release_id !== row.evidence.release_id || dependency.manifest_sha256 !== row.evidence.manifest_sha256) throw new Error("Reporting-only registry row identity or lineage mismatch.");
+        reportingSites.add(row.site_entity_id); reportingSources.set(row.source.source_id, reportingSources.get(row.source.source_id) + 1);
+      }
+    }
+    if (reportingSites.size !== counts.reporting_location_evidence || reportingSources.get("ma-licensed-center-based-childcare") !== counts.ma_childcare_center_sites
+      || reportingSources.get("nj-licensed-childcare-centers") !== counts.nj_childcare_center_sites || dependencies.some(d => !reportingSources.get(d.dataset_id))) throw new Error("Reporting-only registry counts or dependencies do not reconcile.");
+  }
   if (artifacts.reduce((sum, artifact) => sum + artifact.record_count, 0) !== manifest.coverage?.resolution_location_profiles
-    || manifest.coverage?.resolution_location_profiles !== manifest.coverage?.physical_sites) {
+    || manifest.coverage?.resolution_location_profiles + reportingSites.size !== manifest.coverage?.physical_sites) {
     throw new Error("Registry location-profile counts do not reconcile with physical sites.");
   }
-  return { manifest, manifestSha256: sha256(manifestBuffer), releaseDirectory, artifacts };
+  return { manifest, manifestSha256: sha256(manifestBuffer), releaseDirectory, artifacts, reportingSites };
 }
 
 function releaseTimestamp(instant) {
@@ -514,7 +551,7 @@ export async function buildBusinessEntityResolution({
     const zip2 = artifact.path.match(/zip2=(\d{2})/)?.[1];
     if (!zip2) throw new Error(`Cannot determine ZIP2 partition for ${artifact.path}.`);
     const profiles = await readGzipRecords(path.join(registry.releaseDirectory, artifact.path));
-    if (profiles.length !== artifact.record_count || profiles.some((profile) => profile.zip_code.slice(0, 2) !== zip2)) {
+    if (profiles.length !== artifact.record_count || profiles.some((profile) => profile.zip_code.slice(0, 2) !== zip2 || registry.reportingSites.has(profile.site_entity_id))) {
       throw new Error(`Registry profile partition ${artifact.path} failed record validation.`);
     }
     const resolved = resolveLocationProfiles(profiles, { createdAt });

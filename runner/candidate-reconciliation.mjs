@@ -2,11 +2,12 @@ import path from "node:path";
 import process from "node:process";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, open, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, realpath, unlink, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { finished } from "node:stream/promises";
 import { APP_ROOT } from "./paths.mjs";
 import { inspectNormalizedUsPostalMigration } from "./normalized-us-postal-migration.mjs";
+import { writeReconciliationReceipt as atomic } from "./reconciliation-receipt.mjs";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const FLAG = Object.freeze({ snap:"--snap",nppes:"--nppes",fdic:"--fdic",ncua:"--ncua",fsis:"--fsis",echo:"--echo",fmcsa:"--fmcsa",irsEo:"--irs-eo",ctBusiness:"--ct-business",deBusiness:"--de-business",akBusiness:"--ak-business",coBusiness:"--co-business",waLniActiveContractors:"--wa-lni-contractors",orBusiness:"--or-business",iaBusiness:"--ia-business",nyBusiness:"--ny-business",flBusiness:"--fl-business",paBusiness:"--pa-business",laActiveBusinesses:"--la-active-businesses",txActiveSalesTax:"--tx-sales-tax",chicagoActiveBusinessLicenses:"--chicago-licenses",dcBasicBusinessLicenses:"--dc-licenses",caAbcActiveLicenses:"--ca-abc",nyRetailFoodStores:"--ny-retail-food",nycDcwpActiveLicenses:"--nyc-dcwp" });
@@ -23,7 +24,6 @@ async function existing(root,value,label){const file=inside(root,value,label);co
 async function safeAncestors(root,value,label){let current=path.resolve(value),stop=path.resolve(root);while(current!==stop){try{const actual=await realpath(current);if(path.resolve(actual)!==current)throw new Error(`${label} crosses a link or junction.`);}catch(error){if(error.code!=="ENOENT")throw error;}current=path.dirname(current);}}
 async function hashFile(file){const h=createHash("sha256");let bytes=0;for await(const c of createReadStream(file)){bytes+=c.length;h.update(c);}return{bytes,sha256:h.digest("hex")};}
 const hashJson=(value)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
-async function atomic(file,value){const temp=`${file}.tmp-${randomUUID()}`;await writeFile(temp,`${JSON.stringify(value,null,2)}\n`);await rename(temp,file);}
 async function pointerPin(root,id,pointer){const p=await existing(root,pointer,`${id} pointer`);const pb=await readFile(p);const pv=JSON.parse(pb);const m=await existing(root,path.resolve(path.dirname(p),pv.manifest??""),`${id} manifest`);const mb=await readFile(m);const mv=JSON.parse(mb);if(!pv.release_id||pv.release_id!==mv.release_id||pv.dataset_id&&pv.dataset_id!==mv.dataset_id)throw new Error(`${id} pointer and manifest identity differ.`);return{id,path:path.relative(root,p).replaceAll("\\","/"),sha256:createHash("sha256").update(pb).digest("hex"),manifestPath:path.relative(root,m).replaceAll("\\","/"),manifestSha256:createHash("sha256").update(mb).digest("hex"),datasetId:mv.dataset_id,releaseId:mv.release_id};}
 function stageArgs(root,runRoot,sources){const rel=(...p)=>path.relative(root,path.join(runRoot,...p)).replaceAll("\\","/");const registry=rel("registry","current.json"),resolution=rel("resolution","current.json"),benchmark=rel("benchmark","current.json");const registryArgs=["--output",rel("registry")];for(const s of sources)registryArgs.push(FLAG[s.sourceKey],s.pointer);return [registryArgs,[registry],["--output",rel("resolution"),"--registry",registry],[resolution],["--output",rel("benchmark"),"--resolution",resolution,"--registry",registry],[benchmark],["--output",rel("coverage"),"--registry",registry,"--resolution",resolution,"--benchmark",benchmark,"--geography",FIXED_INPUTS.geography,"--crosswalk",FIXED_INPUTS.crosswalk,"--nonemployer",FIXED_INPUTS.nonemployer],[rel("coverage","current.json")]];}
 
