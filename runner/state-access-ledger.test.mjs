@@ -82,6 +82,23 @@ test('PA reporting binding with uninstalled retained files is unavailable rather
   assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');assert.equal(cell.appHandoff.jobSubmitted,false);
 });
 
+test('MD reporting remains local, missing retained data is not zero and CT evidence is preserved',async t=>{
+  const f=await fixture(t);
+  await copyFile(path.join(APP_ROOT,'config/md-childcare-reporting-enrollment.json'),path.join(f.root,'config/md-childcare-reporting-enrollment.json'));
+  const ledger=await buildStateAccessLedger(f);
+  const cell=ledger.jurisdictions.find(r=>r.state==='MD').industries.find(r=>r.industry==='childcare');
+  assert.equal(cell.localSourceCandidateEvidence.status,'unavailable');
+  assert.equal(cell.localSourceCandidateEvidence.reason,'enrolled-receipt-not-installed');
+  assert.equal(cell.localSourceCandidateEvidence.candidateRows,undefined);
+  assert.equal(cell.localFacilityEvidence.status,'not-enrolled');
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.jobSubmitted,false);
+  assert.equal(ledger.summary.industryCells,459);
+  for(const jurisdiction of ledger.jurisdictions.filter(r=>r.state!=='MD')){
+    assert.equal(jurisdiction.industries.find(r=>r.industry==='childcare').localSourceCandidateEvidence.status,'not-enrolled');
+  }
+});
+
 test('Alaska enrollment identifies app execution without claiming a new dispatch', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
   const cell = ledger.jurisdictions.find(r => r.state === 'AK').industries.find(r => r.industry === 'local-business-licenses');

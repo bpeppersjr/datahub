@@ -495,6 +495,8 @@ Maryland center acquisition (September 8): [bounded ID-batch acquisition and imm
 
 Maryland standalone processing (September 8): [offline source-candidate normalization](MD-CHILDCARE-NORMALIZATION.md) preserves separate postal fields, nullable points, reported-state conflicts and raw provenance with exact source conservation. The [app worker](MD-CHILDCARE-APP.md) adds publisher-wide exclusion, fixed native and retained modes, independently verified child bindings and durable terminal receipts. Industry enrollment is Maryland-only and remains separate from measured national coverage. Dispatch evidence and final validation are recorded in the app document; configuration or synthetic tests alone do not establish a live download.
 
+Maryland retained reporting (September 8): the app completed its first collection independently. Offline verification confirms 1,772 accepted source candidates, no quarantine and one invalid-range ZIP gap. [Local cohort reporting](MD-CHILDCARE-REPORTING.md) adds pinned retained evidence, reported-state/ZIP grouping and explicit cohort denominators without a second download or national promotion. The publisher's February 13 cohort is not reinterpreted as September current-operation evidence.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
