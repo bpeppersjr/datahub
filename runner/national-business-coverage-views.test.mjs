@@ -8,6 +8,9 @@ import test from "node:test";
 import { createRequire } from "node:module";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
+import { gatedTransport as ohioTransport } from "./fixtures/oh-childcare-gated-transport.mjs";
+import { runOhChildcareAppJobWithTransport } from "./oh-childcare-app.mjs";
+import { loadOhChildcareGeographicInput } from "./oh-childcare-geographic-evidence.mjs";
 import {
   assignPointToCounty,
   buildNationalBusinessCoverageViews,
@@ -1025,6 +1028,90 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     for (const version of ["2.13.1", "2.14.1", "2.15.0"]) {
       tnRegistry.publisher.version = version; await writeFile(registryManifestPath, json(tnRegistry));
       await assert.rejects(buildWithReporting(`future-${version}-${allMissing}`), /Unreviewed/);
+    }
+  }
+  // A real OH state/county index and a containing polygon prove policy exclusion,
+  // rather than an accidental point outside the test geography.
+  stateIndex.push({ ...stateIndex[0], geo_id: "state:39", geoid: "39", name: "Ohio", postal_abbreviation: "OH", centroid: [-83, 40], bbox: [-84, 39, -82, 41] });
+  countyIndex.push({ ...countyIndex[0], geo_id: "county:39001", geoid: "39001", state_fips: "39", name: "Synthetic Ohio county", centroid: [-83, 40], bbox: [-84, 39, -82, 41], geometry_file: "source/counties/state=39.geojson" });
+  Object.assign(updatedGeography.artifacts[0], await writeArtifact(geographyRelease, "derived/index/states.jsonl", jsonLines(stateIndex)));
+  Object.assign(updatedGeography.artifacts[1], await writeArtifact(geographyRelease, "derived/index/counties.jsonl", jsonLines(countyIndex)));
+  updatedGeography.artifacts.push(await writeArtifact(geographyRelease, "source/counties/state=39.geojson", json({ type: "FeatureCollection", features: [polygonFeature({ GEOID: "39001" }, -84, 39, -82, 41)] }), { geography_type: "county" }));
+  await writeFile(path.join(geographyRelease, "manifest.json"), json(updatedGeography));
+  for (const mode of ["mixed", "all-missing", "with-tn", "with-tn-recovered"]) {
+    const f = await ohioTransport(({ payload }) => {
+      for (const feature of payload?.features ?? []) if (feature.attributes?.program_name) feature.attributes.zip_code = mode === "mixed" && feature.attributes.objectid === 1 ? "12345-0123" : null;
+    });
+    const app = await runOhChildcareAppJobWithTransport({ ...f.options, outputRoot: path.join(root, `oh-app-${mode}`) });
+    const input = await loadOhChildcareGeographicInput(app.receipt_path), available = mode === "mixed" ? 1 : 0;
+    const tnRows = mode === "with-tn" ? await createFreshTnReportingRows(context, { allMissing: true, zip: "12345" })
+      : mode === "with-tn-recovered" ? [1, 2, 3].map(id => createTnChildcareReportingFixture({ zip: id === 3 ? "0" : null, attributes: { OBJECTID: id }, ...(id === 3 ? { geometry: null } : {}) }).row) : [];
+    const ohRegistry = structuredClone(updatedRegistry);
+    ohRegistry.publisher = { id: "national-business-registry", version: "2.15.0" };
+    ohRegistry.oh_childcare_source = input.source; ohRegistry.tn_childcare_origin = mode === "with-tn" ? "fresh" : mode === "with-tn-recovered" ? "recovered" : null;
+    ohRegistry.dependencies = [{ dataset_id: "oh-dcy-publisher-open-childcare-centers", release_id: input.source.releaseId, manifest_sha256: input.source.manifestSha256 },
+      ...tnRows.slice(0, 1).map(row => ({ dataset_id: row.source.source_id, release_id: row.evidence.release_id, manifest_sha256: row.evidence.manifest_sha256 }))];
+    Object.assign(ohRegistry.coverage, { physical_sites: 12 + tnRows.length, establishments: 12 + tnRows.length, reporting_location_evidence: 3 + tnRows.length,
+      ma_childcare_center_sites: 0, nj_childcare_center_sites: 0, oh_childcare_center_sites: 3, oh_childcare_center_sites_with_zip: available,
+      oh_childcare_center_sites_without_zip: 3 - available, oh_childcare_missing_zip_reasons: input.quality.zip_unavailable_reasons,
+      reporting_location_evidence_without_zip: 3 - available + tnRows.length });
+    if (tnRows.length) Object.assign(ohRegistry.coverage, { tn_childcare_center_sites: 3, tn_childcare_center_sites_with_zip: 0, tn_childcare_center_sites_without_zip: 3,
+      tn_childcare_missing_zip_reasons: { "missing-source-zip": 2, "invalid-source-zip-placeholder": 1 } });
+    const ohZips = structuredClone(zipRows);
+    for (const row of ohZips) {
+      delete row.source_contributions.ma_childcare_centers; delete row.source_contributions.nj_childcare_centers;
+      row.registry_coverage.ma_childcare_center_site_count = 0; row.registry_coverage.nj_childcare_center_site_count = 0;
+      row.registry_coverage.oh_childcare_center_site_count = row.zip_code === "12345" ? available : 0;
+      if (tnRows.length) row.registry_coverage.tn_childcare_center_site_count = 0;
+      if (available) row.source_contributions.oh_childcare_centers = { reported_center_count: row.registry_coverage.oh_childcare_center_site_count,
+        source_release_id: input.source.sourceReleaseId, observed_at: input.source.observedAt, record_level_distribution: "local-review-only", active_business_verified: false };
+    }
+    ohZips[0].registry_coverage.physical_site_count = 9 + available; ohZips[0].registry_coverage.establishment_count = 9 + available;
+    ohRegistry.artifacts = ohRegistry.artifacts.filter(a => a.artifact_type !== "business-reporting-location-evidence-jsonl-gzip");
+    Object.assign(ohRegistry.artifacts[0], await writeArtifact(registryRelease, "derived/zip-coverage.jsonl", jsonLines(ohZips), { artifact_type: "registry-zip-coverage-jsonl", record_count: ohZips.length }));
+    for (const [partition, rows] of Map.groupBy([...input.rows, ...tnRows], row => row.zip_code?.slice(0, 2) ?? "unassigned")) ohRegistry.artifacts.push(await writeArtifact(registryRelease,
+      `reporting/location-evidence/zip2=${partition}/records.jsonl.gz`, gzipSync(jsonLines(rows)), { artifact_type: "business-reporting-location-evidence-jsonl-gzip", record_count: rows.length, export_policy: "local-review-only" }));
+    await writeFile(registryManifestPath, json(ohRegistry));
+    const built = await buildWithReporting(`oh-${mode}`), target = path.join(built.releaseDirectory, "manifest.json");
+    await verifyNationalBusinessCoverageViewsRelease(target);
+    assert.equal(built.manifest.publisher.version, "2.11.0");
+    assert.equal(built.manifest.coverage.location_profiles_assessed, 9);
+    assert.equal(built.manifest.coverage.oh_childcare_reporting.valid_points, 1);
+    assert.equal(built.manifest.coverage.oh_childcare_reporting.missing_points, 2);
+    assert.equal(built.manifest.coverage.oh_childcare_coordinate_assigned, 0);
+    const rowsFor = async name => (await readFile(path.join(built.releaseDirectory, `views/${name}.jsonl`), "utf8")).trimEnd().split("\n").map(JSON.parse);
+    assert.equal((await rowsFor("states")).find(r => r.state_fips === "39").registry_evidence.oh_childcare_reporting.records, 3);
+    assert.ok((await rowsFor("counties")).every(r => (r.registry_evidence.source_profile_counts["oh-dcy-publisher-open-childcare-centers"] ?? 0) === 0));
+    const original = await readFile(target);
+    for (const change of [m => { m.publisher.version = "2.11.1"; }, m => { m.coverage.oh_childcare_coordinate_assigned = 1; }, m => { m.tn_childcare_origin = "bogus"; }]) {
+      const m = JSON.parse(original); change(m); await writeFile(target, json(m)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target));
+    }
+    await writeFile(target, original);
+    const ohRequire = createRequire(import.meta.url);
+    const ohAjv = createRequire(ohRequire.resolve("ajv-formats/package.json"))("ajv/dist/2020.js").default;
+    const validateOhGap = new ohAjv({ strict: false }).compile(JSON.parse(await readFile(new URL("../config/schemas/business-coverage-gap.schema.json", import.meta.url), "utf8")));
+    for (const gap of await rowsFor("coverage-gaps")) assert.equal(validateOhGap(gap), true, JSON.stringify(validateOhGap.errors));
+    const declarationPath = path.join(built.releaseDirectory, "evidence/registry-manifest.json"), declarationRaw = await readFile(declarationPath);
+    for (const kind of ["publisher", "tn-roster"]) {
+      const declaration = JSON.parse(declarationRaw), m = JSON.parse(original);
+      if (kind === "publisher") declaration.publisher.id = "forged";
+      else declaration.dependencies.push({ dataset_id: "tn-dhs-active-childcare-centers", release_id: "forged", manifest_sha256: "a".repeat(64) });
+      const bytes = Buffer.from(json(declaration)), a = m.artifacts.find(a => a.artifact_type === "retained-registry-manifest-json");
+      a.bytes = bytes.length; a.sha256 = sha256(bytes); m.dependencies.find(d => d.dataset_id === "national-business-registry").manifest_sha256 = a.sha256;
+      await writeFile(declarationPath, bytes); await writeFile(target, json(m)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target));
+      await writeFile(declarationPath, declarationRaw); await writeFile(target, original);
+    }
+    for (const name of ["states", "counties", "sources", "coverage-gaps", ...(available ? ["zips"] : [])]) {
+      const file = path.join(built.releaseDirectory, `views/${name}.jsonl`), raw = await readFile(file), rows = await rowsFor(name);
+      if (name === "states") rows.find(r => r.state_fips === "39").registry_evidence.oh_childcare_reporting.records++;
+      if (name === "counties") rows.find(r => r.state_fips === "39").registry_evidence.source_profile_counts["oh-dcy-publisher-open-childcare-centers"] = 1;
+      if (name === "sources") rows.find(r => r.source_key === "oh_childcare_centers").location_profile_geography.coordinate_present_valid_count--;
+      if (name === "zips") rows.find(r => r.source_contributions.oh_childcare_centers).source_contributions.oh_childcare_centers.record_level_distribution = "public";
+      if (name === "coverage-gaps") rows.splice(rows.findIndex(r => r.gap_id === "gap:oh-childcare-geographic-assignment-ineligible"), 1);
+      const m = JSON.parse(original), bytes = Buffer.from(jsonLines(rows)), a = m.artifacts.find(a => a.path === `views/${name}.jsonl`);
+      a.bytes = bytes.length; a.sha256 = sha256(bytes); a.record_count = rows.length;
+      await writeFile(file, bytes); await writeFile(target, json(m)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target));
+      await writeFile(file, raw); await writeFile(target, original);
     }
   }
 });
