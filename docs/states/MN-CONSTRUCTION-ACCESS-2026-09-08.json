@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "assessment_id": "mn-dli-construction-download-candidate-2026-09-08",
+  "state_abbreviation": "MN",
+  "industry": "construction",
+  "publisher": "Minnesota Department of Labor and Industry, Construction Codes and Licensing Division",
+  "decision": "metadata-confirmed-download-candidate-not-enrolled",
+  "observed_on": "2026-09-08",
+  "documentation": {
+    "download_landing": "https://dli.mn.gov/license-and-registration-lookup",
+    "disclaimer": "https://dli.mn.gov/about-department/about-dli/disclaimer",
+    "credential_semantics": "https://www.dli.mn.gov/business/residential-contractors/residential-contractor-faqs",
+    "registration_distinction": "https://www.dli.mn.gov/workers/homeowners/tips-hiring-contractor"
+  },
+  "observations": [
+    {
+      "url": "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Contractor_Registrations.csv",
+      "observed_at": "2026-09-08T10:23:36.956Z",
+      "method": "HEAD",
+      "redirect_policy": "error",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "4408602",
+        "last-modified": "Mon, 07 Sep 2026 08:50:00 GMT",
+        "etag": "\"0aca3dda53edd1:0\"",
+        "accept-ranges": "bytes"
+      },
+      "body_read": false
+    },
+    {
+      "url": "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Residential_Contractors.csv",
+      "observed_at": "2026-09-08T10:23:38.109Z",
+      "method": "HEAD",
+      "redirect_policy": "error",
+      "status": 200,
+      "headers": {
+        "content-type": "application/octet-stream",
+        "content-length": "12185026",
+        "last-modified": "Mon, 07 Sep 2026 09:32:00 GMT",
+        "etag": "\"028adbbab3edd1:0\"",
+        "accept-ranges": "bytes"
+      },
+      "body_read": false
+    }
+  ],
+  "evidence_scope": "Transcribed direct HEAD observations and official documentation review; not archived HTTP exchanges, CSV schema inspection, data-body verification or acquisition evidence.",
+  "claims": {
+    "export_bodies_requested": 0,
+    "business_rows_retained": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "source_record_count": null,
+    "unique_business_count": null,
+    "schema_verified": false,
+    "address_role_verified": false,
+    "credential_to_business_mapping_verified": false,
+    "geocodes_available_verified": false,
+    "connector_ready": false,
+    "scheduled": false,
+    "national_reporting_integrated": false,
+    "public_export_authorized": false,
+    "legal_approval": false
+  },
+  "next_action": "Implement a bounded header-only prerequisite against the fixed publisher-linked exports, without retaining records; bind complete current use notices, then review an exact privacy-selected business credential schema before native acquisition enrollment.",
+  "preserved_assessments": [
+    "Minnesota SOS Queue 8 hold is unchanged.",
+    "Minnesota MDA food-license transition and location-contract assessment is unchanged."
+  ]
+}
