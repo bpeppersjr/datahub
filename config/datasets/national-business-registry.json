@@ -52,7 +52,7 @@
     "identity_matching_eligible": false,
     "production_cli_enrolled": false,
     "national_reporting_promoted": false,
-    "remaining_gates": ["coverage, map and export exact-version migration", "production planner and CLI enrollment", "verified production run and exact source reassessment"]
+    "remaining_gates": ["export exact-version migration", "production planner and CLI enrollment", "verified production run and exact source reassessment"]
   },
   "implemented_source_layers": [
     {

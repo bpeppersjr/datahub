@@ -10,6 +10,7 @@ import test from "node:test";
 import { createBusinessMapStore } from "./business-map-store.mjs";
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
+import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
 
 function json(value) {
   return `${JSON.stringify(value)}\n`;
@@ -253,7 +254,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     const stateFile = path.join(geographyRelease, "derived/index/states.jsonl"), stateRows = (await readFile(stateFile, "utf8")).trim().split("\n").map(JSON.parse);
     stateRows[0].postal_abbreviation = "TN"; await writeFile(stateFile, stateRows.map(json).join(""));
     const registryFile = path.join(registryRelease, "manifest.json"), registry = JSON.parse(await readFile(registryFile, "utf8"));
-    registry.publisher = { id: registryPublisher, version: "2.13.0" };
+    registry.publisher = { id: registryPublisher, version: tnVersion === "2.10.0" ? "2.14.0" : "2.13.0" };
     registry.dependencies = [{ dataset_id: "tn-dhs-active-childcare-centers", release_id: tnRows[0].evidence.release_id, manifest_sha256: tnRows[0].evidence.manifest_sha256 }];
     for (const [partition, rows] of Map.groupBy(tnRows, row => row.zip_code?.slice(0, 2) ?? "unassigned")) {
       const relative = `reporting/location-evidence/zip2=${partition}/records.jsonl.gz`, file = path.join(registryRelease, relative), bytes = gzipSync(rows.map(json).join(""));
@@ -263,13 +264,14 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     await writeFile(registryFile, json(registry));
     const coverageFile = path.join(coverageRelease, "manifest.json"), coverage = JSON.parse(await readFile(coverageFile, "utf8"));
     coverage.publisher = { id: coveragePublisher, version: tnVersion }; coverage.coverage = { tn_childcare_reporting: stats(tnRows) }; coverage.lineage = { registry_release_id: registry.release_id };
-    coverage.dependencies = [{ dataset_id: "national-business-registry", release_id: registry.release_id, manifest_sha256: createHash("sha256").update(json(registry)).digest("hex") }];
+    coverage.dependencies = [{ dataset_id: "national-business-registry", publisher_version: registry.publisher.version, release_id: registry.release_id, manifest_sha256: createHash("sha256").update(json(registry)).digest("hex") }];
     for (const artifact of coverage.artifacts) {
       const bytes = await readFile(path.join(coverageRelease, artifact.path));
       artifact.bytes = bytes.length; artifact.sha256 = createHash("sha256").update(bytes).digest("hex");
     }
+    if (coverageTamper === "registry-pair") coverage.dependencies[0].publisher_version = "2.13.0";
     await writeFile(coverageFile, json(coverage));
-    if (coverageTamper) {
+    if (coverageTamper && coverageTamper !== "registry-pair") {
       const target = path.join(coverageRelease, `views/${coverageTamper}.jsonl`), bytes = await readFile(target);
       await writeFile(target, Buffer.concat([bytes, Buffer.from(" ")]));
     }
@@ -283,13 +285,13 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
 }
 
 test("TN missing ZIP names and source evidence remain in state shares without inferred ZIP maps", async context => {
-  for (const allMissing of [false, true]) {
-    const tnRows = [
+  for (const fresh of [false, true]) for (const allMissing of [false, true]) {
+    const tnRows = fresh ? await createFreshTnReportingRows(context, { allMissing }) : [
       createTnChildcareReportingFixture({ zip: allMissing ? null : "12345-0123" }).row,
       createTnChildcareReportingFixture({ zip: null, attributes: { OBJECTID: 2, Street_Address_2: "Suite 200" } }).row,
       createTnChildcareReportingFixture({ zip: "0", attributes: { OBJECTID: 3 }, geometry: null }).row,
     ];
-    const store = await fixture(context, { tnRows });
+    const store = await fixture(context, { tnRows, tnVersion: fresh ? "2.10.0" : "2.9.0" });
     const summary = await store.getStateSummary();
     assert.equal(summary.national_category_counts.childcare, 3);
     assert.equal(summary.national_all_category_evidence_count, 8);
@@ -314,6 +316,13 @@ test("TN missing ZIP names and source evidence remain in state shares without in
 });
 
 test("TN name retrieval rejects private payloads, future coverage and matching-profile pollution", async context => {
+  const freshRows = await createFreshTnReportingRows(context, { allMissing: true });
+  const wrongDependency = await fixture(context, { tnRows: freshRows, tnVersion: "2.10.0", coverageTamper: "registry-pair" });
+  await assert.rejects(wrongDependency.getCatalog(), /exact registry/);
+  const crossed = await fixture(context, { tnRows: freshRows });
+  await assert.rejects(crossed.listStateBusinessNames({ stateFips: "01" }));
+  const crossedRecovered = await fixture(context, { tnRows: [createTnChildcareReportingFixture({ zip: null }).row], tnVersion: "2.10.0" });
+  await assert.rejects(crossedRecovered.listStateBusinessNames({ stateFips: "01" }));
   const row = createTnChildcareReportingFixture({ zip: null }).row;
   const privateRow = structuredClone(row); privateRow.evidence.private_contact = "excluded";
   const invalid = await fixture(context, { tnRows: [privateRow] });

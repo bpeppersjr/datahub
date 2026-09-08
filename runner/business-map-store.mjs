@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 import { createGunzip, gunzipSync } from "node:zlib";
 import { APP_ROOT } from "./paths.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
-import { validateTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 
@@ -480,8 +480,12 @@ export function createBusinessMapStore({
   const geometryCache = new Map();
 
   async function buildIndex(coverage, geography, gdp) {
-    const tnCoverage = coverage.manifest.publisher?.version === "2.9.0";
+    const tnCoverage = ["2.9.0", "2.10.0"].includes(coverage.manifest.publisher?.version);
     if (tnCoverage && coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN map coverage publisher identity differs.");
+    if (coverage.manifest.publisher?.version === "2.10.0") {
+      const registryPins = coverage.manifest.dependencies?.filter(d => d.dataset_id === "national-business-registry") ?? [];
+      if (registryPins.length !== 1 || registryPins[0].publisher_version !== "2.14.0") throw new Error("Fresh TN map requires exact registry 2.14 and coverage 2.10 pairing.");
+    }
     async function readCoverage(file, visitor) {
       if (!tnCoverage) return readJsonLines(file, visitor);
       const artifacts = coverage.manifest.artifacts.filter(item => path.resolve(coverage.releaseDirectory, item.path) === file);
@@ -629,7 +633,7 @@ export function createBusinessMapStore({
       }
     });
     const totals = coverage.manifest.coverage?.tn_childcare_reporting;
-    if (totals && !tnCoverage) throw new Error("TN map reporting requires exact coverage 2.9.0.");
+    if (totals && !tnCoverage) throw new Error("TN map reporting requires exact coverage 2.9.0 recovered or 2.10.0 fresh.");
     if (tnCoverage) {
       const validate = value => {
         if (!value || ![value.records, value.with_zip, value.without_zip, value.missing_points, ...Object.values(value.missing_zip_reasons ?? {})].every(n => Number.isSafeInteger(n) && n >= 0)
@@ -758,13 +762,13 @@ export function createBusinessMapStore({
         const geoid = String(feature.properties?.GEOID ?? "");
         return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "state",
-          scope_assignment: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
+          scope_assignment: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
           ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
           ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
       });
       meta = {
-        assignment_semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
+        assignment_semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
@@ -780,14 +784,14 @@ export function createBusinessMapStore({
         return decorate(feature, index.countyAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "county",
           state_fips: state,
-          scope_assignment: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
+          scope_assignment: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
           ...nonemployerProperties(index.countyCoverage.get(geoid), "county"),
           ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
       });
       meta = {
         state_fips: state,
-        assignment_semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
+        assignment_semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.county.ambiguous,
         excluded_unmatched_zip_count: index.excluded.county.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.county.ambiguous_business_evidence,
@@ -920,7 +924,7 @@ export function createBusinessMapStore({
       },
       states,
       assignment: {
-        semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
+        semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
         percentage_semantics: "Category shares are null when their denominator is zero or unavailable; a numeric zero means a measured zero numerator over a positive denominator.",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
@@ -978,8 +982,9 @@ export function createBusinessMapStore({
       if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
         if (row.source?.source_id === TN_SOURCE) {
-          validateTnChildcareGeographicEvidence(row);
-          if (registry.manifest.publisher?.version !== "2.13.0" || index.coverage.manifest.publisher?.version !== "2.9.0") throw new Error("TN names require registry 2.13 and coverage 2.9.");
+          const freshTn = index.coverage.manifest.publisher?.version === "2.10.0";
+          if (registry.manifest.publisher?.version !== (freshTn ? "2.14.0" : "2.13.0") || !["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version)) throw new Error("TN names require the exact registry/coverage pair: recovered 2.13/2.9 or fresh 2.14/2.10.");
+          (freshTn ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row);
           if (registry.manifest.publisher.id !== "national-business-registry" || index.coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN names publisher identity differs.");
           const registryPins = index.coverage.manifest.dependencies?.filter(item => item.dataset_id === "national-business-registry") ?? [];
           if (registryPins.length !== 1 || registryPins[0].release_id !== registry.manifest.release_id || registryPins[0].manifest_sha256 !== registry.manifestSha256) throw new Error("TN names registry differs from pinned coverage dependency.");

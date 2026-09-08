@@ -11,11 +11,12 @@ import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
-import { validateTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
 export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.8.0";
 export const TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.9.0";
+export const TN_FRESH_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.10.0";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const TN_KEY = "tn_childcare_centers";
 function emptyTnReporting() {
@@ -721,12 +722,13 @@ export async function buildNationalBusinessCoverageViews({
     resolveDataset(benchmarkPointerPath, "national-business-entity-resolution-benchmark"),
     resolveDataset(nonemployerPointerPath, "census-nonemployer-baseline"),
   ]);
-  const tnSupported = registry.manifest.publisher?.version === "2.13.0";
+  const tnFresh = registry.manifest.publisher?.version === "2.14.0";
+  const tnSupported = registry.manifest.publisher?.version === "2.13.0" || tnFresh;
   if (versionAtLeast(registry.manifest.publisher?.version, "2.13.0") && !tnSupported) throw new Error("Unreviewed registry publisher version for coverage.");
   const tnDependencies = registry.manifest.dependencies?.filter(row => row.dataset_id === TN_SOURCE) ?? [];
   const tnDependency = tnDependencies[0];
   if (tnDependencies.length !== Number(tnSupported)) throw new Error("TN reporting requires exact registry 2.13 and retained source dependency.");
-  const transformationVersion = tnSupported ? TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION : COVERAGE_VIEWS_TRANSFORMATION_VERSION;
+  const transformationVersion = tnFresh ? TN_FRESH_COVERAGE_VIEWS_TRANSFORMATION_VERSION : tnSupported ? TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION : COVERAGE_VIEWS_TRANSFORMATION_VERSION;
   const tnTotal = emptyTnReporting(), tnStates = new Map(), tnCounties = new Map();
   let tnCoordinateAssigned = 0;
   if (!geography.manifest.complete_national_release || !crosswalk.manifest.complete_national_release) {
@@ -868,7 +870,7 @@ export async function buildNationalBusinessCoverageViews({
     for await (const row of verifiedRows ?? streamGzipJsonLines(artifactPath(registry, artifact))) {
       if (row.source?.source_id === TN_SOURCE) {
         if (!tnSupported) throw new Error("TN reporting requires registry 2.13.");
-        validateTnChildcareGeographicEvidence(row);
+        (tnFresh ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row);
         const zip2 = row.zip_code?.slice(0, 2) ?? "unassigned";
         if (artifact.path !== `reporting/location-evidence/zip2=${zip2}/records.jsonl.gz` || artifact.export_policy !== "local-review-only"
           || row.evidence.release_id !== tnDependency.release_id || row.evidence.manifest_sha256 !== tnDependency.manifest_sha256) throw new Error("TN reporting partition or dependency differs.");
@@ -1554,8 +1556,8 @@ export async function buildNationalBusinessCoverageViews({
       absence: "no integrated source evidence is not evidence of no active business",
     },
     limitations: [
-      ...(tnSupported ? ["TN DHS recovered childcare source rows remain local-review-only, reporting-only and not verified operating businesses. Missing source ZIPs remain unassigned to ZIP/ZCTA while reported state and valid point-derived county evidence are retained. Original source observation is not refreshed by recovery or coverage publication.",
-        "The retained registry manifest binds TN counts and source dependency declarations to the recorded hash; this is not a fresh scan or replay of the registry's full assertions or underlying recovered acquisition."] : []),
+      ...(tnSupported ? [tnFresh ? "TN DHS fresh childcare source rows remain local-review-only, reporting-only and not verified operating businesses. Missing source ZIPs remain unassigned to ZIP/ZCTA while reported state and valid point-derived county evidence are retained. Coverage publication does not refresh the source observation or invent processing or recovery timestamps." : "TN DHS recovered childcare source rows remain local-review-only, reporting-only and not verified operating businesses. Missing source ZIPs remain unassigned to ZIP/ZCTA while reported state and valid point-derived county evidence are retained. Original source observation is not refreshed by recovery or coverage publication.",
+        tnFresh ? "The retained registry manifest binds TN counts and source dependency declarations to the recorded hash; this is not a fresh scan or replay of the registry's full assertions or underlying ordinary acquisition." : "The retained registry manifest binds TN counts and source dependency declarations to the recorded hash; this is not a fresh scan or replay of the registry's full assertions or underlying recovered acquisition."] : []),
       "MA/NJ childcare rows contribute separately counted reporting-only geographic evidence, never identity-matching candidates. Geographic profile-compatible fields include both evidence classes; location_profiles_assessed and coordinate_assigned_profiles retain matching-only totals. Neither class is a deduplicated or independently verified active-business count.",
       "MassGIS/EEC center-based childcare and NJDEP/DCF licensed centers have different source scopes, including NJ public-school facilities. Their shares are not comparable completeness percentages. Record-level childcare evidence remains local-review-only; NJ publisher metadata and prescribed notices remain mandatory for any separately authorized distribution.",
       "This is a partial governed coverage view, not a complete census of active U.S. businesses.",
@@ -1618,7 +1620,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   if (manifest.dataset_id !== "national-business-coverage-views") throw new Error(`Unexpected dataset_id ${manifest.dataset_id ?? "missing"}.`);
   if (manifest.publisher?.id !== "national-business-coverage-views"
-    || !["2.7.0", "2.8.0", "2.9.0"].includes(manifest.publisher?.version)) {
+    || !["2.7.0", "2.8.0", "2.9.0", "2.10.0"].includes(manifest.publisher?.version)) {
     throw new Error(`Unexpected publisher version ${manifest.publisher?.version ?? "missing"}.`);
   }
   if (manifest.status !== "published-partial-local-aggregate") throw new Error(`Unexpected release status ${manifest.status ?? "missing"}.`);
@@ -1684,7 +1686,8 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   ];
   for (const type of expectedTypes) if (!artifacts.has(type)) throw new Error(`Missing ${type} artifact.`);
   const coverage = manifest.coverage;
-  const tnSupported = manifest.publisher.version === "2.9.0";
+  const tnFresh = manifest.publisher.version === "2.10.0";
+  const tnSupported = manifest.publisher.version === "2.9.0" || tnFresh;
   const tnTotal = tnSupported ? checkTnReporting(coverage.tn_childcare_reporting) : emptyTnReporting();
   if (!tnSupported && ["tn_childcare_reporting", "tn_childcare_coordinate_assigned", "tn_childcare_without_county_assignment"].some(key => Object.hasOwn(coverage, key))) throw new Error("TN accounting requires coverage 2.9.");
   if (tnSupported && (!tnTotal.records || !Number.isSafeInteger(coverage.tn_childcare_coordinate_assigned) || coverage.tn_childcare_coordinate_assigned < 0
@@ -1881,21 +1884,22 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   if (sourceCoordinateAssignedTotal !== profileSummary.coordinate_assigned_single_count) throw new Error("Source-view coordinate counts do not reconcile to the profile summary.");
   const registryDependency = manifest.dependencies.find((dependency) => dependency.dataset_id === "national-business-registry");
   if (!registryDependency) throw new Error("Registry dependency is missing.");
-  if (tnSupported !== (registryDependency.publisher_version === "2.13.0")) throw new Error("TN coverage version and registry dependency differ.");
+  if (tnSupported !== (["2.13.0", "2.14.0"].includes(registryDependency.publisher_version))
+    || tnSupported && registryDependency.publisher_version !== (tnFresh ? "2.14.0" : "2.13.0")) throw new Error("TN coverage version and registry dependency differ.");
   if (tnSupported) {
     const artifact = artifacts.get("retained-registry-manifest-json");
     if (!artifact || artifact.path !== "evidence/registry-manifest.json" || artifact.bytes > 4_000_000 || artifact.export_policy !== "internal" || artifact.sha256 !== registryDependency.manifest_sha256) throw new Error("TN retained registry declaration differs from dependency.");
     const declared = JSON.parse(await readFile(path.join(releaseDirectory, artifact.path), "utf8"));
     const counts = declared.coverage;
     if (declared.dataset_id !== registryDependency.dataset_id || declared.release_id !== registryDependency.release_id
-      || declared.publisher?.version !== "2.13.0" || declared.publisher.id !== "national-business-registry" || declared.status !== "published-partial" || declared.complete_national_business_registry !== false
+      || declared.publisher?.version !== (tnFresh ? "2.14.0" : "2.13.0") || declared.publisher.id !== "national-business-registry" || declared.status !== "published-partial" || declared.complete_national_business_registry !== false
       || counts?.tn_childcare_center_sites !== tnTotal.records || counts.tn_childcare_center_sites_with_zip !== tnTotal.with_zip
       || counts.tn_childcare_center_sites_without_zip !== tnTotal.without_zip || counts.reporting_location_evidence_without_zip !== tnTotal.without_zip
       || !isDeepStrictEqual(counts.tn_childcare_missing_zip_reasons, tnTotal.missing_zip_reasons)
       || counts.resolution_location_profiles !== coverage.location_profiles_assessed || counts.reporting_location_evidence !== coverage.reporting_only_locations_assessed
       || counts.physical_sites !== coverage.geographic_evidence_assessed) throw new Error("TN totals differ from retained registry declaration.");
     const sourceDeclarations = declared.dependencies?.filter(row => row.dataset_id === TN_SOURCE) ?? [];
-    if (sourceDeclarations.length !== 1 || !/^tn-childcare-recovered-[a-f0-9-]{36}$/.test(sourceDeclarations[0].release_id ?? "")
+    if (sourceDeclarations.length !== 1 || !(tnFresh ? /^tn-childcare-[a-f0-9-]{36}$/ : /^tn-childcare-recovered-[a-f0-9-]{36}$/).test(sourceDeclarations[0].release_id ?? "")
       || !/^[a-f0-9]{64}$/.test(sourceDeclarations[0].manifest_sha256 ?? "")
       || !isDeepStrictEqual(sourceDeclarations[0], tnSourceDeclaration)) throw new Error("TN source declaration differs from retained registry dependency.");
     const countyTotals = sumTnReporting(tnCountyTotals);

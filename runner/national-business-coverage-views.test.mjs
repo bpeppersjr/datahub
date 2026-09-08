@@ -7,6 +7,7 @@ import path from "node:path";
 import test from "node:test";
 import { createRequire } from "node:module";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
+import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
 import {
   assignPointToCounty,
   buildNationalBusinessCoverageViews,
@@ -912,15 +913,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   await writeFile(path.join(registryRelease, reportingArtifact.path), gzipSync(jsonLines(reportingRows)));
   await assert.rejects(buildWithReporting("invalid-reporting-coverage"), /reporting-only childcare/);
   // TN's ZIP-null rows remain geographic evidence, including when every row lacks ZIP.
-  for (const allMissing of [false, true]) {
-    const tnRows = [
+  for (const fresh of [false, true]) for (const allMissing of [false, true]) {
+    const tnRows = fresh ? await createFreshTnReportingRows(context, { allMissing, zip: "12345" }) : [
       createTnChildcareReportingFixture({ zip: allMissing ? null : "12345", attributes: { OBJECTID: 1 } }).row,
       createTnChildcareReportingFixture({ zip: null, attributes: { OBJECTID: 2 } }).row,
       createTnChildcareReportingFixture({ zip: "0", attributes: { OBJECTID: 3 }, geometry: null }).row,
     ];
     const missing = allMissing ? 3 : 2, available = 3 - missing;
     const tnRegistry = structuredClone(updatedRegistry);
-    tnRegistry.publisher = { id: "national-business-registry", version: "2.13.0" };
+    tnRegistry.publisher = { id: "national-business-registry", version: fresh ? "2.14.0" : "2.13.0" };
     tnRegistry.dependencies = [{ dataset_id: "tn-dhs-active-childcare-centers", release_id: tnRows[0].evidence.release_id, manifest_sha256: tnRows[0].evidence.manifest_sha256 }];
     tnRegistry.artifacts = tnRegistry.artifacts.filter(a => a.artifact_type !== "business-reporting-location-evidence-jsonl-gzip");
     Object.assign(tnRegistry.coverage, { physical_sites: 12, establishments: 12, reporting_location_evidence: 3, ma_childcare_center_sites: 0, nj_childcare_center_sites: 0,
@@ -950,9 +951,15 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     Object.assign(updatedGeography.artifacts[3], await writeArtifact(geographyRelease, "source/counties/state=01.geojson",
       json({ type: "FeatureCollection", features: [polygonFeature({ GEOID: "01001" }, -87, 35, -86, 37)] }), { geography_type: "county" }));
     await writeFile(path.join(geographyRelease, "manifest.json"), json(updatedGeography));
-    const built = await buildWithReporting(`tn-${allMissing}`), target = path.join(built.releaseDirectory, "manifest.json");
+    const built = await buildWithReporting(`tn-${fresh}-${allMissing}`), target = path.join(built.releaseDirectory, "manifest.json");
     await verifyNationalBusinessCoverageViewsRelease(target);
-    assert.equal(built.manifest.publisher.version, "2.9.0");
+    assert.equal(built.manifest.publisher.version, fresh ? "2.10.0" : "2.9.0");
+    const originalVersion = tnRegistry.publisher.version;
+    for (const version of [fresh ? "2.13.0" : "2.14.0", "2.15.0"]) {
+      tnRegistry.publisher.version = version; await writeFile(registryManifestPath, json(tnRegistry));
+      await assert.rejects(buildWithReporting(`tn-invalid-version-${fresh}-${allMissing}-${version}`));
+    }
+    tnRegistry.publisher.version = originalVersion; await writeFile(registryManifestPath, json(tnRegistry));
     assert.equal(built.manifest.coverage.location_profiles_assessed, 9);
     assert.equal(built.manifest.coverage.tn_childcare_reporting.without_zip, missing);
     assert.equal(built.manifest.coverage.tn_childcare_coordinate_assigned, 2);
@@ -971,6 +978,10 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     for (const gap of await readRows("coverage-gaps")) assert.equal(validateGap(gap), true, JSON.stringify(validateGap.errors));
     const clean = await readFile(target), bad = JSON.parse(clean); bad.coverage.tn_childcare_reporting.without_zip--;
     await writeFile(target, json(bad)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target), /TN/); await writeFile(target, clean);
+    for (const mutate of [m => { m.publisher.version = fresh ? "2.9.0" : "2.10.0"; }, m => { m.publisher.version = "2.10.1"; }, m => { m.dependencies.find(d => d.dataset_id === "national-business-registry").publisher_version = fresh ? "2.13.0" : "2.14.0"; }]) {
+      const candidate = JSON.parse(clean); mutate(candidate); await writeFile(target, json(candidate));
+      await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target)); await writeFile(target, clean);
+    }
     // Rehashed output corruption must not pass aggregate-only self consistency.
     for (const [name, mutate] of [
       ["states", rows => { rows[0].registry_evidence.tn_childcare_reporting.records++; }],
@@ -998,18 +1009,20 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     tnRegistry.dependencies.push(tnRegistry.dependencies[0]); await writeFile(registryManifestPath, json(tnRegistry));
     await assert.rejects(buildWithReporting(`duplicate-${allMissing}`), /dependency/); tnRegistry.dependencies.pop();
     const declarationPath = path.join(built.releaseDirectory, "evidence/registry-manifest.json"), declarationBytes = await readFile(declarationPath);
-    for (const kind of ["dependency", "status", "counts"]) {
+    for (const kind of ["dependency", "status", "counts", "version", "origin"]) {
       const declaration = JSON.parse(declarationBytes), manifest = JSON.parse(clean);
       if (kind === "dependency") declaration.dependencies = [];
       if (kind === "status") declaration.status = "unverified";
       if (kind === "counts") declaration.coverage.tn_childcare_center_sites++;
+      if (kind === "version") declaration.publisher.version = fresh ? "2.13.0" : "2.14.0";
+      if (kind === "origin") declaration.dependencies[0].release_id = fresh ? "tn-childcare-recovered-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" : "tn-childcare-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
       const bytes = Buffer.from(json(declaration)), artifact = manifest.artifacts.find(a => a.artifact_type === "retained-registry-manifest-json");
       artifact.bytes = bytes.length; artifact.sha256 = sha256(bytes);
       manifest.dependencies.find(d => d.dataset_id === "national-business-registry").manifest_sha256 = artifact.sha256;
       await writeFile(declarationPath, bytes); await writeFile(target, json(manifest)); await assert.rejects(verifyNationalBusinessCoverageViewsRelease(target), /TN/);
       await writeFile(declarationPath, declarationBytes); await writeFile(target, clean);
     }
-    for (const version of ["2.13.1", "2.14.0"]) {
+    for (const version of ["2.13.1", "2.14.1", "2.15.0"]) {
       tnRegistry.publisher.version = version; await writeFile(registryManifestPath, json(tnRegistry));
       await assert.rejects(buildWithReporting(`future-${version}-${allMissing}`), /Unreviewed/);
     }
