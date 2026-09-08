@@ -24,6 +24,7 @@ Ten observations replay successfully: 4,237 publisher-open center rows, 102 Inac
 
 ## Remaining acquisition work
 
+- Follow-up [notice/XML availability review](states/OH-CHILDCARE-NOTICES-2026-09-08.md) confirms unchanged retained item notice strings, explicit XML errors and unavailable linked department notices. The new `oh-childcare-local-review@1.0.0` development policy fixes scope without granting live acquisition. The map includes rated and unrated programs; do not label this cohort SUTQ-rated-only. Earlier preflight receipts remain unchanged.
 - Review complete available linked notices and retain explicit XML availability evidence; bind a source-use policy. Missing XML by itself is not a permanent universal prohibition, but this partial metadata check is not policy approval.
 - Implement bounded deterministic ID/page acquisition, before/after reconciliation, validated publisher-returned WGS84 points, source-native retention, normalization with separate ZIP5/ZIP4, temporal provenance, quarantine and independent immutable-release replay.
 - Enroll the validated connector in Co*Tive with a persisted operation ID and receipt. The app owns routine downloads/refreshes. Do not occupy an agent with progress polling or repull retained data for promotion.

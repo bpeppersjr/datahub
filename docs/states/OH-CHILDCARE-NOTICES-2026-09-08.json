@@ -1,0 +1,40 @@
+{
+  "kind": "bounded-publisher-notice-research",
+  "version": "1.0.0",
+  "facility_records_acquired": 0,
+  "raw_http_bodies_retained": false,
+  "retained_preflight": {
+    "path": "data/business-sources/oh-dcy-publisher-open-childcare-centers/preflights/958574ce-359d-4e48-a6d4-146477065d82.json",
+    "sha256": "70d79fd5e9f86d8c7e8cbc652126d28bcb64d1abc34e86e2f245a16db020fe71",
+    "notice_fields": ["observations[kind=item].payload.licenseInfo", "observations[kind=item].payload.description"]
+  },
+  "item_observation": {
+    "url": "https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d?f=json",
+    "observed_at": "2026-09-08T06:19:55.606Z",
+    "http_status": 200,
+    "bytes": 8012,
+    "sha256": "99f71feebc126434494ca1312a298f1e9eaf187d1ba2b6d9fb136a8eb3ec95e4",
+    "content_type": "application/json; charset=utf-8",
+    "licenseInfo": {"unchanged_from_retained_preflight": true, "utf8_sha256": "7eb4434b8ed83b8c8eef4a9154126fe5fa39580532d11141b3d3b5eda15f6fa3"},
+    "description": {"unchanged_from_retained_preflight": true, "utf8_sha256": "0bb7dcead3abe1060240a38ae6bd518694b9228f2aebfffb067a2c133180c11e"}
+  },
+  "xml_observations": [
+    {"url": "https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d/info/metadata/metadata.xml", "observed_at": "2026-09-08T06:19:17.839Z", "http_status": 404, "bytes": 921, "sha256": "b490bf42db6d999aac222c972b0325dc0da99c2853025c9e527883d91f62df17", "xml_document": false, "meaning": "Metadata file absent or inaccessible; not proof that no metadata exists"},
+    {"url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0/metadata?format=default&f=xml", "observed_at": "2026-09-08T06:19:18.973Z", "http_status": 400, "bytes": 715, "sha256": "e67e883eae308632d810cecef1544119934f2221b35da88953de5b862800e829", "xml_document": false, "meaning": "Publisher metadata transformation error; not usable XML"}
+  ],
+  "linked_notice_review": {
+    "source_home": "https://childcaresearch.ohio.gov/",
+    "source_home_map_scope": "Publisher describes map as including SUTQ-rated and unrated programs; not independent completeness evidence",
+    "program_information": "https://childrenandyouth.ohio.gov/for-providers/step-up-to-quality",
+    "privacy_notice": "https://childrenandyouth.ohio.gov/help-center/privacy-notice-and-policies",
+    "observed_date": "2026-09-08",
+    "program_information_http_status": 404,
+    "privacy_notice_http_status": 404,
+    "accessible_successor_established": false,
+    "additional_terms_absent": false
+  },
+  "transport_scope": "Root direct metadata requests: manual redirects, 15-second response/body deadline, 1 MiB cap, UTF-8 validation and one-second serial spacing; no retry or credentials. Web and peer checks covered linked public pages. Hashes are observed-body fingerprints, not independently replayable raw HTTP archives.",
+  "acquisition_authorized": false,
+  "legal_approval": false,
+  "national_reporting_integrated": false
+}
