@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Minnesota selected-stream 1.1 implemented (September 8, 2026): [byte-preserving CSV framing and explicit unresolved-text row dispositions](MN-CONSTRUCTION-BYTE-FRAMING.md) now allow valid selected fields past undecodable excluded data without guessed charsets. Strict CSV structure, original-byte hashing, complete acquisition gates and legacy 1.0 replay remain enforced. Rejected rows are counted as gaps, not businesses. Existing production pins and earlier failed data remain unchanged.
+
 Minnesota registrations encoding incompatibility confirmed (September 8, 2026): [a bounded 1 MiB range check](MN-CONSTRUCTION-ENCODING.md) found invalid UTF-8 at byte 478,182 under the failed job's recorded source ETag. No full CSV or raw diagnostic body was retained. Replacement encoding and the residential source remain unproven. Next work is explicit byte-preserving framing and unresolved-text row dispositions, not guessed decoding or blind download retries.
 
 Minnesota streaming failure investigated (September 8, 2026): [both native cohort jobs failed before completed acquisition](MN-CONSTRUCTION-FAILURE-20260908.md). Their partial selected evidence is preserved, excluded from coverage, and not repulled. Privacy-safe finite diagnostic categories now survive the app's streaming/error boundaries; historical generic errors cannot prove the actual cause. Strict UTF-8/CSV/source checks remain enabled. Source-boundary investigation is next; national production pins are unchanged.

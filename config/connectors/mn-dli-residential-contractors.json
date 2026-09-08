@@ -1,6 +1,6 @@
 {
   "connector_id": "mn-dli-residential-contractors",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Fixed Minnesota business-credential acquisition with current source-use prerequisites, shared publisher exclusion and durable app evidence; not a business census.",
   "implementation_status": "standalone-app-acquisition-and-local-release",
   "lifecycle": [
@@ -72,6 +72,8 @@
     "zip4"
   ],
   "output_schema_contract": {
+    "selected_stream_version": "mn-construction-selected-stream@1.1.0",
+    "text_handling": "Byte-preserving CSV framing; fatal UTF-8 decoding of selected fields only. Undecodable selected text rejects the row with invalid-selected-utf8; no guessed charset or replacement characters. Legacy 1.0 selection receipts remain replayable.",
     "app_receipt_version": "mn-construction-app@1.0.0",
     "acquisition_receipt_version": "mn-construction-acquisition-receipt@1.0.0",
     "cohort": "residential",

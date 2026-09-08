@@ -18,7 +18,7 @@ test('MN diagnostics preserve trusted finite classifications without untrusted e
   assert.throws(()=>mnConstructionFailure(untrusted,'PRIVATE'));
 });
 for(const [name,suffix,expected] of [
-  ['invalid UTF-8',Buffer.from([0xff]),'source-utf8-invalid'],
+  ['malformed one-column byte tail',Buffer.from([0xff]),'source-csv-invalid'],
   ['unterminated CSV',Buffer.from('"PRIVATE unclosed'),'source-csv-invalid'],
 ])test(`MN diagnostic for ${name} retains no raw source in error`,async()=>{
   await assert.rejects(processMnConstructionSelectedStream(Readable.from([prefix,suffix]),{context,emit:async()=>{}}),error=>{

@@ -4,6 +4,8 @@ Implemented September 8, 2026. Co*Tive now has two fixed Minnesota construction 
 
 ## Operator entry points
 
+Connector version 1.1 uses [byte-preserving selected-stream processing](MN-CONSTRUCTION-BYTE-FRAMING.md). Unresolved selected text is a counted row rejection; source text is never guessed or replacement-decoded. Existing selection 1.0 receipts remain independently replayable.
+
 ```powershell
 node scripts/build-mn-contractor-registrations.mjs
 node scripts/build-mn-residential-contractors.mjs

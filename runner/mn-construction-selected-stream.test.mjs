@@ -9,6 +9,35 @@ const row=overrides=>({...Object.fromEntries(MN_CONSTRUCTION_COLUMNS.map(k=>[k,'
 const csvRow=r=>MN_CONSTRUCTION_COLUMNS.map(k=>`"${r[k].replaceAll('"','""')}"`).join(',')+'\r\n';
 const csv=rows=>Buffer.from('\ufeff'+MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+rows.map(csvRow).join(''));
 const sha=b=>createHash('sha256').update(b).digest('hex');
+
+test('MN 1.1 byte framing excludes unresolved selected text but never interprets discarded contact bytes',async()=>{
+  const text='\ufeff'+MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+[
+    row({Name:'VALID École',Phone_No:'BYTE_MARKER, "quoted"\ncontact'}),row({Name:'BYTE_MARKER PRIVATE'}),row({Bus_Pers:'Person',Name:'BYTE_MARKER PRIVATE'}),row()
+  ].map(csvRow).join('');
+  const bytes=Buffer.concat(text.split('BYTE_MARKER').flatMap((part,i)=>i?[Buffer.from([0xa4]),Buffer.from(part)]:[Buffer.from(part)]));
+  const frames=[];const receipt=await processSource(Readable.from(Array.from(bytes,b=>Buffer.from([b]))),{context,emit:f=>frames.push(f)});
+  assert.equal(receipt.schema_version,'mn-construction-selected-stream@1.1.0');assert.equal(receipt.source_file_sha256,sha(bytes));
+  assert.deepEqual([receipt.counts.source_records,receipt.counts.accepted_records,receipt.counts.rejected_records],[4,2,2]);
+  assert.deepEqual(frames[1],{sequence:2,disposition:'rejected',reason:'invalid-selected-utf8'});assert.equal(frames[2].reason,'not-literal-business-marker');
+  assert.equal(frames[0].selected_fields.Name,'VALID École');assert.doesNotMatch(JSON.stringify(frames),/PRIVATE|contact|BYTE_MARKER|¤/);
+  const records=[];await replay(frames,receipt,{emit:r=>records.push(r)});assert.equal(records.length,2);assert.equal(records[1].reported_address.zip4,'0012');
+});
+
+test('MN replay retains exact 1.0 reason roster and rejects cross-version or invalid scalar text',async()=>{
+  const {frames,receipt}=await collect(csv([row()]));const legacy=structuredClone(receipt);
+  legacy.schema_version='mn-construction-selected-stream@1.0.0';delete legacy.counts.rejected_by_reason['invalid-selected-utf8'];
+  await replay(frames,legacy,{emit:()=>{}});
+  const changed=structuredClone(legacy);changed.counts.rejected_by_reason['invalid-selected-utf8']=0;await assert.rejects(replay(frames,changed,{emit:()=>{}}));
+  const invalid=structuredClone(frames);invalid[0].selected_fields.Name='\ud800';const rehashed=structuredClone(receipt);
+  rehashed.canonical_frames_sha256=sha(invalid.map(f=>JSON.stringify(f)+'\n').join(''));await assert.rejects(replay(invalid,rehashed,{emit:()=>{}}));
+});
+
+test('MN byte framing only strips an absolute leading BOM, not BOMs inside quoted headers or values',async()=>{
+  const quotedHeader='"\ufeffBus_Pers",'+MN_CONSTRUCTION_COLUMNS.slice(1).join(',')+'\r\n';
+  await assert.rejects(collect(Buffer.from(quotedHeader+csvRow(row()))));
+  const {frames}=await collect(csv([row({Name:'A\ufeffB'})]));assert.equal(frames[0].selected_fields.Name,'A\ufeffB');
+});
+
 async function collect(bytes){const frames=[];const receipt=await processSource(Readable.from([bytes]),{context,emit:f=>{frames.push(f);}});return {frames,receipt};}
 test('MN stream measures source bytes and preserves every row disposition without contacts',async()=>{
   const bytes=csv([row(),row({Bus_Pers:'Person',Name:'SECRET PERSON'}),row({Status:'Expired',Name:'SECRET INACTIVE'}),row({Name:''}),row({Name:'Second fixture',Lic_Number:'RR123456'})]);

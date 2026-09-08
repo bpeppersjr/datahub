@@ -6,11 +6,13 @@ import { MN_CONSTRUCTION_COLUMNS } from './mn-construction-preflight.mjs';
 import { normalizeMnConstructionRecord } from './mn-construction-normalization.mjs';
 import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 
-const VERSION = 'mn-construction-selected-stream@1.0.0';
+const LEGACY_VERSION = 'mn-construction-selected-stream@1.0.0';
+const VERSION = 'mn-construction-selected-stream@1.1.0';
 const LIMIT = 50_000_000, ROW_LIMIT = 250_000;
 const SELECTED = ['Bus_Pers','Lic_Number','Status','Name','DBA_Name','Addr1','Addr2','City','St','Zip','Orig_Date','Exp_Date'];
-const REASONS = ['not-literal-business-marker','not-issued-credential','unsupported-business-credential','credential-cohort-mismatch','invalid-selected-text','missing-required-text'];
-const counts = () => ({ source_records:0, accepted_records:0, rejected_records:0, rejected_by_reason:Object.fromEntries(REASONS.map(k=>[k,0])) });
+const LEGACY_REASONS = ['not-literal-business-marker','not-issued-credential','unsupported-business-credential','credential-cohort-mismatch','invalid-selected-text','missing-required-text'];
+const REASONS = [...LEGACY_REASONS,'invalid-selected-utf8'];
+const counts = (reasons=REASONS) => ({ source_records:0, accepted_records:0, rejected_records:0, rejected_by_reason:Object.fromEntries(reasons.map(k=>[k,0])) });
 const hash = () => createHash('sha256');
 const exact = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every(k=>Object.hasOwn(v,k));
 const check = (v, why) => { if (!v) throw new Error(`Minnesota selected stream rejected: ${why}.`); };
@@ -34,24 +36,38 @@ export async function processMnConstructionSelectedStream(source, { context, emi
   settings(context,emit,signal); check(source instanceof Readable,'Node readable required');
   // Snapshot primitive validated metadata before the first asynchronous step.
   context={...context}; let sourceBytes=0, headerSeen=false;
-  const totals=counts(), sourceHash=hash(), frameHash=hash(), decoder=new TextDecoder('utf-8',{fatal:true});
+  const totals=counts(), sourceHash=hash(), frameHash=hash();let prefix=Buffer.alloc(0),prefixChecked=false;
   const meter=new Transform({ transform(chunk,_encoding,callback) {
     try { check(Buffer.isBuffer(chunk),'byte chunks required'); sourceBytes+=chunk.length;check(sourceBytes<=LIMIT,'source byte ceiling');sourceHash.update(chunk); }
     catch(error) { callback(mnConstructionFailure(error,'source-byte-limit')); return; }
-    try { callback(null,decoder.decode(chunk,{stream:true})); }
-    catch(error) { callback(mnConstructionFailure(error,'source-utf8-invalid')); }
-  }, flush(callback) { try {callback(null,decoder.decode());}catch(error) {callback(mnConstructionFailure(error,'source-utf8-invalid'));} } });
-  const parser=parse({bom:true,columns:columns=>{check(JSON.stringify(columns)===JSON.stringify(MN_CONSTRUCTION_COLUMNS),'column drift');headerSeen=true;return columns;},
+    if(!prefixChecked){prefix=Buffer.concat([prefix,chunk]);if(prefix.length<3){callback();return;}
+      prefixChecked=true;chunk=prefix.subarray(prefix.subarray(0,3).equals(Buffer.from([0xef,0xbb,0xbf]))?3:0);prefix=Buffer.alloc(0);}
+    callback(null,chunk);
+  },flush(callback){callback(null,prefixChecked?undefined:prefix);} });
+  // Latin-1 here is a reversible byte carrier, NOT a source text encoding.
+  // CSV punctuation remains ASCII; selected values are decoded separately below.
+  // Disable parser BOM auto-detection, which can switch its encoding to UTF-8.
+  const parser=parse({encoding:'latin1',bom:false,columns:columns=>{
+    check(JSON.stringify(columns)===JSON.stringify(MN_CONSTRUCTION_COLUMNS),'column drift');headerSeen=true;return columns;},
     skip_empty_lines:false,relax_column_count:false,max_record_size:65536});
   const sink=new Writable({objectMode:true,write(row,_encoding,callback) {
     void (async()=>{
       signal?.throwIfAborted();totals.source_records++;check(totals.source_records<=ROW_LIMIT,'source row ceiling');
       const sequence=totals.source_records;let frame;
       try {
+        // Excluded people/statuses need no text interpretation or persistence.
+        const decoded=emptyRow();decoded.Bus_Pers=row.Bus_Pers;decoded.Status=row.Status;
+        if(row.Bus_Pers==='Business' && row.Status==='Issued') {
+          try {
+            for(const key of SELECTED)decoded[key]=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(row[key],'latin1'));
+          } catch {
+            throw Object.assign(new Error('Selected field encoding unresolved.'),{code:'MN_CONSTRUCTION_RECORD_REJECTED',reason:'invalid-selected-utf8'});
+          }
+        }
         // Provisional normalization validates selection only. Its placeholder
         // file hash is never emitted; final replay uses the measured checksum.
-        normalizeMnConstructionRecord(row,{...context,sourceFileSha256:'0'.repeat(64),rowNumber:sequence});
-        frame={sequence,disposition:'accepted',selected_fields:Object.fromEntries(SELECTED.map(k=>[k,row[k]]))};totals.accepted_records++;
+        normalizeMnConstructionRecord(decoded,{...context,sourceFileSha256:'0'.repeat(64),rowNumber:sequence});
+        frame={sequence,disposition:'accepted',selected_fields:Object.fromEntries(SELECTED.map(k=>[k,decoded[k]]))};totals.accepted_records++;
       } catch(error) {
         if(error.code!=='MN_CONSTRUCTION_RECORD_REJECTED'||!REASONS.includes(error.reason))throw error;
         frame={sequence,disposition:'rejected',reason:error.reason};totals.rejected_records++;totals.rejected_by_reason[error.reason]++;
@@ -78,18 +94,19 @@ export async function replayMnConstructionSelectedStream(frames, receipt, option
 async function replayFrames(frames, receipt, { emit, signal } = {}) {
   check(exact(receipt,['schema_version','context','source_bytes','source_file_sha256','canonical_frames_sha256','counts','claims','mode','scope']),'receipt fields');
   settings(receipt.context,emit,signal);
-  check(receipt.schema_version===VERSION && receipt.mode==='caller-supplied-csv-stream'
+  const reasons=receipt.schema_version===LEGACY_VERSION?LEGACY_REASONS:REASONS;
+  check([LEGACY_VERSION,VERSION].includes(receipt.schema_version) && receipt.mode==='caller-supplied-csv-stream'
     && receipt.scope==='Selected accepted fields replayable; discarded source values and provider completeness are not independently replayed.'
     && JSON.stringify(receipt.claims)===JSON.stringify(claims()),'receipt claims');
   check(Number.isSafeInteger(receipt.source_bytes)&&receipt.source_bytes>0&&receipt.source_bytes<=LIMIT
     && ['source_file_sha256','canonical_frames_sha256'].every(k=>typeof receipt[k]==='string'&&/^[a-f0-9]{64}$/.test(receipt[k])),'source digest or byte ceiling');
   check(exact(receipt.counts,['source_records','accepted_records','rejected_records','rejected_by_reason'])
-    && exact(receipt.counts.rejected_by_reason,REASONS)
+    && exact(receipt.counts.rejected_by_reason,reasons)
     && ['source_records','accepted_records','rejected_records'].every(k=>Number.isSafeInteger(receipt.counts[k])&&receipt.counts[k]>=0&&receipt.counts[k]<=ROW_LIMIT)
-    && REASONS.every(k=>Number.isSafeInteger(receipt.counts.rejected_by_reason[k])&&receipt.counts.rejected_by_reason[k]>=0&&receipt.counts.rejected_by_reason[k]<=ROW_LIMIT),'receipt counts');
+    && reasons.every(k=>Number.isSafeInteger(receipt.counts.rejected_by_reason[k])&&receipt.counts.rejected_by_reason[k]>=0&&receipt.counts.rejected_by_reason[k]<=ROW_LIMIT),'receipt counts');
   check(Array.isArray(frames)||frames instanceof Readable,'parsed frame array or Node readable required');
   if(frames instanceof Readable&&signal)addAbortSignal(signal,frames);
-  receipt=structuredClone(receipt);const totals=counts(),digest=hash();
+  receipt=structuredClone(receipt);const totals=counts(reasons),digest=hash();
   for await (const entry of frames) {
     signal?.throwIfAborted();check(totals.source_records<ROW_LIMIT,'frame ceiling');
     const accepted=entry?.disposition==='accepted';
@@ -99,10 +116,11 @@ async function replayFrames(frames, receipt, { emit, signal } = {}) {
       check(exact(entry.selected_fields,SELECTED)&&SELECTED.every(k=>typeof entry.selected_fields[k]==='string'),'selected fields');
       // Rebuild the exact known schema without restoring excluded field values.
       const selected=Object.fromEntries(SELECTED.map(k=>[k,entry.selected_fields[k]]));
+      if(receipt.schema_version===VERSION)check(SELECTED.every(k=>new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(selected[k],'utf8'))===selected[k]),'selected Unicode scalar text');
       record=normalizeMnConstructionRecord({...emptyRow(),...selected},{...receipt.context,sourceFileSha256:receipt.source_file_sha256,rowNumber:entry.sequence});
       frame={sequence:entry.sequence,disposition:'accepted',selected_fields:selected};totals.accepted_records++;
     }else{
-      check(entry.disposition==='rejected'&&REASONS.includes(entry.reason),'rejection reason');
+      check(entry.disposition==='rejected'&&reasons.includes(entry.reason),'rejection reason');
       frame={sequence:entry.sequence,disposition:'rejected',reason:entry.reason};totals.rejected_records++;totals.rejected_by_reason[entry.reason]++;
     }
     totals.source_records++;digest.update(encode(frame));if(record)await emit(record,{signal});signal?.throwIfAborted();

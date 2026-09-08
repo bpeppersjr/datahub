@@ -8,7 +8,13 @@ const mode=process.argv[2], notices=JSON.parse(await readFile(path.join(APP_ROOT
 const controller=new AbortController();
 const root=path.join(APP_ROOT,'app'), lockFile=path.join(APP_ROOT,'data/business-sources/mn-dli-construction/runtime/publisher.lock');
 const row=(registration)=>({...Object.fromEntries(MN_CONSTRUCTION_COLUMNS.map(k=>[k,''])),Bus_Pers:'Business',Status:'Issued',Name:'Synthetic app contractor',Lic_Number:registration?'IR123456':'BC123456',St:'MN',Zip:'55001-1234',Phone_No:'PRIVATE CONTACT'});
-const source=registration=>Buffer.concat([Buffer.from(MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+Array.from({length:60},()=>MN_CONSTRUCTION_COLUMNS.map(k=>JSON.stringify(row(registration)[k])).join(',')+'\r\n').join('')),mode==='invalid-utf8'?Buffer.from([0xff]):Buffer.alloc(0)]);
+const source=registration=>{
+  const csv=MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+Array.from({length:60},(_,i)=>{
+    const value=row(registration);if(mode==='mixed-encoding' && i===0)value.Name='BYTE_MARKER';if(mode==='mixed-encoding' && i===1)value.Phone_No='BYTE_MARKER';
+    return MN_CONSTRUCTION_COLUMNS.map(k=>JSON.stringify(value[k])).join(',')+'\r\n';}).join('');
+  const body=Buffer.concat(csv.split('BYTE_MARKER').flatMap((part,i)=>i?[Buffer.from([0xa4]),Buffer.from(part)]:[Buffer.from(part)]));
+  return Buffer.concat([body,mode==='invalid-utf8'?Buffer.from([0xff]):Buffer.alloc(0)]);
+};
 const fetchImpl=async(url,options)=>{
   calls.push({url,method:options.method,range:options.headers.Range??null});
   if(mode==='http-failure')return new Response('PRIVATE FAILURE',{status:403});
@@ -31,8 +37,9 @@ const options={cohort:'registrations',outputRoot:root,fetchImpl,sleep:async()=>{
     }
   }};
 async function receiptForFailure(){const ids=await readdir(path.join(root,'jobs'));assert.equal(ids.length,1);return verify(path.join(root,'jobs',ids[0],'receipt.json'));}
-if(mode==='success' || mode==='tamper'){
-  const result=await run(options);assert.equal(result.status,'SUCCEEDED');assert.equal(result.execution_mode,'injected-test-transport');assert.equal(result.acquisition.counts.accepted_records,60);
+if(mode==='success' || mode==='tamper' || mode==='mixed-encoding'){
+  const result=await run(options);assert.equal(result.status,'SUCCEEDED');assert.equal(result.execution_mode,'injected-test-transport');assert.equal(result.acquisition.counts.accepted_records,mode==='mixed-encoding'?59:60);
+  if(mode==='mixed-encoding'){assert.equal(result.acquisition.counts.source_records,60);assert.equal(result.acquisition.counts.rejected_by_reason['invalid-selected-utf8'],1);}
   assert.equal(calls.length,13);assert.equal(calls.filter(c=>c.method==='GET'&&!c.range&&MN_CONSTRUCTION_EXPORTS.includes(c.url)).length,1);
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));await assert.rejects(readFile(lockFile),{code:'ENOENT'});
   assert.deepEqual(await verify(result.receipt_path),result);
@@ -61,7 +68,7 @@ if(mode==='success' || mode==='tamper'){
   else assert.equal(result.acquisition,null);
   if(mode==='invalid-utf8') {
     const file=path.join(path.dirname(result.receipt_path),'diagnostic.json'),diagnostic=JSON.parse(await readFile(file,'utf8'));
-    assert.equal(diagnostic.code,'source-utf8-invalid');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);
+    assert.equal(diagnostic.code,'source-csv-invalid');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);
     diagnostic.code='PRIVATE';await writeFile(file,JSON.stringify(diagnostic));await assert.rejects(verify(result.receipt_path));
   }
   if(mode==='failed-cohort-tamper'){
