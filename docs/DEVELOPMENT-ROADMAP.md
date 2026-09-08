@@ -487,6 +487,8 @@ Connecticut app ownership (September 8): the [standalone worker and managed enro
 
 Connecticut completed collection audit (September 8): Co*Tive operation `efd15ce2-6bba-4096-9084-7ace88ea0695` completed successfully. [Independent offline receipt and quality verification](CT-CHILDCARE-APP.md#verified-application-outcome--september-8-2026) confirmed 1,390 source candidates, zero quarantine, 230 ZIP5 values and 1,208 separate ZIP4 values. One street and all coordinates remain missing. Repeated credentials/licenses are retained rather than collapsed; capacity totals must not imply unique facilities. No repull was performed. Next local reporting must consume these verified retained manifests without claiming national completeness or unique active-business coverage.
 
+Connecticut retained local reporting (September 8): [verified source-candidate summaries](CT-CHILDCARE-REPORTING.md) now expose nullable reported-state/ZIP groups, cohort-denominator percentages and reconciled quality gaps from the pinned native app receipt. A fresh state-access report includes 1,390 local CT candidates across 230 ZIP5 groups while retaining the separate unmeasured national status. Missing installed files are unavailable, not zero; repeated credentials do not become business identities or capacity totals. No source repull, national promotion or scheduler change occurred.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

@@ -54,6 +54,14 @@ test('CT childcare app enrollment does not manufacture national coverage or disp
   assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
 });
 
+test('CT reporting enrollment without installed files is unavailable, separate from PA facility evidence',async t=>{
+  const f=await fixture(t);await copyFile(path.join(APP_ROOT,'config/ct-childcare-reporting-enrollment.json'),path.join(f.root,'config/ct-childcare-reporting-enrollment.json'));
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='CT').industries.find(r=>r.industry==='childcare');
+  assert.equal(cell.localSourceCandidateEvidence.status,'unavailable');assert.equal(cell.localSourceCandidateEvidence.reason,'enrolled-receipt-not-installed');
+  assert.equal(cell.localSourceCandidateEvidence.candidateRows,undefined);assert.equal(cell.localFacilityEvidence.status,'not-enrolled');
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');assert.equal(cell.appHandoff.jobSubmitted,false);
+});
+
 test('PA reporting binding with uninstalled retained files is unavailable rather than zero coverage',async t=>{
   const f=await fixture(t);await copyFile(path.join(APP_ROOT,'config/pa-childcare-reporting-enrollment.json'),path.join(f.root,'config/pa-childcare-reporting-enrollment.json'));
   const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='PA').industries.find(r=>r.industry==='childcare');
