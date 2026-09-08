@@ -153,3 +153,16 @@ The production fixture uses mocked publisher responses at the native entry, then
 Rollback retains every source acquisition and historical release. Revert the code/CLI compatibility migration only when no production run is executing its pinned implementation. Do not silently swap a current pointer back while downstream outputs depend on it.
 
 Verification: all 959 repository tests, lint, web/desktop builds and desktop smoke passed; dependency audit reported zero vulnerabilities. Independent read-only review found no remaining concrete blocker. Final local log: `data/tmp/oh-production-check.log`.
+
+## Production execution handoff — accepted, not complete
+
+After implementation commit `4f66a1f`, the standalone Co*Tive production controller accepted run **production-oh-childcare-20260908-01** at **2026-09-08T09:46:24.268Z**. Plan SHA256: `ff381d2be4a082cecf65dd443cc50a5ab206ad0ca1ca099e6adf6fad73fe2682`. The plan retains the 25 production sources and existing MA/NJ/recovered-TN selections, adds the original completed Ohio app receipt, and pins 47 implementation files plus 57 retained Ohio artifacts and five Ohio configuration files. Ohio's receipt SHA remains `753fc3190e4a5ce0306f9a25aba8ad02ad70f0920d1783bca60bc114afb42caa`; no new acquisition was requested.
+
+Accepted execution evidence: controller PID 3028 was live; its persisted receipt was RUNNING and registry-build child PID 34864 was independently confirmed live. The seven following stages were pending. This records a verified handoff, **not successful promotion**; those PIDs are historical acceptance evidence, not current liveness proof.
+
+- Plan: `data/reconciliations/production-plans/production-oh-childcare-20260908-01.json`
+- Controller receipt: `data/reconciliations/production-runs/production-oh-childcare-20260908-01/receipt.json`
+- Stage logs: the same run directory.
+- Controller output: `data/tmp/production-oh-childcare-20260908-01.stdout.log` and `.stderr.log`.
+
+The app process runs independently of Codex and publishes/verifies registry, resolution, benchmark and coverage sequentially, not atomically as one cohort. Do not edit its pinned files, redispatch this run, or download source files to promote them. No Codex progress polling loop is retained after acceptance. For a deliberate stop, use `npm run reconciliation:production:stop -- --run-id production-oh-childcare-20260908-01`; the controller completes the current stage before stopping. Inspect live process ownership and the receipt before any later recovery; an observation timeout alone does not mean the app stopped.
