@@ -33,6 +33,7 @@ function urlFor(kind) {
   if (kind === "notice-data") return `https://www.arcgis.com/sharing/rest/content/items/${WI_NOTICE_ITEM}/data?f=json`;
   return `${WI_LAYER}/query?${new URLSearchParams({ f: "json", where: WI_WHERE, returnCountOnly: "true", returnGeometry: "false" })}`;
 }
+export { urlFor as wiPreflightUrl };
 // Retain only explicit public contract fields. Never follow or persist private service
 // addresses or token-generation routes advertised by otherwise public metadata.
 function inspect(kind, value) {

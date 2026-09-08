@@ -1,0 +1,27 @@
+# Wisconsin childcare bounded transport
+
+The next Wisconsin connector component is implemented and tested offline. `runner/wi-childcare-transport.mjs` connects the existing metadata prerequisite, exact ID/page replay and immutable review-release pipeline. It is not a native app job and does not authorize Wisconsin acquisition. The source-use decision in `states/WI-CHILDCARE-USE-REVIEW-2026-09-08.json` remains pending.
+
+## Execution contract
+
+`acquireWiChildcareWithTransport` requires an explicit trusted `fetchImpl`; it has no default network implementation. This is a code-level testing seam, not a sandbox or permission mechanism for arbitrary supplied functions. The live `acquireWiChildcare` entry always rejects with `WI_CHILDCARE_LIVE_NOT_ENROLLED`, even if a development policy boolean is edited. There is no CLI, managed industry enrollment, new schedule or download dispatch in this increment.
+
+Execution uses two complete 18-observation preflights surrounding an ID inventory, selected-field batches and a final ID inventory. Requests are serial, with a one-second wait between requests, including phase boundaries. Batches are derived from validated positive unique IDs, at most 100 IDs and 2,000 URL bytes each. Only exact metadata URLs and generated group-only query URLs are accepted. Requests omit credentials and reject redirects; caller-selected URLs, headers and tokens are unsupported.
+
+The transport preserves the existing 12-field licensed-group scope and requests EPSG:4326 point coordinates. It does not request contacts, families or business polygons. Exact page membership, schema, point CRS and private-field checks run before observation retention. Before/after metadata, notices, counts and ID inventories must agree. This is drift detection, not proof of a transactional snapshot or current business operations.
+
+Each attempt has a default 15-second deadline (configurable from 1 through 60,000 milliseconds), including response consumption. Header waits that ignore cancellation are bounded and late responses are cancelled. Metadata bodies are limited to 131,072 bytes, query bodies to 8,000,000 bytes, and total consumed decoded bodies to 100,000,000 bytes (the caller may lower that total). Accounting includes both preflights and partial failed attempts; it is not wire-byte accounting. Declared size is checked separately from consumed size. Raw XML bytes, including BOM and line endings, survive buffering; inherited wire encoding/length headers are removed from the buffered response.
+
+Transient network failures, timeouts, HTTP 429 and server errors have at most three attempts. Numeric/date Retry-After values are respected. A publisher delay above the 60-second local wait budget defers rather than shortening the delay. Error bodies are cancelled unread; malformed content, response limits, privacy errors and source drift do not result in successful acquisition. Provider payloads are not copied into transport error messages.
+
+Optional `onPreflight` and `onObservation` hooks receive clones and are awaited. The before-preflight hook finishes before any ID/row requests; hook failure or cancellation stops further work. The after-preflight hook receives only an acquisition that passed full replay. Hooks permit a future durable app wrapper, but are not themselves checkpoint storage or restart recovery. Cancellation cannot undo already completed source requests or hook writes. No transport evidence is automatically published.
+
+## Evidence and remaining work
+
+Ten synthetic tests cover fixed sequencing and pacing, disabled live entry, invalid options, retention barriers, hook isolation, retry/defer behavior, ignored signals, stalled/late bodies, cancellation boundaries, declared/consumed/cumulative limits, error redaction, exact XML preservation, private-field rejection and final source drift. Successful synthetic transport output passes existing offline release creation and independent five-artifact verification, preserving separate ZIP5/ZIP4 and missing ZIP evidence. Neither replay nor injected transport claims source authenticity, acquisition approval, public export or national integration.
+
+Before a real app-owned Wisconsin handoff, obtain the pending source-use decision, bind current complete publisher notice evidence, and implement durable acquired-release retention, native lifecycle receipts, resource prerequisites and managed enrollment. Reuse any verified retained acquisition for later normalization/promotion rather than repulling it. National integration is a separate downstream step.
+
+Rollback removes the transport/tests and the metadata URL export while preserving all historical preflight and release evidence. This code does not change policies, production pointers or the active production rebuild's pinned files.
+
+Verification on 2026-09-08: all 977 repository tests passed in `npm run check`, followed by lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. Independent read-only review found no blocking defect. All 80 implementation/script/connector configuration pins of the active Ohio production plan were unchanged. The local management preview was restored; no browser visual QA or live Wisconsin request was performed. Full-check log: `data/tmp/wi-transport-check.log`.
