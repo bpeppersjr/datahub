@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers"]
   },
   "sources": {
+    "state-md-childcare-centers": {
+      "script": "scripts/build-md-childcare.mjs",
+      "scope": "state", "states": ["MD"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/md-childcare-centers-app.json", "config/connectors/md-childcare-centers-acquisition.json", "config/connectors/md-childcare-centers-normalization.json", "config/source-policies/md-childcare-centers-internal.json", "config/connectors/md-childcare-preflight.json", "config/source-policies/md-childcare-preflight.json"],
+      "coverage_notes": [
+        "Maryland licensed Child Care Center source candidates from the publisher's February 13, 2026 cohort, not verified current operating businesses, unique identities or physical premises.",
+        "Co*Tive owns bounded native acquisition with publisher exclusion, paired metadata/count checks, reconciled IDs and durable journals. No automatic retry, restart or recurring schedule is enabled by enrollment.",
+        "ZIP5 and ZIP4 stay separate; ZIP4 is not provided by the selected source. Provider-returned latitude/longitude is nullable and not address-verified. Missing attributes stay as gaps; no business polygons or identity matching.",
+        "Immutable app receipts bind independently verified acquired and normalized releases. Explicit retained reuse avoids downloading again. Enrollment does not promote national reporting or replace source-current pointers."
+      ]
+    },
     "state-ct-childcare-centers": {
       "script": "scripts/build-ct-childcare.mjs",
       "scope": "state", "states": ["CT"], "state_filter_supported": false,

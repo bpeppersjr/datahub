@@ -32,6 +32,7 @@ const PROFILE_IDS = Object.freeze({
   "state-oh-childcare": null,
   "state-pa-childcare-centers": null,
   "state-ct-childcare-centers": null,
+  "state-md-childcare-centers": null,
   "national-irs-eo-bmf": null,
 });
 // The coverage view retains this historical count-field name for both evidence

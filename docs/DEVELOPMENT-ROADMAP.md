@@ -493,6 +493,8 @@ Maryland childcare prerequisites (September 8): a tested [standalone metadata/co
 
 Maryland center acquisition (September 8): [bounded ID-batch acquisition and immutable retained evidence](MD-CHILDCARE-ACQUISITION.md) add prerequisite/page journals, count/membership/CRS reconciliation, cancellation and independent offline replay. A bounded delivery sample established the actual ArcGIS response schema without creating a bulk release. Normalization and app-worker enrollment remain next. The same validation cycle also surfaced and addressed the [CSV parser security advisory](CSV-PARSER-SECURITY-2026-09-08.md); retained data and national production pointers were not rewritten.
 
+Maryland standalone processing (September 8): [offline source-candidate normalization](MD-CHILDCARE-NORMALIZATION.md) preserves separate postal fields, nullable points, reported-state conflicts and raw provenance with exact source conservation. The [app worker](MD-CHILDCARE-APP.md) adds publisher-wide exclusion, fixed native and retained modes, independently verified child bindings and durable terminal receipts. Industry enrollment is Maryland-only and remains separate from measured national coverage. Dispatch evidence and final validation are recorded in the app document; configuration or synthetic tests alone do not establish a live download.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
