@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { mkdir, realpath, lstat, open, link, unlink } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
+import { profileMnConstructionCodes, validateMnConstructionCodeProfile } from "./mn-construction-code-profile.mjs";
 
 export const MN_CONSTRUCTION_EXPORTS = Object.freeze([
   "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Contractor_Registrations.csv",
@@ -69,7 +70,9 @@ function boundedFetch(fetchImpl, url, options) {
   });
 }
 
-export async function preflightMnConstruction(options = {}) {
+export const preflightMnConstruction = (options = {}) => runPreflight(options, false);
+export const preflightMnConstructionCodes = (options = {}) => runPreflight(options, true);
+async function runPreflight(options, profileCodes) {
   check(object(options) && Object.keys(options).every((k) => ["fetchImpl", "signal", "sleep", "now", "timeoutMs"].includes(k)), "unsupported options");
   const { fetchImpl = fetch, signal, sleep = (ms, opts) => delay(ms, undefined, opts), now = () => new Date(), timeoutMs = 15_000 } = options;
   check([fetchImpl, sleep, now].every((v) => typeof v === "function") && (signal === undefined || signal instanceof AbortSignal) && Number.isInteger(timeoutMs) && timeoutMs > 0 && timeoutMs <= 60_000, "options");
@@ -101,7 +104,9 @@ export async function preflightMnConstruction(options = {}) {
           bytes += next.value.byteLength; check(bytes <= LIMIT, "consumed prefix ceiling"); chunks.push(next.value);
         }
         check(bytes === LIMIT, "truncated prefix");
-        return inspectMnConstructionHeader(Buffer.concat(chunks, bytes));
+        const prefix = Buffer.concat(chunks, bytes), header = inspectMnConstructionHeader(prefix);
+        check(JSON.stringify(header.columns) === JSON.stringify(MN_CONSTRUCTION_COLUMNS), "publisher header changed; review required");
+        return { ...header, ...(profileCodes ? { code_profile: profileMnConstructionCodes(prefix, header) } : {}) };
       } finally { requestSignal.removeEventListener("abort", abort); void reader.cancel().catch(() => {}); reader.releaseLock(); }
     } catch (error) {
       signal?.throwIfAborted();
@@ -116,18 +121,19 @@ export async function preflightMnConstruction(options = {}) {
     const observedAt = now().toISOString(); check(time(observedAt) && observedAt >= (observations.at(-1)?.observed_at ?? startedAt), "observation clock");
     observations.push({ url, observed_at: observedAt, source_identity: before, prefix_bytes_consumed: LIMIT, ...header });
   }
-  const receipt = { schema_version: 1, dataset_id: "mn-dli-construction-schema", started_at: startedAt, finished_at: now().toISOString(), observations,
+  const receipt = { schema_version: profileCodes ? 2 : 1, dataset_id: "mn-dli-construction-schema", started_at: startedAt, finished_at: now().toISOString(), observations,
     claims: { business_records_retained: 0, prefix_requests: 2, full_export_downloaded: false, connector_ready: false, acquisition_authorized: false, public_export_authorized: false, source_record_count: null },
-    scope: "Two bounded prefixes may contain record bytes in memory; only validated CSV header bytes and source headers are retained. Not source authenticity, row schema/value validation or a transactional snapshot." };
+    scope: profileCodes ? "Two bounded prefixes are inspected for finite code counts only; headers and aggregate code buckets are retained, never source rows. Not representative, independently replayed code counts, source authenticity, address-role validation or a transactional snapshot." : "Two bounded prefixes may contain record bytes in memory; only validated CSV header bytes and source headers are retained. Not source authenticity, row schema/value validation or a transactional snapshot." };
   signal?.throwIfAborted(); validateMnConstructionPreflight(receipt); return receipt;
 }
 
 export function validateMnConstructionPreflight(receipt) {
-  check(exact(receipt, ["schema_version", "dataset_id", "started_at", "finished_at", "observations", "claims", "scope"]) && receipt.schema_version === 1 && receipt.dataset_id === "mn-dli-construction-schema", "receipt envelope");
+  check(exact(receipt, ["schema_version", "dataset_id", "started_at", "finished_at", "observations", "claims", "scope"]) && [1, 2].includes(receipt.schema_version) && receipt.dataset_id === "mn-dli-construction-schema", "receipt envelope");
   check(time(receipt.started_at) && time(receipt.finished_at) && receipt.started_at <= receipt.finished_at && Array.isArray(receipt.observations) && receipt.observations.length === 2, "receipt chronology/roster");
   let prior = receipt.started_at;
   for (const [i, o] of receipt.observations.entries()) {
-    check(exact(o, ["url", "observed_at", "source_identity", "prefix_bytes_consumed", "columns", "header_bytes", "header_base64", "header_sha256"]) && o.url === MN_CONSTRUCTION_EXPORTS[i] && time(o.observed_at) && prior <= o.observed_at && o.observed_at <= receipt.finished_at && o.prefix_bytes_consumed === LIMIT, "observation identity");
+    check(exact(o, ["url", "observed_at", "source_identity", "prefix_bytes_consumed", "columns", "header_bytes", "header_base64", "header_sha256", ...(receipt.schema_version === 2 ? ["code_profile"] : [])]) && o.url === MN_CONSTRUCTION_EXPORTS[i] && time(o.observed_at) && prior <= o.observed_at && o.observed_at <= receipt.finished_at && o.prefix_bytes_consumed === LIMIT, "observation identity");
+    if (receipt.schema_version === 2) validateMnConstructionCodeProfile(o.code_profile);
     check(typeof o.header_base64 === "string" && o.header_base64.length <= 5464, "header encoding size");
     const bytes = Buffer.from(o.header_base64, "base64"), header = inspectMnConstructionHeader(bytes);
     check(JSON.stringify(header.columns) === JSON.stringify(MN_CONSTRUCTION_COLUMNS), "publisher header contract");
@@ -137,7 +143,7 @@ export function validateMnConstructionPreflight(receipt) {
     check(JSON.stringify(identity(new Headers({ "content-length": String(s.file_bytes), etag: s.etag, "last-modified": s.last_modified, "content-type": s.content_type }))) === JSON.stringify(s), "source identity reconstruction"); prior = o.observed_at;
   }
   check(JSON.stringify(receipt.claims) === JSON.stringify({ business_records_retained: 0, prefix_requests: 2, full_export_downloaded: false, connector_ready: false, acquisition_authorized: false, public_export_authorized: false, source_record_count: null }), "receipt claims");
-  check(receipt.scope === "Two bounded prefixes may contain record bytes in memory; only validated CSV header bytes and source headers are retained. Not source authenticity, row schema/value validation or a transactional snapshot.", "receipt scope");
+  check(receipt.scope === (receipt.schema_version === 2 ? "Two bounded prefixes are inspected for finite code counts only; headers and aggregate code buckets are retained, never source rows. Not representative, independently replayed code counts, source authenticity, address-role validation or a transactional snapshot." : "Two bounded prefixes may contain record bytes in memory; only validated CSV header bytes and source headers are retained. Not source authenticity, row schema/value validation or a transactional snapshot."), "receipt scope");
   return receipt;
 }
 

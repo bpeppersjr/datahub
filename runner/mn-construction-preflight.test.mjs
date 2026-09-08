@@ -87,7 +87,7 @@ test("MN replay rejects changed claims, URLs, columns, trailing record bytes and
 test("MN changed source columns cannot silently become a compatible schema", async () => {
   const b = Buffer.alloc(4096, 120); b.write(line.replace("Bus_Pers", "Changed_Field"));
   const f = fixture(({ call }) => call === 2 ? new Response(b, { status: 206, headers: { ...headers, "content-length": "4096", "content-range": "bytes 0-4095/10000" } }) : undefined);
-  await assert.rejects(preflightMnConstruction(f.options), /publisher header changed/); assert.equal(f.calls.length, 3);
+  await assert.rejects(preflightMnConstruction(f.options), /publisher header changed/); assert.equal(f.calls.length, 2);
 });
 test("MN receipt publication is unique, replayable, app-contained and rejects aliases", async () => {
   const r = await preflightMnConstruction(fixture().options), root = path.join(APP_ROOT, "data/tmp", `mn-schema-${randomUUID()}`);

@@ -29,11 +29,26 @@ Cancellation before the publication boundary removes only an owned temporary fil
 
 ## Remaining acquisition gates
 
-The observed `Bus_Pers` column makes a business-only filter plausible, but its values and semantics remain unverified. Do not infer them from the column name. Verify credential/type/status codebooks, license-to-business/location relationships, address role, date semantics and source use before creating a native connector. Presence of `Phone_No` and `Email_Address` confirms that contacts must be excluded from the future field allowlist, not ingested merely because the export includes them. Enforcement and renewal information need explicit treatment and are not verified current-operation flags.
+The observed `Bus_Pers` column makes a business-only filter plausible. The later bounded code profile below observes literal values, but does not establish their complete semantics. Do not infer them from the column name. Verify credential/type/status codebooks, license-to-business/location relationships, address role, date semantics and source use before creating a native connector. Presence of `Phone_No` and `Email_Address` confirms that contacts must be excluded from the future field allowlist, not ingested merely because the export includes them. Enforcement and renewal information need explicit treatment and are not verified current-operation flags.
 
 No coordinate columns are present. Future geocodes must come from an authorized, provenance-preserving address process; do not fabricate points or attach polygons to businesses. Normalize `Zip` into separate ZIP5/ZIP4 fields while preserving unknowns. Broad Minnesota industry coverage, a unique-business denominator and business matching remain unproven.
 
-Next build a bounded, privacy-selected value/codebook prerequisite and reviewed source policy, then run-isolated acquisition retention, normalization/quarantine conservation, independent verification and native Co*Tive job receipts. Routine downloads belong to the app after that handoff; retain and reuse verified source bytes for subsequent promotion.
+The bounded code prerequisite is now implemented below. Next resolve remaining semantics and reviewed source policy, then run-isolated acquisition retention, normalization/quarantine conservation, independent verification and native Co*Tive job receipts. Routine downloads belong to the app after that handoff; retain and reuse verified source bytes for subsequent promotion.
+
+## Aggregate code prerequisite (schema 2)
+
+`node scripts/preflight-mn-construction-codes.mjs` uses the same six-request, two-prefix limits. It retains only predefined aggregate buckets for `Bus_Pers`, credential prefix and `Status`. Unselected fields are not accumulated; unknown values are counted without storing their text or hashes. Complete selected fields are discarded after counting. Incomplete trailing records are discarded, including non-ASCII or overlength selected values; malformed complete selected codes fail with fixed redacted diagnostics. This is not a full acquisition or app enrollment.
+
+Native receipt `data/business-sources/mn-dli-construction/preflights/bbc5eea1-2bac-4d71-bcae-4178c344c78a.json` is 5,293 bytes, SHA-256 `044ef6a7b803533af98e615de257cd5c648bb8f13270c7cdde85989c6c2f1287`. On September 8, 2026 at 10:45:13.417Z and 10:45:17.154Z respectively:
+
+- Contractor registrations: 18 complete prefix records, all literal `Business` and `IR`; 14 `Issued`, four `Expired`.
+- Residential contractors: 17 complete prefix records, all literal `Business` and `RR`; 12 `Issued`, three `Expired`, two unknown status codes whose text was not retained.
+
+Both prefixes discarded an incomplete tail. These nonrepresentative observations are not unique-business counts, statewide totals, active-business percentages or evidence of an operating address. The source contains non-Issued records; a future active-credential filter cannot accept all rows. Address role and complete codebook semantics remain unresolved. No names, addresses, contacts, full identifiers or source rows were retained.
+
+Schema 1 retains its existing exact-header contract and header-only scope. Schema 2 adds exact bucket shapes, conservation and explicit `counts_independently_replayed: false`: replay validates the receipt's structure and totals, not counts against discarded source rows. Both saved native receipts validate offline without repulling data. Six additional offline tests cover privacy, unknown/blank buckets, incomplete selected fields, CSV framing, invalid codes, conservation and the native request itinerary. Peer review found the incomplete selected-field edge case, corrected before release.
+
+Schema-2 verification on September 8, 2026: all 993 tests, lint, web/desktop builds and desktop control-plane smoke passed in `npm run check`; `npm audit --omit=dev` reported zero vulnerabilities. All 80 production code/configuration pins remained unchanged. Local preview was restored with HTTP 200, without browser visual QA. Full-check log: `data/tmp/mn-construction-codes-check.log`. Rollback removes the new profile module, CLI and tests and reverts the schema-2 additions; retain both historical receipts as evidence rather than silently relabeling schema 2 as schema 1.
 
 Ten offline tests cover the request sequence, parser/privacy boundaries, source drift, unknown columns, bad ranges/encoding/sizes, provider failures, ignored signals/stalls/late replies, cancellation, replay forgery, receipt snapshots and path/publication controls. Rollback removes this prerequisite module, CLI and tests, while keeping retained evidence. No source policies, industry enrollment or schedules changed.
 
