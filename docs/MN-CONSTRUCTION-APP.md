@@ -54,6 +54,8 @@ Subsequent operation: [the September 8 managed-app handoff](MN-CONSTRUCTION-HAND
 
 That operation subsequently failed before completed acquisition: see [the streaming-failure investigation](MN-CONSTRUCTION-FAILURE-20260908.md). New failures can include an advisory finite-code `diagnostic.json`, checked and returned by the verifier; old receipts without this sidecar remain valid. No raw provider or parser error text is retained by this diagnostic feature.
 
+Later residential acquisition succeeded independently; registrations remained failed. [Selective recovery](MN-CONSTRUCTION-SELECTIVE-RECOVERY.md) documents preserved partial evidence and the more specific redacted CSV diagnostics. [Manual source selection](MANUAL-SOURCE-SELECTION.md) now allows registrations-only managed dispatch without a full residential download. It does not automatically retry or repair malformed CSV.
+
 ## Validation and rollback
 
 Release validation: `npm run check` passed (1,059 tests passed, 11 skipped, zero failures), including lint, web/desktop builds and desktop control-plane smoke. `npm audit --omit=dev` reported zero vulnerabilities. All 82 pending national production code/configuration pins were unchanged. The registry now contains 49 connectors and 46 source-policy profiles; Minnesota enrollment remains explicitly unmeasured in the national coverage ledger until reporting integration.

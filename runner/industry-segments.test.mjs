@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { buildIndustryPlan, loadIndustryConfig, runIndustryPlan, validateIndustryConfig } from "./industry-segments.mjs";
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { buildIndustryPlan, loadIndustryConfig, runIndustryPlan, validateIndustryConfig, industryPlanFingerprint } from "./industry-segments.mjs";
 import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 
 function offlineConfig(concurrency = 2) {
@@ -24,6 +26,35 @@ function offlineConfig(concurrency = 2) {
     },
   };
 }
+
+test("explicit manual sources narrow MN without altering omitted selections", async () => {
+  const config = await loadIndustryConfig(), input = {industries:['construction'],states:['MN'],runId:'selection-test'};
+  const legacy = buildIndustryPlan(config,input), selected = buildIndustryPlan(config,{...input,sourceIds:['state-mn-contractor-registrations']});
+  assert.equal(legacy.taskCount,2);assert.equal(Object.hasOwn(legacy,'sourceIds'),false);
+  assert.equal(industryPlanFingerprint(legacy),industryPlanFingerprint(buildIndustryPlan(config,{...input,sourceIds:undefined})));
+  assert.deepEqual(selected.tasks.map(t=>t.sourceId),['state-mn-contractor-registrations']);
+  assert.notEqual(industryPlanFingerprint(legacy),industryPlanFingerprint(selected));
+  for(const sourceIds of [[],null,'state-mn-contractor-registrations',['unknown'],['state-mn-contractor-registrations','state-mn-contractor-registrations'],['state-wa-contractors'],['state-oh-childcare']])assert.throws(()=>buildIndustryPlan(config,{...input,sourceIds}));
+  assert.throws(()=>buildIndustryPlan(config,{...input,states:['WI'],sourceIds:['state-mn-contractor-registrations']}),/not applicable/);
+});
+
+test("selected source run conserves selected tasks and rejects expanded canonical plans", async () => {
+  const config=offlineConfig(),plan=buildIndustryPlan(config,{sourceIds:['state-fixture'],runId:'source-selection'});
+  await withRunDirectory(async outputRoot=>{
+    await assert.rejects(runIndustryPlan(config,{...plan,sourceIds:['ny-fixture']},{outputRoot,executor:async()=>{throw Error('must not launch');}}),/Plan does not match/);
+    const launched=[];const result=await runIndustryPlan(config,plan,{outputRoot,executor:async task=>{launched.push(task.sourceId);return {code:0};}});
+    assert.deepEqual(launched,['state-fixture']);assert.deepEqual(result.receipt.plan.sourceIds,['state-fixture']);
+    assert.equal(result.receipt.source_locks.length,2); // selected source + its executable
+    assert.doesNotMatch(JSON.stringify(result.receipt.source_locks),/ny-fixture|tx-fixture/);
+  });
+});
+
+test('manual source CLI plans only requested source and rejects malformed source flags',async()=>{
+  const execute=promisify(execFile),base=['scripts/run-industry-segments.mjs','plan','--industry','construction','--state','MN'];
+  const {stdout}=await execute(process.execPath,[...base,'--sources','state-mn-contractor-registrations'],{cwd:APP_ROOT});
+  const plan=JSON.parse(stdout);assert.deepEqual(plan.tasks.map(t=>t.sourceId),['state-mn-contractor-registrations']);
+  for(const flags of [['--sources',''],['--sources','state-mn-contractor-registrations,'],['--sources','state-mn-contractor-registrations','--sources','state-mn-residential-contractors']])await assert.rejects(execute(process.execPath,[...base,...flags],{cwd:APP_ROOT}));
+});
 
 async function withRunDirectory(callback) {
   const temporaryRoot = assertInsideApp(path.join(APP_ROOT, "data", "tmp"));

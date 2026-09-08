@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { parse } from 'csv-parse';
 import { MN_CONSTRUCTION_COLUMNS } from './mn-construction-preflight.mjs';
 import { normalizeMnConstructionRecord } from './mn-construction-normalization.mjs';
-import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
+import { mnConstructionFailure, mnConstructionCsvFailure } from './mn-construction-diagnostics.mjs';
 
 const LEGACY_VERSION = 'mn-construction-selected-stream@1.0.0';
 const VERSION = 'mn-construction-selected-stream@1.1.0';
@@ -48,7 +48,8 @@ export async function processMnConstructionSelectedStream(source, { context, emi
   // CSV punctuation remains ASCII; selected values are decoded separately below.
   // Disable parser BOM auto-detection, which can switch its encoding to UTF-8.
   const parser=parse({encoding:'latin1',bom:false,columns:columns=>{
-    check(JSON.stringify(columns)===JSON.stringify(MN_CONSTRUCTION_COLUMNS),'column drift');headerSeen=true;return columns;},
+    if(JSON.stringify(columns)!==JSON.stringify(MN_CONSTRUCTION_COLUMNS))throw mnConstructionFailure(null,'source-csv-header-mismatch');
+    headerSeen=true;return columns;},
     skip_empty_lines:false,relax_column_count:false,max_record_size:65536});
   const sink=new Writable({objectMode:true,write(row,_encoding,callback) {
     void (async()=>{
@@ -78,7 +79,7 @@ export async function processMnConstructionSelectedStream(source, { context, emi
     })().then(()=>callback(),error=>callback(mnConstructionFailure(error,'selected-frame-failed')));
   }});
   try { await pipeline(source,meter,parser,sink,{signal});check(headerSeen && sourceBytes>0,'missing header');signal?.throwIfAborted(); }
-  catch(error) { signal?.throwIfAborted();throw Object.assign(mnConstructionFailure(error,typeof error?.code==='string' && error.code.startsWith('CSV_')?'source-csv-invalid':'source-stream-failed'),{message:'Minnesota selected stream failed; no completed receipt.'}); }
+  catch(error) { signal?.throwIfAborted();throw Object.assign(mnConstructionCsvFailure(error),{message:'Minnesota selected stream failed; no completed receipt.'}); }
   return {schema_version:VERSION,context,source_bytes:sourceBytes,source_file_sha256:sourceHash.digest('hex'),canonical_frames_sha256:frameHash.digest('hex'),counts:totals,
     claims:claims(),mode:'caller-supplied-csv-stream',scope:'Selected accepted fields replayable; discarded source values and provider completeness are not independently replayed.'};
 }

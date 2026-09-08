@@ -64,7 +64,7 @@ export function validateIndustryConfig(config, source = "config") {
   return true;
 }
 
-export function buildIndustryPlan(config, { industries, states, runId = randomUUID() } = {}) {
+export function buildIndustryPlan(config, { industries, states, sourceIds, runId = randomUUID() } = {}) {
   validateIndustryConfig(config);
   const requestedIndustries = asArray(industries).flatMap((v) => String(v).split(",")).filter(Boolean);
   const requestedStates = asArray(states).flatMap((v) => String(v).split(",")).filter(Boolean);
@@ -72,7 +72,12 @@ export function buildIndustryPlan(config, { industries, states, runId = randomUU
   const selectedStates = [...new Set(requestedStates.length ? requestedStates : config.states)];
   for (const industry of selectedIndustries) if (!config.industries[industry]) throw new Error(`Unsupported industry: ${industry}`);
   for (const state of selectedStates) if (!config.states.includes(state)) throw new Error(`Unsupported state: ${state}`);
-  const ids = [...new Set(selectedIndustries.flatMap((i) => config.industries[i]))];
+  const industrySources = [...new Set(selectedIndustries.flatMap((i) => config.industries[i]))];
+  if (sourceIds !== undefined) {
+    if (!Array.isArray(sourceIds) || !sourceIds.length || sourceIds.some(id => typeof id !== "string" || !/^[-a-z0-9]+$/.test(id)) || new Set(sourceIds).size !== sourceIds.length) throw new Error("sourceIds must be a non-empty array of unique source IDs.");
+    for (const id of sourceIds) if (!industrySources.includes(id) || !(config.sources[id].scope === "national" || config.sources[id].states.some(state => selectedStates.includes(state)))) throw new Error(`Source is not applicable to selected industries and states: ${id}`);
+  }
+  const ids = sourceIds === undefined ? industrySources : [...sourceIds].sort();
   const tasks = [];
   const warnings = [];
   for (const sourceId of ids) {
@@ -91,7 +96,7 @@ export function buildIndustryPlan(config, { industries, states, runId = randomUU
     const hasStateSource = config.industries[industry].some((id) => config.sources[id].scope === "state" && config.sources[id].states.includes(state));
     if (!hasStateSource) gaps.push({ industry, state, reason: "no configured state-scoped source; national sources are not state-filtered" });
   }
-  return { runId, industries: selectedIndustries, states: selectedStates, taskCount: tasks.length, tasks, gaps, warnings, maxConcurrency: Math.min(config.max_concurrency, MAX_CONCURRENCY) };
+  return { runId, industries: selectedIndustries, states: selectedStates, ...(sourceIds === undefined ? {} : { sourceIds: ids }), taskCount: tasks.length, tasks, gaps, warnings, maxConcurrency: Math.min(config.max_concurrency, MAX_CONCURRENCY) };
 }
 
 async function checkPrerequisites(task) {
@@ -149,7 +154,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
     try { await access(assertInsideApp(path.resolve(APP_ROOT, source.script))); } catch { throw new Error(`${id}.script does not exist: ${source.script}`); }
   }
   const runDir = assertInsideApp(path.resolve(APP_ROOT, outputRoot));
-  const canonical = buildIndustryPlan(config, { industries: plan.industries, states: plan.states, runId: plan.runId });
+  const canonical = buildIndustryPlan(config, { industries: plan.industries, states: plan.states, sourceIds: plan.sourceIds, runId: plan.runId });
   if (JSON.stringify(canonical.tasks) !== JSON.stringify(plan.tasks) || JSON.stringify(canonical.gaps) !== JSON.stringify(plan.gaps) || JSON.stringify(canonical.warnings) !== JSON.stringify(plan.warnings) || canonical.maxConcurrency !== plan.maxConcurrency) throw new Error("Plan does not match the validated configuration.");
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(plan.runId)) throw new Error("runId must be a short filesystem-safe identifier.");
   await mkdir(path.dirname(runDir), { recursive: true });
@@ -157,7 +162,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
   await mkdir(path.join(runDir, "logs"));
   const receiptPath = path.join(runDir, "receipt.json");
   await writeFile(path.join(runDir, "plan.json"), JSON.stringify(plan, null, 2));
-  const receipt = { run_id: plan.runId, status: "running", started_at: new Date().toISOString(), plan: { industries: plan.industries, states: plan.states, gaps: plan.gaps, warnings: plan.warnings }, tasks: [], log_sha256: {} };
+  const receipt = { run_id: plan.runId, status: "running", started_at: new Date().toISOString(), plan: { industries: plan.industries, states: plan.states, ...(plan.sourceIds === undefined ? {} : {sourceIds: canonical.sourceIds}), gaps: plan.gaps, warnings: plan.warnings }, tasks: [], log_sha256: {} };
   let receiptWrite = Promise.resolve();
   const persist = () => { receiptWrite = receiptWrite.catch(() => {}).then(async () => { const temp = `${receiptPath}.tmp`; await writeFile(temp, JSON.stringify(receipt, null, 2)); const { rename } = await import("node:fs/promises"); await rename(temp, receiptPath); }); return receiptWrite; };
   await persist();

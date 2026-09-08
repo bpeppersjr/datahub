@@ -441,6 +441,8 @@ State access refresh: the seven-bucket ledger now measures 357 jurisdiction/indu
 
 Retained credential visibility (September 8): the coverage explorer now has a separate authenticated, read-only state/ZIP aggregate panel backed by checksum-verified Minnesota residential evidence. Its percentages describe the accepted credential cohort, not U.S. business completeness; national totals remain unchanged. It does not dispatch or supervise downloads. See [retained evidence and boundaries](MN-CONSTRUCTION-STATE-REPORT.md#read-only-dashboard-follow-up).
 
+Selective app investigation (September 8): manual industry/API collection can select individual applicable source IDs, preserving default scheduled behavior and source reservations. This allows registrations-only Minnesota work without re-downloading retained residential data. CSV errors now have specific fixed classifications without retaining parser text or loosening validation. [Recovery evidence and limitations](MN-CONSTRUCTION-SELECTIVE-RECOVERY.md) distinguish partial frames from completed acquisitions; this is not automatic retry or national promotion.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

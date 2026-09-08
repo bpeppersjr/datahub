@@ -12,6 +12,7 @@ Usage:
   node scripts/run-industry-segments.mjs run [--industry <id>[,...]] [--state <ST>[,...]] [--config <path>] [--run-id <id>] [--expected-plan-sha256 <hash>]
 
 plan is read-only. run is explicit and may acquire source data through the configured builders.
+Optional --sources <id[,id]> restricts manual selection to applicable sources; it does not retry or skip existing data.
 `;
 }
 
@@ -26,6 +27,7 @@ function parse(args) {
     if (flag === "--config") options.config = value;
     else if (flag === "--industry") options.industries.push(value);
     else if (flag === "--state") options.states.push(value.toUpperCase());
+    else if (flag === "--sources") { if(options.sourceIds !== undefined) throw new Error("--sources may only be supplied once."); options.sourceIds=value.split(","); }
     else if (flag === "--run-id") options.runId = value;
     else if (flag === "--expected-plan-sha256") options.expectedPlanHash = value;
     else throw new Error(`Unknown argument ${flag}.`);
@@ -40,7 +42,7 @@ try {
   const options = parse(process.argv.slice(2));
   if (options.help) { process.stdout.write(usage()); process.exit(0); }
   const config = await loadIndustryConfig(options.config);
-  const plan = buildIndustryPlan(config, { industries: options.industries, states: options.states, runId: options.runId || undefined });
+  const plan = buildIndustryPlan(config, { industries: options.industries, states: options.states, ...(options.sourceIds === undefined ? {} : {sourceIds:options.sourceIds}), runId: options.runId || undefined });
   if (options.mode === "plan") { process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`); process.exit(0); }
   if (options.expectedPlanHash && industryPlanFingerprint(plan) !== options.expectedPlanHash) throw new Error("Scheduled industry plan changed; acquisition is blocked.");
   const result = await runIndustryPlan(config, plan, { signal: cancellation.signal });

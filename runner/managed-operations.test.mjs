@@ -17,6 +17,17 @@ async function fixture(t, options = {}) {
 }
 async function finished(service, id) { for (let i = 0; i < 100; i += 1) { const operation = await service.get(id); if (!["QUEUED", "RUNNING"].includes(operation.status)) return operation; await new Promise((resolve) => setTimeout(resolve, 5)); } throw new Error("operation did not finish"); }
 
+test("manual source selection forwards into child and receipt, but not schedules",async t=>{
+  let launched;const service=await fixture(t,{executor:async (...args)=>{launched=args;return {code:0};}});
+  for(const sourceIds of [[],null,undefined,['source','source'],['unknown']])await assert.rejects(service.plan({sourceIds}));
+  const plan=await service.plan({industries:['retail'],states:['TX'],sourceIds:['source']});assert.deepEqual(plan.sourceIds,['source']);
+  await assert.rejects(service.startScheduledCollection({sourceIds:['source']},{operationId:'must-not-schedule'}),/Unsupported operation option/);
+  const op=await service.startCollection({industries:['retail'],states:['TX'],sourceIds:['source']});await finished(service,op.id);
+  assert.match(JSON.stringify(launched),/--sources/);
+  const receipt=JSON.parse(await readFile(path.join(service.root,op.id,'receipt.json'),'utf8'));assert.deepEqual(receipt.details.plan.sourceIds,['source']);
+  await service.close();
+});
+
 test("managed failed running receipt prevents spawn and still persists a terminal failure", async (t) => {
   let calls = 0, failed = false;
   const service = await fixture(t, {

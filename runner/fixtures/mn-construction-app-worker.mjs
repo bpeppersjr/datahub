@@ -72,7 +72,9 @@ if(mode==='success' || mode==='tamper' || mode==='mixed-encoding'){
   else assert.equal(result.acquisition,null);
   if(mode==='invalid-utf8') {
     const file=path.join(path.dirname(result.receipt_path),'diagnostic.json'),diagnostic=JSON.parse(await readFile(file,'utf8'));
-    assert.equal(diagnostic.code,'source-csv-invalid');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);
+    assert.equal(diagnostic.code,'source-csv-column-count');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);
+    assert.equal(result.failure_diagnostic,'source-csv-column-count');
+    diagnostic.code='source-csv-invalid';await writeFile(file,JSON.stringify(diagnostic));assert.equal((await verify(result.receipt_path)).failure_diagnostic,'source-csv-invalid');
     diagnostic.code='PRIVATE';await writeFile(file,JSON.stringify(diagnostic));await assert.rejects(verify(result.receipt_path));
   }
   if(mode==='failed-cohort-tamper'){
