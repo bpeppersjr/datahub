@@ -1,24 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { fixture } from "./fixtures/wi-childcare.mjs";
-import { preflightWiChildcare, WI_FIELDS } from "./wi-childcare-preflight.mjs";
-import { WI_ACQUISITION_VERSION, wiInventoryUrl, wiFeatureUrl, wiInventory, wiBatches, wiPoint, wiFeatures, replayWiChildcareAcquisition, validateWiSourcePolicy } from "./wi-childcare-acquisition.mjs";
+import { WI_FIELDS } from "./wi-childcare-preflight.mjs";
+import { wiFeatureUrl, wiInventory, wiBatches, wiPoint, wiFeatures, replayWiChildcareAcquisition, validateWiSourcePolicy } from "./wi-childcare-acquisition.mjs";
 
-const hash = (v) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
-function feature(id) {
-  return { attributes: { OBJECTID: id, ProvderNumber: "0001", LocationNumber: "01", FacilityNumber: "000101", FacilityName: "Synthetic Center ", LocationLineAddress1: "1 Fixture Street", LocationLineAddress2: null, City: "Fixture ", State: "WI ", ZipCode: id === 2 ? null : "53703-1234", CategoryType: "LICENSED GROUP", Capacity: 20 }, geometry: id === 2 ? null : { x: -89.4, y: 43.1 } };
-}
-function batch(ids) { return { geometryType: "esriGeometryPoint", spatialReference: { wkid: 4326 }, features: ids.map(feature) }; }
-async function evidence() {
-  const f = fixture((v) => { if (v.count) v.count = 2; });
-  const before = await preflightWiChildcare(f.options), after = structuredClone(before);
-  const observe = (kind, url, payload) => ({ kind, url, observed_at: before.finished_at, payload, payload_sha256: hash(payload), response_bytes: Buffer.byteLength(JSON.stringify(payload)) });
-  const inventory = { objectIdFieldName: "OBJECTID", objectIds: [2, 1] };
-  return { schema_version: 1, transformation_version: WI_ACQUISITION_VERSION, started_at: before.started_at, observed_at: after.finished_at, preflight_before: before, preflight_after: after,
-    observations: [observe("inventory", wiInventoryUrl(), inventory), observe("features", wiFeatureUrl([1, 2]), batch([2, 1])), observe("inventory", wiInventoryUrl(), structuredClone(inventory))] };
-}
-function rehash(e) { for (const o of e.observations) { o.payload_sha256 = hash(o.payload); o.response_bytes = Buffer.byteLength(JSON.stringify(o.payload)); } }
+import { batch, evidence, rehash } from "./fixtures/wi-childcare-acquisition.mjs";
 test("WI replay conserves exact IDs, original fields, nullable points and separate source ZIP evidence", async () => {
   const e = await evidence(), result = replayWiChildcareAcquisition(e);
   assert.deepEqual(result.features.map((v) => v.attributes.OBJECTID), [1, 2]);

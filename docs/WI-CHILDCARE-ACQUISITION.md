@@ -26,6 +26,8 @@ Source strings, leading-zero provider/location/facility IDs, padded names and nu
 
 ## Remaining work
 
+Follow-up: [offline normalization is now implemented](WI-CHILDCARE-NORMALIZATION.md), including separate ZIP5/ZIP4 and accepted/quarantine conservation. The first increment's scope above remains historical; no actual normalized source release or live downloader has been published.
+
 Obtain the source-use decision without accepting an agreement on the user's behalf. Then implement bounded network acquisition with provider pacing, retries, cancellation, cumulative streamed budgets and retained run evidence; normalize postal values and entities; verify immutable releases and failure cleanup; enroll the complete connector in Co*Tive. Only after an actual app operation/receipt handoff should agents leave downloading to the app. Existing retained national and Tennessee data must not be repulled for this work.
 
 ## Verification and rollback
