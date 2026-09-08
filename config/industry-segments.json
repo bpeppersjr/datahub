@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers"]
   },
   "sources": {
+    "state-co-childcare-centers": {
+      "script": "scripts/build-co-childcare.mjs",
+      "scope": "state", "states": ["CO"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/co-childcare-centers-app.json", "config/connectors/co-childcare-centers-acquisition.json", "config/connectors/co-childcare-centers-normalization.json", "config/source-policies/co-childcare-centers-internal.json", "config/connectors/co-childcare-preflight.json", "config/source-policies/co-childcare-preflight.json", "config/co-childcare-source-contract.json"],
+      "coverage_notes": [
+        "Colorado Child Care Center source candidates only, not verified current operating businesses, unique identities or premises.",
+        "Co*Tive owns bounded GET collection with paired preflights, reconciled baseline/selected/final membership, durable journals and native publisher exclusion. No automatic retry, restart or recurring schedule is enabled.",
+        "ZIP5 and ZIP4 stay separate. Coordinates and operating dates are not provided by the selected source; licensing-application-reported physical addresses are not independently verified premises. Missing values remain gaps.",
+        "Immutable app receipts bind acquired and normalized releases. Explicit retained reuse avoids repulling. Enrollment does not promote national reporting or replace source pointers."
+      ]
+    },
     "state-vt-childcare-centers": {
       "script": "scripts/build-vt-childcare.mjs",
       "scope": "state", "states": ["VT"], "state_filter_supported": false,

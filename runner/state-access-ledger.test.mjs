@@ -85,6 +85,22 @@ test('VT app enrollment is explicitly unmeasured and does not imply records or s
   assert.deepEqual(cell.localPublisherCohortEvidence,{status:'not-enrolled'});
 });
 
+test('CO app enrollment does not manufacture measured records or submitted jobs',async t=>{
+  const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8'));
+  for(const prerequisite of config.sources['state-co-childcare-centers'].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='CO').industries.find(r=>r.industry==='childcare');
+  assert.equal(ledger.summary.industryCells,459);
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.configuredSources.length,1);
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId,'state-co-childcare-centers');
+  assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor,'cotive-app');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');
+  assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);
+  assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+  assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
+});
+
 test('VT publisher cohort enrollment is separate from address coverage and missing data is not zero',async t=>{
   const f=await fixture(t),before=await buildStateAccessLedger(f);
   await copyFile(path.join(APP_ROOT,'config/vt-childcare-reporting-enrollment.json'),path.join(f.root,'config/vt-childcare-reporting-enrollment.json'));

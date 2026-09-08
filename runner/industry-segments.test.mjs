@@ -29,7 +29,7 @@ function offlineConfig(concurrency = 2) {
 
 test('PA childcare enrollment selects one fixed app task without broadening source scope',async()=>{
   const config=await loadIndustryConfig();
-  assert.equal(Object.keys(config.sources).length,23);assert.equal(config.industries.childcare.length,8);
+  assert.equal(Object.keys(config.sources).length,24);assert.equal(config.industries.childcare.length,9);
   assert.equal(Object.keys(config.industries).length,9);assert.equal(config.states.length,51);
   const selected={industries:['childcare'],states:['PA','WI'],sourceIds:['state-pa-childcare-centers']};
   const plan=buildIndustryPlan(config,selected);
@@ -88,6 +88,21 @@ test('VT childcare enrollment selects one fixed app worker and preserves other-s
   assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
   assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);
   assert.equal(config.sources['state-vt-childcare-centers'].state_filter_supported,false);
+});
+
+test('CO childcare enrollment selects only the bounded Colorado app worker',async()=>{
+  const config=await loadIndustryConfig(),selected={industries:['childcare'],states:['CO','WI'],sourceIds:['state-co-childcare-centers']};
+  const plan=buildIndustryPlan(config,selected);
+  assert.equal(plan.taskCount,1);assert.equal(plan.tasks[0].state,'CO');
+  assert.equal(plan.tasks[0].script,'scripts/build-co-childcare.mjs');
+  assert.equal(plan.tasks[0].prerequisites.length,7);
+  assert.ok(plan.tasks[0].prerequisites.includes('config/co-childcare-source-contract.json'));
+  assert.ok(plan.gaps.some(g=>g.state==='WI'));
+  assert.ok(plan.warnings.some(w=>w.includes('does not promote national reporting')));
+  assert.equal(buildIndustryPlan(config,{industries:['childcare'],states:['CO']}).taskCount,1);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);
+  assert.equal(config.sources['state-co-childcare-centers'].state_filter_supported,false);
 });
 
 test("explicit manual sources narrow MN without altering omitted selections", async () => {

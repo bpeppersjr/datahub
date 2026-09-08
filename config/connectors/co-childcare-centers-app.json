@@ -1,0 +1,86 @@
+{
+  "connector_id": "co-childcare-centers-app",
+  "version": "1.0.0",
+  "description": "Standalone Colorado center collection and offline normalization with durable app receipts and explicit retained-input reuse.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "outputRoot": {
+        "type": "string"
+      },
+      "acquiredManifestPath": {
+        "type": "string",
+        "description": "Explicit verified retained acquisition; omission selects fixed native collection."
+      }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "co-licensed-center-selected-source",
+    "retained-co-childcare-acquisition"
+  ],
+  "output_artifact_types": [
+    "co-childcare-app-start",
+    "co-childcare-app-acquisition-checkpoint",
+    "co-childcare-app-normalization-checkpoint",
+    "co-childcare-app-terminal-receipt",
+    "co-childcare-normalized-release"
+  ],
+  "output_schema_contract": {
+    "app_version": "co-childcare-app@1.0.0",
+    "acquisition_version": "co-childcare-acquired-release@1.0.0",
+    "normalized_release_version": "co-childcare-normalized-release@1.0.0",
+    "normalization_version": "co-childcare-normalization@1.0.0",
+    "zip": "Separate ZIP5 and ZIP4 with explicit missing/invalid reasons",
+    "geocode": "Null latitude/longitude; no selected coordinates and no business polygons",
+    "entity": "Center-source candidates with licensing-application-reported physical addresses, not verified current businesses or premises",
+    "export_policy": "internal"
+  },
+  "allowed_hosts": [
+    "data.colorado.gov"
+  ],
+  "redirect_policy": "Fixed public catalog and SODA GET requests; no redirects, credentials or fallback. Retained mode makes no source requests.",
+  "provider_budget_key": "co-childcare-soda",
+  "publisher_exclusion": "Native app acquisition owns data/business-sources/co-childcare/runtime/publisher.lock across output roots until child writers drain and terminal persistence completes. Unknown locks are never stolen. Injected tests and retained offline work do not take the native publisher lock.",
+  "resource_class": "bounded-state-industry-app-job",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_requests": 135,
+    "maximum_source_rows": 20000,
+    "maximum_consumed_response_bytes": 150000000,
+    "minimum_request_spacing_ms": 1000,
+    "request_timeout_ms": 30000,
+    "cooperative_execution_deadline_ms": 1800000,
+    "minimum_free_disk_bytes": 1000000000,
+    "source_cancel_grace_ms": 60000,
+    "supervisor_cancel_grace_ms": 75000
+  },
+  "retry": "No automatic retries or restart; preserve completed acquisition for explicit offline reuse without repulling.",
+  "checkpoint": "Persist start before acquisition and verified child references after publication, including commit-boundary cancellation; terminal receipt last without overwrite.",
+  "idempotency": "Immutable UUID app and child outputs. Native/injected jobs cannot borrow other jobs' children; retained mode pins explicit input. No current-source or national pointer changes.",
+  "cancellation": "Cooperative 30-minute deadline and drained writers before terminal persistence and ownership release. Preserve published evidence. Forced termination or OS stalls require inspection.",
+  "source_policy": "config/source-policies/co-childcare-centers-internal.json",
+  "retention_profile": "Internal selected records, quarantine and linked app receipts; preserve source clocks and address, postal, identity and geocode gaps.",
+  "produced_entities": [
+    "publisher-listed-childcare-source-candidate",
+    "quarantined-source-record-reference"
+  ],
+  "produced_identifiers": [
+    "co-childcare-release-scoped-provider-key",
+    "co-childcare-provider-id",
+    "zip5",
+    "zip4"
+  ]
+}
