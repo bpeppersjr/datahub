@@ -28,3 +28,11 @@ The final full `npm run check` passed: 1,369 tests, 1,358 passed, 11 skipped and
 Focused coverage includes four normalizer groups, two normalized-release groups, five app lifecycle groups and 28 state-ledger tests. Retained CLI execution is tested without source transport; native-entry tests substitute a synthetic global transport and do not claim live acquisition. An initial focused run overlapped a normalization semantic edit and failed cross-process replay; the frozen final implementation passed its focused rerun and full suite. Review corrected category-versus-operating-status semantics and a stale configuration artifact label before final verification.
 
 No retained Colorado facility release or managed Colorado source folder was found before handoff preparation; only the earlier bounded preflight existed. Actual dispatch is recorded separately below when accepted, not inferred from these tests.
+
+## Accepted application handoff — September 8, 2026
+
+Implementation `9bf11ea` was pushed before dispatch. The authenticated live plan selected exactly one `state-co-childcare-centers` task for CO with all seven prerequisites. At `2026-09-08T22:33:23.366Z`, the app accepted operation `7b75574d-cdda-4262-9932-e7639e965204` with HTTP 202 and API status RUNNING.
+
+The immediate persisted receipt, `data/managed-operations/7b75574d-cdda-4262-9932-e7639e965204/receipt.json`, still reflected QUEUED with supervisor PID 14972. Its handoff-time SHA-256 was `15fac41af60ecc9b07841aa461c989ce1e7aa3462f53f001e8b930b0b5301a64`; this evolving control receipt is not a terminal artifact pin. The persisted plan independently matched the exact source and state. A preliminary local command failed at JavaScript parsing before any request; it created no operation. Only the successful submission was sent.
+
+Co*Tive now owns acquisition and normalization. No agent download polling, recurring schedule or national production launch was started. Accepted handoff is not terminal success, measured rows or national coverage. Keep the app service running. A subsequent downstream-readiness audit must inspect its terminal receipts and reuse the verified retained release rather than resubmitting collection.
