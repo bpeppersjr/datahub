@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createGunzip, gzipSync } from "node:zlib";
+import { createGunzip, gzipSync, gunzipSync } from "node:zlib";
 import { createInterface } from "node:readline";
 import { CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE, validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
@@ -12,10 +12,11 @@ export const ENTITY_RESOLUTION_PROFILE_VERSION = "business-location-match-profil
 export const ENTITY_RESOLUTION_RULESET_VERSION = "business-entity-resolution@1.0.0";
 export const COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS = Object.freeze([
   "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0",
-  "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0",
+  "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0", "2.15.0",
 ]);
 const TN_REPORTING_SOURCE = "tn-dhs-active-childcare-centers";
-const REPORTING_ONLY_CHILDCARE_SOURCES = new Set(["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_REPORTING_SOURCE]);
+const OH_REPORTING_SOURCE = "oh-dcy-publisher-open-childcare-centers";
+const REPORTING_ONLY_CHILDCARE_SOURCES = new Set(["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_REPORTING_SOURCE, OH_REPORTING_SOURCE]);
 
 const COMPATIBLE_REGISTRY_PUBLISHER_RANGE = `${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS[0]} through ${COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.at(-1)}`;
 
@@ -486,13 +487,18 @@ async function loadRegistryProfiles(pointerPath) {
     if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Registry profile artifact ${artifact.path} failed checksum validation.`);
   }
   const reportingSites = new Set(), reportingEstablishments = new Set(), reportingSources = new Map([...REPORTING_ONLY_CHILDCARE_SOURCES].map(id => [id, 0]));
-  const freshTn = manifest.publisher.version === "2.14.0";
-  const supportsTn = manifest.publisher.version === "2.13.0" || freshTn, missingReasons = { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 };
+  const supportsOh = manifest.publisher.version === "2.15.0";
+  let ohio = null, ohContext = null;
+  const ohRows = [];
+  if (supportsOh) { ohio = await import('./oh-childcare-coverage-evidence.mjs'); ohContext = await ohio.loadOhioCoverageContext(manifest); }
+  else if (Object.hasOwn(manifest,'oh_childcare_source') || Object.hasOwn(manifest,'tn_childcare_origin') || Object.keys(manifest.coverage??{}).some(k=>k.startsWith('oh_childcare_')) || manifest.dependencies?.some(d=>d.dataset_id===OH_REPORTING_SOURCE)) throw new Error('Ohio reporting requires exact registry 2.15.');
+  const freshTn = manifest.publisher.version === "2.14.0" || (supportsOh && manifest.tn_childcare_origin === 'fresh');
+  const supportsTn = manifest.publisher.version === "2.13.0" || freshTn || (supportsOh && manifest.tn_childcare_origin === 'recovered'), missingReasons = { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 };
   let missingZip = 0;
   const reportingArtifacts = manifest.artifacts.filter(artifact => artifact.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE);
-  const supportsReporting = manifest.publisher.version === "2.12.0" || supportsTn;
+  const supportsReporting = manifest.publisher.version === "2.12.0" || supportsTn || supportsOh;
   const tnFields = ["tn_childcare_center_sites", "tn_childcare_center_sites_with_zip", "tn_childcare_center_sites_without_zip", "reporting_location_evidence_without_zip", "tn_childcare_missing_zip_reasons"];
-  if (!supportsTn && (tnFields.some(key => Object.hasOwn(manifest.coverage ?? {}, key)) || manifest.dependencies?.some(d => d.dataset_id === TN_REPORTING_SOURCE))) throw new Error("TN reporting requires exact registry 2.13 recovered or 2.14 fresh.");
+  if (!supportsTn && (tnFields.filter(key=>!supportsOh||key!=='reporting_location_evidence_without_zip').some(key => Object.hasOwn(manifest.coverage ?? {}, key)) || manifest.dependencies?.some(d => d.dataset_id === TN_REPORTING_SOURCE))) throw new Error("TN reporting requires an exact supported registry origin.");
   if (!supportsReporting && (reportingArtifacts.length || (manifest.coverage?.reporting_location_evidence ?? 0) !== 0)) throw new Error("Historical registry releases cannot add reporting-only locations.");
   if (supportsReporting) {
     const counts = manifest.coverage;
@@ -504,21 +510,29 @@ async function loadRegistryProfiles(pointerPath) {
     const paths = new Set();
     for (const artifact of reportingArtifacts) {
       const zip2 = artifact.path?.match(/^reporting\/location-evidence\/zip2=(\d{2}|unassigned)\/records\.jsonl\.gz$/)?.[1];
-      if (zip2 === "unassigned" && !supportsTn) throw new Error("Unassigned reporting requires an exact supported TN registry version.");
+      if (zip2 === "unassigned" && !supportsTn && !supportsOh) throw new Error("Unassigned reporting requires an exact supported registry version.");
       if (!zip2 || paths.has(artifact.path) || artifact.export_policy !== "local-review-only" || !Number.isSafeInteger(artifact.record_count)
         || artifact.record_count < 1) throw new Error("Invalid reporting-only registry partition.");
       paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path), actual = await hashFile(filename);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("Reporting-only registry partition failed checksum validation.");
-      const rows = await readGzipRecords(filename);
+      let rows;
+      if (supportsOh) {
+        const { ohioBoundedRead } = await import('./oh-childcare-release.mjs');
+        const raw = await ohioBoundedRead(filename,100_000_000);
+        if(raw.length!==artifact.bytes||sha256(raw)!==artifact.sha256)throw new Error('Ohio reporting consumed bytes changed.');
+        const text = new TextDecoder('utf-8',{fatal:true}).decode(gunzipSync(raw,{maxOutputLength:100_000_000}));
+        rows = text.split('\n').filter(Boolean).map(line=>JSON.parse(line));
+      } else rows = await readGzipRecords(filename);
       if (rows.length !== artifact.record_count) throw new Error("Reporting-only registry partition count mismatch.");
       for (const row of rows) {
-        if (row.source?.source_id === TN_REPORTING_SOURCE) { if (!supportsTn) throw new Error("TN version mismatch"); (freshTn ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row); }
+        if (row.source?.source_id === OH_REPORTING_SOURCE) { if (!supportsOh) throw new Error('Ohio version mismatch'); ohio.validateOhChildcareGeographicEvidence(row,ohContext.input.verificationContext); ohRows.push(row); }
+        else if (row.source?.source_id === TN_REPORTING_SOURCE) { if (!supportsTn) throw new Error("TN version mismatch"); (freshTn ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row); }
         else validateChildcareGeographicEvidence(row);
         const dependency = dependencies.find(d => d.dataset_id === row.source.source_id);
         if ((row.zip_code?.slice(0, 2) ?? "unassigned") !== zip2 || reportingSites.has(row.site_entity_id) || reportingEstablishments.has(row.establishment_entity_id) || !dependency
           || dependency.release_id !== row.evidence.release_id || dependency.manifest_sha256 !== row.evidence.manifest_sha256) throw new Error("Reporting-only registry row identity or lineage mismatch.");
         reportingSites.add(row.site_entity_id); reportingEstablishments.add(row.establishment_entity_id); reportingSources.set(row.source.source_id, reportingSources.get(row.source.source_id) + 1);
-        if (row.zip_code === null) { missingZip++; missingReasons[row.evidence.zip_unavailable_reason]++; }
+        if (row.zip_code === null && row.source.source_id === TN_REPORTING_SOURCE) { missingZip++; missingReasons[row.evidence.zip_unavailable_reason]++; }
       }
     }
     if (reportingSites.size !== counts.reporting_location_evidence || reportingSources.get("ma-licensed-center-based-childcare") !== counts.ma_childcare_center_sites
@@ -527,8 +541,12 @@ async function loadRegistryProfiles(pointerPath) {
   if (supportsTn) {
     const c = manifest.coverage;
     if (!tnFields.slice(0, 4).every(key => Number.isSafeInteger(c[key]) && c[key] >= 0) || c.tn_childcare_center_sites !== reportingSources.get(TN_REPORTING_SOURCE)
-      || c.tn_childcare_center_sites_without_zip !== missingZip || c.reporting_location_evidence_without_zip !== missingZip || c.tn_childcare_center_sites_with_zip !== c.tn_childcare_center_sites - missingZip
+      || c.tn_childcare_center_sites_without_zip !== missingZip || c.reporting_location_evidence_without_zip !== missingZip + (ohContext?.total.without_zip??0) || c.tn_childcare_center_sites_with_zip !== c.tn_childcare_center_sites - missingZip
       || !c.tn_childcare_missing_zip_reasons || Object.keys(c.tn_childcare_missing_zip_reasons).length !== 2 || Object.entries(missingReasons).some(([key, value]) => c.tn_childcare_missing_zip_reasons[key] !== value)) throw new Error("TN reporting ZIP counts or reasons do not reconcile.");
+  }
+  if (supportsOh) {
+    if (manifest.coverage.reporting_location_evidence_without_zip !== missingZip + ohContext.total.without_zip) throw new Error('Ohio combined missing ZIP count differs.');
+    await ohio.verifyOhChildcareGeographicMembership(ohRows,ohContext.input.verificationContext);
   }
   if (artifacts.reduce((sum, artifact) => sum + artifact.record_count, 0) !== manifest.coverage?.resolution_location_profiles
     || manifest.coverage?.resolution_location_profiles + reportingSites.size !== manifest.coverage?.physical_sites) {

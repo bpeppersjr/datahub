@@ -20,6 +20,10 @@ import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-repor
 import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
 import { buildTnChildcareRelease } from "./tn-childcare-release.mjs";
 import { loadFreshTnChildcareReportingInput } from "./tn-childcare-fresh-reporting-input.mjs";
+import { gatedTransport } from './fixtures/oh-childcare-gated-transport.mjs';
+import { runOhChildcareAppJobWithTransport } from './oh-childcare-app.mjs';
+import { loadOhChildcareGeographicInput } from './oh-childcare-geographic-evidence.mjs';
+import { buildEntityResolutionBenchmarkSample, verifyEntityResolutionBenchmarkSample } from './entity-resolution-benchmark.mjs';
 
 
 function profile({
@@ -126,6 +130,50 @@ async function writeFixtureRegistry(root, profiles, { reporting = false } = {}) 
   await writeFile(pointerPath, `${JSON.stringify({ dataset_id: manifest.dataset_id, release_id: releaseId, manifest: `releases/${releaseId}/manifest.json` })}\n`);
   return pointerPath;
 }
+
+for(const mode of ['mixed','all-missing','fresh','recovered'])test(`Ohio registry 2.15 resolution and benchmark preserve reporting exclusion: ${mode}`,async t=>{
+  await mkdir(path.join(APP_ROOT,'data/tmp'),{recursive:true});
+  const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/resolution-oh-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const transport=await gatedTransport(({payload})=>{if(mode==='all-missing')for(const feature of payload?.features??[])if(feature.attributes?.program_name)feature.attributes.zip_code=null;});
+  const app=await runOhChildcareAppJobWithTransport({...transport.options,outputRoot:path.join(root,'app')}),input=await loadOhChildcareGeographicInput(app.receipt_path);
+  let tn=[];
+  if(mode==='recovered')tn=[createTnChildcareReportingFixture({zip:null}).row];
+  if(mode==='fresh'){
+    const f=createTnChildcareFixture({count:1,mutate:(payload,kind)=>{if(kind==='features')payload.features[0].attributes.Zip=null;}});
+    const release=await buildTnChildcareRelease({outputRoot:path.join(root,'tn'),fetchImpl:f.fetchImpl,sleep:async()=>{}});
+    tn=(await loadFreshTnChildcareReportingInput(release.manifest_path)).reportingRows;
+  }
+  const registryPointer=await writeFixtureRegistry(path.join(root,'registry'),[profile({sourceId:'source-a',recordId:'1',name:'Synthetic Business'})]);
+  const pointer=JSON.parse(await readFile(registryPointer)),file=path.resolve(path.dirname(registryPointer),pointer.manifest),directory=path.dirname(file),manifest=JSON.parse(await readFile(file));
+  manifest.publisher.version='2.15.0';manifest.oh_childcare_source=input.source;manifest.tn_childcare_origin=tn.length?mode:null;
+  Object.assign(manifest.coverage,{physical_sites:4+tn.length,reporting_location_evidence:3+tn.length,ma_childcare_center_sites:0,nj_childcare_center_sites:0,
+    oh_childcare_center_sites:3,oh_childcare_center_sites_with_zip:input.rows.filter(r=>r.zip_code!==null).length,
+    oh_childcare_center_sites_without_zip:input.rows.filter(r=>r.zip_code===null).length,oh_childcare_missing_zip_reasons:input.quality.zip_unavailable_reasons,
+    reporting_location_evidence_without_zip:input.rows.filter(r=>r.zip_code===null).length+tn.length});
+  if(tn.length)Object.assign(manifest.coverage,{tn_childcare_center_sites:1,tn_childcare_center_sites_with_zip:0,tn_childcare_center_sites_without_zip:1,tn_childcare_missing_zip_reasons:{'missing-source-zip':1,'invalid-source-zip-placeholder':0}});
+  manifest.dependencies=[{dataset_id:'oh-dcy-publisher-open-childcare-centers',release_id:input.source.releaseId,manifest_sha256:input.source.manifestSha256},...tn.map(r=>({dataset_id:r.source.source_id,release_id:r.evidence.release_id,manifest_sha256:r.evidence.manifest_sha256}))];
+  for(const [zip2,rows] of Map.groupBy([...input.rows,...tn],r=>r.zip_code?.slice(0,2)??'unassigned')){
+    const relative=`reporting/location-evidence/zip2=${zip2}/records.jsonl.gz`,bytes=gzipSync(rows.map(JSON.stringify).join('\n')+'\n');
+    await mkdir(path.dirname(path.join(directory,relative)),{recursive:true});await writeFile(path.join(directory,relative),bytes);
+    manifest.artifacts.push({path:relative,bytes:bytes.length,sha256:sha256(bytes),record_count:rows.length,artifact_type:'business-reporting-location-evidence-jsonl-gzip',export_policy:'local-review-only'});
+  }
+  await writeFile(file,JSON.stringify(manifest));
+  t.mock.method(globalThis,'fetch',()=>assert.fail('Retained matching must not fetch'));
+  const result=await buildBusinessEntityResolution({registryPointer,outputRoot:path.join(root,'resolution'),logger(){}});
+  assert.equal(result.manifest.coverage.profiles,1);await verifyBusinessEntityResolution(path.join(result.releaseDirectory,'manifest.json'));
+  const sample=await buildEntityResolutionBenchmarkSample({registryPointer,resolutionPointer:result.pointerPath,outputRoot:path.join(root,'benchmark'),logger(){}});
+  assert.equal(sample.manifest.status,'awaiting-independent-labels');await verifyEntityResolutionBenchmarkSample(path.join(sample.releaseDirectory,'manifest.json'));
+  for(const mutate of [m=>{m.oh_childcare_source.receiptSha256='0'.repeat(64);},m=>{m.publisher.version='2.14.0';},m=>{m.publisher.version='2.15.1';},m=>{m.coverage.reporting_location_evidence_without_zip++;}]){
+    const candidate=structuredClone(manifest);mutate(candidate);await writeFile(file,JSON.stringify(candidate));
+    await assert.rejects(buildBusinessEntityResolution({registryPointer,outputRoot:path.join(root,'bad'),logger(){}}));
+  }
+  const a=manifest.artifacts.find(a=>a.artifact_type.includes('location-profile')&&a.record_count),target=path.join(directory,a.path),raw=await readFile(target);
+  for(const endpoint of ['site_entity_id','establishment_entity_id']){
+    const p=JSON.parse(gunzipSync(raw).toString());p[endpoint]=input.rows[0][endpoint];const bytes=gzipSync(JSON.stringify(p)+'\n'),candidate=structuredClone(manifest),descriptor=candidate.artifacts.find(d=>d.path===a.path);
+    Object.assign(descriptor,{bytes:bytes.length,sha256:sha256(bytes)});await writeFile(target,bytes);await writeFile(file,JSON.stringify(candidate));
+    await assert.rejects(buildBusinessEntityResolution({registryPointer,outputRoot:path.join(root,'collision'),logger(){}}),/failed record validation/);
+  }
+});
 
 for (const fresh of [false, true]) test(`registry ${fresh ? "2.14 fresh" : "2.13 recovered"} TN reporting conserves missing ZIP reasons and excludes both matching endpoints`, async t => {
   await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
@@ -277,7 +325,7 @@ test("scores normalized business names without converting similarity into an aut
   assert(score.score > 0.5 && score.score < 1);
 });
 
-test("declares registry publisher compatibility through 2.14.0 without dropping prior versions", async () => {
+test("declares registry publisher compatibility through 2.15.0 without dropping prior versions", async () => {
   const dataset = JSON.parse(await readFile(new URL("../config/datasets/national-business-entity-resolution.json", import.meta.url), "utf8"));
   assert.deepEqual(dataset.compatible_registry_publisher_versions, COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS);
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.6.0"));
@@ -289,11 +337,12 @@ test("declares registry publisher compatibility through 2.14.0 without dropping 
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.12.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.13.0"));
   assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.14.0"));
+  assert(COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes("2.15.0"));
 });
 
 test("reporting-only rows cannot be relabeled as eligible match profiles", () => {
   const valid = profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" });
-  for (const id of ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", "tn-dhs-active-childcare-centers"]) {
+  for (const id of ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", "tn-dhs-active-childcare-centers", "oh-dcy-publisher-open-childcare-centers"]) {
     assert.throws(() => profile({ sourceId: id, recordId: "1", name: "Synthetic Childcare" }), /Reporting-only/);
     const forged = structuredClone(valid); forged.source.source_id = id;
     assert.throws(() => resolveLocationProfiles([forged]), /Reporting-only/);

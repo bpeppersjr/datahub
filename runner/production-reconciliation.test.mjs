@@ -13,6 +13,10 @@ import { acquireTnChildcare } from './tn-childcare-acquisition.mjs';
 import { createTnChildcareFixture } from './fixtures/tn-childcare-fetch.mjs';
 import { recoverTnChildcareRelease } from './tn-childcare-recovered-release.mjs';
 import { buildTnChildcareRelease } from './tn-childcare-release.mjs';
+import { runOhChildcareAppJob, runOhChildcareAppJobWithTransport } from './oh-childcare-app.mjs';
+import { gatedTransport } from './fixtures/oh-childcare-gated-transport.mjs';
+import { loadOhChildcareRegistryInput } from './oh-childcare-registry-input.mjs';
+import { OH_PRODUCTION_CONFIGURATION, OH_PRODUCTION_MODULES } from './oh-childcare-production-input.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const scripts = ['build-business-registry', 'verify-business-registry', 'build-business-entity-resolution', 'verify-business-entity-resolution', 'build-entity-resolution-benchmark', 'verify-entity-resolution-benchmark', 'build-national-business-coverage-views', 'verify-national-business-coverage-views'];
@@ -67,9 +71,64 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
   if (key === 'benchmark') extra = { status: 'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
   if (key === 'coverage') extra = { dependencies: await Promise.all(['--registry', '--resolution', '--benchmark', '--geography', '--crosswalk', '--nonemployer'].map((flag) => dependency(f.root, value(flag)))) };
+  if(f.ohSource&&['registry','coverage'].includes(key)) {
+    extra.publisher={id:datasets[key],version:key==='registry'?'2.15.0':'2.11.0'};extra.oh_childcare_source=f.ohSource;
+    if(key==='registry')extra.dependencies.push({dataset_id:'oh-dcy-publisher-open-childcare-centers',release_id:f.ohSource.releaseId,manifest_sha256:f.ohSource.manifestSha256});
+  }
   await release(f.root, value('--output'), datasets[key], `fresh-${key}`, extra);
   return { exitCode: 0 };
 }
+
+test('Ohio production pins the completed native-entry fixture and hands retained files through all stages without fetching', {timeout:120000}, async t=>{
+  const f=await fixture(t), transport=await gatedTransport();
+  t.mock.method(globalThis,'fetch',transport.options.fetchImpl);
+  // A mocked network at the native entry is fixture evidence, never a live-source claim.
+  const app=await runOhChildcareAppJob({outputRoot:path.join(f.root,'data/oh-app')});
+  f.ohSource=(await loadOhChildcareRegistryInput(app.receipt_path)).source;
+  const selected={...await childcareFixture(f),...await tnRecoveredFixture(t,f),ohChildcareReceipt:app.receipt_path};
+  for(const file of OH_PRODUCTION_CONFIGURATION){await mkdir(path.dirname(path.join(f.root,file)),{recursive:true});await copyFile(path.join(APP_ROOT,file),path.join(f.root,file));}
+  t.mock.method(globalThis,'fetch',()=>assert.fail('Retained production must not fetch'));
+  const plan=await planProductionReconciliation({...f,...selected,runId:'oh-retained-proof'});
+  assert.equal(plan.optionalSourcePins.length,4);assert.equal(plan.sourcePins.length,25);
+  const pin=plan.optionalSourcePins.find(p=>p.sourceKey==='ohChildcareReceipt');
+  assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--oh-childcare-receipt')+1],pin.receiptPath);
+  assert.notEqual(pin.receiptPath,pin.manifestPath);
+  assert.ok(pin.artifacts.some(p=>p.path.endsWith('/start.json')));
+  assert.ok(pin.artifacts.some(p=>p.path.endsWith('/acquisition-receipt.json')));
+  assert.ok(pin.artifacts.some(p=>p.path.endsWith('/observation-0000.json')));
+  for(const file of OH_PRODUCTION_MODULES)assert.ok(plan.implementationPins.some(p=>p.path===file),file);
+  for(const file of OH_PRODUCTION_CONFIGURATION)assert.ok(pin.configurationPins.some(p=>p.path===file),file);
+  let calls=0;
+  for(const file of [pin.artifacts.find(p=>p.path.endsWith('/start.json')).path,pin.artifacts.find(p=>p.path.endsWith('/normalized.jsonl')).path,pin.configurationPins[0].path,'runner/oh-childcare-coverage-evidence.mjs']) {
+    const target=path.join(f.root,file),raw=await readFile(target);await writeFile(target,Buffer.concat([raw,Buffer.from(' ')]));
+    await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>{calls++;}}));await writeFile(target,raw);
+  }
+  assert.equal(calls,0);
+  for(const option of [{recoverBenchmarkFrom:'old'},{recoverResolutionFrom:'old'}])await assert.rejects(planProductionReconciliation({...f,...selected,...option}),/Ohio.*recovery/);
+  for(const receipt of [pin.manifestPath,'data/oh-app/current.json','',path.join(f.root,'data/oh-app')])await assert.rejects(planProductionReconciliation({...f,ohChildcareReceipt:receipt}));
+  for(const kind of ['version','lineage']){
+    const badPlan=await planProductionReconciliation({...f,...selected,runId:`oh-output-${kind}`});
+    const bad=await runProductionReconciliation(badPlan,{...f,executor:async(stage,context)=>{
+      const result=await executeFixture(f,stage,context);
+      const file=path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json'),manifest=JSON.parse(await readFile(file));
+      if(kind==='version')manifest.publisher.version='2.14.0';else manifest.oh_childcare_source.receiptSha256='0'.repeat(64);
+      await json(file,manifest);return result;
+    }});
+    assert.equal(bad.receipt.status,'FAILED');assert.match(bad.receipt.error,/Ohio production version or retained app lineage/);
+    await json(path.join(f.root,outputs.registry,'current.json'),{dataset_id:datasets.registry,release_id:'previous-registry',manifest:'releases/previous-registry/manifest.json'});
+  }
+  const result=await runProductionReconciliation(plan,{...f,executor:(stage,context)=>executeFixture(f,stage,context)});
+  assert.equal(result.receipt.status,'SUCCEEDED');assert.equal(result.receipt.stages.length,8);
+  const injectedTransport=await gatedTransport(),injected=await runOhChildcareAppJobWithTransport({...injectedTransport.options,outputRoot:path.join(f.root,'data/oh-injected')});
+  await assert.rejects(planProductionReconciliation({...f,ohChildcareReceipt:injected.receipt_path}),/not injected/);
+});
+
+test('Ohio production CLI rejects missing repeated and non-plan receipt arguments before planning',()=>{
+  for(const args of [['plan','--oh-childcare-receipt'],['plan','--oh-childcare-receipt','one','--oh-childcare-receipt','two'],['run','--oh-childcare-receipt','one'],['stop','--oh-childcare-receipt','one']]){
+    const result=spawnSync(process.execPath,['scripts/reconcile-business-production.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',windowsHide:true});
+    assert.notEqual(result.status,0);assert.doesNotMatch(result.stdout,/PLANNED|RUNNING/);
+  }
+});
 
 test('production plan pins 25 production sources, four old outputs, and fixed local-only stages without writes', async (t) => {
   const f = await fixture(t), plan = await planProductionReconciliation({ ...f, runId: 'plan-proof' });
