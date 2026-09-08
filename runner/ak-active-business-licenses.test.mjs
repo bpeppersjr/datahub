@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, cp } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, cp, rename, link } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { readdirSync, renameSync, mkdirSync, writeFileSync } from "node:fs";
 import { once } from "node:events";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gzipSync } from "node:zlib";
 import { PassThrough } from "node:stream";
 import {
   AK_BUSINESS_LICENSE_HEADERS,
@@ -549,4 +549,113 @@ test("blocks schema drift, unexpected fields, duplicate identities, orphan class
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(() => buildAkActiveBusinessLicenses({ ...base, outputRoot: path.join(root, "cancelled"), licenseRows: [rawLicense()], naicsRows: [rawNaics()], signal: controller.signal }), /aborted/i);
+});
+
+test("Alaska rejects post-verification mutation before publishing or replacing its prior pointer", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-final-verify-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output"), common = cancellationFixture(outputRoot, await writeBaseline(path.join(root, "zbp")));
+  const prior = await buildAkActiveBusinessLicenses(common), pointer = await readFile(path.join(outputRoot, "current.json"));
+  await assert.rejects(buildAkActiveBusinessLicenses({ ...common, logger(message) {
+    if (message === "Publishing Alaska verified release.") {
+      const staging = path.join(outputRoot, ".staging", readdirSync(path.join(outputRoot, ".staging"))[0]);
+      writeFileSync(path.join(staging, "source/selected-active-business-licenses.jsonl.gz"), "mutation");
+    }
+  } }), /verification|changed|mismatch/i);
+  assert.deepEqual(await readFile(path.join(outputRoot, "current.json")), pointer);
+  assert.deepEqual(await readdir(path.join(outputRoot, "releases")), [prior.manifest.release_id]);
+  assert.equal((await readdir(path.join(outputRoot, ".staging"))).length, 1);
+});
+
+test("Alaska resumed verification rejects compressed oversized records before parsing", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-expansion-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prior = await buildAkActiveBusinessLicenses(cancellationFixture(path.join(root, "prior"), await writeBaseline(path.join(root, "zbp"))));
+  const outputRoot = path.join(root, "resume"), staging = path.join(outputRoot, ".staging", prior.manifest.run_id);
+  await cp(prior.releaseDirectory, staging, { recursive: true, force: false, errorOnExist: true });
+  const manifest = JSON.parse(await readFile(path.join(staging, "manifest.json"), "utf8"));
+  const artifact = manifest.artifacts.find((item) => item.path === "source/selected-active-business-licenses.jsonl.gz");
+  const compressed = gzipSync(Buffer.alloc(1_100_000, 32));
+  assert.ok(compressed.length < 2000);
+  await writeFile(path.join(staging, artifact.path), compressed);
+  artifact.bytes = compressed.length; artifact.sha256 = sha256(compressed);
+  await writeFile(path.join(staging, "manifest.json"), JSON.stringify(manifest));
+  await assert.rejects(publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: manifest.run_id }), (error) => {
+    assert.ok(error.failures?.some((failure) => failure.reason.includes("decoded record exceeds 1 MB")));
+    return true;
+  });
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  assert.deepEqual(await readFile(path.join(staging, artifact.path)), compressed);
+});
+
+test("Alaska publication preserves foreign pointers and refuses existing publication locks", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-foreign-publication-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const zbp = await writeBaseline(path.join(root, "zbp"));
+  for (const kind of ["pointer", "lock"]) {
+    const outputRoot = path.join(root, kind); await mkdir(outputRoot);
+    const filename = path.join(outputRoot, kind === "pointer" ? "current.json" : ".publish.lock");
+    await writeFile(filename, "foreign");
+    await assert.rejects(buildAkActiveBusinessLicenses(cancellationFixture(outputRoot, zbp)));
+    assert.equal(await readFile(filename, "utf8"), "foreign");
+    assert.equal((await readdir(path.join(outputRoot, ".staging"))).length, 1);
+  }
+});
+
+test("Alaska concurrent resumed publishers are excluded and the retained source is reused without download", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-concurrent-publish-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prior = await buildAkActiveBusinessLicenses(cancellationFixture(path.join(root, "prior"), await writeBaseline(path.join(root, "zbp"))));
+  const outputRoot = path.join(root, "resume"), stagingRunId = prior.manifest.run_id;
+  await cp(prior.releaseDirectory, path.join(outputRoot, ".staging", stagingRunId), { recursive: true, force: false, errorOnExist: true });
+  let entered, release;
+  const ready = new Promise((resolve) => { entered = resolve; }), wait = new Promise((resolve) => { release = resolve; });
+  const pending = publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId, logger: async (message) => {
+    if (message === "Verifying Alaska staged release.") { entered(); await wait; }
+  } });
+  await ready;
+  await assert.rejects(publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId }), { code: "EEXIST" });
+  release(); const published = await pending;
+  assert.equal(published.manifest.source_release_id, prior.manifest.source_release_id);
+  await verifyAkActiveBusinessLicenses(path.join(published.releaseDirectory, "manifest.json"));
+  await assert.rejects(readFile(path.join(outputRoot, ".publish.lock")), { code: "ENOENT" });
+});
+
+test("Alaska preserves replaced locks and rejects same-byte replacement staging", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-replaced-publication-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prior = await buildAkActiveBusinessLicenses(cancellationFixture(path.join(root, "prior"), await writeBaseline(path.join(root, "zbp"))));
+  for (const kind of ["lock", "directory"]) {
+    const outputRoot = path.join(root, kind), staging = path.join(outputRoot, ".staging", prior.manifest.run_id);
+    await cp(prior.releaseDirectory, staging, { recursive: true, force: false, errorOnExist: true });
+    await assert.rejects(publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId: prior.manifest.run_id, logger: async (message) => {
+      if (message !== "Publishing Alaska verified release.") return;
+      if (kind === "lock") {
+        await rename(path.join(outputRoot, ".publish.lock"), path.join(outputRoot, "owned-lock.json")); await writeFile(path.join(outputRoot, ".publish.lock"), "foreign");
+      } else { await rename(staging, staging + ".retained"); await cp(staging + ".retained", staging, { recursive: true, force: false, errorOnExist: true }); }
+    } }), /changed|ownership/);
+    assert.deepEqual(await readFile(path.join(staging, "manifest.json")), await readFile(path.join(prior.releaseDirectory, "manifest.json")));
+    await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+    if (kind === "lock") assert.equal(await readFile(path.join(outputRoot, ".publish.lock"), "utf8"), "foreign");
+  }
+});
+
+test("Alaska rejects undeclared artifacts, hardlinks and prior-pointer replacement before commit", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-roster-publication-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const zbp = await writeBaseline(path.join(root, "zbp"));
+  for (const kind of ["extra", "hardlink", "pointer"]) {
+    const outputRoot = path.join(root, kind), common = cancellationFixture(outputRoot, zbp);
+    const prior = await buildAkActiveBusinessLicenses(common), previous = await readFile(path.join(outputRoot, "current.json"));
+    await assert.rejects(buildAkActiveBusinessLicenses({ ...common, logger: async (message) => {
+      if (message !== "Publishing Alaska verified release.") return;
+      const staging = path.join(outputRoot, ".staging", (await readdir(path.join(outputRoot, ".staging")))[0]);
+      if (kind === "extra") await writeFile(path.join(staging, "undeclared-private.txt"), "PRIVATE");
+      if (kind === "hardlink") await link(path.join(staging, "manifest.json"), path.join(outputRoot, "manifest-hardlink"));
+      if (kind === "pointer") await writeFile(path.join(outputRoot, "current.json"), "foreign");
+    } }), /publication|verification|JSON/);
+    assert.deepEqual(await readdir(path.join(outputRoot, "releases")), [prior.manifest.release_id]);
+    if (kind !== "pointer") assert.deepEqual(await readFile(path.join(outputRoot, "current.json")), previous);
+    else assert.equal(await readFile(path.join(outputRoot, "current.json"), "utf8"), "foreign");
+  }
 });

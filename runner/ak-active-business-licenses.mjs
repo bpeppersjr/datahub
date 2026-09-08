@@ -1,15 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { lstat, mkdir, readFile, realpath, rename, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setImmediate as yieldTurn, setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 
 export const AK_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const AK_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "ak-active-business-licenses@1.0.1";
@@ -594,17 +594,35 @@ async function* gzipRecords(filename, signal) {
   const gunzip = createGunzip();
   const completion = pipeline(input, gunzip, { signal });
   void completion.catch(() => {});
-  const lines = createInterface({ input: gunzip, crlfDelay: Infinity });
-  let count = 0;
+  let count = 0, decodedBytes = 0, lineBytes = 0, fragments = [];
   try {
-    for await (const line of lines) {
+    for await (const chunk of gunzip) {
       signal?.throwIfAborted();
-      if (++count % 256 === 0) await yieldTurn(undefined, { signal });
-      if (line) yield JSON.parse(line);
+      decodedBytes += chunk.length;
+      if (decodedBytes > 500_000_000) throw new Error("Alaska decoded artifact exceeds 500 MB limit.");
+      let offset = 0;
+      while (offset < chunk.length) {
+        const end = chunk.indexOf(10, offset), stop = end < 0 ? chunk.length : end;
+        const fragment = chunk.subarray(offset, stop);
+        lineBytes += fragment.length;
+        if (lineBytes > 1_000_000) throw new Error("Alaska decoded record exceeds 1 MB limit.");
+        fragments.push(fragment);
+        if (end < 0) break;
+        if (++count > 2_000_000) throw new Error("Alaska decoded artifact exceeds 2000000 lines.");
+        if (count % 256 === 0) await yieldTurn(undefined, { signal });
+        const line = Buffer.concat(fragments, lineBytes).toString("utf8").replace(/\r$/, "");
+        fragments = []; lineBytes = 0;
+        if (line) yield JSON.parse(line);
+        offset = end + 1;
+      }
+    }
+    if (lineBytes) {
+      if (++count > 2_000_000) throw new Error("Alaska decoded artifact exceeds 2000000 lines.");
+      yield JSON.parse(Buffer.concat(fragments, lineBytes).toString("utf8"));
     }
     await completion;
   } finally {
-    lines.close(); input.destroy(); gunzip.destroy();
+    input.destroy(); gunzip.destroy();
     await Promise.allSettled([completion]);
   }
 }
@@ -698,7 +716,7 @@ export async function buildAkActiveBusinessLicenses({
   const stagingDirectory = path.join(stagingRoot, runId);
   if (await realpath(stagingRoot) !== stagingRoot) throw new Error("Alaska staging root must not be a filesystem alias.");
   await mkdir(stagingDirectory);
-  const ownedIdentity = await lstat(stagingDirectory);
+  const ownedIdentity = await lstat(stagingDirectory, { bigint: true });
   const ownedWriters = [];
   const abortOwnedWriters = () => {
     for (const writer of ownedWriters) {
@@ -1011,7 +1029,7 @@ export async function buildAkActiveBusinessLicenses({
     if (signal?.aborted) {
       try {
         assertContained(stagingRoot, stagingDirectory, "Cancelled Alaska staging");
-        const current = await lstat(stagingDirectory);
+        const current = await lstat(stagingDirectory, { bigint: true });
         if (path.dirname(stagingDirectory) !== stagingRoot || path.basename(stagingDirectory) !== runId
           || current.isSymbolicLink() || !current.isDirectory() || current.dev !== ownedIdentity.dev || current.ino !== ownedIdentity.ino
           || await realpath(stagingDirectory) !== stagingDirectory || await realpath(stagingRoot) !== stagingRoot) {
@@ -1038,53 +1056,175 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => forbiddenKeys.has(key) || /^Mailing/.test(key) || containsExcludedField(child));
 }
 
+function publicationCheck(ok, reason) {
+  if (!ok) throw new Error(`Alaska publication rejected: ${reason}.`);
+}
+async function publicationPath(target, signal) {
+  publicationCheck(typeof target === "string" && target.length <= 1024 && path.resolve(target) === target, "absolute canonical path required");
+  const absolute = assertInsideApp(target);
+  publicationCheck(absolute !== APP_ROOT && await realpath(APP_ROOT) === APP_ROOT, "application root or alias");
+  let current = APP_ROOT;
+  for (const part of path.relative(APP_ROOT, absolute).split(path.sep)) {
+    signal?.throwIfAborted(); current = path.join(current, part);
+    let info; try { info = await lstat(current, { bigint: true }); } catch (error) { if (error.code === "ENOENT") continue; throw error; }
+    publicationCheck(!info.isSymbolicLink() && await realpath(current) === current, "path alias");
+    if (current !== absolute) publicationCheck(info.isDirectory(), "path ancestor");
+    if (info.isFile()) publicationCheck(info.nlink === 1n, "hard-linked file");
+  }
+  return absolute;
+}
+const sameIdentity = (a, b) => a.ino === b.ino && a.dev === b.dev && a.nlink === b.nlink;
+const sameFile = (a, b) => sameIdentity(a, b) && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
+async function publicationRead(filename, maximum, signal) {
+  await publicationPath(filename, signal);
+  const initial = await lstat(filename, { bigint: true });
+  publicationCheck(initial.isFile() && initial.size <= BigInt(maximum), "metadata byte ceiling or file type");
+  const handle = await open(filename, "r");
+  try {
+    const before = await handle.stat({ bigint: true });
+    publicationCheck(sameFile(initial, before), "metadata read ownership");
+    const chunks = []; let count = 0;
+    for (;;) {
+      signal?.throwIfAborted();
+      const buffer = Buffer.alloc(Math.min(65536, maximum + 1 - count));
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null); if (!bytesRead) break;
+      count += bytesRead; publicationCheck(count <= maximum, "metadata byte ceiling"); chunks.push(buffer.subarray(0, bytesRead));
+    }
+    publicationCheck(sameFile(before, await handle.stat({ bigint: true })) && sameFile(before, await lstat(filename, { bigint: true })), "metadata changed during read");
+    return { bytes: Buffer.concat(chunks, count), identity: before };
+  } finally { await handle.close(); }
+}
+async function publicationSnapshot(directory, manifest, signal) {
+  publicationCheck(Array.isArray(manifest.artifacts) && manifest.artifacts.length <= 64, "bounded artifact roster");
+  const expected = new Set(["manifest.json"]), allowedDirectories = new Set([""]);
+  for (const artifact of manifest.artifacts) {
+    publicationCheck(typeof artifact.path === "string" && artifact.path.length <= 300 && artifact.path.split("/").every((part) => part && part !== "." && part !== "..")
+      && !artifact.path.includes("\\") && !path.isAbsolute(artifact.path) && !expected.has(artifact.path), "artifact path or duplicate");
+    expected.add(artifact.path);
+    for (let parent = path.posix.dirname(artifact.path); parent !== "."; parent = path.posix.dirname(parent)) allowedDirectories.add(parent);
+  }
+  const snapshot = new Map(); let total = 0;
+  async function visit(current, relative) {
+    await publicationPath(current, signal); const identity = await lstat(current, { bigint: true });
+    publicationCheck(identity.isDirectory() && allowedDirectories.has(relative), "unexpected directory");
+    snapshot.set(relative, { identity, directory: true });
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      signal?.throwIfAborted();
+      const name = relative ? relative + "/" + entry.name : entry.name, filename = path.join(current, entry.name);
+      if (entry.isDirectory()) { await visit(filename, name); continue; }
+      publicationCheck(entry.isFile() && expected.has(name), "unexpected artifact or alias");
+      await publicationPath(filename, signal); const before = await lstat(filename, { bigint: true });
+      publicationCheck(before.size <= 100_000_000n, "artifact byte ceiling");
+      const hash = createHash("sha256"); let count = 0;
+      for await (const chunk of createReadStream(filename, { signal })) {
+        count += chunk.length; total += chunk.length;
+        publicationCheck(count <= 100_000_000 && total <= 250_000_000, "artifact or cumulative byte ceiling"); hash.update(chunk);
+      }
+      const digest = hash.digest("hex"), after = await lstat(filename, { bigint: true });
+      publicationCheck(sameFile(before, after) && BigInt(count) === after.size, "artifact changed during snapshot");
+      if (name !== "manifest.json") {
+        const artifact = manifest.artifacts.find((item) => item.path === name);
+        publicationCheck(artifact.bytes === count && artifact.sha256 === digest, "artifact checksum mismatch");
+      }
+      snapshot.set(name, { identity: after, directory: false, sha256: digest });
+    }
+  }
+  await visit(directory, "");
+  publicationCheck([...snapshot.values()].filter((value) => !value.directory).length === expected.size, "missing artifact");
+  return snapshot;
+}
+function sameSnapshot(before, after) {
+  return before.size === after.size && [...before].every(([name, value]) => {
+    const next = after.get(name);
+    return next && next.directory === value.directory && (value.directory ? sameIdentity(value.identity, next.identity) : sameFile(value.identity, next.identity) && value.sha256 === next.sha256);
+  });
+}
+
 export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal, logger = () => {} } = {}) {
   signal?.throwIfAborted();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
-  const stagingRoot = path.join(outputRoot, ".staging");
-  const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
-  assertContained(stagingRoot, stagingDirectory, "Alaska staging run");
-  const manifestPath = path.join(stagingDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, { encoding: "utf8", signal }));
-  if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "ak-active-business-licenses" || manifest.status !== "published") {
-    throw new Error("Alaska staging manifest does not match the requested complete run.");
+  publicationCheck(typeof logger === "function", "logger must be a function");
+  const root = await publicationPath(path.resolve(outputRoot), signal);
+  publicationCheck(!path.relative(APP_ROOT, root).split(path.sep).some((part) => ["releases", ".staging"].includes(part.toLowerCase())), "output cannot nest in immutable storage");
+  const stagingDirectory = await publicationPath(path.join(root, ".staging", stagingRunId), signal);
+  const lockPath = await publicationPath(path.join(root, ".publish.lock"), signal);
+  const lock = await open(lockPath, "wx"), lockIdentity = await lock.stat({ bigint: true });
+  const lockBytes = Buffer.from(json({ run_id: stagingRunId, pid: process.pid }));
+  const pointerPath = path.join(root, "current.json"), temporaryPointer = path.join(root, ".current-" + randomUUID() + ".tmp");
+  let temporaryIdentity, failure;
+  async function owned(filename, expected) {
+    if (!expected) return false;
+    try { await publicationPath(filename); const actual = await lstat(filename, { bigint: true }); return sameIdentity(actual, expected); } catch { return false; }
   }
-  if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Alaska staging release ID does not match the build result.");
-  logger("Verifying Alaska staged release.");
-  signal?.throwIfAborted();
-  await verifyAkActiveBusinessLicenses(manifestPath, { signal });
-  const releasesDirectory = path.join(outputRoot, "releases");
-  await mkdir(releasesDirectory, { recursive: true });
-  const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
-  assertContained(releasesDirectory, releaseDirectory, "Alaska release");
-  if (path.dirname(path.resolve(releaseDirectory)) !== path.resolve(releasesDirectory)) throw new Error("Invalid Alaska release ID.");
+  async function ownLock() {
+    if (!await owned(lockPath, lockIdentity)) return false;
+    try { return (await publicationRead(lockPath, 1000)).bytes.equals(lockBytes); } catch { return false; }
+  }
+  async function absent(filename) { try { await lstat(filename); return false; } catch (error) { if (error.code === "ENOENT") return true; throw error; } }
   try {
-    await stat(releaseDirectory);
-    throw new Error(`Alaska release destination already exists: ${manifest.release_id}.`);
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
+    publicationCheck(lockIdentity.nlink === 1n, "lock ownership"); await lock.writeFile(lockBytes); await lock.sync();
+    const manifestPath = path.join(stagingDirectory, "manifest.json"), original = await publicationRead(manifestPath, 1_000_000, signal);
+    const manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(original.bytes));
+    publicationCheck(manifest.run_id === stagingRunId && manifest.dataset_id === "ak-active-business-licenses" && manifest.status === "published"
+      && typeof manifest.release_id === "string" && /^ak-active-business-licenses-[0-9TZ-]+-[a-f0-9]{8}$/.test(manifest.release_id), "staging manifest identity");
+    if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Alaska staging release ID does not match the build result.");
+    const initial = await publicationSnapshot(stagingDirectory, manifest, signal);
+    const releasesDirectory = await publicationPath(path.join(root, "releases"), signal);
+    await mkdir(releasesDirectory, { recursive: true }); await publicationPath(releasesDirectory, signal);
+    const releasesIdentity = await lstat(releasesDirectory, { bigint: true });
+    const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
+    publicationCheck(await absent(releaseDirectory), "release destination already exists");
+    await publicationPath(pointerPath, signal);
+    let prior = null, priorManifest = null;
+    if (!await absent(pointerPath)) {
+      prior = await publicationRead(pointerPath, 10000, signal);
+      const value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(prior.bytes));
+      publicationCheck(JSON.stringify(Object.keys(value).sort()) === JSON.stringify(["dataset_id", "manifest", "release_id", "updated_at"])
+        && value.dataset_id === "ak-active-business-licenses" && typeof value.release_id === "string"
+        && /^ak-active-business-licenses-[0-9TZ-]+-[a-f0-9]{8}$/.test(value.release_id)
+        && value.manifest === "releases/" + value.release_id + "/manifest.json", "foreign or malformed prior pointer");
+      priorManifest = { filename: path.join(root, value.manifest), ...(await publicationRead(path.join(root, value.manifest), 1_000_000, signal)) };
+      const previous = JSON.parse(priorManifest.bytes.toString("utf8"));
+      publicationCheck(previous.dataset_id === value.dataset_id && previous.release_id === value.release_id && previous.status === "published" && value.updated_at === previous.retrieved_at, "prior pointer linkage");
+    }
+    async function priorUnchanged() {
+      if (!prior) return absent(pointerPath);
+      const current = await publicationRead(pointerPath, 10000), previous = await publicationRead(priorManifest.filename, 1_000_000);
+      return sameFile(prior.identity, current.identity) && current.bytes.equals(prior.bytes) && sameFile(priorManifest.identity, previous.identity) && previous.bytes.equals(priorManifest.bytes);
+    }
+    await logger("Verifying Alaska staged release."); signal?.throwIfAborted();
+    await verifyAkActiveBusinessLicenses(manifestPath, { signal });
+    await delay(250, undefined, { signal });
+    await logger("Publishing Alaska verified release."); signal?.throwIfAborted();
+    // Caller hooks cannot open a gap between semantic verification and commit.
+    await verifyAkActiveBusinessLicenses(manifestPath, { signal });
+    const final = await publicationSnapshot(stagingDirectory, manifest, signal);
+    publicationCheck(sameSnapshot(initial, final) && (await publicationRead(manifestPath, 1_000_000, signal)).bytes.equals(original.bytes), "verified staging changed before publication");
+    publicationCheck(await ownLock() && await owned(releasesDirectory, releasesIdentity) && await priorUnchanged() && await absent(releaseDirectory), "publication ownership or prior pointer changed");
+    signal?.throwIfAborted();
+    // Commit boundary: complete release and pointer finalization without cancellation.
+    await renameWithRetry(stagingDirectory, releaseDirectory);
+    const pointerBytes = Buffer.from(json({ dataset_id: manifest.dataset_id, release_id: manifest.release_id, manifest: "releases/" + manifest.release_id + "/manifest.json", updated_at: manifest.retrieved_at }));
+    const pointer = await open(temporaryPointer, "wx");
+    try {
+      temporaryIdentity = await pointer.stat({ bigint: true }); publicationCheck(temporaryIdentity.nlink === 1n, "temporary pointer ownership");
+      await pointer.writeFile(pointerBytes);
+      await pointer.sync();
+    } finally { await pointer.close(); }
+    publicationCheck(await ownLock() && await owned(temporaryPointer, temporaryIdentity) && await priorUnchanged(), "pointer commit ownership changed; retained release requires inspection");
+    publicationCheck((await publicationRead(temporaryPointer, 10_000)).bytes.equals(pointerBytes), "temporary pointer contents changed; retained release requires inspection");
+    await renameWithRetry(temporaryPointer, pointerPath);
+    return { manifest, releaseDirectory, pointerPath };
+  } catch (error) { failure = error; throw error; }
+  finally {
+    await lock.close(); const lockOwned = await ownLock();
+    if (lockOwned) await unlink(lockPath);
+    if (await owned(temporaryPointer, temporaryIdentity)) await unlink(temporaryPointer);
+    if (!lockOwned && !failure) throw new Error("Alaska publication lock ownership changed; inspect retained evidence.");
   }
-  await delay(250, undefined, { signal });
-  logger("Publishing Alaska verified release.");
-  signal?.throwIfAborted();
-  // Commit boundary: once rename begins, finish the release and pointer commit.
-  // Cancellation of a resumed staging publication never deletes that staging.
-  await renameWithRetry(stagingDirectory, releaseDirectory);
-  const pointerPath = path.join(outputRoot, "current.json");
-  const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
-  await writeFile(temporaryPointer, json({
-    dataset_id: manifest.dataset_id,
-    release_id: manifest.release_id,
-    manifest: `releases/${manifest.release_id}/manifest.json`,
-    updated_at: manifest.retrieved_at,
-  }), { flag: "wx" });
-  await renameWithRetry(temporaryPointer, pointerPath);
-  if (!(await stat(releaseDirectory)).isDirectory()) throw new Error("Published Alaska active-license release is not a directory.");
-  return { manifest, releaseDirectory, pointerPath };
 }
-
 export async function verifyAkActiveBusinessLicenses(manifestPath, { signal } = {}) {
   signal?.throwIfAborted();
   const absoluteManifestPath = path.resolve(manifestPath);

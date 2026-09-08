@@ -19,3 +19,9 @@ No agent slot or Codex polling loop is assigned to ordinary download progress. U
 Implementation verification before dispatch: 925 passing repository tests, source/connector checks, lint, web/desktop builds, desktop smoke and a zero-vulnerability production dependency audit. Independent read-only review confirmed the final receipt and dependency-linkage fixes. The management app was restored and returned HTTP 200 before dispatch.
 
 Continue independent state/source validation while Co*Tive owns this job. If the job produces a completed verified release, downstream work must reuse it. Investigate concrete failures from its retained evidence; do not automatically reacquire or reinterpret an interrupted download as completed.
+
+## Terminal failure found during development lifecycle safety check
+
+Before stopping development services for Alaska validation, the persisted operation receipt was checked to avoid interrupting app-owned work. It records `FAILED`, finished `2026-09-08T07:49:00.672Z`. A bounded read-only peer inspection found that source-use prerequisites passed and an inventory of 4,237 IDs was retained, but the first feature batch failed `Ohio acquisition rejected: batch envelope, CRS or truncation.` No completed acquisition or normalized release exists from this operation; no blocking acquisition/app lock remains.
+
+The rejected response was not retained, so the local evidence cannot distinguish the individual structural checks within that error. Metadata, IDs and a rejected batch were downloaded; this is not a zero-download failure. The next connector repair is privacy-safe structural diagnostics followed by a separately controlled bounded diagnostic, not a blind collection retry. No new acquisition was dispatched during this inspection.
