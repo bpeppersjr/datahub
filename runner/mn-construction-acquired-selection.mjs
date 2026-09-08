@@ -49,7 +49,7 @@ export async function buildMnConstructionAcquiredSelection(options = {}) {
     const selected = verified.selection_receipt;
     check(selected.source_bytes === measured.source_bytes && selected.source_file_sha256 === measured.source_file_sha256
       && hash(selected.context) === hash(context), 'transport and selection measurements differ');
-    return { schema_version: 'mn-construction-acquired-selection@1.0.0', bundle,
+    return { schema_version: 'mn-construction-acquired-selection@1.1.0', bundle: { ...bundle, manifest_sha256: verified.manifest_sha256 }, preflight,
       transport: measured, before_notices: notices, before_binding: beforeBinding, after_notices: afterNotices, after_binding: afterBinding,
       evidence_persisted: false, native_acquisition_verified: false, app_job_enrolled: false, national_reporting_integrated: false };
   } catch { signal?.throwIfAborted(); throw new Error('Minnesota acquisition selection failed; no app acquisition receipt was issued.'); }

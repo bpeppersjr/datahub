@@ -2,7 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile, link } from 'node:fs/promises';
+import fs from 'node:fs/promises';
+import { syncBuiltinESMExports } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
 import { MN_CONSTRUCTION_COLUMNS, MN_CONSTRUCTION_EXPORTS, preflightMnConstruction } from './mn-construction-preflight.mjs';
@@ -10,6 +13,7 @@ import { createMnConstructionExportStream } from './mn-construction-transport.mj
 import { buildMnConstructionAcquiredSelection } from './mn-construction-acquired-selection.mjs';
 import { buildMnConstructionRetainedSelection, verifyMnConstructionRetainedSelection } from './mn-construction-retained-selection.mjs';
 import { captureMnConstructionNotices } from './mn-construction-notices.mjs';
+import { verifyMnConstructionAcquiredEvidence, writeMnConstructionAcquisitionReceipt, verifyMnConstructionAcquisitionReceipt } from './mn-construction-acquisition-receipt.mjs';
 
 const at = '2026-09-08T12:00:00.000Z', sha = value => createHash('sha256').update(value).digest('hex');
 const context = { runId: 'fixture-transport', sourceReleaseId: 'fixture-mn', cohort: 'residential', observedAt: at };
@@ -153,6 +157,66 @@ test('MN retained-notice integration covers success, changed final notice and cr
       const result = await invoke(); assert.equal(result.bundle.counts.accepted_records, 30); assert.equal(result.before_binding.source_use_authorized, true);
       assert.equal(result.after_binding.source_use_authorized, true); assert.equal(result.native_acquisition_verified, false); assert.equal(result.evidence_persisted, false);
       assert.equal(result.transport.source_file_sha256, sha(csv)); assert.equal(noticeRequests, 2);
+      const receiptRoot = path.join(APP_ROOT, 'data/tmp', 'mn-parent-receipts-' + randomUUID());
+      await t.test('durable parent receipts pin the exact verified child and replay without requests', async () => {
+        const [first, second] = await Promise.all([writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot }), writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot })]);
+        assert.notEqual(first.receipt_path, second.receipt_path); assert.equal(first.evidence_sha256, second.evidence_sha256);
+        assert.equal(first.evidence_persisted, true); assert.equal(first.native_acquisition_verified, false); assert.equal(first.app_job_enrolled, false);
+        assert.equal(first.manifest_sha256, result.bundle.manifest_sha256); assert.equal(first.run_id, context.runId);
+        const replay = await verifyMnConstructionAcquisitionReceipt(first.receipt_path); assert.equal(replay.receipt_sha256, first.receipt_sha256);
+        const cli = JSON.parse(execFileSync(process.execPath, ['scripts/verify-mn-construction-acquisition.mjs', '--receipt', first.receipt_path], { cwd: APP_ROOT, encoding: 'utf8' }));
+        assert.equal(cli.receipt_sha256, first.receipt_sha256); assert.ok(!JSON.stringify(cli).includes('article_html'));
+        assert.equal(f.calls.length, 3); assert.equal(noticeRequests, 2);
+      });
+      await t.test('parent validation rejects altered source, policy, chronology, child linkage and false claims', async () => {
+        for (const mutate of [r => { r.transport.source_bytes--; }, r => { r.transport.source_file_sha256 = '0'.repeat(64); },
+          r => { r.transport.request_count = 2; }, r => { r.transport.native_acquisition_verified = true; }, r => { r.after_binding.export_authorized = true; },
+          r => { r.transport.preflight_sha256 = '0'.repeat(64); }, r => { r.bundle.manifest_sha256 = '0'.repeat(64); },
+          r => { r.bundle.counts.accepted_records++; }, r => { r.transport.body_finished_at = '2026-09-08T11:39:42.000Z'; },
+          r => { r.evidence_persisted = true; }, r => { r.extra = 'PRIVATE'; }]) {
+          const changed = structuredClone(result); mutate(changed); await assert.rejects(verifyMnConstructionAcquiredEvidence(changed));
+        }
+      });
+      await t.test('receipt writer snapshots input and pre-cancellation preserves completed work', async () => {
+        const changed = structuredClone(result), pending = writeMnConstructionAcquisitionReceipt(changed, { outputRoot: receiptRoot });
+        changed.transport.source_bytes = 0;
+        const saved = await pending; assert.equal(saved.receipt.evidence.transport.source_bytes, csv.length);
+        const priorFiles = await readdir(receiptRoot), controller = new AbortController(); controller.abort();
+        await assert.rejects(writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot, signal: controller.signal }));
+        assert.deepEqual(await readdir(receiptRoot), priorFiles);
+      });
+      await t.test('public evidence verifier snapshots claims before asynchronous child replay', async () => {
+        const changed = structuredClone(result), expected = sha(JSON.stringify(changed));
+        const pending = verifyMnConstructionAcquiredEvidence(changed);
+        changed.app_job_enrolled = true; changed.after_binding.export_authorized = true;
+        const checked = await pending; assert.equal(checked.evidence_sha256, expected); assert.equal(checked.app_job_enrolled, false);
+      });
+      await t.test('mid-write cancellation removes only its owned temporary receipt', async st => {
+        const priorFiles = await readdir(receiptRoot), controller = new AbortController(), original = fs.open; let opened = false;
+        st.mock.method(fs, 'open', async function(file, flags, ...args) {
+          const handle = await original.call(this, file, flags, ...args);
+          if (flags === 'wx' && path.dirname(file) === receiptRoot && file.endsWith('.tmp')) { opened = true; controller.abort(); }
+          return handle;
+        });
+        syncBuiltinESMExports();
+        try { await assert.rejects(writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot, signal: controller.signal })); }
+        finally { st.mock.restoreAll(); syncBuiltinESMExports(); }
+        assert.equal(opened, true); assert.deepEqual(await readdir(receiptRoot), priorFiles);
+      });
+      await t.test('receipt writer rejects app escapes and existing bundle or release ancestry', async () => {
+        for (const invalid of [APP_ROOT, path.dirname(APP_ROOT), path.dirname(result.bundle.manifest_path), path.join(APP_ROOT, 'data/tmp/releases/parent'), path.join(APP_ROOT, 'data/tmp/parent. ')]) {
+          await assert.rejects(writeMnConstructionAcquisitionReceipt(result, { outputRoot: invalid }));
+        }
+      });
+      await t.test('disk replay rejects rehashed tampering and linked receipt files', async () => {
+        const saved = await writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot });
+        const changed = JSON.parse(await readFile(saved.receipt_path, 'utf8'));
+        changed.evidence.transport.source_file_sha256 = '0'.repeat(64); changed.evidence_sha256 = sha(JSON.stringify(changed.evidence));
+        await writeFile(saved.receipt_path, JSON.stringify(changed) + '\n'); await assert.rejects(verifyMnConstructionAcquisitionReceipt(saved.receipt_path));
+        const linked = await writeMnConstructionAcquisitionReceipt(result, { outputRoot: receiptRoot });
+        await link(linked.receipt_path, path.join(receiptRoot, randomUUID() + '.json'));
+        await assert.rejects(verifyMnConstructionAcquisitionReceipt(linked.receipt_path));
+      });
     } else {
       await assert.rejects(invoke());
       for (const directory of await readdir(outputRoot)) assert.ok(!(await readdir(path.join(outputRoot, directory))).includes('manifest.json'));

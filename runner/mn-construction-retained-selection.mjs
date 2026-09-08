@@ -15,6 +15,9 @@ const sameFile=(a,b)=>a&&b&&a.isFile()&&b.isFile()&&!a.isSymbolicLink()&&!b.isSy
 const stableFile=(a,b)=>sameFile(a,b)&&a.size===b.size&&a.mtimeNs===b.mtimeNs&&a.ctimeNs===b.ctimeNs;
 const sameDirectory=(a,b)=>a&&b&&a.isDirectory()&&b.isDirectory()&&!a.isSymbolicLink()&&!b.isSymbolicLink()&&a.ino===b.ino&&a.dev===b.dev;
 const claims=()=>({native_acquisition_verified:false,source_authenticity_verified:false,discarded_rejection_values_replayed:false,public_export_authorized:false,national_reporting_integrated:false});
+// Shared by the acquisition receipt layer; preserve the same app-contained,
+// bounded, ownership-checked I/O rather than introducing an unchecked reread.
+export { canonical as mnSelectionCanonical, readJson as mnSelectionReadJson, writer as mnSelectionWriter };
 async function canonical(target,{create=false,output=false,signal}={}) {
   check(typeof target==='string'&&target===path.resolve(target),'absolute path');
   const relative=path.relative(APP_ROOT,target),segments=relative.split(path.sep);
@@ -95,7 +98,7 @@ export async function verifyMnConstructionRetainedSelection(manifestPath,{signal
     const manifest=await readJson(manifestPath,100000,signal,before);const result=await inspect(directory,manifest,signal,'manifest.json');
     await readJson(manifestPath,100000,signal,after);check(before.sha256===after.sha256&&stableFile(before.identity,after.identity)&&sameDirectory(owner,await lstat(directory,{bigint:true})),'manifest or directory changed');
     for(const [file,identity]of Object.entries(result.snapshots))check(stableFile(identity,await lstat(file,{bigint:true})),'final artifact stability');
-    return {manifest:result.manifest,verification:result.verification,selection_receipt:result.selection_receipt};
+    return {manifest:result.manifest,manifest_sha256:before.sha256,verification:result.verification,selection_receipt:result.selection_receipt};
   }catch{signal?.throwIfAborted();throw new Error('Minnesota retained selection verification failed.');}
 }
 export async function buildMnConstructionRetainedSelection(source,{context,signal,outputRoot=path.join(APP_ROOT,'data/business-sources/mn-dli-construction/retained')}={}) {
