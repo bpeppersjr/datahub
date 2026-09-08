@@ -1,0 +1,74 @@
+{
+  "policy_id": "oh-childcare-internal-acquisition",
+  "version": "1.0.0",
+  "status": "conditional-internal-acquisition",
+  "publisher": "Ohio Department of Children and Youth; State of Ohio GIS",
+  "ownership": "Official app-linked Ohio GIS distribution of childcare program evidence; underlying rights are not independently adjudicated.",
+  "source_home": "https://childcaresearch.ohio.gov/",
+  "source_dataset": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0",
+  "terms_url": "https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d?f=json",
+  "catalog_item_id": "e7b80e83d8764427b5de7fde6f67f83d",
+  "where": "program_type='Child Care Center' AND program_status='Open'",
+  "selected_fields": [
+    "objectid",
+    "county",
+    "program_type",
+    "program_number",
+    "program_name",
+    "street_address",
+    "city",
+    "state",
+    "zip_code",
+    "program_status"
+  ],
+  "allowed_use": [
+    "bounded public metadata and notice review",
+    "internal informational acquisition of publisher Open Child Care Center rows using the fixed ten-field query and EPSG:4326 points, only after fresh source-use binding and app-owned lifecycle enrollment",
+    "immutable selected-source evidence retention and local-review normalization/reprocessing without public redistribution"
+  ],
+  "prohibited_use": [
+    "accepting an agreement, submitting an email or requesting an access code on the user's behalf",
+    "bypassing the distinct CSV export workflow or its limits",
+    "querying other care types, mailing addresses, contact fields or unverified coordinate attributes under this scope",
+    "inferring operation, closure dates, license validity, ownership or unique business identity",
+    "inferring ZIPs from coordinates or attaching business polygons",
+    "unreviewed redistribution or public record export"
+  ],
+  "notice_fingerprints": {
+    "item_licenseInfo_utf8_sha256": "7eb4434b8ed83b8c8eef4a9154126fe5fa39580532d11141b3d3b5eda15f6fa3",
+    "item_description_utf8_sha256": "0bb7dcead3abe1060240a38ae6bd518694b9228f2aebfffb067a2c133180c11e"
+  },
+  "notice_review": "Dataset item states public informational use at user risk, with accuracy/completeness/warranty/liability disclaimers. Linked department privacy and program pages were unavailable. Unavailability proves neither unrestricted use nor a prohibition. Missing XML alone is not a permanent collection veto.",
+  "acquisition_authorized": true,
+  "connector_ready": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "export_authorized": false,
+  "acquisition_gate": "Conditional source-use decision, not dispatch authorization. Require fully replayed current preflight, matching complete item notice fingerprints and fresh matching explicit linked/XML availability observations, then an enrolled app operation with durable receipts, bounded transport and immutable release verification. Changed or newly available notices require renewed review. Existing offline policy and releases are not migrated by this profile.",
+  "export_policy": "local-review-only",
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "normalized_records": "local-review-only",
+    "metadata_and_quarantine": "internal-accompanying-evidence",
+    "unselected_fields": "excluded-at-query-time"
+  },
+  "attribution": "Ohio Department of Children and Youth; State of Ohio GIS",
+  "retention": "Immutable local evidence with operator-governed deletion; no automatic cleanup.",
+  "redistribution": "Not authorized by this development profile.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Names and premises may identify people. Center classification is not proof an address is nonresidential. Exclude contacts and other care types before retrieval.",
+  "contains_secrets": false,
+  "coordinate_handling": "Request point geometry in EPSG:4326 and validate response CRS and pairs; retain lat/lon only. Source county text is not Census county assignment. ZIP5 and ZIP4 remain separate and nullable.",
+  "reviewed_at": "2026-09-08",
+  "evidence": {
+    "record": "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json",
+    "limitations": "Source-use assessment under the user's collection instructions, not publisher authentication, agreement acceptance or legal approval. Unavailable notices remain unresolved; source counts and Open status do not prove operating businesses or completeness."
+  },
+  "runtime_requirements": {
+    "maximum_prerequisite_age_ms": 900000,
+    "app_job_enrolled": false,
+    "operation_receipt_required": true,
+    "policy_binding_before_rows": true,
+    "current_notice_recheck_required": true
+  }
+}

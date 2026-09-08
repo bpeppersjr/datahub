@@ -1,0 +1,35 @@
+{
+  "kind": "scoped-source-use-decision",
+  "version": "1.0.0",
+  "decision_id": "oh-childcare-internal-acquisition-20260908",
+  "decided_at": "2026-09-08T06:54:51.000Z",
+  "decision": "conditional-internal-acquisition",
+  "authority_basis": "User requested governed U.S. business collection and explicitly directed validated sources to app-owned downloads. This records the integrator's scoped source-use assessment, not a new user signature or legal approval.",
+  "reasoning": "The complete current dataset item notice permits informational public use at user risk and disclaims accuracy, warranties and liability. No explicit collection prohibition, click-through acceptance or indemnification obligation was found in that item notice. Unavailable linked resources remain unresolved; their absence is neither permission nor proof of prohibition. Limit use to internal informational evidence and require unchanged current notice checks before rows.",
+  "item_observation": {
+    "url": "https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d?f=json",
+    "observed_at": "2026-09-08T06:52:22.029Z",
+    "http_status": 200,
+    "bytes": 8012,
+    "sha256": "99f71feebc126434494ca1312a298f1e9eaf187d1ba2b6d9fb136a8eb3ec95e4",
+    "licenseInfo_utf8_sha256": "7eb4434b8ed83b8c8eef4a9154126fe5fa39580532d11141b3d3b5eda15f6fa3",
+    "description_utf8_sha256": "0bb7dcead3abe1060240a38ae6bd518694b9228f2aebfffb067a2c133180c11e",
+    "unchanged_from_retained_preflight": true
+  },
+  "availability_observations": [
+    {"url":"https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d/info/metadata/metadata.xml","observed_at":"2026-09-08T06:52:23.380Z","http_status":404,"bytes":921,"sha256":"b490bf42db6d999aac222c972b0325dc0da99c2853025c9e527883d91f62df17"},
+    {"url":"https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0/metadata?format=default&f=xml","observed_at":"2026-09-08T06:52:24.448Z","http_status":400,"bytes":715,"sha256":"e67e883eae308632d810cecef1544119934f2221b35da88953de5b862800e829"},
+    {"url":"https://childrenandyouth.ohio.gov/help-center/privacy-notice-and-policies","observed_at":"2026-09-08T06:53:35.795Z","http_status":404,"bytes":3464,"sha256":"350014c902206622321459779e62c1fc43d36bc27beec9cf0b30f219f358695e"},
+    {"url":"https://childrenandyouth.ohio.gov/for-providers/step-up-to-quality","observed_at":"2026-09-08T06:53:37.210Z","http_status":404,"bytes":3464,"sha256":"350014c902206622321459779e62c1fc43d36bc27beec9cf0b30f219f358695e"}
+  ],
+  "availability_interpretation": "Known unavailable-resource responses, not usable XML, complete linked terms or absence of further conditions. Any new successful content or changed response requires renewed review.",
+  "source_scope_basis": "The official child care search home links the map and describes rated and unrated programs. Dataset cohort is selected by source care type and Open status, not rating or independently verified operation.",
+  "raw_http_bodies_retained": false,
+  "agreement_acceptance_performed": false,
+  "legal_approval": false,
+  "export_authorized": false,
+  "app_job_enrolled": false,
+  "facility_records_acquired": 0,
+  "historical_evidence": "docs/states/OH-CHILDCARE-NOTICES-2026-09-08.json",
+  "review_limit": "Observed body hashes and retained notice strings support a scoped engineering decision; they are not cryptographic publisher authentication or legal advice. Prior development policy and offline releases remain unchanged."
+}

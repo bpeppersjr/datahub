@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "binding_version": "oh-childcare-source-use@1.0.0",
+  "checked_at": "2026-09-08T06:59:19.880Z",
+  "policy_id": "oh-childcare-internal-acquisition",
+  "policy_version": "1.0.0",
+  "policy_sha256": "960a78cc81c6e11783e6b670dbb89e83dd935d4b5c82daabd618c77b12532bfa",
+  "decision_id": "oh-childcare-internal-acquisition-20260908",
+  "decision_sha256": "501d51672889a8daac1a99b864f445398a4d866f1d7852576f656cdabb36d225",
+  "preflight_sha256": "12df937d280b31f76a8af25d465a7f5b8f69ffb2ea3dec8b096278daa7ca658d",
+  "availability_sha256": "07c60004a89a48d8d8322e7a91e287428707c1cabafcd68e48dbbcfdb88e1845",
+  "availability_observations": [
+    {
+      "url": "https://maps.ohio.gov/portal/sharing/rest/content/items/e7b80e83d8764427b5de7fde6f67f83d/info/metadata/metadata.xml",
+      "observed_at": "2026-09-08T06:52:23.380Z",
+      "http_status": 404,
+      "bytes": 921,
+      "sha256": "b490bf42db6d999aac222c972b0325dc0da99c2853025c9e527883d91f62df17"
+    },
+    {
+      "url": "https://maps.ohio.gov/arcgis/rest/services/Hosted/Ohio_Daycares_view/FeatureServer/0/metadata?format=default&f=xml",
+      "observed_at": "2026-09-08T06:52:24.448Z",
+      "http_status": 400,
+      "bytes": 715,
+      "sha256": "e67e883eae308632d810cecef1544119934f2221b35da88953de5b862800e829"
+    },
+    {
+      "url": "https://childrenandyouth.ohio.gov/help-center/privacy-notice-and-policies",
+      "observed_at": "2026-09-08T06:53:35.795Z",
+      "http_status": 404,
+      "bytes": 3464,
+      "sha256": "350014c902206622321459779e62c1fc43d36bc27beec9cf0b30f219f358695e"
+    },
+    {
+      "url": "https://childrenandyouth.ohio.gov/for-providers/step-up-to-quality",
+      "observed_at": "2026-09-08T06:53:37.210Z",
+      "http_status": 404,
+      "bytes": 3464,
+      "sha256": "350014c902206622321459779e62c1fc43d36bc27beec9cf0b30f219f358695e"
+    }
+  ],
+  "source_use_status": "conditional-internal-acquisition",
+  "source_use_authorized": true,
+  "dispatch_authorized": false,
+  "app_job_enrolled": false,
+  "agreement_acceptance_performed": false,
+  "legal_approval": false,
+  "export_authorized": false,
+  "source_authenticity_verified": false,
+  "limitations": "Supplied-evidence binding only. App enrollment, persisted operation receipt and live before-row invocation remain required. Known notice availability gaps are unresolved, not assumed absent terms."
+}
