@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "../runner/paths.mjs";
 import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 import { validateChildcareGeographicEvidence } from "../runner/childcare-geographic-evidence.mjs";
-import { validateTnChildcareGeographicEvidence } from "../runner/tn-childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "../runner/tn-childcare-geographic-evidence.mjs";
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -168,11 +168,12 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
     if (csvStream) await put(csvStream, `${args.fields.join(",")}\n`);
     for (const input of [...args.sources].sort()) {
       const source = await descriptor(input, signal); const artifacts = profileArtifacts(source); if (!artifacts.length) throw new Error(`${source.manifest.dataset_id}/${source.manifest.release_id} has no location-profile artifacts.`);
-      const tnEnabled = source.manifest.dataset_id === "national-business-registry" && source.manifest.publisher?.version === "2.13.0";
+      const tnFresh = source.manifest.dataset_id === "national-business-registry" && source.manifest.publisher?.version === "2.14.0";
+      const tnEnabled = source.manifest.dataset_id === "national-business-registry" && (source.manifest.publisher?.version === "2.13.0" || tnFresh);
       if (tnEnabled && (source.manifest.publisher.id !== "national-business-registry" || source.manifest.status !== "published-partial")) throw new Error("TN export requires a published partial registry.");
       const tnDependencies = source.manifest.dependencies?.filter(d => d.dataset_id === TN_SOURCE) ?? [];
       const tnCounts = { records: 0, missing: 0, reasons: { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 } }, tnSites = new Set(), tnEstablishments = new Set();
-      if (tnDependencies.length !== Number(tnEnabled)) throw new Error("TN export requires exact registry 2.13 and one source dependency.");
+      if (tnDependencies.length !== Number(tnEnabled)) throw new Error("TN export requires exact registry 2.13 recovered or 2.14 fresh and one source dependency.");
       const sourceLineage = { dataset_id: source.manifest.dataset_id, release_id: source.manifest.release_id, manifest_path: relativeToApp(source.manifestPath), manifest_sha256: source.manifestHash.sha256, pointer_path: source.pointerPath ? relativeToApp(source.pointerPath) : null, artifacts: [] }; lineage.push(sourceLineage);
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
         const boundedReporting = tnEnabled && artifact.artifact_type === REPORTING_TYPE;
@@ -183,8 +184,8 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
           artifactRows++;
           if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || /^(site|establishment):tn_childcare_/.test(record.site_entity_id) || /^(site|establishment):tn_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
           if (record.source?.source_id === TN_SOURCE) {
-            if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires registry 2.13 reporting evidence.");
-            validateTnChildcareGeographicEvidence(record);
+            if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires an exact supported registry reporting version.");
+            (tnFresh ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(record);
             if (artifact.path !== `reporting/location-evidence/zip2=${record.zip_code?.slice(0, 2) ?? "unassigned"}/records.jsonl.gz` || artifact.export_policy !== "local-review-only"
               || record.evidence.release_id !== tnDependencies[0].release_id || record.evidence.manifest_sha256 !== tnDependencies[0].manifest_sha256
               || tnSites.has(record.site_entity_id) || tnEstablishments.has(record.establishment_entity_id)) throw new Error("TN export partition, identity or source lineage differs.");

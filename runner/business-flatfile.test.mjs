@@ -8,6 +8,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
+import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
 
 const digest = (buffer) => createHash("sha256").update(buffer).digest("hex");
 
@@ -77,15 +78,15 @@ test("reporting-only childcare is exported only in local-review mode with split 
 test("TN exports conserve mixed and all-null ZIP cohorts under explicit local review", async t => {
   const previousFetch = globalThis.fetch; globalThis.fetch = async () => { throw new Error("Network forbidden"); };
   t.after(() => { globalThis.fetch = previousFetch; });
-  for (const allMissing of [false, true]) {
+  for (const fresh of [false, true]) for (const allMissing of [false, true]) {
     const item = await fixture(t), release = path.join(item.root, "release"), manifestPath = path.join(release, "manifest.json");
     const manifest = JSON.parse(await readFile(manifestPath));
-    const rows = [
+    const rows = fresh ? await createFreshTnReportingRows(t, { allMissing, zip: "37201-0123" }) : [
       createTnChildcareReportingFixture({ zip: allMissing ? null : "37201-0123", attributes: { OBJECTID: 1, Street_Address_2: "Suite 4" } }).row,
       createTnChildcareReportingFixture({ zip: null, attributes: { OBJECTID: 2 } }).row,
       createTnChildcareReportingFixture({ zip: "0", attributes: { OBJECTID: 3 }, geometry: null }).row,
     ];
-    manifest.publisher = { id: "national-business-registry", version: "2.13.0" };
+    manifest.publisher = { id: "national-business-registry", version: fresh ? "2.14.0" : "2.13.0" };
     manifest.dependencies = [{ dataset_id: rows[0].source.source_id, release_id: rows[0].evidence.release_id, manifest_sha256: rows[0].evidence.manifest_sha256 }];
     const missing = allMissing ? 3 : 2;
     manifest.coverage = { tn_childcare_center_sites: 3, tn_childcare_center_sites_with_zip: 3 - missing, tn_childcare_center_sites_without_zip: missing,
@@ -107,11 +108,11 @@ test("TN exports conserve mixed and all-null ZIP cohorts under explicit local re
       assert.deepEqual(row.source_evidence, source.evidence); assert.deepEqual(row.source_status, source.source_status); assert.equal(row.identity_matching_eligible, false);
       assert.equal(row.latitude, source.location.latitude); assert.equal(row.longitude, source.location.longitude);
     }
-    assert.equal(exported.find(row => row.source_record_id === rows[0].source.source_record_id).unit_or_additional, "Suite 4");
+    assert.equal(exported.find(row => row.source_record_id === rows[fresh ? 1 : 0].source.source_record_id).unit_or_additional, fresh ? "Suite 200" : "Suite 4");
     if (!allMissing) assert.equal(exported.find(row => row.zip_code !== null).zip4, "0123");
-    for (const [index, mutate] of [m => { m.publisher.version = "2.13.1"; }, m => { m.dependencies = []; }, m => { m.dependencies.push(structuredClone(m.dependencies[0])); }, m => { m.coverage.tn_childcare_center_sites++; }, m => { m.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }].entries()) {
+    for (const [index, mutate] of [m => { m.publisher.version = fresh ? "2.13.0" : "2.14.0"; }, m => { m.publisher.version = "2.15.0"; }, m => { m.publisher.version = "2.13.1"; }, m => { m.dependencies = []; }, m => { m.dependencies.push(structuredClone(m.dependencies[0])); }, m => { m.coverage.tn_childcare_center_sites++; }, m => { m.coverage.tn_childcare_missing_zip_reasons["missing-source-zip"]++; }].entries()) {
       const bad = structuredClone(manifest); mutate(bad); await writeFile(manifestPath, JSON.stringify(bad));
-      await assert.rejects(composeFlatBusinessExport([...args, "--output-prefix", `tn-bad-${index}`, "--policy-mode", "local-review"]), /TN/);
+      await assert.rejects(composeFlatBusinessExport([...args, "--output-prefix", `tn-bad-${index}`, "--policy-mode", "local-review"]), /TN|Tennessee/);
     }
     const oversized = structuredClone(manifest); oversized.artifacts.find(a => a.path.includes("unassigned")).bytes = 100_000_001;
     await writeFile(manifestPath, JSON.stringify(oversized));

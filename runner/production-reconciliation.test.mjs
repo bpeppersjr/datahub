@@ -12,6 +12,7 @@ import { buildNjChildcareRelease } from './nj-childcare-release.mjs';
 import { acquireTnChildcare } from './tn-childcare-acquisition.mjs';
 import { createTnChildcareFixture } from './fixtures/tn-childcare-fetch.mjs';
 import { recoverTnChildcareRelease } from './tn-childcare-recovered-release.mjs';
+import { buildTnChildcareRelease } from './tn-childcare-release.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const scripts = ['build-business-registry', 'verify-business-registry', 'build-business-entity-resolution', 'verify-business-entity-resolution', 'build-entity-resolution-benchmark', 'verify-entity-resolution-benchmark', 'build-national-business-coverage-views', 'verify-national-business-coverage-views'];
@@ -61,7 +62,7 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   let extra;
   if (key === 'registry') {
     extra = { dependencies: await Promise.all(f.definition.sources.map((s) => dependency(f.root, s.pointer))) };
-    for(const flag of ['--ma-childcare','--nj-childcare','--tn-childcare'])if(stage.args.includes(flag)){const bytes=await readFile(path.resolve(f.root,value(flag))), m=JSON.parse(bytes);extra.dependencies.push({dataset_id:m.dataset_id,release_id:m.release_id,manifest_sha256:sha(bytes)});}
+    for(const flag of ['--ma-childcare','--nj-childcare','--tn-childcare','--tn-fresh-childcare'])if(stage.args.includes(flag)){const bytes=await readFile(path.resolve(f.root,value(flag))), m=JSON.parse(bytes);extra.dependencies.push({dataset_id:m.dataset_id,release_id:m.release_id,manifest_sha256:sha(bytes)});}
   }
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
   if (key === 'benchmark') extra = { status: 'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
@@ -350,6 +351,34 @@ test('production enrolls recovered Tennessee with MA/NJ and pins seven retained 
     const result=await runProductionReconciliation(plan,{...f,executor:(s,c)=>executeFixture(f,s,c)});assert.equal(result.receipt.status,'SUCCEEDED');
     const emitted=JSON.parse(await readFile(path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json')));assert.equal(emitted.dependencies.length,28);
   }finally{globalThis.fetch=previousFetch;}
+});
+
+test('production pins one verified fresh Tennessee release and executes the retained eight-stage handoff without network',async(t)=>{
+  const f=await fixture(t), recovered=await tnRecoveredFixture(t,f);
+  const previousFetch=globalThis.fetch;globalThis.fetch=()=>assert.fail('No source download during retained production work');t.after(()=>{globalThis.fetch=previousFetch;});
+  const source=await buildTnChildcareRelease({outputRoot:path.join(f.root,'data/childcare-tn-fresh'),fetchImpl:createTnChildcareFixture({count:3,mutate:(p,kind)=>{if(kind==='features'){p.features[0].attributes.Zip=null;p.features[1].attributes.Zip='0';}}}).fetchImpl,sleep:async()=>{}});
+  const tnFreshChildcare=source.manifest_path, before=await readFile(tnFreshChildcare);
+  await assert.rejects(planProductionReconciliation({...f,...recovered,tnFreshChildcare}),/mutually exclusive/);
+  await assert.rejects(planProductionReconciliation({...f,tnChildcare:tnFreshChildcare}));
+  await assert.rejects(planProductionReconciliation({...f,tnFreshChildcare:recovered.tnChildcare}));
+  for(const invalid of ['',null,[],path.join(f.root,'data/childcare-tn-fresh/current.json')])await assert.rejects(planProductionReconciliation({...f,tnFreshChildcare:invalid}));
+  const plan=await planProductionReconciliation({...f,tnFreshChildcare,runId:'tn-fresh-handoff'}), pin=plan.optionalSourcePins[0];
+  assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,1);assert.equal(pin.sourceKey,'tnFreshChildcare');assert.equal(pin.artifacts.length,5);
+  assert.equal(plan.stages.length,8);assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--tn-fresh-childcare')+1],pin.manifestPath);
+  assert.equal(plan.stages[0].args.includes('--tn-childcare'),false);assert.equal(plan.implementationPins.length,34);
+  const artifact=path.join(f.root,pin.artifacts[0].path), clean=await readFile(artifact);await writeFile(artifact,'changed');
+  await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('Must not launch on changed input')}));await writeFile(artifact,clean);
+  const result=await runProductionReconciliation(plan,{...f,executor:(s,c)=>executeFixture(f,s,c)});
+  assert.equal(result.receipt.status,'SUCCEEDED');assert.equal(result.receipt.stages.length,8);assert.deepEqual(await readFile(tnFreshChildcare),before);
+});
+
+test('fresh Tennessee CLI selection rejects missing, duplicate, cross-mode and mixed-origin arguments before execution',()=>{
+  for(const args of [['plan','--tn-fresh-childcare'],['plan','--tn-fresh-childcare','a','--tn-fresh-childcare','b'],['plan','--tn-childcare','a','--tn-fresh-childcare','b'],['run','--tn-fresh-childcare','a'],['stop','--tn-fresh-childcare','a']]){
+    const result=spawnSync(process.execPath,['scripts/reconcile-business-production.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',windowsHide:true});assert.equal(result.status,1);
+  }
+  for(const args of [['--tn-fresh-childcare'],['--tn-fresh-childcare','a','--tn-fresh-childcare','b'],['--tn-childcare','a','--tn-fresh-childcare','b']]){
+    const result=spawnSync(process.execPath,['scripts/build-business-registry.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',windowsHide:true});assert.equal(result.status,1);
+  }
 });
 
 test('new plans pin fresh static imports even without selecting Tennessee and reject their drift',async(t)=>{

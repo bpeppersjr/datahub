@@ -63,7 +63,7 @@
     "accounting": "Same conserved reported-state, point-assigned-county and source-ZIP accounting as recovered coverage 2.9.0; no inferred ZIP or fabricated recovery history",
     "map_compatible": true,
     "production_promoted": false,
-    "remaining_gates": ["flat export migration", "fresh production CLI/planner enrollment", "verified production run and exact source reassessment"]
+    "remaining_gates": ["reviewed acquisition or refresh need", "verified production run and exact source reassessment"]
   },
   "completeness_claim": false,
   "entity_resolution_applied": false,

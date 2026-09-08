@@ -10,6 +10,7 @@ import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migra
 import { verifyMaChildcareRelease } from './ma-childcare-release.mjs';
 import { verifyNjChildcareRelease } from './nj-childcare-release.mjs';
 import { verifyTnChildcareRecoveredRelease } from './tn-childcare-recovered-release.mjs';
+import { verifyTnChildcareRelease } from './tn-childcare-release.mjs';
 import { writeReconciliationReceipt as atomic } from './reconciliation-receipt.mjs';
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -32,6 +33,7 @@ const CHILDCARE = {
   maChildcare: { flag:'--ma-childcare', dataset:'ma-licensed-center-based-childcare', prefix:'ma', policy:'massgis-eec-childcare-local-review', verify:verifyMaChildcareRelease },
   njChildcare: { flag:'--nj-childcare', dataset:'nj-licensed-childcare-centers', prefix:'nj', policy:'njdep-childcare-local-review', verify:verifyNjChildcareRelease },
   tnChildcare: { flag:'--tn-childcare', dataset:'tn-dhs-active-childcare-centers', policy:'tn-childcare-local-review', verify:verifyTnChildcareRecoveredRelease },
+  tnFreshChildcare: { flag:'--tn-fresh-childcare', dataset:'tn-dhs-active-childcare-centers', policy:'tn-childcare-local-review', verify:verifyTnChildcareRelease, fresh:true },
 };
 const hash = value => createHash('sha256').update(value).digest('hex');
 const rel = (root, file) => path.relative(root, file).replaceAll('\\','/');
@@ -57,6 +59,7 @@ async function pinChildcare(root, key, selected) {
   if(path.basename(file)!=='manifest.json'||path.basename(path.dirname(path.dirname(file)))!=='releases')throw new Error('Childcare input must name an immutable release manifest, not a pointer or staging.');
   const before=await fileHash(file), verified=await contract.verify(file), bytes=await readFile(file), manifest=JSON.parse(bytes);
   if(verified.status!=='verified'||manifest.dataset_id!==contract.dataset||verified.release_id!==manifest.release_id||path.basename(path.dirname(file))!==manifest.release_id||before.sha256!==verified.manifest_sha256||hash(bytes)!==before.sha256)throw new Error('Childcare verified release identity changed.');
+  if(contract.fresh&&(manifest.connector_version!=='1.1.0'||manifest.transformation_version!=='tn-childcare-normalization@1.0.1'||Object.hasOwn(manifest,'recovery_version')))throw new Error('Fresh Tennessee input requires ordinary connector 1.1.0.');
   const artifacts=[];
   for(const artifact of manifest.artifacts){const artifactFile=await safe(root,path.resolve(path.dirname(file),artifact.path)), actual=await fileHash(artifactFile);if(actual.sha256!==artifact.sha256||actual.bytes!==artifact.bytes)throw new Error('Childcare artifact changed after verification.');artifacts.push({path:rel(root,artifactFile),...actual});}
   const configurationPins=[];
@@ -69,7 +72,8 @@ function stageDefinitions(sources,optionalSources=[]) {
   args[0].push(...optionalSources.flatMap(source=>[CHILDCARE[source.sourceKey]?.flag,source.manifestPath]));
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+  if(tnChildcare!==undefined&&tnFreshChildcare!==undefined)throw new Error('Choose one Tennessee source: fresh and recovered are mutually exclusive.');
   if(recoverBenchmarkFrom!==undefined&&recoverResolutionFrom!==undefined)throw new Error('Recovery modes are mutually exclusive.');
   root = await realpath(path.resolve(root)); if(!ID.test(runId)) throw new Error('Invalid production run ID.');
   const report = await readinessInspector({appRoot:root,useCandidatePointers:false});
@@ -87,11 +91,11 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   const inputPins = []; for(const [id,pointer] of Object.entries(INPUTS)) inputPins.push(await pin(root,id,pointer));
   const previousOutputs = {}; for(const [group,directory] of Object.entries(OUTPUTS)) { await safe(root,directory); const previous = await pin(root,group,`${directory}/current.json`); if(previous.datasetId !== DATASETS[group]) throw new Error('Existing production output dataset is invalid.'); previousOutputs[group]=previous; }
   const optionalSourcePins=[];
-  for(const [key,selected] of Object.entries({maChildcare,njChildcare,tnChildcare}))if(selected!==undefined)optionalSourcePins.push(await pinChildcare(root,key,selected));
+  for(const [key,selected] of Object.entries({maChildcare,njChildcare,tnChildcare,tnFreshChildcare}))if(selected!==undefined)optionalSourcePins.push(await pinChildcare(root,key,selected));
   if(new Set(optionalSourcePins.map(p=>p.manifestPath)).size!==optionalSourcePins.length)throw new Error('Duplicate childcare release selection.');
   const stages = stageDefinitions(sourcePins,optionalSourcePins), scriptPins = []; for(const stage of stages) scriptPins.push({stage:stage.id,path:stage.script,...await fileHash(await safe(root,stage.script))});
-  const modules=tnChildcare!==undefined?[...TN_MODULES]:[...MODULES];
-  if(tnChildcare===undefined){
+  const modules=tnChildcare!==undefined||tnFreshChildcare!==undefined?[...TN_MODULES]:[...MODULES];
+  if(tnChildcare===undefined&&tnFreshChildcare===undefined){
     if(optionalSourcePins.length)modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs','runner/source-http-guards.mjs','runner/paths.mjs');
     else modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs');
     for(const selected of optionalSourcePins){const prefix=CHILDCARE[selected.sourceKey].prefix;for(const suffix of ['registry-input','registry-adapter','release','normalization','preflight','acquisition',...(prefix==='nj'?['metadata']:[])])modules.push(`runner/${prefix}-childcare-${suffix}.mjs`);}
