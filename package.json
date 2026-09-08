@@ -27,6 +27,8 @@
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
     "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
     "tn-childcare:preflight": "node scripts/preflight-tn-childcare.mjs",
+    "tn-childcare:build": "node scripts/build-tn-childcare.mjs",
+    "tn-childcare:verify": "node scripts/verify-tn-childcare.mjs",
     "nj-childcare:build": "node scripts/build-nj-childcare.mjs",
     "nj-childcare:verify": "node scripts/verify-nj-childcare.mjs",
     "nj-childcare:reprocess": "node scripts/reprocess-nj-childcare.mjs",

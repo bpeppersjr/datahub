@@ -18,6 +18,7 @@ const PROFILE_IDS = Object.freeze({
   "state-dc-basic-licenses": "dc-dlcp-active-basic-business-licenses",
   "state-ma-childcare": "ma-licensed-center-based-childcare",
   "state-nj-childcare": "nj-licensed-childcare-centers",
+  "state-tn-childcare": null,
   "national-irs-eo-bmf": null,
 });
 // The coverage view retains this historical count-field name for both evidence

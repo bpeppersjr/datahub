@@ -11,9 +11,21 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare"]
   },
   "sources": {
+    "state-tn-childcare": {
+      "script": "scripts/build-tn-childcare.mjs",
+      "scope": "state",
+      "states": ["TN"],
+      "state_filter_supported": false,
+      "prerequisites": [],
+      "coverage_notes": [
+        "Tennessee DHS/STS GIS Active Child Care / Child Care Center records only. Family homes, group homes, drop-in centers, authorized providers and TDOE facilities are excluded. Scope differs from MA and NJ; no common denominator or nationwide completeness percentage is established.",
+        "The active-source filter and provider ID are source assertions, not proof of current operations, license validity, ownership or unique business identity. Twelve selected fields exclude private contact details. ZIP5/ZIP4 remain separate and normalized business coordinates are latitude/longitude only.",
+        "Selected source and complete publisher metadata stay internal; normalized records remain local-review-only under tn-childcare-local-review@1.0.0. National reporting coverage is unmeasured until separately integrated. Enrollment does not enable scheduled refreshes; missing rows are not closures."
+      ]
+    },
     "state-nj-childcare": {
       "script": "scripts/build-nj-childcare.mjs",
       "scope": "state",

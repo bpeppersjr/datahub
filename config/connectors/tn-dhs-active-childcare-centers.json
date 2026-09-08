@@ -1,0 +1,38 @@
+{
+  "connector_id": "tn-dhs-active-childcare-centers",
+  "version": "1.0.0",
+  "description": "Acquires and verifies exact center-filtered Tennessee DHS/STS GIS records with publisher metadata as immutable local-review evidence; not a national registry contribution or all-childcare census.",
+  "implementation_status": "standalone-acquisition-and-local-release",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": { "type": "object", "additionalProperties": false, "properties": { "output": { "type": "string", "minLength": 1, "default": "data/business-sources/tn-dhs-active-childcare-centers" } } },
+  "named_secret_references": [],
+  "input_artifact_types": ["tn-dhs-selected-center-arcgis-features", "tn-sts-publisher-metadata-xml"],
+  "output_artifact_types": ["tn-childcare-selected-features-jsonl", "tn-childcare-normalized-center-jsonl", "tn-childcare-quarantine-jsonl", "tn-childcare-source-observation-json", "tn-sts-publisher-metadata-xml", "dataset-manifest-json"],
+  "output_schema_contract": {
+    "dataset_id": "tn-dhs-active-childcare-centers", "schema_version": "1.0.0", "transformation_version": "tn-childcare-normalization@1.0.0",
+    "artifacts": ["selected-features.jsonl", "normalized.jsonl", "quarantine.jsonl", "source-observation.json", "publisher-metadata.xml"],
+    "verification": "scripts/verify-tn-childcare.mjs accepts an immutable manifest path and replays retained acquisition evidence and normalization; no current.json input or provider request.",
+    "postal_fields": "physical_address.zip_code and postal_code contain ZIP5 only; physical_address.zip4 contains a separate four-digit string or null.",
+    "geocode": "Normalized business records contain nullable latitude/longitude only, EPSG:4326. Source points remain internal evidence; broad TN bounds are not verified state/county boundary membership.",
+    "source_filter": "Provider_Status = 'Active' AND Provider_Type = 'Child Care' AND Child_Care_Type = 'Child Care Center'"
+  },
+  "allowed_hosts": ["services1.arcgis.com", "www.arcgis.com"],
+  "redirect_policy": "Reject redirects. Fixed production Active_ChildCare_Locations FeatureServer/0 and query, fixed item, organization and raw metadata XML URLs only. No caller URL, SQL, outFields or scope override; metadata links are not followed.",
+  "provider_budget_key": "tn-dhs-sts-active-childcare-centers-public-arcgis",
+  "resource_class": "bounded-network-memory-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1, "maximum_source_records": 20000, "maximum_batch_records": 100, "maximum_request_url_bytes": 2000,
+    "maximum_response_bytes": 8000000, "maximum_metadata_response_bytes": 1000000, "maximum_cumulative_selected_response_bytes": 100000000,
+    "maximum_cumulative_successful_query_transfer_bytes": 100000000, "request_timeout_ms": 30000, "maximum_injected_request_timeout_ms": 60000,
+    "maximum_request_attempts": 3, "minimum_observation_spacing_ms": 1000, "maximum_retry_after_ms": 60000,
+    "maximum_quarantine_rate": 0.05, "minimum_accepted_records": 1
+  },
+  "retry": "Three bounded attempts only for transient transport/timeouts, 429 and 5xx. Header/body deadlines and one-second observation spacing apply. Honor Retry-After; waits over 60000ms defer instead of shortening. Scope/schema/private-field drift, cancellation and quality failures are not retried. CLI exposes no transport/limit overrides.",
+  "checkpoint": "Complete before/after preflight retains layer, item, organization and unchanged raw XML with fixed-filter counts; unique ID inventories bracket selected batches. Replay exact selected evidence and normalization offline. Matching observations are not transactional snapshot isolation. No acquisition resume or automatic crash recovery is implemented.",
+  "idempotency": "Each publication has a fresh immutable UUID run/release; preserve retained selected records, metadata and hashes. No source freshness reuse, business deduplication, lifecycle comparison or closure inference is implied.",
+  "cancellation": "Cooperative CLI signals and parent IPC cancel requests, waits and precommit work. Clean only owned staging on cooperative precommit cancellation, preserve ordinary failure evidence and prior/sibling releases. Exclusive ownership protects publication; complete the final commit without cooperative interruption. Abrupt termination or disk failure requires inspection; do not reclaim stale locks automatically.",
+  "source_policy": "config/source-policies/tn-childcare-local-review.json",
+  "retention_profile": "Immutable internal selected source, full publisher metadata and acquisition observations; local-review-only normalized records. Operator-governed deletion, no automatic cleanup.",
+  "produced_entities": ["childcare-center-source-record", "reported-center-location-assertion", "source-active-extract-membership-assertion"],
+  "produced_identifiers": ["tennessee_dhs_provider_id", "release-scoped-source-object-id", "zip5", "zip4"]
+}

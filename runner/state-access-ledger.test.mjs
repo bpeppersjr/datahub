@@ -92,6 +92,17 @@ test('MA childcare app enrollment does not manufacture national reporting eviden
   assert.deepEqual(other.appHandoff.configuredSources, []);
 });
 
+test('TN childcare enrollment remains unmeasured until national reporting integration', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const cell = ledger.jurisdictions.find(r => r.state === 'TN').industries.find(r => r.industry === 'childcare');
+  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId, 'state-tn-childcare');
+  assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor, 'cotive-app');
+  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+});
+
 async function childcareCounts(f, value) {
   const artifact=f.manifest.artifacts.find(a=>a.artifact_type==='state-coverage-view-jsonl');
   const file=path.join(f.root,path.dirname(f.manifestPath),artifact.path);

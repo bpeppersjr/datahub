@@ -1,8 +1,22 @@
 # Tennessee childcare connector development
 
+## Standalone release and app-worker contract
+
+The source builder and verifier expose `npm run tn-childcare:build` and `npm run tn-childcare:verify -- <immutable-manifest-path>`. The build accepts only an optional output path inside `datahub`; verification accepts a release manifest rather than `current.json` and must not request provider data. Both commands support cooperative signals and app IPC.
+
+Each source release retains five artifacts: selected features, normalized records, quarantine, replayable source observations and byte-preserved publisher XML. The manifest carries versioned provenance, restrictive policy, artifact hashes and counts. Replaying retained acquisition and normalization must reproduce the exact release—not merely match a newly supplied checksum. A release needs at least one accepted record and no more than five percent quarantine. Private-field/scope drift fails the acquisition rather than being treated as harmless quarantine.
+
+The `childcare` industry has an independent `state-tn-childcare` worker for Tennessee only. Selecting Tennessee must neither run the MA/NJ sources nor imply that their populations have identical scope. The coverage ledger remains unmeasured until a separate national-reporting integration publishes evidence. Enrollment alone does not enable a recurring schedule or submit a job.
+
+The final publication transaction must preserve earlier releases and prevent concurrent writers. Cancellation before commit removes only owned staging; ordinary failures retain inspectable evidence. After commit starts, pointer publication completes without cooperative interruption. A disk failure after the release rename can leave a valid unpointed immutable release: inspect it before retrying, rather than repulling blindly. Reboot, process death or ambiguous ownership requires inspection; no lock is reclaimed solely because a process ID is absent or a timeout elapsed.
+
 ## Acquisition and normalization modules
 
-`acquireTnChildcare` and `replayTnChildcareAcquisition` implement bounded application-side acquisition and pure local replay. `normalizeTnChildcareFeature` implements source-record normalization. These functions write no files or pointers. A source-release builder/verifier and managed industry enrollment are still required before a live source download is dispatched; the existing preflight CLI remains metadata-only.
+Release/enrollment verification: ten focused release/CLI tests and three managed-worker tests passed, including real child IPC cancellation, offline publication/replay, strict scope/privacy rejection and immutable-pointer preservation. The full 698-test repository check, lint, web/desktop builds, desktop smoke, TypeScript and production dependency audit (zero vulnerabilities) passed. Rollback is additive: stop selecting the Tennessee worker; retain its immutable evidence and do not remove unrelated source releases.
+
+The first real standalone industry run is `tn-app-acquisition-20260907-01`, dispatched with plan SHA-256 `9f5e5f5dee2fa828743b6b670a43ad53c962e6dfc25cfad8fe38b299e5c16a03`. Its authoritative status is `data/industry-segments/runs/tn-app-acquisition-20260907-01/receipt.json`. Dispatch is not completion; no AI supervision or recurring schedule is required or enabled by this one-time handoff.
+
+`acquireTnChildcare` and `replayTnChildcareAcquisition` implement bounded application-side acquisition and pure local replay. `normalizeTnChildcareFeature` implements source-record normalization. These functions write no files or pointers. The release builder/verifier and managed industry enrollment described above now wrap these modules; the existing preflight CLI remains metadata-only.
 
 Acquisition completes the ten-observation preflight before requesting any IDs or features, requires available complete publisher XML byte evidence, fetches a sorted ID inventory, and requests exact batches of at most 100 IDs with URLs no larger than 2,000 bytes. It repeats the inventory and full preflight afterward. Every row must belong to the requested ID batch, selected schema and center-only scope. Duplicate/missing IDs, truncated responses, private fields, non-WGS84 point evidence and changed metadata/XML/counts fail the acquisition.
 
@@ -32,7 +46,7 @@ Publication timing, source observation time and item/layer modification times re
 
 Publisher terms include user-assumed risk and a hold-harmless condition for Tennessee and its staff. Preserve these material conditions alongside attribution and warranty disclaimers; this implementation is not a legal determination or authority to accept a new agreement. Publisher XML carries source-purpose/scope narrative even when the item JSON description is empty. Neither empty JSON prose nor metadata-file absence should silently erase those conditions.
 
-After preflight verification, implement bounded ID-based acquisition with privacy-selected fields, source drift detection, complete evidence retention, normalization and independent offline release replay. Normalized records retain ZIP5 and ZIP4 separately and latitude/longitude only on business entities. Keep ownership and unique-business identity unverified and use local-review-only reporting until the integration policy explicitly allows otherwise.
+Bounded ID-based acquisition, privacy-selected fields, source drift detection, complete evidence retention, normalization and independent offline release replay are implemented. National registry/reporting integration remains a separate gate after a real source release verifies. Normalized records retain ZIP5 and ZIP4 separately and latitude/longitude only on business entities. Keep ownership and unique-business identity unverified and use local-review-only reporting until the integration policy explicitly allows otherwise.
 
 The standalone application owns routine execution after those gates; no live Codex task should be required. A preflight receipt alone must not be treated as a completed acquisition, automatic crash recovery, or scheduler enrollment. Existing immutable releases and the active production rebuild are untouched by these new files.
 
