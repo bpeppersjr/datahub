@@ -3,12 +3,13 @@ import { createGzip, gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createBusinessMapStore } from "./business-map-store.mjs";
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
+import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 
 function json(value) {
   return `${JSON.stringify(value)}\n`;
@@ -18,7 +19,7 @@ function polygon(west, south, east, north) {
   return { type: "Polygon", coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] };
 }
 
-async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null } = {}) {
+async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views" } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const coverageRoot = path.join(root, "coverage");
@@ -239,6 +240,40 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     await writeFile(path.join(gdpRoot, "current.json"), json({ dataset_id: "bea-regional-gdp", release_id: "gdp-1", manifest: "releases/gdp-1/manifest.json" }));
   }
 
+  if (tnRows) {
+    const stats = rows => ({ records: rows.length, with_zip: rows.filter(r => r.zip_code !== null).length, without_zip: rows.filter(r => r.zip_code === null).length,
+      missing_zip_reasons: { "missing-source-zip": rows.filter(r => r.evidence.zip_unavailable_reason === "missing-source-zip").length, "invalid-source-zip-placeholder": rows.filter(r => r.evidence.zip_unavailable_reason === "invalid-source-zip-placeholder").length },
+      missing_points: rows.filter(r => r.location.latitude === null).length, zip_inferred: false });
+    for (const [file, mapper] of [["views/states.jsonl", row => ({ ...row, registry_evidence: { tn_childcare_reporting: stats(row.state_fips === "01" ? tnRows : []) } })],
+      ["views/counties.jsonl", row => ({ ...row, registry_evidence: { tn_childcare_reporting: stats(tnRows.filter(r => r.location.latitude !== null)) } })],
+      ["views/zips.jsonl", row => ({ ...row, registry_coverage: { ...row.registry_coverage, tn_childcare_center_site_count: tnRows.filter(r => r.zip_code === row.zip_code).length } })]]) {
+      const filePath = path.join(coverageRelease, file), rows = (await readFile(filePath, "utf8")).trim().split("\n").map(JSON.parse).map(mapper);
+      await writeFile(filePath, rows.map(json).join(""));
+    }
+    const stateFile = path.join(geographyRelease, "derived/index/states.jsonl"), stateRows = (await readFile(stateFile, "utf8")).trim().split("\n").map(JSON.parse);
+    stateRows[0].postal_abbreviation = "TN"; await writeFile(stateFile, stateRows.map(json).join(""));
+    const registryFile = path.join(registryRelease, "manifest.json"), registry = JSON.parse(await readFile(registryFile, "utf8"));
+    registry.publisher = { id: registryPublisher, version: "2.13.0" };
+    registry.dependencies = [{ dataset_id: "tn-dhs-active-childcare-centers", release_id: tnRows[0].evidence.release_id, manifest_sha256: tnRows[0].evidence.manifest_sha256 }];
+    for (const [partition, rows] of Map.groupBy(tnRows, row => row.zip_code?.slice(0, 2) ?? "unassigned")) {
+      const relative = `reporting/location-evidence/zip2=${partition}/records.jsonl.gz`, file = path.join(registryRelease, relative), bytes = gzipSync(rows.map(json).join(""));
+      await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, bytes);
+      registry.artifacts.push({ artifact_type: "business-reporting-location-evidence-jsonl-gzip", path: relative, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), record_count: rows.length, export_policy: "local-review-only" });
+    }
+    await writeFile(registryFile, json(registry));
+    const coverageFile = path.join(coverageRelease, "manifest.json"), coverage = JSON.parse(await readFile(coverageFile, "utf8"));
+    coverage.publisher = { id: coveragePublisher, version: tnVersion }; coverage.coverage = { tn_childcare_reporting: stats(tnRows) }; coverage.lineage = { registry_release_id: registry.release_id };
+    coverage.dependencies = [{ dataset_id: "national-business-registry", release_id: registry.release_id, manifest_sha256: createHash("sha256").update(json(registry)).digest("hex") }];
+    for (const artifact of coverage.artifacts) {
+      const bytes = await readFile(path.join(coverageRelease, artifact.path));
+      artifact.bytes = bytes.length; artifact.sha256 = createHash("sha256").update(bytes).digest("hex");
+    }
+    await writeFile(coverageFile, json(coverage));
+    if (coverageTamper) {
+      const target = path.join(coverageRelease, `views/${coverageTamper}.jsonl`), bytes = await readFile(target);
+      await writeFile(target, Buffer.concat([bytes, Buffer.from(" ")]));
+    }
+  }
   return createBusinessMapStore({
     coveragePointerPath: path.join(coverageRoot, "current.json"),
     geographyPointerPath: path.join(geographyRoot, "current.json"),
@@ -246,6 +281,58 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     gdpPointerPath: path.join(gdpRoot, "current.json"),
   });
 }
+
+test("TN missing ZIP names and source evidence remain in state shares without inferred ZIP maps", async context => {
+  for (const allMissing of [false, true]) {
+    const tnRows = [
+      createTnChildcareReportingFixture({ zip: allMissing ? null : "12345-0123" }).row,
+      createTnChildcareReportingFixture({ zip: null, attributes: { OBJECTID: 2, Street_Address_2: "Suite 200" } }).row,
+      createTnChildcareReportingFixture({ zip: "0", attributes: { OBJECTID: 3 }, geometry: null }).row,
+    ];
+    const store = await fixture(context, { tnRows });
+    const summary = await store.getStateSummary();
+    assert.equal(summary.national_category_counts.childcare, 3);
+    assert.equal(summary.national_all_category_evidence_count, 8);
+    assert.equal(summary.national_category_percent_of_collected_evidence.childcare, 37.5);
+    const state = (await store.getFeatures({ level: "states", categoryId: "childcare" })).features.find(r => r.properties.geoid === "01");
+    assert.equal(state.properties.business_count, 3);
+    assert.equal(state.properties.zip_unavailable_business_evidence, allMissing ? 3 : 2);
+    const county = (await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "childcare" })).features[0];
+    assert.equal(county.properties.business_count, 2);
+    const zipNames = await store.listBusinessNames({ zipCode: "12345", categoryId: "childcare" });
+    assert.equal(zipNames.total, allMissing ? 0 : 1);
+    const names = await store.listStateBusinessNames({ stateFips: "01", limit: 1 });
+    assert.equal(names.total, allMissing ? 3 : 2); assert.equal(names.records.length, 1);
+    assert.equal(names.scope, "source-zip-unavailable"); assert.equal(names.zip_inferred, false);
+    assert.equal(names.records[0].address.zip_code, null); assert.equal(names.records[0].address.zip4, null);
+    const allNames = await store.listStateBusinessNames({ stateFips: "01" });
+    assert(allNames.records.some(record => record.address.street2 === "Suite 200"));
+    assert.equal(names.records[0].identity_matching_eligible, false);
+    assert.equal((await store.listStateBusinessNames({ stateFips: "02" })).total, 0);
+    assert.equal((await store.listStateBusinessNames({ stateFips: "01", query: "no-such-business" })).total, 0);
+  }
+});
+
+test("TN name retrieval rejects private payloads, future coverage and matching-profile pollution", async context => {
+  const row = createTnChildcareReportingFixture({ zip: null }).row;
+  const privateRow = structuredClone(row); privateRow.evidence.private_contact = "excluded";
+  const invalid = await fixture(context, { tnRows: [privateRow] });
+  await assert.rejects(invalid.listStateBusinessNames({ stateFips: "01" }), /TN|Tennessee/);
+  const future = await fixture(context, { tnRows: [row], tnVersion: "2.9.1" });
+  await assert.rejects(future.getCatalog(), /exact coverage/);
+  const duplicate = await fixture(context, { tnRows: [row, row] });
+  await assert.rejects(duplicate.listStateBusinessNames({ stateFips: "01" }), /Duplicate TN/);
+  for (const coverageTamper of ["states", "counties", "zips"]) {
+    const tampered = await fixture(context, { tnRows: [row], coverageTamper });
+    await assert.rejects(tampered.getStateSummary(), /checksum/);
+  }
+  for (const identity of [{ registryPublisher: "untrusted" }, { coveragePublisher: "untrusted" }]) {
+    const badPublisher = await fixture(context, { tnRows: [row], ...identity });
+    await assert.rejects(badPublisher.listStateBusinessNames({ stateFips: "01" }), /publisher identity/);
+  }
+  const matching = await fixture(context, { mislabeledChildcare: createTnChildcareReportingFixture({ zip: "12345" }).row });
+  await assert.rejects(matching.listBusinessNames({ zipCode: "12345" }), /cannot appear in matching-profile/);
+});
 
 test("serves governed category, geography, demographic, and percentage views", async (context) => {
   const store = await fixture(context);

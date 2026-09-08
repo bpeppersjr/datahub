@@ -41,7 +41,7 @@
     "identity_matching_eligible": false,
     "production_cli_enrolled": false,
     "national_reporting_promoted": false,
-    "remaining_gates": ["map and export consumers", "app production orchestration and dependency pinning", "verified production run and explicit source reassessment"]
+    "remaining_gates": ["frontend control for state-level ZIP-unavailable name browsing", "app production orchestration and dependency pinning", "verified production run and explicit source reassessment"]
   },
   "implemented_source_layers": [
     {

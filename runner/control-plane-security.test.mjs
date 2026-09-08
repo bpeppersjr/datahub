@@ -156,6 +156,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/business-map/features?level=states"],
     ["GET", "/api/business-map/state-summary"],
     ["GET", "/api/business-map/names?zip=12345"],
+    ["GET", "/api/business-map/state-names?state=47&category=childcare"],
     ["GET", "/api/data-operations/catalog"],
     ["GET", "/api/data-operations/operations"],
     ["GET", "/api/data-operations/schedules"],
@@ -225,6 +226,24 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(authorized.status, 200);
   assert(Array.isArray(JSON.parse(authorized.body)));
+
+  for (const [suffix, state, category, limit] of [
+    ["?state=47", "47", "childcare", 25],
+    ["?state=26&category=childcare&query=Synthetic%20Center&limit=7", "26", "childcare", 7],
+    ["?state=47&category=all&query=no%20matching%20names&limit=999", "47", "all", 100],
+  ]) {
+    const names = await rawRequest({ port, hostHeader, pathname: `/api/business-map/state-names${suffix}`, authorization: `Bearer ${CONTROL_TOKEN}` });
+    assert.equal(names.status, 200); assert.equal(names.headers["cache-control"], "no-store");
+    assert.deepEqual(JSON.parse(names.body), { available: false, zip_code: null, state_fips: state, scope: "source-zip-unavailable", zip_inferred: false, limit, category_id: category, total: 0, records: [] });
+  }
+  for (const suffix of ["?state=bad", "?state=47&category=not-a-category"]) {
+    const invalid = await rawRequest({ port, hostHeader, pathname: `/api/business-map/state-names${suffix}`, authorization: `Bearer ${CONTROL_TOKEN}` });
+    assert.equal(invalid.status, 400);
+  }
+  const foreignNames = await rawRequest({ port, hostHeader: `evil.example:${port}`, pathname: "/api/business-map/state-names?state=47", authorization: `Bearer ${CONTROL_TOKEN}` });
+  assert.equal(foreignNames.status, 400);
+  const foreignNamesOrigin = await rawRequest({ port, hostHeader, origin: "https://evil.example", pathname: "/api/business-map/state-names?state=47", authorization: `Bearer ${CONTROL_TOKEN}` });
+  assert.equal(foreignNamesOrigin.status, 403);
 
   const connectorCatalog = await rawRequest({
     port,

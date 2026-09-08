@@ -54,7 +54,7 @@
     "postal_boundary": "ZIP views include only source ZIP-attributed records; state and source totals retain ZIP-unavailable records; zip_inferred remains false",
     "county_boundary": "County counts require a usable source point assigned to a governed Census county, independently of source ZIP availability",
     "production_promoted": false,
-    "remaining_consumers": ["map category percentages and non-ZIP name browsing", "policy-filtered flat-file extraction", "standalone production planner and dependency pins", "verified production run and exact source reassessment"]
+    "remaining_consumers": ["frontend control for state-level ZIP-unavailable name browsing", "standalone production planner and dependency pins", "verified production run and exact source reassessment"]
   },
   "completeness_claim": false,
   "entity_resolution_applied": false,

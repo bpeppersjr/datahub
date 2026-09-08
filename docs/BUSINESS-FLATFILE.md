@@ -1,6 +1,6 @@
 # Governed business flat-file export
 
-`scripts/compose-flat-business-export.mjs` streams selected national business-registry location profiles to CSV, JSONL, or both without loading partitions into memory.
+`scripts/compose-flat-business-export.mjs` writes selected national business-registry location evidence to CSV, JSONL, or both. Matching-profile partitions stream; registry 2.13 reporting partitions use bounded verified buffers (100 MB compressed and decompressed ceilings).
 
 Example local-review export:
 
@@ -12,7 +12,9 @@ The default `public-only` mode emits only the explicitly recognized record polic
 
 Category IDs and source IDs match `runner/business-map-store.mjs`. ZIP5 and ZIP+4 are separate columns, and latitude/longitude are emitted only as a valid pair. CSV values beginning with spreadsheet formula-control characters are prefixed with an apostrophe; ZIP strings retain leading zeroes. Selected columns always gain the mandatory row-provenance fields so every row remains traceable.
 
-Each input must be a published governed pointer or release manifest. Every input artifact is checked against its declared byte count and SHA-256 before reading. Output is written beneath `datahub`, using stream backpressure. CSV/JSONL and summary hashes are recorded in `manifest.json`; that manifest is atomically renamed into place last and is the publication marker. On failure the incomplete run directory is removed.
+Each input must be a published governed pointer or release manifest. Every input artifact is checked against its declared byte count and SHA-256 before acceptance. Registry 2.13 reporting checksums cover the exact compressed bytes subsequently decoded with strict UTF-8. Output is written beneath `datahub`, using stream backpressure. CSV/JSONL and summary hashes are recorded in `manifest.json`; that manifest is atomically renamed into place last and is the publication marker. On failure the incomplete run directory is removed.
+
+Tennessee childcare is included in the `childcare` source group only from exact registry 2.13 reporting evidence. Its source-release dependency, artifact partitions, accepted row count and missing-ZIP reasons must reconcile even when filters or public-only policy exclude rows from output. Missing ZIP5/ZIP4 stay null; source `street2` is preserved as `unit_or_additional`. Select `source_status`, `source_evidence` and `identity_matching_eligible` to retain explicit recovery/status detail; those fields are included by default. All Tennessee rows remain local-review-only and ineligible for matching. This capability does not imply Tennessee has been promoted into the current production registry.
 
 Run `node --test runner/business-flatfile.test.mjs` for the offline fixture suite. The Windows launcher is `export-business.bat`; invoking it without arguments shows help. `npm run business:export -- <options>` is equivalent. Exports read source releases without modifying them; the current implementation scans every profile partition even when selecting one state.
 

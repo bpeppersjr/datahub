@@ -3,9 +3,27 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gunzipSync } from "node:zlib";
 import { APP_ROOT } from "./paths.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+
+const TN_SOURCE = "tn-dhs-active-childcare-centers";
+
+async function readReportingRows(registry, artifact) {
+  if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > 100_000_000) throw new Error("Reporting-only artifact byte limit.");
+  const file = artifactPath(registry, item => item === artifact, "reporting-only location evidence");
+  const chunks = [], hash = createHash("sha256"); let bytes = 0;
+  for await (const chunk of createReadStream(file)) {
+    bytes += chunk.length;
+    if (bytes > artifact.bytes) throw new Error("Reporting-only location evidence checksum mismatch.");
+    chunks.push(chunk); hash.update(chunk);
+  }
+  if (bytes !== artifact.bytes || hash.digest("hex") !== artifact.sha256) throw new Error("Reporting-only location evidence checksum mismatch.");
+  const rows = new TextDecoder("utf-8", { fatal: true }).decode(gunzipSync(Buffer.concat(chunks, bytes), { maxOutputLength: 100_000_000 })).split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+  if (rows.length !== artifact.record_count) throw new Error("Reporting-only artifact record count mismatch.");
+  return rows;
+}
 
 const DEFAULT_COVERAGE_POINTER = path.join(APP_ROOT, "data", "business-coverage-views", "current.json");
 const DEFAULT_GEOGRAPHY_POINTER = path.join(APP_ROOT, "data", "geography", "current.json");
@@ -35,8 +53,8 @@ const CATEGORY_DEFINITIONS = Object.freeze([
     label: "Reported childcare centers",
     group_id: "services",
     group_label: "Services",
-    fields: ["ma_childcare_center_site_count", "nj_childcare_center_site_count"],
-    source_ids: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"],
+    fields: ["ma_childcare_center_site_count", "nj_childcare_center_site_count", "tn_childcare_center_site_count"],
+    source_ids: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE],
   },
   {
     id: "financial-services",
@@ -145,11 +163,12 @@ async function loadPointer(pointerPath, datasetId, statuses) {
   const root = path.dirname(pointerPath);
   const manifestPath = path.resolve(root, pointer.manifest);
   if (!inside(root, manifestPath)) throw new Error(`${datasetId} manifest path escapes its dataset directory.`);
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifestBytes = await readFile(manifestPath);
+  const manifest = JSON.parse(manifestBytes);
   if (manifest.dataset_id !== datasetId || manifest.release_id !== pointer.release_id || !statuses.has(manifest.status)) {
     throw new Error(`${datasetId} manifest is not a compatible published release.`);
   }
-  return { pointer, manifest, manifestPath, releaseDirectory: path.dirname(manifestPath) };
+  return { pointer, manifest, manifestPath, manifestSha256: createHash("sha256").update(manifestBytes).digest("hex"), releaseDirectory: path.dirname(manifestPath) };
 }
 
 function artifactPath(release, predicate, description) {
@@ -275,6 +294,7 @@ function countsFor(registryCoverage) {
 
 function emptyAggregate() {
   return {
+    zip_unavailable_business_evidence: 0,
     category_counts: Object.fromEntries(["all", ...CATEGORY_DEFINITIONS.map(({ id }) => id)].map((id) => [id, 0])),
     population_2020: 0,
     population_known_zcta_count: 0,
@@ -346,6 +366,7 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       postal_abbreviation: feature.properties?.STUSAB ?? null,
       category_id: categoryId,
       business_count: aggregate.category_counts[categoryId] ?? 0,
+      zip_unavailable_business_evidence: aggregate.zip_unavailable_business_evidence ?? 0,
       population_2020: population,
       population_status: aggregate.population_status ?? aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
       population_known_zcta_count: aggregate.population_known_zcta_count,
@@ -459,6 +480,32 @@ export function createBusinessMapStore({
   const geometryCache = new Map();
 
   async function buildIndex(coverage, geography, gdp) {
+    const tnCoverage = coverage.manifest.publisher?.version === "2.9.0";
+    if (tnCoverage && coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN map coverage publisher identity differs.");
+    async function readCoverage(file, visitor) {
+      if (!tnCoverage) return readJsonLines(file, visitor);
+      const artifacts = coverage.manifest.artifacts.filter(item => path.resolve(coverage.releaseDirectory, item.path) === file);
+      if (artifacts.length !== 1) throw new Error("TN coverage artifact descriptor differs.");
+      const artifact = artifacts[0];
+      if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 0 || artifact.bytes > 1_000_000_000
+        || !Number.isSafeInteger(artifact.record_count) || artifact.record_count < 0 || artifact.record_count > 100_000 || !/^[a-f0-9]{64}$/.test(artifact.sha256 ?? "")) throw new Error("TN coverage artifact bound differs.");
+      const hash = createHash("sha256"), decoder = new TextDecoder("utf-8", { fatal: true });
+      let bytes = 0, count = 0, pending = "";
+      const consume = line => {
+        if (line.length > 4_000_000) throw new Error("TN coverage line bound exceeded.");
+        if (line.trim()) { if (++count > artifact.record_count) throw new Error("TN coverage record count mismatch."); visitor(JSON.parse(line)); }
+      };
+      for await (const chunk of createReadStream(file)) {
+        bytes += chunk.length;
+        if (bytes > artifact.bytes) throw new Error("TN coverage checksum mismatch.");
+        hash.update(chunk); pending += decoder.decode(chunk, { stream: true });
+        let newline;
+        while ((newline = pending.indexOf("\n")) !== -1) { consume(pending.slice(0, newline)); pending = pending.slice(newline + 1); }
+        if (pending.length > 4_000_000) throw new Error("TN coverage line bound exceeded.");
+      }
+      pending += decoder.decode(); consume(pending);
+      if (bytes !== artifact.bytes || hash.digest("hex") !== artifact.sha256 || count !== artifact.record_count) throw new Error("TN coverage checksum or count mismatch.");
+    }
     const statesIndexPath = artifactPath(geography, (item) => item.path === "derived/index/states.jsonl", "state index");
     const zctaIndexPath = artifactPath(geography, (item) => item.path === "derived/index/zctas.jsonl", "ZCTA index");
     const coveragePath = artifactPath(coverage, (item) => item.artifact_type === "zip-coverage-view-jsonl", "ZIP coverage view");
@@ -471,14 +518,14 @@ export function createBusinessMapStore({
     await Promise.all([
       readJsonLines(statesIndexPath, (row) => states.set(row.geoid, row)),
       readJsonLines(zctaIndexPath, (row) => zctaDemographics.set(row.geoid, row)),
-      readJsonLines(stateCoveragePath, (row) => {
+      readCoverage(stateCoveragePath, (row) => {
         const geoid = String(row.state_fips ?? "");
         if (!/^\d{2}$/.test(geoid) || row.view_type !== "state" || stateCoverage.has(geoid)) {
           throw new Error("State coverage view contains an invalid or duplicate geography record.");
         }
         stateCoverage.set(geoid, row);
       }),
-      readJsonLines(countyCoveragePath, (row) => {
+      readCoverage(countyCoveragePath, (row) => {
         const geoid = String(row.county_geoid ?? "");
         if (!/^\d{5}$/.test(geoid) || row.view_type !== "county" || countyCoverage.has(geoid)) {
           throw new Error("County coverage view contains an invalid or duplicate geography record.");
@@ -517,7 +564,7 @@ export function createBusinessMapStore({
       state: { ambiguous: 0, unmatched: 0, ambiguous_business_evidence: 0, unmatched_business_evidence: 0 },
       county: { ambiguous: 0, unmatched: 0, ambiguous_business_evidence: 0, unmatched_business_evidence: 0 },
     };
-    await readJsonLines(coveragePath, (row) => {
+    await readCoverage(coveragePath, (row) => {
       const code = String(row.zip_code ?? "");
       const demographic = zctaDemographics.get(code);
       const relationships = (row.jurisdiction_overlay?.relationships ?? []).filter((item) => item.material_intersection);
@@ -581,6 +628,34 @@ export function createBusinessMapStore({
         excluded.county.ambiguous_business_evidence += zip.category_counts.all;
       }
     });
+    const totals = coverage.manifest.coverage?.tn_childcare_reporting;
+    if (totals && !tnCoverage) throw new Error("TN map reporting requires exact coverage 2.9.0.");
+    if (tnCoverage) {
+      const validate = value => {
+        if (!value || ![value.records, value.with_zip, value.without_zip, value.missing_points, ...Object.values(value.missing_zip_reasons ?? {})].every(n => Number.isSafeInteger(n) && n >= 0)
+          || value.records !== value.with_zip + value.without_zip || value.zip_inferred !== false || value.missing_points > value.records
+          || Object.keys(value.missing_zip_reasons ?? {}).sort().join(",") !== "invalid-source-zip-placeholder,missing-source-zip"
+          || Object.values(value.missing_zip_reasons).reduce((sum, n) => sum + n, 0) !== value.without_zip) throw new Error("Invalid TN map ZIP accounting.");
+      };
+      validate(totals);
+      let stateMissing = 0, countyMissing = 0;
+      for (const [views, aggregates, isState] of [[stateCoverage, stateAggregates, true], [countyCoverage, countyAggregates, false]]) {
+        for (const [id, view] of views) {
+          const stats = view.registry_evidence?.tn_childcare_reporting;
+          validate(stats);
+          if (isState && stats.records && states.get(id)?.postal_abbreviation !== "TN") throw new Error("TN reporting state differs.");
+          const aggregate = aggregates.get(id) ?? emptyAggregate();
+          aggregate.category_counts.childcare += stats.without_zip;
+          aggregate.category_counts.all += stats.without_zip;
+          aggregate.observed_business_units += stats.without_zip;
+          aggregate.observed_physical_sites += stats.without_zip;
+          aggregate.zip_unavailable_business_evidence = stats.without_zip;
+          aggregates.set(id, aggregate);
+          if (isState) stateMissing += stats.without_zip; else countyMissing += stats.without_zip;
+        }
+      }
+      if (stateMissing !== totals.without_zip || countyMissing > stateMissing) throw new Error("TN map missing-ZIP totals differ.");
+    }
     return { coverage, geography, gdp, states, stateCoverage, countyCoverage, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
   }
 
@@ -645,10 +720,10 @@ export function createBusinessMapStore({
       categories: [{ id: "all", label: "All source categories", business_name_drilldown: true }, ...CATEGORY_DEFINITIONS.map(({ id, label, group_id, group_label, fields, source_ids }) => ({ id, label, group_id, group_label, business_name_drilldown: source_ids.length > 0, evidence_fields: fields, source_ids }))],
       category_groups: groups,
       enhancers: ENHANCERS,
-      interaction: { levels: ["states", "counties", "zips"], zoom_gesture: "Ctrl+wheel", business_names_available_at: "selected-five-digit-ZIP" },
+      interaction: { levels: ["states", "counties", "zips"], zoom_gesture: "Ctrl+wheel", business_names_available_at: "selected-five-digit-ZIP", zip_unavailable_business_names_available_at: "selected-state-reporting-only" },
       semantics: {
         business_count: "Source-preserving evidence counts; categories are mutually exclusive source groups, but businesses are not deduplicated across sources.",
-        jurisdiction_assignment: "State/county aggregates include only ZCTAs with exactly one material intersection; no polygon-area allocation is used.",
+        jurisdiction_assignment: "ZIP evidence uses exactly one material ZCTA intersection, with no area allocation. Coverage 2.9 additionally retains disjoint TN ZIP-unavailable rows by reported state and unambiguous point-assigned county; it does not infer ZIPs.",
         population: "2020 Census ZCTA population and housing. State/county values sum only uniquely assigned material ZCTAs.",
         nonemployer: "Census Nonemployer Statistics are direct state/county annual aggregates. They are not current operating-status or completeness measures and are never allocated to ZIP/ZCTA geography.",
         zip: "Five-digit ZCTA/ZIP evidence only. ZIP+4 is not joined and has no polygon.",
@@ -683,13 +758,13 @@ export function createBusinessMapStore({
         const geoid = String(feature.properties?.GEOID ?? "");
         return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "state",
-          scope_assignment: "unique-material-zcta-state",
+          scope_assignment: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
           ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
           ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
       });
       meta = {
-        assignment_semantics: "unique-material-zcta-state-no-area-allocation",
+        assignment_semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
@@ -705,14 +780,14 @@ export function createBusinessMapStore({
         return decorate(feature, index.countyAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "county",
           state_fips: state,
-          scope_assignment: "unique-material-zcta-county",
+          scope_assignment: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
           ...nonemployerProperties(index.countyCoverage.get(geoid), "county"),
           ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
       });
       meta = {
         state_fips: state,
-        assignment_semantics: "unique-material-zcta-county-no-area-allocation",
+        assignment_semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.county.ambiguous,
         excluded_unmatched_zip_count: index.excluded.county.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.county.ambiguous_business_evidence,
@@ -819,6 +894,7 @@ export function createBusinessMapStore({
         percent_of_state: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], stateTotal)])),
         percent_of_category_nationwide: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], national[id])])),
         all_category_evidence_count: stateTotal,
+        zip_unavailable_business_evidence: aggregate.zip_unavailable_business_evidence ?? 0,
         population_2020: population,
         population_status: aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
         housing_units_2020: housing,
@@ -844,7 +920,7 @@ export function createBusinessMapStore({
       },
       states,
       assignment: {
-        semantics: "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
+        semantics: index.coverage.manifest.publisher?.version === "2.9.0" ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
         percentage_semantics: "Category shares are null when their denominator is zero or unavailable; a numeric zero means a measured zero numerator over a positive denominator.",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
@@ -856,54 +932,74 @@ export function createBusinessMapStore({
     };
   }
 
-  async function listBusinessNames({ zipCode, categoryId = "all", query = "", limit = 25 } = {}) {
-    const zip = fips(zipCode, 5, "five-digit ZIP");
+  async function listNames({ zipCode, stateFips, categoryId = "all", query = "", limit = 25 } = {}, missingZipOnly = false) {
+    const zip = missingZipOnly ? null : fips(zipCode, 5, "five-digit ZIP");
+    const state = missingZipOnly ? fips(stateFips, 2, "state_fips") : null;
     const selectedCategory = category(categoryId);
     const sourceIds = new Set(selectedCategory.source_ids);
     const cappedLimit = Math.max(1, Math.min(100, Number.isInteger(Number(limit)) ? Number(limit) : 25));
+    const scopeFields = missingZipOnly ? { state_fips: state, scope: "source-zip-unavailable", zip_inferred: false, limit: cappedLimit } : {};
     const cleanQuery = String(query ?? "").trim().toLocaleLowerCase("en-US").slice(0, 120);
     if (sourceIds.size === 0) {
-      return { available: true, zip_code: zip, category_id: categoryId, total: 0, records: [], limitation: "This category has organization-address assertions but no physical-location profile name index." };
+      return { available: true, zip_code: zip, ...scopeFields, category_id: categoryId, total: 0, records: [], limitation: "This category has organization-address assertions but no physical-location profile name index." };
     }
     const index = await ensureIndex();
-    if (!index) return { available: false, zip_code: zip, category_id: categoryId, total: 0, records: [] };
+    if (!index) return { available: false, zip_code: zip, ...scopeFields, category_id: categoryId, total: 0, records: [] };
     const registry = await loadPointer(registryPointerPath, "national-business-registry", new Set(["published-partial"]));
-    if (!registry) return { available: false, zip_code: zip, category_id: categoryId, total: 0, records: [] };
+    if (!registry) return { available: false, zip_code: zip, ...scopeFields, category_id: categoryId, total: 0, records: [] };
     const pinnedRegistryId = index.coverage.manifest.lineage?.registry_release_id;
     if (pinnedRegistryId && pinnedRegistryId !== registry.manifest.release_id) throw new Error("Business-name registry release does not match the coverage view lineage.");
-    const suffix = `resolution/location-profiles/zip2=${zip.slice(0, 2)}.jsonl.gz`;
-    const filePath = artifactPath(registry, (item) => item.artifact_type === "entity-resolution-location-profile-jsonl-gzip" && item.path === suffix, `location-profile partition ${zip.slice(0, 2)}`);
-    const files = [{ path: filePath, reporting: false }];
-    const reportingSuffix = `reporting/location-evidence/zip2=${zip.slice(0, 2)}/records.jsonl.gz`;
-    const reportingArtifact = registry.manifest.artifacts.find((item) => item.artifact_type === "business-reporting-location-evidence-jsonl-gzip" && item.path === reportingSuffix);
+    const files = [];
+    if (!missingZipOnly) {
+      const suffix = `resolution/location-profiles/zip2=${zip.slice(0, 2)}.jsonl.gz`;
+      files.push({ path: artifactPath(registry, item => item.artifact_type === "entity-resolution-location-profile-jsonl-gzip" && item.path === suffix, `location-profile partition ${zip.slice(0, 2)}`), reporting: false });
+    }
+    const reportingSuffix = `reporting/location-evidence/zip2=${missingZipOnly ? "unassigned" : zip.slice(0, 2)}/records.jsonl.gz`;
+    const reportingArtifacts = registry.manifest.artifacts.filter((item) => item.artifact_type === "business-reporting-location-evidence-jsonl-gzip" && item.path === reportingSuffix);
+    if (reportingArtifacts.length > 1) throw new Error("Duplicate reporting name partition.");
+    const reportingArtifact = reportingArtifacts[0];
+    if (missingZipOnly && index.coverage.manifest.coverage?.tn_childcare_reporting?.without_zip > 0 && !reportingArtifact) throw new Error("Missing unassigned TN name partition.");
     if (reportingArtifact) {
-      const reportingPath = artifactPath(registry, (item) => item === reportingArtifact, "reporting-only location evidence");
-      const hash = createHash("sha256"); let bytes = 0;
-      for await (const chunk of createReadStream(reportingPath)) { hash.update(chunk); bytes += chunk.length; }
-      if (bytes !== reportingArtifact.bytes || hash.digest("hex") !== reportingArtifact.sha256) throw new Error("Reporting-only location evidence checksum mismatch.");
-      files.push({ path: reportingPath, reporting: true });
+      files.push({ rows: await readReportingRows(registry, reportingArtifact), reporting: true });
     }
     const categoryBySource = new Map(CATEGORY_DEFINITIONS.flatMap((item) => item.source_ids.map((sourceId) => [sourceId, item.id])));
     const records = [];
     const seen = new Set();
+    const tnSites = new Set(), tnSourceRecords = new Set();
     let total = 0;
     for (const file of files) {
-    const input = createReadStream(file.path), decoded = createGunzip();
-    input.on("error", (error) => decoded.destroy(error));
-    const lines = createInterface({ input: input.pipe(decoded), crlfDelay: Infinity });
+    const input = file.reporting ? null : createReadStream(file.path), decoded = file.reporting ? null : createGunzip();
+    input?.on("error", (error) => decoded.destroy(error));
+    const lines = file.reporting ? null : createInterface({ input: input.pipe(decoded), crlfDelay: Infinity });
     try {
-    for await (const line of lines) {
+    for await (const line of file.rows ?? lines) {
       if (!line) continue;
-      const row = JSON.parse(line);
-      if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
-      if (file.reporting) validateChildcareGeographicEvidence(row);
+      const row = file.reporting ? line : JSON.parse(line);
+      if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+      if (file.reporting) {
+        if (row.source?.source_id === TN_SOURCE) {
+          validateTnChildcareGeographicEvidence(row);
+          if (registry.manifest.publisher?.version !== "2.13.0" || index.coverage.manifest.publisher?.version !== "2.9.0") throw new Error("TN names require registry 2.13 and coverage 2.9.");
+          if (registry.manifest.publisher.id !== "national-business-registry" || index.coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN names publisher identity differs.");
+          const registryPins = index.coverage.manifest.dependencies?.filter(item => item.dataset_id === "national-business-registry") ?? [];
+          if (registryPins.length !== 1 || registryPins[0].release_id !== registry.manifest.release_id || registryPins[0].manifest_sha256 !== registry.manifestSha256) throw new Error("TN names registry differs from pinned coverage dependency.");
+          if (reportingArtifact.export_policy !== "local-review-only" || reportingSuffix !== `reporting/location-evidence/zip2=${row.zip_code?.slice(0, 2) ?? "unassigned"}/records.jsonl.gz`) throw new Error("TN name partition or artifact policy differs.");
+          if (tnSites.has(row.site_entity_id) || tnSourceRecords.has(row.source.source_record_id)) throw new Error("Duplicate TN name evidence.");
+          tnSites.add(row.site_entity_id); tnSourceRecords.add(row.source.source_record_id);
+          const dependencies = registry.manifest.dependencies?.filter(item => item.dataset_id === TN_SOURCE) ?? [];
+          if (dependencies.length !== 1 || dependencies[0].release_id !== row.evidence.release_id || dependencies[0].manifest_sha256 !== row.evidence.manifest_sha256) throw new Error("TN names source dependency differs.");
+        } else validateChildcareGeographicEvidence(row);
+        if (missingZipOnly && (row.source?.source_id !== TN_SOURCE || row.zip_code !== null)) throw new Error("Unassigned name partition must contain only ZIP-unavailable TN evidence.");
+      }
       const sourceId = row.source?.source_id;
       if (row.zip_code !== zip || !sourceIds.has(sourceId)) continue;
+      if (missingZipOnly && row.address.state !== index.states.get(state)?.postal_abbreviation) continue;
       for (const name of row.names ?? []) {
         const businessName = String(name.raw ?? "").trim();
         if (!businessName || (cleanQuery && !businessName.toLocaleLowerCase("en-US").includes(cleanQuery))) continue;
         const address = {
           street: row.address?.street ?? null,
+          ...(sourceId === TN_SOURCE ? { street2: row.address.street2 } : {}),
           city: row.address?.city ?? null,
           state: row.address?.state ?? null,
           zip_code: row.address?.zip_code ?? zip,
@@ -931,11 +1027,12 @@ export function createBusinessMapStore({
         });
       }
     }
-    } finally { lines.close(); input.destroy(); decoded.destroy(); }
+    } finally { lines?.close(); input?.destroy(); decoded?.destroy(); }
     }
     return {
       available: true,
       zip_code: zip,
+      ...(missingZipOnly ? { state_fips: state, scope: "source-zip-unavailable", zip_inferred: false } : {}),
       category_id: categoryId,
       total,
       limit: cappedLimit,
@@ -948,5 +1045,7 @@ export function createBusinessMapStore({
     };
   }
 
-  return { getCatalog, getFeatures, getStateSummary, listBusinessNames };
+  const listBusinessNames = options => listNames(options);
+  const listStateBusinessNames = (options = {}) => listNames({ ...options, categoryId: options.categoryId ?? "childcare" }, true);
+  return { getCatalog, getFeatures, getStateSummary, listBusinessNames, listStateBusinessNames };
 }

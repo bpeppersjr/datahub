@@ -2,6 +2,12 @@
 
 Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, national registry, direct Census Nonemployer aggregates, and optional BEA regional-GDP releases. It does not publish a new data release or change a production pointer.
 
+## Tennessee reporting backend preparation
+
+For exact coverage 2.9/registry 2.13 inputs, the backend adds Tennessee childcare to the category hierarchy. ZIP maps continue to count only source-ZIP evidence; state/national totals additionally include the disjoint ZIP-unavailable cohort by reported state. County totals add only its source points assigned to that county. Assignment labels disclose this distinction; percentages remain shares of collected evidence, not independently measured business completeness.
+
+The protected read-only endpoint `/api/business-map/state-names?state=47&category=childcare&limit=25` browses source-ZIP-unavailable names by state FIPS. It accepts an optional `query`, clamps `limit` to 1–100, and returns `scope: source-zip-unavailable`, a total, and bounded records with null ZIP, source status/recovery evidence and local-review policy. It is not a list of every business in the state. Existing ZIP name browsing remains separate. The endpoint is backend capability; this change does not add a new frontend control for it or promote Tennessee production data.
+
 ## Operator workflow
 
 The map starts with the 50 states and District of Columbia. Select a business category and a data enhancer, optionally set independent minimum-population and minimum-housing-unit filters, then click a state to show its counties, click a county to show the 2020 Census ZCTAs that materially intersect it, and click a ZCTA to inspect physical-location business names. Use the on-map controls or hold `Ctrl` while scrolling up or down to zoom. The breadcrumb returns to any broader scope. The response and UI disclose both the remaining and filtered-out polygon counts.

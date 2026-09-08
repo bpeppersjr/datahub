@@ -7,13 +7,16 @@ import { createReadStream, createWriteStream } from "node:fs";
 import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gunzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "../runner/paths.mjs";
 import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 import { validateChildcareGeographicEvidence } from "../runner/childcare-geographic-evidence.mjs";
+import { validateTnChildcareGeographicEvidence } from "../runner/tn-childcare-geographic-evidence.mjs";
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
+const TN_SOURCE = "tn-dhs-active-childcare-centers";
+const REPORTING_TYPE = "business-reporting-location-evidence-jsonl-gzip";
 const DEFAULT_OUTPUT = "data/exports/flat-business/builds";
 const PUBLIC_POLICIES = new Set(["public", "public-open-ny-terms", "public-factual-fields-with-source-limitations"]);
 const LOCAL_POLICIES = new Set([...PUBLIC_POLICIES, "local-review-only"]);
@@ -24,7 +27,7 @@ const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_re
 export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "retail-consumer": ["usda-snap-current-retailers", "new-york-agriculture-markets-retail-food-stores", "california-abc-daily-active-licenses"],
   "health-care": ["cms-nppes-monthly-v2"],
-  childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers"],
+  childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE],
   "financial-services": ["fdic-bankfind-current-structure", "ncua-final-quarterly-call-report"],
   "food-production": ["usda-fsis-active-mpi-directory"],
   "environmental-facilities": ["epa-echo-exporter-active-facility"],
@@ -81,22 +84,25 @@ export function parseArguments(argv = process.argv.slice(2)) {
 
 async function hashFile(file, signal) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { signal?.throwIfAborted(); bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 async function descriptor(input, signal) {
-  const inputPath = appPath(input); const raw = JSON.parse(await readFile(inputPath, "utf8")); let manifest = raw; let manifestPath = inputPath; let pointerPath = null;
+  const inputPath = appPath(input); let manifestBytes = await readFile(inputPath); const raw = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes)); let manifest = raw; let manifestPath = inputPath; let pointerPath = null;
   if (!Array.isArray(raw.artifacts)) {
     if (!raw.dataset_id || !raw.release_id || typeof raw.manifest !== "string") throw new Error(`${relativeToApp(inputPath)} is not a governed pointer or manifest.`);
     pointerPath = inputPath; manifestPath = path.resolve(path.dirname(inputPath), raw.manifest);
     if (!contained(path.dirname(inputPath), manifestPath)) throw new Error(`Pointer escapes its release root: ${input}`);
-    manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+    manifestBytes = await readFile(manifestPath); manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBytes));
     if (manifest.dataset_id !== raw.dataset_id || manifest.release_id !== raw.release_id) throw new Error(`Pointer/manifest identity mismatch: ${input}`);
   }
   if (!manifest.dataset_id || !manifest.release_id || !Array.isArray(manifest.artifacts) || !String(manifest.status ?? "").startsWith("published")) throw new Error(`Invalid or unpublished governed manifest: ${relativeToApp(manifestPath)}`);
-  return { input, pointerPath, manifestPath, manifest, manifestHash: await hashFile(manifestPath, signal) };
+  signal?.throwIfAborted();
+  return { input, pointerPath, manifestPath, manifest, manifestHash: { bytes: manifestBytes.length, sha256: createHash("sha256").update(manifestBytes).digest("hex") } };
 }
 function profileArtifacts(source) { return source.manifest.artifacts.filter((a) => (/location-profile/.test(String(a.artifact_type ?? "")) || a.artifact_type === "business-reporting-location-evidence-jsonl-gzip") && String(a.path ?? "").endsWith(".jsonl.gz")); }
-async function governedArtifact(source, artifact, signal) {
+async function governedArtifact(source, artifact, signal, boundedReporting = false) {
   if (!Number.isSafeInteger(artifact.bytes) || !/^[a-f0-9]{64}$/.test(String(artifact.sha256 ?? ""))) throw new Error(`Artifact lacks governed bytes/sha256: ${artifact.path}`);
+  if (boundedReporting && (artifact.bytes < 1 || artifact.bytes > 100_000_000)) throw new Error("TN reporting artifact byte limit.");
   const file = path.resolve(path.dirname(source.manifestPath), artifact.path);
   if (!contained(path.dirname(source.manifestPath), file)) throw new Error(`Artifact escapes release directory: ${artifact.path}`);
+  if (boundedReporting) return file; // The bounded parser hashes the exact consumed bytes.
   await access(file); const actual = await hashFile(file, signal);
   if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Artifact checksum mismatch: ${artifact.path}`);
   return file;
@@ -105,7 +111,7 @@ function projection(record, source, rowCategories) {
   const [latitude, longitude] = coordinates(record);
   return {
     business_name: record.names?.find((n) => String(n?.raw ?? "").trim())?.raw?.trim() ?? null, profile_id: record.profile_id ?? null,
-    street: record.address?.street ?? null, unit_or_additional: record.address?.unit_or_additional ?? null, city: record.address?.city ?? null,
+    street: record.address?.street ?? null, unit_or_additional: record.address?.unit_or_additional ?? record.address?.street2 ?? null, city: record.address?.city ?? null,
     state: state(record.address?.state), zip_code: zip5(record.address?.zip_code), zip4: zip4(record),
     latitude, longitude,
     industry_categories: rowCategories, source_id: record.source?.source_id ?? null, source_release_id: record.source?.source_release_id ?? null,
@@ -124,7 +130,20 @@ async function put(stream, text) { if (!stream.write(text)) await once(stream, "
 async function close(stream) { stream.end(); await finished(stream); }
 async function atomicJson(file, value) { const temp = `${file}.tmp-${randomUUID()}`; await writeFile(temp, `${JSON.stringify(value, null, 2)}\n`); await rename(temp, file); }
 
-async function* profileLines(file, signal) {
+async function* profileLines(file, signal, verifiedArtifact) {
+  if (verifiedArtifact) {
+    if (verifiedArtifact.bytes < 1 || verifiedArtifact.bytes > 100_000_000) throw new Error("TN reporting artifact byte limit.");
+    const chunks = [], hash = createHash("sha256"); let bytes = 0;
+    for await (const chunk of createReadStream(file)) {
+      signal?.throwIfAborted(); bytes += chunk.length;
+      if (bytes > verifiedArtifact.bytes) throw new Error("TN reporting artifact byte mismatch.");
+      chunks.push(chunk); hash.update(chunk);
+    }
+    if (bytes !== verifiedArtifact.bytes || hash.digest("hex") !== verifiedArtifact.sha256) throw new Error("TN reporting artifact checksum mismatch.");
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(gunzipSync(Buffer.concat(chunks, bytes), { maxOutputLength: 100_000_000 }));
+    for (const line of decoded.split(/\r?\n/)) { signal?.throwIfAborted(); yield line; }
+    return;
+  }
   const source = createReadStream(file);
   const decoded = createGunzip();
   source.on("error", (error) => decoded.destroy(error));
@@ -149,13 +168,29 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
     if (csvStream) await put(csvStream, `${args.fields.join(",")}\n`);
     for (const input of [...args.sources].sort()) {
       const source = await descriptor(input, signal); const artifacts = profileArtifacts(source); if (!artifacts.length) throw new Error(`${source.manifest.dataset_id}/${source.manifest.release_id} has no location-profile artifacts.`);
+      const tnEnabled = source.manifest.dataset_id === "national-business-registry" && source.manifest.publisher?.version === "2.13.0";
+      if (tnEnabled && (source.manifest.publisher.id !== "national-business-registry" || source.manifest.status !== "published-partial")) throw new Error("TN export requires a published partial registry.");
+      const tnDependencies = source.manifest.dependencies?.filter(d => d.dataset_id === TN_SOURCE) ?? [];
+      const tnCounts = { records: 0, missing: 0, reasons: { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 } }, tnSites = new Set(), tnEstablishments = new Set();
+      if (tnDependencies.length !== Number(tnEnabled)) throw new Error("TN export requires exact registry 2.13 and one source dependency.");
       const sourceLineage = { dataset_id: source.manifest.dataset_id, release_id: source.manifest.release_id, manifest_path: relativeToApp(source.manifestPath), manifest_sha256: source.manifestHash.sha256, pointer_path: source.pointerPath ? relativeToApp(source.pointerPath) : null, artifacts: [] }; lineage.push(sourceLineage);
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
-        const file = await governedArtifact(source, artifact, signal); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
-        for await (const line of profileLines(file, signal)) {
+        const boundedReporting = tnEnabled && artifact.artifact_type === REPORTING_TYPE;
+        const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
+        let artifactRows = 0;
+        for await (const line of profileLines(file, signal, boundedReporting ? artifact : undefined)) {
           if (!line.trim()) continue; read += 1; const record = JSON.parse(line);
-          if (BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) && artifact.artifact_type !== "business-reporting-location-evidence-jsonl-gzip") throw new Error("Childcare source cannot appear in matching-profile artifacts.");
-          if (artifact.artifact_type === "business-reporting-location-evidence-jsonl-gzip") validateChildcareGeographicEvidence(record);
+          artifactRows++;
+          if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || /^(site|establishment):tn_childcare_/.test(record.site_entity_id) || /^(site|establishment):tn_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+          if (record.source?.source_id === TN_SOURCE) {
+            if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires registry 2.13 reporting evidence.");
+            validateTnChildcareGeographicEvidence(record);
+            if (artifact.path !== `reporting/location-evidence/zip2=${record.zip_code?.slice(0, 2) ?? "unassigned"}/records.jsonl.gz` || artifact.export_policy !== "local-review-only"
+              || record.evidence.release_id !== tnDependencies[0].release_id || record.evidence.manifest_sha256 !== tnDependencies[0].manifest_sha256
+              || tnSites.has(record.site_entity_id) || tnEstablishments.has(record.establishment_entity_id)) throw new Error("TN export partition, identity or source lineage differs.");
+            tnSites.add(record.site_entity_id); tnEstablishments.add(record.establishment_entity_id); tnCounts.records++;
+            if (record.zip_code === null) { tnCounts.missing++; tnCounts.reasons[record.evidence.zip_unavailable_reason]++; }
+          } else if (artifact.artifact_type === REPORTING_TYPE) validateChildcareGeographicEvidence(record);
           const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
           if ((selectedSources.size && !selectedSources.has(sourceId)) || (states.size && !states.has(rowState))) { filtered += 1; continue; }
           const policy = typeof record.export_policy === "string" ? record.export_policy : "missing"; policies[policy] = (policies[policy] ?? 0) + 1;
@@ -165,6 +200,14 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
           if (csvStream) await put(csvStream, `${args.fields.map((field) => csv(row[field])).join(",")}\n`); if (jsonlStream) await put(jsonlStream, `${JSON.stringify(row)}\n`);
           written += 1; sourceCounts[sourceId] = (sourceCounts[sourceId] ?? 0) + 1;
         }
+        if (tnEnabled && artifact.artifact_type === REPORTING_TYPE && artifactRows !== artifact.record_count) throw new Error("TN reporting artifact count differs.");
+      }
+      if (tnEnabled) {
+        const c = source.manifest.coverage;
+        if (!tnCounts.records || c?.tn_childcare_center_sites !== tnCounts.records || c.tn_childcare_center_sites_with_zip !== tnCounts.records - tnCounts.missing
+          || c.tn_childcare_center_sites_without_zip !== tnCounts.missing || c.reporting_location_evidence_without_zip !== tnCounts.missing
+          || !c.tn_childcare_missing_zip_reasons || Object.keys(c.tn_childcare_missing_zip_reasons).length !== 2
+          || Object.entries(tnCounts.reasons).some(([key, value]) => c.tn_childcare_missing_zip_reasons[key] !== value)) throw new Error("TN export source ZIP counts or reasons differ.");
       }
     }
     await Promise.all([csvStream && close(csvStream), jsonlStream && close(jsonlStream)].filter(Boolean));

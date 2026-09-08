@@ -408,6 +408,16 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/business-map/state-names') {
+      json(response, 200, await businessMap.listStateBusinessNames({
+        stateFips: url.searchParams.get('state'),
+        categoryId: url.searchParams.get('category') || 'childcare',
+        query: url.searchParams.get('query') || '',
+        limit: url.searchParams.get('limit') || 25,
+      }));
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/business-map/names') {
       json(response, 200, await businessMap.listBusinessNames({
         zipCode: url.searchParams.get('zip'),
