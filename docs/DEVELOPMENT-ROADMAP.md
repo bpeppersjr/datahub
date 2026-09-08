@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Minnesota registrations encoding incompatibility confirmed (September 8, 2026): [a bounded 1 MiB range check](MN-CONSTRUCTION-ENCODING.md) found invalid UTF-8 at byte 478,182 under the failed job's recorded source ETag. No full CSV or raw diagnostic body was retained. Replacement encoding and the residential source remain unproven. Next work is explicit byte-preserving framing and unresolved-text row dispositions, not guessed decoding or blind download retries.
+
 Minnesota streaming failure investigated (September 8, 2026): [both native cohort jobs failed before completed acquisition](MN-CONSTRUCTION-FAILURE-20260908.md). Their partial selected evidence is preserved, excluded from coverage, and not repulled. Privacy-safe finite diagnostic categories now survive the app's streaming/error boundaries; historical generic errors cannot prove the actual cause. Strict UTF-8/CSV/source checks remain enabled. Source-boundary investigation is next; national production pins are unchanged.
 
 Minnesota collection handed to the live app (September 8, 2026): [managed operation `cd9c3c93-ab0c-429e-9553-ef6252625ac0`](MN-CONSTRUCTION-HANDOFF-20260908.md) was accepted with persisted history for exactly two MN construction cohorts. Co*Tive owns source checks and downloads; agents are not monitoring routine transfer progress. Dispatch is not acquisition success or national coverage. Verify and reuse retained evidence for the next reporting integration; no national rebuild was relaunched.

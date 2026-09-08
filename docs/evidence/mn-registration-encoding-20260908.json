@@ -1,0 +1,29 @@
+{
+  "schema_version": "mn-encoding-diagnostic@1.0.0",
+  "run_id": "mn-encoding-diagnostic-76a921fd-d3ee-470d-9ad5-3db9bd4d8a11",
+  "observed_at": "2026-09-08T13:02:26.651Z",
+  "source_url": "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Contractor_Registrations.csv",
+  "range": "bytes=0-1048575",
+  "bytes": 1048576,
+  "range_sha256": "78fe47ca30c525d860dbc5f49a707950e24c233ab35a751a71142c5ffa608e62",
+  "etag": "\"06cd86f3fdd1:0\"",
+  "total_source_bytes": 4408602,
+  "content_type": "application/octet-stream",
+  "utf8_stream_prefix_valid": false,
+  "first_utf8_rejection_offset_zero_based": 478182,
+  "rejection_byte_decimal": 164,
+  "notices_before_sha256": "c5f489c6e6c876be6cd6cb87a587f0fbf538e369f57bfbaf3e435e8101c9ae82",
+  "notices_after_sha256": "859b685fb29799c84ddb59b20c7221ae8db5c4c47993888d033fa15bea71a9b6",
+  "notice_article_sha256": [
+    "dd26725b6437d753ac3c6edc71049251e7fee3acbe48f96ceda7a1f548e51a87",
+    "0bdbdb92cec6894c4773b702691bfa5606801291eb5884ee33873cf4e489be5d"
+  ],
+  "network_requests": 6,
+  "publisher_gate_released": true,
+  "full_csv_acquired": false,
+  "raw_bytes_retained": false,
+  "records_published": false,
+  "replacement_encoding_established": false,
+  "historical_failure_cause_independently_proven": false,
+  "evidence_kind": "recorded bounded diagnostic observation; not offline source replay or independent publisher authentication"
+}

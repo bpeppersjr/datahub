@@ -21,6 +21,8 @@ Tests cover malformed UTF-8 after a valid CSV prefix, malformed quoted CSV, sink
 
 ## Next action
 
+Subsequent evidence: [the bounded encoding investigation](MN-CONSTRUCTION-ENCODING.md) confirms that the observed registrations prefix is not valid UTF-8. It does not establish a replacement charset, the residential source encoding, or a retrospective detailed error for the failed jobs.
+
 Validation of the diagnostic repair: `npm run check` passed with 1,065 tests passed, 11 skipped and zero failures, plus lint, web/desktop builds and desktop control-plane smoke. `npm audit --omit=dev` found zero vulnerabilities. All 82 pending national production code/configuration pins remain unchanged. The two historical failed app receipts were independently verified without source requests.
 
 Investigate the actual source encoding/stream boundary using bounded, policy-compliant evidence before deciding whether a new acquisition is necessary. Do not label the historical cause as proven, infer missing rows, publish the partial files or weaken source validation simply to obtain a successful run. Any subsequently needed acquisition belongs to the app, not an agent download loop.
