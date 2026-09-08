@@ -155,10 +155,10 @@ export async function acquireOhChildcareWithTransport(options = {}) {
     transport: { ...meter, mode: "injected-transport", source_authenticity_verified: false, accounting: "decoded-consumed-body-bytes-including-preflights-and-failed-attempts-not-wire-bytes" } };
 }
 
-/** Deliberately closed until reviewed live policy and app enrollment are implemented. */
+/** Legacy in-memory entry stays closed; native jobs use the durable app wrapper. */
 export async function acquireOhChildcare(options = {}) {
   check(optionsValid(options, ["signal"]), "unsupported live options"); options.signal?.throwIfAborted();
   check(hash(policy) === "cedc3384cd0a2509d774ecec90f992e2828ea496bdbafaeeea448576a566bb76", "development policy configuration drift");
   // Do not let an edited boolean activate this un-enrolled connector.
-  throw Object.assign(new Error("Ohio live collection is not enrolled: current policy permits connector development only."), { code: "OH_CHILDCARE_LIVE_NOT_ENROLLED" });
+  throw Object.assign(new Error("Ohio legacy in-memory entry is not enrolled. Use the durable app job through scripts/build-oh-childcare.mjs."), { code: "OH_CHILDCARE_LIVE_NOT_ENROLLED" });
 }

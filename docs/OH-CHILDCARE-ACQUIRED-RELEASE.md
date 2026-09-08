@@ -1,6 +1,6 @@
 # Ohio retained acquisition lifecycle
 
-`runner/oh-childcare-acquired-release.mjs` now owns durable storage around the guarded acquisition transport. This increment is exercised with injected synthetic responses only. Native Ohio collection and managed industry enrollment remain disabled; no facility records were downloaded and no production pointer or schedule was changed.
+`runner/oh-childcare-acquired-release.mjs` owns durable storage around the guarded acquisition transport. Its original increment was exercised with injected synthetic responses only. The subsequent [app-owned native wrapper](OH-CHILDCARE-APP.md) uses this unchanged engine, records separate execution provenance and enrolls Ohio in managed industry collection. Enrollment does not change a production pointer or activate a schedule.
 
 ## Retention and verification
 
@@ -42,6 +42,6 @@ Synthetic regressions cover before-ID persistence, ordered page retention, parti
 
 Validation passed on September 8, 2026: all 913 repository tests, source discovery/assessment and connector checks, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. The local management preview was restored successfully after exclusive lifecycle testing. This evidence covers synthetic acquisition and local reuse, not live publisher downloads or national completeness.
 
-Next: enroll a fixed native app entry under an explicit runtime readiness record, connect its verified acquisition/normalization receipts to the managed collection path, and dispatch one needed Ohio acquisition. Only an accepted operation ID and persisted app receipt constitute the download handoff; no Codex polling loop should supervise it. National reporting/promotion remains a separate verified use of retained evidence.
+The [fixed native app entry and runtime readiness record](OH-CHILDCARE-APP.md) now connect verified acquisition/normalization receipts to managed collection. Only an accepted operation ID and persisted app receipt constitute a download handoff; no Codex polling loop should supervise it. National reporting/promotion remains a separate verified use of retained evidence.
 
 Rollback is code-only: remove the new entry points and additive transport hook/IO exports. Do not delete retained evidence or rewrite historical releases, policies or production pointers.

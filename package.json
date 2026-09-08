@@ -29,6 +29,8 @@
     "tn-childcare:preflight": "node scripts/preflight-tn-childcare.mjs",
     "oh-childcare:verify-acquired": "node scripts/verify-oh-childcare-acquired.mjs",
     "oh-childcare:reprocess": "node scripts/reprocess-oh-childcare.mjs",
+    "oh-childcare:build": "node scripts/build-oh-childcare.mjs",
+    "oh-childcare:verify-app": "node scripts/verify-oh-childcare-app.mjs",
     "tn-childcare:build": "node scripts/build-tn-childcare.mjs",
     "tn-childcare:verify": "node scripts/verify-tn-childcare.mjs",
     "tn-childcare:inspect-recovery": "node scripts/inspect-tn-childcare-recovery.mjs",

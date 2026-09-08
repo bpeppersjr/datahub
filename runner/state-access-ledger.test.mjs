@@ -103,6 +103,18 @@ test('TN childcare enrollment remains unmeasured until national reporting integr
   assert.equal(cell.appHandoff.jobSubmitted, false);
 });
 
+test('OH native enrollment remains unmeasured and does not imply national integration or job submission', async (t) => {
+  const f = await fixture(t);
+  await copyFile(path.join(APP_ROOT, 'config/oh-childcare-app-enrollment.json'), path.join(f.root, 'config/oh-childcare-app-enrollment.json'));
+  const ledger = await buildStateAccessLedger(f), cell = ledger.jurisdictions.find(r => r.state === 'OH').industries.find(r => r.industry === 'childcare');
+  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId, 'state-oh-childcare');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus, 'PRESENT');
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+});
+
 async function childcareCounts(f, value) {
   const artifact=f.manifest.artifacts.find(a=>a.artifact_type==='state-coverage-view-jsonl');
   const file=path.join(f.root,path.dirname(f.manifestPath),artifact.path);

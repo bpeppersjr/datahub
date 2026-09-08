@@ -19,6 +19,9 @@ const PROFILE_IDS = Object.freeze({
   "state-ma-childcare": "ma-licensed-center-based-childcare",
   "state-nj-childcare": "nj-licensed-childcare-centers",
   "state-tn-childcare": "tn-dhs-active-childcare-centers",
+  // Native collection is enrolled, but no national reporting adapter/release
+  // exists yet. Configuration or local downloads cannot manufacture coverage.
+  "state-oh-childcare": null,
   "national-irs-eo-bmf": null,
 });
 // The coverage view retains this historical count-field name for both evidence

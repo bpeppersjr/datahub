@@ -4,7 +4,7 @@
 
 ## Execution boundaries
 
-The native entry `acquireOhChildcare()` deliberately fails before any request with `OH_CHILDCARE_LIVE_NOT_ENROLLED`. It pins the existing development policy and rejects caller-supplied transport or endpoint overrides. Changing a JSON authorization boolean alone cannot activate it. Current notice/use binding and app-owned job enrollment remain required; this is not a claim that the source is prohibited or permanently unavailable.
+The legacy in-memory entry `acquireOhChildcare()` deliberately fails before any request with `OH_CHILDCARE_LIVE_NOT_ENROLLED`. It pins the existing development policy and rejects caller-supplied transport or endpoint overrides. Native acquisition instead uses the [durable app wrapper](OH-CHILDCARE-APP.md), with separate pinned runtime enrollment and current notice/use binding. Changing an authorization boolean alone cannot activate either path.
 
 `acquireOhChildcareWithTransport()` is an internal dependency-injection seam requiring an explicit transport function. Tests supply synthetic responses; it has no default network implementation. This seam is **not** a sandbox or authorization boundary against trusted caller code supplying a network-capable function. It is not exposed through the API, scheduler or collection CLI. Returned source-authenticity and acquisition/export authorization claims remain false.
 
@@ -36,7 +36,7 @@ Freshness is revalidated after the hook and before each inventory/page attempt, 
 
 Six additional tests cover awaited persistence, cloned evidence, rejected/incomplete gates, stale prerequisites, cancellation, availability drift and body limits, configuration drift before requests, and a peer-found final clock rollback. The four public error-page bodies are retained as portable fixtures in `runner/fixtures/oh-childcare-availability.json`, after direct checks confirmed the recorded status/size/hash values. This adds retained test bodies without rewriting older research records that truthfully said raw bodies were not retained at their observation time. No facility record requests occurred for this fixture capture.
 
-The [retained acquisition lifecycle](OH-CHILDCARE-ACQUIRED-RELEASE.md) now persists and independently replays these packages and an ordered response journal. Native collection remains un-enrolled pending the fixed native app path and operation handoff. Do not call injected transport tests live app-owned execution.
+The [retained acquisition lifecycle](OH-CHILDCARE-ACQUIRED-RELEASE.md) now persists and independently replays these packages and an ordered response journal. The separate [native app path](OH-CHILDCARE-APP.md) supplies the fixed native fetch adapter and records wrapper provenance. Do not call injected transport tests live publisher acquisition.
 
 The required-source-use follow-up passed the full repository check: all 904 tests, source checks, lint, web/desktop builds and desktop control-plane smoke. The production dependency audit reported zero vulnerabilities. The original eight transport tests remain compatible; the six added tests include the independently identified final-clock regression and its fix.
 
@@ -46,6 +46,6 @@ The full repository check passed all 894 tests, source checks, lint, web/desktop
 
 The optional `onObservation` hook receives a clone only after inventory/page validation and is awaited before the next request. A hook failure is not retried as an HTTP failure. The acquired-release lifecycle uses it to sync each successful source observation. The existing transport's no-hook behavior remains compatible.
 
-Next enroll the fixed native path and persist its app operation receipt. Download execution must be released to Co*Tive after accepted dispatch, not supervised by an occupied agent. Existing verified releases remain reusable for downstream promotion.
+Download execution must be released to Co*Tive through its enrolled app path after accepted dispatch, not supervised by an occupied agent. Existing verified releases remain reusable for downstream promotion.
 
 Rollback is additive code-only. This increment changes no source policy, production pointer, existing release or schedule.

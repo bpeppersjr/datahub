@@ -80,8 +80,9 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 46);
-  assert.equal(registry.policyProfileCount, 44);
+  assert.equal(registry.connectorCount, 47);
+  assert.equal(registry.policyProfileCount, 45);
+  assert.equal(registry.get("oh-dcy-publisher-open-childcare-centers").implementation_status, "standalone-app-acquisition-and-local-release");
   assert.deepEqual(entries.map((entry) => entry.connector_id), entries.map((entry) => entry.connector_id).toSorted());
   assert(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.manifest_sha256)));
   assert(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.source_policy.sha256)));

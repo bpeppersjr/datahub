@@ -11,9 +11,22 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]
   },
   "sources": {
+    "state-oh-childcare": {
+      "script": "scripts/build-oh-childcare.mjs",
+      "scope": "state",
+      "states": ["OH"],
+      "state_filter_supported": false,
+      "prerequisites": ["config/oh-childcare-app-enrollment.json"],
+      "coverage_notes": [
+        "Ohio DCY/State GIS Open Child Care Center rows only. Other care types and statuses are excluded. Source membership is not verified operation, license validity or nationwide completeness; scopes differ across state publishers.",
+        "Each acquisition requires fresh matching metadata and source-use notices before records and final checks afterward. Ten selected fields exclude contacts and mailing addresses. ZIP5/ZIP4 remain separate and business coordinates are latitude/longitude only.",
+        "Durable app receipts link retained acquisition to independently verified offline local-review normalization. Source evidence stays internal; public export and national integration remain disabled. Reuse completed acquisition for reprocessing, not another download for promotion.",
+        "Enrollment does not enable schedules, automatic interrupted-run recovery or automatic promotion. Unavailable linked notices remain explicit gaps; changed notices stop collection for review. Missing source rows are not closures."
+      ]
+    },
     "state-tn-childcare": {
       "script": "scripts/build-tn-childcare.mjs",
       "scope": "state",
