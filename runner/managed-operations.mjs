@@ -3,7 +3,8 @@ import process from "node:process";
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { lstat, mkdir, readFile, readdir, realpath, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, realpath, stat } from "node:fs/promises";
+import { writeReconciliationReceipt } from "./reconciliation-receipt.mjs";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "./industry-segments.mjs";
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
@@ -23,7 +24,7 @@ const publicOperation = (record) => ({
   artifacts: (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
 });
 async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
-async function atomicJson(file, value) { const temporary = `${file}.tmp-${randomUUID()}`; await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`); await rename(temporary, file); }
+const atomicJson = writeReconciliationReceipt;
 function processPresence(pid) {
   if (!Number.isInteger(pid) || pid < 1) return "unknown";
   try { process.kill(pid, 0); return "present"; }
@@ -58,6 +59,7 @@ export class ManagedOperations {
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
+    this.receiptWriter = options.receiptWriter ?? atomicJson;
     this.operations = new Map(); this.running = new Map(); this.writes = new Map(); this.scheduledStarts = new Map(); this.ready = this.#load(); this.closed = false;
   }
   async #load() {
@@ -203,7 +205,8 @@ export class ManagedOperations {
   #reserve() { if (this.closed) throw new Error("Managed operations service is closed."); if (this.reserved || this.running.size || [...this.operations.values()].some((item) => item.status === "UNKNOWN")) { const error = conflict("Another managed operation is already running or has unresolved ownership."); error.retryable = ![...this.operations.values()].some((item) => item.status === "UNKNOWN"); throw error; } this.reserved = true; }
   #persist(record) {
     const snapshot = JSON.parse(JSON.stringify(record));
-    const pending = (this.writes.get(record.id) ?? Promise.resolve()).then(() => atomicJson(path.join(this.root, record.id, "receipt.json"), snapshot));
+    // A failed transition must not poison the later terminal-receipt attempt.
+    const pending = (this.writes.get(record.id) ?? Promise.resolve()).catch(() => {}).then(() => this.receiptWriter(path.join(this.root, record.id, "receipt.json"), snapshot));
     this.writes.set(record.id, pending);
     return pending;
   }
@@ -231,8 +234,9 @@ export class ManagedOperations {
     return publicOperation(record);
   }
   async #run(record, controller) {
-    const directory = path.join(this.root, record.id); record.status = "RUNNING"; record.startedAt = this.now(); record.owner = { supervisorPid: process.pid }; await this.#persist(record);
+    const directory = path.join(this.root, record.id);
     try {
+      record.status = "RUNNING"; record.startedAt = this.now(); record.owner = { supervisorPid: process.pid }; await this.#persist(record);
       controller.signal.throwIfAborted();
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); }

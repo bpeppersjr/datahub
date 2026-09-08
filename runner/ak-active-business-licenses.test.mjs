@@ -551,6 +551,48 @@ test("blocks schema drift, unexpected fields, duplicate identities, orphan class
   await assert.rejects(() => buildAkActiveBusinessLicenses({ ...base, outputRoot: path.join(root, "cancelled"), licenseRows: [rawLicense()], naicsRows: [rawNaics()], signal: controller.signal }), /aborted/i);
 });
 
+test("Alaska rejects immutable output destinations and invalid baselines before staging or network", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-preflight-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  let calls = 0;
+  const fetchImpl = () => { calls++; throw new Error("Unexpected request"); };
+  const immutable = path.join(root, "history"); await mkdir(immutable); await writeFile(path.join(immutable, "manifest.json"), "preserve");
+  for (const outputRoot of [path.join(root, "releases", "new"), path.join(root, ".staging", "new"), path.join(immutable, "new")]) {
+    await assert.rejects(buildAkActiveBusinessLicenses({ outputRoot, zbpPointer, fetchImpl }), /output|immutable|publication/);
+    await assert.rejects(readdir(outputRoot), { code: "ENOENT" });
+  }
+  const bad = path.join(root, "bad-pointer.json"); await writeFile(bad, JSON.stringify({ manifest: "missing.json" }));
+  const outputRoot = path.join(root, "untouched");
+  await assert.rejects(buildAkActiveBusinessLicenses({ outputRoot, zbpPointer: bad, fetchImpl }));
+  await assert.rejects(readdir(outputRoot), { code: "ENOENT" });
+  assert.equal(calls, 0);
+  assert.equal(await readFile(path.join(immutable, "manifest.json"), "utf8"), "preserve");
+});
+
+test("Alaska baseline preflight rejects identity, checksum and duplicate ZIP defects without creating output", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-baseline-preflight-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  let calls = 0;
+  for (const kind of ["identity", "checksum", "duplicate", "empty"]) {
+    const zbpPointer = await writeBaseline(path.join(root, kind));
+    const manifestPath = path.join(root, kind, "releases/zbp-fixture/manifest.json");
+    const coveragePath = path.join(root, kind, "releases/zbp-fixture/derived/zip-coverage.jsonl");
+    const manifest = JSON.parse(await readFile(manifestPath));
+    if (kind === "identity") manifest.release_id = "wrong-release";
+    if (kind === "checksum") manifest.artifacts[0].sha256 = "0".repeat(64);
+    if (kind === "duplicate" || kind === "empty") {
+      const buffer = kind === "empty" ? Buffer.from("") : Buffer.from('{"zip_code":"99501"}\n{"zip_code":"99501"}\n');
+      await writeFile(coveragePath, buffer); manifest.artifacts[0].bytes = buffer.length; manifest.artifacts[0].sha256 = sha256(buffer);
+    }
+    await writeFile(manifestPath, JSON.stringify(manifest));
+    const outputRoot = path.join(root, kind + "-output");
+    await assert.rejects(buildAkActiveBusinessLicenses({ outputRoot, zbpPointer, fetchImpl() { calls++; throw new Error("unexpected request"); } }), /Census ZBP/);
+    await assert.rejects(readdir(outputRoot), { code: "ENOENT" });
+  }
+  assert.equal(calls, 0);
+});
+
 test("Alaska rejects post-verification mutation before publishing or replacing its prior pointer", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "datahub-ak-final-verify-"));
   t.after(() => rm(root, { recursive: true, force: true }));

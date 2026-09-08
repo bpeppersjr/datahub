@@ -38,3 +38,13 @@ The managed collection API accepted exactly one Ohio childcare task with HTTP 20
 - Acceptance-observation receipt SHA-256: `2e9f66b2206737cc9cf44244a9a320b81967ddeaa3d7ea4405b5499118d20816`.
 
 This mutable receipt hash proves only the observed acceptance state, not completion. Co*Tive owns subsequent execution and fresh source-use verification. No Codex progress polling or download supervision follows handoff. No recurring schedule, national promotion or public export was enabled. Use the app's Data Operations view for status; downstream work must reuse a completed verified acquisition rather than repull for promotion.
+
+## Receipt-transition failure found during lifecycle safety check
+
+Before development shutdown for Alaska validation, receipt `7d93702e-1558-48c0-8676-c77cb40fe05e` was still `QUEUED`. A read-only runtime audit found supervisor PID 17316 alive, no child under that supervisor or Ohio acquisition process, and no industry-run directory. Its operation directory also contained `receipt.json.tmp-73ee0487-9d36-4ae3-9635-c3c5d35d401f`, describing the intended `RUNNING` transition at 08:18:14 without a child PID. The code awaits this transition before spawning. This evidence indicates a failed receipt replacement, not a normal scheduling delay; the exact original filesystem error was not retained, so Windows sharing contention remains an inference.
+
+Managed receipt writes now reuse the tested fsynced, exclusive-temporary writer with bounded Windows sharing retries and owned cleanup. A rejected write no longer poisons later writes, and the initial `RUNNING` persist is inside the failure handler: if it fails, no child launches and the app attempts a durable `FAILED` receipt. A deterministic regression checks zero executor calls and matching in-memory/disk terminal failure. This does not guarantee recovery when storage remains unwritable.
+
+The old supervisor was stopped only after the no-child audit. Both old receipt files remain preserved. No automatic replay or replacement collection was requested. Existing startup behavior keeps missing/unresolved child ownership `UNKNOWN` and blocks duplicates; reconciling this historical receipt is separate from repairing future writes. HTTP acceptance was genuine, but it did not prove that the child started or that any Ohio rows were downloaded by this operation.
+
+The repaired runtime passed all 937 repository tests, lint, builds and desktop smoke, plus the zero-vulnerability dependency audit. It was restarted successfully. Rollback reverts the writer integration and transition handling without changing the historical receipts; doing so restores the observed persistence weakness and is not recommended.

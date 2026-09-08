@@ -571,20 +571,37 @@ function assertContained(parent, child, label) {
 
 async function loadZbpBaseline(pointerPath, signal) {
   const absolutePointer = path.resolve(pointerPath);
-  const pointer = JSON.parse(await readFile(absolutePointer, { encoding: "utf8", signal }));
+  const pointerRead = await publicationRead(absolutePointer, 10_000, signal);
+  const pointer = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(pointerRead.bytes));
   const base = path.dirname(absolutePointer);
+  if (typeof pointer.manifest !== "string" || !/^releases\/[A-Za-z0-9_-]+\/manifest\.json$/.test(pointer.manifest)) throw new Error("Invalid Census ZBP pointer manifest path.");
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
   assertContained(base, manifestPath, "Census ZBP manifest");
-  const manifestBuffer = await readFile(manifestPath, { signal });
-  const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  const manifestRead = await publicationRead(manifestPath, 1_000_000, signal), manifestBuffer = manifestRead.bytes;
+  const manifest = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifestBuffer));
   if (manifest.dataset_id !== "census-zbp-baseline" || !manifest.complete_national_release) throw new Error("A complete Census ZBP baseline release is required.");
-  const artifact = manifest.artifacts.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
+  if (pointer.manifest !== `releases/${manifest.release_id}/manifest.json` || pointer.release_id !== undefined && pointer.release_id !== manifest.release_id
+    || pointer.dataset_id !== undefined && pointer.dataset_id !== manifest.dataset_id) throw new Error("Census ZBP pointer identity mismatch.");
+  const artifacts = manifest.artifacts?.filter((candidate) => candidate.path === "derived/zip-coverage.jsonl");
+  const artifact = artifacts?.length === 1 ? artifacts[0] : null;
   if (!artifact) throw new Error("Census ZBP ZIP coverage artifact is missing.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const actual = await hashFile(artifactPath, signal);
-  if (artifact.bytes !== actual.bytes || artifact.sha256 !== actual.sha256) throw new Error("Census ZBP ZIP coverage artifact failed checksum validation.");
-  const rows = await readJsonLines(artifactPath, signal);
+  const coverageRead = await publicationRead(artifactPath, 100_000_000, signal);
+  if (artifact.bytes !== coverageRead.bytes.length || artifact.sha256 !== sha256(coverageRead.bytes)) throw new Error("Census ZBP ZIP coverage artifact failed checksum validation.");
+  const rows = [], seen = new Set();
+  for (const line of new TextDecoder("utf-8", { fatal: true }).decode(coverageRead.bytes).split(/\r?\n/)) {
+    signal?.throwIfAborted(); if (!line) continue;
+    if (line.length > 100_000 || rows.length >= 100_000) throw new Error("Census ZBP coverage record limit.");
+    const row = JSON.parse(line);
+    if (!row || !/^\d{5}$/.test(row.zip_code) || typeof row.zip_code !== "string" || seen.has(row.zip_code)) throw new Error("Census ZBP coverage ZIP identity.");
+    seen.add(row.zip_code); rows.push(row);
+    if (rows.length % 256 === 0) await yieldTurn(undefined, { signal });
+  }
+  if (!rows.length) throw new Error("Census ZBP coverage is empty.");
+  const latestPointer = await publicationRead(absolutePointer, 10_000, signal), latestManifest = await publicationRead(manifestPath, 1_000_000, signal);
+  if (!sameFile(pointerRead.identity, latestPointer.identity) || !pointerRead.bytes.equals(latestPointer.bytes)
+    || !sameFile(manifestRead.identity, latestManifest.identity) || !manifestBuffer.equals(latestManifest.bytes)) throw new Error("Census ZBP prerequisite changed during validation.");
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
@@ -708,6 +725,8 @@ export async function buildAkActiveBusinessLicenses({
   if (!Number.isFinite(minimumNaicsCoverageRate) || minimumNaicsCoverageRate < 0 || minimumNaicsCoverageRate > 1) throw new Error("minimumNaicsCoverageRate must be between 0 and 1.");
   if ((licenseRows === null) !== (naicsRows === null)) throw new Error("licenseRows and naicsRows fixtures must be supplied together.");
   signal?.throwIfAborted?.();
+  outputRoot = await validateAkOutputRoot(outputRoot, signal);
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const releaseId = `ak-active-business-licenses-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
@@ -726,7 +745,6 @@ export async function buildAkActiveBusinessLicenses({
   };
   signal?.addEventListener("abort", abortOwnedWriters, { once: true });
   try {
-  const baseline = await loadZbpBaseline(zbpPointer, signal);
   const selectedLicenseWriter = await openGzipWriter(stagingDirectory, "source/selected-active-business-licenses.jsonl.gz", ownedWriters, signal);
   const licenseIds = new Set();
   const licenseNames = new Map();
@@ -1059,6 +1077,16 @@ function containsExcludedField(value) {
 function publicationCheck(ok, reason) {
   if (!ok) throw new Error(`Alaska publication rejected: ${reason}.`);
 }
+async function validateAkOutputRoot(outputRoot, signal) {
+  const root = await publicationPath(path.resolve(outputRoot), signal);
+  publicationCheck(!path.relative(APP_ROOT, root).split(path.sep).some((part) => /^(releases|\.staging)$/i.test(part)), "output root cannot be inside immutable history or staging");
+  for (let current = root; current !== APP_ROOT; current = path.dirname(current)) {
+    let exists = false;
+    try { await lstat(path.join(current, "manifest.json")); exists = true; } catch (error) { if (error.code !== "ENOENT") throw error; }
+    publicationCheck(!exists, "output root cannot be inside a manifest-bearing dataset");
+  }
+  return root;
+}
 async function publicationPath(target, signal) {
   publicationCheck(typeof target === "string" && target.length <= 1024 && path.resolve(target) === target, "absolute canonical path required");
   const absolute = assertInsideApp(target);
@@ -1146,7 +1174,7 @@ export async function publishAkActiveBusinessLicensesStaging({ outputRoot, stagi
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
   publicationCheck(typeof logger === "function", "logger must be a function");
-  const root = await publicationPath(path.resolve(outputRoot), signal);
+  const root = await validateAkOutputRoot(outputRoot, signal);
   publicationCheck(!path.relative(APP_ROOT, root).split(path.sep).some((part) => ["releases", ".staging"].includes(part.toLowerCase())), "output cannot nest in immutable storage");
   const stagingDirectory = await publicationPath(path.join(root, ".staging", stagingRunId), signal);
   const lockPath = await publicationPath(path.join(root, ".publish.lock"), signal);

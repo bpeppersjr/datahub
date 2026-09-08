@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import { createManagedOperations } from "./managed-operations.mjs";
 import { buildIndustryPlan, industryPlanFingerprint } from "./industry-segments.mjs";
+import { writeReconciliationReceipt } from "./reconciliation-receipt.mjs";
 
 const config = { version: 1, max_concurrency: 1, states: ["TX"], industries: { retail: ["source"] }, sources: { source: { script: "scripts/run-industry-segments.mjs", scope: "national", states: "all", state_filter_supported: false, prerequisites: [] } } };
 const sha = (text) => createHash("sha256").update(text).digest("hex");
@@ -15,6 +16,23 @@ async function fixture(t, options = {}) {
   return createManagedOperations({ root: relative, configLoader: async () => config, ...options });
 }
 async function finished(service, id) { for (let i = 0; i < 100; i += 1) { const operation = await service.get(id); if (!["QUEUED", "RUNNING"].includes(operation.status)) return operation; await new Promise((resolve) => setTimeout(resolve, 5)); } throw new Error("operation did not finish"); }
+
+test("managed failed running receipt prevents spawn and still persists a terminal failure", async (t) => {
+  let calls = 0, failed = false;
+  const service = await fixture(t, {
+    executor: async () => { calls++; return { code: 0 }; },
+    receiptWriter: async (file, record) => {
+      if (record.status === "RUNNING" && !failed) { failed = true; throw Object.assign(new Error("Injected receipt failure"), { code: "EBUSY" }); }
+      await writeReconciliationReceipt(file, record);
+    },
+  });
+  const operation = await service.startCollection({ industries: ["retail"], states: ["TX"] });
+  await service.running.get(operation.id)?.done;
+  const final = await service.get(operation.id), disk = JSON.parse(await readFile(path.join(service.root, operation.id, "receipt.json")));
+  assert.equal(calls, 0); assert.equal(final.status, "FAILED"); assert.equal(disk.status, "FAILED"); assert.equal(disk.owner, undefined);
+  assert.match(disk.error, /Injected receipt failure/);
+  await service.close();
+});
 
 test("catalog and plans use allowlisted industry configuration", async (t) => {
   const service = await fixture(t, { executor: async () => ({ code: 0 }) });
