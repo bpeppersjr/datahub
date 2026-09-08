@@ -80,6 +80,63 @@ import { acquireTnChildcare } from "./tn-childcare-acquisition.mjs";
 import { createTnChildcareFixture } from "./fixtures/tn-childcare-fetch.mjs";
 import { recoverTnChildcareRelease } from "./tn-childcare-recovered-release.mjs";
 import { buildTnChildcareRelease } from "./tn-childcare-release.mjs";
+import { gatedTransport as ohioTransport } from "./fixtures/oh-childcare-gated-transport.mjs";
+import { runOhChildcareAppJobWithTransport } from "./oh-childcare-app.mjs";
+
+for (const mode of ["mixed", "all-missing", "with-tn", "with-tn-recovered"]) test(`Ohio registry 2.15 integrates retained app evidence: ${mode}`, async (t) => {
+  const root = path.join(APP_ROOT, "data/tmp", `oh-national-${randomUUID()}`);
+  const transport = await ohioTransport(({ payload }) => {
+    if (mode !== "mixed") for (const f of payload?.features ?? []) if (f.attributes?.program_name) f.attributes.zip_code = null;
+  });
+  let ticks = 0;
+  const oh = await runOhChildcareAppJobWithTransport({ ...transport.options, outputRoot: path.join(root, "oh"),
+    now: () => new Date(Date.parse("2026-09-08T07:05:00.000Z") + ticks++) });
+  const snapPointer = await writeFixtureSnapRelease(path.join(root, "snap"));
+  const tn = mode.startsWith("with-tn") ? await (mode === "with-tn" ? tnFreshRegistryFixture : tnRecoveredRegistryFixture)(t, true) : null;
+  const baseline = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(root, "baseline"), logger() {} });
+  const result = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(root, "registry"), ohChildcareReceipt: oh.receipt_path,
+    ...(tn ? { [mode === "with-tn" ? "tnFreshChildcareManifest" : "tnChildcareManifest"]: tn.release.manifest_path } : {}), logger() {} });
+  const m = result.manifest, manifestPath = path.join(result.releaseDirectory, "manifest.json");
+  assert.equal(m.publisher.version, "2.15.0");
+  assert.equal(m.oh_childcare_source.receiptSha256, oh.receipt_sha256);
+  assert.equal(m.coverage.oh_childcare_center_sites, 3);
+  assert.equal(m.coverage.oh_childcare_center_sites_without_zip, mode === "mixed" ? 2 : 3);
+  assert.equal(m.coverage.reporting_location_evidence_without_zip, tn ? 23 : mode === "mixed" ? 2 : 3);
+  assert.equal(m.coverage.reporting_location_evidence, tn ? 23 : 3);
+  const profiles = manifest => manifest.artifacts.filter(a => a.path.startsWith("resolution/location-profiles/")).map(a => [a.path, a.sha256]);
+  assert.deepEqual(profiles(m), profiles(baseline.manifest));
+  await verifyNationalBusinessRegistry(manifestPath);
+  for (const change of [v => { v.publisher.version = "2.14.0"; }, v => { v.oh_childcare_source.receiptSha256 = "a".repeat(64); },
+    v => { v.coverage.oh_childcare_center_sites++; }, v => { v.coverage.reporting_location_evidence_without_zip++; }]) {
+    const changed = structuredClone(m); change(changed); await writeFile(manifestPath, JSON.stringify(changed));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+  }
+  await writeFile(manifestPath, JSON.stringify(m));
+  const summaryArtifact = m.artifacts.find(a => a.path === "derived/source-contributions.json");
+  const summaryPath = path.join(result.releaseDirectory, summaryArtifact.path), originalSummary = await readFile(summaryPath);
+  for (const change of [v => { v.accepted_source_records++; }, v => { v.identity_matching_eligible = true; }, v => { v.general_operating_status_inferred = true; }]) {
+    const summary = JSON.parse(originalSummary), changed = structuredClone(m); change(summary.oh_childcare_centers);
+    const bytes = Buffer.from(JSON.stringify(summary)), descriptor = changed.artifacts.find(a => a.path === summaryArtifact.path);
+    descriptor.sha256 = sha256(bytes); descriptor.bytes = bytes.length;
+    await writeFile(summaryPath, bytes); await writeFile(manifestPath, JSON.stringify(changed));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+  }
+  await writeFile(summaryPath, originalSummary); await writeFile(manifestPath, JSON.stringify(m));
+  for (const kind of ["canonical-physical-site-jsonl-gzip", "business-assertion-jsonl-gzip", "business-relationship-jsonl-gzip", CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE]) {
+    const artifact = m.artifacts.find(a => a.artifact_type === kind && a.path.includes("unassigned"));
+    const file = path.join(result.releaseDirectory, artifact.path), original = await readFile(file);
+    const rows = gunzipSync(original).toString().trimEnd().split("\n").map(JSON.parse);
+    const row = rows.find(r => r.entity_id?.includes("oh_childcare_") || r.source?.source_id === "oh-dcy-publisher-open-childcare-centers");
+    if (kind === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE) row.governed_geographic_assignment_eligible = true;
+    else if (row.entity_id) row.updated_at = "2026-09-09T00:00:00.000Z";
+    else row.source.source_id = "usda-snap-retailers";
+    const bytes = gzipSync(rows.map(r => JSON.stringify(r)).join("\n") + "\n"), altered = structuredClone(m), entry = altered.artifacts.find(a => a.path === artifact.path);
+    entry.sha256 = sha256(bytes); entry.bytes = bytes.length;
+    await writeFile(file, bytes); await writeFile(manifestPath, JSON.stringify(altered));
+    await assert.rejects(verifyNationalBusinessRegistry(manifestPath));
+    await writeFile(file, original); await writeFile(manifestPath, JSON.stringify(m));
+  }
+});
 
 async function tnFreshRegistryFixture(t, allMissing) {
   const outputRoot = await mkdtemp(path.join(APP_ROOT, "data/tmp/tn-fresh-national-"));
