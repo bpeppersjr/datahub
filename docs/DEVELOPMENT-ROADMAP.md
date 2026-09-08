@@ -469,6 +469,10 @@ Pennsylvania acquisition layer (September 8): [bounded center acquisition and du
 
 Pennsylvania normalized facility evidence (September 8): the [offline normalization/release layer](PA-CHILDCARE-NORMALIZATION.md) now preserves separate ZIP5/ZIP4, nullable address points, typed source identifiers, license dates and capacity text, page-level observation lineage and accepted-plus-quarantine conservation. Immutable derived releases bind the exact acquired manifest and replay against it; reprocessing makes no network requests and preserves existing input/releases. Nine focused tests pass, including cancellation after output-job creation and rejected rehashed substitutions. No live facility collection, managed operation, schedule or national promotion occurred. Next is end-to-end app-worker enrollment with explicit acquired/normalized receipt linkage and retained-input reuse.
 
+Pennsylvania app handoff (September 8): the standalone worker and managed industry entry shipped, then Co*Tive operation `b56d91bb-b781-4fe6-b7f9-be50bd4234ee` independently completed acquisition and normalization. Offline verification confirmed 4,995 accepted center candidates across 819 reported ZIPs, with 65 missing coordinates and no supplied ZIP4. Acquired and normalized manifests remain pinned and reusable; next reporting integration must not repull them or describe source-cohort coverage as national business completeness. See [live outcome and quality evidence](PA-CHILDCARE-APP.md#live-application-outcome--september-8-2026).
+
+Parallel childcare source triage (September 8): [Georgia/North Carolina findings](states/GA-NC-CHILDCARE-TRIAGE-2026-09-08.md) distinguish Georgia's official but currently unverified export delivery contract from an incomplete North Carolina investigation. Neither was enrolled or downloaded. Historical schema documentation, indexed legal material and absent evidence are not substitutes for current source prerequisites.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;
