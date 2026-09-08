@@ -101,6 +101,18 @@ test('CO app enrollment does not manufacture measured records or submitted jobs'
   assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
 });
 
+test('CO retained enrollment preserves national totals and exposes absent installed data as unavailable',async t=>{
+  const f=await fixture(t),before=await buildStateAccessLedger(f);
+  await copyFile(path.join(APP_ROOT,'config/co-childcare-reporting-enrollment.json'),path.join(f.root,'config/co-childcare-reporting-enrollment.json'));
+  const after=await buildStateAccessLedger(f);assert.deepEqual(after.summary,before.summary);
+  for(const jurisdiction of after.jurisdictions){
+    const cell=jurisdiction.industries.find(r=>r.industry==='childcare'),prior=before.jurisdictions.find(r=>r.state===jurisdiction.state).industries.find(r=>r.industry==='childcare');
+    assert.equal(cell.accessEvidenceStatus,prior.accessEvidenceStatus);assert.deepEqual(cell.evidence,prior.evidence);assert.deepEqual(cell.appHandoff,prior.appHandoff);
+    if(jurisdiction.state==='CO')assert.deepEqual(cell.localSourceCandidateEvidence,{status:'unavailable',reason:'enrolled-receipt-not-installed'});
+    else assert.deepEqual(cell.localSourceCandidateEvidence,prior.localSourceCandidateEvidence);
+  }
+});
+
 test('VT publisher cohort enrollment is separate from address coverage and missing data is not zero',async t=>{
   const f=await fixture(t),before=await buildStateAccessLedger(f);
   await copyFile(path.join(APP_ROOT,'config/vt-childcare-reporting-enrollment.json'),path.join(f.root,'config/vt-childcare-reporting-enrollment.json'));
