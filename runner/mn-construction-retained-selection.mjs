@@ -3,6 +3,7 @@ import { lstat, realpath, mkdir, open, readdir, link, unlink, rmdir, statfs } fr
 import { Readable } from 'node:stream';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
+import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 import { validateMnConstructionSelectionContext, processMnConstructionSelectedStream, replayMnConstructionSelectedStream } from './mn-construction-selected-stream.mjs';
 
 const VERSION='mn-construction-retained-selection@1.0.0';
@@ -135,12 +136,12 @@ export async function buildMnConstructionRetainedSelection(source,{context,signa
     await link(temporary,final);published=true;await unlink(temporary);
     await verifyMnConstructionRetainedSelection(final);
     return {manifest_path:final,bundle_id:manifest.bundle_id,counts:receipt.counts,native_acquisition_verified:false};
-  }catch{
+  }catch(error){
     for(const w of writers)await w.close().catch(()=>{});
     if(signal?.aborted&&!published&&sameDirectory(directoryOwner,await lstat(directory,{bigint:true}).catch(()=>null))&&await realpath(directory).catch(()=>null)===directory){
       for(const [file,identity]of owned)if(sameFile(identity,await lstat(file,{bigint:true}).catch(()=>null)))await unlink(file);
       if((await readdir(directory)).length===0)await rmdir(directory);
     }
-    signal?.throwIfAborted();throw new Error('Minnesota retained selection build failed; incomplete evidence retained.');
+    signal?.throwIfAborted();throw Object.assign(mnConstructionFailure(error,'retained-selection-failed'),{message:'Minnesota retained selection build failed; incomplete evidence retained.'});
   }
 }

@@ -8,7 +8,7 @@ const mode=process.argv[2], notices=JSON.parse(await readFile(path.join(APP_ROOT
 const controller=new AbortController();
 const root=path.join(APP_ROOT,'app'), lockFile=path.join(APP_ROOT,'data/business-sources/mn-dli-construction/runtime/publisher.lock');
 const row=(registration)=>({...Object.fromEntries(MN_CONSTRUCTION_COLUMNS.map(k=>[k,''])),Bus_Pers:'Business',Status:'Issued',Name:'Synthetic app contractor',Lic_Number:registration?'IR123456':'BC123456',St:'MN',Zip:'55001-1234',Phone_No:'PRIVATE CONTACT'});
-const source=registration=>Buffer.from(MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+Array.from({length:60},()=>MN_CONSTRUCTION_COLUMNS.map(k=>JSON.stringify(row(registration)[k])).join(',')+'\r\n').join(''));
+const source=registration=>Buffer.concat([Buffer.from(MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+Array.from({length:60},()=>MN_CONSTRUCTION_COLUMNS.map(k=>JSON.stringify(row(registration)[k])).join(',')+'\r\n').join('')),mode==='invalid-utf8'?Buffer.from([0xff]):Buffer.alloc(0)]);
 const fetchImpl=async(url,options)=>{
   calls.push({url,method:options.method,range:options.headers.Range??null});
   if(mode==='http-failure')return new Response('PRIVATE FAILURE',{status:403});
@@ -59,6 +59,11 @@ if(mode==='success' || mode==='tamper'){
   assert.equal(result.status,mode.startsWith('cancel')||mode==='failed-cohort-tamper'?'CANCELLED':'FAILED');
   if(['cancel-after-commit','late-failure','checkpoint-tamper','failed-cohort-tamper'].includes(mode))assert.equal(result.acquisition.counts.accepted_records,60);
   else assert.equal(result.acquisition,null);
+  if(mode==='invalid-utf8') {
+    const file=path.join(path.dirname(result.receipt_path),'diagnostic.json'),diagnostic=JSON.parse(await readFile(file,'utf8'));
+    assert.equal(diagnostic.code,'source-utf8-invalid');assert.doesNotMatch(JSON.stringify(diagnostic),/PRIVATE/);
+    diagnostic.code='PRIVATE';await writeFile(file,JSON.stringify(diagnostic));await assert.rejects(verify(result.receipt_path));
+  }
   if(mode==='failed-cohort-tamper'){
     const startPath=path.join(path.dirname(result.receipt_path),'start.json'),start=JSON.parse(await readFile(startPath,'utf8')),end=JSON.parse(await readFile(result.receipt_path,'utf8'));
     start.cohort='residential';end.cohort='residential';end.publisher_lease.cohort='residential';

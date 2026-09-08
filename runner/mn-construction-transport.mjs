@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { Readable, addAbortSignal } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import { validateMnConstructionPreflight } from './mn-construction-preflight.mjs';
+import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 
 const check = (value, reason) => { if (!value) throw new Error(`Minnesota export transport rejected: ${reason}.`); };
 const time = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -47,7 +48,7 @@ export function createMnConstructionExportStream(options = {}) {
       && headers.get('last-modified') === expected.last_modified && headers.get('content-type') === expected.content_type
       && (!headers.get('content-encoding') || headers.get('content-encoding') === 'identity') && !headers.has('content-range'), 'source identity drift');
   };
-  async function request(method) {
+  async function request(method, failureCode='transport-request-failed') {
     // Pace even the first request after the caller's notice/schema prerequisites.
     await bounded(Promise.resolve().then(() => sleep(1000, { signal: combined })), combined);
     combined.throwIfAborted();
@@ -61,11 +62,11 @@ export function createMnConstructionExportStream(options = {}) {
         headers: { 'Accept-Encoding': 'identity', 'If-Match': expected.etag, Accept: 'text/csv, application/octet-stream' },
       }); }), requestSignal, cancel);
       requestSignal.throwIfAborted(); sameIdentity(response); return response;
-    } catch { cancel(response); throw new Error('Minnesota source metadata or request failed.'); }
+    } catch(error) { cancel(response); throw mnConstructionFailure(error,failureCode); }
     finally { clearTimeout(timer); }
   }
   async function *generate() {
-    let reader, response, bodyTimer;
+    let reader, response, bodyTimer, phase='transport-body-failed';
     try {
       startedAt = stamp(); fresh(startedAt);
       response = await request('HEAD'); cancel(response); response = null;
@@ -89,7 +90,8 @@ export function createMnConstructionExportStream(options = {}) {
       reader.releaseLock(); reader = null; response = null;
       check(size === expected.file_bytes, 'truncated source');
       const sourceSha256 = digest.digest('hex'), bodyFinishedAt = stamp();
-      response = await request('HEAD'); cancel(response); response = null;
+      phase='transport-final-check-failed';
+      response = await request('HEAD','transport-final-check-failed'); cancel(response); response = null;
       await bounded(Promise.resolve().then(() => afterTransfer({ signal: combined })), combined); combined.throwIfAborted();
       completed = Object.freeze({ schema_version: 'mn-construction-export-transport@1.0.0', cohort, url,
         started_at: startedAt, body_finished_at: bodyFinishedAt, finished_at: stamp(),
@@ -97,7 +99,7 @@ export function createMnConstructionExportStream(options = {}) {
         source_bytes: size, source_file_sha256: sourceSha256, request_count: calls,
         execution_mode: 'injected-transport', native_acquisition_verified: false, source_authenticity_verified: false,
         source_use_authorized: false, app_job_enrolled: false, public_export_authorized: false });
-    } catch { throw new Error('Minnesota CSV transfer failed; no completed transport receipt.'); }
+    } catch(error) { throw mnConstructionFailure(error,phase); }
     finally { clearTimeout(bodyTimer); if (reader) { void reader.cancel().catch(() => {}); reader.releaseLock(); } else cancel(response); }
   }
   const stream = Readable.from(generate(), { objectMode: false, highWaterMark: 65536 });

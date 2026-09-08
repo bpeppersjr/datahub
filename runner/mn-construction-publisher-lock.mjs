@@ -2,6 +2,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { open, lstat, unlink } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
+import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 import { APP_ROOT } from './paths.mjs';
 import { mnSelectionCanonical as canonical, mnSelectionReadJson as readJson } from './mn-construction-retained-selection.mjs';
 
@@ -54,7 +55,7 @@ export async function withMnConstructionPublisherLock(options, work) {
     signal?.throwIfAborted();
     result = await work(Object.freeze({ lease: record, signal, assertHeld }));
     signal?.throwIfAborted(); await assertHeld();
-  } catch { failure = new Error('Minnesota publisher work failed or was cancelled; source job must report its terminal outcome.'); }
+  } catch(error) { failure = Object.assign(mnConstructionFailure(error,'app-finalization-failed'),{message:'Minnesota publisher work failed or was cancelled; source job must report its terminal outcome.'}); }
   // Keep the gate through a fixed handover gap, including failures/cancellation.
   // It is intentionally not abortable: a cancelled job must not let the next job
   // skip provider pacing. Never release while an unawaited callback is still live.

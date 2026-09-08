@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createMnConstructionExportStream } from './mn-construction-transport.mjs';
 import { captureMnConstructionNotices } from './mn-construction-notices.mjs';
@@ -54,6 +55,6 @@ export async function buildMnConstructionAcquiredSelection(options = {}) {
     return { schema_version: 'mn-construction-acquired-selection@1.1.0', bundle: { ...bundle, manifest_sha256: verified.manifest_sha256 }, preflight,
       transport: measured, before_notices: notices, before_binding: beforeBinding, after_notices: afterNotices, after_binding: afterBinding,
       evidence_persisted: false, native_acquisition_verified: false, app_job_enrolled: false, national_reporting_integrated: false };
-  } catch { signal?.throwIfAborted(); throw new Error('Minnesota acquisition selection failed; no app acquisition receipt was issued.'); }
+  } catch(error) { signal?.throwIfAborted(); throw mnConstructionFailure(error,'acquisition-selection-failed'); }
   finally { transport.stream.destroy(); }
 }

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { mnConstructionDiagnostic, validMnConstructionDiagnostic } from './mn-construction-diagnostics.mjs';
 import { mkdir, lstat, link, unlink, statfs, readdir } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
@@ -52,6 +53,7 @@ async function inspectJob(filename, { signal } = {}, candidate = false) {
     && (start.industry_run_id===null || typeof start.industry_run_id==='string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(start.industry_run_id)), 'start evidence');
   check(['SUCCEEDED','FAILED','CANCELLED','BLOCKED'].includes(end.status) && time(end.finished_at) && end.finished_at>=start.started_at
     && same(end,terminal(start,startMeter.sha256,end.acquisition,end.publisher_lease,end.status,end.reason,end.finished_at)), 'terminal envelope');
+  let failureDiagnostic;
   if(end.status==='SUCCEEDED') {
     check(end.reason===null && keys(end.acquisition,['path','sha256','child_manifest_sha256','counts'])
       && /^acquisitions\/[a-f0-9-]{36}\.json$/.test(end.acquisition.path), 'acquisition descriptor');
@@ -77,6 +79,13 @@ async function inspectJob(filename, { signal } = {}, candidate = false) {
     const finalParent=await verifyMnConstructionAcquisitionReceipt(path.join(directory,end.acquisition.path),{signal});
     check(same(descriptor(directory,finalParent),end.acquisition), 'parent changed during verification');
   } else {
+    // Older failures have no diagnostic sidecar; absence does not imply a cause.
+    if((await readdir(directory)).includes('diagnostic.json')) {
+      const diagnostic=await read(path.join(directory,'diagnostic.json'),10000,signal);
+      check(keys(diagnostic,['schema_version','run_id','code']) && diagnostic.schema_version==='mn-construction-diagnostic@1.0.0'
+        && diagnostic.run_id===runId && validMnConstructionDiagnostic(diagnostic.code),'failure diagnostic');
+      failureDiagnostic=diagnostic.code;
+    }
     check(end.reason===({CANCELLED:'job-cancelled',BLOCKED:'publisher-wait-expired',FAILED:'acquisition-or-finalization-failed'})[end.status], 'terminal failure reason');
     check(end.publisher_lease===null || keys(end.publisher_lease,['schema_version','lease_id','run_id','cohort','publisher_budget','pid','acquired_at'])
       && end.publisher_lease.schema_version==='mn-construction-publisher-lock@1.0.0' && uuid.test(end.publisher_lease.lease_id)
@@ -92,7 +101,7 @@ async function inspectJob(filename, { signal } = {}, candidate = false) {
   const finalStart={}, finalEnd={}; await read(path.join(directory,'start.json'),20000,signal,finalStart); await read(filename,30000,signal,finalEnd);
   check(finalStart.sha256===startMeter.sha256 && finalEnd.sha256===endMeter.sha256 && owned(startMeter.identity,finalStart.identity) && owned(endMeter.identity,finalEnd.identity), 'job receipts changed');
   return {status:end.status,run_id:runId,cohort:start.cohort,execution_mode:start.execution_mode,receipt_path:filename,receipt_sha256:endMeter.sha256,
-    acquisition:end.acquisition,reason:end.reason,native_execution_independently_verified:false,public_export_authorized:false,national_reporting_integrated:false};
+    acquisition:end.acquisition,reason:end.reason,...(failureDiagnostic?{failure_diagnostic:failureDiagnostic}:{}),native_execution_independently_verified:false,public_export_authorized:false,national_reporting_integrated:false};
 }
 
 export async function verifyMnConstructionAppJob(filename, options={}) { optionsOnly(options,['signal']); return inspectJob(filename,options); }
@@ -166,11 +175,12 @@ async function run(options, mode) {
     await assertDirectory();signal?.throwIfAborted();
     await link(path.join(directory,'.receipt-candidate.json'),path.join(directory,'receipt.json'));committed=true;await unlink(path.join(directory,'.receipt-candidate.json'));
     return await verifyMnConstructionAppJob(path.join(directory,'receipt.json'));
-  } catch {
+  } catch(error) {
     if(!committed && startHash) {
       const candidate=path.join(directory,'.receipt-candidate.json');
       try {await assertDirectory();if(owned(owners.get(candidate),await lstat(candidate,{bigint:true})))await unlink(candidate);}catch{/* Never remove foreign evidence. */}
       const status=signal?.aborted?'CANCELLED':waitExpired?'BLOCKED':'FAILED',reason=signal?.aborted?'job-cancelled':waitExpired?'publisher-wait-expired':'acquisition-or-finalization-failed';
+      if(status==='FAILED')try{await store('diagnostic.json',{schema_version:'mn-construction-diagnostic@1.0.0',run_id:runId,code:mnConstructionDiagnostic(error)});}catch{/* Preserve foreign history; never weaken terminal persistence. */}
       try {await store('receipt.json',terminal(start,startHash,acquisition,lease,status,reason,new Date().toISOString()));}catch{/* Preserve existing or foreign history. */}
     }
     throw Object.assign(new Error('Minnesota app job did not complete; inspect its retained operation receipt before any new acquisition.'),{run_id:runId,receipt_path:path.join(directory,'receipt.json')});

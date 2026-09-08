@@ -4,6 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { parse } from 'csv-parse';
 import { MN_CONSTRUCTION_COLUMNS } from './mn-construction-preflight.mjs';
 import { normalizeMnConstructionRecord } from './mn-construction-normalization.mjs';
+import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
 
 const VERSION = 'mn-construction-selected-stream@1.0.0';
 const LIMIT = 50_000_000, ROW_LIMIT = 250_000;
@@ -35,9 +36,11 @@ export async function processMnConstructionSelectedStream(source, { context, emi
   context={...context}; let sourceBytes=0, headerSeen=false;
   const totals=counts(), sourceHash=hash(), frameHash=hash(), decoder=new TextDecoder('utf-8',{fatal:true});
   const meter=new Transform({ transform(chunk,_encoding,callback) {
-    try { check(Buffer.isBuffer(chunk),'byte chunks required'); sourceBytes+=chunk.length;check(sourceBytes<=LIMIT,'source byte ceiling');sourceHash.update(chunk);callback(null,decoder.decode(chunk,{stream:true})); }
-    catch { callback(new Error('Invalid bounded UTF-8 source stream.')); }
-  }, flush(callback) { try {callback(null,decoder.decode());}catch {callback(new Error('Invalid bounded UTF-8 source stream.'));} } });
+    try { check(Buffer.isBuffer(chunk),'byte chunks required'); sourceBytes+=chunk.length;check(sourceBytes<=LIMIT,'source byte ceiling');sourceHash.update(chunk); }
+    catch(error) { callback(mnConstructionFailure(error,'source-byte-limit')); return; }
+    try { callback(null,decoder.decode(chunk,{stream:true})); }
+    catch(error) { callback(mnConstructionFailure(error,'source-utf8-invalid')); }
+  }, flush(callback) { try {callback(null,decoder.decode());}catch(error) {callback(mnConstructionFailure(error,'source-utf8-invalid'));} } });
   const parser=parse({bom:true,columns:columns=>{check(JSON.stringify(columns)===JSON.stringify(MN_CONSTRUCTION_COLUMNS),'column drift');headerSeen=true;return columns;},
     skip_empty_lines:false,relax_column_count:false,max_record_size:65536});
   const sink=new Writable({objectMode:true,write(row,_encoding,callback) {
@@ -56,10 +59,10 @@ export async function processMnConstructionSelectedStream(source, { context, emi
       // Hash before caller code, and pass a separate value so mutation cannot
       // change the internal digest. A durable release must replay saved frames.
       frameHash.update(encode(frame));await emit(structuredClone(frame),{signal});signal?.throwIfAborted();
-    })().then(()=>callback(),()=>callback(new Error('Selected frame processing failed.')));
+    })().then(()=>callback(),error=>callback(mnConstructionFailure(error,'selected-frame-failed')));
   }});
   try { await pipeline(source,meter,parser,sink,{signal});check(headerSeen && sourceBytes>0,'missing header');signal?.throwIfAborted(); }
-  catch { signal?.throwIfAborted();throw new Error('Minnesota selected stream failed; no completed receipt.'); }
+  catch(error) { signal?.throwIfAborted();throw Object.assign(mnConstructionFailure(error,typeof error?.code==='string' && error.code.startsWith('CSV_')?'source-csv-invalid':'source-stream-failed'),{message:'Minnesota selected stream failed; no completed receipt.'}); }
   return {schema_version:VERSION,context,source_bytes:sourceBytes,source_file_sha256:sourceHash.digest('hex'),canonical_frames_sha256:frameHash.digest('hex'),counts:totals,
     claims:claims(),mode:'caller-supplied-csv-stream',scope:'Selected accepted fields replayable; discarded source values and provider completeness are not independently replayed.'};
 }

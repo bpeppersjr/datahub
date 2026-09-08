@@ -9,7 +9,7 @@ import { validateMnConstructionAppEnrollment } from './mn-construction-app.mjs';
 import { loadIndustryConfig, buildIndustryPlan } from './industry-segments.mjs';
 
 const noticePath=path.join(APP_ROOT,'data/business-sources/mn-dli-construction/source-use/4326f062-55dd-4469-9d4b-0631b9eefe67.json');
-for(const mode of ['success','tamper','parallel','busy','busy-cancel','invalid','enrollment-drift','http-failure','cancel-transfer','cancel-after-commit','late-failure','checkpoint-tamper','failed-cohort-tamper'])test(`MN app lifecycle: ${mode}`,async t=>{
+for(const mode of ['success','tamper','parallel','busy','busy-cancel','invalid','enrollment-drift','http-failure','invalid-utf8','cancel-transfer','cancel-after-commit','late-failure','checkpoint-tamper','failed-cohort-tamper'])test(`MN app lifecycle: ${mode}`,async t=>{
   let notice;try{notice=await readFile(noticePath);}catch(error){if(error.code==='ENOENT'){t.skip('Retained internal notice fixture absent; no fixture is downloaded.');return;}throw error;}
   assert.equal(createHash('sha256').update(notice).digest('hex'),'e7e0f8f7a4c3b9098c8c79fbae18cebd236bdb704e119aeb5673e629170445b8');
   const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/mn-app-test-'));await mkdir(path.join(root,'config/source-policies'),{recursive:true});

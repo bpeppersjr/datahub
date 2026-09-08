@@ -10,6 +10,7 @@ import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
 import { MN_CONSTRUCTION_COLUMNS, MN_CONSTRUCTION_EXPORTS, preflightMnConstruction } from './mn-construction-preflight.mjs';
 import { createMnConstructionExportStream } from './mn-construction-transport.mjs';
+import { mnConstructionDiagnostic } from './mn-construction-diagnostics.mjs';
 import { buildMnConstructionAcquiredSelection } from './mn-construction-acquired-selection.mjs';
 import { buildMnConstructionRetainedSelection, verifyMnConstructionRetainedSelection } from './mn-construction-retained-selection.mjs';
 import { captureMnConstructionNotices } from './mn-construction-notices.mjs';
@@ -31,6 +32,15 @@ async function fixture(change = () => {}, observedAt = at) {
   return { calls, waits, options };
 }
 async function consume(transport) { const chunks = []; for await (const chunk of transport.stream) chunks.push(chunk); return Buffer.concat(chunks); }
+
+test('MN diagnostics distinguish initial request failure from final identity failure', async () => {
+  for(const failedCall of [1,3]) {
+    const f=await fixture(call=>call===failedCall?new Response(null,{status:412}):undefined);
+    await assert.rejects(consume(createMnConstructionExportStream(f.options)),error=>{
+      assert.equal(mnConstructionDiagnostic(error),failedCall===1?'transport-request-failed':'transport-final-check-failed');return true;
+    });
+  }
+});
 
 test('MN transport snapshots schema, measures bytes and gates EOF on fixed HEAD GET HEAD and finish hook', async () => {
   const f = await fixture(); let before = 0, after = 0;
