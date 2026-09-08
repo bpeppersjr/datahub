@@ -1,5 +1,31 @@
 # Tennessee childcare connector development
 
+## Verified recovered source release
+
+Standalone offline recovery completed at processing time `2026-09-08T00:57:19.864Z`, retaining original source observation `2026-09-08T00:36:36.628Z`. Immutable manifest: `data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json`; SHA-256 `98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d`. The recovered current pointer references this exact manifest. Source identity remains `tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7`.
+
+All 1,863 selected records are accepted, with zero quarantines. Of those, 1,691 have source ZIPs, 27 have missing-source-ZIP flags and 145 have invalid-source-placeholder flags; three coordinate pairs remain missing. These are retained source records, not verified unique operating businesses or a complete Tennessee childcare census. Missing ZIPs remain unassigned postal evidence, not manufactured ZIP coverage.
+
+The recovery command and a separate verifier process ran with `fetch` disabled. All seven artifacts independently replayed, the current pointer hash matched, and no owned staging remained. The original failed run and source bytes were preserved; recovery did not reacquire data, change its observation date, or change national production inputs. All 715 repository tests, lint, web/desktop builds, desktop smoke and TypeScript passed; production dependency audit reported zero vulnerabilities. Independent review covered self-contained verification with the entire original run unavailable, malformed-pointer protection, disjoint output paths, input/output tamper rejection, cooperative cancellation and the unchanged five-percent gate.
+
+Next use this verified local-review release for a Tennessee registry loader/adapter. No national reporting promotion, export approval, recurring refresh or increased all-business completeness is claimed. Rollback is additive: stop selecting the recovered source, preserve its immutable release and the original failed evidence, and leave other source pointers unchanged.
+
+## Offline recovered-release contract
+
+Recovery is a distinct application operation, not a retry of the downloader. It must accept the exact failed receipt, staging directory and four reviewed SHA-256 pins, run the read-only inspector first, then create a new immutable release under a separate recovered output root. It must not modify the failed job, reclaim its locks, overwrite source files, fetch publisher data or advance the source observation time.
+
+The recovered release must retain byte-identical selected features, acquisition observations, publisher XML, failed app receipt and failure log. Normalized rows use explicit transformation 1.0.1; accepted/quarantined counts are replayed and the five-percent gate stays unchanged. Missing ZIPs are accepted source evidence with explicit quality gaps, not verified postal assignments. Publication time and recovery processing time are not evidence of fresh publisher data.
+
+The independent verifier must operate entirely from the immutable recovered directory. It must validate the copied failed-run/task/log lineage, reproduce the original 1.0.0 failure, replay the complete acquisition, revalidate the local source-policy configuration and reproduce exact 1.0.1 normalized/quarantine bytes. Parent receipt/artifact hashes are provenance anchors, not signatures authenticating the publisher. The original staging location may remain archived or unavailable without making the recovered release unverifiable.
+
+Publication uses an exclusive output lock, owned run staging, verification immediately before commit and an atomic current-pointer replacement. Cooperative cancellation applies before commit; a disk failure after release rename can leave an unpointed release requiring inspection. Do not automatically steal locks, remove foreign files or restart acquisition after ambiguous publication.
+
+The standalone commands are `npm run tn-childcare:recover -- <explicit pinned options>` and `npm run tn-childcare:verify-recovered -- <immutable manifest path>`. Recovery takes `--receipt`, `--staging`, `--receipt-sha256`, `--selected-sha256`, `--observation-sha256`, `--xml-sha256` and an optional separate `--output` inside `datahub`. There is no URL, transport, transformation or quality-limit override. The recovery manifest identifies connector 1.0.1 and recovery implementation 1.0.0, while legacy acquisition remains connector/transformation 1.0.0. This is a standalone command, not an automatically enabled recurring schedule or a newly added UI control.
+
+### National integration still required
+
+Source publication alone does not add Tennessee to national reporting. A separate verified loader and adapter must retain the failed-run recovery lineage, source status and missing-ZIP reasons. Source-relative site/establishment evidence must not imply ownership, independently verified operation or cross-source identity matching. Missing ZIPs must not produce a fabricated `site.zip-code` assertion. Coordinate-derived Census geography may support reporting, but cannot replace the unavailable source ZIP or establish USPS validity. Keep Tennessee's DHS-center-only denominator distinct from Massachusetts/New Jersey scopes and expose the missing-coordinate and postal gaps in downstream counts.
+
 ## First acquisition outcome and offline recovery boundary
 
 App run `tn-app-acquisition-20260907-01` finished **failed** at `2026-09-08T00:36:36.778Z`. Acquisition completed, but normalization 1.0.0 accepted only 1,691 of 1,863 selected records. The 172 rejected records exceed the unchanged five-percent quarantine gate: 145 contain source ZIP string `0`, and 27 contain an empty ZIP. These are unavailable postal values, not compact ZIP+4 formatting. No source release or current pointer was published. Do not rerun acquisition to repair these retained values.

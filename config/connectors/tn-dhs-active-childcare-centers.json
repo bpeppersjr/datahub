@@ -3,6 +3,17 @@
   "version": "1.0.0",
   "description": "Acquires and verifies exact center-filtered Tennessee DHS/STS GIS records with publisher metadata as immutable local-review evidence; not a national registry contribution or all-childcare census.",
   "implementation_status": "standalone-acquisition-and-local-release",
+  "offline_recovery": {
+    "implementation": "scripts/recover-tn-childcare.mjs",
+    "verification": "scripts/verify-tn-childcare-recovered.mjs",
+    "transformation_version": "tn-childcare-normalization@1.0.1",
+    "input": "Explicit failed industry receipt, exact retained staging path and SHA-256 pins for receipt, selected features, source observations and publisher XML. No caller-selected network source.",
+    "output_root": "data/business-sources/tn-dhs-active-childcare-centers-recovered",
+    "network_requests": 0,
+    "postal_gap_handling": "Unavailable source ZIPs become null zip_code, postal_code and zip4 with explicit quality reasons; coordinates and Census geography never supply an invented USPS ZIP.",
+    "lineage": "Preserve byte-identical source evidence, failed receipt and failure log; independently replay original quality failure and recovered normalization. Original observation time is separate from processing time.",
+    "limits": "Same acquisition replay bounds and five-percent quarantine gate; exclusive publication lock, immutable run identity, no automatic lock recovery or acquisition retry. National reporting integration remains separate."
+  },
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": { "type": "object", "additionalProperties": false, "properties": { "output": { "type": "string", "minLength": 1, "default": "data/business-sources/tn-dhs-active-childcare-centers" } } },
   "named_secret_references": [],

@@ -30,6 +30,8 @@
     "tn-childcare:build": "node scripts/build-tn-childcare.mjs",
     "tn-childcare:verify": "node scripts/verify-tn-childcare.mjs",
     "tn-childcare:inspect-recovery": "node scripts/inspect-tn-childcare-recovery.mjs",
+    "tn-childcare:recover": "node scripts/recover-tn-childcare.mjs",
+    "tn-childcare:verify-recovered": "node scripts/verify-tn-childcare-recovered.mjs",
     "nj-childcare:build": "node scripts/build-nj-childcare.mjs",
     "nj-childcare:verify": "node scripts/verify-nj-childcare.mjs",
     "nj-childcare:reprocess": "node scripts/reprocess-nj-childcare.mjs",

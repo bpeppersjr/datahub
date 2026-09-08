@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -20,6 +20,18 @@ const validPolicy = {
   retention: "Delete after testing.",
   redistribution: "Not authorized.",
 };
+
+test("TN connector manifest separates pinned offline recovery from the legacy acquisition contract", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../config/connectors/tn-dhs-active-childcare-centers.json", import.meta.url), "utf8"));
+  assert.equal(manifest.version, "1.0.0");
+  assert.equal(manifest.output_schema_contract.transformation_version, "tn-childcare-normalization@1.0.0");
+  assert.equal(manifest.offline_recovery.transformation_version, "tn-childcare-normalization@1.0.1");
+  assert.equal(manifest.offline_recovery.network_requests, 0);
+  assert.equal(manifest.offline_recovery.implementation, "scripts/recover-tn-childcare.mjs");
+  assert.equal(manifest.offline_recovery.verification, "scripts/verify-tn-childcare-recovered.mjs");
+  assert.notEqual(manifest.offline_recovery.output_root, manifest.configuration_schema.properties.output.default);
+  assert.equal(manifest.execution_limits.maximum_quarantine_rate, 0.05);
+});
 
 const validManifest = {
   connector_id: "fixture",
