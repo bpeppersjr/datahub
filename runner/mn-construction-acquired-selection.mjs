@@ -44,7 +44,9 @@ export async function buildMnConstructionAcquiredSelection(options = {}) {
   try {
     const bundle = await buildMnConstructionRetainedSelection(transport.stream, { context, signal, ...(outputRoot === undefined ? {} : { outputRoot }) });
     const measured = transport.receipt();
-    const verified = await verifyMnConstructionRetainedSelection(bundle.manifest_path, { signal });
+    // A committed child must retain its parent evidence even if cancellation
+    // arrives now. Finish bounded local verification; do not issue new requests.
+    const verified = await verifyMnConstructionRetainedSelection(bundle.manifest_path);
     // Use the same bounded, verified read rather than reopening a mutable path.
     const selected = verified.selection_receipt;
     check(selected.source_bytes === measured.source_bytes && selected.source_file_sha256 === measured.source_file_sha256

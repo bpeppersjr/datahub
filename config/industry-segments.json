@@ -7,13 +7,33 @@
     "health-care": ["national-nppes-organizations"],
     "financial-services": ["national-fdic-bankfind", "national-ncua-quarterly"],
     "transportation": ["national-fmcsa-census"],
-    "construction": ["state-wa-contractors"],
+    "construction": ["state-wa-contractors", "state-mn-contractor-registrations", "state-mn-residential-contractors"],
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses"],
     "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]
   },
   "sources": {
+    "state-mn-contractor-registrations": {
+      "script": "scripts/build-mn-contractor-registrations.mjs",
+      "scope": "state", "states": ["MN"], "state_filter_supported": false,
+      "prerequisites": ["config/mn-construction-app-enrollment.json"],
+      "coverage_notes": [
+        "Minnesota DLI literal Business, Issued contractor-registration records. Registration is not a license or proof of an operating business.",
+        "Shared publisher gate, bounded cancellable local waiting and no network retries. Raw CSV and rejected personal values are not retained; ZIP5 and ZIP4 stay separate.",
+        "Durable app receipts pin internal selected evidence and local-review normalization. No inferred physical sites, geocodes, ownership or national completeness. Schedules and automatic restart remain disabled."
+      ]
+    },
+    "state-mn-residential-contractors": {
+      "script": "scripts/build-mn-residential-contractors.mjs",
+      "scope": "state", "states": ["MN"], "state_filter_supported": false,
+      "prerequisites": ["config/mn-construction-app-enrollment.json"],
+      "coverage_notes": [
+        "Minnesota DLI literal Business, Issued residential contractor credentials. Personal qualification records are excluded; source status is not proof of an operating business.",
+        "Shared publisher gate, bounded cancellable local waiting and no network retries. Raw CSV and rejected personal values are not retained; ZIP5 and ZIP4 stay separate.",
+        "Durable app receipts pin internal selected evidence and local-review normalization. No inferred physical sites, geocodes, ownership or national completeness. Schedules and automatic restart remain disabled."
+      ]
+    },
     "state-oh-childcare": {
       "script": "scripts/build-oh-childcare.mjs",
       "scope": "state",

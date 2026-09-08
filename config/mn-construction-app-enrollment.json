@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0.0",
+  "enrollment_id": "mn-construction-app@1.0.0",
+  "runtime_enrolled": true,
+  "cohorts": {
+    "registrations": "scripts/build-mn-contractor-registrations.mjs",
+    "residential": "scripts/build-mn-residential-contractors.mjs"
+  },
+  "state": "MN",
+  "industry": "construction",
+  "source_use_policy": "config/source-policies/mn-construction-internal-acquisition.json",
+  "source_use_policy_sha256": "6414af8d16b149d9087ae65cb930556248ce897c0322dd3bf16d003366cdf526",
+  "readiness_interpretation": "Completes runtime prerequisites without rewriting historical source-use bindings. Every new acquisition still requires current matching notices and schema, a shared publisher lease and durable operation history.",
+  "configuration": { "allowed_cli_options": ["--output"], "network_overrides": false, "named_secrets": [] },
+  "allowed_hosts": ["dli.mn.gov", "secure.doli.state.mn.us"],
+  "provider_budget_key": "mn-dli-construction",
+  "minimum_request_spacing_ms": 1000,
+  "maximum_export_bytes": 50000000,
+  "maximum_source_records": 250000,
+  "minimum_free_disk_bytes": 1500000000,
+  "maximum_publisher_wait_ms": 900000,
+  "publisher_wait_interval_ms": 1000,
+  "network_retries": 0,
+  "automatic_restart": false,
+  "automatic_schedule_activation": false,
+  "checkpoint_contract": "Start before any request; current notice and schema evidence before CSV; committed parent acquisition reference preserved even if cancelled before terminal success.",
+  "cancellation": "Cooperative IPC and AbortSignal; finish bounded local committed-evidence finalization, preserve completed bundles and history, release only the owned publisher gate after handover pacing.",
+  "retention": "Internal selected records and notices; local-review normalization. No raw CSV, rejected personal values, automatic deletion or inferred physical sites.",
+  "national_reporting_integrated": false,
+  "source_authenticity_verified": false,
+  "legal_approval": false,
+  "public_export_authorized": false
+}

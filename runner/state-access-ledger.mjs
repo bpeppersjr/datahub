@@ -14,6 +14,9 @@ const PROFILE_IDS = Object.freeze({
   "state-ny-retail-food": "new-york-agriculture-markets-retail-food-stores",
   "state-ca-abc": "california-abc-daily-active-licenses",
   "state-wa-contractors": null,
+  // App enrollment is not evidence of national reporting coverage.
+  "state-mn-contractor-registrations": null,
+  "state-mn-residential-contractors": null,
   "state-tx-sales-tax": "texas-comptroller-active-sales-tax-permits",
   "state-dc-basic-licenses": "dc-dlcp-active-basic-business-licenses",
   "state-ma-childcare": "ma-licensed-center-based-childcare",

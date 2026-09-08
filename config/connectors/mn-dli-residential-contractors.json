@@ -1,0 +1,82 @@
+{
+  "connector_id": "mn-dli-residential-contractors",
+  "version": "1.0.0",
+  "description": "Fixed Minnesota business-credential acquisition with current source-use prerequisites, shared publisher exclusion and durable app evidence; not a business census.",
+  "implementation_status": "standalone-app-acquisition-and-local-release",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "output": {
+        "type": "string",
+        "minLength": 1,
+        "default": "data/business-sources/mn-dli-construction/app"
+      }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "mn-construction-notices-json",
+    "mn-construction-schema-preflight-json",
+    "mn-construction-csv-stream"
+  ],
+  "output_artifact_types": [
+    "mn-construction-app-receipt",
+    "mn-construction-acquisition-receipt",
+    "mn-construction-selected-jsonl",
+    "mn-construction-local-review-normalized-jsonl"
+  ],
+  "allowed_hosts": [
+    "dli.mn.gov",
+    "secure.doli.state.mn.us"
+  ],
+  "redirect_policy": "Fixed URLs only; reject redirects and omit credentials. No caller network, clock, field or budget overrides.",
+  "provider_budget_key": "mn-dli-construction",
+  "resource_class": "bounded-network-memory-disk",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_source_records": 250000,
+    "maximum_export_bytes": 50000000,
+    "minimum_free_disk_bytes": 1500000000,
+    "header_timeout_ms": 15000,
+    "body_timeout_ms": 120000,
+    "request_spacing_ms": 1000,
+    "maximum_publisher_wait_ms": 900000
+  },
+  "retry": "Zero network retries. Wait up to fifteen minutes for the shared local gate with cooperative cancellation; no automatic source reacquisition or interrupted-job restart.",
+  "checkpoint": "Start before requests, complete notices and schema evidence before CSV, immutable parent acquisition checkpoint before terminal completion. Reuse retained data for downstream promotion.",
+  "idempotency": "UUID job and receipt history. New acquisition is explicit; no automatic freshness deduplication or overwrite.",
+  "cancellation": "Cooperative AbortSignal/IPC, complete committed local evidence finalization, retain finished bundles and app history, remove only the owned publisher lock after handover spacing.",
+  "source_policy": "config/source-policies/mn-construction-internal-acquisition.json",
+  "runtime_enrollment": "config/mn-construction-app-enrollment.json",
+  "retention_profile": "Internal selected evidence and publisher notices; local-review normalization. No raw CSV or rejected personal values. Operator-governed deletion.",
+  "produced_entities": [
+    "business-credential-source-record",
+    "reported-address-assertion"
+  ],
+  "produced_identifiers": [
+    "mn_dli_credential_number",
+    "source-row-ordinal",
+    "zip5",
+    "zip4"
+  ],
+  "output_schema_contract": {
+    "app_receipt_version": "mn-construction-app@1.0.0",
+    "acquisition_receipt_version": "mn-construction-acquisition-receipt@1.0.0",
+    "cohort": "residential",
+    "postal_fields": "Separate nullable ZIP5/ZIP4; no inferred geography.",
+    "geocode": "Nullable latitude/longitude only; these sources do not establish geocodes or physical premises.",
+    "claims": "Source credentials and Issued status are not verified active establishments, unique business identities or national completeness."
+  }
+}

@@ -115,6 +115,19 @@ test('OH native enrollment remains unmeasured and does not imply national integr
   assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
 });
 
+test('MN construction app enrollment does not manufacture national coverage or dispatch', async (t) => {
+  const f = await fixture(t);
+  await copyFile(path.join(APP_ROOT, 'config/mn-construction-app-enrollment.json'), path.join(f.root, 'config/mn-construction-app-enrollment.json'));
+  const ledger = await buildStateAccessLedger(f);
+  const cell = ledger.jurisdictions.find(r => r.state === 'MN').industries.find(r => r.industry === 'construction');
+  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.deepEqual(cell.appHandoff.configuredSources.map(s => s.sourceId).sort(), ['state-mn-contractor-registrations', 'state-mn-residential-contractors']);
+  for (const source of cell.appHandoff.configuredSources) assert.equal(source.prerequisiteStatus, 'PRESENT');
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+});
+
 async function childcareCounts(f, value) {
   const artifact=f.manifest.artifacts.find(a=>a.artifact_type==='state-coverage-view-jsonl');
   const file=path.join(f.root,path.dirname(f.manifestPath),artifact.path);
