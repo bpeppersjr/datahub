@@ -42,6 +42,18 @@ test('PA childcare enrollment identifies app execution without fabricated covera
   assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
 });
 
+test('CT childcare app enrollment does not manufacture national coverage or dispatch',async t=>{
+  const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8'));
+  for(const prerequisite of config.sources['state-ct-childcare-centers'].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='CT').industries.find(r=>r.industry==='childcare');
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId,'state-ct-childcare-centers');
+  assert.equal(cell.appHandoff.configuredSources[0].acquisitionExecutor,'cotive-app');
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');
+  assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+});
+
 test('PA reporting binding with uninstalled retained files is unavailable rather than zero coverage',async t=>{
   const f=await fixture(t);await copyFile(path.join(APP_ROOT,'config/pa-childcare-reporting-enrollment.json'),path.join(f.root,'config/pa-childcare-reporting-enrollment.json'));
   const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='PA').industries.find(r=>r.industry==='childcare');

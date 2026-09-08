@@ -39,6 +39,8 @@ The tested normalization layer is a prerequisite to the standalone CT worker. Th
 
 The handoff review calls for fixed native and explicit retained entry points, CT-wide publisher exclusion in addition to output ownership, durable start/acquired/normalized/terminal receipts, a bounded application deadline, and managed cancellation grace. The normalized manifest binds acquisition execution mode as well as its path/hash/run; future app verification must check all four. Source-candidate counts must not be presented as verified physical-site counts.
 
+Those worker entry points and receipt bindings are now implemented in the [standalone CT app handoff](CT-CHILDCARE-APP.md). Its actual dispatch evidence is documented separately; normalization itself still makes no network requests.
+
 Rollback stops using this derivation entry point. Preserve acquired and derived evidence; no source-current or national pointer is replaced here.
 
 ## Verification — September 8, 2026

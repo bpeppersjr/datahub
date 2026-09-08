@@ -483,6 +483,8 @@ Connecticut selected-source acquisition (September 8): the [bounded acquisition 
 
 Connecticut source-candidate normalization (September 8): the [offline normalized release](CT-CHILDCARE-NORMALIZATION.md) preserves opaque row identity, repeated credentials, exact sparse selected input, reported-address gaps and separate ZIP5/ZIP4. Calendar validity does not invent a timezone; capacity parsing preserves raw evidence. Derivatives bind and replay acquired manifests, conserve accepted plus quarantined rows, and make no source requests. The app handoff review identifies remaining fixed-native/retained worker entry points, publisher exclusion, durable linked receipts and managed cancellation tests before collection dispatch.
 
+Connecticut app ownership (September 8): the [standalone worker and managed enrollment](CT-CHILDCARE-APP.md) passed synthetic lifecycle/reuse/cancellation tests and full repository validation. Co*Tive accepted CT-only operation `efd15ce2-6bba-4096-9084-7ace88ea0695` with a persisted receipt. The app owns ongoing acquisition and normalization; agents do not wait on download progress. Accepted dispatch is not terminal success or measured coverage. Verify its eventual terminal child receipts before integrating local reporting, reusing retained acquisition rather than repulling. No national production or recurring schedule was launched.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers"]
   },
   "sources": {
+    "state-ct-childcare-centers": {
+      "script": "scripts/build-ct-childcare.mjs",
+      "scope": "state", "states": ["CT"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/ct-childcare-centers-app.json", "config/connectors/ct-childcare-centers-acquisition.json", "config/connectors/ct-childcare-centers-normalization.json", "config/source-policies/ct-childcare-centers-internal.json", "config/connectors/ct-childcare-preflight.json", "config/source-policies/ct-childcare-preflight.json"],
+      "coverage_notes": [
+        "Connecticut OEC ACTIVE Child Care Center source rows only, not verified operating businesses or physical sites; repeated credentials remain separate source candidates.",
+        "Co*Tive owns bounded serial native collection with paired schema/count checks, membership reconciliation and durable page journals. No automatic retry, restart or recurring schedule is enabled.",
+        "ZIP5 and ZIP4 remain separate. Missing reported address fields remain gaps; all coordinates are null because none are selected. No business polygons, identity matching or public export.",
+        "UUID receipts bind independently verified acquired and normalized releases. Explicit retained-input reuse avoids downloading again. App enrollment does not promote national reporting or replace existing source pointers."
+      ]
+    },
     "state-pa-childcare-centers": {
       "script": "scripts/build-pa-childcare.mjs",
       "scope": "state", "states": ["PA"], "state_filter_supported": false,
