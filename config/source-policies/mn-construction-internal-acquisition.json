@@ -1,0 +1,67 @@
+{
+  "policy_id": "mn-construction-internal-acquisition",
+  "version": "1.0.0",
+  "status": "conditional-internal-acquisition",
+  "publisher": "Minnesota Department of Labor and Industry, Construction Codes and Licensing Division",
+  "ownership": "Publisher-offered construction credential exports; DLI's notice describes its information and documents as public domain.",
+  "source_home": "https://dli.mn.gov/license-and-registration-lookup",
+  "terms_url": "https://dli.mn.gov/about-department/about-dli/disclaimer",
+  "source_datasets": [
+    "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Contractor_Registrations.csv",
+    "https://secure.doli.state.mn.us/ccld/data/MNDLILicRegCertExport_Residential_Contractors.csv"
+  ],
+  "allowed_use": [
+    "bounded anonymous HTTPS notice and schema checks",
+    "conditional internal acquisition of the two fixed exports after fresh unchanged article evidence and enrolled app-operation prerequisites",
+    "streaming business-credential selection with unselected and rejected personal values excluded before durable staging",
+    "immutable internal selected evidence and local-review normalized records; local replay without another acquisition"
+  ],
+  "prohibited_use": [
+    "accepting agreements, creating accounts or bypassing provider restrictions",
+    "treating personal qualification records as businesses, registrations as licenses, or Issued status as verified business operations",
+    "publishing source documents, raw CSV, contacts, rejected personal values, logos or implied DLI endorsement",
+    "inferring physical sites, geocodes, ZIP assignments, closure, parent company, ownership, NAICS or unique business identity without evidence",
+    "treating a prior source-use binding as permission for a new acquisition after its freshness window"
+  ],
+  "selected_fields": ["Bus_Pers", "Lic_Number", "Status", "Name", "DBA_Name", "Addr1", "Addr2", "City", "St", "Zip", "Orig_Date", "Exp_Date"],
+  "field_export_policy": {
+    "raw_csv": "stream-in-memory-only-not-retained",
+    "accepted_selected_fields": "internal",
+    "normalized_records": "local-review-only",
+    "rejected_rows": "ordinal-and-finite-reason-only",
+    "contacts_and_unselected_fields": "excluded-before-staging",
+    "notice_articles": "internal-evidence-link-to-publisher-not-public-rehosting"
+  },
+  "attribution": "Minnesota Department of Labor and Industry, Construction Codes and Licensing Division",
+  "retention": "Keep immutable selected evidence and normalized bundles for reuse; no automatic deletion. Do not retain full CSV or rejected personal values.",
+  "redistribution": "Record-level and document redistribution is not authorized by this profile. Preserve direct publisher links, attribution and non-endorsement boundaries.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business/DBA names may identify sole proprietors and reported addresses may be residences. Keep record-level evidence internal/local-review-only and do not claim a verified operating location.",
+  "contains_secrets": false,
+  "acquisition_authorized": true,
+  "connector_ready": false,
+  "dispatch_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "export_authorized": false,
+  "reviewed_at": "2026-09-08",
+  "notice_article_sha256": [
+    "dd26725b6437d753ac3c6edc71049251e7fee3acbe48f96ceda7a1f548e51a87",
+    "0bdbdb92cec6894c4773b702691bfa5606801291eb5884ee33873cf4e489be5d"
+  ],
+  "notice_scope": "Complete single article HTML, including article navigation and links, with CRLF normalized to LF. External linked pages and page content outside the article are not included in these fingerprints; this is not a comprehensive legal determination.",
+  "review_evidence": "data/business-sources/mn-dli-construction/source-use/4326f062-55dd-4469-9d4b-0631b9eefe67.json",
+  "review_evidence_sha256": "e7e0f8f7a4c3b9098c8c79fbae18cebd236bdb704e119aeb5673e629170445b8",
+  "runtime_requirements": {
+    "maximum_notice_age_ms": 900000,
+    "minimum_request_interval_ms": 1000,
+    "maximum_export_bytes": 50000000,
+    "automatic_request_retries": 0,
+    "operation_receipt_required": true,
+    "fresh_binding_before_source_rows": true,
+    "fresh_notice_recheck_after_acquisition": true,
+    "measured_transport_and_source_identity_required": true,
+    "independent_retained_bundle_verification_required": true,
+    "native_app_enrollment_required": true
+  }
+}
