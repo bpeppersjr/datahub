@@ -24,4 +24,3 @@ try {
   const code=allowed.includes(supplied)?supplied:'CT_CHILDCARE_CLI_FAILED';
   process.stderr.write(`${code}: Connecticut collection did not finalize cleanly. Preserve and inspect app receipts and child releases before retrying.\n`);process.exitCode=1;
 } finally {cancellation.dispose();}
-
