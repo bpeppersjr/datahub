@@ -25,3 +25,11 @@ The Lincoln municipal childcare layer surfaced in search but is geographically l
 Perform a bounded official NebraskaMAP catalog inspection to resolve its currently published childcare item and service URL, following links actually present in the catalog. Read item/layer metadata and source-use notices only. Require exact publisher identity, layer scope, schema, status vocabulary, timestamps, CRS/point derivation and documented query/pagination capability before proposing a metadata/count-only preflight. If no statewide item is published, request DHHS's documented machine-readable center extract and its retention/use conditions rather than automating reCAPTCHA search or parsing an unreviewed mixed home-provider roster. Do not acquire rows until that source contract and a privacy-selected field roster are reviewed.
 
 No tests or runtime changes were needed for this documentation-only triage.
+
+## Bounded catalog follow-up
+
+The requested rendered-catalog follow-up could not obtain a browser: the computer-use browser entry returned `No browser is available`. This is an agent-environment limitation, not a Nebraska access refusal, CAPTCHA result, or authentication challenge.
+
+Two bounded anonymous GET inspections of the already linked [NebraskaMAP homepage](https://www.nebraskamap.gov/) followed. The first returned HTTP 200 and 82,185 bytes; the second also returned HTTP 200. Both were limited to a 2 MB response and 15-second request timeout, with redirects rejected. HTML link inspection found the ArcGIS Hub application assets and Nebraska branding, but no childcare catalog-item/service link or childcare text. No application JavaScript, inferred REST endpoint, item-ID inventory, provider records or query-feature response was fetched. HTML was examined in memory and not saved.
+
+Accordingly, the current owner, childcare layer, selected schema, edit clock and dataset-use notice remain unresolved. The next useful step is the official catalog in an available interactive browser, or a publisher-supplied current item link; repeating static homepage requests will not establish those facts. This outcome does not establish that NebraskaMAP lacks a childcare dataset and does not change the existing source or acquisition gates.
