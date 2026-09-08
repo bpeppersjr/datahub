@@ -1,0 +1,23 @@
+{
+  "connector_id": "pa-childcare-centers-acquisition",
+  "version": "1.0.0",
+  "description": "Bounded selected-source acquisition and immutable offline replay for PA DHS listed Child Care Centers; normalization and managed app enrollment are separate.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["live-paired-pa-childcare-preflights", "center-only-membership-and-selected-pages"],
+  "output_artifact_types": ["pa-childcare-immutable-acquired-evidence"],
+  "allowed_hosts": ["data.pa.gov"],
+  "redirect_policy": "Reject all redirects. Fixed ajn5-kaxt SODA2 endpoints and portal policy only; no alternate hosts or credential fallback.",
+  "provider_budget_key": "pa-dhs-childcare-soda2",
+  "resource_class": "bounded-state-industry-acquisition",
+  "execution_limits": {"max_parallel_requests":1,"maximum_requests":80,"minimum_request_spacing_ms":1000,"maximum_response_bytes":8000000,"maximum_non_page_response_bytes":2000000,"maximum_consumed_body_bytes":150000000,"request_timeout_ms":30000,"cooperative_execution_deadline_ms":900000,"page_size":500,"maximum_source_rows":20000,"minimum_disk_free_bytes":500000000},
+  "retry": "No automatic retries. HTTP errors and publisher deferral stop the attempt without acquiring replacement data or falling back to another API.",
+  "checkpoint": "Await durable prerequisite retention before membership requests; await each validated observation's journal before the next request. Save complete verified acquisition before any downstream normalization.",
+  "idempotency": "Immutable UUID-scoped acquisition. Never overwrite or repull a retained release for offline verification or promotion. Interrupted partial acquisition is inspectable, not automatically resumable.",
+  "cancellation": "Cooperative cancellation through requests, pacing, replay and precommit persistence. Only owned incomplete cancellation artifacts may be cleaned; preserve uncertain postcommit evidence for inspection.",
+  "source_policy": "config/source-policies/pa-childcare-centers-internal.json",
+  "retention_profile": "Internal selected facility source data and complete accompanying notices; raw catalog contact caches are never retained.",
+  "produced_entities": ["publisher-listed-childcare-facility-source-record"],
+  "produced_identifiers": ["pa-dhs-master-provider-location-index", "pa-dhs-license-number"]
+}

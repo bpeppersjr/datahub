@@ -1,0 +1,23 @@
+{
+  "policy_id": "pa-childcare-centers-internal",
+  "version": "1.0.0",
+  "publisher": "Pennsylvania Department of Human Services / PA Open Data Portal",
+  "ownership": "Publisher's monthly childcare and early-learning listing, restricted here to listed Child Care Centers and selected facility fields.",
+  "source_dataset": "https://data.pa.gov/resource/ajn5-kaxt.json",
+  "terms_url": "https://data.pa.gov/data-policy",
+  "allowed_use": ["bounded anonymous acquisition of the selected center-only facility records", "internal immutable selected-source retention, verification and later local normalization/reconciliation"],
+  "prohibited_use": ["acquiring home-provider or other early-learning categories under this profile", "requesting or retaining person, contact, phone, fax, email, legal-entity or catalog cached sample fields", "interpreting license/list membership as independently verified active operations or unique businesses", "public export or unrestricted redistribution under this internal profile"],
+  "export_policy": "internal",
+  "field_export_policy": {"selected_facility_fields": "internal", "source_notices_and_schema": "internal-accompanying-evidence", "unselected_fields": "excluded-before-retention"},
+  "attribution": "Pennsylvania Department of Human Services; data retrieved from data.pa.gov",
+  "retention": "Preserve verified immutable acquisitions for offline reuse; preserve ordinary-failure evidence for inspection. No automatic deletion or source-current replacement.",
+  "redistribution": "This implementation permits internal use only. Public field-level export requires a separately implemented review and export policy; the portal itself offers datasets free and without restriction, with applicable legal protections remaining in force.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Facility names or addresses can incidentally identify a person. Exclude home-provider categories and person/contact fields, use no people enrichment, restrict retained evidence to internal storage.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": true,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "authorization_basis": "Existing user instruction to acquire authorized US business data, official portal free-use notice reviewed September 8 2026, and this bounded internal facility-only scope; no click-through agreement or fee is accepted.",
+  "reviewed_policy_fragment_sha256": "a250152c4dbaab52a3e1047bb57bf4346261bd7d9d6d40d2a1922147b3c7edf3"
+}

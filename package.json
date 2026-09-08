@@ -147,7 +147,7 @@
     "build": "npm run build:web && npm run desktop:build",
     "start": "npm run desktop",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern desktop-dist --ignore-pattern .next",
-    "test": "node --test runner/*.test.mjs",
+    "test": "node --test --test-concurrency=4 runner/*.test.mjs",
     "check": "npm run state-source-discovery:check && npm run state-source-assessments:check && npm run connectors:check && npm run test && npm run lint && npm run build && npm run test:desktop"
   },
   "dependencies": {
