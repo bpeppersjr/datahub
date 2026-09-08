@@ -43,6 +43,10 @@ if(mode==='success' || mode==='tamper' || mode==='mixed-encoding'){
   assert.equal(calls.length,13);assert.equal(calls.filter(c=>c.method==='GET'&&!c.range&&MN_CONSTRUCTION_EXPORTS.includes(c.url)).length,1);
   assert.ok(!JSON.stringify(result).includes('PRIVATE'));await assert.rejects(readFile(lockFile),{code:'ENOENT'});
   assert.deepEqual(await verify(result.receipt_path),result);
+  const {summarizeMnConstructionAppJob}=await import('../mn-construction-reporting.mjs');
+  const summary=await summarizeMnConstructionAppJob(result.receipt_path);
+  assert.equal(summary.accepted_credential_rows,result.acquisition.counts.accepted_records);assert.equal(summary.semantics.unique_business_count,null);
+  assert.equal(summary.by_reported_state[0].percent_of_this_accepted_cohort,100);assert.equal(summary.provenance.app_receipt_sha256,result.receipt_sha256);
   if(mode==='tamper'){const receipt=JSON.parse(await readFile(result.receipt_path,'utf8'));receipt.public_export_authorized=true;await writeFile(result.receipt_path,JSON.stringify(receipt));await assert.rejects(verify(result.receipt_path));}
   process.stdout.write(JSON.stringify({status:'PASS',case:mode,app_receipt:result.receipt_path,requests:calls.length}));
 }else if(mode==='parallel'){

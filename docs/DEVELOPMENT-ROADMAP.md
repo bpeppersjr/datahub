@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Minnesota residential evidence verified and reportable offline (September 8, 2026): [11,456 accepted credential rows](MN-CONSTRUCTION-REPORTING.md) are retained from the successful cohort despite the parent run's registration failure. A reusable offline summarizer verifies the full evidence chain and returns reported state/ZIP/category counts with cohort-only percentages and null business-completeness claims. Registrations remain unavailable with `source-csv-invalid`. No successful source was repulled; national integration remains next.
+
 Minnesota selected-stream 1.1 implemented (September 8, 2026): [byte-preserving CSV framing and explicit unresolved-text row dispositions](MN-CONSTRUCTION-BYTE-FRAMING.md) now allow valid selected fields past undecodable excluded data without guessed charsets. Strict CSV structure, original-byte hashing, complete acquisition gates and legacy 1.0 replay remain enforced. Rejected rows are counted as gaps, not businesses. Existing production pins and earlier failed data remain unchanged.
 
 Minnesota registrations encoding incompatibility confirmed (September 8, 2026): [a bounded 1 MiB range check](MN-CONSTRUCTION-ENCODING.md) found invalid UTF-8 at byte 478,182 under the failed job's recorded source ETag. No full CSV or raw diagnostic body was retained. Replacement encoding and the residential source remain unproven. Next work is explicit byte-preserving framing and unresolved-text row dispositions, not guessed decoding or blind download retries.

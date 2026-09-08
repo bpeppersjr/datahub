@@ -48,7 +48,7 @@ async function *readChunks(file,maximum,signal,meter={}) {
   }finally{await handle.close();}
 }
 async function readJson(file,maximum,signal,meter={}){const chunks=[];for await(const chunk of readChunks(file,maximum,signal,meter))chunks.push(chunk);return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));}
-async function *readLines(file,maximum,signal,meter={}) {
+export async function *mnSelectionReadLines(file,maximum,signal,meter={}) {
   let tail=Buffer.alloc(0);meter.records=0;
   for await(const chunk of readChunks(file,maximum,signal,meter)){
     let start=0;
@@ -58,6 +58,7 @@ async function *readLines(file,maximum,signal,meter={}) {
   }
   check(tail.length===0,'unterminated retained line');
 }
+const readLines=mnSelectionReadLines;
 async function writer(file,maximum,signal,owned) {
   await canonical(path.dirname(file),{signal});signal?.throwIfAborted();const handle=await open(file,'wx');
   let identity;try{identity=await handle.stat({bigint:true});check(identity.isFile()&&identity.nlink===1n,'new file ownership');owned.set(file,identity);}catch(error){await handle.close();throw error;}
