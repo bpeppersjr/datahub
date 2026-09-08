@@ -48,6 +48,8 @@ Replace the placeholder with an actual operation receipt. Verification makes no 
 
 Runtime enrollment is not a completed handoff. Actual dispatch must return an application operation ID and persisted receipt; after accepted dispatch, agents should move to other validation/development work rather than monitor downloads. No native Minnesota operation was dispatched during this implementation turn.
 
+Subsequent operation: [the September 8 managed-app handoff](MN-CONSTRUCTION-HANDOFF-20260908.md) records an accepted live dispatch and its receipt location. It does not claim a completed acquisition; current app history is authoritative.
+
 ## Validation and rollback
 
 Release validation: `npm run check` passed (1,059 tests passed, 11 skipped, zero failures), including lint, web/desktop builds and desktop control-plane smoke. `npm audit --omit=dev` reported zero vulnerabilities. All 82 pending national production code/configuration pins were unchanged. The registry now contains 49 connectors and 46 source-policy profiles; Minnesota enrollment remains explicitly unmeasured in the national coverage ledger until reporting integration.
