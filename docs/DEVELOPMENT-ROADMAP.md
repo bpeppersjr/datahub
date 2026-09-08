@@ -485,6 +485,8 @@ Connecticut source-candidate normalization (September 8): the [offline normalize
 
 Connecticut app ownership (September 8): the [standalone worker and managed enrollment](CT-CHILDCARE-APP.md) passed synthetic lifecycle/reuse/cancellation tests and full repository validation. Co*Tive accepted CT-only operation `efd15ce2-6bba-4096-9084-7ace88ea0695` with a persisted receipt. The app owns ongoing acquisition and normalization; agents do not wait on download progress. Accepted dispatch is not terminal success or measured coverage. Verify its eventual terminal child receipts before integrating local reporting, reusing retained acquisition rather than repulling. No national production or recurring schedule was launched.
 
+Connecticut completed collection audit (September 8): Co*Tive operation `efd15ce2-6bba-4096-9084-7ace88ea0695` completed successfully. [Independent offline receipt and quality verification](CT-CHILDCARE-APP.md#verified-application-outcome--september-8-2026) confirmed 1,390 source candidates, zero quarantine, 230 ZIP5 values and 1,208 separate ZIP4 values. One street and all coordinates remain missing. Repeated credentials/licenses are retained rather than collapsed; capacity totals must not imply unique facilities. No repull was performed. Next local reporting must consume these verified retained manifests without claiming national completeness or unique active-business coverage.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

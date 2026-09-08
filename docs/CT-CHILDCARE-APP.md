@@ -36,7 +36,38 @@ Co*Tive accepted the collection with HTTP 202 as operation `efd15ce2-6bba-4096-9
 
 Before dispatch, no retained acquisition/app manifests or ownership locks were found under the CT source storage root. This was a first collection, not a promotion repull. Existing CT business-registry data and all national production pins were left untouched.
 
-## Verification
+## Verified application outcome — September 8, 2026
+
+The accepted operation completed independently in Co*Tive. Managed receipt `efd15ce2-6bba-4096-9084-7ace88ea0695` is SUCCEEDED with completion `2026-09-08T18:24:05.121Z`; its industry task exited zero without forced termination. The industry log hash `0d07d157188f1bae27fdfe3acb66824e6f4b9f861281f17e741fa4341c5de3f5` matches the retained log, and its reported app receipt hash matches independent offline verification.
+
+App job `0def40af-f6b8-4d48-aa0b-76408961cdc8` started at `2026-09-08T18:23:44.722Z` and finished at `2026-09-08T18:24:02.311Z`. Its receipt SHA-256 is `387fbe174b0ea69ab67e65ce5e209b5ba94267e19d4e710cb02e5ada79ce6f46`. Receipt path relative to datahub:
+
+`data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/jobs/0def40af-f6b8-4d48-aa0b-76408961cdc8/receipt.json`
+
+The acquired job `7c67a938-74df-4df7-af75-13eb84cd11d4` has manifest SHA-256 `d50069a4b2a4812bf10006d96350d0f2db0373c7b77a0cfe76f6779907bea03c`. The normalized job `66100e56-2254-4e8a-9286-0d52193f17ee` has manifest SHA-256 `940bdcaafc39fc891f90723035f4746ddcdc7bed543d47ebb6636676b4aa2bb8`. Both sit under the app's corresponding `runs/<app-job>/acquired/jobs` and `runs/<app-job>/normalized/jobs` paths and can be reused without acquisition.
+
+Acquisition used 13 serial requests and 1,190,259 decoded response bytes, completing at `2026-09-08T18:24:01.014Z`. Catalog source update remained `2026-09-07T08:15:33.000Z`, distinct from observation and processing. The native publisher and app output-owner locks were absent after completion.
+
+Independent app verification replayed both retained children; a separate normalized-data audit also passed with network disabled. Observed quality:
+
+| Measure | Verified retained source cohort |
+|---|---:|
+| Accepted source candidates | 1,390 |
+| Quarantined source rows | 0 |
+| Distinct ZIP5 values | 230 |
+| Rows with valid ZIP5 syntax | 1,390 |
+| Rows with separate ZIP4 | 1,208 |
+| Missing reported street | 1 |
+| Missing names/cities/states | 0 |
+| Rows with coordinates | 0 |
+| Distinct credential identifiers | 1,364 |
+| Distinct license numbers | 1,362 |
+
+All rows report CT. There are 21 repeated credential identifiers (26 additional rows) and 23 repeated license numbers (28 additional rows), with up to four rows per identifier. These repetitions must not be collapsed or counted as independently unique businesses. All four selected date fields passed floating-calendar validation, not operating-date verification. Maximum capacity parsed for all rows; under-three capacity was missing for five, while regular and school-age capacity were missing for all rows. Do not replace missing capacity with zero or sum repeated-credential rows into a purported unique-facility capacity total.
+
+This outcome supersedes the earlier accepted-only status without changing its historical receipt evidence. No repull, recurring schedule or national promotion was performed during the audit. All 82 pending national production pins remained unchanged. Next: integrate verified local source-cohort reporting from these retained manifests, preserving the missing street, nullable coordinates and non-unique-business denominator.
+
+## Implementation verification
 
 Five focused app tests passed using synthetic transport, covering native publisher exclusion, durable child linkage, missing-address retention, explicit offline reuse, cancellation/checkpoints, mode/child forgery and CLI scope validation. Enrollment/ledger tests confirmed CT-only planning without fabricated measured coverage.
 
