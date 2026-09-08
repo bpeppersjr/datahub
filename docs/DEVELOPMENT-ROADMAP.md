@@ -477,6 +477,8 @@ Pennsylvania local reporting (September 8): a [verified retained-cohort projecti
 
 Additional childcare source validation (September 8): the [NC follow-up](states/GA-NC-CHILDCARE-TRIAGE-2026-09-08.md) found a current dashboard maintenance/data-request notice and established the old NCDOT extract's June 2018 vintage. [SC triage](states/SC-CHILDCARE-TRIAGE-2026-09-08.md) verified the regulator and locator but not bulk delivery. [MD metadata validation](states/MD-CHILDCARE-TRIAGE-2026-09-08.md) verified the public state GIS organization/item and layer schema, while leaving the complete linked usage-policy context and center predicate unresolved. No dataset was mislabeled current, no rows downloaded and no dependent connector enrolled.
 
+Connecticut childcare prerequisite (September 8): the [tested metadata/count preflight](CT-CHILDCARE-PREFLIGHT.md) completed four bounded native requests and retained an immutable sanitized receipt. It confirms 1,390 active-center source rows, 1,364 distinct credentials and one missing street-address value; repeated credentials must not collapse source rows. No facility acquisition, app enrollment, refresh schedule or national promotion occurred. Resolve address/key semantics and implement the bounded facility connector before handing routine downloads to standalone Co*Tive workers. Parallel [Maryland follow-up](states/MD-CHILDCARE-TRIAGE-2026-09-08.md) established an official public-use context and an aggregate center predicate, not a completed acquisition contract.
+
 Every milestone must pass:
 
 - unit, connector-conformance, server, store, worker, and integration tests;

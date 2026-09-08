@@ -1,0 +1,23 @@
+{
+  "policy_id": "ct-childcare-preflight",
+  "version": "1.0.0",
+  "publisher": "Connecticut Office of Early Childhood; DAS/BEST - eLicensing",
+  "ownership": "Public OEC Child Care & Youth Camp Licensing Program Data h8mr-dn95; metadata/count-only scope.",
+  "source_dataset": "https://data.ct.gov/resource/h8mr-dn95.json",
+  "terms_url": "https://data.ct.gov/api/views/h8mr-dn95.json",
+  "catalog_license": "Public Domain",
+  "source_access": "Bounded anonymous read-only catalog and aggregate queries to the public state portal.",
+  "allowed_use": ["metadata schema/license/agency checks", "active Child Care Center aggregate counts", "internal immutable sanitized preflight receipts"],
+  "prohibited_use": ["facility rows or schedules under this preflight-only profile", "cached catalog values, contact/person samples or raw-body logs", "merging distinct source rows by repeated credential identifiers", "claiming ACTIVE status or address availability verifies operations, premises or national completeness", "treating this profile as record-level export approval"],
+  "export_policy": "internal",
+  "field_export_policy": {"selected_schema_and_aggregates":"internal","cached_values_contact_and_person_samples":"excluded-before-retention"},
+  "attribution": "Connecticut Office of Early Childhood; DAS/BEST - eLicensing; data.ct.gov",
+  "retention": "Preserve immutable sanitized metadata/count receipts locally; no automatic deletion or acquisition.",
+  "redistribution": "This profile authorizes no record-level export. The public-domain catalog label does not resolve the privacy or address semantics of future selected facility data.",
+  "contains_personal_data": false,
+  "personal_data_handling": "Catalog caches may include person/contact values; retain only selected schema names/types and bounded aggregates, never those samples.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false
+}

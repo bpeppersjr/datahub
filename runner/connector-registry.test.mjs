@@ -80,7 +80,8 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 55);
+  assert.equal(registry.connectorCount, 56);
+  assert.equal(registry.get("ct-childcare-preflight").version, "1.0.0");
   assert.equal(registry.get("pa-childcare-centers-app").version, "1.0.0");
   assert.equal(registry.get("pa-childcare-centers-normalization").version, "1.0.0");
   assert.equal(registry.get("pa-childcare-centers-acquisition").version, "1.0.0");
@@ -88,7 +89,7 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("ak-active-business-licenses-app").version, "1.0.0");
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
-  assert.equal(registry.policyProfileCount, 48);
+  assert.equal(registry.policyProfileCount, 49);
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
   }
