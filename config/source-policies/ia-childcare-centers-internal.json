@@ -1,0 +1,20 @@
+{
+  "policy_id": "ia-childcare-centers-internal",
+  "version": "1.0.0",
+  "ownership": "Iowa Child Care Connect; Iowa State University with Iowa HHS funding and multiple provider/agency source systems.",
+  "source_dataset": "https://search.iachildcareconnect.org/Map/pins",
+  "terms_url": "https://iachildcareconnect.org/vacancy-dashboard/",
+  "allowed_use": ["User-authorized bounded internal collection of publicly displayed center/preschool directory fields", "Offline source-candidate processing with provenance, unknown operating status and explicit geographic quality gaps"],
+  "prohibited_use": ["Retention of home-provider rows or fields outside the selected whitelist", "Recovery of hidden non-referral contact or opening details", "Interpreting vacancies, referral eligibility or map inclusion as verified current operations", "Public redistribution without separate field-level export review", "Credentials, access-control bypass, automatic retries or unbounded polling"],
+  "attribution": "Iowa Child Care Connect, Iowa State University and Iowa HHS; retain source URL, observation time, source response fingerprint and transformation version.",
+  "retention": "Retain immutable center-only selected releases and sanitized request checkpoints internally. Discard the mixed response and all unselected provider values after projection. Preserve retained releases for offline reuse rather than promotion repulls.",
+  "redistribution": "Public export is not authorized by this internal policy. No blanket public-domain grant or separate data license is inferred from public availability.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Strict whitelist: businessType, businessName, address, city, zipCode, latitude, longitude, referral. Only building display-class rows retained; no contact fields, home records or nested values. Referral=false never enables recovery of withheld information.",
+  "scope_basis": "Publisher guide defines center icon/filter as licensed centers or preschools; pinned current client binds that icon/filter to businessType building. Display class is not a live license verification.",
+  "freshness": "Observation timestamp is known; publisher record updates and operating validity remain unknown. Vacancy dashboard definitions are not transferred into map business status.",
+  "internal_collection_authorized": true,
+  "public_export_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false
+}
