@@ -22,7 +22,7 @@ const cleanError = (error) => {
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
+  artifacts: record.kind === "cohort-snapshot" ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
 });
 async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
@@ -71,7 +71,7 @@ export class ManagedOperations {
       if (!entry.isDirectory() || !safeId(entry.name)) continue;
       try {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
-        if (record.id !== entry.name || !["collection", "export"].includes(record.kind)) continue;
+        if (record.id !== entry.name || !["collection", "export", "cohort-snapshot"].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
           const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
@@ -90,6 +90,13 @@ export class ManagedOperations {
   async startCollection(input = {}) {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
     try { this.#only(input, ["industries", "states", "sourceIds"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); return await this.#start("collection", { plan }); }
+    catch (error) { this.reserved = false; throw error; }
+  }
+  async startCohortSnapshot(input = {}) {
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 0) throw invalid("Cohort snapshot takes no caller options.");
+    if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Cohort snapshot requires native operation storage.");
+    await this.ready; await this.#refreshUnknown(); this.#reserve();
+    try { return await this.#start("cohort-snapshot", {}); }
     catch (error) { this.reserved = false; throw error; }
   }
   // Internal scheduler entry point: manual HTTP inputs cannot supply operation IDs.
@@ -194,6 +201,7 @@ export class ManagedOperations {
   async cancel(id) { await this.ready; const record = this.operations.get(id); if (!record) return null; this.running.get(id)?.abort(); return this.#snapshot(record); }
   async artifact(id, filename) {
     await this.ready; const record = this.operations.get(id); if (!record || !FINAL.has(record.status) || !safeId(filename) || filename.includes("..")) return null;
+    if (record.kind === "cohort-snapshot") return null;
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
     if (!contained(await realpath(this.root), base) || !contained(base, await realpath(file))) return null;
@@ -243,10 +251,20 @@ export class ManagedOperations {
       controller.signal.throwIfAborted();
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); }
+      else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id]; }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
-      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind === "collection" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if (controller.signal.aborted) {
+      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind !== "export" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
+      if (record.kind === "cohort-snapshot") {
+        const recovered = await this.#verifyCohortSnapshot(record, execution?.stdout);
+        if (controller.signal.aborted || execution?.code !== 0 || recovered) {
+          record.status = controller.signal.aborted ? "CANCELLED" : "FAILED";
+          record.error = "Cohort snapshot did not complete cleanly; retained output requires inspection.";
+          record.result.inspectionRequired = true;
+          if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: execution?.forcedTerminationRequested === true, outputState: "inspection-required" };
+        } else record.status = "SUCCEEDED";
+      }
+      else if (controller.signal.aborted) {
         record.status = "CANCELLED";
         if (record.kind === "collection") {
           record.error = COLLECTION_CANCEL_WARNING;
@@ -256,7 +274,11 @@ export class ManagedOperations {
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
     } catch (error) {
-      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = cleanError(error);
+      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = record.kind === "cohort-snapshot" ? "Cohort snapshot failed verification; preserve operation outputs for inspection." : cleanError(error);
+      if (record.kind === "cohort-snapshot") {
+        record.result.inspectionRequired = true;
+        if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
+      }
       if (controller.signal.aborted && record.kind === "collection") {
         record.error = COLLECTION_CANCEL_WARNING;
         record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
@@ -272,6 +294,31 @@ export class ManagedOperations {
     const declared = [...manifest.artifacts, { path: "manifest.json" }]; const artifacts = [];
     for (const item of declared) { if (!safeId(item.path) || item.path.includes("..")) throw new Error("Export manifest contains an invalid artifact path."); const file = path.resolve(exportDirectory, item.path); if (!contained(await realpath(exportDirectory), await realpath(file))) throw new Error("Export artifact escapes its release directory."); const actual = await hashFile(file); if (item.path !== "manifest.json" && (!Number.isSafeInteger(item.bytes) || !/^[a-f0-9]{64}$/.test(item.sha256) || actual.sha256 !== item.sha256 || actual.bytes !== item.bytes)) throw new Error("Export artifact integrity check failed."); artifacts.push({ name: item.path, relativePath: relativeToApp(file).slice(relativeToApp(directory).length + 1), ...actual }); }
     record.artifacts = artifacts; record.result = { rowsWritten: (JSON.parse(await readFile(path.join(exportDirectory, "summary.json"), "utf8"))).counts.rows_written, policyMode: manifest.policy_mode, localReviewOnly: manifest.policy_mode === "local-review" };
+  }
+  async #verifyCohortSnapshot(record, stdout) {
+    const reject = () => { throw new Error("Cohort snapshot child evidence rejected."); };
+    if (typeof stdout !== "string" || stdout.length > 65536) reject();
+    let parsed; try { parsed = JSON.parse(stdout); } catch { reject(); }
+    const exact = (value, fields) => value && Object.getPrototypeOf(value) === Object.prototype && Reflect.ownKeys(value).length === fields.length && fields.every(field => Object.hasOwn(value, field));
+    let descriptor = parsed, recovery = false;
+    if (parsed && Object.hasOwn(parsed, "committed_snapshot")) {
+      if (!exact(parsed, ["status", "committed_snapshot", "committed_snapshot_integrity_verification_required"]) || parsed.status !== "COMMITTED_REQUIRES_INSPECTION" || parsed.committed_snapshot_integrity_verification_required !== true) reject();
+      descriptor = parsed.committed_snapshot; recovery = true;
+    }
+    if (!exact(descriptor, ["manifest_path", "manifest_sha256", "run_id", "industry_run_id", "execution_mode"]) || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(descriptor.run_id)
+      || typeof descriptor.manifest_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(descriptor.manifest_sha256)
+      || descriptor.industry_run_id !== record.id || descriptor.execution_mode !== "native-root-offline-build"
+      || descriptor.manifest_path !== path.join(this.root, record.id, "output", "jobs", descriptor.run_id, "manifest.json")) reject();
+    record.result = { snapshot: descriptor, snapshotIntegrityVerified: false, sourceReplayPerformedThisRead: false, inspectionRequired: true, exportPolicy: "internal" };
+    // Always verify, even with an injected executor. Cancellation must not discard a committed child reference.
+    const { readRetainedChildcareCohortSnapshot } = await import("./retained-childcare-cohort-snapshot.mjs");
+    const checked = await readRetainedChildcareCohortSnapshot(descriptor.manifest_path, descriptor.manifest_sha256);
+    const m = checked.manifest;
+    if (m.run_id !== descriptor.run_id || m.industry_run_id !== record.id || m.execution_mode !== descriptor.execution_mode || m.started_at < record.startedAt) reject();
+    record.result = { ...record.result, snapshotIntegrityVerified: true, inspectionRequired: recovery,
+      availableSourceCount: m.available_source_count, unavailableSourceCount: m.unavailable_source_count, notEnrolledSourceCount: m.not_enrolled_source_count };
+    record.artifacts = [];
+    return recovery;
   }
   async #verifyCollection(record) { const receipt = JSON.parse(await readFile(path.join(APP_ROOT, "data", "industry-segments", "runs", record.id, "receipt.json"), "utf8")); if (receipt.run_id !== record.id || receipt.status !== "succeeded") throw new Error("Collection did not publish a successful canonical receipt."); }
 }

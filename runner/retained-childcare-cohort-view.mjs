@@ -1,4 +1,5 @@
 import path from 'node:path';
+import {isDeepStrictEqual as same} from 'node:util';
 import {APP_ROOT} from './paths.mjs';
 import {mnSelectionCanonical as canonical} from './mn-construction-retained-selection.mjs';
 import {loadPaChildcareReportingEnrollment} from './pa-childcare-reporting-enrollment.mjs';
@@ -113,6 +114,33 @@ export function projectRetainedChildcareCohortView(enrollments){
     return immutableClaims({schema_version:RETAINED_CHILDCARE_COHORT_VIEW_VERSION,cohorts,claims:{view_kind:'source-separated-retained-childcare-cohort-comparison',evidence_verification:'supplied-enrollment-structure-only',artifact_verification_performed:false,atomic_cross_source_snapshot_verified:false,source_access_performed:false,national_reporting_integrated:false,national_pointers_changed:false,national_completeness_percent:null,unique_active_business_count:null,cross_source_deduplication_applied:false,publisher_scope_assigns_address_state:false,public_export_authorized:false,export_policy:'internal',denominator:'each source uses its own accepted retained cohort rows; no combined business or national denominator'}});
   }catch{throw Error('Retained childcare cohort view rejected.');}
 }
+/** Validate persisted structure only. Historical build claims are not fresh source verification. */
+export function validateRetainedChildcareCohortView(value){
+  try{
+    const view=snapshot(value);keys(view,['schema_version','cohorts','claims']);keys(view.cohorts,STATES);
+    const enrollments={};
+    for(const state of STATES){
+      const rows=view.cohorts[state];check(Array.isArray(rows)&&rows.length===1);const row=rows[0];
+      if(row.status==='not-enrolled'){enrollments[state]={status:row.status};continue;}
+      if(row.status==='unavailable'){enrollments[state]={status:row.status,reason:row.reason,enrollmentSha256:row.enrollment_sha256};continue;}
+      check(row.status==='available');const pa=state==='PA';
+      keys(row.source_metrics,[],['distinct_source_credentials','distinct_accepted_credentials','distinct_accepted_license_ids','accepted_rows_with_license','repeated_accepted_license_rows']);
+      const buckets=items=>items.map(item=>{
+        const {candidate_rows,...dimensions}=item;return {...dimensions,...(pa?{facility_rows:candidate_rows}:{candidate_rows})};
+      });
+      const summary={schema_version:`${state.toLowerCase()}-childcare-reporting@1.0.0`,source_id:row.source_id,
+        ...(pa?{source_rows:row.source_candidate_rows,accepted_facility_rows:row.accepted_candidate_rows,quarantined_rows:row.quarantined_candidate_rows,by_reported_county:buckets(row.by_reported_county)}
+          :{publisher_scope:row.publisher_scope,source_candidate_rows:row.source_candidate_rows,accepted_candidate_rows:row.accepted_candidate_rows,quarantined_candidate_rows:row.quarantined_candidate_rows}),
+        by_reported_state:buckets(row.by_reported_state),by_reported_zip:buckets(row.by_reported_zip),quality:row.quality,provenance:row.provenance,claims:row.source_claims,...row.source_metrics};
+      for(const key of ['source_response_rows','excluded_source_rows','duplicate_selected_rows'])if(row[key]!==null)summary[key]=row[key];
+      enrollments[state]={status:row.status,sourceId:row.source_id,publisherJurisdiction:row.publisher_scope,enrollmentSha256:row.enrollment_sha256,summary};
+    }
+    const expected=projectRetainedChildcareCohortView(enrollments),replayed=view.claims.evidence_verification==='source-specific-retained-enrollment-replay';
+    const claims=replayed?{...expected.claims,evidence_verification:'source-specific-retained-enrollment-replay',artifact_verification_performed:Object.values(enrollments).some(row=>row.status==='available')}:expected.claims;
+    check(same(view,{...expected,claims}));return immutableClaims(view);
+  }catch{throw Error('Retained childcare cohort view rejected.');}
+}
+
 /** Serial, offline source-specific replay; no downloader, refresh, or national publication is invoked. */
 export async function buildRetainedChildcareCohortView(options={}){
   try{

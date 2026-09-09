@@ -4,7 +4,7 @@ import path from 'node:path';
 import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {APP_ROOT} from './paths.mjs';
-import {buildRetainedChildcareCohortView as build,projectRetainedChildcareCohortView as project} from './retained-childcare-cohort-view.mjs';
+import {buildRetainedChildcareCohortView as build,projectRetainedChildcareCohortView as project,validateRetainedChildcareCohortView as validateView} from './retained-childcare-cohort-view.mjs';
 
 const states=['PA','CT','MD','VT','CO','UT','IA'];
 const missing=()=>Object.fromEntries(states.map(state=>[state,{status:'not-enrolled'}]));
@@ -32,6 +32,14 @@ test('source comparison preserves unknown address state and validates per-state 
     s=>s.claims.national_reporting_integrated=true,
     s=>s.provenance.execution_mode='injected-test-transport',
   ]){const changed=availableCt();mutate(changed.CT.summary);assert.throws(()=>project(changed));}
+});
+test('persisted view validator checks structure without claiming fresh source replay',()=>{
+  const view=project(availableCt());assert.deepEqual(validateView(view),view);
+  const recorded=structuredClone(view);recorded.claims.evidence_verification='source-specific-retained-enrollment-replay';recorded.claims.artifact_verification_performed=true;
+  assert.deepEqual(validateView(recorded),recorded);
+  for(const mutate of [v=>v.claims.national_completeness_percent=100,v=>v.cohorts.CT[0].accepted_candidate_rows++,v=>v.cohorts.IA[0].accepted_candidate_rows=0,v=>v.cohorts.CT[0].denominator='all businesses',v=>v.cohorts.CT[0].by_reported_zip[0].extra=true,v=>v.claims.evidence_verification='invented']){
+    const altered=structuredClone(view);mutate(altered);assert.throws(()=>validateView(altered));
+  }
 });
 test('accepted credential metrics cannot exceed accepted rows or lose duplicate accounting',()=>{
   const inputs=availableCt(),s=inputs.CT.summary;s.distinct_source_credentials=4;s.distinct_accepted_credentials=3;
@@ -80,6 +88,7 @@ test('installed seven-source view retains separate counts and source clocks offl
   const original=globalThis.fetch;globalThis.fetch=()=>assert.fail('no source access');
   try{
     const view=await build(),expected={PA:4995,CT:1390,MD:1772,VT:503,CO:1648,UT:422,IA:1476};
+    assert.deepEqual(validateView(view),view);
     for(const [state,count] of Object.entries(expected)){
       const row=view.cohorts[state][0];assert.equal(row.status,'available');assert.equal(row.accepted_candidate_rows,count);
       assert.equal(row.by_reported_state.reduce((n,r)=>n+r.candidate_rows,0),count);assert.equal(row.by_reported_zip.reduce((n,r)=>n+r.candidate_rows,0),count);
