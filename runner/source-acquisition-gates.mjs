@@ -1,6 +1,6 @@
 /**
  * Source prerequisites are not collection jobs. A listed source is not an
- * authorization for collection. Oklahoma schema and Overture runtime checks
+ * authorization for collection. Oklahoma schema and Overture runtime/metadata checks
  * are separate prerequisites; Nebraska remains blocked with no worker fallback.
  */
 const NE_PDF_GATE = Object.freeze({
@@ -41,6 +41,14 @@ export function getSourcePrerequisiteGates() {
     reviewDocument: 'docs/OVERTURE-HTTPFS-RUNTIME.md',
     reason: 'Fixed Windows DuckDB dependency installation and signature check; not an Overture place acquisition.',
     nextAction: 'Run the bounded runtime prerequisite through the app. Retain its verified artifacts for future workers; large source acquisition remains separately gated.',
+  }, {
+    sourceId: 'overture-source-preflight', state: null, industry: null,
+    status: 'READY_METADATA_PREREQUISITE', metadataPrerequisiteImplemented: true, collectionReady: false,
+    publicExportAuthorized: false, currentOperationsVerified: false,
+    sourceUrl: 'https://stac.overturemaps.org/catalog.json',
+    reviewDocument: 'docs/OVERTURE-SOURCE-PREFLIGHT.md',
+    reason: 'Bounded latest-release STAC metadata validation only; no place assets are requested.',
+    nextAction: 'Run through the app and retain the independently replayed metadata receipt. Large acquisition remains separately gated.',
   }]);
 }
 
