@@ -20,6 +20,20 @@ The coordinate is associated with Overture's place and reported address. It is n
 
 ## Safe acquisition sequence
 
+### Extraction lifecycle hardening (September 9, 2026)
+
+The acquisition path now uses `runner/overture-extraction-lifecycle.mjs` to own the DuckDB connection and instance together. Cancellation is checked before opening, after each asynchronous open, and after the query settles. A running query receives an interrupt, and cleanup waits for its promise to settle. Both close calls are attempted independently. Only the exact run database and WAL are removed after successful handle closure; failed closes preserve them for inspection. Cleanup failures reject preparation rather than silently allowing source promotion. Selected output and other staged evidence are not deleted by this helper.
+
+This is handle-lifecycle hardening, **not acquisition readiness**. It does not add managed-operation enrollment, CLI signal wiring, restart recovery, automatic retries, an extension-installation prerequisite, canonical output-path admission, or explicit engine memory/spill/network/disk budgets. These remain prerequisites before enabling app-owned large acquisition. Cooperative interruption is not a hard termination deadline. No remote place query or extension download was performed to validate this change, and the existing explicit large-acquisition authorization gate is unchanged.
+
+Offline acceptance covers injected setup/query/close/removal failures and cancellation races, plus an installed-engine local COPY and SQL-failure check. The native test disables extension auto-install/load, retains a small synthetic selected output, and verifies that database files can be removed. It does not establish remote-query throughput or a process-RAM/network cap.
+
+No schema or selected-field migration is required. Rollback restores the previous acquisition lifecycle and removes the helper/tests; it must preserve retained source releases and any failed-run evidence. The protected production plan and its pins are outside this change.
+
+Release verification: `data/tmp/overture-lifecycle-full-check.log` records 1,568 tests: 1,557 passed, 11 skipped and zero failures, followed by passing lint, web/desktop builds and desktop control-plane smoke. TypeScript passed and the production dependency audit found zero vulnerabilities. All 82 protected production pins remained unchanged. Native verification was local-only, not a large-acquisition operation receipt.
+
+### Metadata preflight and preparation
+
 The metadata-only preflight is safe to run and does not read the place GeoParquet data:
 
 ```powershell

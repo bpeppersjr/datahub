@@ -7,6 +7,7 @@ import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
+import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.0";
@@ -459,17 +460,10 @@ export async function prepareOvertureUsPlacesSource({
   const queryContractSha256 = sha256(query.replaceAll(path.resolve(sourcePath).replaceAll("\\", "/"), "<RUN_SCOPED_DESTINATION>"));
   const databasePath = path.join(stagingDirectory, "overture-extraction.duckdb");
   logger(`Starting authorized Overture ${preflight.release_id} U.S. place extraction from ${preflight.asset_count} immutable assets.`);
-  const instance = await DuckDBInstance.create(databasePath, { threads: "4", enable_external_access: "true" });
-  const connection = await instance.connect();
-  const interrupt = () => connection.interrupt();
-  signal?.addEventListener?.("abort", interrupt, { once: true });
-  try {
-    await connection.run(query);
-  } finally {
-    signal?.removeEventListener?.("abort", interrupt);
-    connection.closeSync();
-    await Promise.allSettled([rm(databasePath, { force: true }), rm(`${databasePath}.wal`, { force: true })]);
-  }
+  await runOvertureExtraction({
+    createInstance: (filename) => DuckDBInstance.create(filename, { threads: "4", enable_external_access: "true" }),
+    databasePath, query, signal,
+  });
   signal?.throwIfAborted?.();
   const sourceDigest = await hashFile(sourcePath);
   const recordCount = await countGzipRecords(sourcePath, signal);
