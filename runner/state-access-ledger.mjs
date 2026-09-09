@@ -10,6 +10,7 @@ import { loadCtChildcareReportingEnrollment, projectCtChildcareStateEvidence } f
 import { loadCoChildcareReportingEnrollment, projectCoChildcareStateEvidence } from "./co-childcare-reporting-enrollment.mjs";
 import { loadMdChildcareReportingEnrollment, projectMdChildcareStateEvidence } from "./md-childcare-reporting-enrollment.mjs";
 import { loadVtChildcareReportingEnrollment, projectVtChildcarePublisherEvidence } from "./vt-childcare-reporting-enrollment.mjs";
+import { loadUtChildcareReportingEnrollment, projectUtChildcareStateEvidence } from "./ut-childcare-reporting-enrollment.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -107,7 +108,7 @@ async function missingPrerequisites(root, prerequisites) {
 export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates] = await Promise.all([governedStates(root, coveragePointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root})]);
+  const [coverage, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates] = await Promise.all([governedStates(root, coveragePointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root})]);
   const assessmentStates = assessments.states ?? [];
   if (!Array.isArray(assessmentStates) || assessmentStates.some((item) => !CANONICAL.has(item.state_abbreviation)) || new Set(assessmentStates.map((item) => item.state_abbreviation)).size !== assessmentStates.length) throw new Error("Assessment states must contain unique canonical state codes.");
   for (const sourceKeys of Object.values(industryRead.value.industries)) for (const key of sourceKeys) if (!Object.hasOwn(PROFILE_IDS, key)) throw new Error(`Industry source ${key} has no explicit coverage profile mapping.`);
@@ -142,7 +143,9 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
     if(construction)construction.localCredentialEvidence=projectMnConstructionStateEvidence(localCredentials,state);
     const childcare=industries.find(cell=>cell.industry==='childcare');
     if(childcare)childcare.localFacilityEvidence=projectPaChildcareStateEvidence(localFacilities,state);
-    if(childcare)childcare.localSourceCandidateEvidence=state==='CO'
+    if(childcare)childcare.localSourceCandidateEvidence=state==='UT'
+      ?projectUtChildcareStateEvidence(localUtCandidates,state)
+      :state==='CO'
       ?projectCoChildcareStateEvidence(localCoCandidates,state)
       :state==='MD'
       ?projectMdChildcareStateEvidence(localMdCandidates,state)
