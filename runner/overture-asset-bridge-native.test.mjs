@@ -3,7 +3,7 @@ import test from 'node:test';
 import path from 'node:path';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { DuckDBInstance } from '@duckdb/node-api';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { gunzipSync } from 'node:zlib';
 import { APP_ROOT } from './paths.mjs';
 import { readOvertureHttpfsRuntime } from './overture-httpfs-runtime.mjs';
@@ -12,6 +12,9 @@ import { startOvertureAssetBridge } from './overture-asset-bridge.mjs';
 import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
 import { OVERTURE_SELECTED_FIELDS, normalizeOvertureUsPlace, overtureStreamingQueryFingerprint } from './overture-us-places.mjs';
 import { runOvertureBoundedEngine } from './overture-bounded-engine.mjs';
+import { probeOvertureSourcePreflightForTest } from './overture-source-preflight.mjs';
+import { runOvertureAcquisitionSessionForTest } from './overture-acquisition-session.mjs';
+import { readOvertureAcquisitionSessionForTest, readOvertureAcquisitionSession } from './overture-acquisition-receipt.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
 const quote = value => `'${value.replaceAll('\\', '/').replaceAll("'", "''")}'`;
@@ -144,6 +147,41 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     assert.equal(accounting.counters.requests_completed, calls.length);
     assert.equal(accounting.pending_request, null);
     assert.equal(accounting.claims.native_acquisition_verified, false);
+    // Full coordinator uses the real retained extension and native engine, but only local fixture bytes.
+    clearTimeout(timer);
+    const metadataId = randomUUID(), metadataOutput = path.join(directory, metadataId, 'output');
+    const release = '2026-08-19.0', stac = `https://stac.overturemaps.org/${release}/places/place`;
+    const asset = `https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/${release}/theme=places/type=place/part-00000-11111111-1111-4111-8111-111111111111-c000.zstd.parquet`;
+    const documents = new Map([
+      ['https://stac.overturemaps.org/catalog.json', { type: 'Catalog', stac_version: '1.1.0', links: [{ rel: 'child', latest: true, href: `https://stac.overturemaps.org/${release}/catalog.json` }] }],
+      [`${stac}/collection.json`, { type: 'Collection', id: 'place', stac_version: '1.1.0', links: [{ rel: 'item', href: `${stac}/00000/00000.json` }] }],
+      [`${stac}/00000/00000.json`, { type: 'Feature', id: '00000', properties: { num_rows: 6, num_row_groups: 1, datetime: '2026-08-19T00:00:00Z' }, assets: { aws: { href: asset } } }],
+    ]);
+    const metadataDescriptor = await probeOvertureSourcePreflightForTest({ output: metadataOutput, operationId: metadataId, limits: { minIntervalMs: 0 },
+      fetchImpl: async url => { assert.ok(documents.has(url)); return Response.json(documents.get(url)); } });
+    const acquisitionId = randomUUID(), acquisitionOutput = path.join(directory, acquisitionId, 'output');
+    let acquisitionCalls = 0;
+    const acquisition = await runOvertureAcquisitionSessionForTest({ output: acquisitionOutput, operationId: acquisitionId,
+      metadata: { output: metadataOutput, operation_id: metadataId, descriptor: metadataDescriptor },
+      runtime: { output: path.join(operation, 'output'), operation_id: operationId, descriptor },
+      fetchImpl: async (url, init) => {
+        assert.equal(url, asset); acquisitionCalls++;
+        const headers = { etag: '"local-fixture"', 'content-length': String(bytes.length) };
+        if (init.method === 'HEAD') return new Response(null, { headers });
+        const match = /^bytes=(\d+)-(\d+)$/.exec(init.headers.Range); assert.ok(match);
+        const start = Number(match[1]), end = Number(match[2]);
+        headers['content-range'] = `bytes ${start}-${end}/${bytes.length}`; headers['content-length'] = String(end - start + 1);
+        return new Response(bytes.subarray(start, end + 1), { status: 206, headers });
+      } });
+    const verified = await readOvertureAcquisitionSessionForTest(acquisition, { output: acquisitionOutput, operationId: acquisitionId });
+    assert.equal(verified.manifest.selected.record_count, 3);
+    assert.equal(verified.manifest.transport.fetch_calls, acquisitionCalls);
+    assert.equal(verified.manifest.journal.counters.requests_completed, acquisitionCalls);
+    assert.equal(verified.verification.selected_field_contract_verified, true);
+    assert.equal(verified.verification.native_source_replayed, false);
+    assert.equal(verified.manifest.claims.normalized_businesses_published, false);
+    assert.equal(acquisition.cancellation_after_publication, false);
+    await assert.rejects(readOvertureAcquisitionSession(acquisition, { output: acquisitionOutput, operationId: acquisitionId }));
   } finally {
     clearTimeout(timer);
     try { await bridge?.close(); }

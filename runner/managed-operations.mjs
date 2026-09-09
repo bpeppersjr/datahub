@@ -10,8 +10,12 @@ import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./source-acquisition-gates.mjs";
+import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mjs";
+import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition"];
+const uuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const FORMATS = ["csv", "jsonl", "both"];
 const POLICIES = ["public-only", "local-review"];
 const safeId = (value) => typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value);
@@ -23,7 +27,8 @@ const cleanError = (error) => {
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: ["cohort-snapshot", "source-prerequisite"].includes(record.kind) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
+  artifacts: PRIVATE_EVIDENCE.includes(record.kind) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
+  result: record.kind === "source-acquisition" && record.status !== "SUCCEEDED" ? { ...(record.result ?? {}), snapshotReady: false, inspectionRequired: true } : record.result ?? {},
 });
 async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
@@ -72,7 +77,7 @@ export class ManagedOperations {
       if (!entry.isDirectory() || !safeId(entry.name)) continue;
       try {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
-        if (record.id !== entry.name || !["collection", "export", "cohort-snapshot", "source-prerequisite"].includes(record.kind)) continue;
+        if (record.id !== entry.name || !["collection", "export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
           const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
@@ -112,6 +117,42 @@ export class ManagedOperations {
     assertSourcePrerequisiteAllowed(input);
     // No capture implementation is enrolled, even if a future gate changes.
     throw conflict("Source prerequisite capture is not enrolled.");
+  }
+  async startOvertureAcquisition(input) {
+    const fields = ["metadataOperationId", "runtimeOperationId", "authorization"];
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== fields.length
+      || !fields.every(key => Object.hasOwn(Object.getOwnPropertyDescriptor(input, key) ?? {}, "value"))) throw invalid("Overture acquisition requires explicit prerequisite IDs and authorization only.");
+    const { metadataOperationId, runtimeOperationId, authorization } = input;
+    if (!uuid(metadataOperationId) || !uuid(runtimeOperationId) || metadataOperationId === runtimeOperationId
+      || authorization !== OVERTURE_LARGE_ACQUISITION_CONFIRMATION) throw invalid("Overture acquisition requires valid distinct prerequisite IDs and explicit large-acquisition authorization.");
+    if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Overture acquisition requires native operation storage.");
+    await this.ready;
+    let metadata, runtime;
+    try {
+      await mnSelectionCanonical(this.root);
+      metadata = await this.#retainedOverturePrerequisite(metadataOperationId, true);
+      runtime = await this.#retainedOverturePrerequisite(runtimeOperationId, false);
+    } catch { throw conflict("Overture prerequisites are missing, unsafe, or not verified; acquisition is blocked."); }
+    await this.#refreshUnknown(); this.#reserve();
+    try { return await this.#start("source-acquisition", { sourceId: "overture-us-places", metadata, runtime, authorization }); }
+    catch (error) { this.reserved = false; throw error; }
+  }
+  async #retainedOverturePrerequisite(operationId, metadata) {
+    const file = path.join(this.root, operationId, "receipt.json");
+    await mnSelectionCanonical(path.dirname(file));
+    const record = await mnSelectionReadJson(file, 1024 * 1024);
+    const sourceId = metadata ? "overture-source-preflight" : "overture-httpfs-runtime";
+    const descriptor = record?.result?.prerequisite;
+    if (record?.id !== operationId || record.kind !== "source-prerequisite" || record.status !== "SUCCEEDED"
+      || record.details?.sourceId !== sourceId || record.result?.sourceId !== sourceId
+      || record.result.receiptIntegrityVerified !== true || record.result.inspectionRequired !== false
+      || record.result.acquisitionReady !== false || record.result[metadata ? "metadataReady" : "runtimeReady"] !== true
+      || descriptor?.cancellation_after_publication !== false || typeof record.startedAt !== "string") throw new Error("Invalid prerequisite.");
+    const output = path.join(this.root, operationId, "output");
+    const read = metadata ? (await import("./overture-source-preflight.mjs")).readOvertureSourcePreflight
+      : (await import("./overture-httpfs-runtime.mjs")).readOvertureHttpfsRuntime;
+    await read(descriptor, { output, operationId, startedAt: record.startedAt });
+    return { output, operation_id: operationId, descriptor };
   }
   // Internal scheduler entry point: manual HTTP inputs cannot supply operation IDs.
   async startScheduledCollection(input = {}, options = {}) {
@@ -215,7 +256,7 @@ export class ManagedOperations {
   async cancel(id) { await this.ready; const record = this.operations.get(id); if (!record) return null; this.running.get(id)?.abort(); return this.#snapshot(record); }
   async artifact(id, filename) {
     await this.ready; const record = this.operations.get(id); if (!record || !FINAL.has(record.status) || !safeId(filename) || filename.includes("..")) return null;
-    if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) return null;
+    if (PRIVATE_EVIDENCE.includes(record.kind)) return null;
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
     if (!contained(await realpath(this.root), base) || !contained(base, await realpath(file))) return null;
@@ -271,11 +312,19 @@ export class ManagedOperations {
           : record.details.sourceId === "overture-source-preflight" ? "scripts/probe-overture-source-preflight.mjs" : "scripts/probe-ok-childcare-schema.mjs";
         args = ["--output", path.join(directory, "output"), "--operation-id", record.id];
       }
+      else if (record.kind === "source-acquisition") {
+        script = "scripts/run-overture-acquisition-session.mjs";
+        args = ["--output", path.join(directory, "output"), "--operation-id", record.id,
+          "--metadata-operation-id", record.details.metadata.operation_id, "--runtime-operation-id", record.details.runtime.operation_id,
+          "--metadata-sha256", record.details.metadata.descriptor.sha256, "--runtime-sha256", record.details.runtime.descriptor.sha256,
+          "--authorization", record.details.authorization];
+      }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
       const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind !== "export" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) {
-        const recovered = record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout)
+      if (PRIVATE_EVIDENCE.includes(record.kind)) {
+        const recovered = record.kind === "source-acquisition" ? await this.#verifyOvertureAcquisition(record, execution?.stdout)
+          : record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout)
           : ["overture-httpfs-runtime", "overture-source-preflight"].includes(record.details.sourceId) ? await this.#verifyOverturePrerequisite(record, execution?.stdout)
             : await this.#verifyOkSchemaPrerequisite(record, execution?.stdout);
         if (controller.signal.aborted || execution?.code !== 0 || recovered) {
@@ -295,8 +344,8 @@ export class ManagedOperations {
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
     } catch (error) {
-      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = ["cohort-snapshot", "source-prerequisite"].includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
-      if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) {
+      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
+      if (PRIVATE_EVIDENCE.includes(record.kind)) {
         record.result.inspectionRequired = true;
         if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
       }
@@ -309,6 +358,7 @@ export class ManagedOperations {
       record.result[record.details.sourceId === "overture-source-preflight" ? "metadataReady" : "runtimeReady"] = false;
       record.result.acquisitionReady = false;
     }
+    if (record.kind === "source-acquisition" && record.status !== "SUCCEEDED") record.result.snapshotReady = false;
     record.finishedAt = this.now(); delete record.owner; await this.#persist(record);
   }
   async #discover(record, directory) {
@@ -370,6 +420,35 @@ export class ManagedOperations {
     const rejected = recovery || descriptor.status !== "schema-observed-not-collection-ready" || descriptor.cancellation_after_publication;
     record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, status: descriptor.status, collectionReady: false,
       observedRows: receipt.schema?.counts?.rows ?? null, centerRows: receipt.schema?.counts?.center_rows ?? null, statewideCompletenessVerified: false };
+    record.artifacts = [];
+    return rejected;
+  }
+  async #verifyOvertureAcquisition(record, stdout) {
+    const reject = () => { throw new Error("Overture acquisition evidence rejected."); };
+    if (typeof stdout !== "string" || stdout.length > 65536) reject();
+    let parsed; try { parsed = JSON.parse(stdout); } catch { reject(); }
+    let descriptor = parsed, recovery = false;
+    if (parsed && Object.hasOwn(parsed, "recovery")) {
+      if (Object.keys(parsed).length !== 1) reject();
+      descriptor = parsed.recovery; recovery = true;
+    }
+    const fields = ["run_id", "operation_id", "manifest", "sha256", "status", "cancellation_after_publication"];
+    if (!descriptor || Object.getPrototypeOf(descriptor) !== Object.prototype || Object.keys(descriptor).length !== fields.length
+      || !fields.every(key => Object.hasOwn(descriptor, key)) || !uuid(descriptor.run_id)
+      || descriptor.operation_id !== record.id || typeof descriptor.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(descriptor.sha256)
+      || descriptor.status !== "selected-source-retained-not-published" || typeof descriptor.cancellation_after_publication !== "boolean"
+      || descriptor.manifest !== path.join(this.root, record.id, "output", "jobs", descriptor.run_id, "manifest.json")) reject();
+    record.result = { sourceId: "overture-us-places", snapshot: descriptor, receiptIntegrityVerified: false,
+      inspectionRequired: true, snapshotReady: false, normalizedPublished: false, completeUsBusinessCoverage: false, exportPolicy: "internal" };
+    const { readOvertureAcquisitionSession } = await import("./overture-acquisition-receipt.mjs");
+    const checked = await readOvertureAcquisitionSession(descriptor, { output: path.join(this.root, record.id, "output"), operationId: record.id, startedAt: record.startedAt });
+    for (const key of ["metadata", "runtime"]) {
+      const actual = checked.manifest[`${key}_reference`], expected = record.details[key];
+      if (!actual || actual.output !== expected.output || actual.operation_id !== expected.operation_id
+        || !Object.keys(expected.descriptor).every(field => actual.descriptor?.[field] === expected.descriptor[field])) reject();
+    }
+    const rejected = recovery || descriptor.cancellation_after_publication;
+    record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, snapshotReady: !rejected };
     record.artifacts = [];
     return rejected;
   }

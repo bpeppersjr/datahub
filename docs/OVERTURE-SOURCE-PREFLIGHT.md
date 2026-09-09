@@ -18,7 +18,7 @@ Clean managed completion sets `metadataReady: true`, but always `acquisitionRead
 
 Use the persisted operation ID and prerequisite descriptor in later app-owned work. A completed receipt is not automatically refetched after restart. Interrupted ownership becomes unresolved and requires inspection; no automatic retry, resumption or freshness policy is claimed. A new explicit prerequisite request can refetch metadata, so reuse a verified retained receipt when a refresh is unnecessary.
 
-This prerequisite does not yet enroll the full bounded places-acquisition composition. Large acquisition remains separately gated; declared global row counts are neither US business counts nor a completeness percentage. The retained runtime prerequisite is reused separately, not downloaded again here.
+The [bounded app-owned acquisition session](OVERTURE-ACQUISITION-SESSION.md) can consume this retained prerequisite with a separate explicit large-acquisition authorization. Running this prerequisite never launches that acquisition. Declared global row counts are neither US business counts nor a completeness percentage. The retained runtime prerequisite is reused separately, not downloaded again here.
 
 Rollback: remove this source ID's managed enrollment and script dispatch while preserving existing receipts and artifacts. No dataset migration or national promotion is performed.
 
