@@ -167,7 +167,7 @@ test('VT publisher cohort enrollment is separate from address coverage and missi
       assert.equal(cell.localPublisherCohortEvidence.status,'unavailable');
       assert.equal(cell.localPublisherCohortEvidence.reason,'enrolled-receipt-not-installed');
       assert.equal(cell.localPublisherCohortEvidence.publisherCohortRows,undefined);
-    }else assert.equal(cell.localPublisherCohortEvidence,undefined);
+    }else assert.deepEqual(cell.localPublisherCohortEvidence,prior.localPublisherCohortEvidence);
   }
 });
 
@@ -230,6 +230,20 @@ test('state ledger does not infer scheduler implementation or actual dispatch fr
     assert.equal(cell.appHandoff.jobSubmitted, false);
     assert.equal(cell.appHandoff.prerequisiteContentsValidated, false);
   }
+});
+
+test('Iowa local enrollment missing artifacts does not manufacture national evidence', async (t) => {
+  const f = await fixture(t), before = await buildStateAccessLedger(f);
+  await copyFile(path.join(APP_ROOT, 'config/ia-childcare-reporting-enrollment.json'), path.join(f.root, 'config/ia-childcare-reporting-enrollment.json'));
+  const after = await buildStateAccessLedger(f);
+  assert.deepEqual(after.summary, before.summary);
+  const cell = ledger => ledger.jurisdictions.find(r => r.state === 'IA').industries.find(r => r.industry === 'childcare');
+  assert.equal(cell(before).localPublisherCohortEvidence.status, 'not-enrolled');
+  assert.equal(cell(after).localPublisherCohortEvidence.status, 'unavailable');
+  assert.equal(cell(after).localPublisherCohortEvidence.publisherCohortRows, undefined);
+  delete cell(before).localPublisherCohortEvidence;
+  delete cell(after).localPublisherCohortEvidence;
+  assert.deepEqual(after.jurisdictions, before.jurisdictions);
 });
 
 test('state ledger rejects artifact tampering before claiming access evidence', async (t) => {
