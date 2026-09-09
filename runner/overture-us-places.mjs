@@ -10,7 +10,7 @@ import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
-export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.0";
+export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
 export const OVERTURE_STAC_URL = "https://stac.overturemaps.org/catalog.json";
 export const OVERTURE_ATTRIBUTION_URL = "https://docs.overturemaps.org/attribution/";
 export const OVERTURE_PLACES_GUIDE_URL = "https://docs.overturemaps.org/guides/places/";
@@ -202,7 +202,7 @@ function normalizeSources(value) {
       dataset,
       record_id: recordId,
       update_time: textValue(source.update_time),
-      source_confidence: Number.isFinite(Number(source.confidence)) ? Number(source.confidence) : null,
+      source_confidence: typeof source.confidence === "number" && Number.isFinite(source.confidence) ? source.confidence : null,
       license: sourceLicense(dataset, source.license),
     };
   });
@@ -230,17 +230,17 @@ export function normalizeOvertureUsPlace(source, context) {
   assertExactSelectedRecord(source);
   const id = textValue(source.id)?.toLowerCase();
   if (!id || !GERS_ID.test(id)) throw new Error("missing-or-invalid-gers-id");
-  const version = Number(source.version);
+  const version = typeof source.version === "number" ? source.version : NaN;
   if (!Number.isSafeInteger(version) || version < 0) throw new Error("invalid-version");
   const primaryName = textValue(source.primary_name);
   if (!primaryName) throw new Error("missing-place-name");
   const taxonomyPrimary = textValue(source.taxonomy_primary);
   const hierarchy = Array.isArray(source.taxonomy_hierarchy) ? source.taxonomy_hierarchy.map(textValue).filter(Boolean) : [];
   if (!taxonomyPrimary || hierarchy.length === 0 || hierarchy.at(-1) !== taxonomyPrimary || new Set(hierarchy).size !== hierarchy.length) throw new Error("missing-or-invalid-taxonomy");
-  const confidence = source.confidence === null || source.confidence === undefined ? null : Number(source.confidence);
+  const confidence = source.confidence === null || source.confidence === undefined ? null : (typeof source.confidence === "number" ? source.confidence : NaN);
   if (confidence !== null && (!Number.isFinite(confidence) || confidence < 0 || confidence > 1)) throw new Error("invalid-confidence");
-  const latitude = Number(source.latitude);
-  const longitude = Number(source.longitude);
+  const latitude = typeof source.latitude === "number" ? source.latitude : NaN;
+  const longitude = typeof source.longitude === "number" ? source.longitude : NaN;
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) throw new Error("missing-or-invalid-coordinate");
   if (textValue(source.address_country)?.toUpperCase() !== "US") throw new Error("invalid-address-country");
   const postal = splitUsPostcode(source.address_postcode);
@@ -843,7 +843,9 @@ export async function verifyOvertureUsPlaces(manifestPath) {
         if (normalizedIds.has(record.normalized_record_id)) throw new Error(`duplicate normalized record ${record.normalized_record_id}`);
         normalizedIds.add(record.normalized_record_id);
         if (!/^overture-us-place:[0-9a-f-]{36}$/.test(record.normalized_record_id ?? "") || record.export_policy !== "local-review-only") throw new Error("invalid normalized identity or export policy");
-        if (!Number.isFinite(record.geocode?.latitude) || !Number.isFinite(record.geocode?.longitude) || record.geocode?.source !== "overture-place-point") throw new Error("invalid normalized geocode");
+        if (!Number.isFinite(record.geocode?.latitude) || record.geocode.latitude < -90 || record.geocode.latitude > 90
+          || !Number.isFinite(record.geocode?.longitude) || record.geocode.longitude < -180 || record.geocode.longitude > 180
+          || record.geocode?.source !== "overture-place-point") throw new Error("invalid normalized geocode");
         if (containsForbiddenRecordField(record) || record.privacy?.geometry_excluded !== true || record.privacy?.bbox_excluded !== true) throw new Error("forbidden geometry or contact field leaked");
         if (record.reported_address?.country !== "US" || (record.reported_address?.zip_code && !/^\d{5}$/.test(record.reported_address.zip_code)) || (record.reported_address?.zip4 && !/^\d{4}$/.test(record.reported_address.zip4))) throw new Error("invalid normalized postal fields");
         if (record.reported_address?.zip_code) increment(zipCounts, record.reported_address.zip_code);

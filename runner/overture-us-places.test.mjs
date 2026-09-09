@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gzipSync } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import {
   buildOvertureUsPlaces,
@@ -213,6 +213,22 @@ test("normalizes address coordinates and keeps ZIP5 and ZIP+4 separate without a
   assert.equal(Object.hasOwn(normalized, "geometry"), false);
 });
 
+test("missing or nonnumeric measurements are not coerced to zero", () => {
+  for (const value of [null, undefined, "", " ", "0", false, true, [], {}, NaN, Infinity]) {
+    for (const coordinate of ["latitude", "longitude"]) assert.throws(() => normalizeOvertureUsPlace(source({ [coordinate]: value }), context()), /missing-or-invalid-coordinate/);
+    assert.throws(() => normalizeOvertureUsPlace(source({ version: value }), context()), /invalid-version/);
+    const normalized = normalizeOvertureUsPlace(source({ sources: [{ dataset: "meta", record_id: "fixture", confidence: value }] }), context());
+    assert.equal(normalized.source_records[0].source_confidence, null);
+    if (value !== null && value !== undefined) assert.throws(() => normalizeOvertureUsPlace(source({ confidence: value }), context()), /invalid-confidence/);
+  }
+  const zero = normalizeOvertureUsPlace(source({ latitude: 0, longitude: 0, version: 0, confidence: 0, sources: [{ dataset: "meta", record_id: "fixture", confidence: 0 }] }), context());
+  assert.deepEqual(zero.geocode, { latitude: 0, longitude: 0, source: "overture-place-point" });
+  assert.equal(zero.source_records[0].source_confidence, 0);
+  assert.equal(zero.source_status.confidence, 0);
+  assert.equal(normalizeOvertureUsPlace(source({ confidence: null }), context()).source_status.confidence, null);
+  assert.equal(zero.provenance.transformation_version, "overture-us-places@1.0.1");
+});
+
 test("builds, quarantines, publishes, and independently verifies an offline Overture fixture", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "overture-us-places-fixture-"));
   try {
@@ -221,14 +237,15 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
       source(),
       source({ id: "22222222-2222-4222-8222-222222222222", primary_name: "Fixture Cafe", address_postcode: null, operating_status: "temporarily_closed", taxonomy_primary: "cafe", taxonomy_hierarchy: ["food_and_drink", "casual_eatery", "cafe"], basic_category: "cafe" }),
       source({ id: "33333333-3333-4333-8333-333333333333", primary_name: null }),
+      source({ id: "44444444-4444-4444-8444-444444444444", latitude: null, longitude: null }),
     ];
     const result = await buildOvertureUsPlaces({
       outputRoot: path.join(root, "output"), zbpPointer, sourceRecords: records, sourceMetadata: sourceMetadata(),
       minimumPlaces: 1, maximumQuarantineRatio: 1, now: () => new Date("2026-09-03T12:00:00.000Z"), logger: () => {},
     });
-    assert.equal(result.manifest.coverage.selected_us_place_records, 3);
+    assert.equal(result.manifest.coverage.selected_us_place_records, 4);
     assert.equal(result.manifest.coverage.normalized_places, 2);
-    assert.equal(result.manifest.coverage.quarantined_records, 1);
+    assert.equal(result.manifest.coverage.quarantined_records, 2);
     assert.equal(result.manifest.coverage.records_with_valid_zip5, 1);
     assert.equal(result.manifest.coverage.records_with_separate_zip4, 1);
     assert.equal(result.manifest.coverage.complete_all_us_businesses, false);
@@ -242,6 +259,17 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
       assert.equal(Object.hasOwn(record, "bbox"), false);
       assert.equal(typeof record.geocode.latitude, "number");
       assert.equal(typeof record.geocode.longitude, "number");
+    }
+    const quarantine = result.manifest.artifacts.find(artifact => artifact.artifact_type === "overture-us-place-quarantine-jsonl-gzip");
+    assert.ok((await gunzipRecords(path.join(result.releaseDirectory, quarantine.path))).some(record => record.reason === "missing-or-invalid-coordinate"));
+    const artifact = artifacts.find(candidate => candidate.record_count > 0), filename = path.join(result.releaseDirectory, artifact.path);
+    const original = await gunzipRecords(filename);
+    for (const [coordinate, value] of [["latitude", 91], ["latitude", -91], ["longitude", 181], ["longitude", -181]]) {
+      const changed = structuredClone(original); changed[0].geocode[coordinate] = value;
+      const raw = gzipSync(changed.map(record => JSON.stringify(record) + "\n").join(""));
+      await writeFile(filename, raw); artifact.bytes = raw.length; artifact.sha256 = sha256(raw);
+      await writeFile(path.join(result.releaseDirectory, "manifest.json"), JSON.stringify(result.manifest));
+      await assert.rejects(verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json")), error => error.failures?.some(failure => failure.reason === "invalid normalized geocode"));
     }
   } finally {
     await rm(root, { recursive: true, force: true });
