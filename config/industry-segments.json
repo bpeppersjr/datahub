@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained"]
   },
   "sources": {
+    "state-ut-childcare-centers-retained": {
+      "script": "scripts/build-ut-childcare-app.mjs",
+      "scope": "state", "states": ["UT"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/ut-childcare-centers-app.json", "config/connectors/ut-childcare-centers-normalization.json", "config/source-policies/ut-childcare-centers-internal.json", "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/manifest.json", "data/runtimes/pdf-decoder-1/Scripts/python.exe"],
+      "coverage_notes": [
+        "Utah September 2026 Child Care Center source candidates only; the retained cohort does not establish current operations, unique businesses or physical premises.",
+        "No download or fresh acquisition: Co*Tive adopts the fixed verified retained normalized release, replaying its original PDF and complete records locally with the app-owned runtime.",
+        "ZIP5 and ZIP4 remain separate. Coordinates and address role remain unknown. License calendar dates do not prove operating status; missing fields remain explicit gaps.",
+        "Run-scoped app receipts bind retained evidence without rewriting historical claims. Enrollment does not promote national reporting, enable automatic retry or recovery, or activate a recurring refresh schedule. Future editions require reviewed version pins."
+      ]
+    },
     "state-co-childcare-centers": {
       "script": "scripts/build-co-childcare.mjs",
       "scope": "state", "states": ["CO"], "state_filter_supported": false,

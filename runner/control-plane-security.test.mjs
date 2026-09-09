@@ -259,7 +259,7 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(connectorCatalog.status, 200);
   const connectorCatalogBody = JSON.parse(connectorCatalog.body);
-    assert.equal(connectorCatalogBody.connector_count, 72);
+    assert.equal(connectorCatalogBody.connector_count, 73);
     assert.equal(connectorCatalogBody.policy_profile_count, 57);
   assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
 

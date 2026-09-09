@@ -101,6 +101,23 @@ test('CO app enrollment does not manufacture measured records or submitted jobs'
   assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
 });
 
+test('UT offline app enrollment preserves unmeasured coverage and does not invent acquisition or dispatch',async t=>{
+  const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8'));
+  const sourceId='state-ut-childcare-centers-retained';
+  for(const prerequisite of config.sources[sourceId].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='UT').industries.find(r=>r.industry==='childcare');
+  assert.equal(ledger.summary.industryCells,459);
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.status,'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.appHandoff.configuredSources.length,1);
+  assert.equal(cell.appHandoff.configuredSources[0].sourceId,sourceId);
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus,'PRESENT');
+  assert.ok(cell.appHandoff.configuredSources[0].limitations.some(note=>note.includes('No download')));
+  assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
+  assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
+  assert.deepEqual(cell.localSourceCandidateEvidence,{status:'not-enrolled'});
+});
+
 test('CO retained enrollment preserves national totals and exposes absent installed data as unavailable',async t=>{
   const f=await fixture(t),before=await buildStateAccessLedger(f);
   await copyFile(path.join(APP_ROOT,'config/co-childcare-reporting-enrollment.json'),path.join(f.root,'config/co-childcare-reporting-enrollment.json'));
