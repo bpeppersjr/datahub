@@ -22,6 +22,8 @@ The separate injected test factory is marked `injected-test-transport`, supports
 
 ## Integration still required
 
+The [local asset bridge](OVERTURE-ASSET-BRIDGE.md) now has native local Parquet compatibility evidence. This is library/test composition only; the production preparation path remains unchanged.
+
 Route the query engine through an app-owned controlled asset bridge, consume the already verified retained httpfs runtime, persist operation-bound accounting and receipts, enforce extraction/storage budgets and enroll the worker in managed operations. Only then can an authorized acquisition be handed off with a real operation ID. Do not run the existing direct preparation command as a substitute for those controls.
 
 No schema, production pointer or retained release changes in this increment. Rollback is code-only removal/reversion of this currently unreferenced library and its tests; retain all existing downloaded data and prerequisite receipts.
