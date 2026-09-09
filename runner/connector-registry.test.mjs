@@ -97,7 +97,7 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 75);
+  assert.equal(registry.connectorCount, 77);
   assert.equal(registry.get("ia-childcare-centers-acquisition").resource_class, "bounded-center-directory");
   assert.equal(registry.get("ia-childcare-schema-probe").resource_class, "bounded-schema-assessment");
   assert.deepEqual(registry.get("ut-childcare-centers-app").allowed_hosts, []);

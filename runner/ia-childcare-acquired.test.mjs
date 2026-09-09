@@ -2,10 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {readFile, readdir, writeFile, unlink, rmdir} from 'node:fs/promises';
+import {watch, existsSync} from 'node:fs';
 import {APP_ROOT} from './paths.mjs';
 import {IA_CHILDCARE_URLS, IA_CHILDCARE_TEST_CLIENT} from './ia-childcare-acquisition.mjs';
-import {buildIaChildcareAcquired, buildIaChildcareAcquiredWithTestTransport as build, verifyIaChildcareAcquired as verify} from './ia-childcare-acquired.mjs';
-const ROOT = path.join(APP_ROOT, 'data/tmp/ia-childcare-acquired-test');
+import {IA_CHILDCARE_ACQUIRED_TEST_ROOT as ROOT, buildIaChildcareAcquired, buildIaChildcareAcquiredWithTestTransport as build,
+  verifyIaChildcareAcquired as verify, readIaChildcareAcquiredEvidence as readEvidence} from './ia-childcare-acquired.mjs';
 const payload = [{businessType: 'building', businessName: 'Synthetic center', address: '1 Test St', city: 'Test',
   zipCode: 50301, latitude: 41, longitude: -93, referral: true},
 {businessType: 'home', businessName: 'EXCLUDED_PRIVATE_NAME', address: 'EXCLUDED_PRIVATE_ADDRESS'}];
@@ -35,6 +36,10 @@ test('Iowa durable release fsyncs checkpoints before next request and independen
   try {
     assert.equal(calls, 3); assert.equal(result.manifest.execution_mode, 'injected-test-transport');
     assert.deepEqual(await verify(result.manifest_path), result);
+    const input = await readEvidence(result.manifest_path);
+    assert.equal(input.evidence.execution_mode, 'injected-test-transport');
+    assert.deepEqual(input.verification, {manifest_path: result.manifest_path, manifest_sha256: result.manifest_sha256,
+      run_id: result.manifest.run_id, execution_mode: 'injected-test-transport'});
     const directory = path.dirname(result.manifest_path);
     for (const entry of result.manifest.artifacts) {
       const text = await readFile(path.join(directory, entry.path), 'utf8');
@@ -44,6 +49,7 @@ test('Iowa durable release fsyncs checkpoints before next request and independen
     const changed = JSON.parse(original); changed.selection.rows[0].source.businessName = 'tampered';
     await writeFile(evidencePath, JSON.stringify(changed) + '\n');
     await assert.rejects(verify(result.manifest_path), /verification failed/);
+    await assert.rejects(readEvidence(result.manifest_path), /verification failed/);
     await writeFile(evidencePath, original); assert.deepEqual(await verify(result.manifest_path), result);
     const manifestBytes = await readFile(result.manifest_path), manifest = JSON.parse(manifestBytes);
     manifest.claims.current_business_status_verified = true;
@@ -78,4 +84,25 @@ test('Iowa durable public API rejects caller paths and pre-abort without acquisi
     Object.defineProperty({}, 'signal', {get() {assert.fail('accessor');}})]) await assert.rejects(buildIaChildcareAcquired(options));
   await assert.rejects(buildIaChildcareAcquired({signal: AbortSignal.abort()}), {name: 'AbortError'});
   await assert.rejects(verify(path.join(APP_ROOT, 'data/tmp/not-a-release/manifest.json')));
+});
+
+test('Iowa acquired commit drains verification and returns its reusable descriptor after cancellation', async () => {
+  const before = await readdir(ROOT), controller = new AbortController(); let watcher, result, observed = false;
+  try {
+    result = await build(async url => {
+      if (!watcher) {
+        const ids = (await readdir(ROOT)).filter(name => !before.includes(name) && !name.startsWith('.'));
+        assert.equal(ids.length, 1); const directory = path.join(ROOT, ids[0]);
+        watcher = watch(directory, (_event, filename) => {
+          if (String(filename) === 'manifest.json' && existsSync(path.join(directory, 'manifest.json'))) {
+            observed = true; controller.abort();
+          }
+        });
+      }
+      return response(url);
+    }, {signal: controller.signal});
+    assert.equal(observed, true); assert.equal(controller.signal.aborted, true);
+    assert.deepEqual(await verify(result.manifest_path), result);
+    assert.equal((await readEvidence(result.manifest_path)).verification.manifest_sha256, result.manifest_sha256);
+  } finally {watcher?.close(); if (result) await removeTestRelease(result);}
 });

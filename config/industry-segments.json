@@ -11,9 +11,20 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained", "state-ia-childcare-centers"]
   },
   "sources": {
+    "state-ia-childcare-centers": {
+      "script": "scripts/build-ia-childcare.mjs",
+      "scope": "state", "states": ["IA"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/ia-childcare-centers-app.json", "config/connectors/ia-childcare-centers-acquisition.json", "config/connectors/ia-childcare-centers-normalization.json", "config/source-policies/ia-childcare-centers-internal.json"],
+      "coverage_notes": [
+        "Iowa center/preschool display-class source candidates, not independently verified current operating businesses or unique physical establishments.",
+        "Co*Tive owns bounded serial acquisition, selected-only retention, offline normalization and linked durable receipts. No automatic retry, crash recovery or recurring schedule is activated.",
+        "ZIP5 and ZIP4 remain separate. Numeric source ZIPs require validation; source-reported point accuracy, address role, source update time and address state remain unknown rather than inferred.",
+        "Explicit retained-input reuse avoids downloading again. Enrollment does not promote national reporting or establish statewide completeness, public export authority or stable provider identity."
+      ]
+    },
     "state-ut-childcare-centers-retained": {
       "script": "scripts/build-ut-childcare-app.mjs",
       "scope": "state", "states": ["UT"], "state_filter_supported": false,

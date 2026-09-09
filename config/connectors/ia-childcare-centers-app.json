@@ -1,0 +1,94 @@
+{
+  "connector_id": "ia-childcare-centers-app",
+  "version": "1.0.0",
+  "description": "Standalone Iowa center/preschool acquisition and offline normalization with durable app receipts.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "outputRoot": {
+        "type": "string"
+      },
+      "acquiredManifestPath": {
+        "type": "string"
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schema_version", "run_id", "industry_run_id", "status", "execution_mode", "started_at", "finished_at", "start_sha256", "configuration", "acquired", "normalized", "claims"],
+    "properties": {
+      "schema_version": {"const": "ia-childcare-app@1.0.0"},
+      "run_id": {"type": "string", "format": "uuid"},
+      "industry_run_id": {"type": ["string", "null"]},
+      "status": {"enum": ["SUCCEEDED", "FAILED", "CANCELLED"]},
+      "execution_mode": {"enum": ["fixed-native-fetch", "injected-test-transport", "retained-local-verification"]},
+      "started_at": {"type": "string", "format": "date-time"},
+      "finished_at": {"type": "string", "format": "date-time"},
+      "start_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "configuration": {"type": "object"},
+      "acquired": {"type": ["object", "null"]},
+      "normalized": {"type": ["object", "null"]},
+      "claims": {"type": "object"},
+      "error_code": {"type": "string"},
+      "output_state": {"const": "inspection-required"}
+    },
+    "allOf": [{"if": {"properties": {"status": {"const": "SUCCEEDED"}}}, "then": {"properties": {"acquired": {"type": "object"}, "normalized": {"type": "object"}}, "not": {"anyOf": [{"required": ["error_code"]}, {"required": ["output_state"]}]}}, "else": {"required": ["error_code", "output_state"]}}]
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "ia-childcare-selected-acquisition"
+  ],
+  "output_artifact_types": [
+    "ia-childcare-app-terminal-receipt",
+    "ia-childcare-normalized-release"
+  ],
+  "output_schema_contract": {
+    "app_version": "ia-childcare-app@1.0.0",
+    "export_policy": "internal",
+    "entity": "Publisher center/preschool candidates, not verified active businesses",
+    "postal": "ZIP5 and ZIP4 separate"
+  },
+  "allowed_hosts": [
+    "search.iachildcareconnect.org"
+  ],
+  "redirect_policy": "Fixed paired client GET and empty-form pins POST; reject redirects. Retained mode has no source requests.",
+  "provider_budget_key": "ia-childcare-public-map",
+  "publisher_exclusion": "Native app owns data/business-sources/ia-childcare/runtime/publisher.lock through acquisition, normalization and terminal persistence. Injected tests use a separate process-scoped test runtime lock. Retained work uses output ownership only; unknown locks are not stolen.",
+  "resource_class": "bounded-state-industry-app-job",
+  "execution_limits": {
+    "max_parallel_requests": 1,
+    "maximum_requests": 3,
+    "request_timeout_ms": 20000,
+    "cooperative_execution_deadline_ms": 1800000,
+    "minimum_free_disk_bytes": 1000000000,
+    "supervisor_cancel_grace_ms": 75000
+  },
+  "retry": "No automatic retry or restart. Preserve completed global acquisition for explicit retained-input reuse.",
+  "checkpoint": "Start, acquired and normalized receipts; independently verified terminal last without overwrite.",
+  "idempotency": "Immutable app UUID and child references; normalized child scoped to app job, global acquisition bound to mode and time.",
+  "cancellation": "Drain cooperative child writers before terminal persistence and lock release; OS stalls or forced termination require inspection.",
+  "source_policy": "config/source-policies/ia-childcare-centers-internal.json",
+  "retention_profile": "Internal whitelist and linked receipts; mixed source response discarded, unknown status and quality gaps retained.",
+  "produced_entities": [
+    "source-directory-candidate",
+    "quarantined-source-record-reference"
+  ],
+  "produced_identifiers": [
+    "release-scoped-source-ordinal",
+    "zip5",
+    "zip4"
+  ]
+}

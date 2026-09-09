@@ -39,6 +39,7 @@ const PROFILE_IDS = Object.freeze({
   "state-md-childcare-centers": null,
   "state-vt-childcare-centers": null,
   "state-co-childcare-centers": null,
+  "state-ia-childcare-centers": null,
   // Offline retained adoption is not a national reporting profile or refresh.
   "state-ut-childcare-centers-retained": null,
   "national-irs-eo-bmf": null,

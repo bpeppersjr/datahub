@@ -8,7 +8,9 @@ import {acquireIaChildcare, acquireIaChildcareWithTestTransport, replayIaChildca
 
 export const IA_CHILDCARE_ACQUIRED_VERSION = 'ia-childcare-acquired@1.0.0';
 const ROOT = path.join(APP_ROOT, 'data/business-sources/ia-childcare/acquired');
-const TEST_ROOT = path.join(APP_ROOT, 'data/tmp/ia-childcare-acquired-test');
+const TEST_BASE = path.join(APP_ROOT, 'data/tmp/ia-childcare-acquired-test');
+export const IA_CHILDCARE_ACQUIRED_TEST_ROOT = path.join(TEST_BASE, String(process.pid));
+const TEST_ROOT = IA_CHILDCARE_ACQUIRED_TEST_ROOT;
 const LABELS = ['client-before', 'selected-response', 'client-after'];
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const MAX = 32000000;
@@ -34,16 +36,17 @@ function descriptor(name, snap) {return {path: name, bytes: snap.meter.bytes, sh
 function checkpoint(evidence, index) {
   return index === 1 ? {request: evidence.requests[1], selection: evidence.selection} : evidence.requests[index];
 }
-async function inspect(manifestPath, signal, temporary = false) {
+async function inspect(manifestPath, signal, temporary = false, includeEvidence = false) {
   signal?.throwIfAborted();
   check(typeof manifestPath === 'string' && manifestPath === path.resolve(manifestPath)
     && path.basename(manifestPath) === (temporary ? 'manifest.tmp' : 'manifest.json'));
   const directory = path.dirname(manifestPath), root = path.dirname(directory), id = path.basename(directory);
-  check(UUID.test(id) && [ROOT, TEST_ROOT].includes(root));
+  const synthetic = path.dirname(root) === TEST_BASE && /^[1-9][0-9]{0,15}$/.test(path.basename(root));
+  check(UUID.test(id) && (root === ROOT || synthetic));
   await canonical(directory, {signal}); const owner = await lstat(directory, {bigint: true});
   const manifest = await snapshot(manifestPath, signal, 100000), evidence = await snapshot(path.join(directory, 'evidence.json'), signal);
   const verified = await replayIaChildcareAcquisition(evidence.value, {signal});
-  check(same(verified, evidence.value) && verified.execution_mode === mode(root === TEST_ROOT));
+  check(same(verified, evidence.value) && verified.execution_mode === mode(synthetic));
   const artifacts = [], snapshots = [];
   for (const [index, label] of LABELS.entries()) {
     const name = `${label}.json`, item = await snapshot(path.join(directory, name), signal);
@@ -62,7 +65,14 @@ async function inspect(manifestPath, signal, temporary = false) {
   await unchanged(manifestPath, manifest, signal, 100000); await canonical(directory, {signal});
   check(identity(owner, await lstat(directory, {bigint: true})) && same((await readdir(directory)).sort(), roster));
   signal?.throwIfAborted();
-  return {manifest_path: manifestPath, manifest_sha256: manifest.meter.sha256, manifest: manifest.value};
+  const verification = {manifest_path: manifestPath, manifest_sha256: manifest.meter.sha256,
+    run_id: id, execution_mode: verified.execution_mode};
+  return includeEvidence ? {evidence: verified, verification}
+    : {manifest_path: manifestPath, manifest_sha256: manifest.meter.sha256, manifest: manifest.value};
+}
+export async function readIaChildcareAcquiredEvidence(manifestPath, value = {}) {
+  const signal = options(value);
+  try {return await inspect(manifestPath, signal, false, true);} catch {signal?.throwIfAborted(); throw Error('Iowa acquired evidence verification failed.');}
 }
 export async function verifyIaChildcareAcquired(manifestPath, value = {}) {
   const signal = options(value);
@@ -109,7 +119,9 @@ async function build(transport, signal, synthetic) {
     const temporary = path.join(directory, 'manifest.tmp'); await inspect(temporary, signal, true);
     check(await isOwned(directory, directoryOwner)); signal?.throwIfAborted();
     await link(temporary, path.join(directory, 'manifest.json')); published = true; await unlink(temporary);
-    return await inspect(path.join(directory, 'manifest.json'), signal);
+    // Publication is the commit boundary. Drain verification without cancellation
+    // so the caller can durably record this completed child before cancelling.
+    return await inspect(path.join(directory, 'manifest.json'));
   } catch {
     if (!published && directoryOwner && await isOwned(directory, directoryOwner)) {
       for (const [file, prior] of owned) if (await isOwned(file, prior)) await unlink(file);
