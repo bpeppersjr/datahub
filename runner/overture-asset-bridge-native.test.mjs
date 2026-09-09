@@ -12,6 +12,7 @@ import { startOvertureAssetBridge } from './overture-asset-bridge.mjs';
 import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
 import { streamOvertureJsonRows } from './overture-json-stream.mjs';
 import { writeOvertureSelectedOutput } from './overture-selected-output.mjs';
+import { overtureStreamingSql, OVERTURE_SELECTED_FIELDS, normalizeOvertureUsPlace } from './overture-us-places.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
 const quote = value => `'${value.replaceAll('\\', '/').replaceAll("'", "''")}'`;
@@ -42,7 +43,23 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     await connection.run(`LOAD ${quote(path.join(path.dirname(descriptor.manifest), 'httpfs.duckdb_extension'))}`);
     await connection.run('SET auto_fallback_to_full_download=false; SET force_download=false; SET http_retries=0; SET http_timeout=5;');
     const parquet = path.join(directory, 'fixture.parquet');
-    await connection.run(`COPY (SELECT 1 AS id, 'local-fixture' AS name UNION ALL SELECT 2, 'second-fixture') TO ${quote(parquet)} (FORMAT PARQUET)`);
+    await connection.run(`COPY (
+      SELECT printf('11111111-1111-4111-8111-%012d', i + 1) AS id, 1::BIGINT AS version,
+        CASE i WHEN 1 THEN 'permanently_closed' WHEN 3 THEN NULL WHEN 4 THEN 'temporarily_closed' ELSE 'open' END AS operating_status,
+        'grocery_store' AS basic_category,
+        {'primary':'grocery_store','hierarchy':['shopping','grocery_store'],'alternates':['supermarket']} AS taxonomy,
+        0.8::DOUBLE AS confidence, {'primary':'Local fixture ' || i, 'common':map(['en'],['Fixture'])} AS names,
+        ['https://example.invalid'] AS websites,
+        {'names':{'primary':'Fixture brand','common':map(['en'],['Fixture brand'])},'wikidata':'Q1'} AS brand,
+        CASE WHEN i=5 THEN [] ELSE [
+          {'freeform':'Foreign address','locality':'Foreign locality','postcode':'A1A 1A1','region':'ON','country':'CA'},
+          {'freeform':'123 Fixture Road','locality':'Fixture City','postcode':'00501-0123','region':'NY','country':CASE WHEN i=2 THEN 'CA' ELSE 'US' END}
+        ] END AS addresses,
+        {'xmin':-73.0,'xmax':-73.0,'ymin':40.0,'ymax':40.0} AS bbox,
+        [{'dataset':'AllThePlaces','record_id':'local-' || i,'update_time':'2026-09-09T00:00:00Z','confidence':0.9}] AS sources,
+        'PRIVATE_GEOMETRY' AS geometry, ['PRIVATE_EMAIL'] AS emails, ['PRIVATE_PHONE'] AS phones, ['PRIVATE_SOCIAL'] AS socials
+      FROM range(6) AS fixture(i)
+    ) TO ${quote(parquet)} (FORMAT PARQUET)`);
     const bytes = await readFile(parquet);
     const calls = [];
     journal = await createOvertureAcquisitionJournal({ output: path.join(directory, 'accounting'), operationId,
@@ -67,15 +84,35 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     timer = setTimeout(() => connection.interrupt(), 10000);
     let rows, selected;
     try {
-      const query = `SELECT to_json(selected)::VARCHAR AS record_json FROM (SELECT id, name FROM read_parquet(${quote(bridge.urls[0])}) ORDER BY id) selected`;
+      const query = overtureStreamingSql(bridge.urls);
       selected = await writeOvertureSelectedOutput({ rows: streamOvertureJsonRows({ connection, query }), output: path.join(directory, 'selected') });
       const compressed = await readFile(path.join(selected.directory, selected.artifact.path));
       assert.equal(compressed.length, selected.artifact.bytes);
       assert.equal(createHash('sha256').update(compressed).digest('hex'), selected.artifact.sha256);
       rows = gunzipSync(compressed).toString('utf8').trim().split('\n').map(line => JSON.parse(line));
     } catch { throw Error('Native local bridge query failed; capability and engine exception redacted.'); }
-    assert.deepEqual(rows, [{ id: 1, name: 'local-fixture' }, { id: 2, name: 'second-fixture' }]);
-    assert.equal(selected.record_count, 2);
+    rows.sort((left, right) => left.id.localeCompare(right.id));
+    assert.equal(selected.record_count, 3);
+    assert.deepEqual(rows.map(row => row.primary_name), ['Local fixture 0', 'Local fixture 3', 'Local fixture 4']);
+    assert.deepEqual(rows.map(row => row.operating_status), ['open', null, 'temporarily_closed']);
+    for (const row of rows) {
+      assert.deepEqual(Object.keys(row).sort(), [...OVERTURE_SELECTED_FIELDS].sort());
+      assert.equal(row.address_freeform, '123 Fixture Road');
+      assert.equal(row.address_country, 'US');
+      assert.equal(row.latitude, 40); assert.equal(row.longitude, -73);
+      assert.equal(row.version, 1); assert.equal(row.confidence, 0.8);
+      assert.deepEqual(row.common_names, { en: 'Fixture' });
+      assert.equal(row.brand_primary_name, 'Fixture brand');
+      assert.deepEqual(row.sources, [{ dataset: 'AllThePlaces', record_id: 'local-' + row.primary_name.at(-1),
+        update_time: '2026-09-09T00:00:00Z', confidence: 0.9 }]);
+      assert.ok(!JSON.stringify(row).includes('PRIVATE_'));
+      const normalized = normalizeOvertureUsPlace(row, { baselineByZip: new Map(), sourceReleaseId: 'local-fixture',
+        runId: 'local-fixture', releaseObservedAt: '2026-09-09T00:00:00Z', retrievedAt: '2026-09-09T00:00:00Z' });
+      assert.equal(normalized.reported_address.zip_code, '00501');
+      assert.equal(normalized.reported_address.zip4, '0123');
+      assert.deepEqual(normalized.geocode, { latitude: 40, longitude: -73, source: 'overture-place-point' });
+      assert.equal(normalized.classification.commercial_business_asserted, false);
+    }
     assert.equal(selected.claims.native_acquisition_verified, false);
     assert.ok(calls.includes('HEAD'));
     assert.ok(calls.includes('GET'));

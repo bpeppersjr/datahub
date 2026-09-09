@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
@@ -411,8 +411,11 @@ export function overtureExtractionSql(assetUrls, destination) {
   });
   const urls = `[${assetUrls.map(sqlLiteral).join(",")}]`;
   const target = sqlLiteral(path.resolve(destination).replaceAll("\\", "/"));
-  return `COPY (
-WITH selected AS (
+  return `COPY (\n${selectionBody(urls)}\n) TO ${target} (FORMAT JSON, ARRAY false, COMPRESSION gzip);`;
+}
+
+function selectionBody(urls) {
+  return `WITH selected AS (
   SELECT *, list_extract(list_filter(addresses, address -> upper(coalesce(address.country, '')) = 'US'), 1) AS us_address
   FROM read_parquet(${urls}, union_by_name = true)
   WHERE list_contains(list_transform(addresses, address -> upper(coalesce(address.country, ''))), 'US')
@@ -441,8 +444,37 @@ SELECT
   ((bbox.ymin + bbox.ymax) / 2)::DOUBLE AS latitude,
   ((bbox.xmin + bbox.xmax) / 2)::DOUBLE AS longitude,
   sources
-FROM selected
-) TO ${target} (FORMAT JSON, ARRAY false, COMPRESSION gzip);`;
+FROM selected`;
+}
+
+function streamingQuery(urls) {
+  return `SELECT to_json(cotive_selected)::VARCHAR AS record_json FROM (\n${selectionBody(urls)}\n) AS cotive_selected`;
+}
+
+export function overtureStreamingSql(bridgeUrls) {
+  const reject = () => { throw new Error("Overture streaming bridge URL contract rejected."); };
+  if (!Array.isArray(bridgeUrls) || Object.getPrototypeOf(bridgeUrls) !== Array.prototype
+    || bridgeUrls.length < 1 || bridgeUrls.length > OVERTURE_MAX_STAC_ASSETS) reject();
+  const descriptors = Object.getOwnPropertyDescriptors(bridgeUrls);
+  if (Reflect.ownKeys(descriptors).length !== bridgeUrls.length + 1) reject();
+  const values = [];
+  let authority;
+  for (let index = 0; index < bridgeUrls.length; index++) {
+    const descriptor = descriptors[index];
+    if (!descriptor || !Object.hasOwn(descriptor, "value") || typeof descriptor.value !== "string") reject();
+    const match = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{0,4})\/([a-f0-9]{64})\/(0|[1-9][0-9]*)$/.exec(descriptor.value);
+    if (!match || Number(match[1]) > 65535 || match[3] !== String(index)) reject();
+    const identity = `${match[1]}/${match[2]}`;
+    if (authority !== undefined && authority !== identity) reject();
+    authority = identity; values.push(descriptor.value);
+  }
+  return streamingQuery(`[${values.map(sqlLiteral).join(",")}]`);
+}
+
+export function overtureStreamingQueryFingerprint(assetCount) {
+  if (!Number.isSafeInteger(assetCount) || assetCount < 1 || assetCount > OVERTURE_MAX_STAC_ASSETS) throw new Error("Overture streaming asset count rejected.");
+  const placeholders = Array.from({ length: assetCount }, (_, index) => `<OVERTURE_ASSET_${index}>`);
+  return sha256(streamingQuery(`[${placeholders.map(sqlLiteral).join(",")}]`));
 }
 
 export async function prepareOvertureUsPlacesSource({

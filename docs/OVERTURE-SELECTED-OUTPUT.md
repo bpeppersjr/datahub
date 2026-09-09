@@ -20,9 +20,9 @@ The separate test writer permits only tighter limits (and reduced test disk-floo
 
 ## Native local composition
 
-The opt-in native test reuses verified runtime operation `b4ae8318-e786-4ac8-bf7b-e673c6d00ae1`. It creates a tiny Parquet locally, reads it with native retained httpfs through the loopback bridge and injected bounded transport, records reservations/completions in the journal, streams JSON into the gzip writer, then independently decompresses and checks the two expected rows and compressed checksum. All temporary files remain inside `datahub/data/tmp` and are removed after test handles close. No runtime dependency or source download occurs.
+The opt-in native test reuses verified runtime operation `b4ae8318-e786-4ac8-bf7b-e673c6d00ae1`. It creates a tiny Parquet locally, reads it with native retained httpfs through the loopback bridge and injected bounded transport, records reservations/completions in the journal, streams JSON into the gzip writer, then independently decompresses and checks expected rows and the compressed checksum. The original two-row fixture has been [expanded to six source inputs and three selected outputs](OVERTURE-STREAMING-QUERY.md). All temporary files remain inside `datahub/data/tmp` and are removed after test handles close. No runtime dependency or source download occurs.
 
-This demonstrates local component composition, not real upstream acquisition, a full selected-field query contract or national coverage. Next compose the fixed production query, retained-runtime admission, contained engine/spill setup and terminal receipt binding into the managed worker. Large acquisition remains off. Rollback is code-only reversion of these internal adapters/tests; preserve retained business releases and prerequisite receipts.
+This demonstrates local component composition and the fixed selection projection, not real upstream acquisition, validation of the current remote schema or national coverage. Next compose the fixed production query, retained-runtime admission, contained engine/spill setup and terminal receipt binding into the managed worker. Large acquisition remains off. Rollback is code-only reversion of these internal adapters/tests; preserve retained business releases and prerequisite receipts.
 
 ## Release verification
 
