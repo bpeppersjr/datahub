@@ -7,6 +7,7 @@ import { APP_ROOT } from './paths.mjs';
 import { readOvertureHttpfsRuntime } from './overture-httpfs-runtime.mjs';
 import { createOvertureAssetTransportForTest } from './overture-asset-transport.mjs';
 import { startOvertureAssetBridge } from './overture-asset-bridge.mjs';
+import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
 const quote = value => `'${value.replaceAll('\\', '/').replaceAll("'", "''")}'`;
@@ -24,7 +25,7 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
   const temporary = path.join(APP_ROOT, 'data', 'tmp');
   await mkdir(temporary, { recursive: true });
   const directory = await mkdtemp(path.join(temporary, 'overture-bridge-native-'));
-  let instance, connection, bridge, timer;
+  let instance, connection, bridge, journal, timer;
   try {
     for (const name of ['home', 'extensions', 'spill']) await mkdir(path.join(directory, name));
     instance = await DuckDBInstance.create(':memory:', {
@@ -40,9 +41,12 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     await connection.run(`COPY (SELECT 1 AS id, 'local-fixture' AS name UNION ALL SELECT 2, 'second-fixture') TO ${quote(parquet)} (FORMAT PARQUET)`);
     const bytes = await readFile(parquet);
     const calls = [];
+    journal = await createOvertureAcquisitionJournal({ output: path.join(directory, 'accounting'), operationId,
+      executionMode: 'injected-test-transport', assetCount: 1 });
     const transport = createOvertureAssetTransportForTest({
       assetUrls: ['https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-08-19.0/theme=places/type=place/part-00000-11111111-1111-4111-8111-111111111111-c000.zstd.parquet'],
       limits: { minIntervalMs: 0, maxRequests: 20, maxBytes: 1024 * 1024 },
+      onEvent: journal.onEvent,
       fetchImpl: async (unused, init) => {
         calls.push(init.method);
         const headers = { etag: '"local-fixture"', 'content-length': String(bytes.length) };
@@ -66,12 +70,21 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     assert.ok(calls.includes('HEAD'));
     assert.ok(calls.includes('GET'));
     assert.equal(transport.snapshot().execution_mode, 'injected-test-transport');
+    await bridge.close(); await journal.close();
+    const accounting = await inspectOvertureAcquisitionJournal(journal.directory, { operationId });
+    assert.equal(accounting.counters.requests_reserved, calls.length);
+    assert.equal(accounting.counters.requests_completed, calls.length);
+    assert.equal(accounting.pending_request, null);
+    assert.equal(accounting.claims.native_acquisition_verified, false);
   } finally {
     clearTimeout(timer);
     try { await bridge?.close(); }
     finally {
-      try { connection?.closeSync(); }
-      finally { instance?.closeSync(); }
+      try { await journal?.close(); }
+      finally {
+        try { connection?.closeSync(); }
+        finally { instance?.closeSync(); }
+      }
     }
     await rm(directory, { recursive: true, force: true });
   }
