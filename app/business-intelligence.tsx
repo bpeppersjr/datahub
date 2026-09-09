@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
+import RetainedChildcarePanel from './retained-childcare-panel';
 
 type Category = { id: string; label: string; group_id?: string; group_label?: string; business_name_drilldown: boolean };
 type Enhancer = { id: string; label: string; kind: string };
@@ -380,6 +381,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}
       {stateSummary?.available && <section className="state-alignment-card">
         <div><span>National category share</span><strong>{category?.label ?? 'All source categories'}</strong></div>
         <dl><div><dt>State-assigned category evidence</dt><dd>{count(nationalCategoryCount)}</dd></div><div><dt>State-assigned all-category evidence</dt><dd>{count(stateSummary.national_all_category_evidence_count)}</dd></div><div><dt>Share of state-assigned national evidence</dt><dd>{percent(nationalCategoryShare)}</dd></div></dl>

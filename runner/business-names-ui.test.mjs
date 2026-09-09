@@ -23,7 +23,7 @@ function fixture(request, initialProps = {}) {
   runInNewContext(`${code}\nexports.TestNames = BusinessNames; exports.TestSummary = EntitySummary;`, {
     exports, URLSearchParams,
     window: { setTimeout(callback, delay) { const id = ++nextTimer; timers.set(id, { callback, delay }); return id; }, clearTimeout(id) { timers.delete(id); } },
-    require: name => name === './runner-client' ? { runnerJson: request } : name === 'react' ? {
+    require: name => name === './retained-childcare-panel' ? { default: function RetainedChildcarePanel() {} } : name === './runner-client' ? { runnerJson: request } : name === 'react' ? {
       useState(value) { const i = index++; if (!(i in values)) values[i] = value; return [values[i], next => { values[i] = typeof next === 'function' ? next(values[i]) : next; writes++; }]; },
       useEffect(effect, deps) { const i = effectIndex++, previous = effects[i]; if (!previous || deps.some((value, n) => !Object.is(value, previous.deps[n]))) { previous?.cleanup?.(); effects[i] = { deps, pending: effect }; } },
     } : require(name),
@@ -86,6 +86,9 @@ test('right-side summary wires state/category/ZIP resets and uses published perc
     available: true, states: [], national_category_counts: {}, national_all_category_evidence_count: 0, national_category_percent_of_collected_evidence: {}, assignment: { semantics: 'Includes disjoint source ZIP-unavailable evidence.' },
   } });
   const drill = nodes(tree).find(node => typeof node.type === 'function' && node.type.name === 'BusinessNames');
+  const retained = nodes(tree).find(node => typeof node.type === 'function' && node.type.name === 'RetainedChildcarePanel');
+  assert.equal(retained.props.selectedZip, '37201'); assert.equal(retained.props.countySelected, true);
+  assert.equal(retained.props.scopeUnavailable, true); assert.equal(retained.props.publisherState, undefined);
   assert.equal(drill.props.stateFips, '47'); assert.equal(drill.key, '47:37201:childcare'); assert.match(text(tree), /Includes disjoint source ZIP-unavailable evidence/);
   assert.match(text(tree), /percentage of all U.S. businesses collected is unknown/);
 });

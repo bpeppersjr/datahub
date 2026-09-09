@@ -203,6 +203,16 @@ h2 { margin: 4px 0 0; font-size: 17px; letter-spacing: -.025em; font-weight: 610
 .map-tooltip dd { color: #bdc7cf; text-align: right; }
 .map-tooltip dd small { display: block; max-width: 118px; margin-top: 2px; color: #66737d; line-height: 1.3; }
 .map-entity-summary { min-width: 0; padding: 18px; overflow: auto; border-left: 1px solid var(--border); background: rgba(8,12,16,.48); }
+.retained-childcare-panel { margin-bottom: 1rem; padding: .85rem; border: 1px solid rgba(117,170,241,.35); border-radius: .5rem; color: #d4dfec; font-size: .875rem; line-height: 1.5; overflow-wrap: anywhere; }
+.retained-childcare-panel h3 { margin: 0 0 .5rem; font-size: 1rem; color: #e7effb; }
+.retained-childcare-panel h4 { margin: 0 0 .5rem; font-size: .95rem; color: #a9c7ee; }
+.retained-childcare-panel p { margin: .5rem 0; }
+.retained-childcare-panel article { padding: .85rem 0; border-top: 1px solid rgba(117,170,241,.2); }
+.retained-childcare-panel dl { display: grid; gap: .4rem; margin: .5rem 0; }
+.retained-childcare-panel dl div { display: flex; justify-content: space-between; gap: .75rem; }
+.retained-childcare-panel dt, .retained-childcare-panel dd { margin: 0; }
+.retained-childcare-panel dd { font-variant-numeric: tabular-nums; font-weight: 600; }
+.retained-childcare-panel summary { cursor: pointer; color: #a9c7ee; }
 .entity-summary-heading { display: grid; gap: 4px; padding-bottom: 13px; border-bottom: 1px solid var(--border); }
 .entity-summary-heading span, .state-alignment-card > div span { color: #596571; font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
 .entity-summary-heading strong { overflow-wrap: anywhere; color: var(--cyan); font-size: 13px; }

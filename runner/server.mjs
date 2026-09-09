@@ -400,6 +400,21 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/business-map/retained-childcare') {
+      if (url.searchParams.size) { json(response, 400, { error: 'Retained childcare snapshot takes no query options.' }); return; }
+      try {
+        const { loadRetainedChildcareSnapshotEnrollment } = await import('./retained-childcare-snapshot-enrollment.mjs');
+        const enrolled = await loadRetainedChildcareSnapshotEnrollment();
+        json(response, 200, enrolled.status === 'available' ? {
+          status: enrolled.status, operation_id: enrolled.operation_id, operation_finished_at: enrolled.operation_finished_at,
+          view: enrolled.view, claims: enrolled.claims,
+          snapshot_integrity_verified: enrolled.verification.snapshot_integrity_verified,
+          source_replay_performed_this_read: false,
+        } : enrolled);
+      } catch { json(response, 503, { error: 'Retained childcare snapshot could not be verified. No source data was requested.' }); }
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/business-map/features') {
       json(response, 200, await businessMap.getFeatures({
         level: url.searchParams.get('level') || 'states',
