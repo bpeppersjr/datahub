@@ -1,0 +1,29 @@
+# Iowa childcare: bounded schema prerequisite
+
+## Scope
+
+This prerequisite examines the published Iowa Child Care Connect map interface, not an acquired provider dataset. It retains sanitized field types, aggregate quality counts and request fingerprints. It does not enroll collection, prove current business operations, authorize public redistribution or measure statewide completeness.
+
+The [Iowa HHS childcare page](https://hhs.iowa.gov/programs/programs-and-services/child-care) links the public search. Its [search page](https://search.iachildcareconnect.org/Search) provides address/route inputs. Inspection of the published map client on September 8, 2026 found an empty-form `POST /Map/pins`, followed by client-side display filtering. This is a discovered published request, not a guessed endpoint or ZIP enumeration. The client uses `businessType === "building"` to display centers; that predicate alone does not establish a statutory license category or operating status. Referral and opening flags must not become active-business flags.
+
+The fixed client URL is `https://search.iachildcareconnect.org/js/bundle.js?v=%3C%=%20new%20Date().getTime()%20%%3E`. Its observed decoded size is 84,473 bytes and SHA-256 is `ac4732c23c25983148de71876f4a50201bd58032d942325fd71694b7fc2df9cc`. The malformed-looking cache parameter is present in the published HTML; the probe does not replace it with an invented URL.
+
+## Executable boundary
+
+`node scripts/probe-ia-childcare-schema.mjs` executes one fixed itinerary: unchanged client GET, empty-form pins POST, unchanged client GET. It verifies the connector and source-policy configurations before requests and before a successful result. Limits are three serial requests, 20 seconds per request, a 90-second whole-probe deadline, 1 MB per client, 10 MB decoded response, and 10,000 rows. Redirects and unexpected responses stop the assessment; no retry, login, cookies, credentials, proxy rotation or automatic refresh is implemented.
+
+The mixed response may include home providers. Raw responses and provider values are transient, not written to disk or logs. Known field names have type/presence counts; unknown keys are hashed to avoid persisting values embedded in property names. ZIP and coordinate metrics count shapes/ranges, not verified geographic assignments. ZIP5 values are not retained, and no ZIP4 is joined to a ZIP5. There are no business polygons.
+
+The [Iowa.gov policies](https://www.iowa.gov/policies) provide context, not a blanket record-use license for the linked non-Iowa.gov application. The source policy permits this user-authorized bounded technical assessment only. The parallel [scope follow-up](states/IA-CHILDCARE-SCOPE-FOLLOWUP-2026-09-08.md) combines the publisher guide with this pinned client to support the licensed-center/preschool display meaning. Stable identity, retained-field selection, address role and referral restrictions still require a defined facility contract. Unknown freshness and operating status should remain explicit quality gaps, not invented facts or automatic acquisition prohibitions. An internal collection policy must be reviewed separately from public export authority.
+
+## Evidence and next action
+
+Synthetic test transport is labelled separately from native execution. A successful schema observation is still `schema-observed-not-collection-ready`. A rejection is evidence of an unverified prerequisite, not an empty source.
+
+One native assessment completed September 9, 2026 at 01:29:29.500–01:29:32.638 UTC (September 8 local). Its immutable manifest is `data/business-sources/ia-childcare/schema-probes/5ac6b9da-56d2-4a5b-b48c-80ad01547ab3/manifest.json`, SHA-256 `7679a715faa91077b8741453fc0e3cfdd86209857494b3dfe2ccf737b75c1edb`. All three requests returned HTTP 200; both client fingerprints matched. The transient pins response was 6,125,885 decoded bytes, SHA-256 `1acbc5477708317e321a126b5216d40432d499479ff3532cfcdbd8a1ed3d9be1`.
+
+The observed response contained 3,201 rows: 1,476 center display-class rows and 1,725 other display-class rows. All rows exposed string name/address/city and numeric coordinates within global ranges. All 3,201 `zipCode` values were numeric, so none passed the deliberately string-only ZIP5 shape metric. This is a source-type finding, not 3,201 missing ZIPs: the probe did not retain values or establish numeric ZIP validity. A future projection must validate integer/range semantics explicitly and must not blindly stringify, pad, or infer ZIP4. Aggregate coordinate range is not address accuracy or a state-boundary check. The quality counts cover the whole mixed response, not a separately measured center-only cohort.
+
+Twenty-two focused probe, publication, registry and control-plane tests passed, including five receipt tests covering no-overwrite publication, same-size mutation and preserved post-publication failure evidence. Full `npm run check` passed: 1,455 tests, 1,444 passed, 11 skipped, zero failed; lint, desktop build and desktop control-plane smoke passed. The log is `data/tmp/ia-schema-full-check.log`. Type checking passed and the production dependency audit reported zero vulnerabilities. All 82 held production-plan pins remained unchanged. The observation is not a collection handoff. Next define licensed-center/preschool identity and selected fields, review the internal record-use policy, and build the bounded collector while preserving unknown freshness/status as quality gaps. Once validated and built, Co*Tive must own routine acquisition with an operation ID and persisted receipt; agents should return to other source work rather than monitor downloads.
+
+This change does not alter existing retained datasets, national production plans or industry enrollment. Rollback removes the isolated schema-probe implementation, its registry entries and documentation; preserve any observed receipts as historical evidence rather than silently deleting them.

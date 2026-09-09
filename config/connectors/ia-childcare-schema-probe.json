@@ -1,0 +1,43 @@
+{
+  "connector_id": "ia-childcare-schema-probe",
+  "version": "1.0.0",
+  "description": "Bounded public-client-pinned Iowa map response schema assessment. Does not establish collection readiness or retain provider records.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type": "object", "additionalProperties": false, "properties": {}},
+  "output_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["schema_version", "execution_mode", "started_at", "finished_at", "status", "requests", "schema", "configuration", "claims"],
+    "properties": {
+      "run_id": {"type": "string", "format": "uuid"},
+      "schema_version": {"const": "ia-childcare-schema-probe@1.0.0"},
+      "execution_mode": {"enum": ["native-fetch", "injected-test-transport"]},
+      "started_at": {"type": "string", "format": "date-time"},
+      "finished_at": {"type": "string", "format": "date-time"},
+      "status": {"enum": ["rejected", "schema-observed-not-collection-ready"]},
+      "failure": {"const": "Prerequisite rejected: source response, schema, limit, cancellation, or client continuity was not verified."},
+      "configuration": {"type": "object", "minProperties": 2, "maxProperties": 2, "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+      "claims": {"type": "object", "additionalProperties": false, "required": ["collection_ready", "source_authority_verified", "current_business_status_verified", "statewide_completeness_verified", "public_export_authorized", "provider_values_retained", "app_enrolled"], "properties": {"collection_ready": {"const": false}, "source_authority_verified": {"const": false}, "current_business_status_verified": {"const": false}, "statewide_completeness_verified": {"const": false}, "public_export_authorized": {"const": false}, "provider_values_retained": {"const": false}, "app_enrolled": {"const": false}}},
+      "requests": {"type": "array", "maxItems": 3, "items": {"type": "object", "additionalProperties": false, "required": ["method", "url", "status", "decoded_bytes", "decoded_sha256", "complete"], "properties": {"method": {"enum": ["GET", "POST"]}, "url": {"enum": ["https://search.iachildcareconnect.org/js/bundle.js?v=%3C%=%20new%20Date().getTime()%20%%3E", "https://search.iachildcareconnect.org/Map/pins"]}, "status": {"type": ["integer", "null"]}, "decoded_bytes": {"type": "integer", "minimum": 0}, "decoded_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"}, "complete": {"type": "boolean"}}}},
+      "schema": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["counts", "fields"], "properties": {"counts": {"type": "object", "additionalProperties": false, "required": ["rows", "center_display_class", "other_display_class", "missing_display_class", "zip_missing", "zip5_string", "zip_other", "point_missing", "numeric_point_in_range", "point_other"], "properties": {"rows": {"$ref": "#/$defs/count"}, "center_display_class": {"$ref": "#/$defs/count"}, "other_display_class": {"$ref": "#/$defs/count"}, "missing_display_class": {"$ref": "#/$defs/count"}, "zip_missing": {"$ref": "#/$defs/count"}, "zip5_string": {"$ref": "#/$defs/count"}, "zip_other": {"$ref": "#/$defs/count"}, "point_missing": {"$ref": "#/$defs/count"}, "numeric_point_in_range": {"$ref": "#/$defs/count"}, "point_other": {"$ref": "#/$defs/count"}}}, "fields": {"type": "array", "maxItems": 128, "items": {"type": "object", "additionalProperties": false, "required": ["field", "present", "types"], "properties": {"field": {"type": "string", "pattern": "^(businessType|businessName|address|city|zipCode|latitude|longitude|referral|unknown_[a-f0-9]{64})$"}, "present": {"$ref": "#/$defs/count"}, "types": {"type": "object", "propertyNames": {"enum": ["null", "array", "object", "string", "number", "boolean"]}, "additionalProperties": {"$ref": "#/$defs/count"}}}}}}}]}
+    },
+    "$defs": {"count": {"type": "integer", "minimum": 0, "maximum": 10000}},
+    "allOf": [{"if": {"properties": {"status": {"const": "rejected"}}}, "then": {"required": ["failure"], "properties": {"schema": {"type": "null"}}}, "else": {"not": {"required": ["failure"]}, "properties": {"schema": {"type": "object"}, "requests": {"minItems": 3}}}}]
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["public-map-client-code", "transient-public-map-response"],
+  "output_artifact_types": ["ia-childcare-sanitized-schema-assessment"],
+  "allowed_hosts": ["search.iachildcareconnect.org"],
+  "redirect_policy": "Reject all redirects. Fixed client URL and empty-form pins POST only.",
+  "provider_budget_key": "ia-childcare-public-map-assessment",
+  "resource_class": "bounded-schema-assessment",
+  "execution_limits": {"maximum_requests": 3, "max_parallel_requests": 1, "request_timeout_ms": 20000, "whole_probe_timeout_ms": 90000, "maximum_client_bytes": 1000000, "maximum_response_bytes": 10000000, "maximum_response_rows": 10000},
+  "retry": "No retries, automatic acquisition or refresh. Unexpected response requires review.",
+  "checkpoint": "Successful evidence contains paired unchanged client fingerprints and sanitized response schema/counts. No raw provider checkpoints.",
+  "idempotency": "Each explicit assessment has separate observation time and request fingerprints; never relabel an assessment as collection.",
+  "cancellation": "Abort active transport and response reading; discard transient provider values. No automatic retry.",
+  "source_policy": "config/source-policies/ia-childcare-schema-probe.json",
+  "retention_profile": "Internal aggregate schema evidence only; no provider rows, names, IDs, addresses, contacts or coordinate values persisted.",
+  "produced_entities": ["source-schema-assessment"],
+  "produced_identifiers": ["source-response-sha256", "public-client-sha256"]
+}

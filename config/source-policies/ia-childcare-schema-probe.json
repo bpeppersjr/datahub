@@ -1,0 +1,20 @@
+{
+  "policy_id": "ia-childcare-schema-probe",
+  "version": "1.0.0",
+  "ownership": "Iowa Child Care Connect public search, linked by Iowa HHS; underlying source ownership and refresh semantics require further record-level review.",
+  "source_dataset": "https://search.iachildcareconnect.org/Map/pins",
+  "terms_url": "https://www.iowa.gov/policies",
+  "source_access": "Published map client issues an anonymous empty-form POST for pins. Center filtering is client-side, not a demonstrated server projection.",
+  "allowed_use": ["User-authorized bounded technical assessment of the public client and its response schema", "Transient response examination with only sanitized field types and aggregate counts retained", "Internal prerequisite evidence; no provider dataset or collection enrollment"],
+  "prohibited_use": ["Retaining provider values, residential addresses, names, IDs, contact details or raw coordinates in assessment artifacts", "Recovering or exposing referral-restricted details", "Claiming businessType building proves license status, current operations or statewide completeness", "Public record redistribution or ongoing collection under this schema-assessment profile"],
+  "attribution": "Iowa HHS / Iowa Child Care Connect. Retain exact public-client and response fingerprints and observation times.",
+  "retention": "Keep sanitized aggregate prerequisite receipts internally. Discard raw response and provider values after bounded in-memory examination; no raw cache or log.",
+  "redistribution": "No record-level redistribution license is established. Iowa.gov policies are context, not a blanket license for linked non-iowa.gov applications.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The mixed public response may contain home providers and contact data. Retain no record values; emit sanitized schema and aggregate quality counts only.",
+  "metadata_examination_authorized": true,
+  "facility_collection_enrolled": false,
+  "public_export_authorized": false,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false
+}
