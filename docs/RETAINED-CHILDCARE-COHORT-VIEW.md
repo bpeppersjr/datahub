@@ -1,0 +1,19 @@
+# Retained childcare comparison contract
+
+This source-separated view makes already collected childcare evidence comparable without treating it as a national registry release. It covers the seven installed reporting enrollments: PA, CT, MD, VT, CO, UT and IA. It does not claim the other states are covered or that these sources enumerate all operating businesses.
+
+`runner/retained-childcare-cohort-view.mjs` builds the view through existing offline enrollment verifiers. The pure projector validates structural conservation but does not independently authenticate evidence; production callers must use the builder. Verification is serial to bound concurrent decoder/replay demand. No provider download, national pointer change or scheduled refresh belongs to this operation.
+
+The versioned result contains `cohorts`, keyed by publisher state, with a source list under each state. Each available source retains accepted/selected/quarantined counts, reported-state and ZIP5 groups, source-specific quality, provenance and claims. Pennsylvania's source-native `facility_rows` become comparison `candidate_rows`, but `source_row_unit` preserves the original unit. This mapping does not deduplicate facilities or establish active businesses.
+
+State and ZIP percentages use that source's accepted retained rows as their denominator. They are not nationwide industry percentages. Iowa and Vermont retain null reported-address states; publisher scope must never substitute for address-state membership. ZIP5 groups do not establish current USPS assignment or ZCTA membership. ZIP4 stays separate in the retained source data.
+
+Missing enrollment is `not-enrolled`; missing enrolled receipt is `unavailable`, with no manufactured zero count. Invalid evidence fails verification. Original observation, source publication/update, normalization and adoption clocks remain source-specific rather than collapsed into one freshness timestamp.
+
+Use `node scripts/report-retained-childcare-cohorts.mjs` for JSON on stdout. Exit 0 means every configured source is available; exit 2 means at least one source is missing/unavailable; exit 1 means invalid arguments or failed verification. `--help` performs no evidence replay. This CLI does not publish a durable view release or integrate the heatmap UI.
+
+Next: connect a verified, app-owned snapshot to the map's comparison layer with explicit source scope and freshness. Business-name drilldowns require normalized-row verification, not names invented from aggregate counts. National production integration remains a separately reviewed change; the previously denied production plan and its pins must not be changed or rerun for this view.
+
+The [snapshot implementation contract](RETAINED-CHILDCARE-SNAPSHOT-DESIGN.md) separates immutable publication, cheap integrity reads and historical source replay. It is a design, not evidence of an implemented or dispatched app operation.
+
+Validation status: seven focused tests passed with `DATAHUB_TEST_RETAINED_COHORTS=1`, including offline replay of all installed sources (PA 4,995; CT 1,390; MD 1,772; VT 503; CO 1,648; UT 422; IA 1,476 accepted rows). Tests cover missing evidence, invalid inputs, cancellation, cross-state ZIP conservation, credential bounds, duplicate accounting, proof labels and source clocks. Full `npm run check` passed: 1,501 tests, 1,490 passed, 11 skipped, zero failures, followed by successful lint, web/desktop builds and desktop control-plane smoke. Evidence: `data/tmp/retained-cohort-view-full-check.log`; installed seven-source, Iowa and PDF runtime checks were enabled. TypeScript passed and production dependency audit found zero vulnerabilities. All 82 protected production pins remain unchanged. Snapshot storage and map integration are still pending, not covered by these implementation checks.
