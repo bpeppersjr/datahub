@@ -1,6 +1,6 @@
 # Managed retained-childcare snapshot operation
 
-Status: implementation, focused integration tests and full release checks passed. Live app dispatch remains pending.
+Status: implementation, focused integration tests and full release checks passed. A live app dispatch was accepted; its terminal outcome is not yet verified here.
 
 The authenticated local control plane accepts `POST /api/data-operations/cohort-snapshots` with an empty JSON object. It allocates a `cohort-snapshot` operation and persists its receipt before returning HTTP 202. The app chooses the output directory and operation identity. Paths, source selections, precomputed counts, credentials and transport overrides are not accepted from this endpoint.
 
@@ -19,3 +19,9 @@ Focused verification: 39 tests passed across managed snapshots, existing managed
 Snapshot verification is dynamically loaded only when a snapshot child returns evidence. An integrated startup test caught the static import pulling source-specific runtime prerequisites into unrelated control-plane startup; the lazy load resolves that regression. Focused ESLint passes. No new actual operation receipt or live worker has been submitted in this validation step.
 
 Release verification: `data/tmp/managed-cohort-snapshot-full-check.log` records successful `npm run check`: 1,519 tests, 1,508 passed, 11 skipped, zero failures, followed by lint, web/desktop builds and desktop control-plane smoke. Installed PDF, Iowa and seven-source replay checks were enabled. TypeScript passed and `npm audit --omit=dev` found zero vulnerabilities. All 82 protected production pins remain unchanged. These checks prove the implemented lifecycle, not a live handoff or map integration.
+
+## Accepted live application handoff
+
+After implementation commit `59a54a0`, the authenticated app accepted operation `bafb683b-f4ae-4355-983a-d2a3c85e7d9b` at `2026-09-09T03:17:47.737Z` with HTTP 202. The returned state was RUNNING; the immediately inspected durable receipt existed at `data/managed-operations/bafb683b-f4ae-4355-983a-d2a3c85e7d9b/receipt.json` with matching ID/kind and persisted QUEUED state. These observations establish accepted handoff, not successful completion.
+
+Co*Tive owns this local offline build. No source refresh or national promotion was requested. Inspect this same operation's terminal receipt and descriptor next; do not submit a replacement merely because the acceptance-time receipt was not terminal. Map integration remains outstanding.

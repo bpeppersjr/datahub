@@ -1,5 +1,7 @@
 # Co*Tive Collector development roadmap
 
+Live snapshot handoff accepted: Co*Tive operation `bafb683b-f4ae-4355-983a-d2a3c85e7d9b` has a persisted receipt after HTTP 202. [Acceptance evidence](RETAINED-CHILDCARE-MANAGED-OPERATION.md#accepted-live-application-handoff) is not terminal success. The app owns the offline build; inspect the same operation before any retry. No source refresh or national pointer change was requested.
+
 Managed childcare snapshots (release verified): [app operation and authenticated endpoint](RETAINED-CHILDCARE-MANAGED-OPERATION.md) dispatch the fixed offline snapshot worker with app-chosen path and operation identity. Thirty-nine integrated tests and full release checks passed (1,508 passed, 11 skipped, zero failures); TypeScript and production audit passed. Catalog/UI discovery, live receipt handoff and map integration remain pending.
 
 Retained childcare snapshot storage (in validation): [builder, hash-pinned reader and CLI](RETAINED-CHILDCARE-SNAPSHOT-DESIGN.md) implement immutable local view storage and cheap reads without source replay. Eleven snapshot tests and eight comparison tests passed, including postcommit faults and enrollment drift. Native standalone snapshot `31f83308-3393-4c6c-9475-22f6b9c67d61` was independently read and verified; it is not a managed-operation handoff. Parent recovery integration, full release checks and managed-operation/map wiring remain pending; no new source acquisition occurred.
