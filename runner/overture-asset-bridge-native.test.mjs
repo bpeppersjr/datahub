@@ -3,11 +3,15 @@ import test from 'node:test';
 import path from 'node:path';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { DuckDBInstance } from '@duckdb/node-api';
+import { createHash } from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
 import { APP_ROOT } from './paths.mjs';
 import { readOvertureHttpfsRuntime } from './overture-httpfs-runtime.mjs';
 import { createOvertureAssetTransportForTest } from './overture-asset-transport.mjs';
 import { startOvertureAssetBridge } from './overture-asset-bridge.mjs';
 import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
+import { streamOvertureJsonRows } from './overture-json-stream.mjs';
+import { writeOvertureSelectedOutput } from './overture-selected-output.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
 const quote = value => `'${value.replaceAll('\\', '/').replaceAll("'", "''")}'`;
@@ -61,12 +65,18 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     });
     bridge = await startOvertureAssetBridge({ transport, assetCount: 1 });
     timer = setTimeout(() => connection.interrupt(), 10000);
-    let rows;
+    let rows, selected;
     try {
-      const result = await connection.runAndReadAll(`SELECT id, name FROM read_parquet(${quote(bridge.urls[0])}) ORDER BY id`);
-      rows = result.getRowObjects();
+      const query = `SELECT to_json(selected)::VARCHAR AS record_json FROM (SELECT id, name FROM read_parquet(${quote(bridge.urls[0])}) ORDER BY id) selected`;
+      selected = await writeOvertureSelectedOutput({ rows: streamOvertureJsonRows({ connection, query }), output: path.join(directory, 'selected') });
+      const compressed = await readFile(path.join(selected.directory, selected.artifact.path));
+      assert.equal(compressed.length, selected.artifact.bytes);
+      assert.equal(createHash('sha256').update(compressed).digest('hex'), selected.artifact.sha256);
+      rows = gunzipSync(compressed).toString('utf8').trim().split('\n').map(line => JSON.parse(line));
     } catch { throw Error('Native local bridge query failed; capability and engine exception redacted.'); }
     assert.deepEqual(rows, [{ id: 1, name: 'local-fixture' }, { id: 2, name: 'second-fixture' }]);
+    assert.equal(selected.record_count, 2);
+    assert.equal(selected.claims.native_acquisition_verified, false);
     assert.ok(calls.includes('HEAD'));
     assert.ok(calls.includes('GET'));
     assert.equal(transport.snapshot().execution_mode, 'injected-test-transport');
