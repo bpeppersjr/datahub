@@ -168,6 +168,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/collections", "{}"],
     ["POST", "/api/data-operations/exports", "{}"],
     ["POST", "/api/data-operations/cohort-snapshots", "{}"],
+    ["POST", "/api/data-operations/source-prerequisites", '{"sourceId":"ne-childcare-pdf"}'],
     ["GET", "/api/business-map/retained-childcare"],
     ["POST", "/api/data-operations/operations/fixture/cancel", "{}"],
     ["GET", "/api/data-operations/operations/fixture/artifacts/records.csv"],
@@ -199,6 +200,12 @@ test("protects every live management endpoint while leaving only narrow liveness
     authorization: `Bearer ${CONTROL_TOKEN}`,
   });
   assert.equal(wrongHost.status, 400);
+
+  for (const [body, expectedStatus] of [['{"sourceId":"ne-childcare-pdf"}', 409], ['{"sourceId":"ne-childcare-pdf","output":"private"}', 400]]) {
+    const prerequisite = await rawRequest({ port, hostHeader, method: "POST", pathname: "/api/data-operations/source-prerequisites", authorization: `Bearer ${CONTROL_TOKEN}`, body });
+    assert.equal(prerequisite.status, expectedStatus);
+    assert.equal(prerequisite.body.includes(CONTROL_TOKEN), false);
+  }
 
   const wrongOrigin = await rawRequest({
     port,

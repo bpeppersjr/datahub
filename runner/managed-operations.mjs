@@ -9,6 +9,7 @@ import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "./industry-segments.mjs";
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
+import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./source-acquisition-gates.mjs";
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
 const FORMATS = ["csv", "jsonl", "both"];
@@ -84,7 +85,7 @@ export class ManagedOperations {
   }
   async catalog() {
     await this.ready; const config = await this.configLoader();
-    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES } };
+    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], sourcePrerequisites: getSourcePrerequisiteGates(), export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES } };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds"]); const config = await this.configLoader(); return validate(() => buildIndustryPlan(config, this.#selection(input))); }
   async startCollection(input = {}) {
@@ -98,6 +99,13 @@ export class ManagedOperations {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
     try { return await this.#start("cohort-snapshot", {}); }
     catch (error) { this.reserved = false; throw error; }
+  }
+  async startSourcePrerequisite(input = {}) {
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
+      || !Object.hasOwn(input, "sourceId") || Object.getOwnPropertyDescriptor(input, "sourceId")?.value !== "ne-childcare-pdf") throw invalid("Source prerequisite requires only sourceId ne-childcare-pdf.");
+    assertSourcePrerequisiteAllowed(input);
+    // No capture implementation is enrolled, even if a future gate changes.
+    throw conflict("Source prerequisite capture is not enrolled.");
   }
   // Internal scheduler entry point: manual HTTP inputs cannot supply operation IDs.
   async startScheduledCollection(input = {}, options = {}) {

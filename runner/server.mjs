@@ -276,11 +276,12 @@ const server = http.createServer(async (request, response) => {
       if (segments.length === 3 && request.method === 'GET' && endpoint === 'operations') {
         json(response, 200, await managedOperations.list()); return;
       }
-      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'cohort-snapshots'].includes(endpoint)) {
+      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'cohort-snapshots', 'source-prerequisites'].includes(endpoint)) {
         const input = await bodyJson(request);
         const result = endpoint === 'plan' ? await managedOperations.plan(input)
           : endpoint === 'collections' ? await managedOperations.startCollection(input)
             : endpoint === 'cohort-snapshots' ? await managedOperations.startCohortSnapshot(input)
+            : endpoint === 'source-prerequisites' ? await managedOperations.startSourcePrerequisite(input)
               : await managedOperations.startExport(input);
         json(response, endpoint === 'plan' ? 200 : 202, result); return;
       }
