@@ -10,9 +10,8 @@ import { readOvertureHttpfsRuntime } from './overture-httpfs-runtime.mjs';
 import { createOvertureAssetTransportForTest } from './overture-asset-transport.mjs';
 import { startOvertureAssetBridge } from './overture-asset-bridge.mjs';
 import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
-import { streamOvertureJsonRows } from './overture-json-stream.mjs';
-import { writeOvertureSelectedOutput } from './overture-selected-output.mjs';
-import { overtureStreamingSql, OVERTURE_SELECTED_FIELDS, normalizeOvertureUsPlace } from './overture-us-places.mjs';
+import { OVERTURE_SELECTED_FIELDS, normalizeOvertureUsPlace, overtureStreamingQueryFingerprint } from './overture-us-places.mjs';
+import { runOvertureBoundedEngine } from './overture-bounded-engine.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
 const quote = value => `'${value.replaceAll('\\', '/').replaceAll("'", "''")}'`;
@@ -40,8 +39,6 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
       autoload_known_extensions: 'false', allow_unsigned_extensions: 'false', allow_community_extensions: 'false',
     });
     connection = await instance.connect();
-    await connection.run(`LOAD ${quote(path.join(path.dirname(descriptor.manifest), 'httpfs.duckdb_extension'))}`);
-    await connection.run('SET auto_fallback_to_full_download=false; SET force_download=false; SET http_retries=0; SET http_timeout=5;');
     const parquet = path.join(directory, 'fixture.parquet');
     await connection.run(`COPY (
       SELECT printf('11111111-1111-4111-8111-%012d', i + 1) AS id, 1::BIGINT AS version,
@@ -61,6 +58,9 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
       FROM range(6) AS fixture(i)
     ) TO ${quote(parquet)} (FORMAT PARQUET)`);
     const bytes = await readFile(parquet);
+    // The fixture producer is not the extraction engine under test.
+    connection.closeSync(); connection = null;
+    instance.closeSync(); instance = null;
     const calls = [];
     journal = await createOvertureAcquisitionJournal({ output: path.join(directory, 'accounting'), operationId,
       executionMode: 'injected-test-transport', assetCount: 1 });
@@ -81,11 +81,24 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
       },
     });
     bridge = await startOvertureAssetBridge({ transport, assetCount: 1 });
-    timer = setTimeout(() => connection.interrupt(), 10000);
+    const controller = new AbortController();
+    timer = setTimeout(() => controller.abort(), 10000);
     let rows, selected;
     try {
-      const query = overtureStreamingSql(bridge.urls);
-      selected = await writeOvertureSelectedOutput({ rows: streamOvertureJsonRows({ connection, query }), output: path.join(directory, 'selected') });
+      const execution = await runOvertureBoundedEngine({ output: path.join(directory, 'extraction'), runtimeDescriptor: descriptor,
+        runtimeOutput: path.join(operation, 'output'), runtimeOperationId: operationId, bridgeUrls: bridge.urls, signal: controller.signal });
+      selected = execution.selected;
+      assert.equal(execution.query_fingerprint, overtureStreamingQueryFingerprint(1));
+      assert.deepEqual(execution.runtime_reference, { operation_id: operationId, run_id: descriptor.run_id, manifest_sha256: descriptor.sha256 });
+      assert.equal(execution.claims.native_acquisition_verified, false);
+      assert.equal(execution.claims.process_memory_cap_enforced, false);
+      assert.equal(execution.engine_settings.threads, '1');
+      assert.equal(execution.engine_settings.memory_limit, '2GiB');
+      assert.equal(execution.engine_settings.max_temp_directory_size, '4GiB');
+      assert.equal(execution.engine_settings.http_retries, '0');
+      assert.equal(execution.engine_settings.auto_fallback_to_full_download, 'false');
+      assert.equal(execution.engine_settings.enable_curl_server_cert_verification, 'true');
+      assert.ok(!JSON.stringify(execution).includes(new URL(bridge.urls[0]).pathname));
       const compressed = await readFile(path.join(selected.directory, selected.artifact.path));
       assert.equal(compressed.length, selected.artifact.bytes);
       assert.equal(createHash('sha256').update(compressed).digest('hex'), selected.artifact.sha256);
@@ -117,6 +130,14 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
     assert.ok(calls.includes('HEAD'));
     assert.ok(calls.includes('GET'));
     assert.equal(transport.snapshot().execution_mode, 'injected-test-transport');
+    const requestsBeforeFailure = calls.length;
+    const liveCapability = new URL(bridge.urls[0]).pathname.split('/')[1];
+    const wrongCapability = (liveCapability[0] === 'a' ? 'b' : 'a').repeat(64);
+    await assert.rejects(runOvertureBoundedEngine({ output: path.join(directory, 'rejected-extraction'), runtimeDescriptor: descriptor,
+      runtimeOutput: path.join(operation, 'output'), runtimeOperationId: operationId,
+      bridgeUrls: [bridge.urls[0].replace(liveCapability, wrongCapability)], signal: controller.signal }),
+    error => error.message === 'Overture bounded engine failed; preserve run outputs for inspection.');
+    assert.equal(calls.length, requestsBeforeFailure);
     await bridge.close(); await journal.close();
     const accounting = await inspectOvertureAcquisitionJournal(journal.directory, { operationId });
     assert.equal(accounting.counters.requests_reserved, calls.length);
