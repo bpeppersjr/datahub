@@ -20,6 +20,8 @@ The coordinate is associated with Overture's place and reported address. It is n
 
 ## Safe acquisition sequence
 
+Current runtime prerequisite: [Co*Tive prepared and verified the fixed httpfs dependency](OVERTURE-HTTPFS-RUNTIME.md#verified-native-application-handoff--september-9-2026) in a completed app operation. Its retained artifacts can be reused without a new package download. The extraction code does not yet consume that managed runtime or enforce the remaining acquisition budgets; large place acquisition remains off.
+
 ### Extraction lifecycle hardening (September 9, 2026)
 
 The acquisition path now uses `runner/overture-extraction-lifecycle.mjs` to own the DuckDB connection and instance together. Cancellation is checked before opening, after each asynchronous open, and after the query settles. A running query receives an interrupt, and cleanup waits for its promise to settle. Both close calls are attempted independently. Only the exact run database and WAL are removed after successful handle closure; failed closes preserve them for inspection. Cleanup failures reject preparation rather than silently allowing source promotion. Selected output and other staged evidence are not deleted by this helper.

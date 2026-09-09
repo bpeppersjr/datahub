@@ -1,7 +1,7 @@
 /**
  * Source prerequisites are not collection jobs. A listed source is not an
- * authorization for collection. Only the explicit Oklahoma bounded schema
- * operation is enrolled; Nebraska remains blocked with no worker fallback.
+ * authorization for collection. Oklahoma schema and Overture runtime checks
+ * are separate prerequisites; Nebraska remains blocked with no worker fallback.
  */
 const NE_PDF_GATE = Object.freeze({
   sourceId: 'ne-childcare-pdf',
@@ -33,6 +33,14 @@ export function getSourcePrerequisiteGates() {
     reviewDocument: 'docs/states/OK-SOURCE-USE-2026-09-09.md',
     reason: 'One fixed center/ZIP aggregate schema check, not a statewide acquisition or refresh.',
     nextAction: 'Run the bounded prerequisite through the app; verify broader delivery and temporal semantics before collection enrollment.',
+  }, {
+    sourceId: 'overture-httpfs-runtime', state: null, industry: null,
+    status: 'READY_RUNTIME_PREREQUISITE', runtimePrerequisiteImplemented: true, collectionReady: false,
+    publicExportAuthorized: false, currentOperationsVerified: false,
+    sourceUrl: 'https://extensions.duckdb.org/v1.5.5/windows_amd64/httpfs.duckdb_extension.gz',
+    reviewDocument: 'docs/OVERTURE-HTTPFS-RUNTIME.md',
+    reason: 'Fixed Windows DuckDB dependency installation and signature check; not an Overture place acquisition.',
+    nextAction: 'Run the bounded runtime prerequisite through the app. Retain its verified artifacts for future workers; large source acquisition remains separately gated.',
   }]);
 }
 
