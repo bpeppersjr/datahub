@@ -1,0 +1,34 @@
+{
+  "connector_id": "ut-childcare-centers-normalization",
+  "version": "1.0.0",
+  "description": "Offline adoption and full PDF replay of the pinned September 2026 Utah center cohort, followed by source-linked internal normalization.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type": "object", "additionalProperties": false, "properties": {}},
+  "output_schema": {
+    "type": "object", "additionalProperties": false,
+    "required": ["schema_version", "run_id", "status", "processed_at", "source_release_id", "origin", "configuration", "summary", "artifacts", "claims", "export_policy"],
+    "properties": {
+      "schema_version": {"const": "ut-childcare-normalized-release@1.0.0"}, "run_id": {"type": "string", "format": "uuid"},
+      "status": {"const": "normalized-internal-retained-evidence"}, "processed_at": {"type": "string", "format": "date-time"},
+      "source_release_id": {"type": "string"}, "origin": {"type": "object"}, "configuration": {"type": "object"},
+      "summary": {"type": "object"}, "artifacts": {"type": "array", "minItems": 2, "maxItems": 2},
+      "claims": {"type": "object"}, "export_policy": {"const": "internal"}
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["ut-childcare-retained-document-assessment", "ut-childcare-pdf-prerequisite-receipt"],
+  "output_artifact_types": ["ut-childcare-normalized-jsonl", "ut-childcare-normalization-summary", "ut-childcare-normalized-manifest"],
+  "allowed_hosts": [],
+  "redirect_policy": "No network requests. Link recorded source history and replay the unchanged retained PDF locally; historical app acquisition is not asserted.",
+  "provider_budget_key": "ut-childcare-offline-normalization",
+  "resource_class": "bounded-offline-pdf-normalization",
+  "execution_limits": {"network_requests": 0, "pinned_source_rows": 1961, "pinned_selected_rows": 422, "maximum_source_bytes": 500000, "maximum_normalized_bytes": 16000000, "maximum_summary_bytes": 100000, "maximum_jsonl_line_bytes": 65536, "minimum_disk_free_bytes": 64000000, "decoder_process_memory_bytes": 1073741824, "decoder_timeout_seconds": 60},
+  "retry": "No automatic retry or refetch. Preserve retained input and completed releases; explicit local rebuild produces a new run.",
+  "checkpoint": "Raw source and prior prerequisite are pinned. Full selected replay and normalized semantic replay precede manifest-last publication.",
+  "idempotency": "Exact origin/prerequisite fingerprints, source release ID, run ID, transform version and output hashes; no overwrite of prior manifests.",
+  "cancellation": "Cooperative decoding and writes; close handles and remove only owned unpublished output. Preserve committed manifests for inspection.",
+  "source_policy": "config/source-policies/ut-childcare-centers-internal.json",
+  "retention_profile": "Unmodified internal source document kept separately from center-only normalized derivatives. No phone fields, inferred operating status, address role or geocodes; ZIP5 and ZIP4 remain separate.",
+  "produced_entities": ["publisher-listed-childcare-source-candidate"],
+  "produced_identifiers": ["ut-childcare-release-scoped-facility-key", "utah-dlbc-childcare-facility-id", "zip5", "zip4"]
+}

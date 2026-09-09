@@ -1,0 +1,23 @@
+{
+  "policy_id": "ut-childcare-centers-internal",
+  "version": "1.0.0",
+  "publisher": "Utah DHHS Division of Licensing and Background Checks",
+  "ownership": "Publisher's All Regulated Child Care Facilities report; selected Child Care Center observations remain source-separated derivatives.",
+  "source_dataset": "https://dlbc.utah.gov/wp-content/uploads/All-Child-Care-Licensing-Facilities-Report-September-2026.pdf",
+  "terms_url": "https://www.utah.gov/support/disclaimer.html",
+  "allowed_use": ["internal informational retention of the unchanged public report with provenance", "bounded offline center-only factual extraction and normalization, separately identified as derivative evidence"],
+  "prohibited_use": ["claiming the informational-use grant is blanket permission for commercial derivative redistribution", "personal enrichment or retention of phone numbers in selected derivatives", "including other license categories under the center predicate", "inferring current operations, physical premises, business opening dates or national completeness from report membership"],
+  "export_policy": "internal",
+  "field_export_policy": {"selected_source_fields": "internal", "selected_metadata_and_aggregates": "internal", "unselected_fields": "excluded-from-selected-derivative"},
+  "attribution": "Utah DHHS Division of Licensing and Background Checks; All Regulated Child Care Facilities, September 2026; preserve source URL, observation time and original document hash. Attribution is provenance hygiene, not an asserted mandatory license clause.",
+  "retention": "Retain the original report unchanged, including notices, separately from center-only derivatives and their transformation receipts. No automatic deletion or production pointer replacement.",
+  "redistribution": "Internal only. Utah's conditional personal/informational unmodified-document grant is not an express blanket license for modified or commercial redistributed datasets; public derivative export is not implemented.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The unchanged original includes other categories and phone numbers; restrict its internal source layer. Selected derivatives exclude phone numbers and all non-center categories. Names and addresses may incidentally identify people; no personal enrichment.",
+  "contains_secrets": false,
+  "facility_acquisition_authorized": true,
+  "legal_approval": false,
+  "agreement_acceptance_performed": false,
+  "authorization_basis": "Existing user authorization for authorized business-source collection, reviewed Utah informational-use terms, and exact-document assessment finding no additional extracted use notice. Bounded internal factual processing is not a claim of legal approval, commercial derivative licensing, or agreement acceptance. Delivery validation and source-origin verification remain separate prerequisites.",
+  "semantic_boundary": "Facility ID is a licensing identifier, not canonical business identity. Address role, coordinates and current operating status remain unknown. License expiration and initial regulation are source calendar facts, not operating dates. ZIP5 and ZIP4 remain separate and unverified against USPS assignment. Document category counts do not measure national industry completeness."
+}
