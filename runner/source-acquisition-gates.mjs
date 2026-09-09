@@ -1,7 +1,7 @@
 /**
  * Source prerequisites are not collection jobs. A listed source is not an
- * authorization or an implemented capture. There is deliberately no approval
- * override, caller-supplied policy, URL, or worker fallback in this increment.
+ * authorization for collection. Only the explicit Oklahoma bounded schema
+ * operation is enrolled; Nebraska remains blocked with no worker fallback.
  */
 const NE_PDF_GATE = Object.freeze({
   sourceId: 'ne-childcare-pdf',
@@ -25,7 +25,15 @@ const NE_PDF_GATE = Object.freeze({
 });
 
 export function getSourcePrerequisiteGates() {
-  return structuredClone([NE_PDF_GATE]);
+  return structuredClone([NE_PDF_GATE, {
+    sourceId: 'ok-childcare-schema', state: 'OK', industry: 'childcare',
+    status: 'READY_SCHEMA_PREREQUISITE', schemaProbeImplemented: true, collectionReady: false,
+    publicExportAuthorized: false, currentOperationsVerified: false,
+    sourceUrl: 'https://childcarefind.okdhs.org/providers?zip-code=73102&facility-type=childcare-center',
+    reviewDocument: 'docs/states/OK-SOURCE-USE-2026-09-09.md',
+    reason: 'One fixed center/ZIP aggregate schema check, not a statewide acquisition or refresh.',
+    nextAction: 'Run the bounded prerequisite through the app; verify broader delivery and temporal semantics before collection enrollment.',
+  }]);
 }
 
 export function assertSourcePrerequisiteAllowed(input) {

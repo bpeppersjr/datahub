@@ -23,7 +23,7 @@ const cleanError = (error) => {
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: record.kind === "cohort-snapshot" ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
+  artifacts: ["cohort-snapshot", "source-prerequisite"].includes(record.kind) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })), result: record.result ?? {},
 });
 async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
@@ -72,7 +72,7 @@ export class ManagedOperations {
       if (!entry.isDirectory() || !safeId(entry.name)) continue;
       try {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
-        if (record.id !== entry.name || !["collection", "export", "cohort-snapshot"].includes(record.kind)) continue;
+        if (record.id !== entry.name || !["collection", "export", "cohort-snapshot", "source-prerequisite"].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
           const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
@@ -102,7 +102,13 @@ export class ManagedOperations {
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
-      || !Object.hasOwn(input, "sourceId") || Object.getOwnPropertyDescriptor(input, "sourceId")?.value !== "ne-childcare-pdf") throw invalid("Source prerequisite requires only sourceId ne-childcare-pdf.");
+      || !Object.hasOwn(input, "sourceId") || !["ne-childcare-pdf", "ok-childcare-schema"].includes(Object.getOwnPropertyDescriptor(input, "sourceId")?.value)) throw invalid("Source prerequisite requires only an allowed sourceId.");
+    if (input.sourceId === "ok-childcare-schema") {
+      if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Schema prerequisite requires native operation storage.");
+      await this.ready; await this.#refreshUnknown(); this.#reserve();
+      try { return await this.#start("source-prerequisite", { sourceId: "ok-childcare-schema" }); }
+      catch (error) { this.reserved = false; throw error; }
+    }
     assertSourcePrerequisiteAllowed(input);
     // No capture implementation is enrolled, even if a future gate changes.
     throw conflict("Source prerequisite capture is not enrolled.");
@@ -209,7 +215,7 @@ export class ManagedOperations {
   async cancel(id) { await this.ready; const record = this.operations.get(id); if (!record) return null; this.running.get(id)?.abort(); return this.#snapshot(record); }
   async artifact(id, filename) {
     await this.ready; const record = this.operations.get(id); if (!record || !FINAL.has(record.status) || !safeId(filename) || filename.includes("..")) return null;
-    if (record.kind === "cohort-snapshot") return null;
+    if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) return null;
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
     if (!contained(await realpath(this.root), base) || !contained(base, await realpath(file))) return null;
@@ -260,14 +266,15 @@ export class ManagedOperations {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); }
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id]; }
+      else if (record.kind === "source-prerequisite") { script = "scripts/probe-ok-childcare-schema.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id]; }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
       const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind !== "export" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if (record.kind === "cohort-snapshot") {
-        const recovered = await this.#verifyCohortSnapshot(record, execution?.stdout);
+      if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) {
+        const recovered = record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout) : await this.#verifyOkSchemaPrerequisite(record, execution?.stdout);
         if (controller.signal.aborted || execution?.code !== 0 || recovered) {
           record.status = controller.signal.aborted ? "CANCELLED" : "FAILED";
-          record.error = "Cohort snapshot did not complete cleanly; retained output requires inspection.";
+          record.error = "Managed evidence did not complete cleanly; retained output requires inspection.";
           record.result.inspectionRequired = true;
           if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: execution?.forcedTerminationRequested === true, outputState: "inspection-required" };
         } else record.status = "SUCCEEDED";
@@ -282,8 +289,8 @@ export class ManagedOperations {
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
     } catch (error) {
-      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = record.kind === "cohort-snapshot" ? "Cohort snapshot failed verification; preserve operation outputs for inspection." : cleanError(error);
-      if (record.kind === "cohort-snapshot") {
+      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = ["cohort-snapshot", "source-prerequisite"].includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
+      if (["cohort-snapshot", "source-prerequisite"].includes(record.kind)) {
         record.result.inspectionRequired = true;
         if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
       }
@@ -329,6 +336,33 @@ export class ManagedOperations {
     return recovery;
   }
   async #verifyCollection(record) { const receipt = JSON.parse(await readFile(path.join(APP_ROOT, "data", "industry-segments", "runs", record.id, "receipt.json"), "utf8")); if (receipt.run_id !== record.id || receipt.status !== "succeeded") throw new Error("Collection did not publish a successful canonical receipt."); }
+  async #verifyOkSchemaPrerequisite(record, stdout) {
+    const reject = () => { throw new Error("Oklahoma schema prerequisite evidence rejected."); };
+    if (typeof stdout !== "string" || stdout.length > 65536) reject();
+    let descriptor; try { descriptor = JSON.parse(stdout); } catch { reject(); }
+    let recovery = false;
+    if (descriptor && Object.hasOwn(descriptor,"recovery")) {
+      if (Object.keys(descriptor).length !== 1) reject();
+      descriptor = descriptor.recovery; recovery = true;
+    }
+    const fields = ["run_id", "manifest", "sha256", "status", "cancellation_after_publication", "operation_id"];
+    if (!descriptor || Object.getPrototypeOf(descriptor) !== Object.prototype || Object.keys(descriptor).length !== fields.length || !fields.every(key => Object.hasOwn(descriptor,key))
+      || typeof descriptor.run_id !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(descriptor.run_id)
+      || typeof descriptor.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(descriptor.sha256) || descriptor.operation_id !== record.id
+      || !["rejected", "schema-observed-not-collection-ready"].includes(descriptor.status) || typeof descriptor.cancellation_after_publication !== "boolean"
+      || descriptor.manifest !== path.join(this.root,record.id,"output","jobs",descriptor.run_id,"manifest.json")) reject();
+    record.result = { sourceId: "ok-childcare-schema", prerequisite: descriptor, receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal" };
+    // Independently verify injected executors too; cancellation cannot discard a committed reference.
+    const { readOkChildcareSchemaReceipt } = await import("./ok-childcare-schema-receipt.mjs");
+    const checked = await readOkChildcareSchemaReceipt(descriptor.manifest,descriptor.sha256,{operationId:record.id,operationRoot:path.join(this.root,record.id,"output"),startedAt:record.startedAt});
+    const receipt = checked.manifest;
+    if (receipt.run_id !== descriptor.run_id || receipt.status !== descriptor.status || receipt.execution_mode !== "native-fetch") reject();
+    const rejected = recovery || descriptor.status !== "schema-observed-not-collection-ready" || descriptor.cancellation_after_publication;
+    record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, status: descriptor.status, collectionReady: false,
+      observedRows: receipt.schema?.counts?.rows ?? null, centerRows: receipt.schema?.counts?.center_rows ?? null, statewideCompletenessVerified: false };
+    record.artifacts = [];
+    return rejected;
+  }
 }
 
 export function createManagedOperations(options) { return new ManagedOperations(options); }

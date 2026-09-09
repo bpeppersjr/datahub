@@ -21,3 +21,12 @@ test('source gate rejects malformed inputs and cannot execute caller getters or 
     assert.throws(() => assertSourcePrerequisiteAllowed(input), error => error.statusCode === 400 && error.code === 'INVALID_SOURCE_PREREQUISITE' && !error.message.includes('private.invalid'));
   }
 });
+
+test('Oklahoma catalog enrollment is a fixed schema prerequisite, not collection permission', () => {
+  const gate = getSourcePrerequisiteGates().find(g => g.sourceId === 'ok-childcare-schema');
+  assert.equal(gate.status, 'READY_SCHEMA_PREREQUISITE');
+  assert.equal(gate.schemaProbeImplemented, true);
+  assert.equal(gate.collectionReady, false);
+  gate.collectionReady = true;
+  assert.equal(getSourcePrerequisiteGates()[1].collectionReady, false);
+});
