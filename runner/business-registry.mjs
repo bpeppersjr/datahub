@@ -2880,6 +2880,7 @@ export async function buildNationalBusinessRegistry({
   tnChildcareManifest = null,
   tnFreshChildcareManifest = null,
   ohChildcareReceipt = null,
+  retainedChildcareSelection = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -2887,6 +2888,8 @@ export async function buildNationalBusinessRegistry({
   if (!snapPointer) throw new Error("snapPointer is required.");
   if (tnChildcareManifest !== null && tnFreshChildcareManifest !== null) throw new Error("Select one Tennessee release: fresh and recovered inputs are mutually exclusive.");
   const childcareInputs = [];
+  const retainedChildcareApi = retainedChildcareSelection === null ? null : await import('./retained-childcare-registry-input.mjs');
+  const retainedChildcare = retainedChildcareApi ? await retainedChildcareApi.loadRetainedChildcareRegistryInput(retainedChildcareSelection) : null;
   if (maChildcareManifest) childcareInputs.push({ ...await loadMaChildcareRegistryInput(maChildcareManifest), key: "ma_childcare_centers", datasetId: "ma-licensed-center-based-childcare" });
   if (njChildcareManifest) childcareInputs.push({ ...await loadNjChildcareRegistryInput(njChildcareManifest), key: "nj_childcare_centers", datasetId: "nj-licensed-childcare-centers" });
   if (tnChildcareManifest !== null) {
@@ -4072,6 +4075,9 @@ export async function buildNationalBusinessRegistry({
   }
 
   const artifacts = [];
+  if (retainedChildcare) artifacts.push(await writeArtifact(stagingDirectory, 'reporting/retained-childcare/candidates.jsonl', jsonLines(retainedChildcare.records), {
+    artifact_type: retainedChildcareApi.RETAINED_CHILDCARE_CANDIDATE_TYPE, record_count: retainedChildcare.records.length, export_policy: 'internal',
+  }));
   artifacts.push(...(await closeGzipWriters([...reportingWriters.values()], CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE)).map((artifact) => ({ ...artifact, export_policy: "local-review-only" })));
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -4871,6 +4877,7 @@ export async function buildNationalBusinessRegistry({
       } : null,
     },
     dependencies: [
+      ...(retainedChildcare?.bindings ?? []).map(binding => ({dataset_id:binding.dataset_id,release_id:binding.release_id,manifest_sha256:binding.manifest_sha256})),
       ...childcareInputs.map((input) => ({ dataset_id: input.datasetId, release_id: input.source.releaseId, manifest_sha256: input.source.manifestSha256 })),
       {
         dataset_id: snap.manifest.dataset_id,
@@ -5224,10 +5231,17 @@ export async function buildNationalBusinessRegistry({
     ],
     artifacts: artifacts.sort((a, b) => a.path.localeCompare(b.path)),
   };
+  if (retainedChildcare) {
+    manifest.retained_childcare_reporting = retainedChildcareApi.retainedChildcareRegistryDeclaration(retainedChildcare);
+    manifest.coverage.retained_childcare_candidate_rows = retainedChildcare.records.length;
+    manifest.coverage.source_records_including_retained_childcare = manifest.coverage.source_records + retainedChildcare.records.length;
+    manifest.publication_scope += ', plus seven explicitly pinned retained childcare source-candidate cohorts (internal, unmatched; no physical-site inference)';
+    manifest.limitations.push('Retained childcare candidates use a separately versioned reporting contract. They do not increase canonical site or identity-match totals; reported state/ZIP and coordinate gaps remain explicit.');
+  }
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
   // Ohio is bound to its retained app dependencies, including at publication.
   // A verified input at build start is not proof those files remain unchanged.
-  if (ohInput) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
+  if (ohInput || retainedChildcare) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await rename(stagingDirectory, releaseDirectory);
@@ -5396,6 +5410,10 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
+  try {
+    const {verifyRetainedChildcareRegistryExtension} = await import('./retained-childcare-registry-input.mjs');
+    await verifyRetainedChildcareRegistryExtension(manifest, releaseDirectory);
+  } catch (error) { failures.push({path:'manifest.json',reason:error.message}); }
   const separatedPostalFieldsRequired = versionAtLeast(manifest.publisher?.version, "2.10.0");
   const reportingEvidenceSupported = versionAtLeast(manifest.publisher?.version, "2.12.0");
   const ohReportingSupported = manifest.publisher?.version === OH_REPORTING_REGISTRY_PUBLISHER_VERSION;

@@ -47,6 +47,7 @@ Options:
   --tn-childcare <path> Optional verified recovered Tennessee childcare manifest.json
   --tn-fresh-childcare <path> Optional verified fresh Tennessee connector 1.1.0 manifest; exclusive with --tn-childcare
   --oh-childcare-receipt <path> Optional verified Ohio app receipt; registry 2.15 reporting only
+  --retained-childcare-selection <path> Explicit seven-state retained candidate selection; internal reporting only
   --help           Show this help
 `;
 }
@@ -88,6 +89,12 @@ function parseArguments(args) {
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
+    if (argument === '--retained-childcare-selection') {
+      const value = args[++index];
+      if (!value || value.startsWith('--') || options.retainedChildcareSelection) throw new Error('Choose one retained childcare selection.');
+      options.retainedChildcareSelection = value;
+      continue;
+    }
 if (["--output", "--snap", "--nppes", "--fdic", "--ncua", "--fsis", "--echo", "--fmcsa", "--irs-eo", "--ct-business", "--de-business", "--ak-business", "--co-business", "--wa-lni-contractors", "--or-business", "--ia-business", "--ny-business", "--fl-business", "--pa-business", "--il-business", "--la-active-businesses", "--tx-sales-tax", "--chicago-licenses", "--dc-licenses", "--ca-abc", "--ny-retail-food", "--nyc-dcwp", "--usps-zips", "--ma-childcare", "--nj-childcare", "--tn-childcare", "--tn-fresh-childcare", "--oh-childcare-receipt"].includes(argument)) {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) throw new Error(`${argument} requires a value.`);
@@ -202,6 +209,7 @@ try {
     tnChildcareManifest: options.tnChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.tnChildcare)) : null,
     tnFreshChildcareManifest: options.tnFreshChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.tnFreshChildcare)) : null,
     ohChildcareReceipt: options.ohChildcareReceipt ? assertInsideApp(path.resolve(APP_ROOT, options.ohChildcareReceipt)) : null,
+    retainedChildcareSelection: options.retainedChildcareSelection ? assertInsideApp(path.resolve(APP_ROOT, options.retainedChildcareSelection)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

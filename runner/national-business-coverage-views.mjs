@@ -4,6 +4,7 @@ import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {APP_ROOT} from './paths.mjs';
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { createGunzip, gunzipSync } from "node:zlib";
@@ -727,6 +728,8 @@ export async function buildNationalBusinessCoverageViews({
     resolveDataset(nonemployerPointerPath, "census-nonemployer-baseline"),
   ]);
   const ohSupported = registry.manifest.publisher?.version === "2.15.0";
+  const retainedChildcareApi = await import('./retained-childcare-registry-input.mjs');
+  const retainedChildcare = await retainedChildcareApi.verifyRetainedChildcareRegistryExtension(registry.manifest, registry.releaseDirectory);
   if (ohSupported && !registry.manifest.oh_childcare_source) throw new Error("Unreviewed registry publisher version for coverage: Ohio app source required.");
   const ohApi = ohSupported ? await ohioCoverage() : null;
   const ohContext = ohSupported ? await ohApi.loadOhioCoverageContext(registry.manifest) : null;
@@ -1384,6 +1387,12 @@ export async function buildNationalBusinessCoverageViews({
   const releaseId = `national-business-coverage-views-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   const artifacts = [];
+  let retainedChildcareDeclaration = null;
+  if (retainedChildcare) {
+    const {applyRetainedChildcareCoverage} = await import('./retained-childcare-coverage-extension.mjs');
+    retainedChildcareDeclaration = {...applyRetainedChildcareCoverage(retainedChildcare, {national:nationalViews,states:stateViews,counties:countyViews,zips:zipViews}),
+      registry_manifest_path:path.relative(APP_ROOT, path.join(registry.releaseDirectory,'manifest.json')).replaceAll('\\','/')};
+  }
   for (const [relativePath, records, artifactType] of [
     ["views/national.jsonl", nationalViews, "national-coverage-view-jsonl"],
     ["views/states.jsonl", stateViews, "state-coverage-view-jsonl"],
@@ -1391,14 +1400,14 @@ export async function buildNationalBusinessCoverageViews({
     ["views/zips.jsonl", zipViews, "zip-coverage-view-jsonl"],
     ["views/sources.jsonl", sourceViews, "source-coverage-view-jsonl"],
     ["views/coverage-gaps.jsonl", gapViews, "coverage-gap-view-jsonl"],
-  ]) artifacts.push(await writeJsonLinesArtifact(stagingDirectory, relativePath, records, { artifact_type: artifactType, record_count: records.length }));
+  ]) artifacts.push(await writeJsonLinesArtifact(stagingDirectory, relativePath, records, { artifact_type: artifactType, record_count: records.length, ...(retainedChildcare ? {export_policy:'internal'} : {}) }));
   artifacts.push(await writeArtifact(
     stagingDirectory,
     "derived/profile-geography-summary.json",
     json(profileSummary),
     { artifact_type: "profile-geography-summary-json", record_count: 1 },
   ));
-  if (tnSupported || ohSupported) {
+  if (tnSupported || ohSupported || retainedChildcare) {
     if (registry.manifestBuffer.length > 4_000_000) throw new Error("Registry declaration exceeds retained evidence limit.");
     artifacts.push(await writeArtifact(stagingDirectory, "evidence/registry-manifest.json", registry.manifestBuffer,
       { artifact_type: "retained-registry-manifest-json", record_count: 1, export_policy: "internal" }));
@@ -1632,8 +1641,9 @@ export async function buildNationalBusinessCoverageViews({
     ],
     artifacts: artifacts.sort((left, right) => left.path.localeCompare(right.path)),
   };
+  if (retainedChildcareDeclaration) manifest.retained_childcare_reporting = retainedChildcareDeclaration;
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  if (ohSupported) await verifyNationalBusinessCoverageViewsRelease(path.join(stagingDirectory, "manifest.json"));
+  if (ohSupported || retainedChildcareDeclaration) await verifyNationalBusinessCoverageViewsRelease(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await renameWithRetry(stagingDirectory, releaseDirectory);
@@ -1784,6 +1794,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     if (declared.coverage.reporting_location_evidence_without_zip !== ohContext.total.without_zip + (coverage.tn_childcare_reporting?.without_zip ?? 0)) throw new Error("Ohio combined ZIP availability differs.");
   } else if (Object.hasOwn(manifest, "oh_childcare_source") || Object.hasOwn(manifest, "tn_childcare_origin") || Object.keys(coverage).some(k => k.startsWith("oh_childcare_"))) throw new Error("Ohio accounting requires coverage 2.11.");
   function trackOhio(kind, row) {
+    if (!manifest.retained_childcare_reporting && Object.hasOwn(row, 'retained_childcare_reporting')) throw new Error('Retained childcare view requires an explicit extension declaration.');
     if (ohSupported) ohViews[kind].push(kind === "zips" ? { zip_code: row.zip_code,
       registry_coverage: { oh_childcare_center_site_count: row.registry_coverage.oh_childcare_center_site_count },
       source_contributions: { [OH_KEY]: row.source_contributions?.[OH_KEY] } } : row);
@@ -1798,7 +1809,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     || coverage.tn_childcare_without_county_assignment !== tnTotal.records - coverage.tn_childcare_coordinate_assigned)) throw new Error("TN county accounting is invalid.");
   const tnStateTotals = [], tnCountyTotals = [], tnNationalRows = [];
   let tnSourceCount = 0, tnZipCount = 0, tnMissingGapCount = 0, tnSourceDeclaration;
-  if (!tnSupported && !ohSupported && artifacts.has("retained-registry-manifest-json")) throw new Error("Retained registry declaration requires coverage 2.9.");
+  if (!tnSupported && !ohSupported && !manifest.retained_childcare_reporting && artifacts.has("retained-registry-manifest-json")) throw new Error("Retained registry declaration requires coverage 2.9 or an explicit retained candidate extension.");
   const reportingSupported = versionAtLeast(manifest.publisher.version, "2.8.0");
   const checkSplit = (row, total) => {
     if (!reportingSupported) return;
@@ -2047,6 +2058,10 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   if (countyNonemployerEstablishments !== coverage.county_nonemployer_establishments) throw new Error("County Nonemployer establishments do not match the manifest.");
   if (zipPhysicalSites + tnTotal.without_zip + (ohContext?.total.without_zip ?? 0) !== profileSummary.profile_count) throw new Error("ZIP physical-site totals do not reconcile to location profiles.");
   if (ohSupported) await ohApi.verifyOhioCoverageViews({ context: ohContext, manifest, views: ohViews, profileSummary });
+  {
+    const {verifyRetainedChildcareCoverageExtension} = await import('./retained-childcare-coverage-extension.mjs');
+    await verifyRetainedChildcareCoverageExtension(manifest, releaseDirectory);
+  }
   return {
     dataset_id: manifest.dataset_id,
     release_id: manifest.release_id,
