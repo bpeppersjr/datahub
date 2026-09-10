@@ -1,12 +1,12 @@
 # Disk-backed Overture identity check
 
-`checkOvertureIdentities({output, ids, signal?, rowLimit?})` is a local normalization component. `ids` is a sequential async iterable of canonical lowercase GERS UUID strings. It records IDs in a run-owned DuckDB table, then checks for duplicates and reconciles the row count. It does not retain a whole-source JavaScript `Set` or build a primary-key index. Only one producer result is held at a time; the native appender is flushed every 8,192 rows.
+`checkOvertureIdentities({output, ids, signal?, rowLimit?, keyFormat?})` is a local normalization component. `ids` is a sequential async iterable of canonical lowercase GERS UUID strings by default. Explicit `keyFormat: "source-value"` supports bounded source keys as described in [the integration contract](OVERTURE-DISK-IDENTITY-INTEGRATION.md). It records IDs in a run-owned DuckDB table, then checks for duplicates and reconciles the row count. It does not retain a whole-source JavaScript `Set` or build a primary-key index. Only one producer result is held at a time; the native appender is flushed every 8,192 rows.
 
 Duplicate checking uses an aggregate that can use the engine's spill storage. The 20,000-row native fixture proves normal operation and cross-batch duplicate rejection, not production-scale spill performance. A duplicate or engine/resource failure produces a fixed error and must prevent later normalization publication.
 
 ## Boundaries
 
-- Up to 20 million canonical IDs. `rowLimit` can only tighten that limit. Invalid IDs must be handled by the normalizer's quarantine policy before this component; this helper neither guesses IDs nor quarantines records itself.
+- Up to 20 million keys. `rowLimit` can only tighten that limit. UUID mode rejects malformed IDs; source-value mode permits nonempty roundtrippable UTF-8 strings up to 512 bytes without NUL. This helper neither guesses IDs nor quarantines records itself.
 - One database thread, 512 MiB engine memory setting and 4 GiB spill setting, checked against running engine settings. This is not an OS process-memory cap.
 - External access and automatic/unsigned/community extensions disabled. No source requests, runtime downloads or new package dependencies.
 - Eight GiB free-disk preflight, sampled five GiB headroom thereafter; database and WAL size sampled at flush/finalization against two GiB. Sampled checks detect overshoot, not a hard filesystem quota. Engine spill has its own configured cap.
@@ -17,7 +17,7 @@ The temporary database is preserved after success or failure. It is not a restar
 
 ## Integration status
 
-This component is not yet wired into the legacy builder or a managed normalization endpoint. The legacy builder's whole-source sets remain unchanged. Integrating this check, bounded source/output streams, acquisition/ZBP provenance and separate publication is still required, as described in [the normalization handoff review](OVERTURE-NORMALIZATION-HANDOFF.md).
+This component is now [wired into the legacy builder and verifier](OVERTURE-DISK-IDENTITY-INTEGRATION.md). A managed normalization endpoint, bounded output/aggregate processing and acquisition/ZBP provenance binding remain required, as described in [the normalization handoff review](OVERTURE-NORMALIZATION-HANDOFF.md). The verifier removes its own scratch directory after the component closes; the builder retains its private working database.
 
 Rollback is removal of this unused component and its tests. No production releases, source data or pointers are changed by this release. Temporary fixtures are created and removed within `datahub`; no large acquisition is dispatched.
 

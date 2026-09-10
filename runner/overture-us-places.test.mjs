@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -288,6 +288,9 @@ test("normalization retains by default and requires a separate explicit promotio
     const result = await buildOvertureUsPlaces({ outputRoot, zbpPointer, sourceRecords: [source()], sourceMetadata: sourceMetadata(), minimumPlaces: 1, logger: () => {} });
     assert.equal(result.status, "verified-retained-not-promoted");
     assert.equal(result.pointerPath, null);
+    const checkRoot = path.join(outputRoot, ".identity-checks", result.stagingRunId), checks = await readdir(checkRoot);
+    assert.equal(checks.length, 1);
+    assert.ok((await stat(path.join(checkRoot, checks[0], "identity.duckdb"))).size > 0);
     assert.equal(await readFile(pointerPath, "utf8"), original);
     assert.equal(path.dirname(result.releaseDirectory), path.join(outputRoot, ".staging"));
     assert.equal((await verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json"))).coverage.normalized_places, 1);
@@ -305,6 +308,26 @@ test("build CLI documents explicit publication and rejects duplicate publication
   assert.equal(help.status, 0); assert.match(help.stdout, /default does not update current.json/); assert.match(help.stdout, /--publish/);
   const duplicate = spawnSync(process.execPath, [script, "--publish", "--publish"], { encoding: "utf8" });
   assert.equal(duplicate.status, 1); assert.match(duplicate.stderr, /Duplicate build option/);
+});
+
+test("disk-backed verification rejects rehashed duplicate identities across normalized partitions", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "overture-disk-verify-"));
+  try {
+    const zbpPointer = await writeBaseline(path.join(root, "zbp")), outputRoot = path.join(root, "output");
+    const result = await buildOvertureUsPlaces({ outputRoot, zbpPointer,
+      sourceRecords: [source(), source({ id: "22222222-2222-4222-8222-222222222222" })], sourceMetadata: sourceMetadata(), minimumPlaces: 1, logger: () => {} });
+    const artifacts = result.manifest.artifacts.filter(a => a.artifact_type === "normalized-overture-us-place-jsonl-gzip" && a.record_count);
+    const first = (await gunzipRecords(path.join(result.releaseDirectory, artifacts[0].path)))[0].normalized_record_id;
+    let seen = false;
+    for (const artifact of artifacts) {
+      const rows = await gunzipRecords(path.join(result.releaseDirectory, artifact.path));
+      for (const row of rows) { if (seen) row.normalized_record_id = first; seen = true; }
+      const bytes = gzipSync(rows.map(row => JSON.stringify(row) + "\n").join(""));
+      await writeFile(path.join(result.releaseDirectory, artifact.path), bytes); artifact.bytes = bytes.length; artifact.sha256 = sha256(bytes);
+    }
+    await writeFile(path.join(result.releaseDirectory, "manifest.json"), JSON.stringify(result.manifest));
+    await assert.rejects(verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json")), error => error.failures?.some(f => /duplicate source identities/.test(f.reason)));
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("failed pointer commit preserves the moved release with an inspection reference", async () => {
@@ -345,7 +368,11 @@ test("rejects selected-field drift, duplicate identities, quality failure, and c
     await assert.rejects(() => buildOvertureUsPlaces({
       outputRoot: path.join(root, "duplicate"), zbpPointer, sourceRecords: [source(), source()], sourceMetadata: sourceMetadata(),
       minimumPlaces: 1, maximumQuarantineRatio: 1, logger: () => {},
-    }), /Duplicate Overture GERS ID/);
+    }), /duplicate source identities/);
+    await assert.rejects(() => buildOvertureUsPlaces({
+      outputRoot: path.join(root, "duplicate-missing"), zbpPointer, sourceRecords: [source({ id: null }), source({ id: null })], sourceMetadata: sourceMetadata(),
+      minimumPlaces: 1, maximumQuarantineRatio: 1, logger: () => {},
+    }), /duplicate source identities/);
     await assert.rejects(() => buildOvertureUsPlaces({
       outputRoot: path.join(root, "quality"), zbpPointer, sourceRecords: [source({ primary_name: null })], sourceMetadata: sourceMetadata(),
       minimumPlaces: 1, maximumQuarantineRatio: 0, logger: () => {},

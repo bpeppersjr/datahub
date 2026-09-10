@@ -22,6 +22,20 @@ test('duplicates across flush boundaries reject without disclosing identifiers',
   async function* rows() { yield* values(9000); yield id(0); }
   await assert.rejects(checkOvertureIdentities({ output, ids: rows() }), error => /duplicate source identities/.test(error.message) && !error.message.includes(id(0)));
 });
+
+test('source-value mode preserves bounded malformed identifiers without treating them as valid UUIDs', async t => {
+  const output = await workspace(t);
+  async function* rows() { yield '<blank>'; yield 'not-a-gers-id'; yield 'café'; }
+  const result = await checkOvertureIdentities({ output, ids: rows(), keyFormat: 'source-value' });
+  assert.equal(result.record_count, 3); assert.equal(result.key_format, 'source-value');
+  async function* duplicates() { yield '<blank>'; yield '<blank>'; }
+  await assert.rejects(checkOvertureIdentities({ output, ids: duplicates(), keyFormat: 'source-value' }), /duplicate source identities/);
+  for (const value of ['', 'x'.repeat(513), '\u0000', '\ud800']) {
+    async function* bad() { yield value; }
+    await assert.rejects(checkOvertureIdentities({ output, ids: bad(), keyFormat: 'source-value' }));
+  }
+  await assert.rejects(checkOvertureIdentities({ output, ids: rows(), keyFormat: 'unknown' }));
+});
 test('invalid options and pre-cancellation reject before run allocation', async t => {
   const output = await workspace(t);
   for (const options of [{ output, ids: [] }, { output, ids: values(1), memory: 'unlimited' }, { output, ids: values(1), signal: AbortSignal.abort() }, { output, ids: values(1), rowLimit: 20000001 }]) await assert.rejects(checkOvertureIdentities(options));

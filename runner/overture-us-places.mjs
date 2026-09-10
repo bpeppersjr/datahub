@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, stat, writeFile, lstat, rm } from "node:fs/promises";
 import path from "node:path";
 import { finished } from "node:stream/promises";
 import { createGzip } from "node:zlib";
@@ -9,6 +9,8 @@ import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
 import { streamOvertureGzipRecords } from "./overture-gzip-records.mjs";
 import { mnSelectionCanonical } from "./mn-construction-retained-selection.mjs";
+import { checkOvertureIdentities } from "./overture-identity-check.mjs";
+import { APP_ROOT } from "./paths.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -655,7 +657,6 @@ export async function buildOvertureUsPlaces({
   const normalizedWriters = new Map();
   for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/places/prefix=${prefix}.jsonl.gz`));
   const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz");
-  const ids = new Set();
   const zipCounts = new Map();
   const categoryCounts = new Map();
   const scopeCounts = new Map();
@@ -666,12 +667,12 @@ export async function buildOvertureUsPlaces({
   let validZipCount = 0;
   let zip4Count = 0;
   try {
+    async function* normalizeAndYieldIds() {
     for await (const source of gzipRecords(path.join(stagingDirectory, input.artifact.path), signal)) {
       signal?.throwIfAborted?.();
       assertExactSelectedRecord(source);
       const id = textValue(source.id)?.toLowerCase() ?? "<blank>";
-      if (ids.has(id)) throw new Error(`Duplicate Overture GERS ID ${id}.`);
-      ids.add(id);
+      yield id;
       try {
         const normalized = normalizeOvertureUsPlace(source, context);
         await writeGzipRecord(normalizedWriters.get(sha256(id)[0]), normalized);
@@ -691,6 +692,10 @@ export async function buildOvertureUsPlaces({
         await writeGzipRecord(quarantineWriter, { schema_version: OVERTURE_US_PLACE_SCHEMA_VERSION, source_record_id: id, reason: error.message, source_release_id: sourceReleaseId, export_policy: "internal" });
       }
     }
+    }
+    const identityCheck = await checkOvertureIdentities({ output: path.resolve(outputRoot, ".identity-checks", runId),
+      ids: normalizeAndYieldIds(), keyFormat: "source-value", signal });
+    if (identityCheck.record_count !== input.artifact.record_count) throw new Error("Overture source identity count mismatch.");
   } catch (error) {
     await abortGzipWriters([...normalizedWriters.values(), quarantineWriter]);
     throw error;
@@ -835,6 +840,22 @@ function containsForbiddenRecordField(record) {
   return [...FORBIDDEN_RECORD_KEYS].some((field) => serialized.includes(`\"${field}\"`));
 }
 
+async function verifyNormalizedIdentities(ids) {
+  const parent = path.join(APP_ROOT, "data/tmp/overture-verification-identities");
+  await mnSelectionCanonical(parent, { create: true, output: true });
+  const directory = path.join(parent, randomUUID()); await mkdir(directory);
+  const owner = await lstat(directory, { bigint: true });
+  try { return await checkOvertureIdentities({ output: directory, ids }); }
+  finally {
+    // Remove only this verifier's newly allocated scratch directory, after the
+    // checker has drained its producer and closed all native database handles.
+    await mnSelectionCanonical(directory);
+    const current = await lstat(directory, { bigint: true });
+    if (current.dev !== owner.dev || current.ino !== owner.ino || !current.isDirectory() || current.isSymbolicLink()) throw new Error("Overture verification scratch ownership changed.");
+    await rm(directory, { recursive: true });
+  }
+}
+
 export async function verifyOvertureUsPlaces(manifestPath) {
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
@@ -869,10 +890,10 @@ export async function verifyOvertureUsPlaces(manifestPath) {
     failures.push({ path: sourceArtifact?.path ?? "source/selected-records.jsonl.gz", reason: error.message });
   }
   const normalizedArtifacts = artifacts.filter((artifact) => artifact.artifact_type === "normalized-overture-us-place-jsonl-gzip");
-  const normalizedIds = new Set();
   const zipCounts = new Map();
   let normalizedCount = 0;
   let zip4Count = 0;
+  async function* normalizedIds() {
   for (const artifact of normalizedArtifacts) {
     try {
       if (artifact.export_policy !== "local-review-only") throw new Error("normalized artifact lost local-review-only policy");
@@ -880,8 +901,6 @@ export async function verifyOvertureUsPlaces(manifestPath) {
       for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
         artifactCount += 1;
         normalizedCount += 1;
-        if (normalizedIds.has(record.normalized_record_id)) throw new Error(`duplicate normalized record ${record.normalized_record_id}`);
-        normalizedIds.add(record.normalized_record_id);
         if (!/^overture-us-place:[0-9a-f-]{36}$/.test(record.normalized_record_id ?? "") || record.export_policy !== "local-review-only") throw new Error("invalid normalized identity or export policy");
         if (!Number.isFinite(record.geocode?.latitude) || record.geocode.latitude < -90 || record.geocode.latitude > 90
           || !Number.isFinite(record.geocode?.longitude) || record.geocode.longitude < -180 || record.geocode.longitude > 180
@@ -892,12 +911,16 @@ export async function verifyOvertureUsPlaces(manifestPath) {
         if (record.reported_address?.zip4) zip4Count += 1;
         if (record.source_status?.active_business_status_inferred !== false || record.classification?.commercial_business_asserted !== false) throw new Error("source status or commercial semantics were overstated");
         if (record.provenance?.policy_id !== "overture-us-places" || record.provenance?.source_release_id !== manifest.source_release_id) throw new Error("invalid provenance");
+        yield record.normalized_record_id.slice("overture-us-place:".length);
       }
       if (artifactCount !== artifact.record_count) throw new Error("normalized artifact record count mismatch");
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.message });
     }
   }
+  }
+  try { await verifyNormalizedIdentities(normalizedIds()); }
+  catch (error) { failures.push({ path: "normalized/places", reason: error.message }); }
   const quarantineArtifact = artifacts.find((artifact) => artifact.artifact_type === "overture-us-place-quarantine-jsonl-gzip");
   let quarantineCount = 0;
   try {

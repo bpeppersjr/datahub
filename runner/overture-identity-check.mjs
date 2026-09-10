@@ -19,13 +19,15 @@ function method(value, key) {
 
 // A bounded local component for the managed normalizer, not an acquisition or publication endpoint.
 export async function checkOvertureIdentities(options) {
-  const keys = ['output', 'ids']; for (const key of ['signal', 'rowLimit']) if (options && Object.hasOwn(options, key)) keys.push(key);
+  const keys = ['output', 'ids']; for (const key of ['signal', 'rowLimit', 'keyFormat']) if (options && Object.hasOwn(options, key)) keys.push(key);
   if (!options || Object.getPrototypeOf(options) !== Object.prototype || Reflect.ownKeys(options).length !== keys.length
     || !keys.every(key => Object.hasOwn(options, key)) || Object.values(Object.getOwnPropertyDescriptors(options)).some(d => !Object.hasOwn(d, 'value'))
     || typeof options.output !== 'string' || options.output !== path.resolve(options.output)
     || (options.signal !== undefined && !(options.signal instanceof AbortSignal))
+    || (options.keyFormat !== undefined && !['uuid', 'source-value'].includes(options.keyFormat))
     || (options.rowLimit !== undefined && (!Number.isSafeInteger(options.rowLimit) || options.rowLimit < 1 || options.rowLimit > MAX_ROWS))) throw failure();
   const { output, ids, signal } = options, rowLimit = options.rowLimit ?? MAX_ROWS, iteratorMethod = method(ids, Symbol.asyncIterator);
+  const keyFormat = options.keyFormat ?? 'uuid';
   if (!iteratorMethod) throw failure();
   const check = () => signal?.throwIfAborted();
   let instance, connection, appender, iterator, next, finishIterator, directory, count = 0, duplicateFound = false, failed = false;
@@ -77,7 +79,10 @@ export async function checkOvertureIdentities(options) {
       check(); const item = await next.call(iterator); check();
       if (!item || typeof item !== 'object' || typeof item.done !== 'boolean') throw failure();
       if (item.done) { exhausted = true; break; }
-      if (typeof item.value !== 'string' || !UUID.test(item.value) || count >= rowLimit) throw failure();
+      if (typeof item.value !== 'string' || count >= rowLimit) throw failure();
+      if (keyFormat === 'uuid') { if (!UUID.test(item.value)) throw failure(); }
+      else if (!item.value.length || item.value.length > 512 || Buffer.byteLength(item.value, 'utf8') > 512
+        || item.value.includes('\u0000') || Buffer.from(item.value, 'utf8').toString('utf8') !== item.value) throw failure();
       appender.appendVarchar(item.value); appender.endRow(); count++;
       if (count % 8192 === 0) { appender.flushSync(); check(); await inspectOwned(); }
     }
@@ -97,6 +102,6 @@ export async function checkOvertureIdentities(options) {
   if (failed || interrupted || signal?.aborted) throw failure();
   try { await inspectOwned(); } catch { throw failure(); }
   if (duplicateFound) throw duplicate();
-  return { directory, record_count: count, unique: true, limits: { rows: rowLimit, engine_memory_bytes: 512 * 1024 ** 2, spill_bytes: 4 * 1024 ** 3 },
+  return { directory, record_count: count, unique: true, key_format: keyFormat, limits: { rows: rowLimit, engine_memory_bytes: 512 * 1024 ** 2, spill_bytes: 4 * 1024 ** 3 },
     claims: { normalized_businesses_published: false, persistent_resume_supported: false, process_memory_cap_enforced: false } };
 }
