@@ -252,6 +252,12 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
     assert.equal(result.manifest.coverage.records_with_valid_zip5, 1);
     assert.equal(result.manifest.coverage.records_with_separate_zip4, 1);
     assert.equal(result.manifest.coverage.complete_all_us_businesses, false);
+    const summaryArtifact = result.manifest.artifacts.find(a => a.artifact_type === "overture-us-place-source-summary");
+    const summary = JSON.parse(await readFile(path.join(result.releaseDirectory, summaryArtifact.path), "utf8"));
+    assert.equal(summary.normalization_output_budget.records_reserved, 4);
+    assert.equal(summary.normalization_output_budget.registered_files, 17);
+    assert.equal(summary.normalization_output_budget.compressed_bytes_reserved,
+      result.manifest.artifacts.filter(a => ["normalized-overture-us-place-jsonl-gzip", "overture-us-place-quarantine-jsonl-gzip"].includes(a.artifact_type)).reduce((sum, a) => sum + a.bytes, 0));
     const verified = await verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json"));
     assert.equal(verified.coverage.normalized_places, 2);
     const artifacts = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "normalized-overture-us-place-jsonl-gzip");
@@ -377,6 +383,12 @@ test("rejects selected-field drift, duplicate identities, quality failure, and c
       outputRoot: path.join(root, "quality"), zbpPointer, sourceRecords: [source({ primary_name: null })], sourceMetadata: sourceMetadata(),
       minimumPlaces: 1, maximumQuarantineRatio: 0, logger: () => {},
     }), /quality gate failed/);
+    await assert.rejects(() => buildOvertureUsPlaces({
+      outputRoot: path.join(root, "summary-limit"), zbpPointer,
+      sourceRecords: [source({ taxonomy_hierarchy: ["x".repeat(513), "pharmacy", "retail_pharmacy"] })], sourceMetadata: sourceMetadata(),
+      minimumPlaces: 1, maximumQuarantineRatio: 1, logger: () => {},
+    }));
+    await assert.rejects(readFile(path.join(root, "summary-limit", "current.json")), { code: "ENOENT" });
     const controller = new AbortController();
     controller.abort();
     await assert.rejects(() => buildOvertureUsPlaces({

@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
-import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, writeFile, lstat, rm } from "node:fs/promises";
 import path from "node:path";
-import { finished } from "node:stream/promises";
+import { pipeline } from "node:stream/promises";
+import { Transform } from "node:stream";
 import { createGzip } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
@@ -11,6 +11,7 @@ import { streamOvertureGzipRecords } from "./overture-gzip-records.mjs";
 import { mnSelectionCanonical } from "./mn-construction-retained-selection.mjs";
 import { checkOvertureIdentities } from "./overture-identity-check.mjs";
 import { APP_ROOT } from "./paths.mjs";
+import { createOvertureNormalizationBudget } from "./overture-normalization-budget.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -82,6 +83,7 @@ function compareText(left, right) {
 }
 
 function increment(map, key, amount = 1) {
+  if (typeof key !== "string" || Buffer.byteLength(key, "utf8") > 512 || (!map.has(key) && map.size >= 100000)) throw new Error("Overture summary key budget exceeded.");
   map.set(key, (map.get(key) ?? 0) + amount);
 }
 
@@ -120,27 +122,46 @@ async function writeArtifact(directory, relativePath, content, metadata = {}) {
   return { path: relativePath.replaceAll("\\", "/"), bytes: buffer.length, sha256: sha256(buffer), ...metadata };
 }
 
-async function openGzipWriter(directory, relativePath) {
+async function openGzipWriter(directory, relativePath, { budget, signal } = {}) {
+  budget?.register(relativePath);
   const destination = path.join(directory, relativePath);
   await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.tmp-${randomUUID()}`;
   const output = createWriteStream(temporary, { flags: "wx" });
   const gzip = createGzip();
-  gzip.pipe(output);
-  return { relativePath, destination, temporary, output, gzip, records: 0 };
+  const meter = new Transform({ transform(chunk, encoding, callback) {
+    try { budget?.reserveCompressed(relativePath, chunk.length); callback(null, chunk); } catch (error) { callback(error); }
+  } });
+  const writer = { relativePath, destination, temporary, output, gzip, records: 0, budget, signal };
+  writer.completion = pipeline(gzip, meter, output, { signal });
+  void writer.completion.catch(error => { writer.failure = error; });
+  return writer;
 }
 
 async function writeGzipRecord(writer, record) {
-  if (!writer.gzip.write(`${JSON.stringify(record)}\n`)) await once(writer.gzip, "drain");
+  if (writer.failure || writer.gzip.destroyed) throw writer.failure ?? new Error("Overture output stream closed before completion.");
+  const line = `${JSON.stringify(record)}\n`;
+  writer.budget?.reserveRaw(writer.relativePath, Buffer.byteLength(line, "utf8"));
+  await writer.budget?.checkDisk();
+  if (writer.failure || writer.gzip.destroyed) throw writer.failure ?? new Error("Overture output stream closed before completion.");
+  if (!writer.gzip.write(line)) await new Promise((resolve, reject) => {
+    const cleanup = () => { writer.gzip.off("drain", ready); writer.gzip.off("error", failed); writer.gzip.off("close", failed); };
+    const ready = () => { cleanup(); resolve(); };
+    const failed = () => { cleanup(); reject(new Error("Overture output stream closed before completion.")); };
+    writer.gzip.once("drain", ready); writer.gzip.once("error", failed); writer.gzip.once("close", failed);
+    if (writer.gzip.destroyed) failed(); else if (!writer.gzip.writableNeedDrain) ready();
+  });
   writer.records += 1;
 }
 
 async function closeGzipWriter(writer, artifactType, metadata = {}) {
-  const completion = finished(writer.output);
   writer.gzip.end();
-  await completion;
-  await renameWithRetry(writer.temporary, writer.destination);
-  return { path: writer.relativePath.replaceAll("\\", "/"), ...(await hashFile(writer.destination)), record_count: writer.records, artifact_type: artifactType, ...metadata };
+  await writer.completion;
+  await writer.budget?.checkDisk(true);
+  await renameWithRetry(writer.temporary, writer.destination, writer.signal);
+  const digest = await hashFile(writer.destination);
+  if (writer.budget && digest.bytes !== writer.budget.fileUsage(writer.relativePath).compressed_bytes_reserved) throw new Error("Overture compressed output count mismatch.");
+  return { path: writer.relativePath.replaceAll("\\", "/"), ...digest, record_count: writer.records, artifact_type: artifactType, ...metadata };
 }
 
 async function abortGzipWriters(writers) {
@@ -148,7 +169,7 @@ async function abortGzipWriters(writers) {
     if (!writer.gzip.destroyed && !writer.gzip.writableEnded) writer.gzip.destroy();
     writer.output.destroy();
   }
-  await Promise.allSettled(writers.filter(Boolean).map((writer) => finished(writer.output)));
+  await Promise.allSettled(writers.filter(Boolean).map((writer) => writer.completion));
 }
 
 function gzipRecords(filename, signal) {
@@ -655,8 +676,12 @@ export async function buildOvertureUsPlaces({
     releaseObservedAt: input.metadata.overture_release_datetime ?? input.metadata.prepared_at, baselineByZip: baseline.byZip,
   };
   const normalizedWriters = new Map();
-  for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/places/prefix=${prefix}.jsonl.gz`));
-  const quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz");
+  const outputBudget = await createOvertureNormalizationBudget({ directory: path.resolve(stagingDirectory), signal });
+  let quarantineWriter;
+  try {
+    for (const prefix of "0123456789abcdef") normalizedWriters.set(prefix, await openGzipWriter(stagingDirectory, `normalized/places/prefix=${prefix}.jsonl.gz`, { budget: outputBudget, signal }));
+    quarantineWriter = await openGzipWriter(stagingDirectory, "quality/quarantine.jsonl.gz", { budget: outputBudget, signal });
+  } catch (error) { await abortGzipWriters([...normalizedWriters.values(), quarantineWriter]); throw error; }
   const zipCounts = new Map();
   const categoryCounts = new Map();
   const scopeCounts = new Map();
@@ -725,6 +750,7 @@ export async function buildOvertureUsPlaces({
     records_with_separate_zip4: zip4Count, source_reported_zip_codes: zipCounts.size, top_level_category_counts: sortedCounts(categoryCounts),
     place_scope_counts: sortedCounts(scopeCounts), source_status_counts: sortedCounts(statusCounts), contributing_source_record_counts: sortedCounts(providerCounts),
     stored_spatial_fields: ["latitude", "longitude"], excluded_spatial_fields: ["geometry", "bbox"], complete_all_us_businesses: false,
+    normalization_output_budget: outputBudget.snapshot(),
   };
   const summaryArtifact = await writeArtifact(stagingDirectory, "quality/source-summary.json", json(summary), { artifact_type: "overture-us-place-source-summary" });
   signal?.throwIfAborted();
