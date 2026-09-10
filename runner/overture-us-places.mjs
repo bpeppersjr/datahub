@@ -8,6 +8,7 @@ import { createGzip } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
 import { streamOvertureGzipRecords } from "./overture-gzip-records.mjs";
+import { mnSelectionCanonical } from "./mn-construction-retained-selection.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -91,9 +92,10 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its governed directory.`);
 }
 
-async function renameWithRetry(source, destination) {
+async function renameWithRetry(source, destination, signal) {
   let lastError;
   for (let attempt = 0; attempt < 6; attempt += 1) {
+    signal?.throwIfAborted();
     try {
       await rename(source, destination);
       return;
@@ -623,14 +625,17 @@ async function writeFixtureSource(sourceRecords, sourceMetadata, stagingDirector
 
 export async function buildOvertureUsPlaces({
   outputRoot, zbpPointer, sourceFile = null, sourceMetadataFile = null, sourceRecords = null, sourceMetadata = null,
-  minimumPlaces = 1_000_000, maximumQuarantineRatio = 0.02, signal, logger = console.log, now = () => new Date(),
+  minimumPlaces = 1_000_000, maximumQuarantineRatio = 0.02, publicationMode = "retain", signal, logger = console.log, now = () => new Date(),
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
+  if (!["retain", "publish"].includes(publicationMode)) throw new Error("publicationMode must be retain or publish.");
+  if (signal !== undefined && !(signal instanceof AbortSignal)) throw new Error("Invalid cancellation signal.");
   if (!Number.isInteger(minimumPlaces) || minimumPlaces < 1) throw new Error("minimumPlaces must be a positive integer.");
   if (!Number.isFinite(maximumQuarantineRatio) || maximumQuarantineRatio < 0 || maximumQuarantineRatio > 1) throw new Error("maximumQuarantineRatio must be from 0 through 1.");
   if (Boolean(sourceFile) !== Boolean(sourceMetadataFile)) throw new Error("sourceFile and sourceMetadataFile are required together.");
   if (sourceFile && sourceRecords) throw new Error("Choose a prepared source file or fixture records, not both.");
   signal?.throwIfAborted?.();
+  await mnSelectionCanonical(path.resolve(outputRoot), { create: true, output: true, signal });
   const retrievedAt = now().toISOString();
   const runId = randomUUID();
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
@@ -696,8 +701,14 @@ export async function buildOvertureUsPlaces({
     throw new Error(`Overture quality gate failed: normalized ${normalizedCount}, quarantined ${quarantineWriter.records}, ratio ${quarantineRatio}.`);
   }
   const normalizedArtifacts = [];
-  for (const writer of normalizedWriters.values()) normalizedArtifacts.push(await closeGzipWriter(writer, "normalized-overture-us-place-jsonl-gzip", { export_policy: "local-review-only" }));
+  try {
+  for (const writer of normalizedWriters.values()) {
+    signal?.throwIfAborted();
+    normalizedArtifacts.push(await closeGzipWriter(writer, "normalized-overture-us-place-jsonl-gzip", { export_policy: "local-review-only" }));
+  }
+  signal?.throwIfAborted();
   const quarantineArtifact = await closeGzipWriter(quarantineWriter, "overture-us-place-quarantine-jsonl-gzip", { export_policy: "internal" });
+  signal?.throwIfAborted();
   const zipRows = buildZipCoverage(baseline.rows, zipCounts, context);
   const zipArtifact = await writeArtifact(stagingDirectory, "derived/zip-coverage.jsonl", jsonLines(zipRows), {
     record_count: zipRows.length, artifact_type: "overture-us-place-zip-coverage-jsonl", distribution_policy: "public-aggregate-with-overture-attribution-and-source-license-limitations",
@@ -711,6 +722,7 @@ export async function buildOvertureUsPlaces({
     stored_spatial_fields: ["latitude", "longitude"], excluded_spatial_fields: ["geometry", "bbox"], complete_all_us_businesses: false,
   };
   const summaryArtifact = await writeArtifact(stagingDirectory, "quality/source-summary.json", json(summary), { artifact_type: "overture-us-place-source-summary" });
+  signal?.throwIfAborted();
   const metadataArtifact = await writeArtifact(stagingDirectory, "source/source-metadata.json", json(input.metadata), { artifact_type: "overture-stac-preflight", export_policy: "internal" });
   const noticeArtifact = await writeArtifact(stagingDirectory, "legal/NOTICE.txt", OVERTURE_PLACES_NOTICE, { artifact_type: "overture-place-attribution-notice", distribution_policy: "redistribute-with-derived-artifacts" });
   const artifacts = [input.artifact, metadataArtifact, noticeArtifact, ...normalizedArtifacts, quarantineArtifact, zipArtifact, summaryArtifact];
@@ -756,19 +768,37 @@ export async function buildOvertureUsPlaces({
     ],
     artifacts,
   };
+  signal?.throwIfAborted();
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
+  signal?.throwIfAborted();
   await verifyOvertureUsPlaces(path.join(stagingDirectory, "manifest.json"));
+  signal?.throwIfAborted();
   logger(`Verified ${normalizedCount.toLocaleString()} normalized Overture U.S. place candidates.`);
-  return publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  signal?.throwIfAborted();
+  if (publicationMode === "retain") return { manifest, releaseDirectory: stagingDirectory, pointerPath: null,
+    stagingRunId: runId, status: "verified-retained-not-promoted" };
+  return await publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
+  } catch (error) {
+    await abortGzipWriters([...normalizedWriters.values(), quarantineWriter]);
+    throw error;
+  }
 }
 
-export async function publishOvertureUsPlacesStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishOvertureUsPlacesStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
   if (!outputRoot || !stagingRunId) throw new Error("outputRoot and stagingRunId are required.");
+  if (typeof stagingRunId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(stagingRunId)
+    || (signal !== undefined && !(signal instanceof AbortSignal))) throw new Error("Invalid staging identity or cancellation signal.");
+  signal?.throwIfAborted();
+  outputRoot = path.resolve(outputRoot);
+  await mnSelectionCanonical(outputRoot);
   const stagingDirectory = path.join(outputRoot, ".staging", stagingRunId);
+  await mnSelectionCanonical(stagingDirectory);
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  if (typeof manifest.release_id !== "string" || !/^overture-us-places-\d{8}-\d{9}Z-[a-f0-9]{8}$/.test(manifest.release_id)) throw new Error("Invalid Overture release identity.");
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Overture staging release ID mismatch.");
   await verifyOvertureUsPlaces(manifestPath);
+  signal?.throwIfAborted();
   const releasesDirectory = path.join(outputRoot, "releases");
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
   await mkdir(releasesDirectory, { recursive: true });
@@ -778,14 +808,26 @@ export async function publishOvertureUsPlacesStaging({ outputRoot, stagingRunId,
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
-  await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
+  let moved = false;
+  try {
+  await mnSelectionCanonical(releasesDirectory);
+  await renameWithRetry(stagingDirectory, releaseDirectory, signal); moved = true;
+  signal?.throwIfAborted();
   const pointer = { dataset_id: manifest.dataset_id, release_id: manifest.release_id, source_release_id: manifest.source_release_id, manifest: `releases/${manifest.release_id}/manifest.json`, updated_at: manifest.created_at };
   await mkdir(outputRoot, { recursive: true });
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
   await writeFile(temporaryPointer, json(pointer));
-  await renameWithRetry(temporaryPointer, pointerPath);
-  return { manifest, releaseDirectory, pointerPath };
+  await renameWithRetry(temporaryPointer, pointerPath, signal);
+  return { manifest, releaseDirectory, pointerPath, status: "published", cancellationAfterPublication: signal?.aborted ?? false };
+  } catch (error) {
+    if (moved) {
+      const recoveryError = error instanceof Error ? error : new Error("Overture promotion stopped; retained release requires inspection.");
+      recoveryError.recovery = { releaseDirectory, pointerPath, publicationCommitted: false };
+      throw recoveryError;
+    }
+    throw error;
+  }
 }
 
 function containsForbiddenRecordField(record) {

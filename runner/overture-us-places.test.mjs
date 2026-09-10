@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,6 +9,7 @@ import { createGunzip, gzipSync } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import {
   buildOvertureUsPlaces,
+  publishOvertureUsPlacesStaging,
   normalizeOvertureUsPlace,
   OVERTURE_LARGE_ACQUISITION_CONFIRMATION,
   OVERTURE_SELECTED_FIELDS,
@@ -241,6 +243,7 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
     ];
     const result = await buildOvertureUsPlaces({
       outputRoot: path.join(root, "output"), zbpPointer, sourceRecords: records, sourceMetadata: sourceMetadata(),
+      publicationMode: "publish",
       minimumPlaces: 1, maximumQuarantineRatio: 1, now: () => new Date("2026-09-03T12:00:00.000Z"), logger: () => {},
     });
     assert.equal(result.manifest.coverage.selected_us_place_records, 4);
@@ -274,6 +277,62 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("normalization retains by default and requires a separate explicit promotion", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "overture-retention-"));
+  try {
+    const zbpPointer = await writeBaseline(path.join(root, "zbp")), outputRoot = path.join(root, "output");
+    await mkdir(outputRoot); const pointerPath = path.join(outputRoot, "current.json"), original = '{"existing":"published-data"}\n';
+    await writeFile(pointerPath, original);
+    const result = await buildOvertureUsPlaces({ outputRoot, zbpPointer, sourceRecords: [source()], sourceMetadata: sourceMetadata(), minimumPlaces: 1, logger: () => {} });
+    assert.equal(result.status, "verified-retained-not-promoted");
+    assert.equal(result.pointerPath, null);
+    assert.equal(await readFile(pointerPath, "utf8"), original);
+    assert.equal(path.dirname(result.releaseDirectory), path.join(outputRoot, ".staging"));
+    assert.equal((await verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json"))).coverage.normalized_places, 1);
+    await assert.rejects(publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: "../outside" }));
+    await assert.rejects(publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: result.stagingRunId, signal: AbortSignal.abort() }));
+    assert.equal(await readFile(pointerPath, "utf8"), original);
+    const promoted = await publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: result.stagingRunId, expectedReleaseId: result.manifest.release_id });
+    assert.equal(JSON.parse(await readFile(promoted.pointerPath, "utf8")).release_id, result.manifest.release_id);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("build CLI documents explicit publication and rejects duplicate publication flags", () => {
+  const script = path.resolve("scripts/build-overture-us-places.mjs");
+  const help = spawnSync(process.execPath, [script, "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0); assert.match(help.stdout, /default does not update current.json/); assert.match(help.stdout, /--publish/);
+  const duplicate = spawnSync(process.execPath, [script, "--publish", "--publish"], { encoding: "utf8" });
+  assert.equal(duplicate.status, 1); assert.match(duplicate.stderr, /Duplicate build option/);
+});
+
+test("failed pointer commit preserves the moved release with an inspection reference", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "overture-promotion-failure-"));
+  try {
+    const zbpPointer = await writeBaseline(path.join(root, "zbp")), outputRoot = path.join(root, "output");
+    const result = await buildOvertureUsPlaces({ outputRoot, zbpPointer, sourceRecords: [source()], sourceMetadata: sourceMetadata(), minimumPlaces: 1, logger: () => {} });
+    // A directory at the pointer path forces a real filesystem commit failure.
+    await mkdir(path.join(outputRoot, "current.json"));
+    let failure;
+    try { await publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: result.stagingRunId }); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.recovery?.publicationCommitted, false);
+    assert.equal(failure.recovery.releaseDirectory, path.join(outputRoot, "releases", result.manifest.release_id));
+    assert.equal(JSON.parse(await readFile(path.join(failure.recovery.releaseDirectory, "manifest.json"), "utf8")).release_id, result.manifest.release_id);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("invalid publication mode and cancellation after verification cannot change current", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "overture-final-cancel-"));
+  try {
+    const zbpPointer = await writeBaseline(path.join(root, "zbp")), outputRoot = path.join(root, "output");
+    const options = { outputRoot, zbpPointer, sourceRecords: [source()], sourceMetadata: sourceMetadata(), minimumPlaces: 1 };
+    await assert.rejects(buildOvertureUsPlaces({ ...options, publicationMode: "typo" }));
+    const controller = new AbortController();
+    await assert.rejects(buildOvertureUsPlaces({ ...options, publicationMode: "publish", signal: controller.signal, logger: () => controller.abort() }), { name: "AbortError" });
+    await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("rejects selected-field drift, duplicate identities, quality failure, and cancellation", async () => {
