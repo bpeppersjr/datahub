@@ -30,4 +30,6 @@ Release verification: full `npm run check` passed with 1,540 tests passing, 11 s
 
 Validate source-wide delivery limits/completeness and address/ZIP parsing, preserve ZIP5 and ZIP4 separately, establish identifier and temporal semantics, then build an independently verified collection contract. One center-only ZIP result is not evidence that other ZIPs are empty or covered. Businesses continue to require points only, not per-business polygons.
 
+September 10 successor: [retained app collection](OK-RETAINED-APP-COLLECTION-2026-09-10.md) implements the fixed search's internal business-field projection and offline replay. It preserves unknown completeness/currentness and does not replace this historical aggregate prerequisite or claim statewide enrollment.
+
 The protected production plan, source pins and national pointers are unchanged. Rollback reverts the Oklahoma managed branch, catalog entry, reader and CLI binding while preserving any retained operation receipts and manifests for inspection. Do not delete downloaded evidence as part of rollback.

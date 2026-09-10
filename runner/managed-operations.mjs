@@ -92,7 +92,11 @@ export class ManagedOperations {
   }
   async catalog() {
     await this.ready; const config = await this.configLoader();
-    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], sourcePrerequisites: getSourcePrerequisiteGates(), export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES } };
+    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], sourcePrerequisites: getSourcePrerequisiteGates(),
+      boundedSourceCollections: [{ sourceId: "ok-childcare-retained-73102", state: "OK", industry: "childcare", zip5: "73102",
+        endpoint: "/api/data-operations/ok-childcare-collections", scope: "one-center-only-public-search", requestCount: 3,
+        exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
+      export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES } };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds"]); const config = await this.configLoader(); return validate(() => buildIndustryPlan(config, this.#selection(input))); }
   async startCollection(input = {}) {
@@ -119,6 +123,15 @@ export class ManagedOperations {
     assertSourcePrerequisiteAllowed(input);
     // No capture implementation is enrolled, even if a future gate changes.
     throw conflict("Source prerequisite capture is not enrolled.");
+  }
+  async startOkRetainedCollection(input = {}) {
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 0)
+      throw invalid("Oklahoma retained collection has fixed scope and accepts no caller options.");
+    if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root))
+      throw invalid("Oklahoma retained collection requires native operation storage.");
+    await this.ready; await this.#refreshUnknown(); this.#reserve();
+    try { return await this.#start("source-acquisition", { sourceId: "ok-childcare-retained-73102" }); }
+    catch (error) { this.reserved = false; throw error; }
   }
   async startOvertureAcquisition(input) {
     const fields = ["metadataOperationId", "runtimeOperationId", "authorization"];
@@ -336,6 +349,10 @@ export class ManagedOperations {
           : record.details.sourceId === "overture-source-preflight" ? "scripts/probe-overture-source-preflight.mjs" : "scripts/probe-ok-childcare-schema.mjs";
         args = ["--output", path.join(directory, "output"), "--operation-id", record.id];
       }
+      else if (record.kind === "source-acquisition" && record.details.sourceId === "ok-childcare-retained-73102") {
+        script = "scripts/collect-ok-childcare-retained.mjs";
+        args = ["--output", path.join(directory, "output"), "--operation-id", record.id];
+      }
       else if (record.kind === "source-acquisition") {
         script = "scripts/run-overture-acquisition-session.mjs";
         args = ["--output", path.join(directory, "output"), "--operation-id", record.id,
@@ -354,7 +371,8 @@ export class ManagedOperations {
       const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind !== "export" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
       if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)
-          : record.kind === "source-acquisition" ? await this.#verifyOvertureAcquisition(record, execution?.stdout)
+          : record.kind === "source-acquisition" ? record.details.sourceId === "ok-childcare-retained-73102"
+            ? await this.#verifyOkRetainedCollection(record, execution?.stdout) : await this.#verifyOvertureAcquisition(record, execution?.stdout)
           : record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout)
           : ["overture-httpfs-runtime", "overture-source-preflight"].includes(record.details.sourceId) ? await this.#verifyOverturePrerequisite(record, execution?.stdout)
             : await this.#verifyOkSchemaPrerequisite(record, execution?.stdout);
@@ -452,6 +470,30 @@ export class ManagedOperations {
     const rejected = recovery || descriptor.status !== "schema-observed-not-collection-ready" || descriptor.cancellation_after_publication;
     record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, status: descriptor.status, collectionReady: false,
       observedRows: receipt.schema?.counts?.rows ?? null, centerRows: receipt.schema?.counts?.center_rows ?? null, statewideCompletenessVerified: false };
+    record.artifacts = [];
+    return rejected;
+  }
+  async #verifyOkRetainedCollection(record, stdout) {
+    const reject = () => { throw new Error("Oklahoma retained collection evidence rejected."); };
+    if (typeof stdout !== "string" || stdout.length > 65536) reject();
+    let d; try { d = JSON.parse(stdout); } catch { reject(); }
+    let recovery = false;
+    if (d && Object.hasOwn(d, "recovery")) { if (Object.keys(d).length !== 1) reject(); d = d.recovery; recovery = true; }
+    const fields = ["run_id", "operation_id", "manifest", "sha256", "status", "cancellation_after_publication"];
+    if (!d || Object.getPrototypeOf(d) !== Object.prototype || Object.keys(d).length !== fields.length
+      || !fields.every(k => Object.hasOwn(d, k)) || !uuid(d.run_id) || d.operation_id !== record.id
+      || !/^[a-f0-9]{64}$/.test(d.sha256) || typeof d.cancellation_after_publication !== "boolean"
+      || !["accepted-internal-source-candidates", "rejected"].includes(d.status)
+      || d.manifest !== path.join(this.root, record.id, "output", "jobs", d.run_id, "manifest.json")) reject();
+    record.result = { sourceId: "ok-childcare-retained-73102", retained: d, receiptIntegrityVerified: false,
+      inspectionRequired: true, snapshotReady: false, exportPolicy: "internal" };
+    const { readOkRetainedSearch } = await import("./ok-childcare-retained-bundle.mjs");
+    const { manifest } = await readOkRetainedSearch(d.manifest, d.sha256, { operationId: record.id,
+      operationRoot: path.join(this.root, record.id, "output"), requireNative: true });
+    if (manifest.status !== d.status || manifest.started_at < record.startedAt) reject();
+    const rejected = recovery || d.status !== "accepted-internal-source-candidates" || d.cancellation_after_publication;
+    record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, snapshotReady: !rejected,
+      sourceCandidateRows: manifest.counts?.rows ?? null, currentOperationsVerified: false, statewideCompletenessVerified: false };
     record.artifacts = [];
     return rejected;
   }
