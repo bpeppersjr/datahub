@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 import RefreshSchedules from './refresh-schedules';
 import ProductionRuns from './production-runs';
+import OvertureNormalization from './overture-normalization';
+import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
   industries: Array<{ id: string; label?: string }>;
@@ -14,11 +16,6 @@ type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
   tasks: Array<{ id: string; sourceId: string; scope: string; state?: string }>;
   gaps: Array<{ industry: string; state: string; reason: string }>;
-};
-type Operation = {
-  id: string; kind: 'collection' | 'export'; status: string; createdAt: string; finishedAt: string | null;
-  error: string | null; artifacts: Array<{ name: string; bytes: number }>;
-  result: { rowsWritten?: number; policyMode?: string; plan?: { taskCount?: number }; tasks?: Array<{ task_id: string; source_id?: string; state?: string; status: string }> } | null;
 };
 const base = '/api/data-operations';
 const active = (status: string) => ['QUEUED', 'RUNNING', 'UNKNOWN'].includes(status);
@@ -107,13 +104,17 @@ export default function DataOperations() {
       </section>
     </div>
     <RefreshSchedules catalog={catalog} />
+    <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />
     <section className="operations-history" aria-labelledby="operations-history-title"><h3 id="operations-history-title">Operation history</h3>
       {locked && <p className="operations-note">An operation is active. Additional starts become available when it finishes.</p>}
       {!operations.length && <p className="operations-note">{catalog ? 'No managed operations yet. Preview a collection or build a file above.' : 'Connecting to the local runner…'}</p>}
       {operations.map((operation) => <article key={operation.id} className="operation-record">
-        <div><strong>{operation.kind === 'collection' ? 'Industry collection' : 'Flat-file export'}</strong><span className={`operation-status status-${operation.status.toLowerCase()}`}>{label(operation.status.toLowerCase())}</span><time dateTime={operation.createdAt}>{new Date(operation.createdAt).toLocaleString()}</time></div>
+        <div><strong>{operationLabel(operation.kind)}</strong><span className={`operation-status status-${operation.status.toLowerCase()}`}>{label(operation.status.toLowerCase())}</span><time dateTime={operation.createdAt}>{new Date(operation.createdAt).toLocaleString()}</time></div>
         <small>{operation.id}</small>
+        {operation.result?.sourceId && <p>{label(operation.result.sourceId)}</p>}
+        {operationEvidence(operation) && <p className="operations-note">{operationEvidence(operation)}</p>}
+        {operation.status === 'SUCCEEDED' && operation.result?.normalizationReady === true && typeof operation.result.normalizedPlaces === 'number' && <p>{operation.result.normalizedPlaces.toLocaleString()} normalized source places · not a unique-business count</p>}
         {typeof operation.result?.rowsWritten === 'number' && <p>{operation.result.rowsWritten.toLocaleString()} exported records · {label(operation.result.policyMode ?? '')}</p>}
         {typeof operation.result?.plan?.taskCount === 'number' && <p>{operation.result.plan.taskCount} source updates in the collection plan</p>}
         {!!operation.result?.tasks?.length && <ul className="operation-task-list">{operation.result.tasks.map((task) => <li key={task.task_id}><span>{label(task.source_id ?? task.task_id)} · {task.state ?? 'national'}</span><strong>{label(task.status)}</strong></li>)}</ul>}

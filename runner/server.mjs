@@ -254,6 +254,11 @@ const server = http.createServer(async (request, response) => {
 
     if (segments[0] === 'api' && segments[1] === 'data-operations') {
       const endpoint = segments[2];
+      if (endpoint === 'overture-normalization-baselines' && segments.length === 3 && request.method === 'GET') {
+        try { const { listOvertureNormalizationBaselines } = await import('./overture-normalization-baselines.mjs'); json(response, 200, await listOvertureNormalizationBaselines()); }
+        catch { json(response, 503, { error: 'Retained Census baseline choices are unavailable. No data was changed.' }); }
+        return;
+      }
       if (endpoint === 'production-runs' && segments.length === 3 && request.method === 'GET') {
         try { json(response, 200, await listProductionRunStatus()); }
         catch { json(response, 503, { error: 'Production rebuild history cannot be safely inspected. No job was changed.' }); }
