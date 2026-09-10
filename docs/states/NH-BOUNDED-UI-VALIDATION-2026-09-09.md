@@ -31,3 +31,5 @@ No personal-contact fields, complaint narratives, inspection findings, website A
 Implement and verify the app-controlled, ZIP-bounded export prerequisite, then compare its selected/redacted fields with this ordinary-UI evidence. Establish current-status meaning and completeness separately. Preserve separate ZIP5/ZIP4 and retain unknown dates/status. Do not count these six observed results as national coverage or an acquired production release.
 
 This increment is documentation only. No job, refresh schedule, production pointer, source configuration, account, payment, terms acceptance, CAPTCHA action or external communication was created. Rollback removes the note without changing retained datasets.
+
+September 10 successor: the [controlled search-export prerequisite](NH-SEARCH-EXPORT-PREREQUISITE-2026-09-10.md) received a bounded CSV but rejected its syntax. This supersedes the earlier tooling-only export gap; it does not establish acquisition readiness.
