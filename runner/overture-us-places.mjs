@@ -3,11 +3,11 @@ import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
-import { createGunzip, createGzip } from "node:zlib";
+import { createGzip } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
+import { streamOvertureGzipRecords } from "./overture-gzip-records.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -147,15 +147,13 @@ async function abortGzipWriters(writers) {
   await Promise.allSettled(writers.filter(Boolean).map((writer) => finished(writer.output)));
 }
 
-async function* gzipRecords(filename) {
-  const input = createReadStream(filename).pipe(createGunzip());
-  const lines = createInterface({ input, crlfDelay: Infinity });
-  for await (const line of lines) if (line.trim()) yield JSON.parse(line);
+function gzipRecords(filename, signal) {
+  return streamOvertureGzipRecords({ filename: path.resolve(filename), signal });
 }
 
 async function countGzipRecords(filename, signal) {
   let count = 0;
-  for await (const unused of gzipRecords(filename)) {
+  for await (const unused of gzipRecords(filename, signal)) {
     void unused;
     signal?.throwIfAborted?.();
     count += 1;
@@ -663,7 +661,7 @@ export async function buildOvertureUsPlaces({
   let validZipCount = 0;
   let zip4Count = 0;
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, input.artifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, input.artifact.path), signal)) {
       signal?.throwIfAborted?.();
       assertExactSelectedRecord(source);
       const id = textValue(source.id)?.toLowerCase() ?? "<blank>";
