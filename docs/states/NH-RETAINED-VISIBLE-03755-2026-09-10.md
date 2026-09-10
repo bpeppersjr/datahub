@@ -1,5 +1,7 @@
 # New Hampshire retained visible results: ZIP 03755
 
+Follow-up: [versioned offline normalization](NH-VISIBLE-NORMALIZATION-2026-09-10.md) parses all six retained addresses without changing this native receipt or downloading again. The original-stage counts below remain historical evidence.
+
 ## Verified outcome
 
 The fixed Licensed Group Child Care Program / ZIP5 `03755` native lookup retained **six selected internal source records**. This is a successful visible-result prerequisite, not statewide collection, a production promotion or proof of six active physical businesses.
