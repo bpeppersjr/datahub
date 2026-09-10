@@ -13,6 +13,7 @@ import { mnSelectionCanonical, mnSelectionReadLines, mnSelectionReadJson } from 
 import { checkOvertureIdentities } from "./overture-identity-check.mjs";
 import { APP_ROOT } from "./paths.mjs";
 import { createOvertureNormalizationBudget } from "./overture-normalization-budget.mjs";
+import { validateOvertureZbpSelection, verifyOvertureZbpSelection } from "./overture-zbp-selection.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -556,13 +557,20 @@ export async function prepareOvertureUsPlacesSource({
   return { releaseDirectory, sourcePath: path.join(releaseDirectory, "selected-us-places.jsonl.gz"), metadataPath: path.join(releaseDirectory, "source-metadata.json"), metadata };
 }
 
-async function loadZbpBaseline(pointerPath) {
-  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
-  const base = path.dirname(pointerPath);
-  const manifestPath = path.resolve(base, pointer.manifest ?? "");
-  assertContained(base, manifestPath, "Census ZBP manifest");
+async function loadZbpBaseline(pointerPath, selection, signal) {
+  let manifestPath;
+  if (selection) {
+    await verifyOvertureZbpSelection(selection, { signal });
+    manifestPath = selection.manifest;
+  } else {
+    const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+    const base = path.dirname(pointerPath);
+    manifestPath = path.resolve(base, pointer.manifest ?? "");
+    assertContained(base, manifestPath, "Census ZBP manifest");
+  }
   const manifestBuffer = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  if (selection && sha256(manifestBuffer) !== selection.sha256) throw new Error("Pinned Census baseline changed.");
   if (manifest.dataset_id !== "census-zbp-baseline" || manifest.complete_national_release !== true) throw new Error("A complete Census ZBP baseline release is required.");
   const artifact = manifest.artifacts?.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
   if (!artifact) throw new Error("Census ZBP baseline has no ZIP coverage artifact.");
@@ -648,10 +656,11 @@ async function writeFixtureSource(sourceRecords, sourceMetadata, stagingDirector
 }
 
 export async function buildOvertureUsPlaces({
-  outputRoot, zbpPointer, sourceFile = null, sourceMetadataFile = null, sourceRecords = null, sourceMetadata = null,
+  outputRoot, zbpPointer, zbpSelection, sourceFile = null, sourceMetadataFile = null, sourceRecords = null, sourceMetadata = null,
   minimumPlaces = 1_000_000, maximumQuarantineRatio = 0.02, publicationMode = "retain", signal, logger = console.log, now = () => new Date(),
 } = {}) {
-  if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
+  if (!outputRoot || Boolean(zbpPointer) === Boolean(zbpSelection)) throw new Error("outputRoot and exactly one Census baseline input are required.");
+  if (zbpSelection) zbpSelection = validateOvertureZbpSelection(zbpSelection);
   if (!["retain", "publish"].includes(publicationMode)) throw new Error("publicationMode must be retain or publish.");
   if (signal !== undefined && !(signal instanceof AbortSignal)) throw new Error("Invalid cancellation signal.");
   if (!Number.isInteger(minimumPlaces) || minimumPlaces < 1) throw new Error("minimumPlaces must be a positive integer.");
@@ -664,7 +673,7 @@ export async function buildOvertureUsPlaces({
   const runId = randomUUID();
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
+  const baseline = await loadZbpBaseline(zbpPointer, zbpSelection, signal);
   const input = sourceFile
     ? await copyPreparedSource(sourceFile, sourceMetadataFile, stagingDirectory)
     : await writeFixtureSource(sourceRecords, sourceMetadata, stagingDirectory);
@@ -807,6 +816,11 @@ export async function buildOvertureUsPlaces({
     artifacts,
   };
   signal?.throwIfAborted();
+  if (zbpSelection) {
+    await verifyOvertureZbpSelection(zbpSelection, { signal });
+    manifest.baseline_selection = { manifest_sha256: zbpSelection.sha256, release_id: baseline.manifest.release_id,
+      verification: "census-release-integrity-and-counts", managed_receipt_bound: false };
+  }
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
   signal?.throwIfAborted();
   await verifyOvertureUsPlaces(path.join(stagingDirectory, "manifest.json"), { signal });
@@ -892,6 +906,10 @@ async function verifyNormalizedIdentities(ids) {
 async function verifySourceReplay(releaseDirectory, manifest, signal) {
   const reject = () => { throw new Error("Overture source-to-output replay mismatch."); };
   const replay = manifest.replay_context;
+  const selection = manifest.baseline_selection;
+  if (selection && (selection.manifest_sha256 !== replay?.baseline_manifest_sha256 || selection.managed_receipt_bound !== false
+    || selection.verification !== "census-release-integrity-and-counts"
+    || !manifest.dependencies.some(d => d.dataset_id === "census-zbp-baseline" && d.release_id === selection.release_id && d.manifest_sha256 === selection.manifest_sha256))) reject();
   if (!replay || replay.version !== "overture-normalization-replay@1" || replay.transformation_version !== OVERTURE_US_PLACE_TRANSFORMATION_VERSION
     || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(replay.run_id ?? "")
     || replay.retrieved_at !== manifest.created_at || !Number.isFinite(Date.parse(replay.observed_at))

@@ -22,6 +22,8 @@ Inspection of the legacy `buildOvertureUsPlaces`, `verifyOvertureUsPlaces` and b
 
 The verifier now performs [source-to-output replay](OVERTURE-SOURCE-REPLAY.md) against retained baseline/context evidence, in addition to checksums, counts and selected semantics. It compares every normalized/quarantine record and rejects the reproduced rehashed-name mismatch. This does not authenticate an unanchored source/context chain or replace acquisition/baseline app-receipt binding; managed normalization still needs those independent input references.
 
+The builder also now accepts an explicit [pinned Census baseline selection](OVERTURE-PINNED-BASELINE.md), verified before use and again before finalization. The legacy pointer input remains weaker; managed integration should select the pinned path and must still establish app-owned receipt authority and finish the Census verifier's resource/cancellation hardening.
+
 The full national business objective remains incomplete. Neither a retained Overture snapshot nor this local defect fix establishes current business operation, valid USPS membership or nationwide completeness.
 
 ## Release verification
