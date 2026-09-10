@@ -48,6 +48,7 @@ Options:
   --tn-fresh-childcare <path> Optional verified fresh Tennessee connector 1.1.0 manifest; exclusive with --tn-childcare
   --oh-childcare-receipt <path> Optional verified Ohio app receipt; registry 2.15 reporting only
   --retained-childcare-selection <path> Explicit seven-state retained candidate selection; internal reporting only
+  --mn-credential-selection <path> Explicit retained Minnesota credential selection; local-review-only, not physical sites
   --help           Show this help
 `;
 }
@@ -89,6 +90,12 @@ function parseArguments(args) {
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
+    if (argument === '--mn-credential-selection') {
+      const value = args[++index];
+      if (!value || value.startsWith('--') || options.mnCredentialSelection) throw new Error('Choose one Minnesota credential selection.');
+      options.mnCredentialSelection = value;
+      continue;
+    }
     if (argument === '--retained-childcare-selection') {
       const value = args[++index];
       if (!value || value.startsWith('--') || options.retainedChildcareSelection) throw new Error('Choose one retained childcare selection.');
@@ -210,6 +217,7 @@ try {
     tnFreshChildcareManifest: options.tnFreshChildcare ? assertInsideApp(path.resolve(APP_ROOT, options.tnFreshChildcare)) : null,
     ohChildcareReceipt: options.ohChildcareReceipt ? assertInsideApp(path.resolve(APP_ROOT, options.ohChildcareReceipt)) : null,
     retainedChildcareSelection: options.retainedChildcareSelection ? assertInsideApp(path.resolve(APP_ROOT, options.retainedChildcareSelection)) : null,
+    mnCredentialSelection: options.mnCredentialSelection ? assertInsideApp(path.resolve(APP_ROOT, options.mnCredentialSelection)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({

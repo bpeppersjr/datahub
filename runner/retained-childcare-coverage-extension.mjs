@@ -43,7 +43,7 @@ export async function verifyRetainedChildcareCoverageExtension(manifest,director
   const views={};
   for(const [key,type]of [['national','national'],['states','state'],['counties','county'],['zips','zip']]){
     const artifacts=manifest.artifacts.filter(a=>a.artifact_type===`${type}-coverage-view-jsonl`);check(artifacts.length===1);
-    const artifact=artifacts[0];check(artifact.path===`views/${key}.jsonl`&&artifact.export_policy==='internal');
+    const artifact=artifacts[0];check(artifact.path===`views/${key}.jsonl`&&artifact.export_policy===(manifest.mn_construction_credential_reporting?'local-review-only':'internal'));
     const rows=[],m={};for await(const row of readLines(path.join(directory,artifact.path),1_000_000_000,undefined,m)){
       check(m.records<=100000);
       rows.push({scope:row.scope,postal_abbreviation:row.postal_abbreviation,zip_code:row.zip_code,retained_childcare_reporting:row.retained_childcare_reporting});

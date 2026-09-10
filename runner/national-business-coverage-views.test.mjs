@@ -780,6 +780,39 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const pointer = JSON.parse(await readFile(result.pointerPath, "utf8"));
   assert.equal(pointer.release_id, result.manifest.release_id);
 
+  if (process.env.DATAHUB_TEST_RETAINED_COHORTS === '1') await context.test('MN-only and combined retained credential coverage keeps site counts unchanged', { timeout: 600000 }, async () => {
+    const mn = await import('./mn-credential-registry-input.mjs'), childcare = await import('./retained-childcare-registry-input.mjs');
+    const { APP_ROOT } = await import('./paths.mjs');
+    const input = await mn.loadMnCredentialRegistryInput(path.join(APP_ROOT, 'config/mn-credential-registry-selection.json'));
+    const registryFile = path.join(registryRelease, 'manifest.json'), original = await readFile(registryFile);
+    try {
+      for (const combined of [false, true]) {
+        const m = JSON.parse(original); m.created_at = new Date().toISOString(); m.export_policy = 'local-review-only'; m.dependencies = [mn.mnCredentialRegistryDependency(input)];
+        m.coverage.source_records = 9; m.coverage.mn_construction_credential_rows = input.records.length;
+        m.mn_construction_credential_reporting = mn.mnCredentialRegistryDeclaration(input);
+        m.artifacts.push(await writeArtifact(registryRelease, mn.MN_CREDENTIAL_REGISTRY_PATH, jsonLines(input.records), { artifact_type: mn.MN_CREDENTIAL_REGISTRY_ARTIFACT, record_count: input.records.length, export_policy: 'local-review-only' }));
+        if (combined) {
+          const child = await childcare.loadRetainedChildcareRegistryInput(path.join(APP_ROOT, 'config/retained-childcare-registry-selection.json'));
+          m.retained_childcare_reporting = childcare.retainedChildcareRegistryDeclaration(child);
+          m.coverage.retained_childcare_candidate_rows = child.records.length; m.coverage.source_records_including_retained_childcare = 9 + child.records.length;
+          m.dependencies.push(...child.bindings.map(b => ({ dataset_id: b.dataset_id, release_id: b.release_id, manifest_sha256: b.manifest_sha256 })));
+          m.artifacts.push(await writeArtifact(registryRelease, 'reporting/retained-childcare/candidates.jsonl', jsonLines(child.records), { artifact_type: childcare.RETAINED_CHILDCARE_CANDIDATE_TYPE, record_count: child.records.length, export_policy: 'internal' }));
+        }
+        await writeFile(registryFile, json(m));
+        const built = await buildNationalBusinessCoverageViews({ registryPointerPath: registry.pointerPath, geographyPointerPath: geography.pointerPath,
+          crosswalkPointerPath: crosswalk.pointerPath, resolutionPointerPath: resolution.pointerPath, benchmarkPointerPath: benchmark.pointerPath,
+          nonemployerPointerPath: nonemployer.pointerPath, outputRoot: path.join(root, combined ? 'mn-and-childcare-coverage' : 'mn-only-coverage'), logger() {} });
+        await verifyNationalBusinessCoverageViewsRelease(path.join(built.releaseDirectory, 'manifest.json'));
+        assert.deepEqual(built.manifest.coverage, result.manifest.coverage);
+        const national = (await readFile(path.join(built.releaseDirectory, 'views/national.jsonl'), 'utf8')).trim().split('\n').map(JSON.parse);
+        assert.equal(national.find(r => r.scope === 'registry-union').mn_construction_credential_reporting.credential_rows, 11456);
+        assert.equal(national.find(r => r.scope === '50-states-and-dc').mn_construction_credential_reporting.credential_rows, 11456);
+        assert.equal(built.manifest.mn_construction_credential_reporting.missing_reported_zip5_rows, 1);
+        assert.equal(built.manifest.artifacts.find(a => a.path === 'views/zips.jsonl').export_policy, 'local-review-only');
+      }
+    } finally { await writeFile(registryFile, original); }
+  });
+
   const manifestPath = path.join(result.releaseDirectory, "manifest.json");
   const zipPath = path.join(result.releaseDirectory, "views/zips.jsonl");
   const gapPath = path.join(result.releaseDirectory, "views/coverage-gaps.jsonl");

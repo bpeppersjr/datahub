@@ -2881,6 +2881,7 @@ export async function buildNationalBusinessRegistry({
   tnFreshChildcareManifest = null,
   ohChildcareReceipt = null,
   retainedChildcareSelection = null,
+  mnCredentialSelection = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -2890,6 +2891,8 @@ export async function buildNationalBusinessRegistry({
   const childcareInputs = [];
   const retainedChildcareApi = retainedChildcareSelection === null ? null : await import('./retained-childcare-registry-input.mjs');
   const retainedChildcare = retainedChildcareApi ? await retainedChildcareApi.loadRetainedChildcareRegistryInput(retainedChildcareSelection) : null;
+  const mnCredentialApi = mnCredentialSelection === null ? null : await import('./mn-credential-registry-input.mjs');
+  const mnCredentials = mnCredentialApi ? await mnCredentialApi.loadMnCredentialRegistryInput(mnCredentialSelection) : null;
   if (maChildcareManifest) childcareInputs.push({ ...await loadMaChildcareRegistryInput(maChildcareManifest), key: "ma_childcare_centers", datasetId: "ma-licensed-center-based-childcare" });
   if (njChildcareManifest) childcareInputs.push({ ...await loadNjChildcareRegistryInput(njChildcareManifest), key: "nj_childcare_centers", datasetId: "nj-licensed-childcare-centers" });
   if (tnChildcareManifest !== null) {
@@ -2942,6 +2945,7 @@ export async function buildNationalBusinessRegistry({
   const nycDcwpActiveLicenses = nycDcwpActiveLicensesPointer ? await loadNycDcwpActiveLicenseRelease(nycDcwpActiveLicensesPointer) : null;
   const uspsZips = uspsZipsPointer ? await loadUspsOperationalZipRelease(uspsZipsPointer) : null;
   const createdAt = now().toISOString();
+  if (mnCredentials && createdAt < mnCredentials.source.created_at) throw new Error('Registry processing time precedes retained credential release.');
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
@@ -4078,6 +4082,9 @@ export async function buildNationalBusinessRegistry({
   if (retainedChildcare) artifacts.push(await writeArtifact(stagingDirectory, 'reporting/retained-childcare/candidates.jsonl', jsonLines(retainedChildcare.records), {
     artifact_type: retainedChildcareApi.RETAINED_CHILDCARE_CANDIDATE_TYPE, record_count: retainedChildcare.records.length, export_policy: 'internal',
   }));
+  if (mnCredentials) artifacts.push(await writeArtifact(stagingDirectory, mnCredentialApi.MN_CREDENTIAL_REGISTRY_PATH, jsonLines(mnCredentials.records), {
+    artifact_type: mnCredentialApi.MN_CREDENTIAL_REGISTRY_ARTIFACT, record_count: mnCredentials.records.length, export_policy: 'local-review-only',
+  }));
   artifacts.push(...(await closeGzipWriters([...reportingWriters.values()], CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE)).map((artifact) => ({ ...artifact, export_policy: "local-review-only" })));
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -4878,6 +4885,7 @@ export async function buildNationalBusinessRegistry({
     },
     dependencies: [
       ...(retainedChildcare?.bindings ?? []).map(binding => ({dataset_id:binding.dataset_id,release_id:binding.release_id,manifest_sha256:binding.manifest_sha256})),
+      ...(mnCredentials ? [mnCredentialApi.mnCredentialRegistryDependency(mnCredentials)] : []),
       ...childcareInputs.map((input) => ({ dataset_id: input.datasetId, release_id: input.source.releaseId, manifest_sha256: input.source.manifestSha256 })),
       {
         dataset_id: snap.manifest.dataset_id,
@@ -5238,10 +5246,17 @@ export async function buildNationalBusinessRegistry({
     manifest.publication_scope += ', plus seven explicitly pinned retained childcare source-candidate cohorts (internal, unmatched; no physical-site inference)';
     manifest.limitations.push('Retained childcare candidates use a separately versioned reporting contract. They do not increase canonical site or identity-match totals; reported state/ZIP and coordinate gaps remain explicit.');
   }
+  if (mnCredentials) {
+    manifest.mn_construction_credential_reporting = mnCredentialApi.mnCredentialRegistryDeclaration(mnCredentials);
+    manifest.coverage.mn_construction_credential_rows = mnCredentials.records.length;
+    manifest.publication_scope += ', plus explicitly pinned Minnesota credential reporting rows (unmatched; not physical sites or verified businesses)';
+    manifest.export_policy += '; Minnesota credential reporting artifacts remain local-review-only';
+    manifest.limitations.push('Minnesota credential rows preserve source identities, dates and reported ZIPs, but do not increase canonical entity, physical-site, establishment or matching counts. No geocodes or current-business status are inferred.');
+  }
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
   // Ohio is bound to its retained app dependencies, including at publication.
   // A verified input at build start is not proof those files remain unchanged.
-  if (ohInput || retainedChildcare) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
+  if (ohInput || retainedChildcare || mnCredentials) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await rename(stagingDirectory, releaseDirectory);
@@ -5410,6 +5425,10 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
+  try {
+    const {verifyMnCredentialRegistryExtension} = await import('./mn-credential-registry-input.mjs');
+    await verifyMnCredentialRegistryExtension(manifest, releaseDirectory);
+  } catch (error) { failures.push({path:'manifest.json',reason:error.message}); }
   try {
     const {verifyRetainedChildcareRegistryExtension} = await import('./retained-childcare-registry-input.mjs');
     await verifyRetainedChildcareRegistryExtension(manifest, releaseDirectory);

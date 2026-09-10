@@ -83,6 +83,17 @@ import { buildTnChildcareRelease } from "./tn-childcare-release.mjs";
 import { gatedTransport as ohioTransport } from "./fixtures/oh-childcare-gated-transport.mjs";
 import { runOhChildcareAppJobWithTransport } from "./oh-childcare-app.mjs";
 
+test('MN credential registry artifact leaves all legacy entity and matching counts unchanged', { skip: process.env.DATAHUB_TEST_RETAINED_COHORTS !== '1', timeout: 600000 }, async () => {
+  const root = path.join(APP_ROOT, 'data/tmp', `mn-national-${randomUUID()}`), snapPointer = await writeFixtureSnapRelease(path.join(root, 'snap'));
+  const baseline = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(root, 'baseline'), logger() {} });
+  const result = await buildNationalBusinessRegistry({ snapPointer, outputRoot: path.join(root, 'registry'), logger() {}, mnCredentialSelection: path.join(APP_ROOT, 'config/mn-credential-registry-selection.json') });
+  const added = structuredClone(result.manifest.coverage); assert.equal(added.mn_construction_credential_rows, 11456); delete added.mn_construction_credential_rows;
+  assert.deepEqual(added, baseline.manifest.coverage);
+  const profiles = m => m.artifacts.filter(a => a.path.startsWith('resolution/location-profiles/')).map(a => [a.path, a.sha256]);
+  assert.deepEqual(profiles(result.manifest), profiles(baseline.manifest));
+  await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, 'manifest.json'));
+});
+
 for (const mode of ["mixed", "all-missing", "with-tn", "with-tn-recovered"]) test(`Ohio registry 2.15 integrates retained app evidence: ${mode}`, async (t) => {
   const root = path.join(APP_ROOT, "data/tmp", `oh-national-${randomUUID()}`);
   const transport = await ohioTransport(({ payload }) => {
