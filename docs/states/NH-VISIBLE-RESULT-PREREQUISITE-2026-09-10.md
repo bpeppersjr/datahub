@@ -1,5 +1,7 @@
 # New Hampshire visible-result prerequisite
 
+Latest outcome: a subsequent native run retained six selected internal source records and passed independent offline inspection. See [the retained ZIP 03755 result](NH-RETAINED-VISIBLE-03755-2026-09-10.md). The chronology below preserves earlier failures and their proof boundaries; statewide collection and production readiness are not established.
+
 ## Implemented boundary
 
 `runner/nh-childcare-visible-results.mjs` defines an independent selected-field projection and normalization contract for the fixed Licensed Group Child Care Program / ZIP5 `03755` public lookup. `scripts/probe-nh-childcare-visible-results.mjs --run` performs one native Playwright lookup without CSV export, detail navigation or a retry loop. This is a prerequisite, not an industry enrollment or a statewide collector.
