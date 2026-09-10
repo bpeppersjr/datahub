@@ -36,3 +36,15 @@ test('NH browser diagnostics distinguish policy, transport and shutdown errors w
   await disposal.route(r); assert.deepEqual(disposal.diagnostics(), [{ phase: 'dispose', status: 200, cancelled: false }]);
   assert.equal(JSON.stringify([policy.diagnostics(), transport.diagnostics(), disposal.diagnostics()]).includes('PRIVATE'), false);
 });
+test('NH local scope diagnostics expose only bounded DNS and categorical resource information', async () => {
+  const g = guard(), r = route('https://assets.example.org/PRIVATE_PATH?token=PRIVATE_TOKEN');
+  r.request = () => ({ url: () => 'https://assets.example.org/PRIVATE_PATH?token=PRIVATE_TOKEN', resourceType: () => 'image' });
+  await g.route(r);
+  assert.deepEqual(g.diagnostics(), [{ phase: 'request-scope', status: null, cancelled: false,
+    scope_reason: 'unsupported-host', host: 'assets.example.org', resource_type: 'image' }]);
+  assert.deepEqual(r.calls, ['abort']); assert.equal(JSON.stringify(g.diagnostics()).includes('PRIVATE'), false);
+  const credential = guard(); await credential.route(route('https://PRIVATE@assets.example.org/PRIVATE'));
+  assert.equal(credential.diagnostics()[0].scope_reason, 'credentials'); assert.equal(credential.diagnostics()[0].host, null);
+  const protocol = guard(); await protocol.route(route('http://assets.example.org/PRIVATE'));
+  assert.equal(protocol.diagnostics()[0].scope_reason, 'protocol');
+});

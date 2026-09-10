@@ -41,3 +41,24 @@ Focused offline checks passed 12 tests covering projection, ZIP separation, miss
 `npm run check` completed successfully: 1,777 tests, 1,766 passed, 11 skipped, zero failures; lint, web and desktop builds and the desktop control-plane smoke test passed. Log: `data/tmp/nh-visible-results-check.log`. Available PDF, Iowa reporting, retained-cohort, Overture runtime and Oklahoma spatial-inventory checks were enabled. The full log includes the final partial-redaction regression test. Separate type checking passed and the production dependency audit found zero vulnerabilities. No dependency or hosting changes were made; the standalone architecture is preserved.
 
 Oklahoma's exact approved plan hash remained unchanged after this work. Its failed batch was neither retried nor promoted. To roll back this prerequisite, remove its standalone script, projection module and internal policy and revert the additive NH network diagnostics; preserve all historical run evidence. No schedule or industry enrollment needs rollback because none was added.
+
+## Subsequent diagnostic validation and selector correction
+
+One further fixed-lookup validation used the categorical diagnostics at `2026-09-10T17:32:21.876Z`–`2026-09-10T17:32:24.506Z`:
+
+- Run: `6437fb3e-6c83-4245-b87d-0fc6173d117b`.
+- Manifest: `data/business-sources/nh-childcare/visible-result-probes/6437fb3e-6c83-4245-b87d-0fc6173d117b/manifest.json`.
+- SHA-256: `fafa73702e222cd8a7123c496152b7f60c01603fc9494893d416537e6e8c947e`.
+- One search submission, six displayed results and six visible cards, but all six rejected as `ambiguous-detail-parent`.
+- Eight request-scope blocks before browser closure; one additional transport failure during closure. No recorded HTTP 401, 403 or 429. A local scope block is not proof of a publisher denial.
+- Zero downloads, zero accepted rows, verified browser cleanup and no retained browser scratch.
+
+A subsequent bounded read-only GET of the public search page returned HTTP 200 and 250,352 decoded bytes. Inspection of the public rendering code established that both the business/address column and separate contact column use `.slds-tile__detail`. The extractor's requirement that this class appear exactly once was wrong. This GET made no search submission and no new business observation; its body was not retained as a dataset.
+
+`runner/nh-childcare-visible-dom.mjs` now identifies the business parent by its direct initial-paragraph detail link. It does not select the contact column by position or read its text. The CLI shares this exact serialized callback with a new offline browser fixture. The fixture tests both column orders, exclusion of contact/directions/accessibility text, duplicate business parents, extra anchors, unsupported address descendants, hidden name fields and foreign detail origins. It made zero network requests and removed only its verified-owned UUID scratch directory.
+
+The network guard's enforcement and host allowlist are unchanged. Its next diagnostic record can distinguish cancellation, request budget, credentials, port, protocol and unsupported hosts. A bounded DNS hostname and an enumerated resource type can be recorded, but URL paths, query strings, credentials, source exception messages and response content remain excluded. Credential-bearing requests do not expose their hostname. These diagnostic changes do not authorize any blocked request.
+
+The revised projector and network diagnostics passed 14 focused checks with `DATAHUB_TEST_NH_VISIBLE_DOM=1`. The browser fixture is opt-in and must not be claimed as passed by a default run that skips it. A successful live projection with this corrected selector remains unverified; no further live lookup was made after these changes. The New Hampshire source is still not enrolled or collection-ready.
+
+Final full-suite validation for this revision passed: 1,779 tests, 1,768 passed, 11 skipped, zero failures; lint, web/desktop builds and desktop control-plane smoke passed. `DATAHUB_TEST_NH_VISIBLE_DOM=1` was enabled alongside the previous PDF, Iowa reporting, retained-cohort, Overture runtime and Oklahoma inventory flags. The log explicitly records the offline browser test passing: `data/tmp/nh-visible-dom-check.log`. Separate type checking passed and the production dependency audit found zero vulnerabilities. Oklahoma's approved scope hash remained unchanged. No source policy, host allowlist, schedule, production pointer, dependency or hosting configuration was broadened.

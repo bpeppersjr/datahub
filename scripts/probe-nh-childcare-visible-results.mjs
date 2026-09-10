@@ -8,6 +8,7 @@ import { createCliCancellation } from '../runner/cli-cancellation.mjs';
 import { nhSearchResultCount } from '../runner/nh-childcare-export-workflow.mjs';
 import { NH_VISIBLE_SCOPE as S, NH_VISIBLE_LIMITS as L, inspectNhVisibleResults, profileNhVisibleResults } from '../runner/nh-childcare-visible-results.mjs';
 import { createNhBrowserNetworkGuard } from '../runner/nh-childcare-browser-network.mjs';
+import { projectNhVisibleCards } from '../runner/nh-childcare-visible-dom.mjs';
 
 const args = process.argv.slice(2);
 if (args.length === 1 && args[0] === '--help') {
@@ -36,7 +37,7 @@ if (args.length === 1 && args[0] === '--help') {
     receipt.policy = { id: policy.policy_id, sha256: policyHash, path: path.relative(APP_ROOT, policyPath).replaceAll('\\', '/') };
     receipt.implementation_sha256 = {};
     for (const relative of ['scripts/probe-nh-childcare-visible-results.mjs', 'runner/nh-childcare-visible-results.mjs',
-      'runner/nh-childcare-browser-network.mjs', 'runner/ok-childcare-profile-fields.mjs']) {
+      'runner/nh-childcare-browser-network.mjs', 'runner/nh-childcare-visible-dom.mjs', 'runner/ok-childcare-profile-fields.mjs']) {
       receipt.implementation_sha256[relative] = createHash('sha256').update(await readFile(path.join(APP_ROOT, relative))).digest('hex');
     }
     await canonical(root, { create: true, output: true, signal });
@@ -64,18 +65,7 @@ if (args.length === 1 && args[0] === '--help') {
       const visibleCount = await cards.count();
       receipt.pre_projection_evidence = { displayed_rows: count, visible_cards: visibleCount };
       if (visibleCount > L.rows) throw Error('Row acceptance limit.');
-      const projected = await cards.evaluateAll(elements => elements.map(card => {
-        const details = card.querySelectorAll('.slds-tile__detail');
-        if (details.length !== 1) return { rejection: 'ambiguous-detail-parent' };
-        const anchors = details[0].querySelectorAll(':scope > p:first-child > a');
-        const address = details[0].querySelector(':scope > div');
-        if (anchors.length !== 1) return { rejection: 'ambiguous-name-link' };
-        if (!address || !anchors[0].getClientRects().length || !address.getClientRects().length
-          || getComputedStyle(anchors[0]).visibility !== 'visible' || getComputedStyle(address).visibility !== 'visible') return { rejection: 'missing-or-hidden-field' };
-        if ([...address.children].some(child => child.tagName !== 'BR')) return { rejection: 'unsupported-address-markup' };
-        return { row: { name: [...anchors[0].childNodes].filter(node => node.nodeType === 3).map(node => node.textContent).join('').trim(),
-          detail_url: anchors[0].getAttribute('href'), address_lines: address.innerText.split(/\r?\n/).map(line => line.trim()).filter(Boolean) } };
-      }));
+      const projected = await cards.evaluateAll(projectNhVisibleCards);
       receipt.projection_rejections = projected.flatMap((item, index) => item.rejection ? [{ card_ordinal: index + 1, reason: item.rejection }] : []);
       if (receipt.projection_rejections.length) throw Error('Visible projection structure rejected.');
       const rows = projected.map(item => item.row);
