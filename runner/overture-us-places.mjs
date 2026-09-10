@@ -727,8 +727,8 @@ export async function buildOvertureUsPlaces({
       }
     }
     }
-    const identityCheck = await checkOvertureIdentities({ output: path.resolve(outputRoot, ".identity-checks", runId),
-      ids: normalizeAndYieldIds(), keyFormat: "source-value", signal });
+    const identityCheck = await verifyNormalizedIdentities(normalizeAndYieldIds(),
+      { keyFormat: "source-value", signal, scratchId: runId, retainOnFailure: true });
     if (identityCheck.record_count !== input.artifact.record_count) throw new Error("Overture source identity count mismatch.");
   } catch (error) {
     await abortGzipWriters([...normalizedWriters.values(), quarantineWriter]);
@@ -886,19 +886,22 @@ function containsForbiddenRecordField(record) {
   return [...FORBIDDEN_RECORD_KEYS].some((field) => serialized.includes(`\"${field}\"`));
 }
 
-async function verifyNormalizedIdentities(ids) {
+async function verifyNormalizedIdentities(ids, { keyFormat = "uuid", signal, scratchId = randomUUID(), retainOnFailure = false } = {}) {
   const parent = path.join(APP_ROOT, "data/tmp/overture-verification-identities");
-  await mnSelectionCanonical(parent, { create: true, output: true });
-  const directory = path.join(parent, randomUUID()); await mkdir(directory);
+  await mnSelectionCanonical(parent, { create: true, output: true, signal });
+  const directory = path.join(parent, scratchId); await mkdir(directory);
   const owner = await lstat(directory, { bigint: true });
-  try { return await checkOvertureIdentities({ output: directory, ids }); }
+  let completed = false;
+  try { const result = await checkOvertureIdentities({ output: directory, ids, keyFormat, signal }); completed = true; return result; }
   finally {
+    if (completed || !retainOnFailure) {
     // Remove only this verifier's newly allocated scratch directory, after the
     // checker has drained its producer and closed all native database handles.
     await mnSelectionCanonical(directory);
     const current = await lstat(directory, { bigint: true });
     if (current.dev !== owner.dev || current.ino !== owner.ino || !current.isDirectory() || current.isSymbolicLink()) throw new Error("Overture verification scratch ownership changed.");
     await rm(directory, { recursive: true });
+    }
   }
 }
 

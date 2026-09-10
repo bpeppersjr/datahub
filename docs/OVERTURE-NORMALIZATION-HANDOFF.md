@@ -24,7 +24,7 @@ The verifier now performs [source-to-output replay](OVERTURE-SOURCE-REPLAY.md) a
 
 The builder also now accepts an explicit [pinned Census baseline selection](OVERTURE-PINNED-BASELINE.md), verified before use and again before finalization. The legacy pointer input remains weaker; managed integration should select the pinned path and must still establish app-owned receipt authority and finish the Census verifier's resource/cancellation hardening.
 
-An [acquisition input resolver](OVERTURE-NORMALIZATION-INPUT.md) now verifies the selected native operation receipt and snapshot, returning the retained source path and dependency-hash binding. The builder does not yet consume it; preserving that binding through normalized output and managed worker results is the next integration step. The actual failed acquisition is correctly rejected as an input.
+An [acquisition input resolver](OVERTURE-NORMALIZATION-INPUT.md) now verifies the selected native operation receipt and snapshot. The [retained normalization session](OVERTURE-NORMALIZATION-SESSION.md) consumes that resolver, carries its binding through prepared metadata, and records the exact verified normalized-manifest hash in a separate receipt. App worker/queue enrollment and managed result verification remain the next integration step. The actual failed acquisition is correctly rejected as an input.
 
 The full national business objective remains incomplete. Neither a retained Overture snapshot nor this local defect fix establishes current business operation, valid USPS membership or nationwide completeness.
 

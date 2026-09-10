@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -330,9 +330,8 @@ test("normalization retains by default and requires a separate explicit promotio
     const result = await buildOvertureUsPlaces({ outputRoot, zbpPointer, sourceRecords: [source()], sourceMetadata: sourceMetadata(), minimumPlaces: 1, logger: () => {} });
     assert.equal(result.status, "verified-retained-not-promoted");
     assert.equal(result.pointerPath, null);
-    const checkRoot = path.join(outputRoot, ".identity-checks", result.stagingRunId), checks = await readdir(checkRoot);
-    assert.equal(checks.length, 1);
-    assert.ok((await stat(path.join(checkRoot, checks[0], "identity.duckdb"))).size > 0);
+    const checkRoot = path.resolve("data/tmp/overture-verification-identities", result.stagingRunId);
+    await assert.rejects(stat(checkRoot), { code: "ENOENT" });
     assert.equal(await readFile(pointerPath, "utf8"), original);
     assert.equal(path.dirname(result.releaseDirectory), path.join(outputRoot, ".staging"));
     assert.equal((await verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json"))).coverage.normalized_places, 1);

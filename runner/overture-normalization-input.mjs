@@ -45,6 +45,8 @@ async function resolve(options, synthetic) {
   const end = {}; await readJson(filename, 1024 ** 2, signal, end);
   if (end.sha256 !== receiptSha256 || !same(meter.identity, end.identity)) fail();
   return { sourceFile: path.join(directory, selected.path), descriptor: { ...descriptor },
+    metadataReference: structuredClone(manifest.metadata_reference), acquisitionCompletedAt: manifest.completed_at,
+    queryFingerprint: manifest.engine?.query_fingerprint,
     binding: { schema_version: 'overture-normalization-acquisition-binding@1', validation_mode: synthetic ? 'synthetic-test-only' : 'native-receipt-reread',
       acquisition_operation_id: operationId, operation_receipt_sha256: receiptSha256, acquisition_run_id: descriptor.run_id,
       acquisition_manifest_sha256: descriptor.sha256, plan_sha256: manifest.plan_sha256, journal_sha256: manifest.journal.sha256,
