@@ -336,6 +336,12 @@ test("normalization retains by default and requires a separate explicit promotio
     assert.equal(await readFile(pointerPath, "utf8"), original);
     assert.equal(path.dirname(result.releaseDirectory), path.join(outputRoot, ".staging"));
     assert.equal((await verifyOvertureUsPlaces(path.join(result.releaseDirectory, "manifest.json"))).coverage.normalized_places, 1);
+    const reused = await buildOvertureUsPlaces({ outputRoot: path.join(root, "reused"), zbpPointer,
+      sourceFile: path.join(result.releaseDirectory, "source/selected-records.jsonl.gz"),
+      sourceMetadataFile: path.join(result.releaseDirectory, "source/source-metadata.json"), minimumPlaces: 1, logger: () => {} });
+    assert.equal(reused.pointerPath, null);
+    assert.equal(reused.manifest.source_release_id, result.manifest.source_release_id);
+    assert.equal((await verifyOvertureUsPlaces(path.join(reused.releaseDirectory, "manifest.json"))).coverage.normalized_places, 1);
     await assert.rejects(publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: "../outside" }));
     await assert.rejects(publishOvertureUsPlacesStaging({ outputRoot, stagingRunId: result.stagingRunId, signal: AbortSignal.abort() }));
     assert.equal(await readFile(pointerPath, "utf8"), original);

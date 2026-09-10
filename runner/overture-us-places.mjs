@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
-import { copyFile, mkdir, readFile, rename, stat, writeFile, lstat, rm } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile, lstat, rm } from "node:fs/promises";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { pipeline } from "node:stream/promises";
@@ -14,6 +14,7 @@ import { checkOvertureIdentities } from "./overture-identity-check.mjs";
 import { APP_ROOT } from "./paths.mjs";
 import { createOvertureNormalizationBudget } from "./overture-normalization-budget.mjs";
 import { validateOvertureZbpSelection, verifyOvertureZbpSelection } from "./overture-zbp-selection.mjs";
+import { copyOvertureRetainedSource } from "./overture-retained-copy.mjs";
 
 export const OVERTURE_US_PLACE_SCHEMA_VERSION = "1.0.0";
 export const OVERTURE_US_PLACE_TRANSFORMATION_VERSION = "overture-us-places@1.0.1";
@@ -607,18 +608,16 @@ function buildZipCoverage(baselineRows, countsByZip, context) {
   });
 }
 
-async function copyPreparedSource(sourceFile, sourceMetadataFile, stagingDirectory) {
-  const metadata = JSON.parse(await readFile(sourceMetadataFile, "utf8"));
+async function copyPreparedSource(sourceFile, sourceMetadataFile, stagingDirectory, signal) {
+  const metadata = await mnSelectionReadJson(path.resolve(sourceMetadataFile), 4 * 1024 ** 2, signal);
   if (metadata.artifact_type !== "overture-us-place-selected-source-jsonl-gzip" || !RELEASE_ID.test(metadata.overture_release_id ?? "") || metadata.selected_fields?.join("\n") !== OVERTURE_SELECTED_FIELDS.join("\n")) {
     throw new Error("Prepared Overture source metadata identity or selected fields drifted.");
   }
-  const sourceDigest = await hashFile(sourceFile);
-  if (sourceDigest.bytes !== metadata.bytes || sourceDigest.sha256 !== metadata.sha256) throw new Error("Prepared Overture source checksum failed.");
+  if (!Number.isSafeInteger(metadata.record_count) || metadata.record_count < 0 || metadata.record_count > 20000000) throw new Error("Prepared Overture source count rejected.");
   const destination = path.join(stagingDirectory, "source", "selected-records.jsonl.gz");
   await mkdir(path.dirname(destination), { recursive: true });
-  const temporary = `${destination}.tmp-${randomUUID()}`;
-  await copyFile(sourceFile, temporary);
-  await renameWithRetry(temporary, destination);
+  const sourceDigest = await copyOvertureRetainedSource({ source: path.resolve(sourceFile), destination: path.resolve(destination),
+    bytes: metadata.bytes, sha256: metadata.sha256, signal });
   return {
     metadata,
     artifact: { path: "source/selected-records.jsonl.gz", ...sourceDigest, record_count: metadata.record_count, artifact_type: "overture-us-place-selected-source-jsonl-gzip", export_policy: "internal" },
@@ -675,7 +674,7 @@ export async function buildOvertureUsPlaces({
   await mkdir(stagingDirectory, { recursive: true });
   const baseline = await loadZbpBaseline(zbpPointer, zbpSelection, signal);
   const input = sourceFile
-    ? await copyPreparedSource(sourceFile, sourceMetadataFile, stagingDirectory)
+    ? await copyPreparedSource(sourceFile, sourceMetadataFile, stagingDirectory, signal)
     : await writeFixtureSource(sourceRecords, sourceMetadata, stagingDirectory);
   if (!RELEASE_ID.test(input.metadata.overture_release_id ?? "") || input.metadata.record_count !== input.artifact.record_count) throw new Error("Overture prepared source metadata failed release or count validation.");
   if (input.artifact.record_count < minimumPlaces) throw new Error(`Overture selected source count ${input.artifact.record_count} is below the minimum ${minimumPlaces}.`);
