@@ -26,6 +26,28 @@ function request(url, { method = 'HEAD', headers = {}, pathname } = {}) {
   });
 }
 
+test('complete-body client close waits for upstream receipt finalization', { timeout: 5000 }, async () => {
+  for (const chunks of [['a'], ['ab', '', 'cdefgh']]) {
+    const f = fixture();
+    const expected = chunks.join('');
+    f.transport.read = async (index, range, sink) => {
+      for (const chunk of chunks) await sink(Buffer.from(chunk));
+      // Model the durable request-completed journal write after the last chunk.
+      await new Promise(resolve => setTimeout(resolve, 100));
+    };
+    const bridge = await startOvertureAssetBridge({ transport: f.transport, assetCount: 1 });
+    try {
+      await request(bridge.urls[0]);
+      const result = await request(bridge.urls[0], { method: 'GET', headers: { Range: `bytes=0-${expected.length - 1}`, Connection: 'close' } });
+      assert.equal(result.body, expected);
+      await new Promise(resolve => setTimeout(resolve, 150));
+      assert.equal(bridge.snapshot().state, 'open');
+      assert.equal(bridge.snapshot().completed_requests, 2);
+      assert.equal(bridge.snapshot().bytes_written, expected.length);
+    } finally { await bridge.close(); }
+  }
+});
+
 test('bridge caches HEAD and streams exact ranges with safe headers and aggregate snapshots', async () => {
   const f = fixture(), bridge = await startOvertureAssetBridge({ transport: f.transport, assetCount: 1 });
   try {
@@ -104,10 +126,13 @@ test('close releases a sink awaiting local socket backpressure', { timeout: 5000
   } finally { await bridge.close(); }
 });
 test('invalid upstream metadata or overlong and short sink deliveries close the session', { timeout: 5000 }, async () => {
-  for (const mode of ['metadata', 'oversize', 'short']) {
+  for (const mode of ['metadata', 'oversize', 'short', 'finalization']) {
     const f = fixture();
     if (mode === 'metadata') f.transport.head = async () => ({ contentLength: 8, etag: 'PRIVATE_INVALID_ETAG' });
-    else f.transport.read = async (index, range, sink) => { await sink(Buffer.from(mode === 'oversize' ? 'abc' : 'a')); };
+    else f.transport.read = async (index, range, sink) => {
+      await sink(Buffer.from(mode === 'oversize' ? 'abc' : mode === 'finalization' ? 'ab' : 'a'));
+      if (mode === 'finalization') throw Error('Synthetic journal finalization failure');
+    };
     const bridge = await startOvertureAssetBridge({ transport: f.transport, assetCount: 1 });
     try {
       if (mode === 'metadata') await assert.rejects(request(bridge.urls[0]));

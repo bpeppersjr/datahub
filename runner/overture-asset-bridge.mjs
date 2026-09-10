@@ -86,6 +86,7 @@ export async function startOvertureAssetBridge(options) {
     admitted++;
     const disconnected = () => { if (!response.writableFinished) void close(); };
     request.once('aborted', disconnected); response.once('close', disconnected);
+    let finalByte;
     try {
       if (request.method === 'HEAD') {
         // Cached HEAD is session metadata, not a freshness recheck. The upstream
@@ -101,7 +102,17 @@ export async function startOvertureAssetBridge(options) {
         await transport.read(selected.index, { start: selected.start, end: selected.end }, async chunk => {
           if (!(chunk instanceof Uint8Array) || delivered + chunk.byteLength > size) throw failure();
           if (!response.headersSent) sendHeaders(response, 206, size, selected.head.etag, `bytes ${selected.start}-${selected.end}/${selected.head.contentLength}`);
-          await write(response, chunk); delivered += chunk.byteLength; bytes += chunk.byteLength;
+          // Withhold one byte until transport validation and its durable journal
+          // callback finish. A complete Content-Length lets clients close before
+          // response.end(), which otherwise looks like a mid-transfer disconnect.
+          if (chunk.byteLength) {
+            if (finalByte) { await write(response, finalByte); bytes++; }
+            if (chunk.byteLength > 1) {
+              await write(response, chunk.subarray(0, -1)); bytes += chunk.byteLength - 1;
+            }
+            finalByte = Buffer.from([chunk[chunk.byteLength - 1]]);
+          }
+          delivered += chunk.byteLength;
         });
         if (closed || delivered !== size) throw failure();
       }
@@ -109,7 +120,8 @@ export async function startOvertureAssetBridge(options) {
         const stop = () => { cleanup(); reject(failure()); };
         const done = () => { cleanup(); resolve(); };
         const cleanup = () => { response.off('error', stop); response.off('close', stop); response.off('finish', done); };
-        response.once('error', stop); response.once('close', stop); response.once('finish', done); response.end();
+        response.once('error', stop); response.once('close', stop); response.once('finish', done);
+        response.end(finalByte); if (finalByte) bytes++;
       });
       completed++;
     } finally { request.off('aborted', disconnected); response.off('close', disconnected); }
