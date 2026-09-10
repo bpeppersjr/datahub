@@ -1,4 +1,5 @@
 import { OK_RETAINED_CONTRACT as C, selectOkRetainedPage, okRetainedHash } from './ok-childcare-retained-contract.mjs';
+import { withOkPublisherLock } from './ok-childcare-publisher-lock.mjs';
 
 const TEST_CLIENT = Buffer.from('Oklahoma retained collector synthetic client v1');
 const issued = new WeakMap();
@@ -72,7 +73,10 @@ async function execute(transport, callerSignal, synthetic) {
   } finally { clearTimeout(timer); result.finished_at = new Date().toISOString(); }
   issued.set(result, JSON.stringify(result)); return result;
 }
-export async function collectOkRetainedSearch(value = {}) { return execute(globalThis.fetch, options(value), false); }
+export async function collectOkRetainedSearch(value = {}) {
+  const signal = options(value);
+  return withOkPublisherLock(signal, () => execute(globalThis.fetch, signal, false));
+}
 export async function collectOkRetainedSearchWithTestTransport(transport, value = {}) {
   if (typeof transport !== 'function') throw failure();
   return execute(transport, options(value), true);
