@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { setTimeout as delay } from "node:timers/promises";
 import { publisherRetryDelay } from "./source-http-guards.mjs";
+import developmentPolicy from "../config/source-policies/wi-childcare-local-review.json" with { type: "json" };
 import { preflightWiChildcare, wiPreflightUrl } from "./wi-childcare-preflight.mjs";
-import { WI_ACQUISITION_VERSION, wiInventoryUrl, wiFeatureUrl, wiInventory, wiBatches, wiFeatures, replayWiChildcareAcquisition } from "./wi-childcare-acquisition.mjs";
+import { WI_ACQUISITION_VERSION, wiInventoryUrl, wiFeatureUrl, wiInventory, wiBatches, wiFeatures, replayWiChildcareAcquisition, validateWiSourcePolicy } from "./wi-childcare-acquisition.mjs";
 
 const hash = (v) => createHash("sha256").update(JSON.stringify(v)).digest("hex");
 const check = (v, reason) => { if (!v) throw new Error(`Wisconsin transport rejected: ${reason}.`); };
@@ -128,4 +129,26 @@ export async function acquireWiChildcare(options = {}) {
   check(validOptions(options, ["signal"]) && (options.signal === undefined || options.signal instanceof AbortSignal), "unsupported live options");
   options.signal?.throwIfAborted();
   throw Object.assign(new Error("Wisconsin source-use approval and durable native app enrollment are pending. No acquisition was started."), { code: "WI_CHILDCARE_LIVE_NOT_ENROLLED" });
+}
+
+/** Fixed notice-policy gate for future durable integration. Still an explicit
+ * injected transport, NOT user authorization or the native live entry.
+ * The older unbound seam remains for synthetic/offline contract conformance.
+ */
+export async function acquireWiChildcarePolicyBoundWithTransport(options = {}) {
+  check(validOptions(options, ["fetchImpl", "signal", "sleep", "now", "timeoutMs", "maximumBytes", "onPreflight", "onObservation"]), "unsupported policy-bound options");
+  check(options.onPreflight === undefined || typeof options.onPreflight === "function", "retention hook");
+  const reviewedPolicyHash = "cd62a0a4b83c84b5b5e7107dfd3281f87f67cc34f18d99e5dcacce665f1a328b";
+  check(hash(developmentPolicy) === reviewedPolicyHash, "fixed development policy changed");
+  const validations = [];
+  const result = await acquireWiChildcareWithTransport({ ...options, onPreflight: async ({ phase, preflight }) => {
+    const policy = validateWiSourcePolicy(preflight);
+    check(policy.policy_sha256 === reviewedPolicyHash && policy.acquisition_authorized === false && policy.export_authorized === false && policy.legal_approval === false, "development policy authority changed");
+    validations.push({ phase, ...policy });
+    await options.onPreflight?.({ phase, preflight: structuredClone(preflight) });
+  } });
+  check(validations.length === 2 && validations[0].phase === "before" && validations[1].phase === "after"
+    && validations[0].policy_sha256 === validations[1].policy_sha256, "paired policy validation");
+  return { ...result, policy_validation: { mode: "fixed-development-notices-before-record-requests", phases: validations,
+    source_use_authorized: false, native_app_enrolled: false } };
 }
