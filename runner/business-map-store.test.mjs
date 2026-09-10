@@ -358,8 +358,8 @@ test('retained layer verifies geometry bytes on every read and withholds a diffe
   await assert.rejects(store.getFeatures(options), /geometry/i);
 });
 
-test('native current map exposes PA county points and OH reported names without assignment', {
-  skip: !process.env.DATAHUB_TEST_RETAINED_COUNTY_MANIFEST,
+test('native current map exposes separate PA and MD county points and OH reported names without assignment', {
+  skip: !process.env.DATAHUB_TEST_RETAINED_COUNTY_V2_MANIFEST,
 }, async () => {
   const store = createBusinessMapStore();
   const result = await store.getFeatures({ level: 'counties', stateFips: '42', categoryId: 'childcare', enhancerId: 'retained_childcare_county_points' });
@@ -367,6 +367,10 @@ test('native current map exposes PA county points and OH reported names without 
   assert.equal(result.features.reduce((sum, feature) => sum + feature.properties.heat_value, 0), 4930);
   assert.equal(result.meta.retained_county_status, 'available');
   assert.equal(result.geography_manifest_sha256, (await store.getCatalog()).geography_manifest_sha256);
+  const maryland = await store.getFeatures({ level: 'counties', stateFips: '24', categoryId: 'childcare', enhancerId: 'retained_childcare_county_points' });
+  assert.equal(maryland.features.length, 24);
+  assert(maryland.features.every(feature => Number.isSafeInteger(feature.properties.heat_value)));
+  assert.equal(maryland.features.reduce((sum, feature) => sum + feature.properties.heat_value, 0), 1772);
   const names = await store.listBusinessNames({ zipCode: '43215', categoryId: 'childcare' });
   assert.equal(names.total, 19);
   for (const row of names.records) {

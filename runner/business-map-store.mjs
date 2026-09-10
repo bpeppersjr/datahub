@@ -134,7 +134,7 @@ const CATEGORY_DEFINITIONS = Object.freeze([
 ]);
 
 const ENHANCERS = Object.freeze([
-  { id: "retained_childcare_county_points", label: "Retained childcare county points (PA)", kind: "source-candidate" },
+  { id: "retained_childcare_county_points", label: "Retained childcare county points (PA + MD)", kind: "source-candidate" },
   { id: "business_count", label: "Observed business evidence", kind: "business" },
   { id: "population_2020", label: "2020 Census population", kind: "population" },
   { id: "housing_units_2020", label: "2020 Census housing units", kind: "demographic" },

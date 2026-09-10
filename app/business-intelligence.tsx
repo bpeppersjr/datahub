@@ -311,7 +311,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelec
         </g>
       </svg>
       <div className="heatmap-legend"><span>Lower</span><i /><i /><i /><i /><i /><span>Higher</span></div>
-      {enhancerId === 'retained_childcare_county_points' && <p className="entity-method-note">PA source-point relationships only; other states and ZIP-level values are unavailable. Not verified business locations or industry completeness.</p>}
+      {enhancerId === 'retained_childcare_county_points' && <p className="entity-method-note">PA and MD source-point relationships; other states and ZIP-level values are unavailable. Not verified business locations or industry completeness.</p>}
       {hovered && <div className="map-tooltip">
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
