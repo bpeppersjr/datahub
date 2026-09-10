@@ -1,7 +1,7 @@
 {
   "schema_version": "ok-childcare-batch-approval@1.0.0",
-  "status": "pending",
-  "approval_id": null,
-  "approved_at": null,
-  "scope_sha256": null
+  "status": "approved",
+  "approval_id": "78ec4fe1-dac0-40e9-aac7-e5672f67f7fe",
+  "approved_at": "2026-09-10T17:14:56.076Z",
+  "scope_sha256": "e92b31b9dc94ff2a3ebbdbdab60afbc9e4e84637ff7f916400427a279beaf122"
 }
