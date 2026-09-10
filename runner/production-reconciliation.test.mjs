@@ -79,6 +79,83 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   return { exitCode: 0 };
 }
 
+test('MN planner optional evidence preserves combined cohorts and rejects drift', {timeout:120000}, async t=>{
+  if(!process.execArgv.includes('--experimental-test-module-mocks')){
+    const childEnv={...process.env};delete childEnv.NODE_TEST_CONTEXT;
+    const child=spawnSync(process.execPath,['--experimental-test-module-mocks','--test','--test-name-pattern=MN planner optional evidence',
+      path.join(APP_ROOT,'runner/production-reconciliation.test.mjs')],{cwd:APP_ROOT,env:childEnv,encoding:'utf8',timeout:110000,windowsHide:true});
+    assert.equal(child.status,0,child.stderr+'\n'+child.stdout);
+    assert.match(child.stdout,/MN planner optional evidence preserves combined cohorts and rejects drift/);
+    assert.match(child.stdout,/(?:pass 1|# pass 1)/);return;
+  }
+  // Only source pin helpers are mocked. Planner, reconstruction, controller,
+  // dependency checks and isolated fixture publication execute normally.
+  const mockPin=kind=>async(root,selection,{safe,fileHash})=>{
+    const file=await safe(root,selection),value=JSON.parse(await readFile(file));
+    return {declaration:{selection:{path:selection},...(kind==='mn'?{source:value}:{bindings:[value]})},
+      evidencePins:[{path:selection,...await fileHash(file)}]};
+  };
+  t.mock.module('./mn-credential-production-input.mjs',{namedExports:{pinMnCredentialProductionInput:mockPin('mn'),mnCredentialImplementationFiles:async()=>['package.json','package-lock.json']}});
+  t.mock.module('./retained-childcare-production-input.mjs',{namedExports:{pinRetainedChildcareProductionInput:mockPin('childcare'),retainedChildcareImplementationFiles:async()=>['package.json']}});
+  t.mock.method(globalThis,'fetch',()=>assert.fail('No network in production fixture'));
+  for(const combined of [false,true]){
+    const f=await fixture(t),mn='config/mn-selection.json',care='config/childcare-selection.json';
+    const source={dataset_id:'mn-construction-credential-reporting',release_id:'fixture-mn',manifest_sha256:'a'.repeat(64),manifest_path:'data/mn/manifest.json'};
+    const childcare={dataset_id:'fixture-retained-childcare',release_id:'fixture-childcare',manifest_sha256:'b'.repeat(64),manifest_path:'data/childcare/manifest.json'};
+    for(const value of [source,childcare]){
+      await json(path.join(f.root,value.manifest_path),{dataset_id:value.dataset_id,release_id:value.release_id});
+      value.manifest_sha256=sha(await readFile(path.join(f.root,value.manifest_path)));
+    }
+    await json(path.join(f.root,mn),source);await json(path.join(f.root,care),childcare);
+    await json(path.join(f.root,'package.json'),{fixture:true});await json(path.join(f.root,'package-lock.json'),{fixture:true});
+    const options={...f,runId:`mn-plan-${combined}`,mnCredentialSelection:mn,...(combined?{retainedChildcareSelection:care}:{})};
+    const baseline=await planProductionReconciliation({...f,runId:'absent'}),undefinedOption=await planProductionReconciliation({...f,runId:'absent',mnCredentialSelection:undefined});
+    const stable=p=>Object.fromEntries(Object.entries(p).filter(([key])=>!['createdAt','planSha256'].includes(key)));
+    assert.deepEqual(stable(baseline),stable(undefinedOption));assert.equal(baseline.mnCredentialPin,undefined);
+    const plan=await planProductionReconciliation(options);
+    assert.equal(plan.sourcePins.length,25);assert.equal(plan.stages.length,8);
+    assert.equal(plan.stages[0].args.filter(v=>v==='--mn-credential-selection').length,1);
+    assert.equal(plan.stages[0].args.includes('--retained-childcare-selection'),combined);
+    assert.ok(plan.stages.slice(1).every(s=>!s.args.includes('--mn-credential-selection')));
+    assert.equal(new Set(plan.implementationPins.map(p=>p.path)).size,plan.implementationPins.length);
+    for(const file of [mn,...(combined?[care]:[])]){
+      const target=path.join(f.root,file),original=await readFile(target);await writeFile(target,Buffer.concat([original,Buffer.from(' ')]));
+      await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('No drift launch')}));await writeFile(target,original);
+    }
+    const altered=structuredClone(plan);altered.mnCredentialPin.evidencePins=[];delete altered.planSha256;altered.planSha256=sha(JSON.stringify(altered));
+    await assert.rejects(runProductionReconciliation(altered,{...f,executor:()=>assert.fail('No rehashed drift launch')}));
+    const executor=async(stage,context,mutation)=>{
+      const result=await executeFixture(f,stage,context);
+      if(stage.id==='registry-build'){
+        const file=path.join(f.root,outputs.registry,'releases/fresh-registry/manifest.json'),manifest=JSON.parse(await readFile(file));
+        const dep={dataset_id:source.dataset_id,release_id:source.release_id,manifest_sha256:source.manifest_sha256};
+        if(mutation!=='missing')manifest.dependencies.push(dep);
+        if(mutation==='duplicate')manifest.dependencies.push({...dep});
+        if(mutation==='release')dep.release_id='wrong';if(mutation==='hash')dep.manifest_sha256='c'.repeat(64);
+        if(combined)manifest.dependencies.push({dataset_id:childcare.dataset_id,release_id:childcare.release_id,manifest_sha256:childcare.manifest_sha256});
+        await json(file,manifest);
+      }return result;
+    };
+    for(const mutation of ['missing','duplicate','release','hash']){
+      const bad=await planProductionReconciliation({...options,runId:`mn-${combined}-${mutation}`});
+      const result=await runProductionReconciliation(bad,{...f,executor:(stage,context)=>executor(stage,context,mutation)});
+      assert.equal(result.receipt.status,'FAILED');assert.match(result.receipt.error,/dependenc/i);assert.equal(result.receipt.stages[1].status,'SKIPPED');
+      await json(path.join(f.root,outputs.registry,'current.json'),{dataset_id:datasets.registry,release_id:'previous-registry',manifest:'releases/previous-registry/manifest.json'});
+    }
+    const changedDuringStage=await planProductionReconciliation({...options,runId:`mn-${combined}-mid-stage`});
+    const originalSelection=await readFile(path.join(f.root,mn));let launched=0;
+    const stopped=await runProductionReconciliation(changedDuringStage,{...f,executor:async(stage,context)=>{
+      launched++;const result=await executor(stage,context);
+      await writeFile(path.join(f.root,mn),Buffer.concat([originalSelection,Buffer.from(' ')]));return result;
+    }});
+    assert.equal(stopped.receipt.status,'FAILED');assert.match(stopped.receipt.error,/Pinned input or output changed/);assert.equal(launched,1);
+    await writeFile(path.join(f.root,mn),originalSelection);
+    await json(path.join(f.root,outputs.registry,'current.json'),{dataset_id:datasets.registry,release_id:'previous-registry',manifest:'releases/previous-registry/manifest.json'});
+    const result=await runProductionReconciliation(plan,{...f,executor:(stage,context)=>executor(stage,context)});
+    assert.equal(result.receipt.status,'SUCCEEDED',result.receipt.error);assert.equal(result.receipt.stages.filter(s=>s.status==='SUCCEEDED').length,8);
+  }
+});
+
 test('Production memory profile is pinned, propagated and rejects rehashed policy drift', async t=>{
   const f=await fixture(t);
   for(const name of ['production-memory','production-reconciliation'])await copyFile(path.join(APP_ROOT,'runner',`${name}.mjs`),path.join(f.root,'runner',`${name}.mjs`));
