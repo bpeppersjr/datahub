@@ -25,7 +25,7 @@ An isolated fixture proves that an extra pending-publication link or altered nor
 
 This is internal retained-data normalization, not national production promotion, statewide completeness, independent source authentication or proof of current operations/physical premises. Latitude and longitude remain null. No entity geometries are added, no national pointer changes, and no public export is authorized. Oklahoma's failed query is not retried.
 
-Next, a collection-ready NH contract and app-owned operation must distinguish source acquisition from retained reprocessing and preserve policy, cancellation, limits and terminal receipts. This fixed sample alone does not authorize a statewide crawl. Rollback removes the new normalizer/CLI without deleting either historical source or normalized artifacts.
+The next prerequisite is the separately versioned [parameterized ZIP-query evaluation contract](NH-PARAMETERIZED-QUERY-CONTRACT-2026-09-10.md). A collection-ready NH adapter and app-owned operation must still distinguish source acquisition from retained reprocessing and preserve policy, cancellation, limits and terminal receipts. This fixed sample alone does not authorize a statewide crawl. Rollback removes the new normalizer/CLI without deleting either historical source or normalized artifacts.
 
 ## Verification
 
