@@ -20,7 +20,7 @@ function polygon(west, south, east, north) {
   return { type: "Polygon", coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] };
 }
 
-async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views" } = {}) {
+async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views", ohioOrigin = undefined, ohioCount = 5, ohioWithoutZip = 0, capturePaths = null } = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const coverageRoot = path.join(root, "coverage");
@@ -276,6 +276,32 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
       await writeFile(target, Buffer.concat([bytes, Buffer.from(" ")]));
     }
   }
+  if (ohioOrigin !== undefined) {
+    const registryFile = path.join(registryRelease, 'manifest.json'), coverageFile = path.join(coverageRelease, 'manifest.json');
+    const registry = JSON.parse(await readFile(registryFile, 'utf8'));
+    registry.publisher = { id: 'national-business-registry', version: '2.15.0' };
+    registry.tn_childcare_origin = ohioOrigin; registry.complete_national_business_registry = false;
+    const raw = json(registry); await writeFile(registryFile, raw);
+    await mkdir(path.join(coverageRelease, 'evidence'), { recursive: true });
+    await writeFile(path.join(coverageRelease, 'evidence/registry-manifest.json'), raw);
+    const coverage = JSON.parse(await readFile(coverageFile, 'utf8'));
+    coverage.publisher = { id: 'national-business-coverage-views', version: '2.11.0' };
+    coverage.tn_childcare_origin = ohioOrigin;
+    coverage.coverage ??= {}; coverage.coverage.oh_childcare_reporting = { without_zip: ohioWithoutZip };
+    const sha = createHash('sha256').update(raw).digest('hex');
+    coverage.dependencies = [{ dataset_id: 'national-business-registry', publisher_version: '2.15.0', release_id: registry.release_id, manifest_sha256: sha }];
+    const zipFile = path.join(coverageRelease, 'views/zips.jsonl');
+    const zipRows = (await readFile(zipFile, 'utf8')).trim().split('\n').map(JSON.parse);
+    for (const row of zipRows) row.registry_coverage.oh_childcare_center_site_count = row.zip_code === '12345' ? ohioCount : 0;
+    await writeFile(zipFile, zipRows.map(json).join(''));
+    for (const artifact of coverage.artifacts) {
+      const bytes = await readFile(path.join(coverageRelease, artifact.path));
+      artifact.bytes = bytes.length; artifact.sha256 = createHash('sha256').update(bytes).digest('hex');
+    }
+    coverage.artifacts.push({ artifact_type: 'retained-registry-manifest-json', path: 'evidence/registry-manifest.json', bytes: Buffer.byteLength(raw), sha256: sha, export_policy: 'internal' });
+    await writeFile(coverageFile, json(coverage));
+  }
+  capturePaths?.({ coverageRelease, registryRelease, geographyRelease });
   return createBusinessMapStore({
     coveragePointerPath: path.join(coverageRoot, "current.json"),
     geographyPointerPath: path.join(geographyRoot, "current.json"),
@@ -283,6 +309,74 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     gdpPointerPath: path.join(gdpRoot, "current.json"),
   });
 }
+
+test('Ohio coverage preserves TN origins and excludes OH from jurisdiction unit/site totals', async context => {
+  for (const origin of [null, 'fresh', 'recovered']) {
+    const tnRows = origin === null ? null : origin === 'fresh' ? await createFreshTnReportingRows(context, { allMissing: true })
+      : [createTnChildcareReportingFixture({ zip: null }).row];
+    const store = await fixture(context, { ohioOrigin: origin, tnRows, tnVersion: origin === 'fresh' ? '2.10.0' : '2.9.0' });
+    const county = (await store.getFeatures({ level: 'counties', stateFips: '01', categoryId: 'childcare' })).features[0].properties;
+    const expectedTn = tnRows?.filter(row => row.location.latitude !== null).length ?? 0;
+    assert.equal(county.observed_business_units, expectedTn);
+    assert.equal(county.observed_physical_sites, expectedTn);
+    assert.equal((await store.getStateSummary()).national_category_counts.childcare, tnRows?.length ?? 0);
+    if (tnRows) assert.equal((await store.listStateBusinessNames({ stateFips: '01' })).total, tnRows.length);
+  }
+  const overCount = await fixture(context, { ohioOrigin: null, ohioCount: 6 });
+  await assert.rejects(overCount.getCatalog(), /exclusion cannot be reconciled/);
+  const missingPartition = await fixture(context, { ohioOrigin: null, ohioWithoutZip: 1 });
+  await assert.rejects(missingPartition.listStateBusinessNames({ stateFips: '01' }), /Missing unassigned/);
+  const polluted = await fixture(context, { ohioOrigin: null, mislabeledChildcare: { source: { source_id: 'oh-dcy-publisher-open-childcare-centers' } } });
+  await assert.rejects(polluted.listBusinessNames({ zipCode: '12345', categoryId: 'childcare' }), /cannot appear in matching-profile/);
+});
+
+test('Ohio map binds retained registry bytes and invalidates cached coverage on manifest drift', async context => {
+  let paths;
+  const store = await fixture(context, { ohioOrigin: null, capturePaths: value => { paths = value; } });
+  await store.getCatalog();
+  const file = path.join(paths.coverageRelease, 'manifest.json'), manifest = JSON.parse(await readFile(file, 'utf8'));
+  manifest.tn_childcare_origin = 'recovered'; await writeFile(file, json(manifest));
+  await assert.rejects(store.getCatalog(), /identity or origin/);
+  manifest.tn_childcare_origin = null; await writeFile(file, json(manifest));
+  await writeFile(path.join(paths.coverageRelease, 'evidence/registry-manifest.json'), '{}');
+  await assert.rejects(store.getCatalog(), /checksum/);
+});
+
+test('retained layer verifies geometry bytes on every read and withholds a different geography release', async context => {
+  let paths;
+  const store = await fixture(context, { capturePaths: value => { paths = value; } });
+  const file = path.join(paths.geographyRelease, 'manifest.json'), manifest = JSON.parse(await readFile(file, 'utf8'));
+  const relative = 'source/counties/state=01.geojson', geometryFile = path.join(paths.geographyRelease, relative);
+  const bytes = await readFile(geometryFile), descriptor = manifest.artifacts.find(item => item.path === relative);
+  descriptor.bytes = bytes.length; descriptor.sha256 = createHash('sha256').update(bytes).digest('hex');
+  await writeFile(file, json(manifest));
+  const options = { level: 'counties', stateFips: '01', categoryId: 'childcare', enhancerId: 'retained_childcare_county_points' };
+  const result = await store.getFeatures(options);
+  assert(result.features.every(feature => feature.properties.heat_value === null));
+  assert.equal(result.geography_manifest_sha256, (await store.getCatalog()).geography_manifest_sha256);
+  await writeFile(geometryFile, Buffer.concat([bytes, Buffer.from(' ')]));
+  await assert.rejects(store.getFeatures(options), /geometry/i);
+});
+
+test('native current map exposes PA county points and OH reported names without assignment', {
+  skip: !process.env.DATAHUB_TEST_RETAINED_COUNTY_MANIFEST,
+}, async () => {
+  const store = createBusinessMapStore();
+  const result = await store.getFeatures({ level: 'counties', stateFips: '42', categoryId: 'childcare', enhancerId: 'retained_childcare_county_points' });
+  assert.equal(result.features.length, 67);
+  assert.equal(result.features.reduce((sum, feature) => sum + feature.properties.heat_value, 0), 4930);
+  assert.equal(result.meta.retained_county_status, 'available');
+  assert.equal(result.geography_manifest_sha256, (await store.getCatalog()).geography_manifest_sha256);
+  const names = await store.listBusinessNames({ zipCode: '43215', categoryId: 'childcare' });
+  assert.equal(names.total, 19);
+  for (const row of names.records) {
+    assert.equal(row.source_id, 'oh-dcy-publisher-open-childcare-centers');
+    assert.equal(row.governed_geographic_assignment_eligible, false);
+    assert.equal(row.identity_matching_eligible, false);
+    assert.equal(row.address.zip_code, '43215');
+    assert.equal(row.export_policy, 'local-review-only');
+  }
+});
 
 test("TN missing ZIP names and source evidence remain in state shares without inferred ZIP maps", async context => {
   for (const fresh of [false, true]) for (const allMissing of [false, true]) {

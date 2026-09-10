@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
 import RetainedChildcarePanel from './retained-childcare-panel';
+import RetainedCountyPanel from './retained-county-panel';
 
 type Category = { id: string; label: string; group_id?: string; group_label?: string; business_name_drilldown: boolean };
 type Enhancer = { id: string; label: string; kind: string };
@@ -10,6 +11,7 @@ type Catalog = {
   available: boolean;
   coverage_release_id: string;
   geography_release_id: string;
+  geography_manifest_sha256?: string;
   gdp_release_id: string | null;
   categories: Category[];
   category_groups: Array<{ id: string; label: string; categories: Category[] }>;
@@ -51,10 +53,12 @@ type MapProperties = {
   state_fips?: string;
   county_geoid?: string;
   heat_value: number | null;
+  retained_childcare_county_status?: string;
   scope_assignment: string;
 };
 type MapFeature = { type: 'Feature'; geometry: { type: string; coordinates: unknown }; properties: MapProperties };
 type MapResponse = {
+  geography_manifest_sha256?: string;
   available: boolean;
   type: 'FeatureCollection';
   level: 'states' | 'counties' | 'zips';
@@ -251,16 +255,17 @@ function heatColor(value: number | null, maximum: number, selected: boolean) {
   return `hsl(${hue} 78% ${lightness}%)`;
 }
 
-function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLabel, onSelect }: {
+function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelect }: {
   data: MapResponse;
   selectedGeoid: string;
   categoryLabel: string;
-  enhancerId: string;
   enhancerLabel: string;
   onSelect: (feature: MapFeature) => void;
 }) {
   const [zoom, setZoom] = useState(selectedGeoid ? 1.8 : 1);
-  const [hovered, setHovered] = useState<MapProperties | null>(null);
+  const [hoveredGeoid, setHoveredGeoid] = useState<string | null>(null);
+  const hovered = data.features.find(feature => feature.properties.geoid === hoveredGeoid)?.properties;
+  const enhancerId = data.enhancer_id;
   const paths = useMemo(() => {
     const project = projector(data.level, data.features);
     return data.features.map((feature) => ({ feature, d: geometryPath(feature, project) }));
@@ -292,23 +297,31 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerId, enhancerLa
               tabIndex={0}
               role="button"
               aria-pressed={selectedGeoid === feature.properties.geoid}
-              aria-label={`${feature.properties.name}; ${count(feature.properties.observed_business_units)} observed provisional business units; ${count(feature.properties.business_count)} selected-category evidence records; ${alignmentLabel(feature.properties)} ${percent(feature.properties.relative_coverage_alignment_percent)}`}
+              aria-label={enhancerId === 'retained_childcare_county_points'
+                ? `${feature.properties.name}; ${count(feature.properties.heat_value)} assigned retained childcare source points; ${feature.properties.retained_childcare_county_status?.replaceAll('-', ' ')}; not verified business locations`
+                : `${feature.properties.name}; ${count(feature.properties.observed_business_units)} observed provisional business units; ${count(feature.properties.business_count)} selected-category evidence records; ${alignmentLabel(feature.properties)} ${percent(feature.properties.relative_coverage_alignment_percent)}`}
               onClick={() => onSelect(feature)}
               onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(feature); } }}
-              onMouseEnter={() => setHovered(feature.properties)}
-              onMouseLeave={() => setHovered(null)}
-              onFocus={() => setHovered(feature.properties)}
-              onBlur={() => setHovered(null)}
+              onMouseEnter={() => setHoveredGeoid(feature.properties.geoid)}
+              onMouseLeave={() => setHoveredGeoid(null)}
+              onFocus={() => setHoveredGeoid(feature.properties.geoid)}
+              onBlur={() => setHoveredGeoid(null)}
             />
           ))}
         </g>
       </svg>
       <div className="heatmap-legend"><span>Lower</span><i /><i /><i /><i /><i /><span>Higher</span></div>
+      {enhancerId === 'retained_childcare_county_points' && <p className="entity-method-note">PA source-point relationships only; other states and ZIP-level values are unavailable. Not verified business locations or industry completeness.</p>}
       {hovered && <div className="map-tooltip">
         <strong>{hovered.postal_abbreviation || hovered.name}</strong>
         <span>{hovered.name} · {categoryLabel}</span>
-        <b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
+        {enhancerId === 'retained_childcare_county_points' ? <>
+          <b>{count(hovered.heat_value)} <small>assigned retained childcare source points</small></b>
+          <small>{hovered.retained_childcare_county_status?.replaceAll('-', ' ')}. Business-location accuracy and completeness are unverified.</small>
+          <dl><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}</dd></div></dl>
+        </> : <><b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
         <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}<small>{employerNote(hovered)}</small></dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}<small>{demographicNote(hovered, 'population')}</small></dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}<small>{demographicNote(hovered, 'housing')}</small></dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
+        </>}
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
     </div>
@@ -361,12 +374,14 @@ function BusinessNames({ selectedZip, stateFips, stateName, categoryId, canDrill
   );
 }
 
-function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip }: {
+function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip, geographyHash, mapRevision }: {
   feature: MapFeature | null;
   category: Category | undefined;
   stateSummary: StateSummary | null;
   stateFips: string;
   selectedZip: string;
+  geographyHash?: string;
+  mapRevision?: MapResponse|null;
 }) {
   const properties = feature?.properties;
   const selectedStateFips = properties?.level === 'state' ? properties.geoid : properties?.state_fips || stateFips;
@@ -381,6 +396,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}
       {stateSummary?.available && <section className="state-alignment-card">
         <div><span>National category share</span><strong>{category?.label ?? 'All source categories'}</strong></div>
@@ -415,7 +431,8 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
 export default function BusinessIntelligence() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
-  const [data, setData] = useState<MapResponse | null>(null);
+  const [savedData, setData] = useState<MapResponse | null>(null);
+  const [dataSelection, setDataSelection] = useState('');
   const [stateSummary, setStateSummary] = useState<StateSummary | null>(null);
   const [stateFeature, setStateFeature] = useState<MapFeature | null>(null);
   const [countyFeature, setCountyFeature] = useState<MapFeature | null>(null);
@@ -431,6 +448,8 @@ export default function BusinessIntelligence() {
   const [countyName, setCountyName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const selectionKey = JSON.stringify([categoryId, enhancerId, level, stateFips, countyGeoid, minPopulation, minHousingUnits]);
+  const data = dataSelection === selectionKey ? savedData : null;
 
   useEffect(() => {
     void request<Catalog>('/api/business-map/catalog').then(setCatalog).catch((reason) => setError(reason instanceof Error ? reason.message : 'Unable to load map catalog.'));
@@ -451,13 +470,14 @@ export default function BusinessIntelligence() {
       void request<MapResponse>(`/api/business-map/features?${parameters}`).then((result) => {
         if (cancelled) return;
         setData(result);
+        setDataSelection(selectionKey);
         setStateFeature((current) => reconcileFeature(current, result));
         setCountyFeature((current) => reconcileFeature(current, result));
         setZipFeature((current) => reconcileFeature(current, result));
       }).catch((reason) => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Unable to load map.'); }).finally(() => { if (!cancelled) setLoading(false); });
     }, 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [catalog, categoryId, countyGeoid, enhancerId, level, minHousingUnits, minPopulation, stateFips]);
+  }, [catalog, categoryId, countyGeoid, enhancerId, level, minHousingUnits, minPopulation, stateFips, selectionKey]);
 
   const activeCategory = catalog?.categories?.find(({ id }) => id === categoryId);
   const activeEnhancer = catalog?.enhancers?.find(({ id }) => id === enhancerId);
@@ -506,11 +526,11 @@ export default function BusinessIntelligence() {
         <div className="map-stage">
           <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>ZIP {selectedZip}</strong></>}</nav>
           {loading && <div className="map-loading overlay">Loading {level} polygons and evidence…</div>}
-          {data && <FeatureMap key={`${data.level}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerId={enhancerId} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
+          {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed ZCTAs materially intersect the selected county; their direct ZIP values are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
         </div>
-        <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} />
+        <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} geographyHash={data?.geography_manifest_sha256} mapRevision={data} />
       </div>}
     </section>
   );

@@ -7,6 +7,7 @@ import { createGunzip, gunzipSync } from "node:zlib";
 import { APP_ROOT } from "./paths.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 
@@ -133,6 +134,7 @@ const CATEGORY_DEFINITIONS = Object.freeze([
 ]);
 
 const ENHANCERS = Object.freeze([
+  { id: "retained_childcare_county_points", label: "Retained childcare county points (PA)", kind: "source-candidate" },
   { id: "business_count", label: "Observed business evidence", kind: "business" },
   { id: "population_2020", label: "2020 Census population", kind: "population" },
   { id: "housing_units_2020", label: "2020 Census housing units", kind: "demographic" },
@@ -319,8 +321,8 @@ function addAggregate(target, zip) {
   target.area_land_m2 += zip.area_land_m2;
   if (zip.employer_establishments !== null) target.employer_establishments += zip.employer_establishments;
   target.employer_known_zcta_count += zip.employer_known_zcta_count;
-  target.observed_business_units += zip.observed_business_units;
-  target.observed_physical_sites += zip.observed_physical_sites;
+  target.observed_business_units += zip.observed_business_units - (zip.jurisdiction_assignment_ineligible_count ?? 0);
+  target.observed_physical_sites += zip.observed_physical_sites - (zip.jurisdiction_assignment_ineligible_count ?? 0);
   target.observed_organization_primary_locations += zip.observed_organization_primary_locations;
   target.zcta_count += zip.zcta_count;
 }
@@ -480,14 +482,24 @@ export function createBusinessMapStore({
   const geometryCache = new Map();
 
   async function buildIndex(coverage, geography, gdp) {
-    const tnCoverage = ["2.9.0", "2.10.0"].includes(coverage.manifest.publisher?.version);
-    if (tnCoverage && coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN map coverage publisher identity differs.");
-    if (coverage.manifest.publisher?.version === "2.10.0") {
-      const registryPins = coverage.manifest.dependencies?.filter(d => d.dataset_id === "national-business-registry") ?? [];
-      if (registryPins.length !== 1 || registryPins[0].publisher_version !== "2.14.0") throw new Error("Fresh TN map requires exact registry 2.14 and coverage 2.10 pairing.");
+    const compatibility = mapReportingCompatibility(coverage.manifest);
+    const tnCoverage = compatibility.tennessee;
+    if (compatibility.ohio) {
+      const pin = coverage.manifest.dependencies.find(item => item.dataset_id === "national-business-registry");
+      const descriptors = coverage.manifest.artifacts.filter(item => item.artifact_type === "retained-registry-manifest-json");
+      const descriptor = descriptors[0];
+      if (descriptors.length !== 1 || descriptor.path !== "evidence/registry-manifest.json" || descriptor.export_policy !== "internal"
+        || descriptor.sha256 !== pin.manifest_sha256) throw new Error("Map retained registry declaration differs.");
+      const { ohioBoundedRead } = await import("./oh-childcare-release.mjs");
+      const raw = await ohioBoundedRead(path.join(coverage.releaseDirectory, descriptor.path), 4_000_000);
+      if (raw.length !== descriptor.bytes || createHash("sha256").update(raw).digest("hex") !== descriptor.sha256) throw new Error("Map retained registry checksum differs.");
+      const declared = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw));
+      if (declared.dataset_id !== pin.dataset_id || declared.release_id !== pin.release_id || declared.publisher?.id !== "national-business-registry"
+        || declared.publisher.version !== compatibility.registryVersion || declared.status !== "published-partial"
+        || declared.complete_national_business_registry !== false || declared.tn_childcare_origin !== coverage.manifest.tn_childcare_origin) throw new Error("Map retained registry identity or origin differs.");
     }
     async function readCoverage(file, visitor) {
-      if (!tnCoverage) return readJsonLines(file, visitor);
+      if (!tnCoverage && !compatibility.ohio) return readJsonLines(file, visitor);
       const artifacts = coverage.manifest.artifacts.filter(item => path.resolve(coverage.releaseDirectory, item.path) === file);
       if (artifacts.length !== 1) throw new Error("TN coverage artifact descriptor differs.");
       const artifact = artifacts[0];
@@ -600,6 +612,12 @@ export function createBusinessMapStore({
         has_zcta: hasZcta,
         zcta_count: hasZcta ? 1 : 0,
       };
+      if (compatibility.ohio) {
+        const ineligible = row.registry_coverage?.oh_childcare_center_site_count;
+        if (!Number.isSafeInteger(ineligible) || ineligible < 0 || ineligible > zip.observed_business_units
+          || ineligible > zip.observed_physical_sites) throw new Error("Ohio ZIP assignment exclusion cannot be reconciled.");
+        zip.jurisdiction_assignment_ineligible_count = ineligible;
+      }
       zips.set(code, zip);
       for (const stateId of stateIds) {
         if (!zipsByState.has(stateId)) zipsByState.set(stateId, new Set());
@@ -660,7 +678,7 @@ export function createBusinessMapStore({
       }
       if (stateMissing !== totals.without_zip || countyMissing > stateMissing) throw new Error("TN map missing-ZIP totals differ.");
     }
-    return { coverage, geography, gdp, states, stateCoverage, countyCoverage, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
+    return { coverage, geography, gdp, compatibility, states, stateCoverage, countyCoverage, stateGdp, countyGdp, zips, zipsByState, zipsByCounty, stateAggregates, countyAggregates, excluded };
   }
 
   async function ensureIndex() {
@@ -676,7 +694,7 @@ export function createBusinessMapStore({
         throw new Error("BEA GDP geography dependency does not match the active governed geography release.");
       }
     }
-    const key = `${coverage.manifest.release_id}:${geography.manifest.release_id}:${gdp?.manifest.release_id ?? "no-gdp"}`;
+    const key = `${coverage.manifest.release_id}:${coverage.manifestSha256}:${geography.manifest.release_id}:${geography.manifestSha256}:${gdp?.manifestSha256 ?? "no-gdp"}`;
     if (key !== indexKey) {
       indexKey = key;
       geometryCache.clear();
@@ -689,7 +707,15 @@ export function createBusinessMapStore({
     return indexPromise;
   }
 
-  async function geoJson(index, relativePath) {
+  async function geoJson(index, relativePath, verify = false) {
+    if (verify) {
+      const artifact = index.geography.manifest.artifacts.find(item => item.path === relativePath);
+      if (!artifact) throw new Error('Governed county layer geometry is not declared.');
+      const { mnSelectionReadJson: boundedRead } = await import('./mn-construction-retained-selection.mjs');
+      const meter = {}, parsed = await boundedRead(artifactPath(index.geography, item => item.path === relativePath, relativePath), 20_000_000, undefined, meter);
+      if (meter.sha256 !== artifact.sha256 || meter.bytes !== artifact.bytes || parsed.type !== 'FeatureCollection' || !Array.isArray(parsed.features)) throw new Error('Governed county layer geometry failed integrity checks.');
+      return parsed;
+    }
     if (geometryCache.has(relativePath)) return geometryCache.get(relativePath);
     const filePath = artifactPath(index.geography, (item) => item.path === relativePath, relativePath);
     const parsed = JSON.parse(await readFile(filePath, "utf8"));
@@ -717,6 +743,7 @@ export function createBusinessMapStore({
       available: true,
       coverage_release_id: index.coverage.manifest.release_id,
       geography_release_id: index.geography.manifest.release_id,
+      geography_manifest_sha256: index.geography.manifestSha256,
       gdp_release_id: index.gdp?.manifest.release_id ?? null,
       export_policy: index.coverage.manifest.export_policy,
       complete_all_businesses: false,
@@ -757,18 +784,18 @@ export function createBusinessMapStore({
     let alignmentPeerMedian;
     let alignmentPeerScope;
     if (level === "states") {
-      collection = await geoJson(index, "source/states.geojson");
+      collection = await geoJson(index, "source/states.geojson", enhancerId === 'retained_childcare_county_points');
       features = collection.features.filter((feature) => index.states.get(String(feature.properties?.GEOID ?? ""))?.is_50_states_or_dc).map((feature) => {
         const geoid = String(feature.properties?.GEOID ?? "");
         return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "state",
-          scope_assignment: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
+          scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
           ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
           ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
       });
       meta = {
-        assignment_semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
+        assignment_semantics: index.compatibility.tennessee ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
@@ -778,20 +805,20 @@ export function createBusinessMapStore({
       alignmentPeerScope = "50 states and District of Columbia peer";
     } else if (level === "counties") {
       const state = fips(stateFips, 2, "state_fips");
-      collection = await geoJson(index, `source/counties/state=${state}.geojson`);
+      collection = await geoJson(index, `source/counties/state=${state}.geojson`, enhancerId === 'retained_childcare_county_points');
       features = collection.features.map((feature) => {
         const geoid = String(feature.properties?.GEOID ?? "");
         return decorate(feature, index.countyAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
           level: "county",
           state_fips: state,
-          scope_assignment: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
+          scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
           ...nonemployerProperties(index.countyCoverage.get(geoid), "county"),
           ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
       });
       meta = {
         state_fips: state,
-        assignment_semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
+        assignment_semantics: index.compatibility.tennessee ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.county.ambiguous,
         excluded_unmatched_zip_count: index.excluded.county.unmatched,
         excluded_ambiguous_business_evidence: index.excluded.county.ambiguous_business_evidence,
@@ -842,6 +869,21 @@ export function createBusinessMapStore({
     const unfilteredFeatureCount = features.length;
     if (populationFloor !== null) features = features.filter((feature) => feature.properties.population_2020 !== null && feature.properties.population_2020 >= populationFloor);
     if (housingFloor !== null) features = features.filter((feature) => feature.properties.housing_units_2020 !== null && feature.properties.housing_units_2020 >= housingFloor);
+    let retainedCountyStatus;
+    if (enhancerId === 'retained_childcare_county_points') {
+      const { loadRetainedCountyDisplay, retainedCountyMetric } = await import('./retained-childcare-county-display.mjs');
+      let countyData;
+      try { countyData = await loadRetainedCountyDisplay(); } catch { countyData = { status: 'verification-failed' }; }
+      retainedCountyStatus = countyData.status;
+      features = features.map(feature => {
+        const metric = retainedCountyMetric(countyData, { level: feature.properties.level, geoid: feature.properties.geoid,
+          categoryId, geographyManifestSha256: index.geography.manifestSha256 });
+        return { ...feature, properties: { ...feature.properties, heat_value: metric.value,
+          retained_childcare_county_rows: metric.value, retained_childcare_county_status: metric.status,
+          relative_coverage_alignment_percent: null,
+          relative_coverage_alignment_basis: 'Not applicable to retained source-point relationships; no business-universe completeness estimate.' } };
+      });
+    }
     const heatValues = features.map((feature) => feature.properties.heat_value).filter(Number.isFinite);
     return {
       available: true,
@@ -851,9 +893,11 @@ export function createBusinessMapStore({
       enhancer_id: enhancerId,
       coverage_release_id: index.coverage.manifest.release_id,
       geography_release_id: index.geography.manifest.release_id,
+      geography_manifest_sha256: index.geography.manifestSha256,
       gdp_release_id: index.gdp?.manifest.release_id ?? null,
       meta: {
         ...meta,
+        ...(retainedCountyStatus ? { retained_county_status: retainedCountyStatus } : {}),
         feature_count: features.length,
         unfiltered_feature_count: unfilteredFeatureCount,
         filtered_out_feature_count: unfilteredFeatureCount - features.length,
@@ -924,7 +968,7 @@ export function createBusinessMapStore({
       },
       states,
       assignment: {
-        semantics: ["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version) ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
+        semantics: index.compatibility.tennessee ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
         percentage_semantics: "Category shares are null when their denominator is zero or unavailable; a numeric zero means a measured zero numerator over a positive denominator.",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
@@ -962,11 +1006,18 @@ export function createBusinessMapStore({
     const reportingArtifacts = registry.manifest.artifacts.filter((item) => item.artifact_type === "business-reporting-location-evidence-jsonl-gzip" && item.path === reportingSuffix);
     if (reportingArtifacts.length > 1) throw new Error("Duplicate reporting name partition.");
     const reportingArtifact = reportingArtifacts[0];
-    if (missingZipOnly && index.coverage.manifest.coverage?.tn_childcare_reporting?.without_zip > 0 && !reportingArtifact) throw new Error("Missing unassigned TN name partition.");
+    if (missingZipOnly && ((index.coverage.manifest.coverage?.tn_childcare_reporting?.without_zip ?? 0)
+      + (index.coverage.manifest.coverage?.oh_childcare_reporting?.without_zip ?? 0)) > 0 && !reportingArtifact) throw new Error("Missing unassigned childcare name partition.");
     if (reportingArtifact) {
       files.push({ rows: await readReportingRows(registry, reportingArtifact), reporting: true });
     }
     const categoryBySource = new Map(CATEGORY_DEFINITIONS.flatMap((item) => item.source_ids.map((sourceId) => [sourceId, item.id])));
+    const OH_SOURCE = "oh-dcy-publisher-open-childcare-centers";
+    // Names are reported-address evidence, not input to the county/ZCTA aggregation.
+    if (index.compatibility.ohio && ["all", "childcare"].includes(categoryId)) sourceIds.add(OH_SOURCE);
+    categoryBySource.set(OH_SOURCE, "childcare");
+    let ohioContext = null, ohioApi = null;
+    const ohioSites = new Set(), ohioRecords = new Set();
     const records = [];
     const seen = new Set();
     const tnSites = new Set(), tnSourceRecords = new Set();
@@ -979,11 +1030,27 @@ export function createBusinessMapStore({
     for await (const line of file.rows ?? lines) {
       if (!line) continue;
       const row = file.reporting ? line : JSON.parse(line);
-      if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+      if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
-        if (row.source?.source_id === TN_SOURCE) {
-          const freshTn = index.coverage.manifest.publisher?.version === "2.10.0";
-          if (registry.manifest.publisher?.version !== (freshTn ? "2.14.0" : "2.13.0") || !["2.9.0", "2.10.0"].includes(index.coverage.manifest.publisher?.version)) throw new Error("TN names require the exact registry/coverage pair: recovered 2.13/2.9 or fresh 2.14/2.10.");
+        if (row.source?.source_id === OH_SOURCE) {
+          if (!index.compatibility.ohio || registry.manifest.publisher?.version !== "2.15.0"
+            || registry.manifest.tn_childcare_origin !== index.coverage.manifest.tn_childcare_origin) throw new Error("Ohio names require exact registry/coverage pairing and origin.");
+          const pins = index.coverage.manifest.dependencies.filter(item => item.dataset_id === "national-business-registry");
+          if (pins.length !== 1 || pins[0].release_id !== registry.manifest.release_id || pins[0].manifest_sha256 !== registry.manifestSha256) throw new Error("Ohio names registry differs from coverage dependency.");
+          if (!ohioContext) {
+            ohioApi = await import("./oh-childcare-coverage-evidence.mjs");
+            ohioContext = await ohioApi.loadOhioCoverageContext(registry.manifest);
+            const { isDeepStrictEqual } = await import("node:util");
+            if (!isDeepStrictEqual(index.coverage.manifest.oh_childcare_source, ohioContext.input.source)) throw new Error("Ohio map source declaration differs.");
+          }
+          ohioApi.validateOhChildcareGeographicEvidence(row, ohioContext.input.verificationContext);
+          if (reportingArtifact.export_policy !== "local-review-only" || reportingSuffix !== `reporting/location-evidence/zip2=${row.zip_code?.slice(0, 2) ?? "unassigned"}/records.jsonl.gz`) throw new Error("Ohio name partition or policy differs.");
+          if (ohioSites.has(row.site_entity_id) || ohioRecords.has(row.source.source_record_id)) throw new Error("Duplicate Ohio name evidence.");
+          ohioSites.add(row.site_entity_id); ohioRecords.add(row.source.source_record_id);
+        } else if (row.source?.source_id === TN_SOURCE) {
+          const freshTn = index.compatibility.freshTn;
+          if (registry.manifest.publisher?.version !== index.compatibility.registryVersion || !index.compatibility.tennessee
+            || (index.compatibility.ohio && registry.manifest.tn_childcare_origin !== index.coverage.manifest.tn_childcare_origin)) throw new Error("TN names require the exact registry/coverage pair and origin.");
           (freshTn ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row);
           if (registry.manifest.publisher.id !== "national-business-registry" || index.coverage.manifest.publisher.id !== "national-business-coverage-views") throw new Error("TN names publisher identity differs.");
           const registryPins = index.coverage.manifest.dependencies?.filter(item => item.dataset_id === "national-business-registry") ?? [];
@@ -994,7 +1061,7 @@ export function createBusinessMapStore({
           const dependencies = registry.manifest.dependencies?.filter(item => item.dataset_id === TN_SOURCE) ?? [];
           if (dependencies.length !== 1 || dependencies[0].release_id !== row.evidence.release_id || dependencies[0].manifest_sha256 !== row.evidence.manifest_sha256) throw new Error("TN names source dependency differs.");
         } else validateChildcareGeographicEvidence(row);
-        if (missingZipOnly && (row.source?.source_id !== TN_SOURCE || row.zip_code !== null)) throw new Error("Unassigned name partition must contain only ZIP-unavailable TN evidence.");
+        if (missingZipOnly && (![TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) || row.zip_code !== null)) throw new Error("Unassigned name partition must contain only supported ZIP-unavailable evidence.");
       }
       const sourceId = row.source?.source_id;
       if (row.zip_code !== zip || !sourceIds.has(sourceId)) continue;
@@ -1004,7 +1071,7 @@ export function createBusinessMapStore({
         if (!businessName || (cleanQuery && !businessName.toLocaleLowerCase("en-US").includes(cleanQuery))) continue;
         const address = {
           street: row.address?.street ?? null,
-          ...(sourceId === TN_SOURCE ? { street2: row.address.street2 } : {}),
+          ...([TN_SOURCE, OH_SOURCE].includes(sourceId) ? { street2: row.address.street2 } : {}),
           city: row.address?.city ?? null,
           state: row.address?.state ?? null,
           zip_code: row.address?.zip_code ?? zip,
@@ -1029,11 +1096,13 @@ export function createBusinessMapStore({
           observed_at: row.observed_at ?? null,
           export_policy: row.export_policy ?? "local-review-only",
           ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
+          ...(sourceId === OH_SOURCE ? { governed_geographic_assignment_eligible: false } : {}),
         });
       }
     }
     } finally { lines?.close(); input?.destroy(); decoded?.destroy(); }
     }
+    if (ohioContext) await ohioApi.verifyOhChildcareGeographicMembership(ohioContext.input.rows, ohioContext.input.verificationContext);
     return {
       available: true,
       zip_code: zip,
@@ -1043,8 +1112,10 @@ export function createBusinessMapStore({
       limit: cappedLimit,
       records,
       limitation: categoryId === "all"
-        ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list."
-        : null,
+        ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list. Ohio reported names are not included in geographic category counts."
+        : categoryId === "childcare" && index.compatibility.ohio
+          ? "Ohio names are source-reported address evidence, excluded from geographic category counts and county assignment. This list and the heatmap have different eligible populations."
+          : null,
       registry_release_id: registry.manifest.release_id,
       local_review_only: records.some((record) => record.export_policy !== "public"),
     };

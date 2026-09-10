@@ -409,6 +409,15 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (request.method === 'GET' && url.pathname === '/api/business-map/retained-childcare-counties') {
+      if (url.searchParams.size) { json(response, 400, { error: 'Retained county display takes no query options.' }); return; }
+      try {
+        const { loadRetainedCountyDisplay } = await import('./retained-childcare-county-display.mjs');
+        json(response, 200, await loadRetainedCountyDisplay());
+      } catch { json(response, 503, { error: 'Retained county display could not be verified. No source data was requested.' }); }
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/business-map/retained-childcare') {
       if (url.searchParams.size) { json(response, 400, { error: 'Retained childcare snapshot takes no query options.' }); return; }
       try {
