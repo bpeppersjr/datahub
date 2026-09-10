@@ -36,7 +36,7 @@ Full release validation on September 10, 2026 passed: `npm run check` completed 
 
 The first full run had one test-expectation failure: an attempt timeout could already produce `FAILED` before a later cancellation during draining. The test now accepts either first-observed terminal reason while still requiring zero late fetches, stable sealed receipt bytes and a null acquired record count. This did not require changing the journal's terminal-state behavior. That run is retained in `data/tmp/wi-acquired-journal-full-check.log`; it is not a clean full-suite result.
 
-Next add the separately authorized fixed-native app lifecycle, publisher-wide lock/resource policy and downstream reuse of verified acquired evidence. The operator's scoped source-use decision remains pending. Do not relabel these injected journals as native runs or repull an eventual verified release merely to normalize or promote it.
+The [development app lifecycle](WI-CHILDCARE-DEVELOPMENT-APP.md) now connects this journal to isolated offline normalization, durable app checkpoints and explicit retained reuse. Its cross-output-root lock covers the development app entry, not arbitrary calls to this lower-level journal. Native collection, native publisher/resource policy and managed enrollment remain separate unfinished work. The operator's scoped source-use decision remains pending. Do not relabel these injected journals as native runs or repull an eventual verified release merely to normalize or promote it.
 
 The local management preview was restored after validation and returned HTTP 200. No browser visual inspection was performed; the existing scheduler-unavailable state was left unchanged.
 
