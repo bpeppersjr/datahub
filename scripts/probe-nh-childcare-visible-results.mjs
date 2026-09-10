@@ -7,7 +7,7 @@ import { mnSelectionCanonical as canonical, mnSelectionWriter as createWriter, m
 import { createCliCancellation } from '../runner/cli-cancellation.mjs';
 import { nhSearchResultCount } from '../runner/nh-childcare-export-workflow.mjs';
 import { NH_VISIBLE_SCOPE as S, NH_VISIBLE_LIMITS as L, inspectNhVisibleResults, profileNhVisibleResults } from '../runner/nh-childcare-visible-results.mjs';
-import { createNhBrowserNetworkGuard } from '../runner/nh-childcare-browser-network.mjs';
+import { createNhVisibleNetworkGuard } from '../runner/nh-childcare-browser-network.mjs';
 import { projectNhVisibleCards } from '../runner/nh-childcare-visible-dom.mjs';
 
 const args = process.argv.slice(2);
@@ -20,12 +20,13 @@ if (args.length === 1 && args[0] === '--help') {
   const runId = randomUUID(), root = path.join(APP_ROOT, 'data/business-sources/nh-childcare/visible-result-probes');
   const directory = path.join(root, runId), transient = path.join(directory, 'browser-transient');
   const policyPath = path.join(APP_ROOT, 'config/source-policies/nh-childcare-visible-internal.json');
-  const network = createNhBrowserNetworkGuard(signal);
+  const network = createNhVisibleNetworkGuard(signal);
   let context, transientOwner, writer, observation, policy, policyHash, downloadCount = 0, submissions = 0, closeOnAbort, browserClosed = false;
   const receipt = { schema_version: 'nh-visible-result-prerequisite@1.0.0', run_id: runId,
     execution_mode: 'native-playwright-public-ui', started_at: new Date().toISOString(), status: 'failed-needs-inspection',
     scope: { ...S, zip4: null, search_submissions_max: 1, downloads_max: 0, detail_navigation: false },
     limits: { elapsed_ms: 90000, routed_requests: 120, selected_rows: L.rows, projection_bytes: L.projection_bytes,
+      network_settle_timeout_ms: 20000, cleanup_may_exceed_acquisition_deadline: true,
       hard_network_byte_cap: false, hard_browser_disk_cap: false },
     collection_ready: false, current_operations_verified: false, statewide_completeness_verified: false,
     public_export_authorized: false, national_reporting_integrated: false, export_policy: 'internal',
@@ -86,6 +87,8 @@ if (args.length === 1 && args[0] === '--help') {
         submissions++; await page.getByRole('button', { name: 'Search', exact: true }).click();
         await page.waitForFunction(() => /^(?:Successfully fetched\s+)?\d+\s+results?/i.test(document.querySelector('#searchResultCount')?.textContent?.trim() ?? '')); }, state,
     }, { signal });
+    receipt.selected_contract_verified = true;
+    receipt.selected_contract_rows = observation.source_rows;
     signal.throwIfAborted();
     if (network.snapshot().denied || downloadCount || page.url() !== S.url || context.pages().length !== 1) throw Error('Browser scope changed.');
     receipt.observed_at = new Date().toISOString(); receipt.status = 'visible-results-observed-not-collection-ready';
@@ -93,9 +96,11 @@ if (args.length === 1 && args[0] === '--help') {
   } catch {
     receipt.status = 'failed-needs-inspection'; receipt.failure = signal.aborted ? 'cancelled-or-deadline' : 'public-ui-contract-not-satisfied'; process.exitCode = 1;
   } finally {
-    receipt.network_before_close = { ...network.snapshot(), failures: network.diagnostics() };
+    receipt.network_before_close = { ...network.snapshot(), pending_requests: network.pendingRequests(), failures: network.diagnostics() };
+    network.beginClose();
     try {
-      await context?.close(); browserClosed = true; signal.removeEventListener('abort', closeOnAbort ?? (() => {}));
+      await context?.close(); browserClosed = true; await network.settle();
+      signal.removeEventListener('abort', closeOnAbort ?? (() => {}));
       if (network.snapshot().denied || downloadCount || signal.aborted) throw Error('Final scope changed.');
     } catch { receipt.status = 'failed-needs-inspection'; receipt.failure ??= 'final-browser-scope-not-satisfied';
       receipt.final_browser_scope_satisfied = false; process.exitCode = 1; }
@@ -111,6 +116,8 @@ if (args.length === 1 && args[0] === '--help') {
       receipt.retained_browser_scratch = null; process.exitCode = 1; }
     receipt.routed_requests = network.snapshot().requests; receipt.network_scope_denied = network.snapshot().denied;
     receipt.network_failures = network.diagnostics();
+    receipt.pending_network_handlers = network.pendingRequests();
+    receipt.excluded_resources = network.exclusions(); receipt.shutdown_network_failures = network.shutdownDiagnostics();
     receipt.download_events = downloadCount; receipt.search_submissions = submissions; receipt.finished_at = new Date().toISOString();
     cancellation.dispose();
     try {

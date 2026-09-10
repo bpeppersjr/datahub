@@ -62,3 +62,27 @@ The network guard's enforcement and host allowlist are unchanged. Its next diagn
 The revised projector and network diagnostics passed 14 focused checks with `DATAHUB_TEST_NH_VISIBLE_DOM=1`. The browser fixture is opt-in and must not be claimed as passed by a default run that skips it. A successful live projection with this corrected selector remains unverified; no further live lookup was made after these changes. The New Hampshire source is still not enrolled or collection-ready.
 
 Final full-suite validation for this revision passed: 1,779 tests, 1,768 passed, 11 skipped, zero failures; lint, web/desktop builds and desktop control-plane smoke passed. `DATAHUB_TEST_NH_VISIBLE_DOM=1` was enabled alongside the previous PDF, Iowa reporting, retained-cohort, Overture runtime and Oklahoma inventory flags. The log explicitly records the offline browser test passing: `data/tmp/nh-visible-dom-check.log`. Separate type checking passed and the production dependency audit found zero vulnerabilities. Oklahoma's approved scope hash remained unchanged. No source policy, host allowlist, schedule, production pointer, dependency or hosting configuration was broadened.
+
+## Live selector validation and excluded-resource boundary
+
+Run `e4bbabbb-6a94-41b9-a32b-a43b286498c8` tested the corrected selector at `2026-09-10T17:45:35.549Z`–`2026-09-10T17:45:38.080Z`. Its manifest is `data/business-sources/nh-childcare/visible-result-probes/e4bbabbb-6a94-41b9-a32b-a43b286498c8/manifest.json`, SHA-256 `d5cdfa7a6dd8122904ec622aae26f5ac1b93c4918496070bb99384c96cea3e69`.
+
+The run showed six displayed and visible cards, correct query controls, and **zero DOM projection rejections**. It still failed overall, retained no accepted source rows, and verified browser cleanup. There was one search submission and 72 routed requests, with no downloads. The old receipt does not independently establish a successful selected-object profile, because it did not separately record that stage.
+
+The newly identified local blocks were:
+
+- `www.google-analytics.com`: script and fetch;
+- `translate.googleapis.com`: script;
+- `maps.google.com`: five image requests.
+
+All eight were rejected locally as unsupported hosts, before fetching. Five additional transport failures were observed during browser closure. These are not evidence of publisher HTTP access denials.
+
+The visible-only network guard now continues to abort the exact host/type pairs above and records them as deliberate exclusions, not publisher failures. It does **not** add hosts to the fetch allowlist. Non-HTTPS, credential-bearing, port-bearing, over-budget and cancelled requests cannot take this exclusion path. Other unsupported hosts or resource types remain fatal. The legacy CSV probe still uses the original strict guard.
+
+The visible probe records a close boundary after selected-result validation. Transport/fulfill failures observed after that boundary are classified separately as shutdown uncertainty; prior failures and all scope, redirect and access-policy denials remain fatal. After closing the browser it waits up to 20 seconds for tracked route handlers, including disposal, to settle before final verification. A late HTTP denial therefore cannot be missed merely because its handler was still pending. Timeout fails the run; cleanup may exceed the 90-second acquisition deadline. This is not proof that every background resource completed successfully.
+
+The policy file records these exact exclusions and shutdown limits. New receipts separately identify successful selected-object validation, excluded resources, shutdown failures and remaining handlers. This change does not permit raw HTML, contacts, secrets, map coordinates or public export.
+
+Seventeen focused tests passed, including exact exclusions without fetching, forbidden variants, preservation of pre-close failures, legacy behavior and a late HTTP 403 held through response disposal. No further live lookup was made after these changes. Collection readiness and native successful retention remain unverified.
+
+Final `npm run check` passed for this revision: 1,782 tests, 1,771 passed, 11 skipped, zero failures; lint, web/desktop builds and desktop control-plane smoke passed. The log `data/tmp/nh-visible-exclusions-check.log` includes the final late-denial/settlement test. The offline NH browser fixture and all previously available PDF, Iowa reporting, retained-cohort, Overture runtime and Oklahoma inventory flags were enabled. Separate type checking passed and the production dependency audit found zero vulnerabilities. The approved Oklahoma scope hash remained unchanged; its failed batch was not retried.

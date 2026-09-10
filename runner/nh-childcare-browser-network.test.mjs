@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createNhBrowserNetworkGuard as guard } from './nh-childcare-browser-network.mjs';
+import { createNhBrowserNetworkGuard as guard, createNhVisibleNetworkGuard as visible } from './nh-childcare-browser-network.mjs';
 function route(url = 'https://new-hampshire.my.site.com/nhccis/NH_ChildCareSearch', status = 200, fail = false) {
   const calls = [];
   return { calls, request: () => ({ url: () => url }),
@@ -47,4 +47,40 @@ test('NH local scope diagnostics expose only bounded DNS and categorical resourc
   assert.equal(credential.diagnostics()[0].scope_reason, 'credentials'); assert.equal(credential.diagnostics()[0].host, null);
   const protocol = guard(); await protocol.route(route('http://assets.example.org/PRIVATE'));
   assert.equal(protocol.diagnostics()[0].scope_reason, 'protocol');
+});
+test('NH visible exclusions abort only exact nonessential host/type combinations without fetching', async () => {
+  for (const [host, type] of [['www.google-analytics.com', 'script'], ['www.google-analytics.com', 'fetch'],
+    ['translate.googleapis.com', 'script'], ['maps.google.com', 'image']]) {
+    const g = visible(), r = route(); r.request = () => ({ url: () => `https://${host}/PRIVATE?key=PRIVATE`, resourceType: () => type });
+    await g.route(r); assert.deepEqual(r.calls, ['abort']); assert.equal(g.snapshot().denied, false);
+    assert.equal(g.exclusions().length, 1); assert.equal(JSON.stringify(g.exclusions()).includes('PRIVATE'), false);
+    const strict = guard(); await strict.route(r); assert.equal(strict.snapshot().denied, true);
+  }
+  for (const url of ['http://maps.google.com/PRIVATE', 'https://PRIVATE@maps.google.com/PRIVATE', 'https://maps.google.com:444/PRIVATE', 'https://other.example/PRIVATE']) {
+    const g = visible(), r = route(); r.request = () => ({ url: () => url, resourceType: () => 'image' });
+    await g.route(r); assert.equal(g.snapshot().denied, true); assert.deepEqual(g.exclusions(), []);
+  }
+  const g = visible(), r = route(); r.request = () => ({ url: () => 'https://maps.google.com/PRIVATE', resourceType: () => 'document' });
+  await g.route(r); assert.equal(g.snapshot().denied, true);
+});
+test('NH visible shutdown boundary never masks earlier failures or scope/access denials', async () => {
+  const g = visible(); await g.route(route(undefined, 200, true)); g.beginClose();
+  await g.route(route(undefined, 200, true)); assert.equal(g.snapshot().denied, true);
+  assert.equal(g.diagnostics().length, 1); assert.equal(g.shutdownDiagnostics().length, 1);
+  const clean = visible(); clean.beginClose(); await clean.route(route(undefined, 200, true));
+  assert.equal(clean.snapshot().denied, false); assert.equal(clean.shutdownDiagnostics().length, 1);
+  await clean.route(route(undefined, 403)); assert.equal(clean.snapshot().denied, true);
+  const scope = visible(); scope.beginClose(); await scope.route(route('https://other.example/PRIVATE')); assert.equal(scope.snapshot().denied, true);
+  const strict = guard(); strict.beginClose(); await strict.route(route(undefined, 200, true)); assert.equal(strict.snapshot().denied, true);
+});
+test('NH visible settlement waits for late access-policy failure and response disposal', async () => {
+  const g = visible(), r = route(); let deliver, dispose;
+  r.fetch = () => new Promise(resolve => { deliver = resolve; });
+  const pending = g.route(r); assert.equal(g.pendingRequests(), 1); g.beginClose();
+  let settled = false; const idle = g.settle().then(() => { settled = true; });
+  deliver({ status: () => 403, dispose: () => new Promise(resolve => { dispose = resolve; }) });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(g.snapshot().denied, true); assert.equal(settled, false); assert.equal(g.pendingRequests(), 1);
+  dispose(); await pending; await idle; assert.equal(g.pendingRequests(), 0); assert.equal(settled, true);
+  assert.equal(g.diagnostics()[0].status, 403);
 });

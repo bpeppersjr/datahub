@@ -3,6 +3,8 @@
   "publisher": "New Hampshire Department of Health and Human Services public childcare search",
   "allowed_origin": "https://new-hampshire.my.site.com",
   "delivery_scope": "One public UI Licensed Group Child Care Program search for ZIP5 03755; rendered name, observed detail link and visible shipping-address lines only",
+  "excluded_resources": "Never fetch www.google-analytics.com script/fetch, translate.googleapis.com script, or maps.google.com images; these are not required for the English visible business projection. Other unsupported requests remain fatal.",
+  "shutdown_boundary": "Record transport/fulfill failures after explicit browser closure starts separately; preserve all earlier failures and all scope/access-policy denials. This is not proof every background request completed.",
   "allowed_use": "Bounded internal source-contract validation and retained evidence for the requested data hub",
   "publisher_bulk_authorization": "unverified; public lookup access is not a bulk license",
   "retention": "Retain selected business evidence and run provenance internally; remove this invocation's browser scratch after closure; no raw HTML, contacts, cookies, HAR or screenshots retained",
