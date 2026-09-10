@@ -6,7 +6,7 @@ import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
 import { buildStateAccessLedger, writeStateAccessReport } from './state-access-ledger.mjs';
 
-async function fixture(t) {
+async function fixture(t, {retained = false} = {}) {
   const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
   const root = await mkdtemp(path.join(temp, 'state-ledger-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -16,8 +16,35 @@ async function fixture(t) {
   const manifest = JSON.parse(await readFile(path.join(APP_ROOT, manifestPath)));
   const files = [pointerPath, manifestPath, 'config/industry-segments.json', 'config/state-access-workstreams.json', ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
+  // Existing enrollment cases explicitly exercise pre-integration coverage.
+  if (!retained) {
+    delete manifest.retained_childcare_reporting;
+    const artifact = manifest.artifacts.find(a => a.artifact_type === 'state-coverage-view-jsonl');
+    const file = path.join(root,path.dirname(manifestPath),artifact.path);
+    const rows = (await readFile(file,'utf8')).trim().split('\n').map(JSON.parse);
+    for (const row of rows) delete row.retained_childcare_reporting;
+    const bytes = Buffer.from(rows.map(JSON.stringify).join('\n')+'\n');
+    await writeFile(file,bytes); artifact.bytes=bytes.length; artifact.sha256=createHash('sha256').update(bytes).digest('hex');
+    await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
+  }
   return { root, manifestPath, manifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
 }
+
+test('promoted retained childcare counts become direct candidate evidence without assigning unknown address states',async t=>{
+  const f=await fixture(t,{retained:true}),ledger=await buildStateAccessLedger(f);
+  for(const [state,total] of Object.entries({PA:4995,CT:1390,MD:1772,CO:1648,UT:422})){
+    const cell=ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare');
+    assert.equal(cell.accessEvidenceStatus,'direct-state-publisher');
+    const e=cell.evidence.find(e=>e.type==='published-direct-state-candidate-count');
+    assert.equal(e.recordCount,total);assert.equal(e.identityMatchingEligible,false);assert.equal(e.nationalCompletenessPercent,null);
+    assert.equal(cell.appHandoff.jobSubmitted,false);
+  }
+  for(const state of ['VT','IA']){
+    const cell=ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare');
+    assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+    assert.equal(cell.evidence.some(e=>e.type==='published-direct-state-candidate-count'),false);
+  }
+});
 
 test('state ledger has exactly one workstream per state and DC separately without inventing active agents', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);

@@ -3,6 +3,7 @@ import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { APP_ROOT } from "./paths.mjs";
+import { verifySeptember10StateTransition } from './retained-childcare-reassessment.mjs';
 import { assessStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 
 // Explicit reviewed transitions, not automatic acceptance of future releases.
@@ -42,7 +43,17 @@ export const TN_COVERAGE_REASSESSMENT = Object.freeze({
   currentManifestSha256: "213b3c09ba2ec7f32e8f22fadac4f0482521cde2ee99f49d60d16ad3ce8c3276",
   currentStatesSha256: "66d48b510544a68a27093edfd9eb73774f8e65f2ee04e98842151422e26f026d",
 });
-export const COVERAGE_REASSESSMENTS = Object.freeze([INITIAL_REASSESSMENT, DC_REASSESSMENT, COVERAGE_REASSESSMENT, TN_COVERAGE_REASSESSMENT]);
+export const RETAINED_COVERAGE_REASSESSMENT = Object.freeze({
+  ...TN_COVERAGE_REASSESSMENT,
+  id: 'state-coverage-reassessment-20260910-retained-childcare',
+  predecessorRelease: TN_COVERAGE_REASSESSMENT.currentRelease,
+  predecessorManifestSha256: TN_COVERAGE_REASSESSMENT.currentManifestSha256,
+  predecessorStatesSha256: TN_COVERAGE_REASSESSMENT.currentStatesSha256,
+  currentRelease: 'national-business-coverage-views-20260910-150931456Z-e22ce20b',
+  currentManifestSha256: '74caa4757947b5d3e6457775f7d067594398325d8be9b1de3dd6298579df817b',
+  currentStatesSha256: '6773f956fc7e578d41f49ee1c2ede3cc3b65c73d885b2888cc5e953b30a86238',
+});
+export const COVERAGE_REASSESSMENTS = Object.freeze([INITIAL_REASSESSMENT, DC_REASSESSMENT, COVERAGE_REASSESSMENT, TN_COVERAGE_REASSESSMENT, RETAINED_COVERAGE_REASSESSMENT]);
 const REVIEWED_CHILDCARE_ADDITIONS = Object.freeze({ MA: Object.freeze(["ma-licensed-center-based-childcare", 3007]), NJ: Object.freeze(["nj-licensed-childcare-centers", 4075]) });
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const verifiedEligibility = new WeakMap();
@@ -178,7 +189,8 @@ export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) 
   root=path.resolve(root);
   const rows=[];
   const isTennessee = proof.id === TN_COVERAGE_REASSESSMENT.id;
-  for(const side of isTennessee ? ['predecessor','current'] : proof.intermediateRelease ? ['historical','intermediate','current'] : ['historical','current']){
+  const isRetained = proof.id === RETAINED_COVERAGE_REASSESSMENT.id;
+  for(const side of isTennessee || isRetained ? ['predecessor','current'] : proof.intermediateRelease ? ['historical','intermediate','current'] : ['historical','current']){
     const release=proof[`${side}Release`], directory=`data/business-coverage-views/releases/${release}`;
     const manifestBytes=await checkedFile(root,`${directory}/manifest.json`);
     if(hash(manifestBytes)!==proof[`${side}ManifestSha256`])throw new Error("Reassessment manifest evidence changed.");
@@ -192,7 +204,23 @@ export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) 
   }
   const isChildcare = proof.id === COVERAGE_REASSESSMENT.id;
   let states, reviewedTransitionChangedStates=[], historicalEligibilityRows=rows[0];
-  if(isTennessee){
+  if(isRetained){
+    const previous=await loadStateCoverageReassessment({dataset_id:pointer.dataset_id,release_id:proof.predecessorRelease,manifest:`releases/${proof.predecessorRelease}/manifest.json`},{root});
+    if(!isDeepStrictEqual(previous.currentRows,rows[0]))throw new Error('Retained childcare predecessor changed.');
+    verifySeptember10StateTransition(rows[0],rows[1]);
+    states=compareStateCoverageForReassessment(rows[0],rows[0]);
+    for(const state of states){
+      const latest=rows[1].find(row=>row.postal_abbreviation===state.state);
+      if(assessStateBusinessSourceReadiness(latest).source_scope_status!==state.source_scope_status)throw new Error('Unreviewed retained readiness change.');
+      state.historical_coverage=previous.states.find(row=>row.state===state.state).historical_coverage;
+      state.current_coverage=currentCoverageProjection(latest);
+      state.source_profile_counts=latest.registry_evidence.source_profile_counts_by_reported_address_state;
+      state.reviewed_retained_candidate_rows=latest.retained_childcare_reporting.candidate_rows;
+      state.classification_basis='exact-reviewed-september10-transition-current-readiness-policy-1.2.0';
+    }
+    reviewedTransitionChangedStates=['OH'];
+    historicalEligibilityRows=getReviewedHistoricalEligibilityRows(previous,rows[0]);
+  }else if(isTennessee){
     const previous = await loadStateCoverageReassessment({ dataset_id: pointer.dataset_id, release_id: proof.predecessorRelease, manifest: `releases/${proof.predecessorRelease}/manifest.json` }, { root });
     if (!isDeepStrictEqual(previous.currentRows, rows[0]) || previous.currentManifestSha256 !== proof.predecessorManifestSha256 || previous.currentStatesSha256 !== proof.predecessorStatesSha256) throw new Error("Tennessee predecessor proof changed.");
     states=compareTennesseeCoverageForReassessment(rows[0],rows[1]);
@@ -207,9 +235,10 @@ export async function loadStateCoverageReassessment(pointer,{root=APP_ROOT}={}) 
   }else states=compareStateCoverageForReassessment(...rows);
   const result={schemaVersion:1,...proof,states,currentRows:rows.at(-1),sourcePolicyRevalidated:false,sourceDecisionsCarriedForward:true,
     reviewedTransitionChangedStates,
+    ...(isRetained ? {reviewedRetainedCandidateAdditions:{PA:4995,CT:1390,MD:1772,CO:1648,UT:422},retainedCandidatesWithoutReportedState:1979} : {}),
     coverageProjectionChangedStates:states.filter(state=>JSON.stringify(state.historical_coverage)!==JSON.stringify(state.current_coverage)).map(state=>state.state),
-    reviewedIndustryAdditions:isTennessee ? { TN:1863 } : isChildcare ? { MA:3007, NJ:4075 } : {},
-    semantics:isTennessee ? "Exact reviewed MA/NJ-to-Tennessee reporting-only transition under readiness policy 1.2.0; preserves all 172 unavailable ZIPs, three missing points and historical eligibility/holds. No identity matching, source-policy approval, new acquisition authority or complete-business claim."
+    reviewedIndustryAdditions:isRetained ? {OH:4237} : isTennessee ? { TN:1863 } : isChildcare ? { MA:3007, NJ:4075 } : {},
+    semantics:isRetained ? 'Exact reviewed Ohio reporting-only and retained candidate transition. Preserves historical eligibility, source-policy holds and unknown address states. Retained counts are separate from canonical profiles; no acquisition, export, accuracy or completeness approval.' : isTennessee ? "Exact reviewed MA/NJ-to-Tennessee reporting-only transition under readiness policy 1.2.0; preserves all 172 unavailable ZIPs, three missing points and historical eligibility/holds. No identity matching, source-policy approval, new acquisition authority or complete-business claim."
       : isChildcare ? "Explicit reviewed MA/NJ childcare reporting-only addition; current industry scope is derived under policy 1.1.0. Historical broad-registry observations, holds and authorizations remain unchanged. Counts are source rows, not unique businesses or completeness percentages."
       : "Coverage-only reassessment; retain historical source observations, holds and authorizations. Counts are profiles, not business completeness percentages."};
   verifiedEligibility.set(result,{historicalRows:structuredClone(historicalEligibilityRows),currentRowsSha256:hash(JSON.stringify(rows.at(-1)))});

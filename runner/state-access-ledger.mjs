@@ -1,4 +1,5 @@
 import path from "node:path";
+import { retainedChildcareStateCount, RETAINED_CHILDCARE_SOURCE_IDS } from './retained-childcare-state-evidence.mjs';
 import { createHash, randomUUID } from "node:crypto";
 import { access, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
@@ -91,7 +92,7 @@ async function governedStates(root, pointer) {
   if (bytes.length !== artifact.bytes || digest(bytes) !== artifact.sha256) throw new Error("State coverage artifact integrity failed.");
   const rows = bytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.is_50_states_or_dc === true && CANONICAL.has(row.postal_abbreviation));
   if (rows.length !== 51 || new Set(rows.map((row) => row.postal_abbreviation)).size !== 51) throw new Error("Coverage artifact must contain the unique 50 states plus DC.");
-  return { rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
+  return { retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
 }
 
 function validateWorkstreams(config) {
@@ -125,6 +126,14 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
         const applies = source.scope === "national" || source.states.includes(state), positive = Number.isSafeInteger(count) && count > 0;
         if (!applies) continue;
+        const retainedCount = retainedChildcareStateCount(row, coverage.retainedChildcare, key);
+        if (retainedCount > 0) {
+          direct = true;
+          evidence.push({ type: 'published-direct-state-candidate-count', sourceId: RETAINED_CHILDCARE_SOURCE_IDS[key], recordCount: retainedCount,
+            coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath, rowUnit: 'source-candidate-row',
+            addressBasis: 'reported-address-state', identityMatchingEligible: false, physicalSiteVerified: false,
+            currentOperationsVerified: false, exportPolicy: 'internal', nationalCompletenessPercent: null });
+        }
         const reportingOnly = REPORTING_ONLY_SOURCES.has(key);
         if (reportingOnly && count !== undefined && count !== null && (!Number.isSafeInteger(count) || count < 0)) throw new Error("Published childcare reporting count must be a non-negative integer.");
         const missing = await missingPrerequisites(root, source.prerequisites ?? []);
