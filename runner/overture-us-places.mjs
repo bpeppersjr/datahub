@@ -2,13 +2,14 @@ import { createHash, randomUUID } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
 import { copyFile, mkdir, readFile, rename, stat, writeFile, lstat, rm } from "node:fs/promises";
 import path from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { pipeline } from "node:stream/promises";
 import { Transform } from "node:stream";
 import { createGzip } from "node:zlib";
 import { DuckDBInstance } from "@duckdb/node-api";
 import { runOvertureExtraction } from "./overture-extraction-lifecycle.mjs";
 import { streamOvertureGzipRecords } from "./overture-gzip-records.mjs";
-import { mnSelectionCanonical } from "./mn-construction-retained-selection.mjs";
+import { mnSelectionCanonical, mnSelectionReadLines, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
 import { checkOvertureIdentities } from "./overture-identity-check.mjs";
 import { APP_ROOT } from "./paths.mjs";
 import { createOvertureNormalizationBudget } from "./overture-normalization-budget.mjs";
@@ -570,7 +571,7 @@ async function loadZbpBaseline(pointerPath) {
   const buffer = await readFile(filename);
   if (buffer.length !== artifact.bytes || sha256(buffer) !== artifact.sha256) throw new Error("Census ZBP coverage checksum failed.");
   const rows = buffer.toString("utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
-  return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
+  return { rows, buffer, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
 function buildZipCoverage(baselineRows, countsByZip, context) {
@@ -756,7 +757,10 @@ export async function buildOvertureUsPlaces({
   signal?.throwIfAborted();
   const metadataArtifact = await writeArtifact(stagingDirectory, "source/source-metadata.json", json(input.metadata), { artifact_type: "overture-stac-preflight", export_policy: "internal" });
   const noticeArtifact = await writeArtifact(stagingDirectory, "legal/NOTICE.txt", OVERTURE_PLACES_NOTICE, { artifact_type: "overture-place-attribution-notice", distribution_policy: "redistribute-with-derived-artifacts" });
-  const artifacts = [input.artifact, metadataArtifact, noticeArtifact, ...normalizedArtifacts, quarantineArtifact, zipArtifact, summaryArtifact];
+  const baselineArtifact = await writeArtifact(stagingDirectory, "source/normalization-baseline.jsonl", baseline.buffer, {
+    artifact_type: "overture-normalization-baseline", export_policy: "internal", record_count: baseline.rows.length,
+  });
+  const artifacts = [input.artifact, metadataArtifact, noticeArtifact, ...normalizedArtifacts, quarantineArtifact, zipArtifact, summaryArtifact, baselineArtifact];
   const manifest = {
     schema_version: OVERTURE_US_PLACE_SCHEMA_VERSION,
     dataset_id: "overture-us-places",
@@ -766,6 +770,9 @@ export async function buildOvertureUsPlaces({
     status: "complete",
     complete_selected_us_place_snapshot: true,
     created_at: retrievedAt,
+    replay_context: { version: "overture-normalization-replay@1", transformation_version: OVERTURE_US_PLACE_TRANSFORMATION_VERSION,
+      run_id: runId, retrieved_at: retrievedAt, observed_at: context.releaseObservedAt,
+      baseline_manifest_sha256: baseline.manifestSha256, baseline_coverage_sha256: baselineArtifact.sha256 },
     source: {
       publisher: "Overture Maps Foundation", theme: "places", type: "place", overture_release_id: input.metadata.overture_release_id,
       stac_url: OVERTURE_STAC_URL, guide_url: OVERTURE_PLACES_GUIDE_URL, schema_url: OVERTURE_PLACE_SCHEMA_URL,
@@ -802,7 +809,7 @@ export async function buildOvertureUsPlaces({
   signal?.throwIfAborted();
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest));
   signal?.throwIfAborted();
-  await verifyOvertureUsPlaces(path.join(stagingDirectory, "manifest.json"));
+  await verifyOvertureUsPlaces(path.join(stagingDirectory, "manifest.json"), { signal });
   signal?.throwIfAborted();
   logger(`Verified ${normalizedCount.toLocaleString()} normalized Overture U.S. place candidates.`);
   signal?.throwIfAborted();
@@ -828,7 +835,7 @@ export async function publishOvertureUsPlacesStaging({ outputRoot, stagingRunId,
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (typeof manifest.release_id !== "string" || !/^overture-us-places-\d{8}-\d{9}Z-[a-f0-9]{8}$/.test(manifest.release_id)) throw new Error("Invalid Overture release identity.");
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Overture staging release ID mismatch.");
-  await verifyOvertureUsPlaces(manifestPath);
+  await verifyOvertureUsPlaces(manifestPath, { signal });
   signal?.throwIfAborted();
   const releasesDirectory = path.join(outputRoot, "releases");
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -882,7 +889,70 @@ async function verifyNormalizedIdentities(ids) {
   }
 }
 
-export async function verifyOvertureUsPlaces(manifestPath) {
+async function verifySourceReplay(releaseDirectory, manifest, signal) {
+  const reject = () => { throw new Error("Overture source-to-output replay mismatch."); };
+  const replay = manifest.replay_context;
+  if (!replay || replay.version !== "overture-normalization-replay@1" || replay.transformation_version !== OVERTURE_US_PLACE_TRANSFORMATION_VERSION
+    || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(replay.run_id ?? "")
+    || replay.retrieved_at !== manifest.created_at || !Number.isFinite(Date.parse(replay.observed_at))
+    || !manifest.dependencies.some(d => d.dataset_id === "census-zbp-baseline" && d.manifest_sha256 === replay.baseline_manifest_sha256)) reject();
+  const one = (type, expectedPath) => {
+    const matches = manifest.artifacts.filter(a => a.artifact_type === type);
+    if (matches.length !== 1 || matches[0].path !== expectedPath) reject();
+    return matches[0];
+  };
+  const baseline = one("overture-normalization-baseline", "source/normalization-baseline.jsonl");
+  if (baseline.export_policy !== "internal" || baseline.sha256 !== replay.baseline_coverage_sha256) reject();
+  const baselineByZip = new Map();
+  for await (const row of mnSelectionReadLines(path.join(releaseDirectory, baseline.path), 128 * 1024 ** 2, signal)) {
+    if (!/^\d{5}$/.test(row.zip_code ?? "") || baselineByZip.has(row.zip_code) || baselineByZip.size >= 100000) reject();
+    baselineByZip.set(row.zip_code, row);
+  }
+  if (baselineByZip.size !== baseline.record_count) reject();
+  one("overture-us-place-selected-source-jsonl-gzip", "source/selected-records.jsonl.gz");
+  one("overture-stac-preflight", "source/source-metadata.json");
+  const metadata = await mnSelectionReadJson(path.join(releaseDirectory, "source/source-metadata.json"), 4 * 1024 ** 2, signal);
+  if (metadata.overture_release_id !== manifest.source.overture_release_id
+    || (metadata.overture_release_datetime ?? metadata.prepared_at) !== replay.observed_at
+    || manifest.source_release_id !== `overture-places-${metadata.overture_release_id}-${metadata.sha256.slice(0, 16)}`) reject();
+  one("overture-us-place-quarantine-jsonl-gzip", "quality/quarantine.jsonl.gz");
+  const partitions = manifest.artifacts.filter(a => a.artifact_type === "normalized-overture-us-place-jsonl-gzip");
+  if (partitions.length !== 16 || new Set(partitions.map(a => a.path)).size !== 16
+    || partitions.some(a => !/^normalized\/places\/prefix=[a-f0-9]\.jsonl\.gz$/.test(a.path))) reject();
+  const context = { runId: replay.run_id, retrievedAt: replay.retrieved_at, releaseObservedAt: replay.observed_at,
+    sourceReleaseId: manifest.source_release_id, overtureReleaseId: manifest.source.overture_release_id, baselineByZip };
+  const readers = new Map();
+  const next = async relative => {
+    if (!readers.has(relative)) readers.set(relative, gzipRecords(path.join(releaseDirectory, relative), signal)[Symbol.asyncIterator]());
+    return readers.get(relative).next();
+  };
+  try {
+    for await (const source of gzipRecords(path.join(releaseDirectory, "source/selected-records.jsonl.gz"), signal)) {
+      signal?.throwIfAborted();
+      const id = textValue(source.id)?.toLowerCase() ?? "<blank>";
+      let expected, relative;
+      try {
+        expected = normalizeOvertureUsPlace(source, context);
+        relative = `normalized/places/prefix=${sha256(id)[0]}.jsonl.gz`;
+      } catch (error) {
+        if (!QUARANTINE_REASONS.has(error.message)) throw error;
+        expected = { schema_version: OVERTURE_US_PLACE_SCHEMA_VERSION, source_record_id: id, reason: error.message,
+          source_release_id: manifest.source_release_id, export_policy: "internal" };
+        relative = "quality/quarantine.jsonl.gz";
+      }
+      const actual = await next(relative);
+      if (actual.done || !isDeepStrictEqual(actual.value, expected)) reject();
+    }
+    for (const relative of [...partitions.map(a => a.path), "quality/quarantine.jsonl.gz"]) if (!(await next(relative)).done) reject();
+  } finally {
+    const cleanup = await Promise.allSettled([...readers.values()].map(reader => reader.return()));
+    if (cleanup.some(result => result.status === "rejected")) reject();
+  }
+}
+
+export async function verifyOvertureUsPlaces(manifestPath, { signal } = {}) {
+  if (signal !== undefined && !(signal instanceof AbortSignal)) throw new Error("Invalid cancellation signal.");
+  signal?.throwIfAborted();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
@@ -894,6 +964,7 @@ export async function verifyOvertureUsPlaces(manifestPath) {
   const noticeArtifact = artifacts.find((artifact) => artifact.artifact_type === "overture-place-attribution-notice");
   if (!noticeArtifact || noticeArtifact.distribution_policy !== "redistribute-with-derived-artifacts") failures.push({ path: "legal/NOTICE.txt", reason: "missing Overture/Foursquare attribution notice" });
   for (const artifact of artifacts) {
+    signal?.throwIfAborted();
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
@@ -907,7 +978,7 @@ export async function verifyOvertureUsPlaces(manifestPath) {
   let sourceCount = 0;
   try {
     if (!sourceArtifact || sourceArtifact.export_policy !== "internal") throw new Error("missing or misclassified selected source artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifact.path), signal)) {
       sourceCount += 1;
       assertExactSelectedRecord(record);
     }
@@ -924,7 +995,7 @@ export async function verifyOvertureUsPlaces(manifestPath) {
     try {
       if (artifact.export_policy !== "local-review-only") throw new Error("normalized artifact lost local-review-only policy");
       let artifactCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         artifactCount += 1;
         normalizedCount += 1;
         if (!/^overture-us-place:[0-9a-f-]{36}$/.test(record.normalized_record_id ?? "") || record.export_policy !== "local-review-only") throw new Error("invalid normalized identity or export policy");
@@ -951,7 +1022,7 @@ export async function verifyOvertureUsPlaces(manifestPath) {
   let quarantineCount = 0;
   try {
     if (!quarantineArtifact || quarantineArtifact.export_policy !== "internal") throw new Error("missing or misclassified quarantine artifact");
-    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path))) {
+    for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifact.path), signal)) {
       quarantineCount += 1;
       if (!QUARANTINE_REASONS.has(record.reason) || record.export_policy !== "internal") throw new Error("invalid quarantine record");
     }
@@ -970,6 +1041,10 @@ export async function verifyOvertureUsPlaces(manifestPath) {
     for (const [zipCode, count] of zipCounts) if (rows.find((row) => row.zip_code === zipCode)?.overture_places_snapshot?.place_count !== count) throw new Error(`ZIP ${zipCode} contribution mismatch`);
   } catch (error) {
     failures.push({ path: zipArtifact?.path ?? "derived/zip-coverage.jsonl", reason: error.message });
+  }
+  if (!failures.length) {
+    try { await verifySourceReplay(releaseDirectory, manifest, signal); }
+    catch { failures.push({ path: "source/selected-records.jsonl.gz", reason: "Overture source-to-output replay mismatch." }); }
   }
   if (failures.length) {
     const error = new Error(`Overture U.S. places verification failed for ${failures.length} check(s).`);

@@ -285,6 +285,42 @@ test("builds, quarantines, publishes, and independently verifies an offline Over
   }
 });
 
+test("source replay rejects rehashed semantic mutations and missing context", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "overture-replay-fixture-"));
+  try {
+    const built = await buildOvertureUsPlaces({ outputRoot: path.join(root, "output"), zbpPointer: await writeBaseline(path.join(root, "zbp")),
+      sourceRecords: [source(), source({ id: "33333333-3333-4333-8333-333333333333", primary_name: null })], sourceMetadata: sourceMetadata(),
+      minimumPlaces: 1, maximumQuarantineRatio: 1, logger: () => {} });
+    const filename = path.join(built.releaseDirectory, "manifest.json"), originalManifest = await readFile(filename);
+    const manifest = JSON.parse(originalManifest), artifact = manifest.artifacts.find(a => a.artifact_type === "normalized-overture-us-place-jsonl-gzip" && a.record_count);
+    const target = path.join(built.releaseDirectory, artifact.path), originalBytes = await readFile(target), [record] = await gunzipRecords(target);
+    const mutations = [r => r.names.primary_name = "Altered", r => r.reported_address.address_line = "Altered",
+      r => r.reported_address.zip4 = "9999", r => r.geocode.latitude = 40, r => r.classification.taxonomy_primary = "cafe",
+      r => r.source_status.confidence = 0.5, r => r.brand.primary_name = "Altered", r => r.source_records[0].record_id = "Altered",
+      r => r.provenance.retrieved_at = "2020-01-01T00:00:00.000Z", r => r.extra = true];
+    for (const mutate of mutations) {
+      const changed = structuredClone(record); mutate(changed);
+      const raw = gzipSync(JSON.stringify(changed) + "\n"); await writeFile(target, raw);
+      artifact.bytes = raw.length; artifact.sha256 = sha256(raw); await writeFile(filename, JSON.stringify(manifest));
+      await assert.rejects(verifyOvertureUsPlaces(filename), e => e.failures?.some(f => /source-to-output replay/.test(f.reason)));
+    }
+    await writeFile(target, originalBytes); await writeFile(filename, originalManifest);
+    await verifyOvertureUsPlaces(filename);
+    const missingContext = JSON.parse(originalManifest); delete missingContext.replay_context;
+    await writeFile(filename, JSON.stringify(missingContext));
+    await assert.rejects(verifyOvertureUsPlaces(filename), e => e.failures?.some(f => /source-to-output replay/.test(f.reason)));
+    await writeFile(filename, originalManifest);
+    const quarantine = manifest.artifacts.find(a => a.artifact_type === "overture-us-place-quarantine-jsonl-gzip");
+    const quarantinePath = path.join(built.releaseDirectory, quarantine.path), [q] = await gunzipRecords(quarantinePath);
+    q.reason = "invalid-version";
+    const qraw = gzipSync(JSON.stringify(q) + "\n"); await writeFile(quarantinePath, qraw);
+    const qmanifest = JSON.parse(originalManifest), qa = qmanifest.artifacts.find(a => a.path === quarantine.path);
+    qa.bytes = qraw.length; qa.sha256 = sha256(qraw); await writeFile(filename, JSON.stringify(qmanifest));
+    await assert.rejects(verifyOvertureUsPlaces(filename), e => e.failures?.some(f => /source-to-output replay/.test(f.reason)));
+    await assert.rejects(verifyOvertureUsPlaces(filename, { signal: AbortSignal.abort() }));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("normalization retains by default and requires a separate explicit promotion", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "overture-retention-"));
   try {
