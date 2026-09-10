@@ -26,3 +26,13 @@ test('NH browser rejects credential/port/host/protocol escapes, cancellation and
   const overflow = route(); await g.route(overflow); assert.deepEqual(overflow.calls, ['abort']);
   const failed = route(undefined, 200, true); await guard().route(failed); assert.deepEqual(failed.calls, ['fetch', 'abort']);
 });
+test('NH browser diagnostics distinguish policy, transport and shutdown errors without source details', async () => {
+  const policy = guard(); await policy.route(route(undefined, 403));
+  assert.deepEqual(policy.diagnostics(), [{ phase: 'response-policy', status: 403, cancelled: false }]);
+  const transport = guard(); await transport.route(route(undefined, 200, true));
+  assert.deepEqual(transport.diagnostics(), [{ phase: 'transport', status: null, cancelled: false }]);
+  const copy = transport.diagnostics(); copy[0].phase = 'PRIVATE'; assert.equal(transport.diagnostics()[0].phase, 'transport');
+  const disposal = guard(), r = route(); r.fetch = async () => ({ status: () => 200, dispose: async () => { throw Error('PRIVATE'); } });
+  await disposal.route(r); assert.deepEqual(disposal.diagnostics(), [{ phase: 'dispose', status: 200, cancelled: false }]);
+  assert.equal(JSON.stringify([policy.diagnostics(), transport.diagnostics(), disposal.diagnostics()]).includes('PRIVATE'), false);
+});
