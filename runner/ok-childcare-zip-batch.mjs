@@ -27,6 +27,8 @@ const IMPLEMENTATION = [
   'runner/mn-construction-selected-stream.mjs', 'runner/cli-cancellation.mjs', 'scripts/collect-ok-childcare-zip-batch.mjs',
   'runner/business-state-source-readiness.mjs', 'runner/mn-construction-preflight.mjs', 'runner/mn-construction-normalization.mjs',
   'runner/mn-construction-code-profile.mjs', 'runner/normalized-us-postal-code.mjs', 'package.json', 'package-lock.json',
+  'runner/ok-childcare-zip-batch-app.mjs', 'scripts/build-ok-childcare-zip-batch.mjs',
+  'runner/industry-segments.mjs', 'config/industry-segments.json', 'config/source-policies/ok-childcare-zip-batch-internal.json',
 ];
 async function implementationPins(signal) {
   const pins = [];
@@ -207,6 +209,10 @@ async function run(value, plan, transport) {
     for (const zip5 of state.pending_zip5) {
       signal.throwIfAborted();
       if (!synthetic && !same(await implementationPins(signal), plan.implementation)) fail();
+      if (!synthetic && value.approvalSha256 !== undefined) {
+        const approval = await snapshot(path.join(APP_ROOT, 'config/source-approvals/ok-childcare-zip-batch.json'), signal);
+        if (approval.sha256 !== value.approvalSha256 || approval.value.status !== 'approved' || approval.value.scope_sha256 !== digest(plan)) fail();
+      }
       await save(value.outputRoot, `${zip5}.intent.json`, { schema_version: OK_BATCH_VERSION, plan_sha256: digest(plan), zip5,
         mode, created_at: new Date().toISOString() }, signal);
       const query = synthetic ? await collectOkZipQueryWithTestTransport({ zip5, signal }, transport) : await collectOkZipQuery({ zip5, signal });
@@ -227,7 +233,8 @@ async function run(value, plan, transport) {
   } finally { clearTimeout(timer); await lock?.release(); }
 }
 export async function runOkZipBatch(value) {
-  opts(value, ['outputRoot', 'approvedScopeSha256', 'signal']);
+  opts(value, ['outputRoot', 'approvedScopeSha256', 'signal', 'approvalSha256']);
+  if (value.approvalSha256 !== undefined && (typeof value.approvalSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.approvalSha256))) fail();
   const { plan } = await createOkZipBatchPlan({ signal: value.signal });
   return run(value, plan);
 }

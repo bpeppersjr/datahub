@@ -69,6 +69,23 @@ test('PA childcare enrollment identifies app execution without fabricated covera
   assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.recurringSchedulerImplemented,null);assert.equal(cell.evidence.some(e=>e.recordCount!==undefined),false);
 });
 
+test('OK manual-only enrollment remains unmeasured and does not manufacture a source access', async t => {
+  const f = await fixture(t), sourceId = 'state-ok-childcare-spatial-batch';
+  const config = JSON.parse(await readFile(path.join(APP_ROOT, 'config/industry-segments.json'), 'utf8'));
+  for (const prerequisite of config.sources[sourceId].prerequisites) {
+    const target = path.join(f.root, prerequisite); await mkdir(path.dirname(target), { recursive: true });
+    await copyFile(path.join(APP_ROOT, prerequisite), target);
+  }
+  const ledger = await buildStateAccessLedger(f);
+  const cell = ledger.jurisdictions.find(r => r.state === 'OK').industries.find(r => r.industry === 'childcare');
+  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+  assert.equal(cell.appHandoff.configuredSources[0].manualSelectionRequired, true);
+  assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus, 'PRESENT');
+  assert.equal(cell.appHandoff.prerequisiteContentsValidated, false);
+  assert.equal(cell.appHandoff.jobSubmitted, false);
+  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+});
+
 test('IA app enrollment distinguishes configured execution from measured coverage and dispatch',async t=>{
   const f=await fixture(t),config=JSON.parse(await readFile(path.join(APP_ROOT,'config/industry-segments.json'),'utf8')),sourceId='state-ia-childcare-centers';
   for(const prerequisite of config.sources[sourceId].prerequisites){const target=path.join(f.root,prerequisite);await mkdir(path.dirname(target),{recursive:true});await copyFile(path.join(APP_ROOT,prerequisite),target);}

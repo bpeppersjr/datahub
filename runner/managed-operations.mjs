@@ -7,7 +7,7 @@ import { createReadStream } from "node:fs";
 import { lstat, mkdir, readFile, readdir, realpath, stat } from "node:fs/promises";
 import { writeReconciliationReceipt } from "./reconciliation-receipt.mjs";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
-import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig } from "./industry-segments.mjs";
+import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig, industrySourceCatalog } from "./industry-segments.mjs";
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./source-acquisition-gates.mjs";
@@ -92,7 +92,7 @@ export class ManagedOperations {
   }
   async catalog() {
     await this.ready; const config = await this.configLoader();
-    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], sourcePrerequisites: getSourcePrerequisiteGates(),
+    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], collectionSources: industrySourceCatalog(config), sourcePrerequisites: getSourcePrerequisiteGates(),
       boundedSourceCollections: [{ sourceId: "ok-childcare-retained-73102", state: "OK", industry: "childcare", zip5: "73102",
         endpoint: "/api/data-operations/ok-childcare-collections", scope: "one-center-only-public-search", requestCount: 3,
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],

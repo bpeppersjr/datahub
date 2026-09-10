@@ -1,0 +1,13 @@
+{
+  "policy_id": "ok-public-center-spatial-batch-internal@1.0.0",
+  "publisher": "Oklahoma DHS public childcare locator",
+  "allowed_origin": "https://childcarefind.okdhs.org",
+  "delivery_scope": "Published center-only ZIP search and pinned client, no details or ancillary map requests",
+  "allowed_use": "Bounded internal source assessment after operator approval of the exact scope",
+  "publisher_bulk_authorization": "unverified; ordinary public lookup evidence is not a blanket bulk license",
+  "retention": "Preserve run-scoped selected business projections, normalized candidates, intents and diagnostics; no automatic deletion",
+  "attribution": "Source ID, query URL, response hash and observation time per candidate",
+  "redistribution": "internal-only; public export not authorized",
+  "credentials": "none; cookies and redirects disabled",
+  "review": "docs/states/OK-ZIP-BATCH-PROPOSED-SCOPE-2026-09-10.md"
+}

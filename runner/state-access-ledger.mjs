@@ -42,6 +42,7 @@ const PROFILE_IDS = Object.freeze({
   "state-vt-childcare-centers": null,
   "state-co-childcare-centers": null,
   "state-ia-childcare-centers": null,
+  "state-ok-childcare-spatial-batch": null,
   // Offline retained adoption is not a national reporting profile or refresh.
   "state-ut-childcare-centers-retained": null,
   "national-irs-eo-bmf": null,
@@ -137,7 +138,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         const reportingOnly = REPORTING_ONLY_SOURCES.has(key);
         if (reportingOnly && count !== undefined && count !== null && (!Number.isSafeInteger(count) || count < 0)) throw new Error("Published childcare reporting count must be a non-negative integer.");
         const missing = await missingPrerequisites(root, source.prerequisites ?? []);
-        appSources.push({ sourceId: key, acquisitionExecutor: "cotive-app", prerequisiteStatus: missing.length ? "MISSING" : "PRESENT", missingPrerequisites: missing, limitations: source.coverage_notes ?? [] });
+        appSources.push({ sourceId: key, acquisitionExecutor: "cotive-app", ...(source.manual_selection_required ? { manualSelectionRequired: true } : {}), prerequisiteStatus: missing.length ? "MISSING" : "PRESENT", missingPrerequisites: missing, limitations: source.coverage_notes ?? [] });
         if (source.scope === "state" && positive) { direct = true; evidence.push({ type: reportingOnly ? "published-direct-state-reporting-count" : "published-direct-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (source.scope === "national" && positive) { national = true; evidence.push({ type: "published-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (profileId === null || reportingOnly && (count === undefined || count === null)) unmeasured = true;

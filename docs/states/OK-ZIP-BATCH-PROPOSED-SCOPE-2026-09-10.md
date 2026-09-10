@@ -1,5 +1,7 @@
 # Oklahoma childcare multi-ZIP worker and proposed dispatch scope
 
+Historical standalone-worker checkpoint. The later [app connection and approval gate](OK-BATCH-APP-HANDOFF-2026-09-10.md) supersedes the enrollment status and proposal hash below. No native batch collection was performed in either checkpoint.
+
 ## Current status
 
 The standalone multi-ZIP worker is implemented and exercised with synthetic responses. Its native plan independently replays the retained Census inventory and native ZIP-73102 evidence. **Native batch execution has not occurred. No statewide acquisition is approved by this document. The worker is not enrolled in automatic industry runs or the management UI.**
@@ -8,7 +10,7 @@ The previous production reconciliation `production-childcare-retained-20260910-0
 
 ## Proposed scope and budgets
 
-The offline plan currently identifies SHA-256 `de0abbd90f30ca83dee5f6a4d8a61c9634a8a2cb1a221034d2426c41c0b9d8ac`. Always regenerate and review the plan before approval: its hash binds ZIP selection, retained evidence, limits, and 24 implementation/dependency files. A source-file or lockfile byte change deliberately changes the required approval hash.
+At the standalone-worker checkpoint, the offline plan identified SHA-256 `de0abbd90f30ca83dee5f6a4d8a61c9634a8a2cb1a221034d2426c41c0b9d8ac`. Always regenerate and review the plan before approval: that hash bound ZIP selection, retained evidence, limits, and 24 implementation/dependency files. A source-file or lockfile byte change deliberately changes the required approval hash.
 
 | Item | Bound |
 | --- | ---: |

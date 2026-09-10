@@ -11,7 +11,7 @@ test('source prerequisite hold creates no operation, receipt, child or network r
   const root = await mkdtemp(path.join(base, 'managed-source-gates-'));
   const manager = new ManagedOperations({ root, executor: () => assert.fail('child forbidden'),
     receiptWriter: () => assert.fail('receipt forbidden'), idFactory: () => assert.fail('allocation forbidden'),
-    configLoader: async () => ({ industries: {}, states: [] }) });
+    configLoader: async () => ({ version: 1, max_concurrency: 1, industries: {}, states: [], sources: {} }) });
   try {
     await manager.ready;
     t.mock.method(globalThis, 'fetch', () => assert.fail('network forbidden'));

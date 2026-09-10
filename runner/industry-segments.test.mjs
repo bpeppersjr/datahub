@@ -29,7 +29,7 @@ function offlineConfig(concurrency = 2) {
 
 test('PA childcare enrollment selects one fixed app task without broadening source scope',async()=>{
   const config=await loadIndustryConfig();
-  assert.equal(Object.keys(config.sources).length,26);assert.equal(config.industries.childcare.length,11);
+  assert.equal(Object.keys(config.sources).length,27);assert.equal(config.industries.childcare.length,12);
   assert.equal(Object.keys(config.industries).length,9);assert.equal(config.states.length,51);
   const selected={industries:['childcare'],states:['PA','WI'],sourceIds:['state-pa-childcare-centers']};
   const plan=buildIndustryPlan(config,selected);

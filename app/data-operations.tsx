@@ -10,6 +10,7 @@ import { operationLabel, operationEvidence, type Operation } from './data-operat
 type Catalog = {
   industries: Array<{ id: string; label?: string }>;
   states: string[];
+  collectionSources?: Array<{ id: string; scope: string; states: string[] | 'all'; industries: string[]; manualSelectionRequired: boolean }>;
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
 };
 type Plan = {
@@ -32,6 +33,7 @@ export default function DataOperations() {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [industry, setIndustry] = useState('');
   const [states, setStates] = useState<string[]>([]);
+  const [sourceId, setSourceId] = useState('');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [category, setCategory] = useState('');
   const [exportStates, setExportStates] = useState<string[]>([]);
@@ -71,7 +73,9 @@ export default function DataOperations() {
     finally { setBusy(false); }
   };
   const remember = (operation: Operation) => setOperations((items) => [operation, ...items.filter((item) => item.id !== operation.id)]);
-  const collectionInput = { industries: industry ? [industry] : [], states };
+  const collectionInput = { industries: industry ? [industry] : [], states, ...(sourceId ? { sourceIds: [sourceId] } : {}) };
+  const collectionSources = catalog?.collectionSources?.filter(source => (!industry || source.industries.includes(industry))
+    && (!states.length || source.states === 'all' || states.some(state => source.states.includes(state)))) ?? [];
 
   return <section id="data-operations" className="panel data-operations">
     <div className="panel-heading"><div><span className="section-kicker">Collect · compile · extract</span><h2>Data operations</h2></div><span className="operations-local">Runs locally · no AI required</span></div>
@@ -79,15 +83,17 @@ export default function DataOperations() {
     <div className="operations-builders">
       <section aria-labelledby="collection-title" className="operations-builder">
         <h3 id="collection-title">Update an industry</h3>
-        <label>Industry<select value={industry} disabled={!catalog || busy} onChange={(event) => { setIndustry(event.target.value); setPlan(null); }}><option value="">All configured industries</option>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? label(item.id)}</option>)}</select></label>
-        <label>Publisher states<select multiple size={5} value={states} disabled={!catalog || busy} onChange={(event) => { setStates(selectedValues(event.currentTarget)); setPlan(null); }}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
+        <label>Industry<select value={industry} disabled={!catalog || busy} onChange={(event) => { setIndustry(event.target.value); setSourceId(''); setPlan(null); }}><option value="">All configured industries</option>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? label(item.id)}</option>)}</select></label>
+        <label>Publisher states<select multiple size={5} value={states} disabled={!catalog || busy} onChange={(event) => { setStates(selectedValues(event.currentTarget)); setSourceId(''); setPlan(null); }}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
         <p className="operations-note">No state selection means all states. Hold Ctrl or Command to select several. State publishers may include out-of-state premises; national sources are acquired once in full.</p>
+        <label>Collection source<select value={sourceId} disabled={!catalog || busy} onChange={(event) => { setSourceId(event.target.value); setPlan(null); }}><option value="">Default sources only</option>{collectionSources.map(source => <option key={source.id} value={source.id}>{label(source.id)}{source.manualSelectionRequired ? ' (manual-only)' : ''}</option>)}</select></label>
+        <p className="operations-note">Manual-only sources are excluded from default runs. Selecting a source does not grant approval or bypass its checks.</p>
         <div className="operations-actions"><button className="ghost-button" disabled={!catalog || busy} onClick={() => void act(async () => setPlan(await post<Plan>('/plan', collectionInput)))}>Preview collection</button><button className="primary-button" disabled={!plan?.taskCount || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/collections', collectionInput)))}>Start collection</button></div>
         {plan && <div className="operations-plan" aria-live="polite">
           <strong>{plan.taskCount} source updates · up to {Math.min(plan.taskCount, plan.maxConcurrency)} parallel workers</strong>
           <ul>{plan.tasks.map((task) => <li key={task.id}>{label(task.sourceId)} <span>({task.state ?? 'national'})</span></li>)}</ul>
           {plan.warnings.map((warning) => <p key={warning} className="operations-note">{warning}</p>)}
-          {!!plan.gaps.length && <details><summary>{plan.gaps.length} industry/state combinations lack a state source</summary><ul>{plan.gaps.map((gap) => <li key={`${gap.industry}-${gap.state}`}>{gap.state} · {label(gap.industry)}</li>)}</ul></details>}
+          {!!plan.gaps.length && <details><summary>{plan.gaps.length} industry/state collection gaps</summary><ul>{plan.gaps.map((gap) => <li key={`${gap.industry}-${gap.state}`}>{gap.state} · {label(gap.industry)} — {gap.reason}</li>)}</ul></details>}
           <p className="operations-note">New source releases are preserved separately. They appear in national comparisons after reconciliation.</p>
         </div>}
       </section>

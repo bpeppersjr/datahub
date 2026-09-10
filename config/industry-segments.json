@@ -11,9 +11,21 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained", "state-ia-childcare-centers"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained", "state-ia-childcare-centers", "state-ok-childcare-spatial-batch"]
   },
   "sources": {
+    "state-ok-childcare-spatial-batch": {
+      "script": "scripts/build-ok-childcare-zip-batch.mjs",
+      "scope": "state", "states": ["OK"], "state_filter_supported": false,
+      "manual_selection_required": true,
+      "prerequisites": ["config/source-approvals/ok-childcare-zip-batch.json", "config/source-policies/ok-childcare-zip-batch-internal.json"],
+      "coverage_notes": [
+        "Manual-only, approval-gated Oklahoma center-only Census spatial search workload; configuration is not evidence of source access or statewide coverage.",
+        "The stored approval must match the exact worker plan. Pending approval prevents source requests. Default industry runs do not select this source.",
+        "The same approval always reuses the same batch directory; completed queries are not downloaded again and interrupted or rejected intents require inspection.",
+        "ZIP5 and ZIP4 remain separate; business entities retain points only. Enrollment does not promote national reporting, verify current operations, authorize public export or enable recurring refresh."
+      ]
+    },
     "state-ia-childcare-centers": {
       "script": "scripts/build-ia-childcare.mjs",
       "scope": "state", "states": ["IA"], "state_filter_supported": false,

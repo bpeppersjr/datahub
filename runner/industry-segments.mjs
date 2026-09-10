@@ -18,6 +18,14 @@ export function industryPlanFingerprint(plan) {
   return createHash("sha256").update(JSON.stringify(canonical(executablePlan))).digest("hex");
 }
 
+export function industrySourceCatalog(config) {
+  validateIndustryConfig(config);
+  return Object.entries(config.sources).map(([id, source]) => ({ id, scope: source.scope,
+    states: source.states, industries: Object.keys(config.industries).filter(industry => config.industries[industry].includes(id)),
+    manualSelectionRequired: source.manual_selection_required === true,
+  }));
+}
+
 const asArray = (value) => value === undefined ? [] : Array.isArray(value) ? value : [value];
 
 export async function loadIndustryConfig(configPath = DEFAULT_CONFIG) {
@@ -51,6 +59,7 @@ export function validateIndustryConfig(config, source = "config") {
     if (configuredScripts.has(scriptIdentity)) fail(`${id}.script duplicates another source executable`);
     configuredScripts.add(scriptIdentity);
     if (typeof source.state_filter_supported !== "boolean") fail(`${id}.state_filter_supported must be boolean`);
+    if (source.manual_selection_required !== undefined && typeof source.manual_selection_required !== "boolean") fail(`${id}.manual_selection_required must be boolean`);
     if (!Array.isArray(source.prerequisites)) fail(`${id}.prerequisites must be an array`);
     if (source.coverage_notes !== undefined && (!Array.isArray(source.coverage_notes) || source.coverage_notes.length > 5 || source.coverage_notes.some((note) => typeof note !== "string" || !note.trim() || note.length > 500))) fail(`${id}.coverage_notes must contain at most five non-empty strings of at most 500 characters`);
     for (const prerequisite of source.prerequisites) {
@@ -83,6 +92,11 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, runId
   const warnings = [];
   for (const sourceId of ids) {
     const source = config.sources[sourceId];
+    if (source.manual_selection_required && sourceIds === undefined) {
+      if (source.scope === 'national' || source.states.some(state => selectedStates.includes(state)))
+        warnings.push(`${sourceId}: manual selection required; excluded from automatic/default collection plans.`);
+      continue;
+    }
     for (const note of source.coverage_notes ?? []) warnings.push(`${sourceId}: ${note}`);
     if (source.scope === "national") {
       if (selectedStates.length && !source.state_filter_supported) warnings.push(`${sourceId} is national and will run once without a state filter; state selection is recorded for coverage only.`);
@@ -94,8 +108,15 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, runId
   }
   const gaps = [];
   for (const industry of selectedIndustries) for (const state of selectedStates) {
-    const hasStateSource = config.industries[industry].some((id) => config.sources[id].scope === "state" && config.sources[id].states.includes(state));
-    if (!hasStateSource) gaps.push({ industry, state, reason: "no configured state-scoped source; national sources are not state-filtered" });
+    const hasStateSource = config.industries[industry].some((id) => config.sources[id].scope === "state" && config.sources[id].states.includes(state)
+      && (!config.sources[id].manual_selection_required || sourceIds?.includes(id)));
+    if (!hasStateSource) {
+      const manualOmitted = config.industries[industry].some(id => config.sources[id].scope === 'state'
+        && config.sources[id].states.includes(state) && config.sources[id].manual_selection_required);
+      gaps.push({ industry, state, reason: manualOmitted
+        ? 'manual-only state source not selected; no automatic state collection'
+        : "no configured state-scoped source; national sources are not state-filtered" });
+    }
   }
   return { runId, industries: selectedIndustries, states: selectedStates, ...(sourceIds === undefined ? {} : { sourceIds: ids }), taskCount: tasks.length, tasks, gaps, warnings, maxConcurrency: Math.min(config.max_concurrency, MAX_CONCURRENCY) };
 }
