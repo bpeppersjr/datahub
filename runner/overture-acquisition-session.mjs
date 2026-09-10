@@ -72,6 +72,7 @@ async function acquire(value, synthetic) {
   const readReceipt = synthetic ? readOvertureAcquisitionSessionForTest : readOvertureAcquisitionSession;
   const mode = synthetic ? 'injected-test-transport' : 'native-fetch';
   let journal, transport, bridge, descriptor, published = false;
+  let diagnosticContext, phase = 'prerequisites', cleanupFailed = false;
   try {
     check();
     const preflight = (await readMetadata(metadata.descriptor, { output: metadata.output, operationId: metadata.operation_id })).manifest.result;
@@ -81,37 +82,45 @@ async function acquire(value, synthetic) {
     const run = randomUUID(), directory = path.join(jobs, run); await mkdir(directory);
     const owner = await lstat(directory, { bigint: true });
     async function owned() { await canonical(directory); if (!same(owner, await lstat(directory, { bigint: true }))) throw failure(); }
+    diagnosticContext = { directory, run, owned };
+    phase = 'plan';
     const startedAt = new Date().toISOString(), assetUrls = preflight.assets.map(a => a.url), queryFingerprint = overtureStreamingQueryFingerprint(assetUrls.length);
     const plan = { schema_version: VERSION, run_id: run, operation_id: operationId, execution_mode: mode, started_at: startedAt,
       metadata_reference: metadata, runtime_reference: runtime, asset_urls: assetUrls, query_fingerprint: queryFingerprint };
     const planHash = await persist(path.join(directory, 'plan.json'), plan); check(); await owned();
     let execution, heads, transportCounters, retainedJournal, journalDirectory, failed = false;
     try {
+      phase = 'transport-setup';
       journal = await createOvertureAcquisitionJournal({ output: path.join(directory, 'journal'), operationId, executionMode: mode, assetCount: assetUrls.length }); check();
       const transportOptions = { assetUrls, onEvent: journal.onEvent, signal };
       transport = synthetic ? createOvertureAssetTransportForTest({ ...transportOptions, fetchImpl: options.fetchImpl, limits: { minIntervalMs: 0 } })
         : createOvertureAssetTransport({ ...transportOptions, authorization: options.authorization });
       heads = [];
+      phase = 'asset-heads';
       for (let index = 0; index < assetUrls.length; index++) {
         check(); const head = await transport.head(index);
         heads.push({ asset_index: index, content_length: head.contentLength, etag: head.etag });
       }
+      phase = 'bridge-setup';
       check(); bridge = await startOvertureAssetBridge({ transport, assetCount: assetUrls.length, signal });
+      phase = 'engine';
       execution = await (options.runEngine ?? runOvertureBoundedEngine)({ output: path.join(directory, 'engine'),
         runtimeDescriptor: runtime.descriptor, runtimeOutput: runtime.output, runtimeOperationId: runtime.operation_id, bridgeUrls: bridge.urls, signal });
       check();
     } catch { failed = true; }
     finally {
       // Independent cleanup attempts: a failed bridge close must not strand the journal or transport.
-      for (const resource of [bridge, transport, journal]) if (resource) try { await resource.close(); } catch { failed = true; }
+      for (const resource of [bridge, transport, journal]) if (resource) try { await resource.close(); } catch { failed = true; cleanupFailed = true; }
     }
     if (failed) throw failure(); check(); await owned();
+    phase = 'accounting-verification';
     const bridgeState = bridge.snapshot(), state = transport.snapshot();
     if (bridgeState.state !== 'closed' || bridgeState.active_handlers || bridgeState.open_sockets || bridgeState.rejected_requests
       || bridgeState.completed_requests !== bridgeState.admitted_requests || state.state !== 'closed' || state.active_request || state.queued_requests) throw failure();
     journalDirectory = path.relative(directory, journal.directory).replaceAll('\\', '/');
     retainedJournal = await inspectOvertureAcquisitionJournal(journal.directory, { operationId });
     transportCounters = Object.fromEntries(['requests_reserved', 'fetch_calls', 'bytes_reserved', 'bytes_observed', 'bytes_delivered'].map(key => [key, state[key]]));
+    phase = 'prerequisite-reverification';
     await readMetadata(metadata.descriptor, { output: metadata.output, operationId: metadata.operation_id });
     await readOvertureHttpfsRuntime(runtime.descriptor, { output: runtime.output, operationId: runtime.operation_id }); check();
     const manifest = { schema_version: VERSION, run_id: run, operation_id: operationId, status: STATUS, execution_mode: mode,
@@ -120,6 +129,7 @@ async function acquire(value, synthetic) {
       selected: { path: path.relative(directory, path.join(execution.selected.directory, execution.selected.artifact.path)).replaceAll('\\', '/'),
         bytes: execution.selected.artifact.bytes, sha256: execution.selected.artifact.sha256, record_count: execution.selected.record_count, uncompressed_bytes: execution.selected.uncompressed_bytes },
       journal: { directory: journalDirectory, sha256: retainedJournal.sha256, counters: retainedJournal.counters }, transport: transportCounters, heads, claims: claims() };
+    phase = 'manifest-publication';
     const temporary = path.join(directory, 'manifest.tmp'), filename = path.join(directory, 'manifest.json');
     const hash = await persist(temporary, manifest); check(); await owned();
     descriptor = { run_id: run, operation_id: operationId, manifest: filename, sha256: hash, status: STATUS, cancellation_after_publication: false };
@@ -128,6 +138,18 @@ async function acquire(value, synthetic) {
     descriptor.cancellation_after_publication = signal.aborted;
     return descriptor;
   } catch {
+    // Best-effort, private diagnostic evidence only. Never alter a published
+    // snapshot inventory, copy arbitrary exception text, or infer readiness.
+    if (diagnosticContext && !published) try {
+      await diagnosticContext.owned();
+      await persist(path.join(diagnosticContext.directory, 'failure.json'), {
+        schema_version: 'overture-acquisition-failure@1.0.0', operation_id: operationId,
+        run_id: diagnosticContext.run, execution_mode: mode, recorded_at: new Date().toISOString(),
+        phase, cancellation_requested: signal.aborted, cleanup_failed: cleanupFailed,
+        transport: transport?.snapshot() ?? null, bridge: bridge?.snapshot() ?? null,
+        snapshot_ready: false,
+      });
+    } catch { /* Preserve original failure and all existing evidence if storage is unsafe or unavailable. */ }
     const error = failure(); if (published) error.recovery = descriptor; throw error;
   } finally { clearTimeout(deadline); options.signal?.removeEventListener('abort', abort); }
 }

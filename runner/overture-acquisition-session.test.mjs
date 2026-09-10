@@ -62,6 +62,14 @@ test('source failure retains source-bound plan and incomplete accounting without
   const journals = await readdir(path.join(directory, 'journal'));
   const accounting = await inspectOvertureAcquisitionJournal(path.join(directory, 'journal', journals[0]), { operationId: options.operationId });
   assert.equal(accounting.counters.requests_reserved, 1); assert.equal(accounting.counters.requests_completed, 0); assert.equal(accounting.pending_request, 1);
+  const diagnostic = JSON.parse(await readFile(path.join(directory, 'failure.json'), 'utf8'));
+  assert.equal(diagnostic.schema_version, 'overture-acquisition-failure@1.0.0');
+  assert.equal(diagnostic.operation_id, options.operationId);
+  assert.equal(diagnostic.phase, 'asset-heads');
+  assert.equal(diagnostic.transport.failure.phase, 'response-validation');
+  assert.equal(diagnostic.transport.failure.http_status, 403);
+  assert.equal(diagnostic.snapshot_ready, false);
+  assert.ok(!JSON.stringify(diagnostic).includes('PRIVATE_SOURCE_ERROR'));
 });
 
 test('engine failure closes bridge and transport and preserves only non-success evidence', async t => {
@@ -76,6 +84,12 @@ test('engine failure closes bridge and transport and preserves only non-success 
   const journals = await readdir(path.join(directory, 'journal'));
   const accounting = await inspectOvertureAcquisitionJournal(path.join(directory, 'journal', journals[0]), { operationId: options.operationId });
   assert.equal(accounting.pending_request, null); assert.equal(accounting.counters.requests_completed, 1);
+  const diagnostic = JSON.parse(await readFile(path.join(directory, 'failure.json'), 'utf8'));
+  assert.equal(diagnostic.phase, 'engine');
+  assert.equal(diagnostic.bridge.state, 'closed');
+  assert.equal(diagnostic.transport.failure, null);
+  assert.ok(!JSON.stringify(diagnostic).includes(privateUrl));
+  assert.ok(!JSON.stringify(diagnostic).includes('PRIVATE_CAPABILITY'));
 });
 
 test('session cancellation drains late source fetch before releasing the worker', { timeout: 5000 }, async t => {
@@ -87,6 +101,23 @@ test('session cancellation drains late source fetch before releasing the worker'
   try { await ready; controller.abort(); await new Promise(resolve => setImmediate(resolve)); assert.equal(settled, false); }
   finally { release(); }
   await rejected; assert.equal(cancelled, true);
+  const jobs = path.join(options.output, 'jobs'), [runId] = await readdir(jobs);
+  const diagnostic = JSON.parse(await readFile(path.join(jobs, runId, 'failure.json'), 'utf8'));
+  assert.equal(diagnostic.cancellation_requested, true);
+  assert.equal(diagnostic.transport.active_request, false);
+});
+
+test('failure diagnostic cannot overwrite existing evidence or mask the original fixed failure', async t => {
+  const options = await fixture(t); let file;
+  options.fetchImpl = async () => new Response(null, { headers: { etag: '"fixture"', 'content-length': '1' } });
+  options.runEngine = async ({ output }) => {
+    file = path.join(path.dirname(output), 'failure.json');
+    await writeFile(file, 'EXISTING_EVIDENCE', { flag: 'wx' });
+    throw Error('PRIVATE_PROCESSING_FAILURE');
+  };
+  await assert.rejects(run(options), error => !error.message.includes('PRIVATE_PROCESSING_FAILURE') && error.recovery === undefined);
+  assert.equal(await readFile(file, 'utf8'), 'EXISTING_EVIDENCE');
+  await assert.rejects(readFile(path.join(path.dirname(file), 'manifest.json')), { code: 'ENOENT' });
 });
 
 test('acquisition CLI help and malformed authorization cannot start a download', () => {

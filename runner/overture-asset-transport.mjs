@@ -59,9 +59,10 @@ function create(options, synthetic) {
   const heads = new Map(), queue = [];
   let closed = false, active = null, requests = 0, fetchCalls = 0, reserved = 0, observed = 0, delivered = 0, lastStart = null;
   let closePromise = Promise.resolve();
+  let lastFailure = null;
   const snapshot = () => ({ execution_mode: executionMode, state: closed ? 'closed' : 'open', requests_reserved: requests,
     fetch_calls: fetchCalls, bytes_reserved: reserved, bytes_observed: observed, bytes_delivered: delivered, queued_requests: queue.length,
-    active_request: active !== null, limits: { ...limits }, claims: { wire_byte_cap_enforced: false,
+    active_request: active !== null, failure: lastFailure ? { ...lastFailure } : null, limits: { ...limits }, claims: { wire_byte_cap_enforced: false,
       cross_process_budget_enforced: false, durable_receipt_persisted: false, hard_process_deadline_enforced: false } });
   const check = signal => { if (closed || signal?.aborted) throw error(); };
   const onEvent = options.onEvent ?? (async () => {});
@@ -102,53 +103,67 @@ function create(options, synthetic) {
       method: item.method, reserved_bytes: item.bytes, observed_bytes: item.observed, delivered_bytes: item.delivered });
   }
   async function request(item) {
+    item.phase = 'budget';
     check(whole.signal);
     if (requests >= limits.maxRequests || reserved + item.bytes > limits.maxBytes) throw error();
     requests++; reserved += item.bytes; item.requestIndex = requests;
+    item.phase = 'journal-reservation';
     await event('request-reserved', item); check(whole.signal);
+    item.phase = 'pacing';
     if (lastStart !== null) await pause(Math.max(0, limits.minIntervalMs - (performance.now() - lastStart)), whole.signal);
     check(whole.signal);
     const local = new AbortController(), abort = () => local.abort();
     whole.signal.addEventListener('abort', abort, { once: true });
-    const timeout = setTimeout(() => { abort(); shut(); }, limits.requestTimeoutMs);
+    const timeout = setTimeout(() => { item.timedOut = true; abort(); shut(); }, limits.requestTimeoutMs);
     let response, reader, pendingFetch, pendingRead;
     try {
       lastStart = performance.now();
       const headers = { 'Accept-Encoding': 'identity' };
       if (item.method === 'GET') { headers.Range = `bytes=${item.start}-${item.end}`; headers['If-Match'] = item.head.etag; }
+      item.phase = 'fetch';
       pendingFetch = Promise.resolve().then(() => { check(local.signal); fetchCalls++; return options.fetchImpl(assets[item.index], {
         method: item.method, redirect: 'manual', credentials: 'omit', headers, signal: local.signal,
       }); }).then(async value => { if (local.signal.aborted) await cancel(value?.body); return value; });
       response = await guarded(pendingFetch, local.signal);
       check(local.signal);
+      item.phase = 'response-validation';
+      item.httpStatus = Number.isInteger(response?.status) && response.status >= 100 && response.status <= 599 ? response.status : null;
       if (!response || response.redirected || response.status !== (item.method === 'HEAD' ? 200 : 206)
         || (response.headers?.get('content-encoding') && response.headers.get('content-encoding') !== 'identity')) throw error();
       const size = length(response.headers.get('content-length')), tag = etag(response.headers.get('etag'));
       if (item.method === 'HEAD') {
+        item.phase = 'head-validation';
         if (size > limits.maxAssetBytes) throw error();
         const previous = heads.get(item.index);
         if (previous && (previous.contentLength !== size || previous.etag !== tag)) throw error();
         await cancel(response.body); response = null;
+        item.phase = 'journal-completion';
         await event('request-completed', item); check(local.signal);
         const metadata = { contentLength: size, etag: tag };
         heads.set(item.index, metadata); return { ...metadata };
       }
+      item.phase = 'range-validation';
       if (size !== item.bytes || tag !== item.head.etag
         || response.headers.get('content-range') !== `bytes ${item.start}-${item.end}/${item.head.contentLength}`
         || !response.body?.getReader) throw error();
       reader = response.body.getReader();
       for (;;) {
+        item.phase = 'body-read';
         pendingRead = reader.read();
         const part = await guarded(pendingRead, local.signal); pendingRead = null; check(local.signal);
         if (part.done) break;
+        item.phase = 'body-validation';
         if (!(part.value instanceof Uint8Array)) throw error();
         observed += part.value.byteLength; item.observed += part.value.byteLength;
         if (item.observed > item.bytes || observed > limits.maxBytes) throw error();
         // Count bytes exposed to the consumer, even when its callback subsequently fails.
         delivered += part.value.byteLength; item.delivered += part.value.byteLength;
+        item.phase = 'consumer-write';
         await item.onChunk(part.value); check(local.signal);
       }
+      item.phase = 'body-validation';
       if (item.observed !== item.bytes) throw error();
+      item.phase = 'journal-completion';
       await event('request-completed', item); check(local.signal);
       return { start: item.start, end: item.end, bytes_observed: item.observed, bytes_delivered: item.delivered };
     } finally {
@@ -167,7 +182,11 @@ function create(options, synthetic) {
     if (active || closed || !queue.length) return;
     const item = queue.shift();
     active = item;
-    closePromise = request(item).then(item.resolve, () => { shut(); item.reject(error()); }).finally(() => { active = null; pump(); });
+    closePromise = request(item).then(item.resolve, () => {
+      lastFailure ??= { phase: item.phase, request_index: item.requestIndex ?? null, asset_index: item.index,
+        method: item.method, http_status: item.httpStatus ?? null, request_timeout: item.timedOut === true };
+      shut(); item.reject(error());
+    }).finally(() => { active = null; pump(); });
   }
   function enqueue(item) {
     if (closed) return Promise.reject(error());

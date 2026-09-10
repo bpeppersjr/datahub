@@ -65,7 +65,13 @@ test("development supervisor closes both direct child services", async (context)
     if (child.exitCode === null) await once(child, "exit");
   });
 
-  await waitUntil(async () => await listening(runnerPort) && await listening(uiPort, "localhost"))
+  // This is a lifecycle test, not a cold-build latency benchmark. The full
+  // concurrent suite can exceed 20 seconds compiling the real UI; give startup
+  // a separate bounded allowance while retaining the five-second shutdown check.
+  await waitUntil(async () => {
+    if (child.exitCode !== null || child.signalCode !== null) throw new Error("Development supervisor exited before readiness.");
+    return await listening(runnerPort) && await listening(uiPort, "localhost");
+  }, 90_000)
     .catch((error) => { throw new Error(`${error.message}\n${output}`, { cause: error }); });
   const request = await requestDevStop({ root: path.join(runtimeRoot, "data", "dev-runtime") });
   const [code] = await once(child, "exit");

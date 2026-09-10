@@ -26,6 +26,50 @@ test('native transport requires separate authorization and rejects expanded or h
   }
 });
 
+test('failure diagnostics distinguish fixed stages without retaining private error details', async () => {
+  for (const mode of ['fetch', 'response-validation', 'range-validation', 'consumer-write', 'journal-completion']) {
+    const { transport } = await fixture({
+      fetchImpl: async (url, init) => {
+        if (init.method === 'HEAD') return head();
+        if (mode === 'fetch') throw Error('PRIVATE_FETCH');
+        if (mode === 'response-validation') return new Response('PRIVATE_BODY', { status: 403 });
+        if (mode === 'range-validation') return range(undefined, { etag: '"PRIVATE_ETAG"' });
+        return range();
+      },
+      onEvent: async e => { if (mode === 'journal-completion' && e.method === 'GET' && e.type === 'request-completed') throw Error('PRIVATE_JOURNAL'); },
+    });
+    try {
+      await transport.head(0);
+      await assert.rejects(transport.read(0, { start: 0, end: 3 }, async () => { if (mode === 'consumer-write') throw Error('PRIVATE_SINK'); }));
+      await transport.close();
+      const diagnostic = transport.snapshot().failure;
+      assert.equal(diagnostic.phase, mode);
+      assert.equal(diagnostic.request_index, 2);
+      assert.equal(diagnostic.asset_index, 0);
+      assert.equal(diagnostic.method, 'GET');
+      assert.equal(diagnostic.http_status, mode === 'fetch' ? null : mode === 'response-validation' ? 403 : 206);
+      diagnostic.phase = 'tampered';
+      assert.equal(transport.snapshot().failure.phase, mode);
+      assert.ok(!JSON.stringify(transport.snapshot()).includes('PRIVATE'));
+    } finally { await transport.close(); }
+  }
+});
+
+test('request timeout is recorded without retaining the fetch rejection', async () => {
+  const { transport } = await fixture({ limits: { ...limits, requestTimeoutMs: 20 },
+    fetchImpl: async (url, init) => new Promise((resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(Error('PRIVATE_TIMEOUT')), { once: true });
+    }),
+  });
+  try {
+    await assert.rejects(transport.head(0)); await transport.close();
+    assert.equal(transport.snapshot().failure.request_timeout, true);
+    assert.equal(transport.snapshot().failure.phase, 'fetch');
+    assert.equal(transport.snapshot().failure.http_status, null);
+    assert.ok(!JSON.stringify(transport.snapshot()).includes('PRIVATE_TIMEOUT'));
+  } finally { await transport.close(); }
+});
+
 test('HEAD pins metadata and range GET carries only fixed conditional request headers', async () => {
   const { transport, calls, events } = await fixture();
   try {
