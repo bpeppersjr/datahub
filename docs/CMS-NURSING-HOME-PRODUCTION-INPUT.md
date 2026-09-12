@@ -1,6 +1,6 @@
-# Nursing-home production input helper: isolated preparatory slice
+# Nursing-home production input helper
 
-Only `runner/cms-nursing-home-production-input.mjs`, its test and this note are new. No shared registry, production controller, CLI, coverage, output pointer or source file is changed by this slice. This is not a production plan, run or dispatch.
+The original isolated preparatory slice added only the helper, its test and this note. Subsequent reviewed integration added registry/planner/CLI and coverage hooks. These implementation capabilities are not a production plan, run, dispatch, output-pointer change or catalog publication.
 
 `pinCmsNursingHomeProductionInput(root, selection, {safe,fileHash,signal?})` follows the hospital planner utility seam. Root must resolve to APP_ROOT; selection still resolves through the exact native nursing registry loader. The planner-supplied safe-path/hash utilities are trusted local infrastructure, not user-defined source overrides. Unknown/accessor options reject. The helper performs native retained recovery/source replay before and after pinning, compares exact declarations and both directory rosters, then rechecks every hash and roster before returning.
 
@@ -12,7 +12,7 @@ Exactly 15 evidence pins are emitted in sorted order:
 
 Hashes from the callback must match the already independently verified declaration. Known artifact byte sizes must match exactly; selection/manifest have small explicit bounds. The native source/recovery readers independently enforce their existing stable, single-link, bounded-read contracts. No alternate job, generic failed-run bypass, copy, download or recovery is performed.
 
-Returned scope is `typed-registry-nursing-home-directory-rows-only`, source mode `retained-native-source-recovery`, registry admission implemented, nursing coverage projection unimplemented, production release unverified and production dispatch false. Implementation presence is not proof of a projected production release. The declaration retains all 14,690 directory rows, twelve original-source pins, recovery lineage/clock, TAB/source status/coordinate semantics and not-yet-reconciled claims. It cannot be treated as a business/site-count or coverage release.
+Returned scope is `typed-registry-nursing-home-directory-rows-only`, source mode `retained-native-source-recovery`, registry admission implemented, and `coverageProjectionImplemented:true` now that the nursing extension and shared-builder hook exist. `productionReleaseVerified:false`, `catalogPublication:false`, and `productionDispatchPerformed:false` remain explicit. Implementation presence is not proof of a projected production release. The declaration retains all 14,690 directory rows, twelve original-source pins, recovery lineage/clock, TAB/source status/coordinate semantics and not-yet-reconciled claims. It cannot be treated as a business/site-count or coverage release. This updates newly generated capability metadata only; old plans and receipts remain unchanged.
 
 `cmsNursingHomeImplementationFiles` uses the existing conservative retained-source inventory: runner/scripts/config implementation files plus package.json/package-lock.json, sorted and deduplicated. This covers dynamic/transitive imports, including recovery pins and policy. Inventory observed 1,142 files in this isolated revision; this is not a permanent expected count or proof that all modules have been hashed. A future planner must hash the returned inventory and deduplicate it with co-selected source inventories. No inventory shape for absent nursing inputs changes here.
 
@@ -22,7 +22,7 @@ Three focused tests pass with networking forbidden. Actual retained validation p
 
 After shared-file ownership is assigned, planner/CLI work must add one optional nursing selection to plan mode only, pin/reconstruct its exact declaration, recheck source and implementation before/after stages, forward it exactly once to the registry builder, validate the emitted dependency/full declaration, and reject historical recovery modes that omitted this source. Test absence compatibility, nursing-only, hospital+nursing and MN+nursing co-selection, distinct fingerprints, either-source drift and declaration omission. Preserve independent hospital coverage work; do not label unchanged legacy coverage as nursing coverage. No production dispatch should precede those contracts/tests and root review.
 
-Coordination note: root reports main hospital coverage implementation at `a915f08`; the hospital production helper's earlier `coverageProjectionImplemented:false` now needs a separately coordinated planner/status correction after the frozen check. That is an implementation-status issue, not evidence of a production coverage release. This slice does not edit that helper or shared planner. Nursing coverage remains absent.
+Capability correction: both hospital and nursing coverage implementations and hooks are now merged. Newly produced helper results report `coverageProjectionImplemented:true` while production verification and catalog publication remain false. Earlier helper-only results are historical evidence and are not rewritten.
 
 ## Subsequent isolated planner and CLI implementation
 

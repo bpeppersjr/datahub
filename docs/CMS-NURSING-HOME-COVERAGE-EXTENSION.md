@@ -1,6 +1,6 @@
 # Nursing-home coverage extension
 
-Initial source-service slice only: `runner/cms-nursing-home-coverage-extension.mjs` and focused tests. No shared coverage-builder, planner, app, catalog, source acquisition or production-pointer changes are included. The consumer hook remains a separately reviewed integration step.
+The initial source-service slice supplied `runner/cms-nursing-home-coverage-extension.mjs` and focused tests. The shared coverage-builder hook and planner integration have since been merged. Both hospital and nursing production-input helpers now report coverage implementation capability separately from unverified production release and unpublished catalog status. No source acquisition, production-pointer change or catalog publication follows merely from these code integrations.
 
 The optional `cms-nursing-home-coverage-extension@1.0.0` envelope uses `cms_nursing_home_directory_reporting`, separate from hospital and generic business counts. Its source is the exact nursing registry declaration, which identifies a retained recovery and preserves the historical failed acquisition. Native verification delegates full registry membership/source replay; the aggregate helper is not a substitute for source eligibility validation.
 

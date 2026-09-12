@@ -12,6 +12,6 @@ export async function pinCmsHospitalProductionInput(root,selection,{safe,fileHas
  for(const file of files)evidencePins.push({path:file,...await fileHash(await safe(root,file))});
  const after=await loadCmsHospitalRegistryInput(selected);check(same(cmsHospitalRegistryDeclaration(input),cmsHospitalRegistryDeclaration(after))&&same((await readdir(directory)).sort(),NAMES));
  for(const pin of evidencePins)check(same({sha256:pin.sha256,bytes:pin.bytes},await fileHash(await safe(root,pin.path))));
- return {declaration:cmsHospitalRegistryDeclaration(input),evidencePins,admissionScope:'typed-registry-directory-rows-only',coverageProjectionImplemented:false};
+ return {declaration:cmsHospitalRegistryDeclaration(input),evidencePins,admissionScope:'typed-registry-directory-rows-only',coverageProjectionImplemented:true,productionReleaseVerified:false,catalogPublication:false};
 }
 export async function cmsHospitalImplementationFiles(root=APP_ROOT){return [...new Set([...await retainedChildcareImplementationFiles(root),'package.json','package-lock.json'])].sort();}
