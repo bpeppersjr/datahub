@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {APP_ROOT} from './paths.mjs';
 import {runCensusGeocoderDemoFixture as run,verifyCensusGeocoderDemoFixture as verify,verifyCensusGeocoderDemo as nativeVerify} from './census-geocoder-demo-prerequisite.mjs';
-const base=path.join(APP_ROOT,'data/tmp/census-geocoder-demo'),lease=path.join(base,'.source-lease'),catalog=Buffer.from(JSON.stringify({benchmarks:[{id:'8',benchmarkName:'Public_AR_ACS2025',isDefault:false}]}));
+const base=path.join(APP_ROOT,`data/tmp/census-geocoder-demo-${process.pid}`),lease=path.join(base,'.source-lease'),catalog=Buffer.from(JSON.stringify({benchmarks:[{id:'8',benchmarkName:'Public_AR_ACS2025',isDefault:false}]}));
 async function gone(file){await assert.rejects(lstat(file),{code:'ENOENT'});}
 async function cleanup(result){const d=result.directory;assert.equal(path.dirname(d),path.join(base,'jobs'));assert.match(path.basename(d),/^[a-f0-9-]{36}$/);await rm(d,{recursive:true,force:true});}
 function transport(change){let count=0;const calls=[];const fetch=async(url,opts)=>{count++;calls.push({url,opts});let bytes=catalog;if(opts.method==='POST'){const body=Buffer.from(opts.body).toString(),id=body.match(/[a-f0-9]{8}-[a-f0-9-]{27}/)[0];assert.match(body,/"4600 Silver Hill Rd","Washington","DC","20233"/);assert.ok(body.includes('name="benchmark"\r\n\r\n8'));bytes=Buffer.from(`"${id}","4600 Silver Hill Rd Washington DC 20233",Match,Exact,"4600 SILVER HILL RD WASHINGTON DC 20233","-76.92,38.84",123,L\n`);}return change?.(count,url,opts,bytes)??new Response(bytes,{status:200,headers:{'content-type':opts.method==='POST'?'text/csv':'application/json'}});};return {fetch,calls};}

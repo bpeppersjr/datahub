@@ -1,0 +1,57 @@
+{
+  "profile": "cms-hospital-census-geocoding@1.0.0",
+  "sourceDataset": "xubh-q36u",
+  "sourceManifestSha256": "856992891a8ded15d0f924169991cd3c7d0bda6112de1a0702dd5600305e9239",
+  "selectedSha256": "30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979",
+  "sourceNoticeSha256": "6c45ef1ccb69bd3da4652769254472555bb83a87e8885d6c144e271cb0f53244",
+  "demoManifestSha256": "6763d425b5126c6e09cf800ddf0dc6aa20d024c9b570bc0d7cce774b59157827",
+  "providerBudgetKey": "census-public-geocoder",
+  "benchmark": {
+    "id": "8",
+    "name": "Public_AR_ACS2025"
+  },
+  "outboundFields": [
+    "opaque-id",
+    "street",
+    "city",
+    "state",
+    "ZIP5"
+  ],
+  "excludedOutboundFields": [
+    "facility-name",
+    "source-id",
+    "facility-id",
+    "telephone",
+    "ZIP4",
+    "county",
+    "ownership",
+    "clinical-data"
+  ],
+  "allowedUse": "Source-specific public CMS hospital-address point enrichment, not general record disclosure.",
+  "sourceUseBasis": "Public hospital address metadata and retained CMS government-work reuse notice; dataset-specific restrictions remain an exception.",
+  "attribution": [
+    "Centers for Medicare & Medicaid Services (CMS)",
+    "U.S. Census Bureau, Census Geocoder"
+  ],
+  "governmentEndorsement": false,
+  "providerUploadRetentionGuarantee": null,
+  "credentialsRequired": false,
+  "rawExportPolicy": "internal",
+  "derivedExportPolicy": "local-review-only",
+  "publicExportAuthorized": false,
+  "automaticRetry": false,
+  "redirects": false,
+  "requests": 3,
+  "posts": 1,
+  "limits": {
+    "maxRows": 5419,
+    "uploadBytes": 1048576,
+    "multipartBytes": 1052672,
+    "responseBytes": 4194304,
+    "catalogBytes": 65536,
+    "requestTimeoutMs": 30000,
+    "postTimeoutMs": 90000,
+    "sessionTimeoutMs": 180000,
+    "cleanupTimeoutMs": 1000
+  }
+}
