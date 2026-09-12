@@ -1,6 +1,16 @@
 # Maine ASC managed preflight handoff contract
 
-This is the reviewed integration design for the next coding slice, not an implemented registration or an authorization to contact the source. The standalone Maine metadata preflight was implemented in commit `89a3363` and integrated into main by `ba2db7e`. Its [implementation note](ME-ASC-PREFLIGHT-IMPLEMENTATION-2026-09-12.md) and [source observations](ME-MEDICAL-PROVIDER-CONTRACT-2026-09-12.md) remain the source-contract boundaries. No native Maine session was executed during development or this design review.
+This document preserves the reviewed integration design and now records its implementation status. The standalone Maine metadata preflight was implemented in commit `89a3363` and integrated into main by `ba2db7e`. The subsequent managed registration and handoff have been implemented in the isolated development checkout and await the integrator's commit and repository validation. Its [implementation note](ME-ASC-PREFLIGHT-IMPLEMENTATION-2026-09-12.md) and [source observations](ME-MEDICAL-PROVIDER-CONTRACT-2026-09-12.md) remain the source-contract boundaries. No native Maine session was executed during development or review. Implementation is not an authorization to contact the source.
+
+## Implementation status
+
+The reviewed changes below are implemented: fixed prerequisite catalog/dispatch, operation-bound native publication, independent managed receipt verification, bounded recovery descriptors, strict paired CLI arguments and cancellation-aware status handling. False collection/acquisition/conservation/export/completeness flags are present from the queued state; retained evidence remains hidden from artifact download. No collector, dependent acquisition, schedule, source request or app operation was started by this implementation.
+
+Focused offline regression passed 29/29 tests across Maine standalone/managed preflight, Oklahoma prerequisite compatibility, prerequisite gates and shared CLI cancellation. Owned-file ESLint and diff checks passed. Scratch and test-run directories were empty. Source-session tests used injected transports and offline Chromium; fabricated native-shaped managed fixtures verify structural binding only and do not establish native execution. Root and an independent read-only reviewer reported no blocking defect. These results do not replace final repository validation or native end-to-end evidence.
+
+Limits are unchanged: at most 10 sequential requests, 1 MiB per decoded response, 10 MiB aggregate, 30 seconds per request, 330 seconds per session, 250 ms between request starts and 1,000 provider selections. Managed cancellation uses the existing 75-second supervisor grace period. Native Maine execution and its persisted application operation receipt remain unperformed.
+
+The following sections retain the original design requirements for future maintenance; prospective wording describes the reviewed contract, not unfinished registration work.
 
 ## Minimal integration
 
@@ -14,7 +24,7 @@ Follow the existing Oklahoma schema prerequisite pattern. Reuse `POST /api/data-
 | `runner/me-asc-preflight-receipt.mjs` | Add strict managed output validation. Publish bundles beneath `<operation>/output/jobs/<run-id>/`, bind the operation ID in the manifest, and return the run ID and operation ID in the managed descriptor. Return a bounded recovery descriptor when publication becomes uncertain. |
 | `runner/me-asc-preflight-reader.mjs` | Add strict managed path, operation, start-time and native-mode validation while preserving standalone reads and all existing structural validations. |
 
-The current standalone descriptor lacks run and operation IDs, and its bundle is not operation-bound. The current publication error preserves files but does not return a recovery descriptor. Those are required handoff changes; merely adding the source ID to dispatch is insufficient.
+At design time the standalone descriptor lacked run and operation IDs, its bundle was not operation-bound, and publication errors preserved files without returning a recovery descriptor. The managed implementation now adds these bindings and recovery output while preserving standalone behavior; merely adding the source ID to dispatch would have been insufficient.
 
 Use the Oklahoma implementations in `runner/ok-childcare-schema-receipt.mjs`, `runner/ok-childcare-schema-reader.mjs`, `scripts/probe-ok-childcare-schema.mjs`, and `runner/managed-ok-schema-prerequisite.test.mjs` as nearby patterns. Preserve Maine's separate two-file manifest/receipt bundle and its stricter source-specific session contract.
 
@@ -59,4 +69,4 @@ Native-shaped fabricated managed fixtures may test structural validation, follow
 
 ## Remaining verification boundary
 
-This document changes no runtime registration or worker behavior. Managed output binding, recovery descriptors, independent managed validation and integration tests remain to be implemented. After that implementation, run focused tests and the required repository integration checks. The integrator owns the full-check/audit evidence and final commit. An appropriately authorized native validation and its persisted application operation receipt remain separate future evidence; this contract, successful fixture tests, or automatic continuation do not authorize a source session or provider acquisition.
+Managed output binding, recovery descriptors, independent managed validation and offline integration tests are implemented and passed the focused verification recorded above. This documentation update itself changes no runtime behavior. The integrator still owns the full-check/audit evidence, main integration and final commit. No native end-to-end publication was exercised, because native source execution was outside this slice. An appropriately authorized native validation and its persisted application operation receipt remain separate future evidence; this contract, successful fixture tests, implemented registration or automatic continuation do not authorize a source session or provider acquisition.

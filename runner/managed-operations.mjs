@@ -17,6 +17,9 @@ import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-ret
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
 const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization"];
+const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
+  collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
+  statewideCompletenessVerified: false, currentOperationsVerified: false });
 const uuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const FORMATS = ["csv", "jsonl", "both"];
 const POLICIES = ["public-only", "local-review"];
@@ -114,8 +117,8 @@ export class ManagedOperations {
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
-      || !Object.hasOwn(input, "sourceId") || !["ne-childcare-pdf", "ok-childcare-schema", "overture-httpfs-runtime", "overture-source-preflight"].includes(Object.getOwnPropertyDescriptor(input, "sourceId")?.value)) throw invalid("Source prerequisite requires only an allowed sourceId.");
-    if (["ok-childcare-schema", "overture-httpfs-runtime", "overture-source-preflight"].includes(input.sourceId)) {
+      || !Object.hasOwn(input, "sourceId") || !["ne-childcare-pdf", "ok-childcare-schema", "me-asc-preflight", "overture-httpfs-runtime", "overture-source-preflight"].includes(Object.getOwnPropertyDescriptor(input, "sourceId")?.value)) throw invalid("Source prerequisite requires only an allowed sourceId.");
+    if (["ok-childcare-schema", "me-asc-preflight", "overture-httpfs-runtime", "overture-source-preflight"].includes(input.sourceId)) {
       if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Schema prerequisite requires native operation storage.");
       await this.ready; await this.#refreshUnknown(); this.#reserve();
       try { return await this.#start("source-prerequisite", { sourceId: input.sourceId }); }
@@ -327,7 +330,7 @@ export class ManagedOperations {
     for (let attempt = 0; attempt < (scheduling ? 1 : 4); attempt += 1) { id = scheduling?.operationId ?? this.idFactory(); if (!safeId(id)) throw new Error("Generated operation ID is invalid."); directory = path.join(this.root, id); try { await mkdir(directory); break; } catch (error) { if (error.code === "EEXIST") { if (scheduling) throw conflict("Scheduled operation directory already exists; execution is blocked."); directory = null; continue; } throw error; } }
     if (!directory) throw new Error("Could not allocate an operation ID.");
     if (this.operations.has(id)) throw new Error("Operation ID collision.");
-    const record = { id, kind, status: "QUEUED", createdAt: this.now(), finishedAt: null, error: null, artifacts: [], result: {}, details, owner: { supervisorPid: process.pid } };
+    const record = { id, kind, status: "QUEUED", createdAt: this.now(), finishedAt: null, error: null, artifacts: [], result: kind === "source-prerequisite" && details.sourceId === "me-asc-preflight" ? { ...ME_ASC_PREREQUISITE_RESULT } : {}, details, owner: { supervisorPid: process.pid } };
     if (scheduling) record.scheduling = scheduling;
     this.operations.set(id, record); await this.#persist(record);
     const controller = new AbortController(); this.running.set(id, controller);
@@ -347,7 +350,8 @@ export class ManagedOperations {
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
-          : record.details.sourceId === "overture-source-preflight" ? "scripts/probe-overture-source-preflight.mjs" : "scripts/probe-ok-childcare-schema.mjs";
+          : record.details.sourceId === "overture-source-preflight" ? "scripts/probe-overture-source-preflight.mjs"
+          : record.details.sourceId === "me-asc-preflight" ? "scripts/preflight-me-asc.mjs" : "scripts/probe-ok-childcare-schema.mjs";
         args = ["--output", path.join(directory, "output"), "--operation-id", record.id];
       }
       else if (record.kind === "source-acquisition" && record.details.sourceId === "ok-childcare-retained-73102") {
@@ -376,7 +380,8 @@ export class ManagedOperations {
             ? await this.#verifyOkRetainedCollection(record, execution?.stdout) : await this.#verifyOvertureAcquisition(record, execution?.stdout)
           : record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout)
           : ["overture-httpfs-runtime", "overture-source-preflight"].includes(record.details.sourceId) ? await this.#verifyOverturePrerequisite(record, execution?.stdout)
-            : await this.#verifyOkSchemaPrerequisite(record, execution?.stdout);
+            : record.details.sourceId === "me-asc-preflight" ? await this.#verifyMeAscPrerequisite(record, execution?.stdout)
+              : await this.#verifyOkSchemaPrerequisite(record, execution?.stdout);
         if (controller.signal.aborted || execution?.code !== 0 || recovered) {
           record.status = controller.signal.aborted ? "CANCELLED" : "FAILED";
           record.error = "Managed evidence did not complete cleanly; retained output requires inspection.";
@@ -448,6 +453,29 @@ export class ManagedOperations {
     return recovery;
   }
   async #verifyCollection(record) { const receipt = JSON.parse(await readFile(path.join(APP_ROOT, "data", "industry-segments", "runs", record.id, "receipt.json"), "utf8")); if (receipt.run_id !== record.id || receipt.status !== "succeeded") throw new Error("Collection did not publish a successful canonical receipt."); }
+  async #verifyMeAscPrerequisite(record, stdout) {
+    const reject = () => { throw new Error("Maine metadata prerequisite evidence rejected."); };
+    const fixed = { ...ME_ASC_PREREQUISITE_RESULT };
+    record.result = fixed; record.artifacts = [];
+    if (typeof stdout !== "string" || stdout.length > 65536) reject();
+    let descriptor; try { descriptor = JSON.parse(stdout); } catch { reject(); }
+    let recovery = false;
+    if (descriptor && Object.hasOwn(descriptor, "recovery")) { if (Object.keys(descriptor).length !== 1) reject(); descriptor = descriptor.recovery; recovery = true; }
+    const fields = ["run_id", "operation_id", "manifest", "sha256", "status", "execution_mode", "cancellation_after_publication"];
+    if (!descriptor || Object.getPrototypeOf(descriptor) !== Object.prototype || Object.keys(descriptor).length !== fields.length || !fields.every(key => Object.hasOwn(descriptor, key))
+      || !uuid(descriptor.run_id) || descriptor.operation_id !== record.id || typeof descriptor.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(descriptor.sha256)
+      || !["inspection-required", "schema-observed-not-collection-ready"].includes(descriptor.status) || descriptor.execution_mode !== "native-fetch"
+      || typeof descriptor.cancellation_after_publication !== "boolean" || descriptor.manifest !== path.join(this.root, record.id, "output", "jobs", descriptor.run_id, "manifest.json")) reject();
+    record.result = { ...fixed, prerequisite: descriptor };
+    const { readMeAscReceipt } = await import("./me-asc-preflight-reader.mjs");
+    // Verify committed evidence even after cancellation, including injected executors.
+    const checked = await readMeAscReceipt(descriptor.manifest, { expectedSha256: descriptor.sha256, operationId: record.id,
+      operationRoot: path.join(this.root, record.id, "output"), startedAt: record.startedAt });
+    if (checked.manifest.run_id !== descriptor.run_id || checked.receipt.status !== descriptor.status || checked.receipt.execution_mode !== descriptor.execution_mode) reject();
+    const rejected = recovery || descriptor.status !== "schema-observed-not-collection-ready" || descriptor.cancellation_after_publication;
+    record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, status: descriptor.status, observedSelectionCount: checked.receipt.counts.list_rows };
+    return rejected;
+  }
   async #verifyOkSchemaPrerequisite(record, stdout) {
     const reject = () => { throw new Error("Oklahoma schema prerequisite evidence rejected."); };
     if (typeof stdout !== "string" || stdout.length > 65536) reject();

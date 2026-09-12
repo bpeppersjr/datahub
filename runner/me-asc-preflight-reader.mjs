@@ -1,13 +1,20 @@
 import path from 'node:path';
-import {readdir} from 'node:fs/promises';
+import {readdir,lstat} from 'node:fs/promises';
 import {isDeepStrictEqual as same} from 'node:util';
-import {mnSelectionReadJson as readJson} from './mn-construction-retained-selection.mjs';
+import {mnSelectionReadJson as readJson,mnSelectionCanonical as canonical} from './mn-construction-retained-selection.mjs';
+import {APP_ROOT} from './paths.mjs';
 import {ME_ASC_VERSION,ME_ASC_LIMITS as L,ME_ASC_LABELS,meClaims,meCheck as check} from './me-asc-preflight-contract.mjs';
 
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&same(Object.keys(v).sort(),keys.split(' ').sort());
 const count=v=>Number.isSafeInteger(v)&&v>=0&&v<=1048576;
 const hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const labels=v=>Array.isArray(v)&&v.length<=ME_ASC_LABELS.length&&v.every(x=>ME_ASC_LABELS.includes(x));
+const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(v);
+export async function validateMeManagedOptions(value){
+ check(value&&Object.getPrototypeOf(value)===Object.prototype&&Reflect.ownKeys(value).length===2&&['output','operationId'].every(k=>Object.hasOwn(Object.getOwnPropertyDescriptor(value,k)??{},'value')));
+ const {output,operationId}=value;check(typeof output==='string'&&output===path.resolve(output)&&uuid(operationId)&&path.basename(output)==='output'&&path.basename(path.dirname(output))===operationId);
+ const relative=path.relative(path.join(APP_ROOT,'data'),output);check(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative)&&relative.split(path.sep)[0]!=='tmp');await canonical(output);return {output,operationId};
+}
 export function validateMeAscReceipt(r){
  check(exact(r,'schema_version execution_mode status started_at finished_at policy_sha256 limits claims requests pages counts export_schema session_controls cleanup_verified'));
  check(r.schema_version===ME_ASC_VERSION&&['native-fetch','injected-test-transport'].includes(r.execution_mode)&&['inspection-required','schema-observed-not-collection-ready'].includes(r.status));
@@ -49,13 +56,17 @@ export function validateMeAscReceipt(r){
  }
  return r;
 }
-export async function readMeAscReceipt(manifest,{signal,expectedSha256}={}){
+export async function readMeAscReceipt(manifest,{signal,expectedSha256,operationId,operationRoot,startedAt}={}){
  check(typeof manifest==='string'&&path.isAbsolute(manifest)&&path.basename(manifest)==='manifest.json');signal?.throwIfAborted();
- const directory=path.dirname(manifest);check(same((await readdir(directory)).sort(),['manifest.json','receipt.json']));
+ const managed=operationId!==undefined||operationRoot!==undefined||startedAt!==undefined;
+ if(managed){await validateMeManagedOptions({output:operationRoot,operationId});check(hash(expectedSha256)&&typeof startedAt==='string'&&Number.isFinite(Date.parse(startedAt))&&new Date(startedAt).toISOString()===startedAt);}
+ const directory=path.dirname(manifest);await canonical(directory);const owner=await lstat(directory,{bigint:true});check(same((await readdir(directory)).sort(),['manifest.json','receipt.json']));
  const mm={},m=await readJson(manifest,10000,signal,mm);
- check(exact(m,'schema_version run_id receipt')&&m.schema_version==='me-asc-preflight-bundle@1.0.0'&&/^[a-f0-9-]{36}$/.test(m.run_id)&&path.basename(directory)===m.run_id&&exact(m.receipt,'name bytes sha256')&&m.receipt.name==='receipt.json'&&count(m.receipt.bytes)&&hash(m.receipt.sha256));
+ check(exact(m,managed?'schema_version run_id operation_id receipt':'schema_version run_id receipt')&&m.schema_version==='me-asc-preflight-bundle@1.0.0'&&uuid(m.run_id)&&path.basename(directory)===m.run_id&&exact(m.receipt,'name bytes sha256')&&m.receipt.name==='receipt.json'&&count(m.receipt.bytes)&&hash(m.receipt.sha256));
+ if(managed)check(m.operation_id===operationId&&manifest===path.join(operationRoot,'jobs',m.run_id,'manifest.json'));
  if(expectedSha256!==undefined)check(mm.sha256===expectedSha256);
  const meter={},receipt=await readJson(path.join(directory,'receipt.json'),100000,signal,meter);validateMeAscReceipt(receipt);check(meter.bytes===m.receipt.bytes&&meter.sha256===m.receipt.sha256);
- const again={};await readJson(manifest,10000,signal,again);check(again.sha256===mm.sha256&&same((await readdir(directory)).sort(),['manifest.json','receipt.json']));
- return {manifest_sha256:mm.sha256,receipt};
+ if(managed)check(receipt.execution_mode==='native-fetch'&&receipt.cleanup_verified&&receipt.started_at>=startedAt&&Date.parse(receipt.finished_at)-Date.parse(receipt.started_at)<=L.session_timeout_ms);
+ const again={};await readJson(manifest,10000,signal,again);const after=await lstat(directory,{bigint:true});check(again.sha256===mm.sha256&&again.identity.ino===mm.identity.ino&&again.identity.dev===mm.identity.dev&&after.isDirectory()&&!after.isSymbolicLink()&&after.ino===owner.ino&&after.dev===owner.dev&&same((await readdir(directory)).sort(),['manifest.json','receipt.json']));
+ return {manifest_sha256:mm.sha256,manifest:m,receipt};
 }

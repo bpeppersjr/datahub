@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import {readFile,readdir,writeFile,unlink,rmdir,mkdir,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,readdir,writeFile,unlink,rmdir,mkdir,mkdtemp,rm,symlink} from 'node:fs/promises';
+import {randomUUID} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {EventEmitter} from 'node:events';
@@ -11,7 +12,7 @@ import {createMeOfflineParser} from './me-asc-preflight-parser.mjs';
 import {ME_ASC_BASE as B,ME_ASC_COUNTIES,ME_ASC_LIMITS,meHash,serializeMeForm} from './me-asc-preflight-contract.mjs';
 import {runMeAscPreflightWithTestTransport,createMeCookieJar,mePolicy,ME_POLICY_SHA256} from './me-asc-preflight-session.mjs';
 import {persistMeAscReceipt,persistMeAscReceiptWithTestHook} from './me-asc-preflight-receipt.mjs';
-import {readMeAscReceipt,validateMeAscReceipt} from './me-asc-preflight-reader.mjs';
+import {readMeAscReceipt,validateMeAscReceipt,validateMeManagedOptions} from './me-asc-preflight-reader.mjs';
 
 const secret='SYNTHETIC_PRIVATE_VALUE',csrf=n=>`<input type="hidden" name="CSRFToken" value="SYNTHETIC_TOKEN_${n}">`;
 const box=(name,value)=>`<input type="checkbox" name="${name}" value="${value}">`;
@@ -144,4 +145,26 @@ test('app IPC cancellation drives fixture body and parser cleanup',async()=>{
   assert.equal(cancellation.signal.aborted,true);assert.equal(result.cleanup_verified,true);assert.equal(result.status,'inspection-required');assert.equal(bodyClosed,true);assert.equal(parserClosed,true);
  }finally{cancellation.dispose();}
  assert.equal(fake.listenerCount('message'),0);
+});
+test('managed bindings reject aliases, invalid paths and synthetic issuance without publication',async()=>{
+ const base=path.join(APP_ROOT,'data/me-asc-managed-options-tests');await mkdir(base,{recursive:true});const root=await mkdtemp(path.join(base,'run-')),operationId=randomUUID(),output=path.join(root,operationId,'output');
+ try{
+  assert.deepEqual(await validateMeManagedOptions({output,operationId}),{output,operationId});
+  const getter=Object.defineProperty({operationId},'output',{get(){assert.fail('getter forbidden');},enumerable:true});
+  for(const options of [getter,{output,operationId,extra:true},{output:'relative',operationId},{output,operationId:randomUUID()},{output:path.join(APP_ROOT,'data/tmp',operationId,'output'),operationId}])await assert.rejects(validateMeManagedOptions(options));
+  await mkdir(path.join(root,'actual'));await symlink(path.join(root,'actual'),path.join(root,'alias'),'junction');
+  await assert.rejects(validateMeManagedOptions({output:path.join(root,'alias',operationId,'output'),operationId}));
+  const {result}=await run();await assert.rejects(persistMeAscReceipt(result,{output,operationId}));assert.deepEqual((await readdir(root)).sort(),['actual','alias']);
+ }finally{await unlink(path.join(root,'alias')).catch(()=>{});assert.equal(path.dirname(root),base);await rm(root,{recursive:true,force:true});}
+});
+test('publication cancellation and recovery retain only a bounded committed descriptor',async()=>{
+ const {result}=await run(),before=await readdir(path.join(APP_ROOT,'data/tmp/me-asc-receipts'));
+ const early=new AbortController();await assert.rejects(persistMeAscReceiptWithTestHook(result,async stage=>{if(stage==='before-publication')early.abort();},{signal:early.signal}));assert.deepEqual(await readdir(path.join(APP_ROOT,'data/tmp/me-asc-receipts')),before);
+ let manifest;try{
+  const late=new AbortController(),saved=await persistMeAscReceiptWithTestHook(result,async stage=>{if(stage==='after-publication')late.abort();},{signal:late.signal});manifest=saved.manifest;assert.equal(saved.cancellation_after_publication,true);await readMeAscReceipt(manifest,{expectedSha256:saved.sha256});
+ }finally{if(manifest)await removeBundle(manifest);}
+ manifest=undefined;try{
+  await assert.rejects(persistMeAscReceiptWithTestHook(result,async stage=>{if(stage==='after-publication')throw Error(secret);}),error=>{assert.equal(error.code,'ME_ASC_PUBLICATION_UNCERTAIN');manifest=error.recovery.manifest;assert.doesNotMatch(JSON.stringify(error.recovery),/SYNTHETIC_PRIVATE_VALUE/);assert.deepEqual(Object.keys(error.recovery).sort(),['cancellation_after_publication','execution_mode','manifest','sha256','status']);return true;});
+  await readMeAscReceipt(manifest);
+ }finally{if(manifest)await removeBundle(manifest);}
 });

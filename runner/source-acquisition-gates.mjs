@@ -34,6 +34,15 @@ export function getSourcePrerequisiteGates() {
     reason: 'One fixed center/ZIP aggregate schema check, not a statewide acquisition or refresh.',
     nextAction: 'Run the bounded prerequisite through the app; verify broader delivery and temporal semantics before collection enrollment.',
   }, {
+    sourceId: 'me-asc-preflight', state: 'ME', industry: 'health-care',
+    status: 'READY_METADATA_PREREQUISITE', metadataPrerequisiteImplemented: true, collectionReady: false,
+    acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
+    currentOperationsVerified: false, statewideCompletenessVerified: false,
+    sourceUrl: 'https://gateway.maine.gov/dhhs-apps/aspen/',
+    reviewDocument: 'docs/states/ME-ASC-MANAGED-HANDOFF-CONTRACT-2026-09-12.md',
+    reason: 'One fixed Maine ASC category session; transient provider responses yield minimized metadata only. No provider dataset or collection readiness.',
+    nextAction: 'Run only an authorized bounded metadata prerequisite through the app. Source semantics, record conservation and collection scope remain separate gates.',
+  }, {
     sourceId: 'overture-httpfs-runtime', state: null, industry: null,
     status: 'READY_RUNTIME_PREREQUISITE', runtimePrerequisiteImplemented: true, collectionReady: false,
     publicExportAuthorized: false, currentOperationsVerified: false,
