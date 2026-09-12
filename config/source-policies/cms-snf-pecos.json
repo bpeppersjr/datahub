@@ -1,0 +1,23 @@
+{
+  "profile": "cms-snf-pecos-offline@1.0.0",
+  "source": "CMS PECOS SNF public-use documentation",
+  "mode": "offline-only",
+  "networkRequests": 0,
+  "approvedDownloadBudgetBytes": 0,
+  "acquisitionReady": false,
+  "nativeDistributionPins": null,
+  "nativeSchemaObserved": false,
+  "rawExportPolicy": "internal",
+  "selectedExportPolicy": "local-review-only",
+  "publicExportAuthorized": false,
+  "individualOwnerFieldsSelected": false,
+  "ownerAddressesSelected": false,
+  "attribution": "Centers for Medicare & Medicaid Services (CMS)",
+  "governmentEndorsement": false,
+  "limits": {"csvBytesPerInput": 8388608, "rowsPerInput": 10000, "directoryRows": 25000, "headerColumns": 128, "recordCharacters": 65536, "linkReferences": 100000},
+  "dictionarySha256": {
+    "enrollments": "7f46e9e96daa6100f45853bdc34562cf69b12a3aa88a71862a5c615a7793b8ee",
+    "owners": "e118657f67562954010214357da361298e0f7bccf33105983050e7d3f769bb37",
+    "guidance": "02215a54a5af76be484f18e53d8ba54b56463073543d4f2ebc3e01916959e1fd"
+  }
+}
