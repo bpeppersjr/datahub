@@ -1,0 +1,15 @@
+{
+  "profile": "cms-nursing-home-acquisition@1.0.0",
+  "noticeUrl": "https://data.cms.gov/sites/default/files/2022-12/API%20FAQ%20%20v1_1.pdf",
+  "noticeSha256": "6c45ef1ccb69bd3da4652769254472555bb83a87e8885d6c144e271cb0f53244",
+  "dictionaryUrl": "https://data.cms.gov/provider-data/sites/default/files/data_dictionaries/nursing_home/NH_Data_Dictionary.pdf",
+  "dictionarySha256": "2b55b0f65532e36fe7c49967993a37ddcb8c92e38234c94a2652c9a77feeb313",
+  "nursingHomeNoticeContext": "https://data.cms.gov/provider-data/topics/nursing-homes",
+  "basis": "Reviewed CMS government-work reuse notice; not proof of absence of third-party rights or dataset-specific agreements.",
+  "attribution": "Centers for Medicare & Medicaid Services (CMS)",
+  "noGovernmentEndorsement": true,
+  "scope": "One public 4pq5-n9py national distribution with metadata stability",
+  "rawExportPolicy": "internal",
+  "selectedExportPolicy": "local-review-only",
+  "publicExportAuthorized": false
+}
