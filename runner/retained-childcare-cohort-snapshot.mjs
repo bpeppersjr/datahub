@@ -5,8 +5,10 @@ import {isDeepStrictEqual as same} from 'node:util';
 import {APP_ROOT} from './paths.mjs';
 import {mnSelectionCanonical as canonical,mnSelectionReadJson as readJson,mnSelectionWriter as writer} from './mn-construction-retained-selection.mjs';
 import {buildRetainedChildcareCohortView,validateRetainedChildcareCohortView,RETAINED_CHILDCARE_COHORT_VIEW_VERSION,RETAINED_CHILDCARE_COHORT_STATES as STATES} from './retained-childcare-cohort-view.mjs';
+import {loadRestrictedChildcareSamples,validateRestrictedChildcareSamples,RESTRICTED_SAMPLE_INPUTS} from './retained-childcare-restricted-samples.mjs';
 
 export const RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION='retained-childcare-cohort-snapshot@1.0.0';
+export const RETAINED_CHILDCARE_RESTRICTED_SNAPSHOT_VERSION='retained-childcare-cohort-snapshot@2.0.0';
 const VIEW_MAX=32000000,MANIFEST_MAX=100000;
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const check=value=>{if(!value)throw Error('Retained childcare snapshot rejected.');};
@@ -51,35 +53,52 @@ function checkBindings(entries,view,inputRoot){
   }
 }
 function descriptor(manifestPath,manifestSha256,manifest){return {manifest_path:manifestPath,manifest_sha256:manifestSha256,run_id:manifest.run_id,industry_run_id:manifest.industry_run_id,execution_mode:manifest.execution_mode};}
-async function inspect(manifestPath,expectedHash,signal,candidate=false){
+async function inspect(manifestPath,expectedHash,signal,candidate=false,verifyRestrictedSources=true){
   check(typeof manifestPath==='string'&&manifestPath===path.resolve(manifestPath)&&path.basename(manifestPath)===(candidate?'manifest.tmp':'manifest.json')&&sha(expectedHash));
   const directory=path.dirname(manifestPath),id=path.basename(directory);check(UUID.test(id)&&path.basename(path.dirname(directory))==='jobs'&&contained(path.join(APP_ROOT,'data'),directory));
   await canonical(directory,{signal});const owner=await lstat(directory,{bigint:true}),mm={},vm={};
   const manifest=await readJson(manifestPath,MANIFEST_MAX,signal,mm);check(mm.sha256===expectedHash);
   exact(manifest,['schema_version','run_id','industry_run_id','execution_mode','input_root','started_at','finished_at','view_version','enrollments','available_source_count','unavailable_source_count','not_enrolled_source_count','artifacts','claims']);
-  check(manifest.schema_version===RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION&&manifest.run_id===id&&['native-root-offline-build','fixture-root-offline-build'].includes(manifest.execution_mode)&&manifest.view_version===RETAINED_CHILDCARE_COHORT_VIEW_VERSION&&same(manifest.claims,claims()));
+  const restricted=manifest.schema_version===RETAINED_CHILDCARE_RESTRICTED_SNAPSHOT_VERSION;
+  check((restricted||manifest.schema_version===RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION)&&manifest.run_id===id&&['native-root-offline-build','fixture-root-offline-build'].includes(manifest.execution_mode)&&manifest.view_version===RETAINED_CHILDCARE_COHORT_VIEW_VERSION&&same(manifest.claims,claims()));
+  if(restricted)check(manifest.execution_mode==='native-root-offline-build');
   check(manifest.industry_run_id===null||typeof manifest.industry_run_id==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(manifest.industry_run_id));
   check(time(manifest.started_at)&&time(manifest.finished_at)&&manifest.finished_at>=manifest.started_at);
   check(typeof manifest.input_root==='string');const inputRoot=path.resolve(APP_ROOT,manifest.input_root);check(rootIdentity(inputRoot,manifest.execution_mode==='fixture-root-offline-build')===manifest.input_root);
   if(manifest.execution_mode==='fixture-root-offline-build')check(temporaryPath(directory));else check(!temporaryPath(directory));
-  check(Array.isArray(manifest.artifacts)&&manifest.artifacts.length===1);const artifact=manifest.artifacts[0];exact(artifact,['path','bytes','sha256']);check(artifact.path==='view.json'&&Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0&&artifact.bytes<=VIEW_MAX&&sha(artifact.sha256));
+  check(Array.isArray(manifest.artifacts)&&manifest.artifacts.length===(restricted?2:1));const artifact=manifest.artifacts[0];exact(artifact,['path','bytes','sha256']);check(artifact.path==='view.json'&&Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0&&artifact.bytes<=VIEW_MAX&&sha(artifact.sha256));
   const rawView=await readJson(path.join(directory,'view.json'),VIEW_MAX,signal,vm);check(vm.bytes===artifact.bytes&&vm.sha256===artifact.sha256);
   const view=validateRetainedChildcareCohortView(rawView);check(same(view,rawView)&&view.claims.evidence_verification==='source-specific-retained-enrollment-replay');
   checkBindings(manifest.enrollments,view,inputRoot);
   const entries=Object.values(view.cohorts).flat();
   for(const [status,key]of [['available','available_source_count'],['unavailable','unavailable_source_count'],['not-enrolled','not_enrolled_source_count']])check(manifest[key]===entries.filter(entry=>entry.status===status).length);
   check(view.claims.artifact_verification_performed===(manifest.available_source_count>0));
-  const roster=['view.json',path.basename(manifestPath)].sort();check(same((await readdir(directory)).sort(),roster));
+  let samples,sampleMeter;
+  if(restricted){
+    const sampleArtifact=manifest.artifacts[1];exact(sampleArtifact,['path','bytes','sha256']);check(sampleArtifact.path==='restricted-samples.json'&&Number.isSafeInteger(sampleArtifact.bytes)&&sampleArtifact.bytes>0&&sampleArtifact.bytes<=100000&&sha(sampleArtifact.sha256));
+    sampleMeter={};samples=validateRestrictedChildcareSamples(await readJson(path.join(directory,sampleArtifact.path),100000,signal,sampleMeter));check(sampleMeter.sha256===sampleArtifact.sha256&&sampleMeter.bytes===sampleArtifact.bytes);
+    // This generation is a derivative of one immutable seven-source snapshot, not a new national build.
+    const base=await inspect(path.join(APP_ROOT,RESTRICTED_SAMPLE_INPUTS.base_manifest),RESTRICTED_SAMPLE_INPUTS.base_sha256,signal);
+    check(base.manifest.schema_version===RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION&&same(view,base.view)&&same(manifest.enrollments,base.manifest.enrollments));
+    check(manifest.started_at>=base.manifest.finished_at&&samples.groups.every(group=>manifest.started_at>=group.normalized_at));
+    // Independently reproduce the projection from pinned, verified normalized inputs; rehashing false content is insufficient.
+    if(verifyRestrictedSources)check(same(samples,await loadRestrictedChildcareSamples({signal})));
+  }
+  const roster=['view.json',...(restricted?['restricted-samples.json']:[]),path.basename(manifestPath)].sort();check(same((await readdir(directory)).sort(),roster));
   const finalView={},finalManifest={};await readJson(path.join(directory,'view.json'),VIEW_MAX,signal,finalView);await readJson(manifestPath,MANIFEST_MAX,signal,finalManifest);
   check(finalView.sha256===vm.sha256&&fileIdentity(vm.identity,finalView.identity)&&finalManifest.sha256===mm.sha256&&fileIdentity(mm.identity,finalManifest.identity));
+  if(restricted){const finalSample={};await readJson(path.join(directory,'restricted-samples.json'),100000,signal,finalSample);check(finalSample.sha256===sampleMeter.sha256&&fileIdentity(sampleMeter.identity,finalSample.identity));}
   await canonical(directory,{signal});check(directoryIdentity(owner,await lstat(directory,{bigint:true}))&&same((await readdir(directory)).sort(),roster));signal?.throwIfAborted();
-  return {manifest,view,verification:{...descriptor(manifestPath,expectedHash,manifest),snapshot_integrity_verified:true,source_replay_performed_this_read:false,recorded_build_verification:{finished_at:manifest.finished_at,scope:'historical-source-specific-retained-enrollment-replay',available_source_count:manifest.available_source_count}}};
+  return {manifest,view:restricted?{...view,restricted_samples:samples}:view,verification:{...descriptor(manifestPath,expectedHash,manifest),snapshot_integrity_verified:true,source_replay_performed_this_read:restricted&&verifyRestrictedSources,recorded_build_verification:{finished_at:manifest.finished_at,scope:restricted?'pinned-seven-source-snapshot-reuse-and-restricted-sample-projection':'historical-source-specific-retained-enrollment-replay',available_source_count:manifest.available_source_count}}};
 }
 export async function readRetainedChildcareCohortSnapshot(manifestPath,expectedManifestSha256,value={}){
-  options(value,['signal']);try{return await inspect(manifestPath,expectedManifestSha256,value.signal);}catch{throw Error('Retained childcare snapshot integrity verification failed.');}
+  options(value,['signal','verifyRestrictedSources']);check(value.verifyRestrictedSources===undefined||typeof value.verifyRestrictedSources==='boolean');
+  try{return await inspect(manifestPath,expectedManifestSha256,value.signal,false,value.verifyRestrictedSources!==false);}catch{throw Error('Retained childcare snapshot integrity verification failed.');}
 }
 async function build(value,synthetic){
-  options(value,synthetic?['root','outputRoot','industryRunId','signal']:['outputRoot','industryRunId','signal']);
+  options(value,synthetic?['root','outputRoot','industryRunId','signal']:['outputRoot','industryRunId','signal','includeRetainedSamples']);
+  check(value.includeRetainedSamples===undefined||value.includeRetainedSamples===true);
+  const restricted=value.includeRetainedSamples===true;
   const root=synthetic?value.root:APP_ROOT,inputRoot=rootIdentity(root,synthetic),outputRoot=value.outputRoot??path.join(APP_ROOT,'data/retained-childcare-cohorts'),industryRunId=value.industryRunId??null,signal=value.signal;
   check(typeof outputRoot==='string'&&outputRoot===path.resolve(outputRoot)&&contained(path.join(APP_ROOT,'data'),outputRoot)&&!path.relative(APP_ROOT,outputRoot).split(path.sep).some(part=>part.toLowerCase()==='jobs'));
   if(synthetic)check(contained(path.join(APP_ROOT,'data/tmp'),outputRoot));else check(!temporaryPath(outputRoot));
@@ -95,12 +114,15 @@ async function build(value,synthetic){
   try{
     lockOwner=await lock.stat({bigint:true});check(lockOwner.nlink===1n);await lock.writeFile(JSON.stringify(lockValue)+'\n');await lock.sync();
     await canonical(path.join(outputRoot,'jobs'),{create:true,output:true,signal});directory=path.join(outputRoot,'jobs',runId);await mkdir(directory);owner=await lstat(directory,{bigint:true});
-    const startedAt=new Date().toISOString(),before=await bindings(root,signal);
-    const view=await buildRetainedChildcareCohortView({root,signal});validateRetainedChildcareCohortView(view);checkBindings(before,view,root);
-    check(same(await bindings(root,signal),before));const artifact=await stage('view.json',view,VIEW_MAX),entries=Object.values(view.cohorts).flat();
-    const manifest={schema_version:RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION,run_id:runId,industry_run_id:industryRunId,execution_mode:synthetic?'fixture-root-offline-build':'native-root-offline-build',input_root:inputRoot,started_at:startedAt,finished_at:new Date().toISOString(),view_version:RETAINED_CHILDCARE_COHORT_VIEW_VERSION,enrollments:before,available_source_count:entries.filter(entry=>entry.status==='available').length,unavailable_source_count:entries.filter(entry=>entry.status==='unavailable').length,not_enrolled_source_count:entries.filter(entry=>entry.status==='not-enrolled').length,artifacts:[artifact],claims:claims()};
+    const startedAt=new Date().toISOString();
+    const base=restricted?await inspect(path.join(APP_ROOT,RESTRICTED_SAMPLE_INPUTS.base_manifest),RESTRICTED_SAMPLE_INPUTS.base_sha256,signal):null;
+    const before=base?base.manifest.enrollments:await bindings(root,signal);
+    const view=base?base.view:await buildRetainedChildcareCohortView({root,signal});validateRetainedChildcareCohortView(view);checkBindings(before,view,root);
+    if(!restricted)check(same(await bindings(root,signal),before));const artifact=await stage('view.json',view,VIEW_MAX),entries=Object.values(view.cohorts).flat();
+    const artifacts=[artifact];if(restricted)artifacts.push(await stage('restricted-samples.json',await loadRestrictedChildcareSamples({signal}),100000));
+    const manifest={schema_version:restricted?RETAINED_CHILDCARE_RESTRICTED_SNAPSHOT_VERSION:RETAINED_CHILDCARE_COHORT_SNAPSHOT_VERSION,run_id:runId,industry_run_id:industryRunId,execution_mode:synthetic?'fixture-root-offline-build':'native-root-offline-build',input_root:inputRoot,started_at:startedAt,finished_at:new Date().toISOString(),view_version:RETAINED_CHILDCARE_COHORT_VIEW_VERSION,enrollments:before,available_source_count:entries.filter(entry=>entry.status==='available').length,unavailable_source_count:entries.filter(entry=>entry.status==='unavailable').length,not_enrolled_source_count:entries.filter(entry=>entry.status==='not-enrolled').length,artifacts,claims:claims()};
     const staged=await stage('manifest.tmp',manifest,MANIFEST_MAX),temporary=path.join(directory,'manifest.tmp'),manifestPath=path.join(directory,'manifest.json');
-    await inspect(temporary,staged.sha256,signal,true);await checkOwner();check(same(await bindings(root,signal),before));
+    await inspect(temporary,staged.sha256,signal,true);await checkOwner();if(!restricted)check(same(await bindings(root,signal),before));
     // Rehash after enrollment recheck, immediately before the no-overwrite publication.
     await inspect(temporary,staged.sha256,signal,true);signal?.throwIfAborted();
     await link(temporary,manifestPath);published=true;committedDescriptor=descriptor(manifestPath,staged.sha256,manifest);await unlink(temporary);

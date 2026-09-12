@@ -32,3 +32,14 @@ test('retained panel uses saved read endpoint with stale-response guard and no b
   assert.match(source,/api\/business-map\/retained-childcare/);assert.match(source,/if\(active\)setData/);assert.match(source,/active=false/);
   assert.doesNotMatch(source,/cohort-snapshots|method:\s*['"]POST/);
 });
+
+test('restricted samples remain distinct, state scoped and report ZIP rather than query assigned',()=>{
+  const group=state=>({state,query_zip5:'73102',observed_at:'2026-09-10T16:10:18.534Z',normalized_at:'2026-09-10T16:10:18.636Z',count:4,points_available:4,
+    rows:[{row_ordinal:1,name:'Retained example',source_record_id:'source-1',query_zip5:'73102',latitude:35,longitude:-97,address:{source_lines:['Source address'],zip5:'73103',zip4:'1234'}}]});
+  const input={...data,view:{...data.view,restricted_samples:{groups:[group('OK'),group('NH')]}}};
+  const html=render({publisherState:'OK',selectedZip:'73103'},input);
+  assert.match(html,/Oklahoma — 4 retained sample rows/);assert.doesNotMatch(html,/New Hampshire|No retained childcare publisher/);
+  assert.match(html,/separate from the seven enrolled state-source cohorts/);assert.match(html,/completeness are unknown/);
+  assert.match(html,/Query ZIP: 73102; reported ZIP5: 73103; ZIP\+4: 1234/);assert.match(html,/Source latitude: 35/);
+  assert.doesNotMatch(render({scopeUnavailable:true},input),/retained sample rows/);
+});

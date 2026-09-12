@@ -105,10 +105,10 @@ export class ManagedOperations {
     catch (error) { this.reserved = false; throw error; }
   }
   async startCohortSnapshot(input = {}) {
-    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 0) throw invalid("Cohort snapshot takes no caller options.");
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).some(key => key !== "includeRetainedSamples" || !Object.hasOwn(Object.getOwnPropertyDescriptor(input,key),"value")) || Object.hasOwn(input,"includeRetainedSamples") && input.includeRetainedSamples !== true) throw invalid("Cohort snapshot accepts only an optional true includeRetainedSamples flag.");
     if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Cohort snapshot requires native operation storage.");
     await this.ready; await this.#refreshUnknown(); this.#reserve();
-    try { return await this.#start("cohort-snapshot", {}); }
+    try { return await this.#start("cohort-snapshot", input.includeRetainedSamples ? { includeRetainedSamples: true } : {}); }
     catch (error) { this.reserved = false; throw error; }
   }
   async startSourcePrerequisite(input = {}) {
@@ -343,7 +343,7 @@ export class ManagedOperations {
       controller.signal.throwIfAborted();
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); }
-      else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id]; }
+      else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
           : record.details.sourceId === "overture-source-preflight" ? "scripts/probe-overture-source-preflight.mjs" : "scripts/probe-ok-childcare-schema.mjs";
@@ -439,8 +439,9 @@ export class ManagedOperations {
     const { readRetainedChildcareCohortSnapshot } = await import("./retained-childcare-cohort-snapshot.mjs");
     const checked = await readRetainedChildcareCohortSnapshot(descriptor.manifest_path, descriptor.manifest_sha256);
     const m = checked.manifest;
+    if (m.schema_version !== (record.details.includeRetainedSamples ? "retained-childcare-cohort-snapshot@2.0.0" : "retained-childcare-cohort-snapshot@1.0.0")) reject();
     if (m.run_id !== descriptor.run_id || m.industry_run_id !== record.id || m.execution_mode !== descriptor.execution_mode || m.started_at < record.startedAt) reject();
-    record.result = { ...record.result, snapshotIntegrityVerified: true, inspectionRequired: recovery,
+    record.result = { ...record.result, snapshotIntegrityVerified: true, sourceReplayPerformedThisRead: checked.verification.source_replay_performed_this_read, inspectionRequired: recovery,
       availableSourceCount: m.available_source_count, unavailableSourceCount: m.unavailable_source_count, notEnrolledSourceCount: m.not_enrolled_source_count };
     record.artifacts = [];
     return recovery;

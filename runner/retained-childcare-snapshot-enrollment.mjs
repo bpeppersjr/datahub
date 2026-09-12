@@ -7,7 +7,7 @@ const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3
 const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const timestamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
 
-/** Read a pinned successful app snapshot; no source replay or new operation. */
+/** Cheap read of a pinned successful app snapshot; the parent verified v2 source projection before success. */
 export async function loadRetainedChildcareSnapshotEnrollment(options={}){
   check(options&&Object.getPrototypeOf(options)===Object.prototype&&Reflect.ownKeys(options).every(k=>['root','signal'].includes(k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,k),'value')));
   const {root=APP_ROOT,signal}=options;check(typeof root==='string'&&root===path.resolve(root)&&(signal===undefined||signal instanceof AbortSignal));signal?.throwIfAborted();
@@ -20,17 +20,19 @@ export async function loadRetainedChildcareSnapshotEnrollment(options={}){
   try{receipt=await readJson(receiptPath,100000,signal,receiptMeter);}catch(error){if(error.code!=='ENOENT')throw error;await unchanged();return {status:'unavailable',reason:'enrolled-operation-not-installed',enrollment_sha256:meter.sha256};}
   check(receiptMeter.sha256===binding.operation_receipt_sha256&&receipt.id===binding.operation_id&&receipt.kind==='cohort-snapshot'&&receipt.status==='SUCCEEDED'&&receipt.error===null);
   const r=receipt.result,d=r?.snapshot;
-  check(r&&r.snapshotIntegrityVerified===true&&r.inspectionRequired===false&&r.sourceReplayPerformedThisRead===false&&r.exportPolicy==='internal');
+  check(r&&r.snapshotIntegrityVerified===true&&r.inspectionRequired===false&&r.sourceReplayPerformedThisRead===(receipt.details?.includeRetainedSamples===true)&&r.exportPolicy==='internal');
   check(d&&Object.keys(d).length===5&&uuid(d.run_id)&&sha(d.manifest_sha256)&&d.industry_run_id===receipt.id&&d.execution_mode==='native-root-offline-build'
     &&d.manifest_path===path.join(root,'data/managed-operations',receipt.id,'output/jobs',d.run_id,'manifest.json'));
   check(timestamp(receipt.createdAt)&&timestamp(receipt.startedAt)&&timestamp(receipt.finishedAt)&&receipt.createdAt<=receipt.startedAt&&receipt.startedAt<=receipt.finishedAt);
   const receiptUnchanged=async()=>{const final={};await readJson(receiptPath,100000,signal,final);check(final.sha256===receiptMeter.sha256);await unchanged();};
   try{await lstat(d.manifest_path);}catch(error){if(error.code!=='ENOENT')throw error;await receiptUnchanged();return {status:'unavailable',reason:'enrolled-snapshot-not-installed',enrollment_sha256:meter.sha256};}
   const {readRetainedChildcareCohortSnapshot}=await import('./retained-childcare-cohort-snapshot.mjs');
-  const snapshot=await readRetainedChildcareCohortSnapshot(d.manifest_path,d.manifest_sha256,{signal}),m=snapshot.manifest;
+  // The successful parent receipt pins the independently verified derivative; UI reads rehash it without replaying sources.
+  const snapshot=await readRetainedChildcareCohortSnapshot(d.manifest_path,d.manifest_sha256,{signal,verifyRestrictedSources:false}),m=snapshot.manifest;
+  check(m.schema_version===(receipt.details?.includeRetainedSamples===true?'retained-childcare-cohort-snapshot@2.0.0':'retained-childcare-cohort-snapshot@1.0.0'));
   check(m.industry_run_id===receipt.id&&m.run_id===d.run_id&&m.execution_mode===d.execution_mode&&m.started_at>=receipt.startedAt&&m.finished_at<=receipt.finishedAt);
   for(const [receiptKey,manifestKey]of [['availableSourceCount','available_source_count'],['unavailableSourceCount','unavailable_source_count'],['notEnrolledSourceCount','not_enrolled_source_count']])check(r[receiptKey]===m[manifestKey]);
   await receiptUnchanged();
   return {status:'available',enrollment_sha256:meter.sha256,operation_id:receipt.id,operation_receipt_sha256:receiptMeter.sha256,operation_finished_at:receipt.finishedAt,
-    view:snapshot.view,verification:snapshot.verification,claims:{source_replay_performed_this_read:false,new_operation_submitted:false,national_reporting_integrated:false,national_completeness_percent:null,public_export_authorized:false}};
+    view:snapshot.view,verification:snapshot.verification,claims:{source_replay_performed_this_read:snapshot.verification.source_replay_performed_this_read,new_operation_submitted:false,national_reporting_integrated:false,national_completeness_percent:null,public_export_authorized:false}};
 }

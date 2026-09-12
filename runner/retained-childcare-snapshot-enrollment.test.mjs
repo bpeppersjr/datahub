@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,rm,readFile} from 'node:fs/promises';
 import {APP_ROOT} from './paths.mjs';
 import {loadRetainedChildcareSnapshotEnrollment as load} from './retained-childcare-snapshot-enrollment.mjs';
 const id='bafb683b-f4ae-4355-983a-d2a3c85e7d9b',run='ef5c1cef-a2c2-4854-9092-7e1e60e409ea';
@@ -27,8 +27,9 @@ test('snapshot enrollment treats missing artifacts as unavailable, not zero',asy
 test('installed enrollment reads the completed app snapshot without source replay',{skip:process.env.DATAHUB_TEST_RETAINED_COHORTS!=='1'},async()=>{
   const previous=globalThis.fetch;globalThis.fetch=()=>assert.fail('no source access');
   try{
-    const result=await load();assert.equal(result.status,'available');assert.equal(result.operation_id,id);assert.equal(result.verification.run_id,run);
-    assert.equal(result.operation_receipt_sha256,'5de68167b873461bc37c6fe7fcff19dc5d920c4b332370dbd56f91ea323ab7e3');
+    const current=JSON.parse(await readFile(path.join(APP_ROOT,'config/retained-childcare-snapshot-enrollment.json'),'utf8'));
+    const result=await load();assert.equal(result.status,'available');assert.equal(result.operation_id,current.operation_id);
+    assert.equal(result.operation_receipt_sha256,current.operation_receipt_sha256);
     assert.equal(result.verification.snapshot_integrity_verified,true);assert.equal(result.verification.source_replay_performed_this_read,false);
     for(const [state,count]of Object.entries({PA:4995,CT:1390,MD:1772,VT:503,CO:1648,UT:422,IA:1476}))assert.equal(result.view.cohorts[state][0].accepted_candidate_rows,count);
   }finally{globalThis.fetch=previous;}

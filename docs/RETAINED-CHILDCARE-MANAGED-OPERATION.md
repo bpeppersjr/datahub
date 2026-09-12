@@ -1,5 +1,7 @@
 # Managed retained-childcare snapshot operation
 
+Optional v2 reuse is described in [Restricted retained samples](RETAINED-CHILDCARE-RESTRICTED-SAMPLES.md). The original empty-object v1 operation remains unchanged; v2 accepts only explicit `includeRetainedSamples: true`.
+
 Status: the live app operation completed and its saved snapshot was independently verified. Pinned downstream enrollment and a read-only map-side comparison panel passed full release validation.
 
 The authenticated local control plane accepts `POST /api/data-operations/cohort-snapshots` with an empty JSON object. It allocates a `cohort-snapshot` operation and persists its receipt before returning HTTP 202. The app chooses the output directory and operation identity. Paths, source selections, precomputed counts, credentials and transport overrides are not accepted from this endpoint.

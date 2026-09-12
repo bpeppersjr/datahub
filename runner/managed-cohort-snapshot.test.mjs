@@ -39,14 +39,25 @@ test('managed cohort snapshot executes fixed worker, verifies even injected exec
     reloaded=new ManagedOperations({root,executor:()=>assert.fail('reload must not execute')});assert.equal((await reloaded.get(done.id)).kind,'cohort-snapshot');assert.equal((await reloaded.get(done.id)).status,'SUCCEEDED');
   }finally{await cleanup(root,manager,reloaded);}
 });
-test('managed cohort snapshot rejects all caller options and never bypasses descriptor integrity or fixture isolation',async()=>{
+test('managed cohort snapshot rejects caller overrides and never bypasses descriptor integrity or fixture isolation',async()=>{
   const root=await workspace();let manager;
   try{
     manager=new ManagedOperations({root,executor:()=>assert.fail('invalid input must not execute')});
-    for(const input of [null,{outputRoot:'PRIVATE'},{operationId:'PRIVATE'},Object.create({}),{[Symbol('PRIVATE')]:true}])await assert.rejects(manager.startCohortSnapshot(input),/no caller options/);
+    for(const input of [null,{outputRoot:'PRIVATE'},{operationId:'PRIVATE'},Object.create({}),{[Symbol('PRIVATE')]:true},{includeRetainedSamples:false},{includeRetainedSamples:'true'}])await assert.rejects(manager.startCohortSnapshot(input),/optional true/);
     await manager.close();
     const badCases=[async args=>({...await snapshot(args),manifest_sha256:'0'.repeat(64)}),async args=>({...await snapshot(args),industry_run_id:'other-operation'}),async args=>({...await snapshot(args),execution_mode:'fixture-root-offline-build'}),async args=>({...await snapshot(args),manifest_path:path.join(root,'borrowed','manifest.json')})];
     for(const produce of badCases){manager=new ManagedOperations({root,executor:async({args})=>({code:0,stdout:JSON.stringify(await produce(args))})});const done=await terminal(manager,await manager.startCohortSnapshot());assert.equal(done.status,'FAILED');assert.equal(done.result.inspectionRequired,true);assert.ok(done.result.snapshotIntegrityVerified!==true);await manager.close();}
+  }finally{await cleanup(root,manager);}
+});
+
+test('optional v2 managed request is explicit and rejects a v1 child artifact',async()=>{
+  const root=await workspace();let manager;
+  try{
+    manager=new ManagedOperations({root,executor:async({args})=>{
+      assert.deepEqual(args.slice(4),['--retained-samples','true']);return {code:0,stdout:JSON.stringify(await snapshot(args))};
+    }});
+    const done=await terminal(manager,await manager.startCohortSnapshot({includeRetainedSamples:true}));
+    assert.equal(done.status,'FAILED');assert.equal(done.result.snapshotIntegrityVerified,false);
   }finally{await cleanup(root,manager);}
 });
 test('managed cohort snapshot preserves CLI postcommit recovery envelope without declaring success',async()=>{

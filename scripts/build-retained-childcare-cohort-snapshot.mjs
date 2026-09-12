@@ -5,16 +5,17 @@ const cancellation=createCliCancellation();
 let committedDescriptor;
 try{
   const args=process.argv.slice(2);
-  if(args.length===1&&args[0]==='--help')console.log('Usage: node scripts/build-retained-childcare-cohort-snapshot.mjs [--output ABSOLUTE_DIRECTORY] [--operation-id ID]. Offline snapshot; no downloads or national promotion.');
+  if(args.length===1&&args[0]==='--help')console.log('Usage: node scripts/build-retained-childcare-cohort-snapshot.mjs [--output ABSOLUTE_DIRECTORY] [--operation-id ID] [--retained-samples true]. Offline snapshot; no downloads or national promotion.');
   else{
-    if(args.length%2||args.length>4)throw Error('Invalid arguments');
+    if(args.length%2||args.length>6)throw Error('Invalid arguments');
     const selected=new Map();
-    for(let i=0;i<args.length;i+=2){if(!['--output','--operation-id'].includes(args[i])||selected.has(args[i]))throw Error('Invalid arguments');selected.set(args[i],args[i+1]);}
+    for(let i=0;i<args.length;i+=2){if(!['--output','--operation-id','--retained-samples'].includes(args[i])||selected.has(args[i]))throw Error('Invalid arguments');selected.set(args[i],args[i+1]);}
+    if(selected.has('--retained-samples')&&selected.get('--retained-samples')!=='true')throw Error('Invalid retained samples option');
     const outputRoot=selected.get('--output'),operationId=selected.get('--operation-id');
     if(outputRoot!==undefined&&(!path.isAbsolute(outputRoot)||outputRoot!==path.resolve(outputRoot)))throw Error('Invalid output');
     if(operationId!==undefined&&!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(operationId))throw Error('Invalid operation');
     if(operationId!==undefined&&process.env.INDUSTRY_SEGMENT_RUN_ID!==undefined&&operationId!==process.env.INDUSTRY_SEGMENT_RUN_ID)throw Error('Conflicting operation');
-    const descriptor=await buildRetainedChildcareCohortSnapshot({...(outputRoot!==undefined?{outputRoot}:{}),industryRunId:operationId??process.env.INDUSTRY_SEGMENT_RUN_ID??null,signal:cancellation.signal});
+    const descriptor=await buildRetainedChildcareCohortSnapshot({...(outputRoot!==undefined?{outputRoot}:{}),...(selected.has('--retained-samples')?{includeRetainedSamples:true}:{}),industryRunId:operationId??process.env.INDUSTRY_SEGMENT_RUN_ID??null,signal:cancellation.signal});
     committedDescriptor=descriptor;
     // Published descriptors survive late cancellation so the parent can retain their identity.
     await readRetainedChildcareCohortSnapshot(descriptor.manifest_path,descriptor.manifest_sha256);
