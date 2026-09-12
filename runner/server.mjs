@@ -19,8 +19,11 @@ import { createConnectorRegistry } from './connector-registry.mjs';
 import { createManagedOperations } from './managed-operations.mjs';
 import { listProductionRunStatus } from './production-run-status.mjs';
 import { createRetainedCredentialsView } from './retained-credentials-view.mjs';
+import { createCredentialHeatmapView } from './credential-heatmap-view.mjs';
+import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
+const credentialHeatmapView=createCredentialHeatmapView();
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -368,6 +371,9 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    if (url.pathname === '/api/credential-heatmap') {
+      await credentialHeatmapHttp(request,response,url,credentialHeatmapView,json);return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
       json(response,200,await retainedCredentialsView.get(url.searchParams));return;
     }
@@ -657,6 +663,8 @@ function shutdown() {
 async function stopServices() {
   clearInterval(googleOutputCleanupTimer);
   server.close();
+  const credentialCleanup=await credentialHeatmapView.close();
+  if(credentialCleanup.loaderCleanup!=='settled')console.warn('Credential heatmap loader cleanup could not be verified before shutdown.');
   await refreshScheduler.close().catch(() => {});
   await pool.close();
   await managedOperations.close();

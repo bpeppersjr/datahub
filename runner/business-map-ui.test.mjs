@@ -11,12 +11,21 @@ const nodes = tree => !tree || typeof tree !== 'object' ? [] : Array.isArray(tre
 const text = tree => tree == null || typeof tree === 'boolean' ? '' : typeof tree !== 'object' ? String(tree) : Array.isArray(tree) ? tree.map(text).join('') : text(tree.props?.children);
 function harness(values) {
   let index = 0; const exports = {};
-  runInNewContext(`${code}\nexports.Map = FeatureMap;`, { exports, URLSearchParams, require: id => id === 'react' ? {
+  runInNewContext(`${code}\nexports.Map = FeatureMap; exports.BusinessPage = BusinessEvidenceMap;`, { exports, URLSearchParams, require: id => id === 'react' ? {
     useState: initial => { const i = index++; return [i in values ? values[i] : initial, next => { values[i] = next; }]; },
     useMemo: factory => factory(), useEffect: () => {},
   } : id.startsWith('./') ? { default: () => null } : require(id) });
-  return { map: props => { index = 0; return exports.Map(props); }, page: () => { index = 0; return exports.default(); } };
+  return { map: props => { index = 0; return exports.Map(props); }, page: () => { index = 0; return exports.BusinessPage(); }, wrapper:()=>{index=0;return exports.default();} };
 }
+
+test('credential mode replaces business subtree so incompatible selections reset on switching',()=>{
+  const values=['business'],h=harness(values);
+  assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),true);
+  nodes(h.wrapper()).find(node=>node.type==='select').props.onChange({target:{value:'credentials'}});
+  assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),false);
+  nodes(h.wrapper()).find(node=>node.type==='select').props.onChange({target:{value:'business'}});
+  assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),true);
+});
 function response(value = 20) {
   return { available: true, level: 'counties', category_id: 'childcare', enhancer_id: 'retained_childcare_county_points', meta: { heat_max: value },
     features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [[[-78, 40], [-77, 40], [-77, 41], [-78, 40]]] },

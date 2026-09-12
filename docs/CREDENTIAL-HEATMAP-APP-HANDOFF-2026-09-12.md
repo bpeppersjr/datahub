@@ -1,6 +1,6 @@
 # Credential heatmap app handoff
 
-Status: implementation contract, not an available app feature. The independent aggregate is reviewed and committed as `af0f740` in the Maine service checkout; it is not yet merged into main. Main File Builder validation must finish before integration starts.
+Status: isolated UI/endpoint implementation ready for integration review; not yet runtime-validated or published. The reviewed aggregate and view are included in the isolated integration base. The preceding File Builder release has completed validation; this next slice does not modify its credential export workflow.
 
 ## Implementation boundary
 
@@ -33,3 +33,11 @@ The service-owned build needs its own controller and waiter count: one departing
 - Execute `stop-collector.bat` before runtime tests, verify successful relaunch, and leave the app available. Run the shared release checks before publication.
 
 The native aggregate proof is recorded in the service contract. This handoff does not claim UI integration, endpoint availability, complete nationwide collection, current operations or new source authorization.
+
+## Isolated implementation evidence
+
+The new `app/credential-heatmap.tsx` and scoped stylesheet render a distinct credential mode. The existing business component is unchanged internally and unmounted on mode switches, resetting incompatible selections. Credential state/category changes withhold stale results, abort superseded requests and clear selected ZIP. The national state map retains all 51 category-specific observations; reported-ZIP tiles, including missing ZIP and observed zeros, synchronize the separate right-hand summary. Keyboard selection and CTRL+scroll zoom have focused interaction coverage. Large-text layout uses relative units and a separate map/summary grid; actual 100%/200% desktop validation remains pending.
+
+`runner/credential-heatmap-http.mjs` is wired behind the shared control-plane guard at `/api/credential-heatmap`. GET uses the snapshot; empty POST explicitly rechecks. Only single `state` and `category` query values are accepted. Body-bearing framing, unsupported methods, duplicates and unrelated filters reject. The adapter rejects nonzero Content-Length or Transfer-Encoding before body iteration and closes rejected-body connections, avoiding unbounded body waits and iterator-triggered socket destruction. Disconnects abort the caller's waiter; the shared service retains its independent-waiter lifecycle. Shutdown awaits `close()` and warns if bounded cleanup was not verified.
+
+Focused tests passed 32/32 with no skips: aggregate and view contracts, existing business rendering, mode replacement, credential controls/denominators/zeros, late-response cancellation and real authenticated loopback HTTP body/disconnect handling. The first real HTTP regression reproduced the nonempty-body timeout before the fix. Type-check and owned ESLint passed. Focused log: `data/tmp/credential-heatmap-focused.log` in the isolated `heatmap-app-integration` checkout. No source calls, new native aggregate build, production pointer change, running-app restart or global full check occurred in this isolated slice. Runtime and combined release verification remain required. Coding/testing used the disclosed Astra fallback while Spark was unavailable.
