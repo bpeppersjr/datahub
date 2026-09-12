@@ -1,0 +1,15 @@
+{
+  "profile": "ut-childcare-edition-discovery@1.0.0",
+  "publisher": "Utah DHHS Division of Licensing and Background Checks",
+  "indexUrl": "https://dlbc.utah.gov/information-for-the-public/reports/",
+  "termsUrl": "https://www.utah.gov/support/disclaimer.html",
+  "basis": "Public reports index; conditional personal or informational use, no blanket derivative redistribution grant.",
+  "scope": "One metadata-only HTML index GET; explicit linked edition selection; no PDF body or provider queries.",
+  "exportPolicy": "internal",
+  "publicExportAuthorized": false,
+  "facilityAcquisitionPerformed": false,
+  "sharedBudgetKey": "utah-dlbc-reports-index",
+  "retention": "Immutable internal discovery evidence; no automatic purge or retry.",
+  "attribution": "Utah DHHS Division of Licensing and Background Checks reports index.",
+  "secretReferences": []
+}
