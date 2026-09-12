@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { runnerJson } from './runner-client';
+import TenDatasetRepresentation from './ten-dataset-representation';
 
 type Summary = { represented: number; expected: number; percent: number | null; unmeasured: number };
 type Dataset = { id: string; label: string; stateRecordCount: number | null; nationalReleasePresent: boolean; status: string; rowUnit?: string; addressBasis?:string; sourcePostingDate?:string|null; observedAt?:string|null; scope?:string; sourceDate?:string|null; sourceUpdatedAt?:string|null; sourceReleaseId?:string|null };
@@ -11,6 +12,11 @@ const percentage = (value: number | null) => value === null ? 'Unmeasured' : `${
 const label = (value: string) => value.replaceAll('-', ' ');
 
 export default function DatasetRepresentation({ stateFips = '' }: { stateFips?: string }) {
+  const [sourceSet,setSourceSet]=useState('eight');
+  return <><label>National reporting source set <select aria-label="National reporting source set" value={sourceSet} onChange={event=>setSourceSet(event.target.value)}><option value="eight">Current eight-source reporting</option><option value="ten">Ten-source reporting — requires production enrollment</option></select></label>{sourceSet==='ten'?<TenDatasetRepresentation stateFips={stateFips}/>:<EightDatasetRepresentation stateFips={stateFips}/>}</>;
+}
+
+function EightDatasetRepresentation({stateFips}:{stateFips:string}) {
   const [data, setData] = useState<Representation | null>(null);
   const [selection, setSelection] = useState<{ context: string; code: string | null }>({ context: stateFips, code: null });
   const [error, setError] = useState('');

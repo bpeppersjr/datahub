@@ -182,3 +182,13 @@ test('CMS retained adoption API authenticates and rejects caller source/output o
   for(const body of [{},{sourceId:'other'},{sourceId:'cms-hospital-general-information',url:'https://example.com'},{sourceId:'cms-hospital-general-information',output:'data/elsewhere'}])assert.equal((await request(fixture.base,route,{method:'POST',body})).status,400);
   assert.deepEqual(await (await request(fixture.base,'/api/data-operations/operations')).json(),[]);
 });
+
+test('ten-source API is authenticated read-only and absent enrollment is pending without substituted counts',async t=>{
+  const fixture=await makeFixture(t),route='/api/dataset-representation/ten';
+  assert.equal((await request(fixture.base,route,{authenticated:false})).status,401);
+  assert.equal((await request(fixture.base,route,{method:'POST',body:{}})).status,405);
+  assert.equal((await request(fixture.base,route+'?state=MN')).status,400);
+  const response=await request(fixture.base,route);assert.equal(response.status,200);const result=await response.json();assert.equal(result.available,false);assert.equal(result.reason,'production-enrollment-absent');assert.equal(result.allBusinessesPercent,null);assert.equal(result.states,undefined);
+  const old=await request(fixture.base,'/api/dataset-representation');assert.equal(old.status,200);assert.notEqual((await old.json()).denominatorVersion,'national-reporting-ten@1.0.0');
+  assert.deepEqual(await (await request(fixture.base,'/api/data-operations/operations')).json(),[]);
+});

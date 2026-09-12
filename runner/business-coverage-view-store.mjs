@@ -6,6 +6,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { nationalDatasetRepresentation } from './dataset-representation.mjs';
 import { readNationalReportingCatalog } from './national-reporting-catalog.mjs';
 import { readNationalReportingSnapshot } from './national-reporting-snapshot.mjs';
+import { readNationalReportingTen } from './national-reporting-ten-projection.mjs';
 import { readSelectedIrsStateSummary } from './irs-eo-state-summary.mjs';
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
@@ -393,5 +394,5 @@ export function createBusinessCoverageViewStore({
     } catch { return {available:false,reason:'Verified national reporting evidence is unavailable.'}; }
   }
 
-  return { getOverview, listDimension, getDatasetRepresentation };
+  return { getOverview, listDimension, getDatasetRepresentation, getTenDatasetRepresentation: (options={})=>readNationalReportingTen(options) };
 }

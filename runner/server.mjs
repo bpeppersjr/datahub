@@ -9,6 +9,7 @@ import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
+import {handleNationalReportingTen} from './national-reporting-ten-http.mjs';
 import { createBusinessMapStore } from './business-map-store.mjs';
 import { inspectNormalizedUsPostalCutoverControl } from './normalized-us-postal-cutover.mjs';
 import { inspectNormalizedUsPostalMigration } from './normalized-us-postal-migration.mjs';
@@ -377,6 +378,9 @@ const server = http.createServer(async (request, response) => {
     }
     if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
       json(response,200,await retainedCredentialsView.get(url.searchParams));return;
+    }
+    if (url.pathname === '/api/dataset-representation/ten') {
+      await handleNationalReportingTen(request,response,url,options=>businessCoverageViews.getTenDatasetRepresentation(options),json);return;
     }
     if (request.method === 'GET' && url.pathname === '/api/dataset-representation') {
       json(response, 200, await businessCoverageViews.getDatasetRepresentation());

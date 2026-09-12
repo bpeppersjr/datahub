@@ -1,0 +1,32 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {runnerJson} from './runner-client';
+type Dataset={id:string;label:string;rowUnit:string;scope:string;stateRecordCount:number|null;sourceReleaseId?:string|null;observedAt?:string|null;sourcePostingDate?:string|null;sourceDates?:{issued?:string;modified?:string;released?:string};directoryDenominators?:{allRetainedRows:number;stateDCRetainedRows:number;territoryRows:number;unknownStateRows:number};percentOfNationalDirectoryRows?:number;percentOfStateDCDirectoryRows?:number;historicalAcquisitionFailed?:boolean};
+type State={code:string;represented:number;expected:number;percent:number|null;unmeasured:number;datasets:Dataset[]};
+type Result={available:boolean;reason?:string;states?:State[];denominatorVersion:string;exportPolicy?:string;evidence?:{manifestSha256:string;enrollmentSha256:string;productionReceiptSha256:string}};
+const fipsCodes='01:AL 02:AK 04:AZ 05:AR 06:CA 08:CO 09:CT 10:DE 11:DC 12:FL 13:GA 15:HI 16:ID 17:IL 18:IN 19:IA 20:KS 21:KY 22:LA 23:ME 24:MD 25:MA 26:MI 27:MN 28:MS 29:MO 30:MT 31:NE 32:NV 33:NH 34:NJ 35:NM 36:NY 37:NC 38:ND 39:OH 40:OK 41:OR 42:PA 44:RI 45:SC 46:SD 47:TN 48:TX 49:UT 50:VT 51:VA 53:WA 54:WV 55:WI 56:WY';
+const stateCodes=Object.fromEntries(fipsCodes.split(' ').map(pair=>pair.split(':')));
+const percent=(value:number|null|undefined)=>value==null?'Unmeasured':`${value.toFixed(1)}%`;
+export default function TenDatasetRepresentation({stateFips=''}:{stateFips?:string}){
+ const [data,setData]=useState<Result|null>(null),[error,setError]=useState(false),[request,setRequest]=useState(0),[selection,setSelection]=useState<{context:string;code:string|null}>({context:stateFips,code:null});
+ useEffect(()=>{let active=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),35000);
+ runnerJson<Result>('/api/dataset-representation/ten',{signal:controller.signal}).then(value=>{if(active)setData(value);}).catch(()=>{if(active)setError(true);}).finally(()=>clearTimeout(timer));
+ return()=>{active=false;clearTimeout(timer);controller.abort();};},[request]);
+ const code=selection.context===stateFips&&selection.code!==null?selection.code:stateCodes[stateFips]??'',state=data?.states?.find(row=>row.code===code);
+ const select=(value:string)=>setSelection({context:stateFips,code:value});
+ return <section className="dataset-representation" aria-labelledby="ten-representation-title"><h3 id="ten-representation-title">Ten-source dataset presence</h3>
+ <p>Separate versioned measure for eight reporting datasets plus CMS hospital and nursing-home directories. Dataset presence is not industry completeness or the percentage of businesses collected. All-business completeness: Unknown.</p>
+ <button className="text-button" disabled={!data&&!error} onClick={()=>{setData(null);setError(false);setRequest(n=>n+1);}}>Recheck ten-source enrollment</button>
+ {!data&&!error&&<p role="status">Checking ten-source production enrollment…</p>}
+ {error&&<p role="alert">Ten-source evidence could not be read. Counts are withheld; the eight-source view remains separately available.</p>}
+ {data?.available===false&&<p role="status">{data.reason==='production-enrollment-absent'?'Pending production enrollment. No verified ten-source release is enrolled.':'Ten-source enrollment or evidence is invalid or unavailable.'} Counts and percentages are withheld, not zero. No eight-source results are substituted.</p>}
+ {data?.available&&<><p>Denominator: {data.denominatorVersion}. Ten enrolled datasets; 50 states and D.C. Source-wide rows are not deduplicated businesses. Different record units are never added together.</p>
+ <label>Ten-source reported state <select aria-label="Ten-source reported state" value={code} onChange={event=>select(event.target.value)}><option value="">All states and D.C.</option>{data.states?.map(row=><option key={row.code} value={row.code}>{row.code}</option>)}</select></label><p>Follows the map state unless overridden here.</p>
+ {state&&<><p><strong>{percent(state.percent)}</strong> dataset presence · {state.represented}/{state.expected} datasets represented · {state.unmeasured} unmeasured in {state.code}.</p><ul>{state.datasets.map(row=><li key={row.id}><strong>{row.label}</strong>: {row.stateRecordCount===null?'Unmeasured':`${row.stateRecordCount.toLocaleString()} ${row.rowUnit}`}. {row.scope}.
+ {row.directoryDenominators&&<p>Retained directory cohort shares: {percent(row.percentOfNationalDirectoryRows)} of all {row.directoryDenominators.allRetainedRows.toLocaleString()} national/territory rows; {percent(row.percentOfStateDCDirectoryRows)} of {row.directoryDenominators.stateDCRetainedRows.toLocaleString()} state/DC rows. Separate territory total: {row.directoryDenominators.territoryRows.toLocaleString()} rows; unknown state: {row.directoryDenominators.unknownStateRows}. These are cohort shares, not collection completeness or population rates.</p>}
+ <span> Observed: {row.observedAt??'Unknown'}. Source release: {row.sourceReleaseId??'Unknown'}. {row.sourcePostingDate&&`Posting: ${row.sourcePostingDate}. `}{row.sourceDates&&`Issued: ${row.sourceDates.issued??'Unknown'}; modified: ${row.sourceDates.modified??'Unknown'}; released: ${row.sourceDates.released??'Unknown'}.`}</span>{row.historicalAcquisitionFailed&&<p>Nursing rows come from verified retained recovery; the original acquisition remains failed.</p>}</li>)}</ul></>}
+ <details open={!state}><summary>All states and D.C. — ten-source dataset presence</summary><div className="representation-table"><table><thead><tr><th>State</th><th>Represented / expected</th><th>Dataset presence</th><th>Unmeasured</th></tr></thead><tbody>{data.states?.map(row=><tr key={row.code}><th><button className="text-button" onClick={()=>select(row.code)}>{row.code}</button></th><td>{row.represented}/{row.expected}</td><td>{percent(row.percent)}</td><td>{row.unmeasured}</td></tr>)}</tbody></table></div></details>
+ <p>Use restriction: {data.exportPolicy}. Enrolled aggregate and receipt integrity checked; source rows and production stage logs were not replayed by this read. IRS evidence uses its separately bound summary. No county assignment, current-business claim or publication action is implied.</p>
+ <details><summary>Ten-source provenance</summary><p>Coverage manifest: {data.evidence?.manifestSha256}. Enrollment: {data.evidence?.enrollmentSha256}. Production receipt: {data.evidence?.productionReceiptSha256}.</p></details></>}
+ </section>;
+}
