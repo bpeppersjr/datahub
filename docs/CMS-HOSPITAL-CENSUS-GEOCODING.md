@@ -1,6 +1,6 @@
 # Retained hospital-address Census geocoding
 
-Source-specific bounded implementation, native hospital POST **not executed**. This is not broad production readiness, app-managed registration, a coverage publication or authorization to retry the public demo.
+Source-specific bounded implementation. One root-authorized native run on September 12 ended with an unresolved POST outcome; the retained failure and provider quarantine are documented below. No geocodes were published. This is not broad production readiness, app-managed registration, a coverage publication or authorization to retry.
 
 ## Policy assessment
 
@@ -38,6 +38,34 @@ Every row yields matched, unmatched, tie or ineligible; nonmatches have null coo
 
 The application worker seam is the fixed CLI plus immutable manifest descriptor or inspection-required failure descriptor. Native API accepts no address/source/output override. Run/response/mapping remain operation-owned and local; managed API registration, map adoption, public export and broader production integration are separate. The next authorized step after review is a single bounded fixed-cohort dispatch, not a new demo or a state-by-state series.
 
-Fixture namespaces include process ID, preventing cross-process full-check collisions while retaining one physical shared demo/hospital provider lease within a process. Native paths are unchanged. Tests cover reordered/duplicate/missing/unknown UUIDs, ineligible territory retention, ZIP4 exclusion, source/policy drift including final pre-POST interval, public-demo lock contention, response caps, noncooperative fetch/read/cancel, publication/changed-lease recovery and rehashed output tamper. A real 30-second GET timer returned in approximately 31 seconds with uncertainty retained; the 90-second POST timer is implemented but not separately allowed to expire in tests. No native hospital POST has been run.
+Fixture namespaces include process ID, preventing cross-process full-check collisions while retaining one physical shared demo/hospital provider lease within a process. Native paths are unchanged. Tests cover reordered/duplicate/missing/unknown UUIDs, ineligible territory retention, ZIP4 exclusion, source/policy drift including final pre-POST interval, public-demo lock contention, response caps, noncooperative fetch/read/cancel, publication/changed-lease recovery and rehashed output tamper. A real 30-second GET timer returned in approximately 31 seconds with uncertainty retained; the 90-second POST timer was not separately allowed to expire in fixtures. The later native attempt below reached its POST deadline.
 
 Combined concurrency-4 validation: 32/32 passed across the unchanged native demo behavior, new hospital contract and lifecycle, including local retained-only input assessment. Both 30-second timers completed within a total approximately 34-second suite, demonstrating independent fixture processes rather than serial provider-lock collision. Owned-file lint and whitespace checks passed. Whole-application checks and any native dispatch remain the integrator's responsibility.
+
+## Native unresolved attempt and byte-identical quarantine adoption
+
+Root dispatched committed implementation `9f2f5aa` exactly once: run `b2473d79-39d8-4aa9-90ee-251cd2d3a374`, created `2026-09-12T15:15:27.059Z`, failed `2026-09-12T15:16:57.761Z` (90,702 ms). The catalog GET returned HTTP 200 and 547 bytes. The POST intent started `15:15:27.748Z`, declaring 471,098 multipart bytes; failure followed 90,013 ms later. There is no completed POST response, second catalog, success manifest or geocode artifact. This proves a bounded local timeout/inspection outcome, **not** that Census rejected, received all bytes, or finished the request. Remote completion remains unknown. The immutable failure records `submissionOrCleanupUnresolved:true`; no retry or lease release occurred.
+
+Offline diagnostic and adoption ran with global fetch forbidden and a 180-second cancellation deadline. Full retained hospital replay authenticated 5,419 source rows, and exact mapping/CSV/multipart reconstruction conserved 5,413 eligible and 6 ineligible rows. All nine source file hashes were checked before and after adoption, including stable source file identities and source-directory identity. No addresses, opaque IDs or source names were logged. This is failure-evidence replay, not the successful-output verifier: no successful output exists.
+
+Source root: `C:\Master Data\datahub\data\worktrees\maine-provider-preflight`.
+Destination root: `C:\Master Data\datahub`.
+Identical relative job path: `data/business-sources/cms-hospital-census-geocoding/jobs/b2473d79-39d8-4aa9-90ee-251cd2d3a374`.
+
+Before copying, both exact destination job and lease were absent; existing ancestors were canonical non-symlink directories. The main quarantine was created **first**, exclusively and fsynced, at `data/business-sources/census-public-geocoder/.source-lease`. It preserves the original 191 bytes, SHA-256 `00d1c061558b3120dd5cca70f589f6066748b67fd20c6bb2fc32878976038797`. The historical `ownerPid:31516` is not proof of a living process. The marker deliberately keeps both native demo and hospital workflows unavailable through their existing exclusive lease primitive. There is no automatic expiry/takeover, and the adoption has no lease-deletion rollback path.
+
+Exactly nine files were exclusively created and fsynced under the new main job. Source originals and source quarantine remain unchanged. Main modules reloaded the retained source and reconstructed mapping/upload/multipart with networking disabled; final main/source hashes and rosters matched. No success receipt, source refresh, production pointer, main code/config edit or retry was performed. The ignored local adoption script is `data/tmp/adopt-hospital-geocoding-failure-20260912.mjs`; it is fixed to these paths and hashes and is not a general recovery API.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| catalog-before.json | 547 | fc858d2ecef3eab9475b0b6c2a1b2e671f0805e1e62ba7d9d1256e3092114106 |
+| failure.json | 3116 | c28858bf76145da02668b19091335b1657414b309f0290758b8d6a3ae2a15ac1 |
+| intent.json | 2819 | 96b3e23063432df9c12a16cf4c7e464519be2d80d5cb0f1278bd758223465e7d |
+| mapping.json | 1690604 | b2c09a6b037554a9b06c06287db9f51d2aca9dc1fcc013a2f04a94967cc80f8a |
+| multipart.bin | 471098 | f326cc463968c80886612572124cfe90a527935192770476a030237681cf4697 |
+| policy.json | 1803 | ce5e1cecaa395ca2efc8bef3cb2305b8dba78d8920fb5cd20740519363449e39 |
+| request-1.json | 279 | c8894cdbf7d987c68b8196d2a10ddf9ca54074fde3185dfbf7abe420cdbeafce |
+| request-2.json | 438 | 32a9b40869b8f4869bc17faa70091164197af5d17c8ffd4ace0f366b25a0d552 |
+| upload.csv | 470776 | 79b3380aedc013a199e0c42badd9c6a99e286065c01a1b556cbd49ceb2fba7e5 |
+
+Remaining boundary: there is no verified match/nonmatch result and no known remote-completion evidence. Do not clear either quarantine, resubmit the cohort, or split it into retries based solely on this local timeout. Any future disposition requires a separately reviewed provider-completion/duplicate-submission decision; this document does not authorize one.
