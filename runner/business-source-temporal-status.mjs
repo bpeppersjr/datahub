@@ -7,7 +7,14 @@ const POLICY = (referenceFields, reviewAfterDays, cadenceClass, evidenceScope) =
   evidence_scope: evidenceScope,
 });
 
-export const BUSINESS_SOURCE_TEMPORAL_POLICY_VERSION = "1.0.0";
+export const BUSINESS_SOURCE_TEMPORAL_POLICY_VERSION = "1.1.0";
+
+// Reviewed observation-only cohorts have no publisher currency field in the
+// retained coverage contract. Do not invent a cadence or reuse observed_at.
+const UNMEASURED = (scope) => Object.freeze({
+  ...POLICY([], null, "publisher-currency-unmeasured", scope),
+  publisher_currency_basis: "unmeasured-in-retained-source-contract",
+});
 
 // review_after_days is an internal re-review control, not a claim about a publisher SLA.
 export const BUSINESS_SOURCE_TEMPORAL_POLICIES = Object.freeze({
@@ -38,6 +45,10 @@ export const BUSINESS_SOURCE_TEMPORAL_POLICIES = Object.freeze({
   tx_active_sales_tax_permit_outlets: POLICY(["source_rows_updated_at"], 45, "periodic-active-permit-snapshot", "source-active-sales-tax-permit-evidence"),
   usda_snap_retailers: POLICY(["source_updated_at"], 75, "periodic-program-authorization-snapshot", "source-current-program-authorization-evidence-not-general-operation"),
   wa_lni_active_contractor_organizations: POLICY(["source_rows_updated_at"], 45, "periodic-active-contractor-license-snapshot", "source-active-contractor-license-evidence-not-general-operation"),
+  ma_childcare_centers: UNMEASURED("source-center-based-childcare-directory-evidence-not-general-operation"),
+  nj_childcare_centers: UNMEASURED("source-childcare-center-directory-evidence-not-general-operation"),
+  oh_childcare_centers: UNMEASURED("publisher-open-childcare-center-program-evidence-not-general-operation"),
+  tn_childcare_centers: UNMEASURED("source-childcare-center-directory-evidence-not-general-operation"),
 });
 
 const GENERIC_REFERENCE_FIELDS = Object.freeze([
@@ -118,6 +129,13 @@ export function assessBusinessSourceTemporalStatus(row, { asOf = new Date() } = 
     cadence_class: policy?.cadence_class ?? "unconfigured",
     evidence_scope: policy?.evidence_scope ?? "unconfigured-source-semantics",
     general_business_operating_status_asserted: false,
+    ...(policy?.publisher_currency_basis ? {
+      publisher_currency_basis: policy.publisher_currency_basis,
+      retained_source_observation: {
+        observed_at: instant(releaseMetadata.observed_at, "observed_at"),
+        meaning: "Retained collection observation time; not publisher currency, licensing currency, or proof of current operation.",
+      },
+    } : {}),
     normalized_record_observation_window: {
       first_seen: observation.earliest_observed_at ?? null,
       last_seen: observation.latest_observed_at ?? null,

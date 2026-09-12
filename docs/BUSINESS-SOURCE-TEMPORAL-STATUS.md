@@ -10,7 +10,9 @@ The third answer is always **no**. `Active`, `Current`, `Good Standing`, a progr
 
 ## Review policy
 
-`runner/business-source-temporal-status.mjs` pins one policy for each of the 26 current source views. Each policy identifies the authoritative release-metadata field, its evidence scope, a cadence class, and an internal `review_after_days` threshold. These thresholds are Datahub review controls; they are not publisher service-level agreements and do not prove that a source has changed or become invalid.
+`runner/business-source-temporal-status.mjs` policy version `1.1.0` covers the 30 legacy profile source views in the current production release (and separately supports the nonemployer statistical baseline). This denominator does not include every retained data-service cohort or the distinct Minnesota credential artifact. Dated-source policies identify the reviewed release-metadata field, its evidence scope, a cadence class, and an internal `review_after_days` threshold. These thresholds are Datahub review controls; they are not publisher service-level agreements and do not prove that a source has changed or become invalid.
+
+MA, NJ, OH and TN childcare policies explicitly declare publisher currency unmeasured in the retained source contract. They have no allowed publisher-reference fields and no review interval. They remain `missing-source-reference`, with null publisher date, age and review-due date. Their `retained_source_observation.observed_at` records the collection observation separately; neither that clock nor normalized profile observation times can establish publisher currency. An unrelated metadata date does not silently upgrade these policies. Future source-date enrollment requires its own reviewed contract migration.
 
 Every assessment emits:
 
@@ -31,7 +33,9 @@ npm run source-temporal:audit -- --as-of 2026-09-03T12:00:00.000Z --summary-only
 
 Without `--allow-review-due`, the command exits nonzero if any source is due, lacks source reference evidence, carries a future reference, or lacks a configured policy. `--summary-only` returns only exceptional source rows while preserving the complete summary.
 
-Against coverage release `national-business-coverage-views-20260902-115337634Z-ba689784` at `2026-09-03T12:00:00.000Z`, all 26 sources have configured policies and source-reference evidence. Twenty-five are within their internal review windows. `ny_retail_food_store_license_sites` is review-due: its source reference is `2025-09-30`, 337 days old against a 120-day review threshold. This is a refresh/governance signal, not a claim that every corresponding license is inactive.
+Against coverage release `national-business-coverage-views-20260911-040908332Z-f01c882a` at the explicit audit instant `2026-09-12T13:27:49.000Z`, the pre-migration audit has 30 profile source views: 25 within their review windows, one review-due and four unconfigured. Under policy version `1.1.0`, those four become configured but `missing-source-reference`, not current: expected totals are 30 configured, 25 within-window, one review-due, four missing-reference and zero unconfigured. The audit continues to exit 1 without `--allow-review-due`.
+
+`ny_retail_food_store_license_sites` retains reference `2025-09-30T15:15:15.000Z`, 346 elapsed whole days at that audit instant, against an internal 120-day review threshold. Its publisher describes an annual snapshot. Being review-due proves neither that a newer edition exists nor that any corresponding license or business is inactive; the recent Datahub observation does not reset the source date. This assessment neither requests a refresh nor authorizes acquisition.
 
 The management API includes `source_temporal_summary` in `GET /api/business-coverage` and a `temporal_status` object on each `GET /api/business-coverage/sources` row. The Sources view displays its reference date and review status.
 

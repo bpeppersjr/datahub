@@ -17,10 +17,45 @@ function row(sourceKey, releaseMetadata = {}, observation = {}) {
   };
 }
 
-test("pins temporal policies for every source in the current coverage release", () => {
-  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 27);
+test("pins supported temporal policies separately from the current profile source denominator", () => {
+  // 30 current legacy profile sources plus the supported nonemployer baseline.
+  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 31);
   assert.equal(BUSINESS_SOURCE_TEMPORAL_POLICIES.ny_retail_food_store_license_sites.review_after_days, 120);
   assert.deepEqual(BUSINESS_SOURCE_TEMPORAL_POLICIES.il_business_registry_active_organizations.reference_fields, ["source_run_date"]);
+});
+
+test("four retained childcare cohorts stay currency-unmeasured despite observation or unrelated date fields", () => {
+  const sources = ['ma_childcare_centers', 'nj_childcare_centers', 'oh_childcare_centers', 'tn_childcare_centers'];
+  const results = sources.map(key => assessBusinessSourceTemporalStatus(row(key, {
+    observed_at: '2026-09-08T00:00:00.000Z', source_updated_at: '2026-09-12',
+  }, {earliest_observed_at:'2026-09-08T00:00:00.000Z', latest_observed_at:'2026-09-08T01:00:00.000Z'}), {asOf: new Date('2026-09-12T13:27:49.000Z')}));
+  for (const result of results) {
+    assert.equal(result.policy_configured, true);
+    assert.equal(result.status, 'missing-source-reference');
+    assert.equal(result.publisher_currency_basis, 'unmeasured-in-retained-source-contract');
+    for (const field of ['source_reference_field','source_reference_value','source_reference_at','source_reference_date','age_days','review_after_days','review_due_date']) assert.equal(result[field], null);
+    assert.equal(result.retained_source_observation.observed_at, '2026-09-08T00:00:00.000Z');
+    assert.equal(result.normalized_record_observation_window.last_seen, '2026-09-08T01:00:00.000Z');
+    assert.equal(result.general_business_operating_status_asserted, false);
+  }
+  const summary = summarizeBusinessSourceTemporalStatus(results);
+  assert.equal(summary.missing_source_reference, 4);
+  assert.equal(summary.within_review_window, 0);
+  assert.equal(summary.unconfigured_source_policy, 0);
+  // This is the existing CLI failure predicate; enrollment must not green it.
+  assert.ok(summary.review_due + summary.missing_source_reference + summary.future_source_reference + summary.unconfigured_source_policy > 0);
+  for (const metadata of [{}, {observed_at:'not-a-date'}]) assert.equal(assessBusinessSourceTemporalStatus(row(sources[0], metadata), {asOf: AS_OF}).retained_source_observation.observed_at, null);
+});
+
+test("NY annual snapshot review due is not publisher refresh or inactivity evidence", () => {
+  const result = assessBusinessSourceTemporalStatus(row('ny_retail_food_store_license_sites', {
+    source_rows_updated_at:'2025-09-30T15:15:15.000Z', observed_at:'2026-09-07T13:43:03.353Z',
+  }), {asOf:new Date('2026-09-12T13:27:49.000Z')});
+  assert.equal(result.status,'review-due');
+  assert.equal(result.age_days,346);
+  assert.equal(result.review_after_days,120);
+  assert.equal(result.source_reference_at,'2025-09-30T15:15:15.000Z');
+  assert.equal(result.general_business_operating_status_asserted,false);
 });
 
 test("assesses source reference age without claiming general business operation", () => {
