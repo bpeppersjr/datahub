@@ -2883,6 +2883,7 @@ export async function buildNationalBusinessRegistry({
   retainedChildcareSelection = null,
   mnCredentialSelection = null,
   cmsHospitalSelection = null,
+  cmsNursingHomeSelection = null,
   logger = console.log,
   now = () => new Date(),
 } = {}) {
@@ -2896,6 +2897,8 @@ export async function buildNationalBusinessRegistry({
   const mnCredentials = mnCredentialApi ? await mnCredentialApi.loadMnCredentialRegistryInput(mnCredentialSelection) : null;
   const cmsHospitalApi = cmsHospitalSelection === null ? null : await import('./cms-hospital-registry-input.mjs');
   const cmsHospitals = cmsHospitalApi ? await cmsHospitalApi.loadCmsHospitalRegistryInput(cmsHospitalSelection) : null;
+  const cmsNursingHomeApi = cmsNursingHomeSelection === null ? null : await import('./cms-nursing-home-registry-input.mjs');
+  const cmsNursingHomes = cmsNursingHomeApi ? await cmsNursingHomeApi.loadCmsNursingHomeRegistryInput(cmsNursingHomeSelection) : null;
   if (maChildcareManifest) childcareInputs.push({ ...await loadMaChildcareRegistryInput(maChildcareManifest), key: "ma_childcare_centers", datasetId: "ma-licensed-center-based-childcare" });
   if (njChildcareManifest) childcareInputs.push({ ...await loadNjChildcareRegistryInput(njChildcareManifest), key: "nj_childcare_centers", datasetId: "nj-licensed-childcare-centers" });
   if (tnChildcareManifest !== null) {
@@ -2950,6 +2953,7 @@ export async function buildNationalBusinessRegistry({
   const createdAt = now().toISOString();
   if (mnCredentials && createdAt < mnCredentials.source.created_at) throw new Error('Registry processing time precedes retained credential release.');
   if (cmsHospitals && createdAt < cmsHospitals.source.acquisition_completed_at) throw new Error('Registry processing time precedes CMS hospital acquisition.');
+  if (cmsNursingHomes && createdAt < cmsNursingHomes.source.recovery_created_at) throw new Error('Registry processing time precedes CMS nursing-home recovery.');
   const runId = randomUUID();
   const releaseId = `national-business-registry-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
@@ -4092,6 +4096,9 @@ export async function buildNationalBusinessRegistry({
   if (cmsHospitals) artifacts.push(await writeArtifact(stagingDirectory, cmsHospitalApi.CMS_HOSPITAL_REGISTRY_PATH, jsonLines(cmsHospitals.records), {
     artifact_type: cmsHospitalApi.CMS_HOSPITAL_REGISTRY_ARTIFACT, record_count: cmsHospitals.records.length, export_policy: 'local-review-only',
   }));
+  if (cmsNursingHomes) artifacts.push(await writeArtifact(stagingDirectory, cmsNursingHomeApi.CMS_NURSING_HOME_REGISTRY_PATH, jsonLines(cmsNursingHomes.records), {
+    artifact_type: cmsNursingHomeApi.CMS_NURSING_HOME_REGISTRY_ARTIFACT, record_count: cmsNursingHomes.records.length, export_policy: 'local-review-only',
+  }));
   artifacts.push(...(await closeGzipWriters([...reportingWriters.values()], CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE)).map((artifact) => ({ ...artifact, export_policy: "local-review-only" })));
   artifacts.push(...await closeGzipWriters([...siteWriters.values()], "canonical-physical-site-jsonl-gzip"));
   artifacts.push(...await closeGzipWriters([...establishmentWriters.values()], "canonical-establishment-jsonl-gzip"));
@@ -4894,6 +4901,7 @@ export async function buildNationalBusinessRegistry({
       ...(retainedChildcare?.bindings ?? []).map(binding => ({dataset_id:binding.dataset_id,release_id:binding.release_id,manifest_sha256:binding.manifest_sha256})),
       ...(mnCredentials ? [mnCredentialApi.mnCredentialRegistryDependency(mnCredentials)] : []),
       ...(cmsHospitals ? [cmsHospitalApi.cmsHospitalRegistryDependency(cmsHospitals)] : []),
+      ...(cmsNursingHomes ? [cmsNursingHomeApi.cmsNursingHomeRegistryDependency(cmsNursingHomes)] : []),
       ...childcareInputs.map((input) => ({ dataset_id: input.datasetId, release_id: input.source.releaseId, manifest_sha256: input.source.manifestSha256 })),
       {
         dataset_id: snap.manifest.dataset_id,
@@ -5268,10 +5276,17 @@ export async function buildNationalBusinessRegistry({
     manifest.export_policy += '; CMS hospital directory reporting artifacts remain local-review-only';
     manifest.limitations.push('CMS hospital directory rows are not yet reconciled to canonical businesses, sites or matching profiles. A future evidence-backed identity crosswalk is a separate migration; current operating status remains unknown.');
   }
+  if (cmsNursingHomes) {
+    manifest.cms_nursing_home_directory_reporting = cmsNursingHomeApi.cmsNursingHomeRegistryDeclaration(cmsNursingHomes);
+    manifest.coverage.cms_nursing_home_directory_rows = cmsNursingHomes.records.length;
+    manifest.publication_scope += ', plus pinned CMS nursing-home directory reporting rows, not yet identity reconciled';
+    manifest.export_policy += '; CMS nursing-home directory reporting artifacts remain local-review-only';
+    manifest.limitations.push('CMS nursing-home recovery rows retain dated publisher active status, original address/TAB and source coordinate quality; they do not increase business/site/profile counts or establish independently verified operations or facility points.');
+  }
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
   // Ohio is bound to its retained app dependencies, including at publication.
   // A verified input at build start is not proof those files remain unchanged.
-  if (ohInput || retainedChildcare || mnCredentials || cmsHospitals) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
+  if (ohInput || retainedChildcare || mnCredentials || cmsHospitals || cmsNursingHomes) await verifyNationalBusinessRegistry(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await rename(stagingDirectory, releaseDirectory);
@@ -5440,6 +5455,17 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
+  try {
+    const cmsNursingAdmission = Object.hasOwn(manifest, 'cms_nursing_home_directory_reporting')
+      || Object.hasOwn(manifest.coverage ?? {}, 'cms_nursing_home_directory_rows')
+      || (manifest.artifacts ?? []).some(a => a.path === 'reporting/cms-nursing-homes/directory.jsonl' || a.artifact_type === 'cms-nursing-home-directory-reporting-jsonl')
+      || (manifest.dependencies ?? []).some(d => d.dataset_id === 'cms-nursing-home-provider-information')
+      || await lstat(path.join(releaseDirectory, 'reporting/cms-nursing-homes/directory.jsonl')).then(() => true, error => { if (error.code === 'ENOENT') return false; throw error; });
+    if (cmsNursingAdmission) {
+      const {verifyCmsNursingHomeRegistryExtension} = await import('./cms-nursing-home-registry-input.mjs');
+      await verifyCmsNursingHomeRegistryExtension(manifest, releaseDirectory);
+    }
+  } catch (error) { failures.push({path:'manifest.json',reason:error.message}); }
   try {
     // Keep legacy copied-checkout dependency closures unchanged when no CMS admission exists.
     // Every reserved declaration, descriptor, count and actual file still triggers verification.

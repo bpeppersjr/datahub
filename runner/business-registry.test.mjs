@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { TEMP_DIR } from './paths.mjs';
@@ -94,6 +96,33 @@ test('MN credential registry artifact leaves all legacy entity and matching coun
   const profiles = m => m.artifacts.filter(a => a.path.startsWith('resolution/location-profiles/')).map(a => [a.path, a.sha256]);
   assert.deepEqual(profiles(result.manifest), profiles(baseline.manifest));
   await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, 'manifest.json'));
+});
+
+test('CMS nursing-home optional admission nursing-only and hospital co-selection preserves legacy counts/profiles', {skip:process.env.DATAHUB_TEST_NURSING_RETAINED!=='1',timeout:180000},async t=>{
+  const root=path.join(APP_ROOT,'data/tmp',`nursing-registry-${randomUUID()}`),originalFetch=globalThis.fetch;
+  globalThis.fetch=()=>{throw Error('Network forbidden');};t.after(async()=>{globalThis.fetch=originalFetch;await rm(root,{recursive:true,force:true});});
+  const snapPointer=await writeFixtureSnapRelease(path.join(root,'snap')),baseline=await buildNationalBusinessRegistry({snapPointer,outputRoot:path.join(root,'baseline'),logger(){}});
+  await verifyNationalBusinessRegistry(path.join(baseline.releaseDirectory,'manifest.json'));
+  execFileSync(process.execPath,['--input-type=module','-e',`import {registerHooks} from 'node:module';registerHooks({resolve(s,c,n){if(s.includes('cms-nursing-home-')||s.includes('cms-hospital-'))throw Error('CMS closure unavailable');return n(s,c);}});globalThis.fetch=()=>{throw Error('Network forbidden');};const {verifyNationalBusinessRegistry}=await import('./runner/business-registry.mjs');await verifyNationalBusinessRegistry(process.argv[1]);`,path.join(baseline.releaseDirectory,'manifest.json')],{cwd:APP_ROOT,windowsHide:true,timeout:30000});
+  const profiles=m=>m.artifacts.filter(a=>a.path.startsWith('resolution/location-profiles/')).map(a=>[a.path,a.sha256,a.record_count]),proof=[];
+  for(const combined of [false,true]){
+    const result=await buildNationalBusinessRegistry({snapPointer,outputRoot:path.join(root,combined?'combined':'nursing'),cmsNursingHomeSelection:path.join(APP_ROOT,'config/cms-nursing-home-retained-selection.json'),...(combined?{cmsHospitalSelection:path.join(APP_ROOT,'config/cms-hospital-retained-selection.json')}:{ }),logger(){}});
+    assert.equal(result.manifest.publisher.version,'2.12.0');const counts=structuredClone(result.manifest.coverage);assert.equal(counts.cms_nursing_home_directory_rows,14690);delete counts.cms_nursing_home_directory_rows;if(combined){assert.equal(counts.cms_hospital_directory_rows,5419);delete counts.cms_hospital_directory_rows;}assert.deepEqual(counts,baseline.manifest.coverage);assert.deepEqual(profiles(result.manifest),profiles(baseline.manifest));
+    const manifestPath=path.join(result.releaseDirectory,'manifest.json');await verifyNationalBusinessRegistry(manifestPath);const a=result.manifest.artifacts.find(v=>v.artifact_type==='cms-nursing-home-directory-reporting-jsonl');assert.equal(a.record_count,14690);assert.equal(a.bytes,30397131);assert.equal(a.sha256,'677b1dc7b294f72feb0d6a0803d27c9f0f074887e5b9c5a59a6837c87a2320d8');assert.equal(result.manifest.cms_nursing_home_directory_reporting.source.failed_source.runId,'ffb1fac4-4eb4-4ea4-b11c-875ebff4de41');
+    if(combined)assert.equal(result.manifest.artifacts.find(v=>v.artifact_type==='cms-hospital-directory-reporting-jsonl').sha256,'30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979');
+    const original=await readFile(manifestPath),orphan=structuredClone(result.manifest);delete orphan.cms_nursing_home_directory_reporting;delete orphan.coverage.cms_nursing_home_directory_rows;orphan.dependencies=orphan.dependencies.filter(d=>d.dataset_id!=='cms-nursing-home-provider-information');orphan.artifacts=orphan.artifacts.filter(v=>v.artifact_type!=='cms-nursing-home-directory-reporting-jsonl');await writeFile(manifestPath,JSON.stringify(orphan));await assert.rejects(verifyNationalBusinessRegistry(manifestPath));await writeFile(manifestPath,original);
+    const typedPath=path.join(result.releaseDirectory,a.path),typed=await readFile(typedPath),tampered=Buffer.from(typed.toString().replace('source-tab-preserved','source-tab-changed'));assert.notDeepEqual(tampered,typed);const altered=structuredClone(result.manifest),entry=altered.artifacts.find(v=>v.path===a.path);entry.bytes=tampered.length;entry.sha256=createHash('sha256').update(tampered).digest('hex');await writeFile(typedPath,tampered);await writeFile(manifestPath,JSON.stringify(altered));await assert.rejects(verifyNationalBusinessRegistry(manifestPath));await writeFile(typedPath,typed);await writeFile(manifestPath,original);
+    // Test-only builtin interception: mutate only fixture output while real retained source replay runs.
+    // Neither production wrapper exposes an injectable verifier or native test hook.
+    for(const kind of combined?['nursing-home','hospital']:['nursing-home']){
+      const spec=kind==='hospital'?{file:'reporting/cms-hospitals/directory.jsonl',name:'verifyCmsHospitalRegistryExtension'}:{file:'reporting/cms-nursing-homes/directory.jsonl',name:'verifyCmsNursingHomeRegistryExtension'},target=path.join(result.releaseDirectory,spec.file),saved=await readFile(target),originalOpen=fs.promises.open;let seenOutput=false,mutated=false;
+      const api=await import('./cms-'+kind+'-registry-input.mjs');
+      fs.promises.open=async(file,...args)=>{if(file===target)seenOutput=true;else if(seenOutput&&!mutated&&file===path.join(APP_ROOT,'config/cms-'+kind+'-retained-selection.json')){mutated=true;await writeFile(target,'mutated during source replay');}return originalOpen(file,...args);};syncBuiltinESMExports();
+      try{await assert.rejects(api[spec.name](result.manifest,result.releaseDirectory));assert.equal(mutated,true);}finally{fs.promises.open=originalOpen;syncBuiltinESMExports();await writeFile(target,saved);}
+    }
+    proof.push({combinedHospital:combined,publisherVersion:result.manifest.publisher.version,directoryRows:14690,artifactSha256:a.sha256,legacyCountsUnchanged:true,legacyProfileArtifacts:profiles(result.manifest).length,legacyProfileHashesUnchanged:true,failedSourceFiles:result.manifest.cms_nursing_home_directory_reporting.source.failed_source.files.length,orphanRejected:true,rehashedMembershipDriftRejected:true,sourceRecheckOutputMutationRejected:true});
+  }
+  const proofPath=path.join(APP_ROOT,'data/tmp',`nursing-registry-proof-${randomUUID()}.json`);await writeFile(proofPath,JSON.stringify({kind:'actual-tiny-SNAP-builder-full-verifier-with-retained-CMS',networkDisabled:true,productionBuild:false,productionPointerChanged:false,legacyCmsImportClosurePreserved:true,runs:proof},null,2)+'\n',{flag:'wx'});console.info(`Nursing registry proof: ${proofPath}`);
 });
 
 test('CMS hospital optional admission builds and verifies on base 2.12 without Ohio and preserves every legacy count/profile', {skip:process.env.DATAHUB_TEST_CMS_RETAINED!=='1',timeout:180000}, async t=>{
