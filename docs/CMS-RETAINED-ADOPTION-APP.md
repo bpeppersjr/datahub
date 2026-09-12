@@ -29,3 +29,21 @@ History reads do not replay source bytes. The UI labels the result as adoption-t
 Implementation used the disclosed supported Astra fallback while Spark was unavailable. In the isolated app checkout, focused tests passed: 31 outer tests, including an isolated child suite with all eight source/lifecycle cases executed (no skips). Cases cover exact source replay, rehashed false claims/counts and drift rejection, operation binding, publication cancellation, actual short-timer expiry, noncooperative child/verifier ownership holds, restart, authenticated HTTP rejection, and UI metadata-only scope. Existing managed API export/download fixtures also passed with the new static import closure.
 
 `npx tsc --noEmit`, owned-file ESLint, and `git diff --check` passed. No actual native adoption, desktop runtime validation, full combined check, new acquisition, production publication or deployment is claimed by this checkpoint. Those integration checks remain after root review and merge; the user's existing app was left running.
+
+## Main integration acceptance — 2026-09-12 UTC
+
+The later main acceptance supersedes the pending runtime portion of the checkpoint above. `stop-collector.bat` was executed successfully before runtime testing. One UI action created managed adoption `c6a20066-c2b7-4c9c-906e-eb85ab78b22f`, verified at `2026-09-12T14:43:50.965Z`. Its metadata receipt SHA-256 is `ade8191688046665ea795dd22c2679621872848b1e495f6ca6bce02d835c6ddb`. Result: 5,419 directory rows; 5,354 rows in states/DC; 65 territory rows; zero unresolved-state rows. The original source manifest hash remained unchanged. No acquisition or downloadable artifact was created.
+
+The frozen executable baseline at `9f07397` passed `npm run check` with exit 0: 2,110 tests, 2,047 passed, 63 skipped, zero failed, followed by successful lint, web/desktop builds and desktop control-plane smoke. Log: `data/ui-verification/check-cms-adoption-final.log`. The default suite leaves optional retained-input cases gated; the new relevant gates were separately closed on main with no network:
+
+- `DATAHUB_TEST_CMS_RETAINED=1` production-input test: 3/3 passed, no skips (`cms-native-production-pin.log`).
+- CMS hospital and nursing-home optional registry admission, with both retained gates enabled and exact test-name filtering: 2/2 passed, no skips (`cms-native-admission-main.log`).
+- Gated retained hospital coverage admission: parent and child tests both passed, no skips (`cms-native-coverage-main.log`).
+
+Initial combined focused tests passed 115 with one native production-pin gate skipped; the separate 3/3 run above closes that gate. Dependency audit exited 0 with zero vulnerabilities (`cms-adoption-audit.log`). TypeScript exited 0.
+
+After the full check, review requested a text-only clarification from geographic-sounding labels to explicit row counts. Only that UI wording and its tests changed. The full-suite claim applies to the pre-label executable baseline; final targeted proof consists of 3/3 label tests, TypeScript, owned ESLint, web/desktop build, and native UI reuse of the existing operation, all exit 0. No second adoption was dispatched. Logs: `cms-adoption-label-focused.log`, `cms-adoption-final-tsc.log`, `cms-adoption-label-build.log`, and `cms-adoption-label-native-ui.log`, all under `data/ui-verification`.
+
+The native script verified authenticated operation history, operation-bound receipt, original hash, restrictive labels, 100% and 200% text layouts, and restart visibility. The final 100% screenshot explicitly includes the heading in the normal viewport (`cms-adoption-100.png`); `cms-adoption-200.png` records the enlarged layout.
+
+Final restoration ran `stop-collector.bat` and `launch-datahub.bat`. The launcher remains attached to its live GUI child rather than having a terminal exit claim. Electron PID 26668 was created at `2026-09-12T14:55:36Z`, and `data/desktop.log` records the runner listening at `2026-09-12T14:55:36.607Z`. A separate final public `/api/health` check returned HTTP 200 and `{"ok":true}`. Authenticated history checks were performed during the preceding native acceptance/restart, not repeated against this final launch. The app remains open. No production plan/run, source download, next service slice, or deployment is included in this acceptance.
