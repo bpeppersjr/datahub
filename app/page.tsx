@@ -275,7 +275,8 @@ export default function Home() {
 
   async function downloadOutput(runId: string) {
     try {
-      await downloadRunnerArtifact(`/api/runs/${runId}/output`, `${runId}.json`);
+      const result = await downloadRunnerArtifact(`/api/runs/${runId}/output`, `${runId}.json`);
+      setNotice(result.savedPath ? `JSON saved to ${result.savedPath}` : 'JSON download requested. Check your browser downloads.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Unable to download output.');
     }

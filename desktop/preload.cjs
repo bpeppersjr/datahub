@@ -3,4 +3,5 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('cotiveCollector', Object.freeze({
   getRunnerConnection: () => ipcRenderer.invoke('cotive:runner-connection'),
+  downloadArtifact: (route) => ipcRenderer.invoke('cotive:download-artifact', route),
 }));

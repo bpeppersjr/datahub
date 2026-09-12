@@ -1,0 +1,15 @@
+# Text size and dataset coverage
+
+The header's Text size control scales typography throughout the Collector from 100% to 200%, including navigation, data panels and job editors. The preference survives reloads and desktop relaunches; Reset text size restores 100%. If browser storage is unavailable, the current session still applies the preference. Storage events update other open views. Larger text reflows the layout, with bounded scrolling for wide tables.
+
+The summary beside the heatmap reports state dataset presence against the fixed configured nationwide plan. A positive state count represents that source once, regardless of its record count; 100% does not establish business completeness or mean every available national dataset was collected. All-business completeness remains explicitly Unknown. The summary also reports how many configured industry groups have national datasets and names groups without them. Industry shares group sources by scope; displayed source record counts are not industry-filtered business counts.
+
+No configured nationwide source, unmeasured state evidence, and verified zero state records are distinct conditions. Unmeasured configured sources remain in the denominator. State and local sources are outside this metric. No backend denominator or acquisition behavior changed in this clarification.
+
+`node scripts/verify-text-and-representation.mjs` exercises typography across page sections, editor text, keyboard selection, storage-event handling, reload and relaunch persistence, reset, map selection, all 51 state/district rows and API-derived coverage expectations. Run `stop-collector.bat --if-running` before runtime checks. UI evidence and check logs stay under `data/ui-verification`. Rollback is limited to the text preference control, dataset summary and associated verification/documentation changes; no data migration is required.
+
+## JSON output downloads
+
+The completed-job and run-details download buttons save through the trusted desktop connection and confirm the exact local destination only after the write completes. Existing filenames are preserved using numeric suffixes. Missing outputs report HTTP 404 without exposing response text or local source paths. Partial-file cleanup requires the same opened file identity and a single link; a changed download directory cannot produce a successful save confirmation.
+
+`runner/desktop-download-artifact.test.mjs` includes the native download safety tests in the standard suite. `node scripts/verify-job-output-download.mjs` checks both buttons, duplicate preservation and missing-output feedback using synthetic local data. Evidence images are `data/ui-verification/job-download-saved.png` and `job-download-missing.png`. The final repair/testing agent was the supported Astra fallback after Spark reached its rate limit; no reset credit was consumed. No retained source data or acquisition settings are changed by this feature.

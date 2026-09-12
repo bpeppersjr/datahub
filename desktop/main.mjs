@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron';
 import { createDevStopControl } from '../runner/dev-stop-control.mjs';
+import { saveRunnerArtifact } from './download-artifact.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RUNNER_PORT = 4300;
@@ -210,6 +211,15 @@ ipcMain.handle('cotive:runner-connection', (event) => {
     throw new Error('Control token request is not from the trusted Co*Tive Collector document.');
   }
   return { runnerUrl: RUNNER_BASE_URL, controlToken };
+});
+
+ipcMain.handle('cotive:download-artifact', async (event, route) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents
+    || event.senderFrame !== mainWindow.webContents.mainFrame
+    || !isTrustedDashboardUrl(event.senderFrame.url)) {
+    throw new Error('Artifact request is not from the trusted Collector document.');
+  }
+  return saveRunnerArtifact({ route, runnerUrl: RUNNER_BASE_URL, controlToken, directory: runtimePath('downloads') });
 });
 
 if (!app.requestSingleInstanceLock()) {

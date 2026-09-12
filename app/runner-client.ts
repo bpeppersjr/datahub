@@ -10,6 +10,7 @@ declare global {
   interface Window {
     cotiveCollector?: {
       getRunnerConnection: () => Promise<RunnerConnection>;
+      downloadArtifact?: (route: string) => Promise<{ savedPath: string }>;
     };
   }
 }
@@ -52,6 +53,9 @@ export async function runnerJson<T>(path: string, options: RequestInit = {}): Pr
 }
 
 export async function downloadRunnerArtifact(path: string, fallbackName: string) {
+  if (window.cotiveCollector?.downloadArtifact) {
+    return window.cotiveCollector.downloadArtifact(path);
+  }
   const response = await runnerFetch(path);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
@@ -65,8 +69,11 @@ export async function downloadRunnerArtifact(path: string, fallbackName: string)
   try {
     link.href = objectUrl;
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
   } finally {
-    URL.revokeObjectURL(objectUrl);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
   }
+  return { savedPath: null };
 }

@@ -602,7 +602,14 @@ const server = http.createServer(async (request, response) => {
         json(response, 404, { error: 'Output not found.' });
         return;
       }
-      const content = await readFile(resolveAppPath(run.outputPath));
+      let content;
+      try {
+        content = await readFile(resolveAppPath(run.outputPath));
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        json(response, 404, { error: 'Output file is no longer available.' });
+        return;
+      }
       response.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Length': content.length,

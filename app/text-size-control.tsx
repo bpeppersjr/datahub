@@ -10,8 +10,18 @@ function snapshot() {
   try { const saved = Number(localStorage.getItem(storageKey)); return sizes.includes(saved) ? saved : 100; } catch { return 100; }
 }
 function subscribe(listener: () => void) {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === storageKey || event.key === null) {
+      sessionSize = null;
+      listener();
+    }
+  };
   window.addEventListener('collector-text-size', listener);
-  return () => window.removeEventListener('collector-text-size', listener);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener('collector-text-size', listener);
+    window.removeEventListener('storage', onStorage);
+  };
 }
 
 export default function TextSizeControl() {

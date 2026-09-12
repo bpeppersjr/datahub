@@ -21,7 +21,27 @@ try {
   const size = page.getByLabel('Text size', { exact: true });
   await size.selectOption('100');
   await page.locator('#representation-state').waitFor();
-  const samples = ['h1', '.table-head', '#text-size', '.representation-table th'];
+  const representation = await page.evaluate(async () => {
+    const connection = await window.cotiveCollector.getRunnerConnection();
+    const response = await fetch(`${connection.runnerUrl}/api/dataset-representation`, { headers: { Authorization: `Bearer ${connection.controlToken}` } });
+    if (!response.ok) throw new Error(`Representation API: ${response.status}`);
+    return response.json();
+  });
+  const assertState = async code => {
+    const state = representation.states.find(row => row.code === code);
+    assert.ok(state);
+    const result = await page.locator('.representation-result').innerText();
+    assert.ok(result.includes(state.percent === null ? 'Unmeasured' : `${state.percent.toFixed(1)}%`));
+    assert.ok(result.includes(`${state.represented}/${state.expected} configured nationwide datasets represented`));
+    assert.ok(await page.getByText('All-business completeness: Unknown', { exact: true }).isVisible());
+    const unconfigured = state.industries.filter(row => row.expected === 0);
+    assert.ok(await page.getByText(`${state.industries.length - unconfigured.length} of ${state.industries.length} configured industry groups have nationwide datasets.`, { exact: true }).isVisible());
+    for (const industry of unconfigured) {
+      const row = page.locator('.representation-table tbody tr').filter({ has: page.getByRole('rowheader', { name: industry.id.replaceAll('-', ' '), exact: true }) });
+      assert.equal(await row.locator('td').nth(1).innerText(), 'Not configured');
+    }
+  };
+  const samples = ['h1', '.table-head', '#text-size', '.representation-table th', '.rail-link', '#coverage h2', '#business-intelligence h2', '#connectors h2', '#data-operations h2', '#benchmark h2'];
   const fonts = () => page.evaluate(selectors => selectors.map(selector => parseFloat(getComputedStyle(document.querySelector(selector)).fontSize)), samples);
   const baselineFonts = await fonts();
   const baseline = await page.locator('h1').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
@@ -41,8 +61,7 @@ try {
   assert.equal(await size.inputValue(), '100');
   await size.selectOption('200');
   await page.locator('#representation-state').selectOption('IL');
-  await page.getByText('National release present; state evidence unavailable', { exact: false }).waitFor();
-  assert.match(await page.locator('.representation-result').innerText(), /83.3%.*5\/6/);
+  await assertState('IL');
   await page.locator('.dataset-representation').scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(root, 'data/ui-verification/representation-200.png') });
   await page.locator('#representation-state').selectOption('');
@@ -51,7 +70,14 @@ try {
   await california.focus();
   await page.keyboard.press('Enter');
   await page.waitForFunction(() => document.querySelector('#representation-state')?.value === 'CA');
-  assert.match(await page.locator('.representation-result').innerText(), /83.3%.*5\/6/);
+  await assertState('CA');
+  await page.evaluate(() => {
+    localStorage.setItem('collector-text-size', '125');
+    window.dispatchEvent(new StorageEvent('storage', { key: 'collector-text-size', newValue: '125' }));
+  });
+  await page.waitForFunction(() => document.documentElement.dataset.textSize === '125');
+  assert.equal(await size.inputValue(), '125');
+  await size.selectOption('200');
   // No document-wide overflow; bounded table scroll is intentional.
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2));
   await page.getByRole('button', { name: 'Reset text size' }).click();
@@ -67,5 +93,5 @@ try {
   await reopened.waitForFunction(() => document.documentElement.dataset.textSize === '200');
   assert.equal(await reopened.getByLabel('Text size', { exact: true }).inputValue(), '200');
   await reopened.getByRole('button', { name: 'Reset text size' }).click();
-  console.log('PASS: desktop 100/200% scaling, keyboard selection, reload persistence, reset, 51 state rows, IRS gap, 83.3% denominator, document width, job editor.');
+  console.log('PASS: desktop all-section 100/200% scaling, keyboard selection, storage sync, reload/relaunch persistence, reset, 51 state rows, API-derived fixed denominator, explicit unknown completeness, document width, job editor.');
 } finally { await app.close(); }
