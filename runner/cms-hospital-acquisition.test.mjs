@@ -6,6 +6,10 @@ import {createHash} from 'node:crypto';
 import {APP_ROOT} from './paths.mjs';
 import {acquireCmsHospitals,acquireCmsHospitalsWithTestTransport as run,verifyCmsHospitalAcquisitionWithTestInput as verify,verifyCmsHospitalAcquisition as nativeVerify} from './cms-hospital-acquisition.mjs';
 import {CMS_HOSPITAL_SELECTED_HEADERS} from './cms-hospital-prerequisite.mjs';
+import {fileURLToPath} from 'node:url';
+import {isolatedCmsAcquisitionFixture} from './isolated-cms-acquisition-fixture.mjs';
+if(process.env.DATAHUB_CMS_ACQUISITION_SUITE!=='hospital')isolatedCmsAcquisitionFixture(fileURLToPath(import.meta.url),'hospital',12);
+else {
 const ROOT=path.join(APP_ROOT,'data/tmp/cms-hospital-acquisition'),sha=v=>createHash('sha256').update(v).digest('hex');
 const m={identifier:'xubh-q36u',title:'Hospital General Information',accessLevel:'public',publisher:{name:'Centers for Medicare & Medicaid Services (CMS)'},landingPage:'https://data.cms.gov/provider-data/dataset/xubh-q36u',issued:'2025-01-08',modified:'2026-07-22',released:'2026-08-13',distribution:[{mediaType:'text/csv',downloadURL:'https://data.cms.gov/provider-data/sites/default/files/resources/893c372430d9d71a1c52737d01239d47_1785189955/Hospital_General_Information.csv',describedBy:'https://data.cms.gov/provider-data/sites/default/files/data_dictionaries/hospital/HOSPITAL_Data_Dictionary.pdf',describedByType:'application/pdf'}]};
 const csv=[...CMS_HOSPITAL_SELECTED_HEADERS,'Telephone Number'].join(',')+'\n010001,Fixture Hospital,1 Street,City,AL,00501-0012,County,Future type,Future ownership,Unknown,PRIVATE CONTACT\n';
@@ -31,3 +35,4 @@ test('nonsettling body reads and cleanup cannot hang cancellation or rejection',
 test('lease cleanup failure preserves publication or original failed run identity with redacted inspection recovery',async t=>{await track(t);for(const successful of [true,false]){let recovery;await assert.rejects(run(transport((n,u,o,b,type)=>response(!successful&&n===2?'invalid notice':b,type)),{},async(stage)=>{if(stage==='before-lease-cleanup')throw Error('PRIVATE cleanup failure');}),e=>{recovery=e.recovery;assert.equal(e.code,successful?'CMS_HOSPITAL_PUBLICATION_UNCERTAIN':'CMS_HOSPITAL_ACQUISITION_FAILED');assert.doesNotMatch(e.message,/PRIVATE/);return true;});assert.equal(recovery.inspectionRequired,true);assert.equal(recovery.sourceLeaseRetained,true);assert.equal(recovery.leaseCleanupFailed,true);assert.ok(recovery.runId);if(successful)assert.equal((await verify(recovery.manifestPath,recovery.manifestSha256)).sourceRows,1);else assert.equal(JSON.parse(await readFile(path.join(recovery.directory,'failure.json'),'utf8')).runId,recovery.runId);await unlink(path.join(ROOT,'.source-lease'));}});
 
 test('changed-owner lease is never removed and published recovery is preserved',async t=>{await track(t);await assert.rejects(run(transport(),{},async(stage,{leasePath})=>{if(stage==='before-lease-cleanup'){await unlink(leasePath);await mkdir(leasePath);}}),e=>e.code==='CMS_HOSPITAL_PUBLICATION_UNCERTAIN'&&e.recovery.inspectionRequired===true);const lease=path.join(ROOT,'.source-lease');assert.deepEqual(await readdir(lease),[]);await rmdir(lease);});
+}

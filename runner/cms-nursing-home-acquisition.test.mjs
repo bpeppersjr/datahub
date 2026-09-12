@@ -9,6 +9,9 @@ import {fileURLToPath} from 'node:url';
 import {APP_ROOT} from './paths.mjs';
 import {acquireCmsNursingHomes,acquireCmsNursingHomesWithTestTransport as run,verifyCmsNursingHomeAcquisitionWithTestInput as verify,verifyCmsNursingHomeAcquisition as nativeVerify,CMS_NURSING_HOME_BUDGET_LOCKS} from './cms-nursing-home-acquisition.mjs';
 import {CMS_NURSING_HOME_SELECTED_HEADERS} from './cms-nursing-home-prerequisite.mjs';
+import {isolatedCmsAcquisitionFixture} from './isolated-cms-acquisition-fixture.mjs';
+if(process.env.DATAHUB_CMS_ACQUISITION_SUITE!=='nursing')isolatedCmsAcquisitionFixture(fileURLToPath(import.meta.url),'nursing',15);
+else {
 const LEASE=CMS_NURSING_HOME_BUDGET_LOCKS.fixture;
 const ROOT=path.join(APP_ROOT,'data/tmp/cms-nursing-home-acquisition'),sha=v=>createHash('sha256').update(v).digest('hex');
 const exec=promisify(execFile);
@@ -42,3 +45,4 @@ test('nonsettling body reads and cleanup cannot hang cancellation or rejection',
 test('lease cleanup failure preserves publication or original failed run identity with redacted inspection recovery',async t=>{await track(t);for(const successful of [true,false]){let recovery;await assert.rejects(run(transport((n,u,o,b,type)=>response(!successful&&n===2?'invalid notice':b,type)),{},async(stage)=>{if(stage==='before-lease-cleanup')throw Error('PRIVATE cleanup failure');}),e=>{recovery=e.recovery;assert.equal(e.code,successful?'CMS_NURSING_HOME_PUBLICATION_UNCERTAIN':'CMS_NURSING_HOME_ACQUISITION_FAILED');assert.doesNotMatch(e.message,/PRIVATE/);return true;});assert.equal(recovery.inspectionRequired,true);assert.equal(recovery.sourceLeaseRetained,true);assert.equal(recovery.leaseCleanupFailed,true);assert.ok(recovery.runId);if(successful)assert.equal((await verify(recovery.manifestPath,recovery.manifestSha256)).sourceRows,1);else assert.equal(JSON.parse(await readFile(path.join(recovery.directory,'failure.json'),'utf8')).runId,recovery.runId);await unlink(LEASE);}});
 
 test('changed-owner lease is never removed and published recovery is preserved',async t=>{await track(t);await assert.rejects(run(transport(),{},async(stage,{leasePath})=>{if(stage==='before-lease-cleanup'){await unlink(leasePath);await mkdir(leasePath);}}),e=>e.code==='CMS_NURSING_HOME_PUBLICATION_UNCERTAIN'&&e.recovery.inspectionRequired===true);const lease=LEASE;assert.deepEqual(await readdir(lease),[]);await rmdir(lease);});
+}
