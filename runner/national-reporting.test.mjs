@@ -6,6 +6,8 @@ import { createHash } from 'node:crypto';
 import { APP_ROOT } from './paths.mjs';
 import { readNationalReportingCatalog,validateNationalReportingCatalog,summarizeNationalReportingCounts } from './national-reporting-catalog.mjs';
 import { readNationalReportingSnapshot } from './national-reporting-snapshot.mjs';
+import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
+import { datasetRepresentation, nationalDatasetRepresentation } from './dataset-representation.mjs';
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 test('versioned eight-source catalog is closed and preserves unknown completeness',async()=>{
@@ -35,7 +37,7 @@ async function fixture(t) {
   const ids={'national-business-registry':'registry_release_id','us-census-geography':'geography_release_id','us-census-zcta-jurisdiction-crosswalk':'zcta_jurisdiction_crosswalk_release_id','national-business-entity-resolution':'entity_resolution_release_id','national-business-entity-resolution-benchmark':'entity_resolution_benchmark_release_id','census-nonemployer-baseline':'census_nonemployer_release_id'};
   const lineage=Object.fromEntries(Object.entries(ids).map(([id,key])=>[key,id+'-fixture']));lineage.transformation_version='national-business-coverage-views@2.11.0';
   const states=[{schema_version:'1.0.0',view_type:'state',postal_abbreviation:'CT',complete_all_businesses:false,lineage,registry_evidence:{source_profile_counts_by_reported_address_state:{'epa-echo-exporter-active-facility':0,'usda-fsis-active-mpi-directory':7}}}];
-  const sources=[{schema_version:'1.0.0',view_type:'source',source_key:'epa_echo_active_facilities',complete_source_for_all_businesses:false,lineage}];
+  const sources=[{schema_version:'1.0.0',view_type:'source',source_key:'epa_echo_active_facilities',profile_source_id:'epa-echo-exporter-active-facility',complete_source_for_all_businesses:false,lineage}];
   const manifest={schema_version:'1.0.0',dataset_id:'national-business-coverage-views',release_id:'fixture',status:'published-partial-local-aggregate',dependencies:Object.entries(ids).map(([dataset,key])=>({dataset_id:dataset,release_id:lineage[key]})),artifacts:[]};
   for(const [name,rows,type] of [['states',states,'state-coverage-view-jsonl'],['sources',sources,'source-coverage-view-jsonl']]){
     const bytes=Buffer.from(rows.map(row=>JSON.stringify(row)+'\n').join(''));await writeFile(path.join(directory,'views',name+'.jsonl'),bytes);
@@ -54,6 +56,45 @@ test('snapshot verifies bounded aggregate hashes and preserves zero without netw
     assert.equal(snapshot.evidence.allBusinessesPercent,null);
   } finally {globalThis.fetch=old;}
   await assert.rejects(readNationalReportingSnapshot({pointerPath:f.pointerPath,signal:AbortSignal.abort()}));
+});
+
+test('eight-source projection separates its version, groups, dates and IRS filing evidence from legacy six',async()=>{
+  const {catalog}=await readNationalReportingCatalog();
+  const sources=catalog.sources.map(row=>({source_key:row.sourceKey,profile_source_id:row.profileId,release_metadata:{source_release_id:'fixture',...(row.id==='national-usda-fsis'?{source_date:'2026-08-24'}:{})}}));
+  const counts=Object.fromEntries(catalog.sources.filter(row=>row.profileId).map(row=>[row.profileId,1]));
+  const states=[{postal_abbreviation:'CT',registry_evidence:{source_profile_counts_by_reported_address_state:counts}}];
+  const current=nationalDatasetRepresentation(catalog,states,sources,{status:'available',counts:{CT:2}});
+  const ct=current.states.find(row=>row.code==='CT');
+  assert.equal(current.states.length,51);assert.equal(current.states.some(row=>row.code==='PR'),false);
+  assert.equal(ct.expected,8);assert.equal(ct.percent,100);assert.equal(current.allBusinessesPercent,null);
+  assert.equal(current.denominatorVersion,'national-reporting-eight@1.0.0');assert.equal(current.exportPolicy,'local-review-only');
+  assert.equal(ct.datasets[5].profileId,null);assert.equal(ct.datasets[5].rowUnit,'organization filing-address records');
+  assert.equal(ct.datasets[7].sourceDate,'2026-08-24');assert.match(ct.datasets[6].scope,/environmental-program/);
+  assert.equal(ct.industries.find(row=>row.id==='cross-industry-regulated-facilities').expected,1);
+  const legacyPlan={states:['CT'],industries:{},sources:Object.fromEntries(catalog.sources.slice(0,6).map(row=>[row.id,{scope:'national',states:'all'}]))};
+  const legacy=datasetRepresentation(legacyPlan,states,sources);
+  assert.equal(legacy.states[0].expected,6);assert.equal(legacy.denominatorScope,'Configured nationwide collection plan');
+  assert.notEqual(legacy.denominatorVersion,current.denominatorVersion);
+  counts[catalog.sources[0].profileId]=0;
+  const zero=nationalDatasetRepresentation(catalog,states,sources);
+  assert.equal(zero.states.find(row=>row.code==='CT').datasets[0].status,'no-state-records');
+  assert.equal(zero.states.find(row=>row.code==='CT').datasets[5].stateRecordCount,null);
+  assert.equal(nationalDatasetRepresentation(catalog,states,[]).states.find(row=>row.code==='CT').percent,null);
+  for(const count of [-1,1.2,Infinity]) {counts[catalog.sources[0].profileId]=count;assert.throws(()=>nationalDatasetRepresentation(catalog,states,sources));}
+  counts[catalog.sources[0].profileId]=1;sources[0].profile_source_id='unknown';assert.throws(()=>nationalDatasetRepresentation(catalog,states,sources));
+});
+
+test('store uses verified aggregates without cached same-ID data, network, or reviewed-assessment transitions',async t=>{
+  const f=await fixture(t),store=createBusinessCoverageViewStore({pointerPath:f.pointerPath,stateSourceRevalidationProvider:{load(){assert.fail('Reporting must not advance reviewed assessments');}}});
+  const old=globalThis.fetch;globalThis.fetch=()=>assert.fail('reporting read must stay offline');
+  try {
+    const result=await store.getDatasetRepresentation();assert.equal(result.available,true);
+    const ct=result.states.find(row=>row.code==='CT');assert.equal(ct.expected,8);assert.equal(ct.datasets[6].stateRecordCount,0);
+    assert.equal(ct.datasets[7].stateRecordCount,null);assert.equal(result.evidence.sourceReplayPerformedThisRead,false);
+    assert.equal(result.exportPolicy,'local-review-only');assert.match(result.catalogSha256,/^[a-f0-9]{64}$/);
+    await writeFile(path.join(f.directory,'views/states.jsonl'),'{}\n');
+    assert.deepEqual(await store.getDatasetRepresentation(),{available:false,reason:'Verified national reporting evidence is unavailable.'});
+  } finally {globalThis.fetch=old;}
 });
 
 test('same-ID mutation, duplicate descriptors, policy escalation and lineage mismatch reject',async t=>{

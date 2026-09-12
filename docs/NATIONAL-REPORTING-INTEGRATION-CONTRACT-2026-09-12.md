@@ -1,6 +1,6 @@
 # National reporting integration contract — 2026-09-12
 
-Status: reviewed implementation contract, not implemented behavior. This slice displays already-retained production evidence; it authorizes no acquisition, refresh, production rebuild, pointer change, or broader export.
+Status: implemented projection/store/UI; focused, full repository and desktop runtime verification passed. This slice displays already-retained production evidence; it authorizes no acquisition, refresh, production rebuild, pointer change, or broader export.
 
 ## Reporting catalog, separate from acquisition
 

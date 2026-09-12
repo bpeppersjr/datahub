@@ -189,9 +189,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
 
   const factualStore = createBusinessCoverageViewStore({ pointerPath, stateSourceRevalidationProvider: { load() { throw new Error('Unreviewed transition'); } } });
   const representation = await factualStore.getDatasetRepresentation();
-  assert.equal(representation.available, true);
-  assert.equal(representation.states.find(row => row.code === 'CA').fips, '06');
-  assert.equal(representation.states.find(row => row.code === 'CA').percent, null);
+  // This legacy dimension fixture lacks hashes/lineage required by the new reporting snapshot.
+  assert.equal(representation.available, false);
   await assert.rejects(factualStore.getOverview(), /Unreviewed transition/);
 
   let revalidationReady = false;

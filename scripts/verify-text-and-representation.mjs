@@ -32,13 +32,14 @@ try {
     assert.ok(state);
     const result = await page.locator('.representation-result').innerText();
     assert.ok(result.includes(state.percent === null ? 'Unmeasured' : `${state.percent.toFixed(1)}%`));
-    assert.ok(result.includes(`${state.represented}/${state.expected} configured nationwide datasets represented`));
+    assert.ok(result.includes(`${state.represented}/${state.expected} enrolled national reporting datasets represented`));
+    assert.equal(state.expected, 8);
     assert.ok(await page.getByText('All-business completeness: Unknown', { exact: true }).isVisible());
     const unconfigured = state.industries.filter(row => row.expected === 0);
-    assert.ok(await page.getByText(`${state.industries.length - unconfigured.length} of ${state.industries.length} configured industry groups have nationwide datasets.`, { exact: true }).isVisible());
+    assert.ok(await page.getByText(`${state.industries.length - unconfigured.length} of ${state.industries.length} reporting groups have enrolled national datasets.`, { exact: true }).isVisible());
     for (const industry of unconfigured) {
       const row = page.locator('.representation-table tbody tr').filter({ has: page.getByRole('rowheader', { name: industry.id.replaceAll('-', ' '), exact: true }) });
-      assert.equal(await row.locator('td').nth(1).innerText(), 'Not configured');
+      assert.equal(await row.locator('td').nth(1).innerText(), 'Not enrolled');
     }
   };
   const samples = ['h1', '.table-head', '#text-size', '.representation-table th', '.rail-link', '#coverage h2', '#business-intelligence h2', '#connectors h2', '#data-operations h2', '#benchmark h2'];

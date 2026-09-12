@@ -67,6 +67,19 @@ function fixtureRows() {
   ];
 }
 
+test('outside-ZCTA publisher status-only fallback accepts absent or null identifiers but never contradictory membership',()=>{
+  const row={...fixtureRows()[1],zip_code:'01065',postal_code:'01065',geography:{status:'not-observed-in-integrated-census-coverage-union'}};
+  const options={registryPublisherVersion:'2.10.0'};
+  for(const geography of [row.geography,{...row.geography,geo_id:null,geoid:null}]) {
+    const report=auditRegistryZipRows([{...row,geography}],options);
+    assert.deepEqual(report.source_reported_zip5_outside_governed_zcta.zip5_values,['01065']);
+  }
+  for(const geography of [{...row.geography,geo_id:'zcta:01065'},{...row.geography,geoid:'01065'},
+    {...row.geography,geo_id:''},{status:'unknown'},{status:'2020-zcta-polygon-available'}]) {
+    assert.throws(()=>auditRegistryZipRows([{...row,geography}],options),/outside-ZCTA|governed ZCTA/);
+  }
+});
+
 async function writeRegistryFixture(root, { publisherVersion = "2.10.0", rows = fixtureRows() } = {}) {
   const releaseDirectory = path.join(root, "registry", "releases", "release-1");
   await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });

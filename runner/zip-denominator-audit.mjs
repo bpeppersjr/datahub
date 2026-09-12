@@ -209,7 +209,7 @@ export function auditRegistryZipRows(rows, {
       zctaSourceReleaseIds.add(sourceReleaseForZcta(row));
     } else {
       if (!OUTSIDE_ZCTA_STATUSES.has(geographyStatus)
-        || row.geography?.geo_id !== null || row.geography?.geoid !== null) {
+        || row.geography?.geo_id != null || row.geography?.geoid != null) {
         throw new Error(`Registry ZIP ${zip5} has an unsupported outside-ZCTA geography shape.`);
       }
       if (row.registry_coverage.status === "record-level-source-contribution") sourceReportedOutsideZcta.push(zip5);

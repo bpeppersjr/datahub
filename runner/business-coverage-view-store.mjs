@@ -3,7 +3,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
-import { datasetRepresentation } from './dataset-representation.mjs';
+import { nationalDatasetRepresentation } from './dataset-representation.mjs';
+import { readNationalReportingCatalog } from './national-reporting-catalog.mjs';
+import { readNationalReportingSnapshot } from './national-reporting-snapshot.mjs';
 import { readSelectedIrsStateSummary } from './irs-eo-state-summary.mjs';
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
@@ -375,18 +377,20 @@ export function createBusinessCoverageViewStore({
   }
 
   async function getDatasetRepresentation() {
-    const current = await ensureRelease();
-    if (!current) return { available: false };
-    // Factual published counts only. This does not load, advance, or replace reviewed assessments.
-    const [plan, states, sources] = await Promise.all([
-      readFile(path.join(APP_ROOT, 'config', 'industry-segments.json'), 'utf8').then(JSON.parse),
-      readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.states)),
-      readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.sources)),
-    ]);
-    let irsAddressEvidence;
-    try { irsAddressEvidence=await readSelectedIrsStateSummary({pointerPath,coverageManifest:current.manifest,sourceRow:sources.find(row=>row.source_key==='irs_eo_bmf_organizations')}); }
-    catch { irsAddressEvidence={status:'unavailable'}; }
-    return { available: true, releaseId: current.manifest.release_id, ...datasetRepresentation(plan, states, sources,irsAddressEvidence) };
+    try {
+      // Independent factual aggregate read: no review transition, stale release cache or raw-source replay.
+      const {catalog,sha256} = await readNationalReportingCatalog();
+      const snapshot = await readNationalReportingSnapshot({pointerPath});
+      let irsAddressEvidence;
+      try { irsAddressEvidence=await readSelectedIrsStateSummary({pointerPath,coverageManifest:snapshot.manifest,sourceRow:snapshot.sources.find(row=>row.source_key==='irs_eo_bmf_organizations')}); }
+      catch { irsAddressEvidence={status:'unavailable'}; }
+      const after = await readNationalReportingSnapshot({pointerPath});
+      if (JSON.stringify(after.evidence)!==JSON.stringify(snapshot.evidence)) throw new Error('Selected reporting evidence changed.');
+      return { available:true, releaseId:snapshot.manifest.release_id,
+        ...nationalDatasetRepresentation(catalog,snapshot.states,snapshot.sources,irsAddressEvidence),
+        catalogSha256:sha256, catalogVersion:catalog.schemaVersion, evidence:snapshot.evidence,
+        exportPolicy:snapshot.evidence.exportPolicy === 'internal' ? 'internal' : catalog.exportPolicy };
+    } catch { return {available:false,reason:'Verified national reporting evidence is unavailable.'}; }
   }
 
   return { getOverview, listDimension, getDatasetRepresentation };
