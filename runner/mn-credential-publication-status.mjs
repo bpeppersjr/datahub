@@ -58,7 +58,7 @@ async function inspect(reader,root,signal,synthetic){
   // Re-read the same bounded graph. No stage logs, row artifacts or huge views are opened.
   for(const [relative,prior]of seen){signal?.throwIfAborted();const next=await reader(path.join(root,relative),prior.maximum,signal);total+=next.bytes;check(total<=32000000&&next.sha256===prior.sha256&&next.bytes===prior.bytes);}
   return {...common,status:synthetic?'synthetic-fixture-matched':'verified-downstream-publication',included:synthetic?null:true,credentialRows:11456,
-   sourceObservedAt:observed,sourceReleaseId:m.summary.provenance.source_release_id,reportingReleaseId:m.release_id,reportingManifestSha256:reporting.sha256,
+   sourceObservedAt:observed,sourceReleaseId:m.summary.provenance.source_release_id,sourceAppReceiptSha256:app.sha256,reportingReleaseId:m.release_id,reportingManifestSha256:reporting.sha256,
    productionRunId:RUN,productionReceiptSha256:RECEIPT_HASH,productionFinishedAt:p.finishedAt,
    registryReleaseId:registry.release_id,registryManifestSha256:releases.registry.sha256,coverageReleaseId:coverage.release_id,coverageManifestSha256:releases.coverage.sha256,
    evidenceFilesChecked:seen.size,evidenceBytesRead:total};

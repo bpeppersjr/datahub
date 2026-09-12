@@ -7,6 +7,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
+import { pathToFileURL } from "node:url";
 import { APP_ROOT } from "./paths.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -33,7 +34,20 @@ async function makeFixture(t) {
   await cp(path.join(APP_ROOT, "config"), path.join(root, "config"), { recursive: true });
   for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
-    "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+    "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
+    "business-flatfile-compatibility.mjs", "oh-childcare-coverage-evidence.mjs", "oh-childcare-geographic-evidence.mjs", "oh-childcare-registry-adapter.mjs",
+    "oh-childcare-registry-input.mjs", "oh-childcare-app.mjs", "oh-childcare-source-use.mjs", "oh-childcare-preflight.mjs", "oh-childcare-acquired-release.mjs",
+    "oh-childcare-transport.mjs", "oh-childcare-acquisition.mjs", "oh-childcare-release.mjs", "oh-childcare-normalization.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+  await mkdir(path.join(root, "docs/states"), { recursive: true });
+  await copyFile(path.join(APP_ROOT, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"), path.join(root, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"));
+  // Import the real isolated child before HTTP dispatch so missing fixture dependencies
+  // are diagnosed here without weakening production stderr redaction.
+  const importProbe = spawn(process.execPath, ["--input-type=module", "-e", "await import(process.argv[1])", pathToFileURL(path.join(root, 'scripts/compose-flat-business-export.mjs')).href], { cwd: root, windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+  let importDiagnostic = "";
+  importProbe.stderr.on("data", chunk => { importDiagnostic += chunk; });
+  const [importExit] = await once(importProbe, "close");
+  if (importExit !== 0) await rm(root, { recursive: true, force: true });
+  assert.equal(importExit, 0, importDiagnostic);
   const industryConfig = JSON.parse(await readFile(path.join(root, "config", "industry-segments.json"), "utf8"));
   for (const source of Object.values(industryConfig.sources)) {
     const stub = path.join(root, ...source.script.split("/"));

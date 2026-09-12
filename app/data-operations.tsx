@@ -12,6 +12,7 @@ type Catalog = {
   states: string[];
   collectionSources?: Array<{ id: string; scope: string; states: string[] | 'all'; industries: string[]; manualSelectionRequired: boolean }>;
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
+  credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
 };
 type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
@@ -40,6 +41,9 @@ export default function DataOperations() {
   const [fields, setFields] = useState(initialFields);
   const [format, setFormat] = useState('both');
   const [policyMode, setPolicyMode] = useState('public-only');
+  const [exportType,setExportType]=useState('business');
+  const [credentialFields,setCredentialFields]=useState(['business_name_source','reported_city','reported_zip5','reported_zip4']);
+  const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
@@ -99,14 +103,15 @@ export default function DataOperations() {
       </section>
       <section aria-labelledby="export-title" className="operations-builder">
         <h3 id="export-title">Build a flat file</h3>
-        <label>Business category<select value={category} disabled={!catalog || busy} onChange={(event) => setCategory(event.target.value)}><option value="">All profile categories</option>{catalog?.export.categories.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select></label>
-        <label>Business address states<select multiple size={5} value={exportStates} disabled={!catalog || busy} onChange={(event) => setExportStates(selectedValues(event.currentTarget))}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
-        <p className="operations-note">No selection means all states. Exports use the current reconciled registry and preserve separate source records.</p>
-        <fieldset className="operations-fields"><legend>Columns</legend>{catalog?.export.fields.map((field) => <label key={field}><input type="checkbox" checked={fields.includes(field)} disabled={busy} onChange={(event) => setFields((current) => event.target.checked ? [...current, field] : current.filter((item) => item !== field))} />{label(field)}</label>)}</fieldset>
-        <p className="operations-note">Record provenance is always included. ZIP5 and ZIP+4 stay separate. Business geography uses address latitude and longitude only.</p>
-        <div className="operations-options"><label>Format<select value={format} onChange={(event) => setFormat(event.target.value)}><option value="both">CSV and JSONL</option><option value="csv">CSV</option><option value="jsonl">JSONL</option></select></label><label>Use mode<select value={policyMode} onChange={(event) => setPolicyMode(event.target.value)}><option value="public-only">Public record policies only</option><option value="local-review">Local review</option></select></label></div>
-        <p className="operations-note">Local review includes records approved for local inspection. Unknown or prohibited policies are excluded. Building a file does not publish it.</p>
-        <button className="primary-button" disabled={!catalog || !fields.length || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/exports', { categories: category ? [category] : [], states: exportStates, fields, format, policyMode })))}>Build file</button>
+        <label>Record type<select value={exportType} disabled={!catalog||busy} onChange={event=>{setExportType(event.target.value);setCategory('');setExportStates([]);setFormat('both');setPolicyMode(event.target.value==='business'?'public-only':'local-review-only');}}><option value="business">Business source profiles</option>{catalog?.credentialExport&&<option value="mn-construction-credentials">Minnesota construction credentials</option>}</select></label>
+        {!credentialMode&&<label>Business category<select value={category} disabled={!catalog || busy} onChange={(event) => setCategory(event.target.value)}><option value="">All profile categories</option>{catalog?.export.categories.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select></label>}
+        <label>{credentialMode?'Credential reported address states':'Business address states'}<select multiple size={5} value={exportStates} disabled={!catalog || busy} onChange={(event) => setExportStates(selectedValues(event.currentTarget))}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
+        <p className="operations-note">{credentialMode?'No selection includes all reported states, including unresolved/out-of-scope addresses. State filters use reported addresses, not publisher jurisdiction or physical locations. Only the reviewed retained residential license cohort is included.':'No selection means all states. Exports use the current reconciled registry and preserve separate source records.'}</p>
+        <fieldset className="operations-fields"><legend>Columns</legend>{(credentialMode?catalog?.credentialExport?.fields:catalog?.export.fields)?.map((field) => {const required=credentialMode&&catalog?.credentialExport?.requiredFields.includes(field);return <label key={field}><input type="checkbox" checked={Boolean(required)||(credentialMode?credentialFields:fields).includes(field)} disabled={busy||Boolean(required)} onChange={(event) => (credentialMode?setCredentialFields:setFields)((current) => event.target.checked ? [...current, field] : current.filter((item) => item !== field))} />{label(field)}{required?' (required)':''}</label>;})}</fieldset>
+        <p className="operations-note">{credentialMode?'Required credential identity and provenance columns are automatic. Source dates and unknowns are preserved; ZIP5 and ZIP4 stay separate. No coordinates, business polygons, contact fields or verified operating-site claims are added.':'Record provenance is always included. ZIP5 and ZIP+4 stay separate. Business geography uses address latitude and longitude only.'}</p>
+        <div className="operations-options"><label>Format<select value={format} onChange={(event) => setFormat(event.target.value)}><option value="both">CSV and JSONL</option><option value="csv">CSV</option><option value="jsonl">JSONL</option></select></label><label>Use mode<select value={credentialMode?'local-review-only':policyMode} disabled={credentialMode} onChange={(event) => setPolicyMode(event.target.value)}>{credentialMode?<option value="local-review-only">Local review only — locked</option>:<><option value="public-only">Public record policies only</option><option value="local-review">Local review</option></>}</select></label></div>
+        <p className="operations-note">{credentialMode?'Credential files remain local-review-only. Publication in a national reporting layer does not authorize public redistribution. This operation reads retained evidence; it does not acquire source data.':'Local review includes records approved for local inspection. Unknown or prohibited policies are excluded. Building a file does not publish it.'}</p>
+        <button className="primary-button" disabled={!catalog || (!credentialMode&&!fields.length) || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/exports', credentialMode?{exportType:'mn-construction-credentials',states:exportStates,fields:credentialFields,format,policyMode:'local-review-only'}:{ categories: category ? [category] : [], states: exportStates, fields, format, policyMode })))}>{credentialMode?'Build credential file':'Build file'}</button>
       </section>
     </div>
     <RefreshSchedules catalog={catalog} />
@@ -122,6 +127,7 @@ export default function DataOperations() {
         {operationEvidence(operation) && <p className="operations-note">{operationEvidence(operation)}</p>}
         {operation.status === 'SUCCEEDED' && operation.result?.normalizationReady === true && typeof operation.result.normalizedPlaces === 'number' && <p>{operation.result.normalizedPlaces.toLocaleString()} normalized source places · not a unique-business count</p>}
         {typeof operation.result?.rowsWritten === 'number' && <p>{operation.result.rowsWritten.toLocaleString()} exported records · {label(operation.result.policyMode ?? '')}</p>}
+        {typeof operation.result?.credentialRowsWritten === 'number' && <p>{operation.result.credentialRowsWritten.toLocaleString()} credential rows · local review only · separate from business totals</p>}
         {typeof operation.result?.plan?.taskCount === 'number' && <p>{operation.result.plan.taskCount} source updates in the collection plan</p>}
         {!!operation.result?.tasks?.length && <ul className="operation-task-list">{operation.result.tasks.map((task) => <li key={task.task_id}><span>{label(task.source_id ?? task.task_id)} · {task.state ?? 'national'}</span><strong>{label(task.status)}</strong></li>)}</ul>}
         {operation.error && <p role="status">{operation.error}</p>}

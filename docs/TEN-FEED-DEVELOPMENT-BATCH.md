@@ -30,8 +30,8 @@ The first seven already have substantial connector/retained-release work. They a
 ## Integration checkpoint — September 12
 
 - PA, CT, MD, VT, CO and IA now share a typed retained-input handoff with source-specific manifest and parent-receipt verification. Read-only plans against all six retained native releases passed. This is reuse evidence, not new acquisition or a completeness measurement.
-- Maine's bounded metadata preflight CLI, offline parser and independently verified receipt bundle are integrated. Native source execution and managed-operation registration are still pending; no Maine business collector is declared ready.
-- JSON downloads, adjustable app fonts and clearer state coverage labels were released in `5ecbc4f`. The next combined service release is undergoing independent integration testing.
+- Maine's bounded metadata preflight CLI, offline parser, managed-operation binding and independently verified receipt bundle were published in `f36e779`. Native source execution remains pending explicit approval; no Maine business collector is declared ready.
+- JSON downloads, adjustable app fonts and clearer state coverage labels were released in `5ecbc4f`. Retained-input handoffs were published in `70b4ba1`; eight-source national reporting and Maine managed preflight were published in `f36e779`.
 - Independent service development uses detached checkouts beneath `data/worktrees`; the coding/testing lane alone owns main-checkout runtime testing. The integrator merges reviewed changes and publishes only after the shared verification gate.
 - Spark is retained as the preferred coding/testing agent. Its quota is currently exhausted; the disclosed Astra fallback handles verification while separate source agents prepare Maine app handoff and ECHO/FSIS reporting contracts. Restore Spark when available, without creating a duplicate agent.
 - Ten feeds remain the development batch. The current session has four concurrent agent slots including the integrator; do not claim ten live agents. Group compatible feed contracts and reuse shared adapters to advance the batch within that limit.
@@ -42,9 +42,9 @@ The first seven already have substantial connector/retained-release work. They a
 
 | Feeds | Verified stage | Next action / boundary |
 | --- | --- | --- |
-| PA, CT, MD, VT, CO, IA | Shared retained-input implementation and six real read-only plans verified; combined release check running | Publish only after integration verification; no fresh collection or normalization needed merely for reporting |
+| PA, CT, MD, VT, CO, IA | Shared retained-input implementation published; six real read-only plans verified | App-owned native execution receipt remains distinct from plan verification; no fresh collection or normalization needed merely for reporting |
 | UT | Existing `state-ut-childcare-centers-retained` registration explicitly selects its fixed retained normalized release and app-owned PDF runtime | Preserve the existing no-download path; a new source edition needs deliberately reviewed pins |
-| ME | Standalone metadata preflight implemented and offline tested | Managed operation binding, receipt verification and cancellation integration developing independently; native evidence still absent |
+| ME | Standalone and managed metadata preflight published and offline tested | Explicit approval and bounded native session evidence remain prerequisites; business acquisition is not authorized by metadata preflight |
 | NH | Six-row ZIP03755 sample retained; pure parameterized evaluator tested | Broader source-use scope, pagination/count semantics and app lifecycle remain prerequisites; syntax support does not authorize statewide collection |
 | OK | Approval-bound app dispatch implemented; first query rejected HTTP502 | Preserve the failed intent and four-row baseline. No retry, alternate approval identity or skip-and-continue without a separately reviewed recovery decision |
 

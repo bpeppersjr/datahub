@@ -1,10 +1,23 @@
 import { loadMnConstructionReportingEnrollment } from './mn-construction-reporting-enrollment.mjs';
 import { loadCredentialCoverageEnrollment } from './credential-coverage-enrollment.mjs';
 import { CREDENTIAL_COVERAGE_CATEGORIES } from './credential-coverage.mjs';
+import { loadMnCredentialPublicationStatus } from './mn-credential-publication-status.mjs';
 const STATES='AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC'.split(' ');
 const invalid=()=>{throw Object.assign(Error('Invalid retained credential filters.'),{statusCode:400});};
-export function createRetainedCredentialsView({loader=loadMnConstructionReportingEnrollment,coverageLoader=loadCredentialCoverageEnrollment}={}) {
-  let pending,coveragePending;
+export function createRetainedCredentialsView({loader=loadMnConstructionReportingEnrollment,coverageLoader=loadCredentialCoverageEnrollment,publicationLoader=loadMnCredentialPublicationStatus}={}) {
+  let pending,coveragePending,publicationPending;
+  async function publicationFor(summary,evidence) {
+    publicationPending??=Promise.resolve().then(()=>publicationLoader()).finally(()=>{publicationPending=null;});
+    let publication;
+    try {publication=await publicationPending;} catch {return {status:'evidence-unavailable',included:null,credentialRows:null};}
+    if(publication.included===true && (publication.credentialRows!==summary.accepted_credential_rows
+      || publication.sourceObservedAt!==summary.provenance.observed_at || publication.sourceReleaseId!==summary.provenance.source_release_id
+      || publication.sourceAppReceiptSha256!==summary.provenance.app_receipt_sha256
+      || evidence && (publication.reportingReleaseId!==evidence.reportingReleaseId || publication.reportingManifestSha256!==evidence.reportingManifestSha256))) {
+      return {...publication,status:'evidence-unverified',included:null,credentialRows:null};
+    }
+    return publication;
+  }
   return {async get(params=new URLSearchParams()) {
     for(const key of params.keys())if(!['state','offset','limit','view','category'].includes(key)||params.getAll(key).length!==1)invalid();
     const mode=params.get('view')??'postal',category=params.get('category')??'';
@@ -15,7 +28,7 @@ export function createRetainedCredentialsView({loader=loadMnConstructionReportin
     if(mode==='categories'){
       coveragePending??=Promise.resolve().then(()=>coverageLoader()).finally(()=>{coveragePending=null;});let enrollment;
       try{enrollment=await coveragePending;}catch{throw Object.assign(Error('Retained credential reporting could not be verified. No source request was made.'),{statusCode:503});}
-      if(enrollment.status!=='available')return {available:false,status:enrollment.status,view:mode,category,records:[],state,offset,limit};
+      if(enrollment.status!=='available')return {available:false,status:enrollment.status,downstreamPublication:null,view:mode,category,records:[],state,offset,limit};
       const {coverage,summary,evidence}=enrollment;
       const selected=coverage.states.filter(row=>!state || row.state===state).sort((a,b)=>b.credentialRows-a.credentialRows||a.state.localeCompare(b.state));
       const records=selected.flatMap(row=>row.categories.filter(cell=>!category || cell.category===category).map(cell=>({
@@ -30,6 +43,7 @@ export function createRetainedCredentialsView({loader=loadMnConstructionReportin
         stateRows:state?selected[0]?.credentialRows??0:null,observedAt:summary.provenance.observed_at,
         sourceReleaseId:summary.provenance.source_release_id,receiptSha256:summary.provenance.app_receipt_sha256,
         reportingReleaseId:evidence.reportingReleaseId,reportingManifestSha256:evidence.reportingManifestSha256,
+        downstreamPublication:await publicationFor(summary,evidence),
         nationalReportingIntegrated:false,uniqueActiveBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,registrationsCohortIncluded:false,
         percentageDenominators:coverage.percentageDenominators,availableStates:[...STATES],availableCategories:[...CREDENTIAL_COVERAGE_CATEGORIES],
         state,offset,limit,total:records.length,records:records.slice(offset,offset+limit)};
@@ -37,7 +51,7 @@ export function createRetainedCredentialsView({loader=loadMnConstructionReportin
     // Coalesce concurrent local verification only; do not cache stale evidence.
     pending??=Promise.resolve().then(()=>loader()).finally(()=>{pending=null;});let enrollment;
     try{enrollment=await pending;}catch{throw Object.assign(Error('Retained credential evidence could not be verified. No source request was made.'),{statusCode:503});}
-    if(enrollment.status!=='available')return {available:false,status:enrollment.status,records:[],state,offset,limit};
+    if(enrollment.status!=='available')return {available:false,status:enrollment.status,downstreamPublication:null,records:[],state,offset,limit};
     const summary=enrollment.summary;
     const stateEntry=summary.by_reported_state.find(x=>x.state===state);
     const records=state?summary.by_reported_zip5.filter(x=>x.state===state).map(x=>({state:x.state,zip5:x.zip5,credentialRows:x.credential_rows,percentOfCohort:summary.accepted_credential_rows?x.credential_rows/summary.accepted_credential_rows*100:null}))
@@ -47,6 +61,7 @@ export function createRetainedCredentialsView({loader=loadMnConstructionReportin
       rejectedRows:summary.source_row_dispositions.rejected_records,missingZip5Rows:summary.rows_without_reported_zip5,
       stateRows:state?stateEntry?.credential_rows??0:null,observedAt:summary.provenance.observed_at,
       sourceReleaseId:summary.provenance.source_release_id,receiptSha256:summary.provenance.app_receipt_sha256,
+      downstreamPublication:await publicationFor(summary),
       nationalReportingIntegrated:false,uniqueActiveBusinessCount:null,physicalSiteCount:null,registrationsCohortIncluded:false,
       percentageDenominator:'All accepted credential rows in this retained cohort, not all US businesses',
       availableStates:[...STATES],state,offset,limit,total:records.length,records:records.slice(offset,offset+limit)};

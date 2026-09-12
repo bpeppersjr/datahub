@@ -1,7 +1,8 @@
 'use client';
 import { useEffect,useState } from 'react';
 import { runnerJson } from './runner-client';
-type View={available:boolean;status:string;sourceLabel?:string;acceptedCohortRows?:number;sourceRows?:number;rejectedRows?:number;missingZip5Rows?:number;stateRows?:number|null;observedAt?:string;sourceReleaseId?:string;receiptSha256?:string;reportingReleaseId?:string;reportingManifestSha256?:string;availableStates?:string[];total?:number;national50DcRows?:number;outside50DcOrUnresolvedRows?:number;records:Array<{state:string;zip5?:string|null;category?:string;credentialRows:number;percentOfCohort?:number|null;categoryWithinState?:number|null;stateShareOfCategory?:number|null}>};
+type Publication={status:string;included:boolean|null;credentialRows:number|null;verificationMode?:string;registryReleaseId?:string;coverageReleaseId?:string;productionFinishedAt?:string;reportingManifestSha256?:string;exportPolicy?:string};
+type View={available:boolean;status:string;downstreamPublication?:Publication|null;sourceLabel?:string;acceptedCohortRows?:number;sourceRows?:number;rejectedRows?:number;missingZip5Rows?:number;stateRows?:number|null;observedAt?:string;sourceReleaseId?:string;receiptSha256?:string;reportingReleaseId?:string;reportingManifestSha256?:string;availableStates?:string[];total?:number;national50DcRows?:number;outside50DcOrUnresolvedRows?:number;records:Array<{state:string;zip5?:string|null;category?:string;credentialRows:number;percentOfCohort?:number|null;categoryWithinState?:number|null;stateShareOfCategory?:number|null}>};
 const categories=[['construction-contractor-registration','Contractor registration (separate cohort)'],['residential-building-contractor','Residential building contractor'],['residential-remodeler','Residential remodeler'],['residential-roofer','Residential roofer'],['manufactured-home-installer','Manufactured-home installer']];
 const categoryLabel=(value:string|undefined)=>categories.find(([key])=>key===value)?.[1]??value;
 const percent=(value:number|null|undefined)=>value===null||value===undefined?'—':`${value.toFixed(3)}%`;
@@ -20,7 +21,7 @@ export default function RetainedCredentials(){
     return()=>controller.abort();
   },[state,offset,revision,mode,category]);
   return <section className="retained-credentials" aria-labelledby="retained-credentials-title">
-    <div className="retained-heading"><div><h3 id="retained-credentials-title">Retained credential evidence</h3><p>Verified local records · not included in published national totals</p></div><button className="ghost-button" disabled={loading} onClick={()=>{resetView();setRevision(x=>x+1);}}>Recheck retained data</button></div>
+    <div className="retained-heading"><div><h3 id="retained-credentials-title">Retained credential evidence</h3><p>Credential rows, not unique businesses · downstream publication checked separately</p></div><button className="ghost-button" disabled={loading} onClick={()=>{resetView();setRevision(x=>x+1);}}>Recheck retained data</button></div>
     <div className="retained-controls">
       <label>Compare <select value={mode} onChange={event=>{resetView();setMode(event.target.value);setOffset(0);}}><option value="categories">Categories across states</option><option value="postal">Reported state / ZIP5 totals</option></select></label>
       <label>Reported address state <select value={state} onChange={event=>{resetView();setState(event.target.value);setOffset(0);}}><option value="">{mode==='categories'?'50 states + D.C.':'All reported states'}</option>{states.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
@@ -32,6 +33,13 @@ export default function RetainedCredentials(){
       {error&&<p role="alert">{error}</p>}
       {!loading&&!error&&view&&!view.available&&<p>{view.status==='not-enrolled'?'No retained credential source is enrolled.':'The enrolled source is not installed. Counts are unavailable, not zero.'}</p>}
       {!loading&&!error&&view?.available&&<>
+        <div className="credential-publication" role="status">{view.downstreamPublication?.included===true ? <>
+          <p><strong>Verified downstream publication:</strong> {count(view.downstreamPublication.credentialRows??undefined)} credential rows are included in the published national credential-reporting layer, separately from business and physical-site totals.</p>
+          <p>Publication proof is metadata-only: that proof does not replay raw sources or stage logs, or rehash credential artifact bytes. The separate retained-cohort reader verifies its own evidence. Use remains local-review-only; no public export or geographic assignment is authorized.</p>
+          <p>Production finished: {view.downstreamPublication.productionFinishedAt}. Registry: {view.downstreamPublication.registryReleaseId}. Coverage: {view.downstreamPublication.coverageReleaseId}.</p>
+        </> : <p><strong>Downstream publication: Unknown.</strong> {view.downstreamPublication?.status==='not-enrolled'?'No publication proof is enrolled.':view.downstreamPublication?.status==='evidence-unverified'?'Publication proof changed or could not be matched to this retained cohort.':'Publication evidence is unavailable or has not been checked.'} This does not establish that the cohort was excluded or that its count is zero.</p>}
+          <p>The original source receipt still records national reporting integration as false. That historical flag is unchanged by later downstream publication. Unique or active business counts, physical sites and national completeness remain unknown.</p>
+        </div>
         <p><strong>{view.sourceLabel}</strong> — {count(view.acceptedCohortRows)} accepted credential rows from {count(view.sourceRows)} source rows. {count(view.rejectedRows)} excluded; {count(view.missingZip5Rows)} accepted row(s) have no ZIP5.</p>
         <p>Observed <time dateTime={view.observedAt}>{view.observedAt}</time>. Publisher jurisdiction: MN. {state&&<>Reported {state} addresses: {count(view.stateRows??undefined)} credential rows.</>}</p>
         <p>{mode==='categories'?'Within-state % uses all accepted credential rows reporting that state. Category share % uses all accepted rows in that category reporting one of the 50 states or D.C. Filters do not shrink these denominators.':'Percentages use all accepted rows in this cohort—even when filtered.'} These are not shares of all U.S. businesses. Reported addresses are not verified operating locations. Registrations are not included.</p>

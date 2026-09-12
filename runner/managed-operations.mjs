@@ -14,6 +14,7 @@ import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTI
 import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./source-acquisition-gates.mjs";
 import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mjs";
 import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
+import { MN_CREDENTIAL_FLAT_FIELDS, MN_CREDENTIAL_FLAT_REQUIRED_FIELDS, validateMnCredentialFlatRequest, verifyMnCredentialFlatForOperation } from './mn-credential-flat-export.mjs';
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
 const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization"];
@@ -32,11 +33,12 @@ const cleanError = (error) => {
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: PRIVATE_EVIDENCE.includes(record.kind) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
-  result: ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
+  artifacts: PRIVATE_EVIDENCE.includes(record.kind) || record.kind==='credential-export'&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
+  result: record.kind==='credential-export' ? publicCredentialResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
     ? { ...(record.result ?? {}), [record.kind === "source-acquisition" ? "snapshotReady" : "normalizationReady"]: false, inspectionRequired: true } : record.result ?? {},
 });
-async function hashFile(file) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file)) { bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
+function publicCredentialResult(record){const result={...(record.result??{})};delete result.descriptor;if(['FAILED','CANCELLED','UNKNOWN'].includes(record.status)){result.artifactIntegrityVerified=false;result.inspectionRequired=true;}return result;}
+async function hashFile(file,signal) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file,{signal})) { signal?.throwIfAborted();bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
 function processPresence(pid) {
   if (!Number.isInteger(pid) || pid < 1) return "unknown";
@@ -70,6 +72,7 @@ export class ManagedOperations {
   constructor(options = {}) {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
     this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
+    this.credentialVerifier = options.credentialVerifier ?? verifyMnCredentialFlatForOperation;
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
@@ -83,7 +86,7 @@ export class ManagedOperations {
       if (!entry.isDirectory() || !safeId(entry.name)) continue;
       try {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
-        if (record.id !== entry.name || !["collection", "export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
+        if (record.id !== entry.name || !["collection", "export", "credential-export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
           const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
@@ -100,7 +103,8 @@ export class ManagedOperations {
       boundedSourceCollections: [{ sourceId: "ok-childcare-retained-73102", state: "OK", industry: "childcare", zip5: "73102",
         endpoint: "/api/data-operations/ok-childcare-collections", scope: "one-center-only-public-search", requestCount: 3,
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
-      export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES } };
+      export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
+      credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'} };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async startCollection(input = {}) {
@@ -260,7 +264,14 @@ export class ManagedOperations {
   }
   async startExport(input = {}) {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
-    try { this.#only(input, ["categories", "states", "fields", "format", "policyMode", "sourceIds", "outputPrefix"]); const args = this.#exportArgs(input); const parsed = validate(() => parseArguments(args)); return await this.#start("export", { args, outputPrefix: parsed.outputPrefix ?? "export" }); }
+    try {
+      if(Object.hasOwn(input??{},'exportType')) {
+        this.#only(input,['exportType','states','fields','format','policyMode']);
+        if(input.exportType!=='mn-construction-credentials')throw invalid('Unsupported export type.');
+        const selected=validate(()=>validateMnCredentialFlatRequest({selection:'config/mn-credential-registry-selection.json',policyMode:input.policyMode,format:input.format,fields:input.fields,states:input.states}));
+        return await this.#start('credential-export',{fields:selected.fields,states:selected.states,format:selected.format,policyMode:selected.policyMode});
+      }
+      this.#only(input, ["categories", "states", "fields", "format", "policyMode", "sourceIds", "outputPrefix"]); const args = this.#exportArgs(input); const parsed = validate(() => parseArguments(args)); return await this.#start("export", { args, outputPrefix: parsed.outputPrefix ?? "export" }); }
     catch (error) { this.reserved = false; throw error; }
   }
   async #refreshUnknown() {
@@ -298,6 +309,10 @@ export class ManagedOperations {
   async artifact(id, filename) {
     await this.ready; const record = this.operations.get(id); if (!record || !FINAL.has(record.status) || !safeId(filename) || filename.includes("..")) return null;
     if (PRIVATE_EVIDENCE.includes(record.kind)) return null;
+    if(record.kind==='credential-export') {
+      if(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true)return null;
+      try {await this.#verifyCredentialExport(record,record.result.descriptor);} catch {record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Credential artifact could not be independently verified.');}
+    }
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
     if (!contained(await realpath(this.root), base) || !contained(base, await realpath(file))) return null;
@@ -347,6 +362,7 @@ export class ManagedOperations {
       controller.signal.throwIfAborted();
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
+      else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -373,8 +389,14 @@ export class ManagedOperations {
       }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
-      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: record.kind !== "export" ? COLLECTION_SUPERVISOR_CANCEL_GRACE_MS : EXPORT_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if (PRIVATE_EVIDENCE.includes(record.kind)) {
+      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: ['export','credential-export'].includes(record.kind) ? EXPORT_CANCEL_GRACE_MS : COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
+      if(record.kind==='credential-export') {
+        if(controller.signal.aborted||execution?.code!==0)throw new Error('Credential export did not complete cleanly.');
+        if(typeof execution.stdout!=='string'||execution.stdout.length>65536)throw new Error('Credential export descriptor unavailable.');
+        const parsed=JSON.parse(execution.stdout);await this.#verifyCredentialExport(record,parsed,controller.signal);
+        controller.signal.throwIfAborted();record.status='SUCCEEDED';
+      }
+      else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)
           : record.kind === "source-acquisition" ? record.details.sourceId === "ok-childcare-retained-73102"
             ? await this.#verifyOkRetainedCollection(record, execution?.stdout) : await this.#verifyOvertureAcquisition(record, execution?.stdout)
@@ -415,6 +437,7 @@ export class ManagedOperations {
     }
     if (record.kind === "source-acquisition" && record.status !== "SUCCEEDED") record.result.snapshotReady = false;
     if (record.kind === "source-normalization" && record.status !== "SUCCEEDED") record.result.normalizationReady = false;
+    if(record.kind==='credential-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={recordUnit:'publisher-business-credential-row',credentialRowsWritten:null,artifactIntegrityVerified:false,inspectionRequired:true,policyMode:'local-review-only',cancellationRequested:controller.signal.aborted};record.error='Credential export did not finish with verified output. Preserve its operation directory for inspection; no automatic retry.';}
     record.finishedAt = this.now(); delete record.owner; await this.#persist(record);
   }
   async #discover(record, directory) {
@@ -425,6 +448,22 @@ export class ManagedOperations {
     const declared = [...manifest.artifacts, { path: "manifest.json" }]; const artifacts = [];
     for (const item of declared) { if (!safeId(item.path) || item.path.includes("..")) throw new Error("Export manifest contains an invalid artifact path."); const file = path.resolve(exportDirectory, item.path); if (!contained(await realpath(exportDirectory), await realpath(file))) throw new Error("Export artifact escapes its release directory."); const actual = await hashFile(file); if (item.path !== "manifest.json" && (!Number.isSafeInteger(item.bytes) || !/^[a-f0-9]{64}$/.test(item.sha256) || actual.sha256 !== item.sha256 || actual.bytes !== item.bytes)) throw new Error("Export artifact integrity check failed."); artifacts.push({ name: item.path, relativePath: relativeToApp(file).slice(relativeToApp(directory).length + 1), ...actual }); }
     record.artifacts = artifacts; record.result = { rowsWritten: (JSON.parse(await readFile(path.join(exportDirectory, "summary.json"), "utf8"))).counts.rows_written, policyMode: manifest.policy_mode, localReviewOnly: manifest.policy_mode === "local-review" };
+  }
+  async #verifyCredentialExport(record,descriptor,signal) {
+    signal?.throwIfAborted();
+    if(!descriptor||!isDeepStrictEqual(Object.keys(descriptor).sort(),'manifest sha256 execution_mode source_credential_rows filtered_out_credential_rows credential_rows_written export_policy cancellation_after_publication'.split(' ').sort())||descriptor.execution_mode!=='verified-retained-input'||descriptor.cancellation_after_publication!==false||descriptor.export_policy!=='local-review-only')throw new Error('Credential export proof rejected.');
+    const directory=path.join(this.root,record.id),binding={output:path.join(directory,'output'),operationId:record.id};
+    const manifest=await this.credentialVerifier(descriptor.manifest,descriptor.sha256,binding,{signal});
+    signal?.throwIfAborted();
+    if(!isDeepStrictEqual(manifest.fields,record.details.fields)||!isDeepStrictEqual(manifest.reported_states,record.details.states)||manifest.format!==record.details.format
+      ||manifest.credential_rows_written!==descriptor.credential_rows_written||manifest.source_credential_rows!==descriptor.source_credential_rows||manifest.filtered_out_credential_rows!==descriptor.filtered_out_credential_rows)throw new Error('Credential export selection or counts changed.');
+    const release=path.dirname(descriptor.manifest),artifacts=[];
+    for(const item of [...manifest.artifacts,{path:'manifest.json',sha256:descriptor.sha256}]) {
+      signal?.throwIfAborted();const file=path.join(release,item.path),actual=await hashFile(file,signal);
+      if(actual.sha256!==item.sha256||(item.path!=='manifest.json'&&actual.bytes!==item.bytes))throw new Error('Credential export artifact changed.');
+      artifacts.push({name:item.path,relativePath:path.relative(directory,file),...actual});
+    }
+    signal?.throwIfAborted();record.artifacts=artifacts;record.result={credentialRowsWritten:manifest.credential_rows_written,recordUnit:'publisher-business-credential-row',policyMode:'local-review-only',localReviewOnly:true,artifactIntegrityVerified:true,inspectionRequired:false,descriptor};
   }
   async #verifyCohortSnapshot(record, stdout) {
     const reject = () => { throw new Error("Cohort snapshot child evidence rejected."); };
