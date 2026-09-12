@@ -1,5 +1,7 @@
 # Florida FDACS retail-food metadata prerequisite
 
+Latest evidence: the integrator subsequently ran and independently verified one native metadata preflight. [Native receipt and publisher-documentation follow-up](FL-FOOD-GIS-NATIVE-EVIDENCE-2026-09-12.md) records exact hashes and the remaining FE_TYPE mapping gap. Earlier unrun statements below describe the implementation-time boundary, not the latest dated result. No provider/count query followed.
+
 Version `fl-food-gis-preflight@1.0.0` is a standalone app-owned metadata service, not an establishment collector. It makes only three fixed requests: the official service, retail layer0, and that layer's iteminfo. No counts, record queries, feature-ID inventory, exports, permit account, payment or agreement are involved. Existing Florida corporate registry and earlier DBPR food-service source holds remain unchanged.
 
 ## Official source and scope
