@@ -38,6 +38,18 @@ The first seven already have substantial connector/retained-release work. They a
 
 ## Completion boundary
 
+### Evidence-based remaining work
+
+| Feeds | Verified stage | Next action / boundary |
+| --- | --- | --- |
+| PA, CT, MD, VT, CO, IA | Shared retained-input implementation and six real read-only plans verified; combined release check running | Publish only after integration verification; no fresh collection or normalization needed merely for reporting |
+| UT | Existing `state-ut-childcare-centers-retained` registration explicitly selects its fixed retained normalized release and app-owned PDF runtime | Preserve the existing no-download path; a new source edition needs deliberately reviewed pins |
+| ME | Standalone metadata preflight implemented and offline tested | Managed operation binding, receipt verification and cancellation integration developing independently; native evidence still absent |
+| NH | Six-row ZIP03755 sample retained; pure parameterized evaluator tested | Broader source-use scope, pagination/count semantics and app lifecycle remain prerequisites; syntax support does not authorize statewide collection |
+| OK | Approval-bound app dispatch implemented; first query rejected HTTP502 | Preserve the failed intent and four-row baseline. No retry, alternate approval identity or skip-and-continue without a separately reviewed recovery decision |
+
+The NH and OK limitations are source-specific, not reasons to stall independent feeds. Their detailed evidence remains in `docs/states/NH-PARAMETERIZED-QUERY-CONTRACT-2026-09-10.md` and `docs/states/OK-BATCH-DISPATCH-2026-09-10.md`. A terminal rejected query must not be counted as a successful acquired query.
+
 A feed is finished only when its app-owned process, validated inputs, source policy, provenance, failure/cancellation behavior, useful output and verification evidence are complete for its declared scope. A researched source, ready manifest or configured row alone is not a finished feed. Routine downloads remain Co*Tive's job after handoff.
 
 National ECHO/FSIS reporting alignment and Overture acquisition remain separate tracked work, not extra state feeds used to inflate this batch. See [national source alignment](NATIONAL-SOURCE-ALIGNMENT-2026-09-12.md).
