@@ -179,7 +179,8 @@ test("managed refresh schedule API creates disabled schedules without launching 
 test('CMS retained adoption API authenticates and rejects caller source/output overrides without dispatch',async t=>{
   const fixture=await makeFixture(t),route='/api/data-operations/source-adoptions';
   assert.equal((await request(fixture.base,route,{method:'POST',authenticated:false,body:{sourceId:'cms-hospital-general-information'}})).status,401);
-  for(const body of [{},{sourceId:'other'},{sourceId:'cms-hospital-general-information',url:'https://example.com'},{sourceId:'cms-hospital-general-information',output:'data/elsewhere'}])assert.equal((await request(fixture.base,route,{method:'POST',body})).status,400);
+  for(const body of [{},{sourceId:'other'},{sourceId:'cms-hospital-general-information',url:'https://example.com'},{sourceId:'cms-hospital-general-information',output:'data/elsewhere'},{sourceId:'cms-nursing-home-provider-information',manifestPath:'data/elsewhere'},{sourceId:'cms-nursing-home-provider-information',download:true}])assert.equal((await request(fixture.base,route,{method:'POST',body})).status,400);
+  const catalog=await (await request(fixture.base,'/api/data-operations/catalog')).json();assert.ok(catalog.retainedSourceAdoptions.some(s=>s.sourceId==='cms-nursing-home-provider-information'&&s.historicalAcquisitionStatus==='FAILED'&&s.downloads===false));
   assert.deepEqual(await (await request(fixture.base,'/api/data-operations/operations')).json(),[]);
 });
 

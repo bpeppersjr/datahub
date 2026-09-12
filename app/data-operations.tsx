@@ -118,6 +118,7 @@ export default function DataOperations() {
     </div>
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
+    {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />
     <section className="operations-history" aria-labelledby="operations-history-title"><h3 id="operations-history-title">Operation history</h3>

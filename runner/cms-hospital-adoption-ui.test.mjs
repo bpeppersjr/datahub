@@ -22,3 +22,11 @@ test('management integration posts only fixed source ID and adopts a separate op
   const code=await readFile(new URL('../app/data-operations.tsx',import.meta.url),'utf8');assert.match(code,/post<Operation>\('\/source-adoptions',\{sourceId:'cms-hospital-general-information'\}\)/);
   assert.doesNotMatch(source,/runnerJson|fetch\(|acquire-cms|selected.jsonl/);
 });
+
+test('nursing card preserves FAILED acquisition, recovery clocks and typed metadata-only JSON policy',()=>{
+ const nursing={...operation,result:{...operation.result,sourceId:'cms-nursing-home-provider-information',summary:{...operation.result.summary,directoryRows:14690,statesDcRows:14680,territoryRows:10,sourceRunId:'recovery-run',historicalAcquisitionStatus:'FAILED',failedSourceRunId:'failed-run',failedSourceReceiptSha256:'a'.repeat(64),acquisitionFailedAt:'2026-09-12T00:00:01Z',recoveryCreatedAt:'2026-09-12T00:00:02Z'}}};
+ const tree=exports.default({sourceId:'cms-nursing-home-provider-information',operations:[operation,nursing],disabled:false,onInspect(){}}),value=text(tree);
+ assert.match(value,/14,690 dated nursing-home directory rows/);assert.match(value,/14,680 rows in states\/DC/);assert.match(value,/10 territory rows/);assert.match(value,/original acquisition remains FAILED/);assert.match(value,/failed-run/);assert.match(value,/recovery-run/);assert.match(value,/Recovery created/);assert.match(value,/metadata-only internal receipt/);assert.match(value,/publisher-nursing-home-directory-row/);assert.equal(tree.props['aria-labelledby'],'cms-nursing-retained-title');assert.doesNotMatch(value,/2 dated hospital/);
+ const failed=exports.default({sourceId:'cms-nursing-home-provider-information',operations:[{...nursing,status:'FAILED'}],disabled:true,onInspect(){}});assert.doesNotMatch(text(failed),/14,690/);assert.match(text(failed),/Counts withheld/);
+});
+test('nursing managed button uses fixed source enrollment only',async()=>{const code=await readFile(new URL('../app/data-operations.tsx',import.meta.url),'utf8');assert.match(code,/post<Operation>\('\/source-adoptions',\{sourceId:'cms-nursing-home-provider-information'\}\)/);});

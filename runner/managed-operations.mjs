@@ -16,6 +16,8 @@ import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mj
 import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
 import { MN_CREDENTIAL_FLAT_FIELDS, MN_CREDENTIAL_FLAT_REQUIRED_FIELDS, validateMnCredentialFlatRequest, verifyMnCredentialFlatForOperation } from './mn-credential-flat-export.mjs';
 import {CMS_HOSPITAL_RETAINED_ADOPTION,CMS_ADOPTION_DEADLINE_MS,verifyCmsHospitalAdoption} from './cms-hospital-adoption.mjs';
+import {CMS_NURSING_HOME_RETAINED_ADOPTION,verifyCmsNursingHomeAdoption} from './cms-nursing-home-adoption.mjs';
+const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 
 // Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
 // child/verifier fails to settle within its bounded cleanup interval.
@@ -87,7 +89,7 @@ export class ManagedOperations {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
     this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
     this.credentialVerifier = options.credentialVerifier ?? verifyMnCredentialFlatForOperation;
-    this.adoptionVerifier = options.adoptionVerifier ?? verifyCmsHospitalAdoption;
+    this.adoptionVerifier = options.adoptionVerifier ?? null;
     this.adoptionTiming={deadlineMs:CMS_ADOPTION_DEADLINE_MS,childCleanupMs:35000,verifierCleanupMs:1000};
     if(options.adoptionTestTiming!==undefined){
       const timing=options.adoptionTestTiming;
@@ -126,7 +128,7 @@ export class ManagedOperations {
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
       credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
-      retainedSourceAdoptions:[{...CMS_HOSPITAL_RETAINED_ADOPTION}] };
+      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})) };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async startCollection(input = {}) {
@@ -142,7 +144,7 @@ export class ManagedOperations {
     catch (error) { this.reserved = false; throw error; }
   }
   async startSourceAdoption(input={}) {
-    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||Object.getOwnPropertyDescriptor(input,'sourceId')?.value!==CMS_HOSPITAL_RETAINED_ADOPTION.sourceId)throw invalid('Retained adoption requires only the enrolled CMS hospital sourceId.');
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||!ADOPTIONS.some(source=>source.sourceId===Object.getOwnPropertyDescriptor(input,'sourceId')?.value))throw invalid('Retained adoption requires only an enrolled CMS directory sourceId.');
     // Even injected executors cannot change the native fixed operation output root.
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Retained adoption requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
@@ -393,7 +395,7 @@ export class ManagedOperations {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
-      else if(record.kind==='source-adoption') {script='scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
+      else if(record.kind==='source-adoption') {script=record.details.sourceId===CMS_NURSING_HOME_RETAINED_ADOPTION.sourceId?'scripts/adopt-cms-nursing-homes.mjs':'scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -425,10 +427,11 @@ export class ManagedOperations {
       if(record.kind==='source-adoption') {
         if(controller.signal.aborted||execution?.code!==0)throw Error('Retained adoption child did not complete.');
         if(typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Retained adoption descriptor unavailable.');
-        const descriptor=JSON.parse(execution.stdout),receipt=await adoptionStage(this.adoptionVerifier(descriptor,{operationId:record.id},{signal:controller.signal}),controller.signal,this.adoptionTiming.verifierCleanupMs);
+        const source=ADOPTIONS.find(source=>source.sourceId===record.details.sourceId),nursing=source===CMS_NURSING_HOME_RETAINED_ADOPTION,verifier=this.adoptionVerifier??(nursing?verifyCmsNursingHomeAdoption:verifyCmsHospitalAdoption);
+        const descriptor=JSON.parse(execution.stdout),receipt=await adoptionStage(verifier(descriptor,{operationId:record.id},{signal:controller.signal}),controller.signal,this.adoptionTiming.verifierCleanupMs);
         controller.signal.throwIfAborted();
-        if(receipt.operationId!==record.id||receipt.executionMode!=='verified-retained-source'||receipt.startedAt<record.startedAt||receipt.finishedAt<receipt.startedAt||receipt.summary.sourceRunId!==CMS_HOSPITAL_RETAINED_ADOPTION.runId||receipt.summary.sourceManifestSha256!==CMS_HOSPITAL_RETAINED_ADOPTION.manifestSha256)throw Error('Retained adoption binding rejected.');
-        record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:true,inspectionRequired:false,adoptedAt:receipt.finishedAt,sourceReplayPerformedAtAdoption:true,sourceReplayPerformedThisRead:false,summary:receipt.summary,exportPolicy:'local-review-only',newAcquisitionPerformed:false,descriptor};
+        if(!source||receipt.operationId!==record.id||receipt.executionMode!=='verified-retained-source'||receipt.startedAt<record.startedAt||receipt.finishedAt<receipt.startedAt||receipt.summary.sourceRunId!==source.runId||receipt.summary.sourceManifestSha256!==source.manifestSha256||nursing&&(receipt.summary.historicalAcquisitionStatus!=='FAILED'||receipt.summary.failedSourceRunId!==source.failedSourceRunId))throw Error('Retained adoption binding rejected.');
+        record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:true,inspectionRequired:false,adoptedAt:receipt.finishedAt,sourceReplayPerformedAtAdoption:true,sourceReplayPerformedThisRead:false,summary:receipt.summary,exportPolicy:nursing?'internal':'local-review-only',...(nursing?{jsonOutputPolicy:'metadata-only-internal-no-source-download'}:{}),newAcquisitionPerformed:false,descriptor};
         record.artifacts=[];record.status='SUCCEEDED';
       }
       else if(record.kind==='credential-export') {

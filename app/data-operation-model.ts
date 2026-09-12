@@ -4,7 +4,7 @@ export type Operation = {
   result: { rowsWritten?: number; credentialRowsWritten?:number|null; recordUnit?:string; artifactIntegrityVerified?:boolean; policyMode?: string; sourceId?: string; receiptIntegrityVerified?: boolean;
     inspectionRequired?: boolean; snapshotReady?: boolean; normalizationReady?: boolean; normalizedPublished?: boolean;
     normalizedPlaces?: number; metadataReady?: boolean; runtimeReady?: boolean;
-    adoptedAt?:string; newAcquisitionPerformed?:boolean; summary?:{sourceRunId:string;sourceManifestSha256:string;sourceDates:{issued:string;modified:string;released:string};acquisitionStartedAt:string;acquisitionCompletedAt:string;directoryRows:number;statesDcRows:number;territoryRows:number;unknownStateRows:number;states:Record<string,number>;territories:Record<string,number>};
+    adoptedAt?:string; newAcquisitionPerformed?:boolean; summary?:{sourceRunId:string;sourceManifestSha256:string;sourceDates:{issued:string;modified:string;released:string};acquisitionStartedAt:string;acquisitionCompletedAt?:string;acquisitionFailedAt?:string;recoveryCreatedAt?:string;failedSourceRunId?:string;failedSourceReceiptSha256?:string;historicalAcquisitionStatus?:'FAILED';directoryRows:number;statesDcRows:number;territoryRows:number;unknownStateRows:number;states:Record<string,number>;territories:Record<string,number>};
     plan?: { taskCount?: number }; tasks?: Array<{ task_id: string; source_id?: string; state?: string; status: string }> } | null;
 };
 export function operationLabel(kind: string) {
