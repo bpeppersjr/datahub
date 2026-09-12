@@ -32,7 +32,7 @@ export async function loadCmsHospitalReportingInput(options={}){
  validateCmsHospitalRetainedSelection(await readJson(selectionPath,10000,signal,selectionMeter));const manifestPath=path.join(APP_ROOT,PIN.manifestPath);
  const manifest=await verifyCmsHospitalAcquisition(manifestPath,PIN.manifestSha256,{signal});check(manifest.executionMode==='native-fixed-fetch'&&manifest.sourceRows===5419&&same(manifest.artifacts.find(a=>a.path==='selected.jsonl'),ARTIFACT));
  const file=path.join(path.dirname(manifestPath),'selected.jsonl'),meter={},rows=[];for await(const row of readLines(file,ARTIFACT.bytes,signal,meter)){check(rows.length<5419);rows.push(row);}check(rows.length===5419&&meter.bytes===ARTIFACT.bytes&&meter.sha256===ARTIFACT.sha256);
- const result=snapshot(rows,{...PIN,selectedArtifact:ARTIFACT,selectionSha256:selectionMeter.sha256,sourceDates:manifest.sourceDates,observedAt:manifest.createdAt,sourceReplayThisRead:true},true);
+ const result=snapshot(rows,{...PIN,selectedArtifact:ARTIFACT,selectionSha256:selectionMeter.sha256,sourceDates:manifest.sourceDates,observedAt:manifest.createdAt,acquisitionCompletedAt:manifest.completedAt,sourceReplayThisRead:true},true);
  await verifyCmsHospitalAcquisition(manifestPath,PIN.manifestSha256,{signal});const finalMeter={};validateCmsHospitalRetainedSelection(await readJson(selectionPath,10000,signal,finalMeter));check(finalMeter.sha256===selectionMeter.sha256);signal?.throwIfAborted();return result;
 }
 

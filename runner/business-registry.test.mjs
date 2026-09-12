@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
+import {execFileSync} from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { TEMP_DIR } from './paths.mjs';
@@ -93,6 +94,27 @@ test('MN credential registry artifact leaves all legacy entity and matching coun
   const profiles = m => m.artifacts.filter(a => a.path.startsWith('resolution/location-profiles/')).map(a => [a.path, a.sha256]);
   assert.deepEqual(profiles(result.manifest), profiles(baseline.manifest));
   await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, 'manifest.json'));
+});
+
+test('CMS hospital optional admission builds and verifies on base 2.12 without Ohio and preserves every legacy count/profile', {skip:process.env.DATAHUB_TEST_CMS_RETAINED!=='1',timeout:180000}, async t=>{
+  const root=path.join(APP_ROOT,'data/tmp',`cms-national-${randomUUID()}`),originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>{throw Error('Network forbidden');};t.after(async()=>{globalThis.fetch=originalFetch;await rm(root,{recursive:true,force:true});});
+  const snapPointer=await writeFixtureSnapRelease(path.join(root,'snap'));
+  const baseline=await buildNationalBusinessRegistry({snapPointer,outputRoot:path.join(root,'baseline'),logger(){}});
+  await verifyNationalBusinessRegistry(path.join(baseline.releaseDirectory,'manifest.json'));
+  // Emulate copied fixture checkouts whose dependency roster intentionally has no CMS modules.
+  execFileSync(process.execPath,['--input-type=module','-e',`import {registerHooks} from 'node:module'; registerHooks({resolve(s,c,n){if(s.includes('cms-hospital-'))throw Error('CMS fixture dependency unavailable');return n(s,c);}});globalThis.fetch=()=>{throw Error('Network forbidden');};const {verifyNationalBusinessRegistry}=await import('./runner/business-registry.mjs');await verifyNationalBusinessRegistry(process.argv[1]);`,path.join(baseline.releaseDirectory,'manifest.json')],{cwd:APP_ROOT,windowsHide:true,timeout:30000});
+  const result=await buildNationalBusinessRegistry({snapPointer,outputRoot:path.join(root,'admitted'),cmsHospitalSelection:path.join(APP_ROOT,'config/cms-hospital-retained-selection.json'),logger(){}});
+  assert.equal(result.manifest.publisher.version,'2.12.0');assert.equal(result.manifest.oh_childcare_source,undefined);
+  const counts=structuredClone(result.manifest.coverage);assert.equal(counts.cms_hospital_directory_rows,5419);delete counts.cms_hospital_directory_rows;assert.deepEqual(counts,baseline.manifest.coverage);
+  const profiles=m=>m.artifacts.filter(a=>a.path.startsWith('resolution/location-profiles/')).map(a=>[a.path,a.sha256,a.record_count]);assert.deepEqual(profiles(result.manifest),profiles(baseline.manifest));
+  const manifestPath=path.join(result.releaseDirectory,'manifest.json');await verifyNationalBusinessRegistry(manifestPath);
+  const artifact=result.manifest.artifacts.find(a=>a.artifact_type==='cms-hospital-directory-reporting-jsonl');assert.equal(artifact.record_count,5419);assert.equal(artifact.sha256,'30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979');
+  const original=await readFile(manifestPath);const changed=structuredClone(result.manifest);delete changed.cms_hospital_directory_reporting;delete changed.coverage.cms_hospital_directory_rows;changed.dependencies=changed.dependencies.filter(d=>d.dataset_id!=='cms-hospital-general-information');changed.artifacts=changed.artifacts.filter(a=>a.artifact_type!=='cms-hospital-directory-reporting-jsonl');await writeFile(manifestPath,JSON.stringify(changed));await assert.rejects(verifyNationalBusinessRegistry(manifestPath));await writeFile(manifestPath,original);
+  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const proofPath=path.join(APP_ROOT,'data/tmp',`cms-registry-integration-proof-${randomUUID()}.json`);
+  await writeFile(proofPath,JSON.stringify({proofKind:'actual-registry-builder-and-verifier-over-retained-copy-with-synthetic-SNAP',productionBuild:false,sourceAcquisitionPerformed:false,networkDisabled:true,publisherVersion:result.manifest.publisher.version,ohioRequired:false,legacyCoverageUnchanged:true,baselineCoverageSha256:digest(baseline.manifest.coverage),admittedLegacyCoverageSha256:digest(counts),resolutionProfileArtifactCount:profiles(result.manifest).length,baselineProfileRosterSha256:digest(profiles(baseline.manifest)),admittedProfileRosterSha256:digest(profiles(result.manifest)),admittedRows:5419,admittedArtifactSha256:artifact.sha256,sourceManifestSha256:result.manifest.cms_hospital_directory_reporting.source.manifest_sha256,baselineImportWithoutCmsModulesVerified:true,orphanPhysicalArtifactRejected:true,fixtureOutputCleanedAfterTest:true},null,2)+'\n',{flag:'wx'});
+  console.info(`CMS registry aggregate proof: ${proofPath}`);
 });
 
 for (const mode of ["mixed", "all-missing", "with-tn", "with-tn-recovered"]) test(`Ohio registry 2.15 integrates retained app evidence: ${mode}`, async (t) => {
