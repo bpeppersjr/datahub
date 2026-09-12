@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { once } from "node:events";
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import {APP_ROOT} from './paths.mjs';
 import { createInterface } from "node:readline";
@@ -732,6 +732,12 @@ export async function buildNationalBusinessCoverageViews({
   const retainedChildcare = await retainedChildcareApi.verifyRetainedChildcareRegistryExtension(registry.manifest, registry.releaseDirectory);
   const mnCredentialApi = await import('./mn-credential-registry-input.mjs');
   const mnCredentials = await mnCredentialApi.verifyMnCredentialRegistryExtension(registry.manifest, registry.releaseDirectory);
+  const cmsReserved=Object.hasOwn(registry.manifest,'cms_hospital_directory_reporting')||Object.hasOwn(registry.manifest.coverage??{},'cms_hospital_directory_rows')
+    ||(registry.manifest.artifacts??[]).some(a=>a.artifact_type==='cms-hospital-directory-reporting-jsonl'||a.path==='reporting/cms-hospitals/directory.jsonl')
+    ||(registry.manifest.dependencies??[]).some(d=>d.dataset_id==='cms-hospital-general-information')
+    ||await lstat(path.join(registry.releaseDirectory,'reporting/cms-hospitals/directory.jsonl')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});
+  const cmsApi=cmsReserved?await import('./cms-hospital-coverage-extension.mjs'):null;
+  const cmsHospitals=cmsReserved?await (await import('./cms-hospital-registry-input.mjs')).verifyCmsHospitalRegistryExtension(registry.manifest,registry.releaseDirectory):null;
   if (ohSupported && !registry.manifest.oh_childcare_source) throw new Error("Unreviewed registry publisher version for coverage: Ohio app source required.");
   const ohApi = ohSupported ? await ohioCoverage() : null;
   const ohContext = ohSupported ? await ohApi.loadOhioCoverageContext(registry.manifest) : null;
@@ -1386,12 +1392,19 @@ export async function buildNationalBusinessCoverageViews({
 
   const createdAt = now().toISOString();
   if (mnCredentials && createdAt < registry.manifest.created_at) throw new Error('Coverage processing time precedes retained credential registry.');
+  if (cmsHospitals && createdAt < registry.manifest.created_at) throw new Error('Coverage processing time precedes CMS hospital registry.');
   const runId = randomUUID();
   const releaseId = `national-business-coverage-views-${releaseTimestamp(createdAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   const artifacts = [];
   let retainedChildcareDeclaration = null;
   let mnCredentialDeclaration = null;
+  let cmsHospitalDeclaration=null;
+  if(cmsHospitals){
+    cmsHospitalDeclaration={...cmsApi.applyCmsHospitalCoverage(cmsHospitals,{national:nationalViews,states:stateViews,counties:countyViews,zips:zipViews}),registry_manifest_path:path.relative(APP_ROOT,path.join(registry.releaseDirectory,'manifest.json')).replaceAll('\\','/'),registry_manifest_sha256:registry.manifestSha256};
+    const groups=cmsApi.cmsHospitalCoverageIndex(cmsHospitals.records).stateZips;
+    artifacts.push(await writeJsonLinesArtifact(stagingDirectory,cmsApi.CMS_HOSPITAL_COVERAGE_PATH,groups,{artifact_type:cmsApi.CMS_HOSPITAL_COVERAGE_TYPE,record_count:groups.length,export_policy:'local-review-only'}));
+  }
   if (mnCredentials) {
     const {applyMnCredentialCoverage} = await import('./mn-credential-coverage-extension.mjs');
     mnCredentialDeclaration = {...applyMnCredentialCoverage(mnCredentials, {national:nationalViews,states:stateViews,counties:countyViews,zips:zipViews}),
@@ -1410,14 +1423,14 @@ export async function buildNationalBusinessCoverageViews({
     ["views/sources.jsonl", sourceViews, "source-coverage-view-jsonl"],
     ["views/coverage-gaps.jsonl", gapViews, "coverage-gap-view-jsonl"],
   ]) artifacts.push(await writeJsonLinesArtifact(stagingDirectory, relativePath, records, { artifact_type: artifactType, record_count: records.length,
-    ...(mnCredentials ? {export_policy:'local-review-only'} : retainedChildcare ? {export_policy:'internal'} : {}) }));
+    ...(mnCredentials ? {export_policy:'local-review-only'} : retainedChildcare ? {export_policy:'internal'} : cmsHospitals ? {export_policy:'local-review-only'} : {}) }));
   artifacts.push(await writeArtifact(
     stagingDirectory,
     "derived/profile-geography-summary.json",
     json(profileSummary),
     { artifact_type: "profile-geography-summary-json", record_count: 1 },
   ));
-  if (tnSupported || ohSupported || retainedChildcare || mnCredentials) {
+  if (tnSupported || ohSupported || retainedChildcare || mnCredentials || cmsHospitals) {
     if (registry.manifestBuffer.length > 4_000_000) throw new Error("Registry declaration exceeds retained evidence limit.");
     artifacts.push(await writeArtifact(stagingDirectory, "evidence/registry-manifest.json", registry.manifestBuffer,
       { artifact_type: "retained-registry-manifest-json", record_count: 1, export_policy: "internal" }));
@@ -1653,8 +1666,9 @@ export async function buildNationalBusinessCoverageViews({
   };
   if (retainedChildcareDeclaration) manifest.retained_childcare_reporting = retainedChildcareDeclaration;
   if (mnCredentialDeclaration) manifest.mn_construction_credential_reporting = mnCredentialDeclaration;
+  if(cmsHospitalDeclaration)manifest.cms_hospital_directory_reporting=cmsHospitalDeclaration;
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  if (ohSupported || retainedChildcareDeclaration || mnCredentialDeclaration) await verifyNationalBusinessCoverageViewsRelease(path.join(stagingDirectory, "manifest.json"));
+  if (ohSupported || retainedChildcareDeclaration || mnCredentialDeclaration || cmsHospitalDeclaration) await verifyNationalBusinessCoverageViewsRelease(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await renameWithRetry(stagingDirectory, releaseDirectory);
@@ -1805,6 +1819,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     if (declared.coverage.reporting_location_evidence_without_zip !== ohContext.total.without_zip + (coverage.tn_childcare_reporting?.without_zip ?? 0)) throw new Error("Ohio combined ZIP availability differs.");
   } else if (Object.hasOwn(manifest, "oh_childcare_source") || Object.hasOwn(manifest, "tn_childcare_origin") || Object.keys(coverage).some(k => k.startsWith("oh_childcare_"))) throw new Error("Ohio accounting requires coverage 2.11.");
   function trackOhio(kind, row) {
+    if(!manifest.cms_hospital_directory_reporting&&Object.hasOwn(row,'cms_hospital_directory_reporting'))throw new Error('CMS hospital view requires an explicit extension declaration.');
     if (!manifest.mn_construction_credential_reporting && Object.hasOwn(row, 'mn_construction_credential_reporting')) throw new Error('Minnesota credential view requires an explicit extension declaration.');
     if (!manifest.retained_childcare_reporting && Object.hasOwn(row, 'retained_childcare_reporting')) throw new Error('Retained childcare view requires an explicit extension declaration.');
     if (ohSupported) ohViews[kind].push(kind === "zips" ? { zip_code: row.zip_code,
@@ -1821,7 +1836,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     || coverage.tn_childcare_without_county_assignment !== tnTotal.records - coverage.tn_childcare_coordinate_assigned)) throw new Error("TN county accounting is invalid.");
   const tnStateTotals = [], tnCountyTotals = [], tnNationalRows = [];
   let tnSourceCount = 0, tnZipCount = 0, tnMissingGapCount = 0, tnSourceDeclaration;
-  if (!tnSupported && !ohSupported && !manifest.retained_childcare_reporting && !manifest.mn_construction_credential_reporting && artifacts.has("retained-registry-manifest-json")) throw new Error("Retained registry declaration requires coverage 2.9 or an explicit retained reporting extension.");
+  if (!tnSupported && !ohSupported && !manifest.retained_childcare_reporting && !manifest.mn_construction_credential_reporting && !manifest.cms_hospital_directory_reporting && artifacts.has("retained-registry-manifest-json")) throw new Error("Retained registry declaration requires coverage 2.9 or an explicit retained reporting extension.");
   const reportingSupported = versionAtLeast(manifest.publisher.version, "2.8.0");
   const checkSplit = (row, total) => {
     if (!reportingSupported) return;
@@ -2075,6 +2090,10 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
     await verifyRetainedChildcareCoverageExtension(manifest, releaseDirectory);
     const {verifyMnCredentialCoverageExtension} = await import('./mn-credential-coverage-extension.mjs');
     await verifyMnCredentialCoverageExtension(manifest, releaseDirectory);
+    let cmsReserved=Object.hasOwn(manifest,'cms_hospital_directory_reporting')||(manifest.artifacts??[]).some(a=>a.artifact_type==='cms-hospital-state-zip-reporting-jsonl'||a.path==='reporting/cms-hospitals/state-zips.jsonl')||await lstat(path.join(releaseDirectory,'reporting/cms-hospitals/state-zips.jsonl')).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;});
+    const retained=(manifest.artifacts??[]).filter(a=>a.artifact_type==='retained-registry-manifest-json');
+    if(retained.length){if(retained.length!==1||retained[0].path!=='evidence/registry-manifest.json'||retained[0].bytes>4000000)throw new Error('Retained registry evidence contract rejected.');const bytes=await readFile(path.join(releaseDirectory,retained[0].path));if(bytes.length!==retained[0].bytes||sha256(bytes)!==retained[0].sha256)throw new Error('Retained registry evidence changed.');const source=JSON.parse(bytes);cmsReserved||=Object.hasOwn(source,'cms_hospital_directory_reporting');}
+    if(cmsReserved)await (await import('./cms-hospital-coverage-extension.mjs')).verifyCmsHospitalCoverageExtension(manifest,releaseDirectory);
   }
   return {
     dataset_id: manifest.dataset_id,
