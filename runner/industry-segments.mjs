@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { acquireIndustrySourceLocks } from "./industry-source-locks.mjs";
+import { normalizeRetainedInputs, retainedSourceArguments, verifyRetainedTask } from './industry-retained-inputs.mjs';
 import { COLLECTION_CHILD_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 
 export const DEFAULT_CONFIG = path.join(APP_ROOT, "config", "industry-segments.json");
@@ -74,7 +75,7 @@ export function validateIndustryConfig(config, source = "config") {
   return true;
 }
 
-export function buildIndustryPlan(config, { industries, states, sourceIds, runId = randomUUID() } = {}) {
+export function buildIndustryPlan(config, { industries, states, sourceIds, retainedInputs, runId = randomUUID() } = {}) {
   validateIndustryConfig(config);
   const requestedIndustries = asArray(industries).flatMap((v) => String(v).split(",")).filter(Boolean);
   const requestedStates = asArray(states).flatMap((v) => String(v).split(",")).filter(Boolean);
@@ -88,6 +89,7 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, runId
     for (const id of sourceIds) if (!industrySources.includes(id) || !(config.sources[id].scope === "national" || config.sources[id].states.some(state => selectedStates.includes(state)))) throw new Error(`Source is not applicable to selected industries and states: ${id}`);
   }
   const ids = sourceIds === undefined ? industrySources : [...sourceIds].sort();
+  const retained = normalizeRetainedInputs(retainedInputs, sourceIds, config);
   const tasks = [];
   const warnings = [];
   for (const sourceId of ids) {
@@ -107,6 +109,7 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, runId
     }
   }
   const gaps = [];
+  if (retained) for (const task of tasks) if (retained[task.sourceId]) task.retainedInput = retained[task.sourceId];
   for (const industry of selectedIndustries) for (const state of selectedStates) {
     const hasStateSource = config.industries[industry].some((id) => config.sources[id].scope === "state" && config.sources[id].states.includes(state)
       && (!config.sources[id].manual_selection_required || sourceIds?.includes(id)));
@@ -118,7 +121,7 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, runId
         : "no configured state-scoped source; national sources are not state-filtered" });
     }
   }
-  return { runId, industries: selectedIndustries, states: selectedStates, ...(sourceIds === undefined ? {} : { sourceIds: ids }), taskCount: tasks.length, tasks, gaps, warnings, maxConcurrency: Math.min(config.max_concurrency, MAX_CONCURRENCY) };
+  return { runId, industries: selectedIndustries, states: selectedStates, ...(sourceIds === undefined ? {} : { sourceIds: ids }), ...(retained === undefined ? {} : { retainedInputs: retained }), taskCount: tasks.length, tasks, gaps, warnings, maxConcurrency: Math.min(config.max_concurrency, MAX_CONCURRENCY) };
 }
 
 async function checkPrerequisites(task) {
@@ -132,7 +135,7 @@ function executeChild(task, { runDir, runId, outputRoot, signal }) {
   return new Promise((resolve) => {
     const logPath = path.join(runDir, "logs", `${task.id.replaceAll(":", "-")}.log`);
     const outputPath = path.join(outputRoot, task.id.replaceAll(":", "-"));
-    const args = [task.script, "--output", outputPath];
+    const args = [task.script, "--output", outputPath, ...retainedSourceArguments(task)];
     const child = spawn(process.execPath, args, {
       cwd: APP_ROOT,
       env: { ...process.env, INDUSTRY_SEGMENT_RUN_ID: runId },
@@ -176,7 +179,7 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
     try { await access(assertInsideApp(path.resolve(APP_ROOT, source.script))); } catch { throw new Error(`${id}.script does not exist: ${source.script}`); }
   }
   const runDir = assertInsideApp(path.resolve(APP_ROOT, outputRoot));
-  const canonical = buildIndustryPlan(config, { industries: plan.industries, states: plan.states, sourceIds: plan.sourceIds, runId: plan.runId });
+  const canonical = buildIndustryPlan(config, { industries: plan.industries, states: plan.states, sourceIds: plan.sourceIds, retainedInputs: plan.retainedInputs, runId: plan.runId });
   if (JSON.stringify(canonical.tasks) !== JSON.stringify(plan.tasks) || JSON.stringify(canonical.gaps) !== JSON.stringify(plan.gaps) || JSON.stringify(canonical.warnings) !== JSON.stringify(plan.warnings) || canonical.maxConcurrency !== plan.maxConcurrency) throw new Error("Plan does not match the validated configuration.");
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(plan.runId)) throw new Error("runId must be a short filesystem-safe identifier.");
   await mkdir(path.dirname(runDir), { recursive: true });
@@ -188,9 +191,17 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
   let receiptWrite = Promise.resolve();
   const persist = () => { receiptWrite = receiptWrite.catch(() => {}).then(async () => { const temp = `${receiptPath}.tmp`; await writeFile(temp, JSON.stringify(receipt, null, 2)); const { rename } = await import("node:fs/promises"); await rename(temp, receiptPath); }); return receiptWrite; };
   await persist();
+  if (canonical.retainedInputs) { receipt.plan.retainedInputs = canonical.retainedInputs; await persist(); }
   if (plan.tasks.length === 0) { receipt.status = "failed"; receipt.error = "Plan contains no executable tasks."; receipt.finished_at = new Date().toISOString(); await persist(); return { receiptPath, receipt }; }
   const prerequisiteErrors = [];
-  for (const task of plan.tasks) { try { await checkPrerequisites(task); } catch (error) { prerequisiteErrors.push({ task, error }); } }
+  for (const task of plan.tasks) { try { await checkPrerequisites(task); await verifyRetainedTask(task, signal); } catch (error) { prerequisiteErrors.push({ task, error }); } }
+  // Cancellation during retained replay is not a broken prerequisite. No source
+  // reservations or children have been created at this boundary.
+  if (signal.aborted) {
+    receipt.status = "cancelled"; receipt.finished_at = new Date().toISOString();
+    receipt.tasks = plan.tasks.map((task) => ({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: "cancelled" }));
+    await persist(); return { receiptPath, receipt };
+  }
   if (prerequisiteErrors.length) {
     for (const task of plan.tasks) { const failure = prerequisiteErrors.find((item) => item.task.id === task.id); receipt.tasks.push({ task_id: task.id, source_id: task.sourceId, state: task.state ?? null, status: failure ? "failed" : "cancelled", error: failure?.error.message }); }
     receipt.status = "failed"; receipt.finished_at = new Date().toISOString(); await persist(); return { receiptPath, receipt };
@@ -219,7 +230,9 @@ export async function runIndustryPlan(config, plan, { executor = executeChild, o
       receipt.tasks.push(record); await persist();
       if (signal?.aborted) { record.status = "cancelled"; record.finished_at = new Date().toISOString(); await persist(); break; }
       try {
+        if (task.retainedInput) { record.retained_input = task.retainedInput; record.retained_verification = await verifyRetainedTask(task, signal); await persist(); }
         const result = await executor(task, { runDir, runId: plan.runId, outputRoot: runDir, signal });
+        await verifyRetainedTask(task, signal);
         const succeeded = result?.code === 0 || result?.ok === true || result?.status === "succeeded";
         Object.assign(record, result);
         record.status = signal?.aborted ? "cancelled" : succeeded ? "succeeded" : "failed";
