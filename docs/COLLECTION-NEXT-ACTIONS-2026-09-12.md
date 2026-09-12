@@ -26,7 +26,7 @@ EPA ECHO's 1,517,826 accepted active regulated-facility records and FSIS's 7,237
 
 ## New independent Maine lead: licensed medical providers
 
-The integrator reviewed Maine's official [Provider Search Help](https://gateway.maine.gov/dhhs-apps/aspen/help.asp) today. It documents category/subtype selection, county/town selection, selecting all results, and spreadsheet output. This establishes a discovery lead, not a verified bulk interface or complete acquired dataset.
+The integrator reviewed Maine's official [Provider Search Help](https://gateway.maine.gov/dhhs-apps/aspen/help.asp) today. It documents category/subtype selection, county/town selection, selecting all results, and spreadsheet output. This establishes a discovery lead, not a verified bulk interface or complete acquired dataset. Subsequent ordinary-session and county/town form observations are recorded in the [Maine medical-provider contract note](states/ME-MEDICAL-PROVIDER-CONTRACT-2026-09-12.md); the observed redirect is an ordinary selection step, not an access denial.
 
 Start with ambulatory surgical centers as a bounded licensed-medical-provider scope. Before collection, a contract preflight must establish the ordinary request/session sequence, pagination and completeness behavior, spreadsheet schema, source identifier stability, address role, license/status meaning, and permitted use/retention/redistribution policy. County or town search filters must not be treated as independently verified address geography. If the ordinary flow is gated or its semantics remain unclear, report the constraint rather than infer an alternate endpoint or complete coverage.
 
