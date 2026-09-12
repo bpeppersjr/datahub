@@ -23,7 +23,7 @@ function fixture(request, initialProps = {}) {
   runInNewContext(`${code}\nexports.TestNames = BusinessNames; exports.TestSummary = EntitySummary;`, {
     exports, URLSearchParams,
     window: { setTimeout(callback, delay) { const id = ++nextTimer; timers.set(id, { callback, delay }); return id; }, clearTimeout(id) { timers.delete(id); } },
-    require: name => name === './dataset-representation' ? { default: function DatasetRepresentation() {} } : name === './retained-county-panel' ? { default: function RetainedCountyPanel() {} } : name === './retained-childcare-panel' ? { default: function RetainedChildcarePanel() {} } : name === './runner-client' ? { runnerJson: request } : name === 'react' ? {
+    require: name => name === './credential-heatmap' ? { default: function CredentialHeatmap() {} } : name === './dataset-representation' ? { default: function DatasetRepresentation() {} } : name === './retained-county-panel' ? { default: function RetainedCountyPanel() {} } : name === './retained-childcare-panel' ? { default: function RetainedChildcarePanel() {} } : name === './runner-client' ? { runnerJson: request } : name === 'react' ? {
       useState(value) { const i = index++; if (!(i in values)) values[i] = value; return [values[i], next => { values[i] = typeof next === 'function' ? next(values[i]) : next; writes++; }]; },
       useEffect(effect, deps) { const i = effectIndex++, previous = effects[i]; if (!previous || deps.some((value, n) => !Object.is(value, previous.deps[n]))) { previous?.cleanup?.(); effects[i] = { deps, pending: effect }; } },
     } : require(name),

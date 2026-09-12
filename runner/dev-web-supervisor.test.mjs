@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, cp, copyFile, symlink, realpath, readFile, writeFile } from "node:fs/promises";
 import net from "node:net";
-import { TEMP_DIR } from './paths.mjs';
+import { APP_ROOT, TEMP_DIR } from './paths.mjs';
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
@@ -40,15 +40,29 @@ async function waitUntil(predicate, timeout = 20_000) {
   throw new Error("Timed out waiting for the development supervisor state.");
 }
 
-test("development supervisor closes both direct child services", async (context) => {
+async function isolatedApp(prefix) {
   await mkdir(TEMP_DIR, { recursive: true });
-  const runtimeRoot = await mkdtemp(path.join(TEMP_DIR, "datahub-dev-supervisor-"));
-  context.after(() => rm(runtimeRoot, { recursive: true, force: true }));
+  const root=await mkdtemp(path.join(TEMP_DIR,prefix));
+  // Vinext owns a PID-based lock in its CWD. Exercise real services without
+  // colliding with the user's development lock or any other test's stale PID.
+  for(const directory of ['app','runner','scripts','config','docs','.openai','public'])await cp(path.join(APP_ROOT,directory),path.join(root,directory),{recursive:true});
+  for(const file of ['package.json','tsconfig.json','next-env.d.ts','next.config.ts'])await copyFile(path.join(APP_ROOT,file),path.join(root,file));
+  const dependencies=await realpath(path.join(APP_ROOT,'node_modules'));
+  assert.equal(dependencies,path.join(APP_ROOT,'node_modules'));
+  await symlink(dependencies,path.join(root,'node_modules'),process.platform==='win32'?'junction':'dir');
+  const config=await readFile(path.join(APP_ROOT,'vite.config.ts'),'utf8');
+  assert.ok(config.includes('  return {'));
+  await writeFile(path.join(root,'vite.config.ts'),config.replace('  return {',"  return {\n    cacheDir: '.vinext/test-vite-cache',"));
+  return root;
+}
+
+test("development supervisor closes both direct child services", async (context) => {
+  const runtimeRoot = await isolatedApp("datahub-dev-supervisor-");
   const runnerPort = await unusedPort();
   let uiPort = await unusedPort();
   while (uiPort === runnerPort) uiPort = await unusedPort();
-  const child = spawn(process.execPath, [path.resolve("scripts/start-dev-web.mjs")], {
-    cwd: path.resolve("."),
+  const child = spawn(process.execPath, [path.join(runtimeRoot,"scripts/start-dev-web.mjs")], {
+    cwd: runtimeRoot,
     env: {
       ...process.env,
       DATAHUB_ROOT: runtimeRoot,
@@ -65,6 +79,7 @@ test("development supervisor closes both direct child services", async (context)
     if (child.exitCode === null) child.kill("SIGKILL");
     if (child.exitCode === null) await once(child, "exit");
   });
+  context.after(() => rm(runtimeRoot, { recursive: true, force: true }));
 
   // This is a lifecycle test, not a cold-build latency benchmark. The full
   // concurrent suite can exceed 20 seconds compiling the real UI; give startup
@@ -83,8 +98,7 @@ test("development supervisor closes both direct child services", async (context)
 });
 
 test("development supervisor stops the peer service when one child fails", async (context) => {
-  await mkdir(TEMP_DIR, { recursive: true });
-  const runtimeRoot = await mkdtemp(path.join(TEMP_DIR, "datahub-dev-supervisor-failure-"));
+  const runtimeRoot = await isolatedApp("datahub-dev-supervisor-failure-");
   context.after(() => rm(runtimeRoot, { recursive: true, force: true }));
   const runnerPort = await unusedPort();
   let uiPort = await unusedPort();
@@ -94,8 +108,8 @@ test("development supervisor stops the peer service when one child fails", async
   await once(blocker, "listening");
   context.after(() => new Promise((resolve) => blocker.close(resolve)));
 
-  const child = spawn(process.execPath, [path.resolve("scripts/start-dev-web.mjs")], {
-    cwd: path.resolve("."),
+  const child = spawn(process.execPath, [path.join(runtimeRoot,"scripts/start-dev-web.mjs")], {
+    cwd: runtimeRoot,
     env: {
       ...process.env,
       DATAHUB_ROOT: runtimeRoot,
