@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "national-reporting-catalog@1.0.0",
+  "denominatorVersion": "national-reporting-eight@1.0.0",
+  "denominatorScope": "Eight enrolled national reporting datasets; not all businesses",
+  "predecessorScope": "Six configured nationwide collection datasets",
+  "exportPolicy": "local-review-only",
+  "allBusinessesPercent": null,
+  "sources": [
+    {"id":"national-snap-retailers","profileId":"usda-snap-current-retailers","sourceKey":"usda_snap_retailers","label":"USDA SNAP","group":"retail-consumer","scope":"SNAP retailer source membership, not all retailers"},
+    {"id":"national-nppes-organizations","profileId":"cms-nppes-monthly-v2","sourceKey":"cms_nppes_organizations","label":"CMS NPPES","group":"health-care","scope":"Organization NPI records, not all health businesses or verified sites"},
+    {"id":"national-fdic-bankfind","profileId":"fdic-bankfind-current-structure","sourceKey":"fdic_bankfind","label":"FDIC BankFind","group":"financial-services","scope":"FDIC bank and branch source records, not all financial businesses"},
+    {"id":"national-ncua-quarterly","profileId":"ncua-final-quarterly-call-report","sourceKey":"ncua_quarterly_credit_unions","label":"NCUA","group":"financial-services","scope":"Quarterly credit-union source records, not all financial businesses"},
+    {"id":"national-fmcsa-census","profileId":"fmcsa-company-census-active-us-principal-office","sourceKey":"fmcsa_active_us_company_census","label":"FMCSA","group":"transportation","scope":"Source-active carrier principal-office records, not verified operating premises"},
+    {"id":"national-irs-eo-bmf","profileId":null,"sourceKey":"irs_eo_bmf_organizations","label":"IRS EO BMF","group":"tax-exempt-organizations","scope":"Reported organization filing addresses, not verified physical operating sites"},
+    {"id":"national-epa-echo","profileId":"epa-echo-exporter-active-facility","sourceKey":"epa_echo_active_facilities","label":"EPA ECHO","group":"cross-industry-regulated-facilities","scope":"Associated environmental-program activity, not verified business operations or usable address geocodes"},
+    {"id":"national-usda-fsis","profileId":"usda-fsis-active-mpi-directory","sourceKey":"fsis_active_mpi_establishments","label":"USDA FSIS","group":"regulated-meat-poultry-egg-establishments","scope":"Dated active-directory membership, not all food businesses or verified current operations; DUNS excluded"}
+  ]
+}
