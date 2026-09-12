@@ -9,6 +9,8 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { parse } from "csv-parse";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
+import { validateIrsStateSummary } from './irs-eo-state-summary.mjs';
+import { isDeepStrictEqual } from 'node:util';
 
 export const IRS_EO_BMF_SCHEMA_VERSION = "1.0.0";
 export const IRS_EO_BMF_TRANSFORMATION_VERSION = "irs-eo-bmf@1.0.1";
@@ -772,6 +774,7 @@ export async function verifyIrsEoBmf(manifestPath) {
   if ((manifest.quality_gates?.actual_quarantine_rate ?? 1) > (manifest.quality_gates?.maximum_quarantine_rate ?? 0)) failures.push({ path: "manifest.json", reason: "published release exceeds quarantine quality gate" });
   const eins = new Set();
   const countsByZip = new Map();
+  const countsByState = new Map();
   let accepted = 0;
   for (const artifact of normalizedArtifacts) {
     try {
@@ -781,6 +784,7 @@ export async function verifyIrsEoBmf(manifestPath) {
         if (!/^\d{9}$/.test(ein ?? "") || eins.has(ein)) throw new Error(`duplicate or missing EIN ${ein}`);
         if (ein[0] !== partition || record.entity_candidates?.organization_id !== `organization:irs_ein_${ein}`) throw new Error(`invalid EIN partition or organization identity for ${ein}`);
         if (!/^\d{5}$/.test(record.reported_filing_address?.zip_code ?? "")) throw new Error(`invalid filing ZIP for ${ein}`);
+        if (!US_STATE_AND_TERRITORY_CODES.has(record.reported_filing_address?.state)||record.reported_filing_address.address_scope!=='irs-filing-or-headquarters-address-not-verified-physical-operating-site') throw new Error('invalid reported filing-address state or role');
         if (record.source_status?.value !== "listed-in-current-irs-eo-bmf-extract-as-of-source-posting" || record.source_status.source_posting_date !== manifest.source_posting_date) throw new Error(`invalid source status for ${ein}`);
         if (record.provenance?.source_release_id !== manifest.source_release_id || record.provenance?.policy_id !== "irs-eo-bmf" || record.export_policy !== "public") throw new Error(`invalid provenance for ${ein}`);
         if (record.entity_candidates?.physical_site_id || record.entity_candidates?.establishment_id) throw new Error(`physical entity inferred for ${ein}`);
@@ -788,6 +792,7 @@ export async function verifyIrsEoBmf(manifestPath) {
         eins.add(ein);
         const zipCode = record.reported_filing_address.zip_code;
         countsByZip.set(zipCode, (countsByZip.get(zipCode) ?? 0) + 1);
+        const state=record.reported_filing_address.state;countsByState.set(state,(countsByState.get(state)??0)+1);
       });
       if (count !== artifact.record_count) failures.push({ path: artifact.path, reason: "actual normalized line count mismatch" });
       accepted += count;
@@ -796,6 +801,13 @@ export async function verifyIrsEoBmf(manifestPath) {
     }
   }
   if (accepted !== manifest.coverage?.accepted_current_exempt_organizations) failures.push({ path: "manifest.json", reason: "accepted organization count does not reconcile" });
+  try {
+    const summaries=manifest.artifacts.filter(item=>item.artifact_type==='irs-eo-bmf-source-summary'||item.path==='derived/source-summary.json');
+    if(summaries.length!==1||summaries[0].path!=='derived/source-summary.json'||summaries[0].artifact_type!=='irs-eo-bmf-source-summary')throw Error('source summary roster differs');
+    const summary=JSON.parse(await readFile(path.join(releaseDirectory,summaries[0].path),'utf8'));
+    const states=validateIrsStateSummary(summary,manifest.coverage);
+    if(!isDeepStrictEqual(states,Object.fromEntries(countsByState)))throw Error('reported filing-address state counts do not reconcile');
+  } catch(error) { failures.push({path:'derived/source-summary.json',reason:error.message}); }
   if (quarantineArtifacts.length === 1) {
     try {
       const count = await forEachGzipRecord(path.join(releaseDirectory, quarantineArtifacts[0].path), () => {});

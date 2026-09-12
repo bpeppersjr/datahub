@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
-import { createGunzip } from "node:zlib";
+import { createGunzip, gzipSync } from "node:zlib";
 import {
   buildIrsEoBmf,
   discoverIrsEoBmf,
@@ -205,6 +205,21 @@ test("builds and independently verifies a governed IRS EO BMF organization relea
   const sourceArtifacts = result.manifest.artifacts.filter((artifact) => artifact.artifact_type === "irs-eo-bmf-source-region-csv");
   assert.equal(sourceArtifacts.length, 4);
   assert.equal(sourceArtifacts.every((artifact) => artifact.export_policy === "internal"), true);
+  const manifestPath=path.join(result.releaseDirectory,'manifest.json'),original=structuredClone(result.manifest);
+  const summaryArtifact=original.artifacts.find(a=>a.artifact_type==='irs-eo-bmf-source-summary'),summaryPath=path.join(result.releaseDirectory,summaryArtifact.path);
+  const summary=JSON.parse(await readFile(summaryPath,'utf8'));
+  for(const mutate of [s=>{s.states_and_territories.IL--;s.states_and_territories.NY++;},s=>{s.accepted_organizations++;},s=>{s.states_and_territories.ZZ=s.states_and_territories.IL;delete s.states_and_territories.IL;}]){
+    const changed=structuredClone(summary);mutate(changed);const bytes=Buffer.from(JSON.stringify(changed));await writeFile(summaryPath,bytes);
+    const m=structuredClone(original),a=m.artifacts.find(a=>a.artifact_type==='irs-eo-bmf-source-summary');a.bytes=bytes.length;a.sha256=sha256(bytes);await writeFile(manifestPath,JSON.stringify(m));
+    await assert.rejects(verifyIrsEoBmf(manifestPath));
+  }
+  await writeFile(summaryPath,`${JSON.stringify(summary)}\n`);await writeFile(manifestPath,JSON.stringify(original));
+  const partitionPath=path.join(result.releaseDirectory,partition.path),originalPartition=await readFile(partitionPath);
+  for(const change of [r=>r.reported_filing_address.state='ZZ',r=>r.reported_filing_address.address_scope='verified-physical-site']){
+    const changed=structuredClone(records);change(changed[0]);const bytes=gzipSync(`${changed.map(JSON.stringify).join('\n')}\n`),m=structuredClone(original),a=m.artifacts.find(a=>a.path===partition.path);
+    a.bytes=bytes.length;a.sha256=sha256(bytes);await writeFile(partitionPath,bytes);await writeFile(manifestPath,JSON.stringify(m));await assert.rejects(verifyIrsEoBmf(manifestPath));
+  }
+  await writeFile(partitionPath,originalPartition);await writeFile(manifestPath,JSON.stringify(original));await verifyIrsEoBmf(manifestPath);
 });
 
 test("blocks unpinned IRS EO BMF schema drift", async (t) => {

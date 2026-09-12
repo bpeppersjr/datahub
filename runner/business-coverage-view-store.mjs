@@ -4,6 +4,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
 import { datasetRepresentation } from './dataset-representation.mjs';
+import { readSelectedIrsStateSummary } from './irs-eo-state-summary.mjs';
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 import {
@@ -382,7 +383,10 @@ export function createBusinessCoverageViewStore({
       readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.states)),
       readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.sources)),
     ]);
-    return { available: true, releaseId: current.manifest.release_id, ...datasetRepresentation(plan, states, sources) };
+    let irsAddressEvidence;
+    try { irsAddressEvidence=await readSelectedIrsStateSummary({pointerPath,coverageManifest:current.manifest,sourceRow:sources.find(row=>row.source_key==='irs_eo_bmf_organizations')}); }
+    catch { irsAddressEvidence={status:'unavailable'}; }
+    return { available: true, releaseId: current.manifest.release_id, ...datasetRepresentation(plan, states, sources,irsAddressEvidence) };
   }
 
   return { getOverview, listDimension, getDatasetRepresentation };
