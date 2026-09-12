@@ -1,0 +1,14 @@
+{
+  "policy_id": "me-asc-preflight-internal@1.0.0",
+  "publisher": "Maine Department of Health and Human Services public provider search",
+  "origin": "https://gateway.maine.gov",
+  "scope": "One ordinary ambulatory-surgical-center category session through its advertised export; source-contract metadata only",
+  "allowed_use": "Internal minimized source-contract assessment for the local data hub",
+  "retention": "Only allowlisted field labels, counts, format and structural fingerprints, response byte/hash/status metadata; no provider values, contacts, HTML, response bodies, cookies, CSRF values or request bodies",
+  "redistribution": "Internal metadata only; no public provider export authorized",
+  "source_bulk_permission": "Unverified; public lookup/export availability is not an unrestricted bulk or redistribution license",
+  "accuracy": "Publisher accuracy/currentness disclaimer applies; physical premises, current operations and source completeness are not verified",
+  "help_url": "https://gateway.maine.gov/dhhs-apps/aspen/help.asp",
+  "disclaimer_url": "https://www.maine.gov/portal/policies/disclaimer.html",
+  "review": "docs/states/ME-MEDICAL-PROVIDER-CONTRACT-2026-09-12.md"
+}
