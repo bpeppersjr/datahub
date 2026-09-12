@@ -13,6 +13,8 @@ import { APP_ROOT, assertInsideApp, relativeToApp } from "../runner/paths.mjs";
 import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 import { validateChildcareGeographicEvidence } from "../runner/childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "../runner/tn-childcare-geographic-evidence.mjs";
+import { flatfileReportingCompatibility } from '../runner/business-flatfile-compatibility.mjs';
+import { OH_SOURCE, loadOhioCoverageContext, validateOhChildcareGeographicEvidence, verifyOhChildcareGeographicMembership } from '../runner/oh-childcare-coverage-evidence.mjs';
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -22,12 +24,12 @@ const PUBLIC_POLICIES = new Set(["public", "public-open-ny-terms", "public-factu
 const LOCAL_POLICIES = new Set([...PUBLIC_POLICIES, "local-review-only"]);
 const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "policy_id", "export_policy", "transformation_version", "dataset_id", "source_dataset_release_id"];
 
-// Must stay aligned with runner/business-map-store.mjs. The map's registrations
-// category intentionally has no physical-location profile source IDs.
+// Export categories include independently verified reporting-only Ohio rows.
+// This does not change the map's source adoption or geographic assignment rules.
 export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "retail-consumer": ["usda-snap-current-retailers", "new-york-agriculture-markets-retail-food-stores", "california-abc-daily-active-licenses"],
   "health-care": ["cms-nppes-monthly-v2"],
-  childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE],
+  childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE],
   "financial-services": ["fdic-bankfind-current-structure", "ncua-final-quarterly-call-report"],
   "food-production": ["usda-fsis-active-mpi-directory"],
   "environmental-facilities": ["epa-echo-exporter-active-facility"],
@@ -39,10 +41,10 @@ export const AVAILABLE_EXPORT_FIELDS = Object.freeze([
   "industry_categories", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "source_status_value",
   "source_status_scope", "source_status_observed_at", "observed_at", "policy_id", "export_policy", "transformation_version",
   "dataset_id", "source_dataset_release_id", "external_identifiers", "site_entity_id", "establishment_entity_id", "organization_entity_id",
-  "source_status", "source_evidence", "identity_matching_eligible",
+  "source_status", "source_evidence", "identity_matching_eligible", "governed_geographic_assignment_eligible",
 ]);
 
-export function usage() { return `Compose a governed, streamed flat business export.\n\nUsage:\n  node scripts/compose-flat-business-export.mjs [options]\n\nOptions:\n  --source <path>              Governed pointer or manifest; repeatable\n  --category <id>[,<id>...]    Map category; repeatable\n  --source-id <id>[,<id>...]   Source filter; repeatable\n  --state <US>[,<US>...]       State filter; repeatable\n  --field <name>[,<name>...]   Selected columns; repeatable\n  --format <csv|jsonl|both>    Default: both\n  --policy-mode <mode>         public-only (default) or explicit local-review\n  --output <path>              Default: ${DEFAULT_OUTPUT}\n  --output-prefix <name>       Output folder name\n  --help                       Show help\n`; }
+export function usage() { return `Compose a governed, streamed flat business export.\n\nUsage:\n  node scripts/compose-flat-business-export.mjs [options]\n\nOptions:\n  --source <path>              Governed pointer or manifest; repeatable\n  --category <id>[,<id>...]    Export category; repeatable\n  --source-id <id>[,<id>...]   Source filter; repeatable\n  --state <US>[,<US>...]       State filter; repeatable\n  --field <name>[,<name>...]   Selected columns; repeatable\n  --format <csv|jsonl|both>    Default: both\n  --policy-mode <mode>         public-only (default) or explicit local-review\n  --output <path>              Default: ${DEFAULT_OUTPUT}\n  --output-prefix <name>       Output folder name\n  --help                       Show help\n`; }
 
 const split = (v) => String(v).split(",").map((x) => x.trim()).filter(Boolean);
 const contained = (base, target) => { const rel = path.relative(base, target); return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel)); };
@@ -124,6 +126,7 @@ function projection(record, source, rowCategories) {
     establishment_entity_id: record.establishment_entity_id ?? null, organization_entity_id: record.organization_entity_id ?? null,
     source_status: record.source_status ?? null, source_evidence: record.evidence ?? null,
     identity_matching_eligible: record.identity_matching_eligible ?? null,
+    governed_geographic_assignment_eligible: record.governed_geographic_assignment_eligible ?? null,
   };
 }
 async function put(stream, text) { if (!stream.write(text)) await once(stream, "drain"); }
@@ -168,21 +171,20 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
     if (csvStream) await put(csvStream, `${args.fields.join(",")}\n`);
     for (const input of [...args.sources].sort()) {
       const source = await descriptor(input, signal); const artifacts = profileArtifacts(source); if (!artifacts.length) throw new Error(`${source.manifest.dataset_id}/${source.manifest.release_id} has no location-profile artifacts.`);
-      const tnFresh = source.manifest.dataset_id === "national-business-registry" && source.manifest.publisher?.version === "2.14.0";
-      const tnEnabled = source.manifest.dataset_id === "national-business-registry" && (source.manifest.publisher?.version === "2.13.0" || tnFresh);
-      if (tnEnabled && (source.manifest.publisher.id !== "national-business-registry" || source.manifest.status !== "published-partial")) throw new Error("TN export requires a published partial registry.");
-      const tnDependencies = source.manifest.dependencies?.filter(d => d.dataset_id === TN_SOURCE) ?? [];
+      const {tnFresh,tennessee:tnEnabled,ohio:ohEnabled,tnDependencies} = flatfileReportingCompatibility(source.manifest);
+      signal?.throwIfAborted();
+      const ohContext = ohEnabled ? await loadOhioCoverageContext(source.manifest) : null, ohRows = [];
+      signal?.throwIfAborted();
       const tnCounts = { records: 0, missing: 0, reasons: { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 } }, tnSites = new Set(), tnEstablishments = new Set();
-      if (tnDependencies.length !== Number(tnEnabled)) throw new Error("TN export requires exact registry 2.13 recovered or 2.14 fresh and one source dependency.");
       const sourceLineage = { dataset_id: source.manifest.dataset_id, release_id: source.manifest.release_id, manifest_path: relativeToApp(source.manifestPath), manifest_sha256: source.manifestHash.sha256, pointer_path: source.pointerPath ? relativeToApp(source.pointerPath) : null, artifacts: [] }; lineage.push(sourceLineage);
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
-        const boundedReporting = tnEnabled && artifact.artifact_type === REPORTING_TYPE;
+        const boundedReporting = (tnEnabled || ohEnabled) && artifact.artifact_type === REPORTING_TYPE;
         const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
         let artifactRows = 0;
         for await (const line of profileLines(file, signal, boundedReporting ? artifact : undefined)) {
           if (!line.trim()) continue; read += 1; const record = JSON.parse(line);
           artifactRows++;
-          if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || /^(site|establishment):tn_childcare_/.test(record.site_entity_id) || /^(site|establishment):tn_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+          if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || record.source?.source_id === OH_SOURCE || /^(site|establishment):(tn|oh)_childcare_/.test(record.site_entity_id) || /^(site|establishment):(tn|oh)_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
           if (record.source?.source_id === TN_SOURCE) {
             if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires an exact supported registry reporting version.");
             (tnFresh ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(record);
@@ -191,6 +193,11 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
               || tnSites.has(record.site_entity_id) || tnEstablishments.has(record.establishment_entity_id)) throw new Error("TN export partition, identity or source lineage differs.");
             tnSites.add(record.site_entity_id); tnEstablishments.add(record.establishment_entity_id); tnCounts.records++;
             if (record.zip_code === null) { tnCounts.missing++; tnCounts.reasons[record.evidence.zip_unavailable_reason]++; }
+          } else if (record.source?.source_id === OH_SOURCE) {
+            if (!ohContext || artifact.artifact_type !== REPORTING_TYPE) throw Error('OH export requires exact registry 2.15 reporting context.');
+            validateOhChildcareGeographicEvidence(record,ohContext.input.verificationContext);
+            if (artifact.path !== `reporting/location-evidence/zip2=${record.zip_code?.slice(0,2) ?? 'unassigned'}/records.jsonl.gz` || artifact.export_policy !== 'local-review-only') throw Error('OH export partition or policy differs.');
+            ohRows.push(record);
           } else if (artifact.artifact_type === REPORTING_TYPE) validateChildcareGeographicEvidence(record);
           const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
           if ((selectedSources.size && !selectedSources.has(sourceId)) || (states.size && !states.has(rowState))) { filtered += 1; continue; }
@@ -201,15 +208,17 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
           if (csvStream) await put(csvStream, `${args.fields.map((field) => csv(row[field])).join(",")}\n`); if (jsonlStream) await put(jsonlStream, `${JSON.stringify(row)}\n`);
           written += 1; sourceCounts[sourceId] = (sourceCounts[sourceId] ?? 0) + 1;
         }
-        if (tnEnabled && artifact.artifact_type === REPORTING_TYPE && artifactRows !== artifact.record_count) throw new Error("TN reporting artifact count differs.");
+        if ((tnEnabled || ohEnabled) && artifact.artifact_type === REPORTING_TYPE && artifactRows !== artifact.record_count) throw new Error("TN/OH reporting artifact count differs.");
       }
       if (tnEnabled) {
         const c = source.manifest.coverage;
         if (!tnCounts.records || c?.tn_childcare_center_sites !== tnCounts.records || c.tn_childcare_center_sites_with_zip !== tnCounts.records - tnCounts.missing
-          || c.tn_childcare_center_sites_without_zip !== tnCounts.missing || c.reporting_location_evidence_without_zip !== tnCounts.missing
+          || c.tn_childcare_center_sites_without_zip !== tnCounts.missing
           || !c.tn_childcare_missing_zip_reasons || Object.keys(c.tn_childcare_missing_zip_reasons).length !== 2
           || Object.entries(tnCounts.reasons).some(([key, value]) => c.tn_childcare_missing_zip_reasons[key] !== value)) throw new Error("TN export source ZIP counts or reasons differ.");
       }
+      const ohProof = ohContext ? await verifyOhChildcareGeographicMembership(ohRows,ohContext.input.verificationContext,{signal}) : null;
+      if ((tnEnabled || ohEnabled) && source.manifest.coverage.reporting_location_evidence_without_zip !== tnCounts.missing + (ohProof?.withoutSourceZip ?? 0)) throw Error('Combined TN/OH missing ZIP count differs.');
     }
     await Promise.all([csvStream && close(csvStream), jsonlStream && close(jsonlStream)].filter(Boolean));
     const artifacts = []; for (const [file, type] of [[csvStream && csvPath, "flat-business-csv"], [jsonlStream && jsonlPath, "flat-business-jsonl"]]) if (file) artifacts.push({ path: path.basename(file), artifact_type: type, records: written, ...(await hashFile(file, signal)) });
