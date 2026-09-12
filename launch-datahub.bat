@@ -34,6 +34,10 @@ if not exist "node_modules\electron\dist\electron.exe" (
   if errorlevel 1 goto :failed
 )
 
+echo Checking for a previous Co*Tive Collector instance...
+call "%~dp0stop-collector.bat" --if-running
+if errorlevel 1 goto :failed
+
 set "PLAYWRIGHT_BROWSERS_PATH=%~dp0.playwright-browsers"
 echo Checking the Playwright Chromium installation...
 call npx.cmd playwright install chromium

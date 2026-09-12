@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react';
 import BenchmarkReview from './benchmark-review';
 import BusinessIntelligence from './business-intelligence';
+import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
 import DataOperations from './data-operations';
@@ -335,6 +336,7 @@ export default function Home() {
             <h1>Co*Tive Collector</h1>
           </div>
           <div className="top-actions">
+            <TextSizeControl />
             <input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden />
             <button className="ghost-button" onClick={() => importRef.current?.click()} disabled={busy}>Import</button>
             <button className="ghost-button export-button" onClick={exportJobs} disabled={!jobs.length}>Export</button>

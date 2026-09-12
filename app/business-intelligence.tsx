@@ -1,4 +1,5 @@
 'use client';
+import DatasetRepresentation from './dataset-representation';
 
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
@@ -163,9 +164,9 @@ function nonemployerNote(properties: MapProperties) {
 }
 
 function alignmentLabel(properties: MapProperties) {
-  if (properties.level === 'state') return 'Relative completeness proxy vs peer states';
-  if (properties.level === 'county') return 'Relative completeness proxy vs in-state counties';
-  return 'Relative completeness proxy vs in-state ZIP peers';
+  if (properties.level === 'state') return 'Peer evidence alignment vs states';
+  if (properties.level === 'county') return 'Peer evidence alignment vs in-state counties';
+  return 'Peer evidence alignment vs in-state ZIP peers';
 }
 
 function populationLabel(properties: MapProperties) {
@@ -396,6 +397,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      <DatasetRepresentation stateFips={selectedStateFips} />
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}
       {stateSummary?.available && <section className="state-alignment-card">
@@ -418,7 +420,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
           <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>
         <div className="entity-ratios"><span><b>{count(properties.businesses_per_1000_people)}</b> evidence / 1K people</span><span><b>{count(properties.population_density)}</b> people / sq. mile</span></div>
-        <p className="entity-method-note">Relative completeness is a coverage proxy: selected-category evidence per Census employer establishment compared with the median for {properties.relative_coverage_alignment_peer_scope}. Values can exceed 100%; it is not measured completeness of all businesses.</p>
+        <p className="entity-method-note">Peer evidence alignment compares selected-category evidence per Census employer establishment with the median for {properties.relative_coverage_alignment_peer_scope}. Values can exceed 100%; it is not measured completeness of all businesses.</p>
       </> : <div className="entity-summary-empty">Select a map entity to pin its business evidence, employer and nonemployer Census baselines, GDP, and state-relative coverage summary here. Hover details remain on the map.</div>}
       {state && <section className="state-alignment-card">
         <div><span>State alignment</span><strong>{state.postal_abbreviation} · {state.state_name}</strong></div>

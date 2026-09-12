@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
 import { mkdtemp, mkdir, rm, readFile, writeFile } from "node:fs/promises";
+import { TEMP_DIR } from './paths.mjs';
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -21,7 +22,8 @@ function polygon(west, south, east, north) {
 }
 
 async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views", ohioOrigin = undefined, ohioCount = 5, ohioWithoutZip = 0, capturePaths = null } = {}) {
-  const root = await mkdtemp(path.join(os.tmpdir(), "datahub-business-map-"));
+  await mkdir(TEMP_DIR, { recursive: true });
+  const root = await mkdtemp(path.join(TEMP_DIR, "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
   const coverageRoot = path.join(root, "coverage");
   const geographyRoot = path.join(root, "geography");

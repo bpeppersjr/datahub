@@ -4,8 +4,11 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile, cp, rename, link } fr
 import { spawn } from "node:child_process";
 import { readdirSync, renameSync, mkdirSync, writeFileSync } from "node:fs";
 import { once } from "node:events";
-import { tmpdir } from "node:os";
+import { TEMP_DIR } from './paths.mjs';
 import path from "node:path";
+// The builder enforces app-contained publication paths, including test fixtures.
+await mkdir(TEMP_DIR, { recursive: true });
+const tmpdir = () => TEMP_DIR;
 import test from "node:test";
 import { createGunzip, gzipSync } from "node:zlib";
 import { PassThrough } from "node:stream";

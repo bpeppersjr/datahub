@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { TEMP_DIR } from './paths.mjs';
 import path from "node:path";
 import test from "node:test";
 import { gunzipSync, gzipSync } from "node:zlib";
@@ -359,7 +360,8 @@ function childcareSource(state) {
 }
 
 test("registry integrates verified childcare as disjoint reporting evidence, not matching candidates", async (t) => {
-  const root = await mkdtemp(path.join(tmpdir(), "registry-childcare-")); t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(TEMP_DIR, { recursive: true });
+  const root = await mkdtemp(path.join(TEMP_DIR, "registry-childcare-")); t.after(() => rm(root, { recursive: true, force: true }));
   const clock = () => new Date("2026-09-08T00:00:00.000Z"), sleep = async () => {};
   const ma = await buildMaChildcareRelease({ outputRoot: path.join(root, "ma"), fetchImpl: childcareSource("MA"), sleep, now: clock });
   const nj = await buildNjChildcareRelease({ outputRoot: path.join(root, "nj"), fetchImpl: childcareSource("NJ"), sleep, now: clock });

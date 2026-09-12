@@ -5,6 +5,7 @@ import { createConnection } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, session, shell } from 'electron';
+import { createDevStopControl } from '../runner/dev-stop-control.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RUNNER_PORT = 4300;
@@ -18,6 +19,9 @@ const controlToken = !app.isPackaged && process.env.DATAHUB_CONTROL_TOKEN
 let mainWindow = null;
 let runnerProcess = null;
 let runnerOwned = false;
+let stopControl = null;
+let quitting = false;
+let shutdownComplete = false;
 
 function runtimeRoot() {
   if (app.isPackaged) return path.dirname(process.execPath);
@@ -226,6 +230,7 @@ if (!app.requestSingleInstanceLock()) {
 
     try {
       await startRunner();
+      stopControl = await createDevStopControl({ root: runtimePath('data', 'desktop-runtime'), stop: () => app.quit() });
       await createWindow();
     } catch (error) {
       await log(error instanceof Error ? error.stack || error.message : String(error));
@@ -241,8 +246,24 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) void createWindow();
 });
 
-app.on('before-quit', () => {
-  if (runnerOwned && runnerProcess && !runnerProcess.killed) runnerProcess.kill();
+app.on('before-quit', (event) => {
+  if (shutdownComplete) return;
+  event.preventDefault();
+  if (quitting) return;
+  quitting = true;
+  void (async () => {
+    await saveWindowState();
+    if (runnerOwned && runnerProcess && runnerProcess.exitCode === null && runnerProcess.signalCode === null) {
+      await new Promise((resolve, reject) => {
+        runnerProcess.once('exit', resolve);
+        if (runnerProcess.connected) runnerProcess.send('shutdown', (error) => { if (error) reject(error); });
+        else reject(new Error('Runner shutdown channel is unavailable.'));
+      });
+    }
+    await stopControl?.close();
+    shutdownComplete = true;
+    app.quit();
+  })().catch((error) => { void log(`Shutdown requires inspection: ${error.message}`); });
 });
 
 app.on('window-all-closed', () => app.quit());

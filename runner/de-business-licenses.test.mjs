@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { TEMP_DIR } from './paths.mjs';
+await mkdir(TEMP_DIR, { recursive: true });
+const tmpdir = () => TEMP_DIR;
 import path from "node:path";
 import test from "node:test";
 import { createGunzip } from "node:zlib";

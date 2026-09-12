@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, rm, rmdir, symlink, unlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, rmdir, symlink, unlink, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
 import { buildIndustryPlan } from './industry-segments.mjs';
-import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
+import { createManagedRefreshScheduler, schedulerOwnerIsDead } from './managed-refresh-scheduler.mjs';
 import { createManagedOperations } from './managed-operations.mjs';
 
 const input = { industries: ['retail'], states: ['TX'], intervalHours: 24 };
@@ -94,6 +96,64 @@ test('ownership conflict never steals existing scheduler lock', async (t) => {
   const before = await readFile(path.join(f.root, 'scheduler/owner.lock'));
   const second = f.make(); await assert.rejects(second.ready, /owner|lock/i);
   assert.deepEqual(await readFile(path.join(f.root, 'scheduler/owner.lock')), before);
+});
+
+test('only ESRCH for a valid positive PID establishes dead ownership', () => {
+  const error = code => () => { throw Object.assign(new Error('probe'), { code }); };
+  assert.equal(schedulerOwnerIsDead(123, error('ESRCH')), true);
+  for (const code of ['EPERM', 'EACCES', 'UNKNOWN']) assert.equal(schedulerOwnerIsDead(123, error(code)), false);
+  for (const pid of [0, -1, '123', null, 1.5]) assert.equal(schedulerOwnerIsDead(pid, error('ESRCH')), false);
+  assert.equal(schedulerOwnerIsDead(process.pid), false);
+});
+
+test('concurrent stale-owner recovery keeps schedules and produces one redacted durable receipt', async (t) => {
+  const f = await fixture(t), first = f.make(); await first.create({ ...input, enabled: true }); await first.close();
+  const folder = path.join(f.root, 'scheduler'), stateBefore = await readFile(path.join(folder, 'state.json'));
+  const deadPid = spawnSync(process.execPath, ['-e', 'process.exit(0)']).pid;
+  assert.equal(schedulerOwnerIsDead(deadPid), true);
+  const token = randomUUID(); await writeFile(path.join(folder, 'owner.lock'), JSON.stringify({ pid: deadPid, token }));
+  const contenders = [f.make(), f.make()];
+  const outcomes = await Promise.allSettled(contenders.map(item => item.ready));
+  assert.equal(outcomes.filter(result => result.status === 'fulfilled').length, 1);
+  assert.deepEqual(await readFile(path.join(folder, 'state.json')), stateBefore);
+  assert.equal(f.calls(), 0);
+  const receipts = (await readdir(folder)).filter(name => /^recovery-.*\.json$/.test(name)); assert.equal(receipts.length, 1);
+  const text = await readFile(path.join(folder, receipts[0]), 'utf8'); assert.equal(text.includes(token), false);
+  const receipt = JSON.parse(text); assert.equal(receipt.previousPid, deadPid); assert.equal(receipt.dispatchedOperations, 0);
+  assert.equal(receipt.status, 'CONFIRMED_DEAD_OWNER_ARCHIVED');
+  assert.equal(JSON.parse(await readFile(path.join(folder, receipt.archivedOwner))).pid, deadPid);
+});
+
+test('malformed owners and interrupted recovery remain fail-closed without changing state', async (t) => {
+  for (const owner of ['null', '{bad', JSON.stringify({ pid: 0, token: randomUUID() })]) {
+    const f = await fixture(t); await mkdir(path.join(f.root, 'scheduler'));
+    await writeFile(path.join(f.root, 'scheduler/owner.lock'), owner);
+    const scheduler = f.make(); await assert.rejects(scheduler.ready, /owner|malformed/i);
+    assert.equal(await readFile(path.join(f.root, 'scheduler/owner.lock'), 'utf8'), owner);
+  }
+  const f = await fixture(t); await mkdir(path.join(f.root, 'scheduler'));
+  await writeFile(path.join(f.root, 'scheduler/recovery.lock'), JSON.stringify({ pid: 123 }));
+  await assert.rejects(f.make().ready, /recovery.*interrupt|recovery.*progress/i);
+  assert.equal(f.calls(), 0);
+});
+
+test('fresh startup cannot acquire owner while another startup holds initialization guard', async (t) => {
+  const f = await fixture(t);
+  let release, reached;
+  const blocked = new Promise(resolve => { release = resolve; });
+  const checkpoint = new Promise(resolve => { reached = resolve; });
+  const first = f.make();
+  const original = first.safePath.bind(first);
+  first.safePath = async (file, directory) => {
+    await original(file, directory);
+    if (path.basename(file) === 'owner.lock') { reached(); await blocked; }
+  };
+  await checkpoint;
+  const second = f.make();
+  await assert.rejects(second.ready, /progress|interrupt/i);
+  await assert.rejects(readFile(path.join(f.root, 'scheduler/owner.lock')), { code: 'ENOENT' });
+  release(); await first.ready;
+  assert.equal(JSON.parse(await readFile(path.join(f.root, 'scheduler/owner.lock'))).pid, process.pid);
 });
 test('null state and linked scheduler storage fail closed', async (t) => {
   const f = await fixture(t); await mkdir(path.join(f.root, 'scheduler')); await writeFile(path.join(f.root, 'scheduler/state.json'), 'null');

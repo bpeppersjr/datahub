@@ -68,7 +68,7 @@ export async function createDevStopControl({ stop, root = defaultRoot, intervalM
   } };
 }
 
-export async function requestDevStop({ root = defaultRoot, id, isAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } } } = {}) {
+export async function requestDevStop({ root = defaultRoot, id, ifRunning = false, isAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } } } = {}) {
   const base = await safeRoot(root);
   let selected = id;
   if (!selected) {
@@ -78,6 +78,7 @@ export async function requestDevStop({ root = defaultRoot, id, isAlive = (pid) =
       const { record } = await readSession(base, entry.name);
       if (record.status !== "STOPPED" && isAlive(record.pid)) sessions.push(record.id);
     }
+    if (sessions.length === 0 && ifRunning) return null;
     if (sessions.length !== 1) throw new Error(`Expected one live development session; found ${sessions.length}. Supply --run-id for an explicit session.`);
     [selected] = sessions;
   }

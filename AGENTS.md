@@ -25,6 +25,8 @@ Use a modular monolith until measured workload or deployment requirements justif
 
 ## Agent roster
 
+Use a dedicated agent for application code changes and testing. Prefer GPT-5.3-Codex-Spark when it is available and responding; use a supported fallback if it cannot perform the work, and report the actual model used. Data research should use GPT-6-Astra or another model suited to the evidence task.
+
 | Agent | Owns | Required outputs |
 |---|---|---|
 | Platform architecture | Contracts, module boundaries, ADRs, dependency direction | Architecture impact, migration path, compatibility risks |
@@ -81,6 +83,8 @@ Model organizations, brands, physical sites, operating establishments, services,
 Every published field must be traceable to source record, source release, ingest run, transformation version, and policy profile. Temporal facts use `first_seen`, `last_seen`, `valid_from`, and `valid_to` where applicable.
 
 ## Change workflow
+
+For launch and runtime testing, run `stop-collector.bat` yourself before testing and validate a successful relaunch afterward. Leave the requested app available when finished. The launcher must cooperatively stop the prior Collector instance before starting its replacement; never terminate an arbitrary port owner.
 
 1. Inspect repository instructions, Git status, affected contracts, and relevant tests.
 2. State scope, assumptions, risks, and the owning agent role.

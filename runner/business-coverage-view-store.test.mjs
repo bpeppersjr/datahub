@@ -187,6 +187,13 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
     manifest: `releases/${releaseId}/manifest.json`,
   }));
 
+  const factualStore = createBusinessCoverageViewStore({ pointerPath, stateSourceRevalidationProvider: { load() { throw new Error('Unreviewed transition'); } } });
+  const representation = await factualStore.getDatasetRepresentation();
+  assert.equal(representation.available, true);
+  assert.equal(representation.states.find(row => row.code === 'CA').fips, '06');
+  assert.equal(representation.states.find(row => row.code === 'CA').percent, null);
+  await assert.rejects(factualStore.getOverview(), /Unreviewed transition/);
+
   let revalidationReady = false;
   const revalidationDocument = {
     schema_version: "fixture",

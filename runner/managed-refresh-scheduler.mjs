@@ -10,6 +10,11 @@ const invalid = (message, code = "INVALID_SCHEDULE") => Object.assign(new Error(
 const stable = (value) => Array.isArray(value) ? value.map(stable) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stable(value[key])])) : value;
 const digest = (value) => createHash("sha256").update(JSON.stringify(stable(value))).digest("hex");
 const validDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value));
+export function schedulerOwnerIsDead(pid, probe = process.kill) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try { probe(pid, 0); return false; }
+  catch (error) { return error.code === 'ESRCH'; }
+}
 function selection(value, regex) {
   if (!Array.isArray(value) || !value.length || value.some((item) => typeof item !== "string" || !regex.test(item))) throw invalid("Explicit non-empty industry and state selections are required.");
   return [...new Set(value)].sort();
@@ -56,9 +61,21 @@ export class ManagedRefreshScheduler {
   async initialize() {
     await this.safePath(this.root, true);
     this.lockPath = path.join(this.root, "owner.lock"); this.statePath = path.join(this.root, "state.json");
+    const recoveryPath = path.join(this.root, 'recovery.lock');
+    await this.safePath(recoveryPath);
+    let guard;
+    try { guard = await open(recoveryPath, 'wx'); }
+    catch (error) { if (error.code === 'EEXIST') throw invalid('Scheduler recovery or initialization is in progress or interrupted; inspect recovery.lock before restarting.', 'SCHEDULER_OWNERSHIP_CONFLICT'); throw error; }
+    try {
+    await guard.writeFile(JSON.stringify({ pid: process.pid, createdAt: this.time() })); await guard.sync();
     await this.safePath(this.lockPath);
     try { this.lock = await open(this.lockPath, "wx"); }
-    catch (error) { if (error.code === "EEXIST") throw invalid("Scheduler ownership requires inspection; an existing lock is never automatically reclaimed.", "SCHEDULER_OWNERSHIP_CONFLICT"); throw error; }
+    catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      await this.recoverDeadOwner();
+      try { this.lock = await open(this.lockPath, 'wx'); }
+      catch (error) { if (error.code === 'EEXIST') throw invalid('Another scheduler acquired ownership after recovery.', 'SCHEDULER_OWNERSHIP_CONFLICT'); throw error; }
+    }
     try {
       await this.lock.writeFile(JSON.stringify({ token: this.ownerToken, pid: process.pid })); await this.lock.sync();
       await this.safePath(this.statePath);
@@ -90,6 +107,39 @@ export class ManagedRefreshScheduler {
         await this.persist();
       } else await this.persist();
     } catch (error) { await this.releaseLock(); throw error; }
+    } finally {
+      await guard.close();
+      if (!this.recoveryInterrupted) await unlink(recoveryPath);
+    }
+  }
+  async recoverDeadOwner() {
+    // Only an ESRCH probe proves a local process is gone. PID reuse, EPERM,
+    // malformed ownership, and interrupted recovery all require inspection.
+    let archived = false, completed = false;
+    try {
+      await this.safePath(this.lockPath);
+      const original = await readFile(this.lockPath);
+      let owner;
+      try { owner = JSON.parse(original); } catch { throw invalid('Malformed scheduler owner requires inspection.', 'SCHEDULER_OWNERSHIP_CONFLICT'); }
+      if (!owner || typeof owner.token !== 'string' || !/^[a-f0-9-]{36}$/.test(owner.token) || !schedulerOwnerIsDead(owner.pid)) throw invalid('Scheduler owner is live, unknown, or malformed; ownership was preserved.', 'SCHEDULER_OWNERSHIP_CONFLICT');
+      const recoveryId = randomUUID();
+      const archiveName = `owner-dead-${recoveryId}.lock`;
+      const receiptPath = path.join(this.root, `recovery-${recoveryId}.json`);
+      const archivePath = path.join(this.root, archiveName);
+      await this.safePath(archivePath); await this.safePath(receiptPath); await this.safePath(this.statePath);
+      const stateBytes = await readFile(this.statePath).catch(error => { if (error.code === 'ENOENT') return null; throw error; });
+      if (!original.equals(await readFile(this.lockPath)) || !schedulerOwnerIsDead(owner.pid)) throw invalid('Scheduler owner changed during recovery; inspect ownership.', 'SCHEDULER_OWNERSHIP_CONFLICT');
+      await rename(this.lockPath, archivePath); archived = true;
+      const receipt = await open(receiptPath, 'wx');
+      try {
+        await receipt.writeFile(`${JSON.stringify({ version: 1, recoveryId, status: 'CONFIRMED_DEAD_OWNER_ARCHIVED', recoveredAt: this.time(), previousPid: owner.pid, ownerProbe: 'ESRCH', archivedOwner: archiveName, ownerSha256: createHash('sha256').update(original).digest('hex'), stateSha256: stateBytes ? createHash('sha256').update(stateBytes).digest('hex') : null, schedulesChanged: false, dispatchedOperations: 0 }, null, 2)}\n`);
+        await receipt.sync();
+      } finally { await receipt.close(); }
+      completed = true;
+    } finally {
+      // Preserve an interrupted archive/receipt transition for inspection.
+      this.recoveryInterrupted = archived && !completed;
+    }
   }
   async persist() {
     try {

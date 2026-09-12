@@ -371,6 +371,11 @@ const server = http.createServer(async (request, response) => {
     if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
       json(response,200,await retainedCredentialsView.get(url.searchParams));return;
     }
+    if (request.method === 'GET' && url.pathname === '/api/dataset-representation') {
+      json(response, 200, await businessCoverageViews.getDatasetRepresentation());
+      return;
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/business-coverage') {
       const [overview, postalMigration, postalCandidates, postalCutover] = await Promise.all([
         businessCoverageViews.getOverview(),

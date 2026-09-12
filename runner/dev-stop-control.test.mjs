@@ -12,6 +12,17 @@ async function fixture() {
   return root;
 }
 
+test("restart preflight permits no running instance but still rejects ambiguity", async (t) => {
+  const root = await fixture();
+  t.after(() => rm(root, { recursive: true, force: true }));
+  assert.equal(await requestDevStop({ root, ifRunning: true }), null);
+  const first = await createDevStopControl({ root, stop: () => assert.fail("unexpected stop") });
+  const second = await createDevStopControl({ root, stop: () => assert.fail("unexpected stop") });
+  try { await assert.rejects(requestDevStop({ root, ifRunning: true }), /found 2/); }
+  finally { await first.close(); await second.close(); }
+  assert.equal(await requestDevStop({ root, ifRunning: true }), null);
+});
+
 test("explicit development stop is observed once and records a terminal receipt", async (t) => {
   const root = await fixture(); let calls = 0;
   const control = await createDevStopControl({ root, intervalMs: 10, stop: async () => { calls++; await control.close(); } });

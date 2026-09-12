@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import net from "node:net";
-import os from "node:os";
+import { TEMP_DIR } from './paths.mjs';
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
@@ -41,7 +41,8 @@ async function waitUntil(predicate, timeout = 20_000) {
 }
 
 test("development supervisor closes both direct child services", async (context) => {
-  const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "datahub-dev-supervisor-"));
+  await mkdir(TEMP_DIR, { recursive: true });
+  const runtimeRoot = await mkdtemp(path.join(TEMP_DIR, "datahub-dev-supervisor-"));
   context.after(() => rm(runtimeRoot, { recursive: true, force: true }));
   const runnerPort = await unusedPort();
   let uiPort = await unusedPort();
@@ -82,7 +83,8 @@ test("development supervisor closes both direct child services", async (context)
 });
 
 test("development supervisor stops the peer service when one child fails", async (context) => {
-  const runtimeRoot = await mkdtemp(path.join(os.tmpdir(), "datahub-dev-supervisor-failure-"));
+  await mkdir(TEMP_DIR, { recursive: true });
+  const runtimeRoot = await mkdtemp(path.join(TEMP_DIR, "datahub-dev-supervisor-failure-"));
   context.after(() => rm(runtimeRoot, { recursive: true, force: true }));
   const runnerPort = await unusedPort();
   let uiPort = await unusedPort();

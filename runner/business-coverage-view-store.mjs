@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
+import { datasetRepresentation } from './dataset-representation.mjs';
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
 import {
@@ -372,5 +373,17 @@ export function createBusinessCoverageViewStore({
     };
   }
 
-  return { getOverview, listDimension };
+  async function getDatasetRepresentation() {
+    const current = await ensureRelease();
+    if (!current) return { available: false };
+    // Factual published counts only. This does not load, advance, or replace reviewed assessments.
+    const [plan, states, sources] = await Promise.all([
+      readFile(path.join(APP_ROOT, 'config', 'industry-segments.json'), 'utf8').then(JSON.parse),
+      readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.states)),
+      readJsonLines(safeArtifactPath(current, DIMENSION_ARTIFACT_TYPES.sources)),
+    ]);
+    return { available: true, releaseId: current.manifest.release_id, ...datasetRepresentation(plan, states, sources) };
+  }
+
+  return { getOverview, listDimension, getDatasetRepresentation };
 }

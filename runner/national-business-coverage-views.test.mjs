@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
+import { TEMP_DIR } from './paths.mjs';
 import test from "node:test";
 import { createRequire } from "node:module";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
@@ -97,7 +97,8 @@ test("assigns an interior point and refuses a point matching multiple counties",
 });
 
 test("publishes and verifies governed national through ZIP coverage views", async (context) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "datahub-coverage-views-"));
+  await mkdir(TEMP_DIR, { recursive: true });
+  const root = await mkdtemp(path.join(TEMP_DIR, "datahub-coverage-views-"));
   context.after(() => rm(root, { recursive: true, force: true }));
 
   const geographyRoot = path.join(root, "geography");
