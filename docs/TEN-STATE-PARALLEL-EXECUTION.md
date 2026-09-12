@@ -1,5 +1,7 @@
 # Ten-state parallel execution requirement
 
+> **Superseded by the user's clarification on 2026-09-12.** The user wants ten feeds/processes moving through development concurrently, not ten states guaranteed to execute at runtime. Do not implement the runtime concurrency requirements below on the basis of this document. They are retained only as the history of the integrator's mistaken interpretation. Current direction is [the ten-feed development batch](TEN-FEED-DEVELOPMENT-BATCH.md).
+
 User direction, 2026-09-12: keep at least ten state workstreams progressing concurrently, using the same industry where the service supports efficient collection or different industries/publishers to spread load. Application workers, not ten live AI agents, own routine processing. Machine capacity does not remove publisher limits.
 
 ## Current evidence and gaps
