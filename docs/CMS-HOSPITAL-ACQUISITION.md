@@ -1,0 +1,30 @@
+# Standalone bounded CMS hospital acquisition
+
+Implementation awaiting root review; no live hospital CSV has been requested. The earlier offline prerequisite and its policy remain unchanged. This lifecycle has a separate `cms-hospital-acquisition@1.0.0` policy and uses the prerequisite solely for source metadata and selected-field projection.
+
+Native entry: `node scripts/acquire-cms-hospitals.mjs` (no source, output, credential or retry overrides). It operates independently of a Codex session; no UI/server, scheduler or global source registration is added. The default immutable run root is `data/business-sources/cms-hospital-general-information/jobs/<UUID>`. A separate injected transport entry uses only `data/tmp/cms-hospital-acquisition/<UUID>` and permanently labels its manifest `injected-fixture`, with native transport false. Native verification rejects that root/mode.
+
+## Fixed itinerary and policy evidence
+
+After durable intent, at most four sequential GETs are attempted, with durable request intent before each:
+
+1. Fixed CMS `xubh-q36u` metadata endpoint: 1 MiB / 30 seconds, public dataset identity required.
+2. Exact reviewed CMS API FAQ PDF: 1 MiB / 30 seconds; PDF content type, signature and SHA-256 must match before CSV access.
+3. The single canonical CMS CSV URL advertised by that metadata: 20 MiB / 60 seconds.
+4. Same metadata endpoint: 1 MiB / 30 seconds; bytes/hash must match the first response.
+
+Total response cap is 23 MiB (24,117,248 bytes); job deadline 180 seconds; one in-flight request, no retries, redirects, cookies or credentials. Fetch and body reads race the abort signal; network cleanup has a separate one-second grace. These are internal bounds, not CMS service guarantees. Each run captures one national distribution and future state consumers must reuse it. An exclusive cross-process source lease excludes simultaneous runs in this lifecycle; no global publisher scheduler integration is claimed. Existing leases are never automatically taken over. If transport or cleanup remains unresolved after the grace, the application returns inspection-required failure and retains the lease; a late response is still disposed, but does not automatically unlock or retry.
+
+Notice URL: `https://data.cms.gov/sites/default/files/2022-12/API%20FAQ%20%20v1_1.pdf`, verified metadata/docs-only GET September 12: 605,761 bytes, SHA-256 `6c45ef1ccb69bd3da4652769254472555bb83a87e8885d6c144e271cb0f53244`. The general-government-work reuse notice supports scoped use and no government endorsement. It is not proof that all third-party rights or dataset-specific agreements are absent. Public dataset metadata and exact source contract must still pass. The hospital-specific notice URL is retained as reviewed context. Its current direct HTML response did not contain the policy text and is not accepted as a substitute. Changed notice bytes stop the run before CSV rather than silently accepting new terms.
+
+The runtime policy is a closed compiled object, emitted as `policy.json`, hashed into the manifest and independently compared by the verifier. `config/source-policies/cms-hospital-acquisition.json` documents that bounded policy; it is not a mutable execution override. Synthetic notice bytes are distinct from the native pinned PDF and cannot satisfy native verification.
+
+## Evidence, publication and recovery
+
+Retained successful evidence: intent, four request intents, metadata before/after, notice PDF, original CSV, selected JSONL, policy and final manifest. Raw CSV can contain telephone/quality columns; all raw/metadata/policy artifacts remain internal, never ordinary managed downloads. Only selected JSONL has local-review-only policy. No public export path is added.
+
+Writes are exclusive, flushed and single-link/ownership checked. The manifest is last, linked without overwrite only after independent offline verification. Verification rechecks every artifact's hash/bytes, metadata stability, notice pin, request itinerary, policy, selected-row replay and exact directory roster, then rereads inputs to detect drift. Final verification remains cancellable; every error after publication returns inspection-required uncertain recovery evidence and preserves it. Lease cleanup errors preserve the original run/manifest identity in a redacted recovery error, never silently replacing it with an unstructured filesystem failure. Prepublication failures retain fully received source/notice/metadata bytes with internal-policy hash descriptors, intent/request intents and a fixed failure receipt; only owned partial or derived unpublished outputs are removed. Changed ownership/storage failures preserve evidence instead of deleting foreign data. No automatic recovery retry or source reacquisition exists.
+
+Counts describe parsed CSV records, not independently measured CMS database totals, unique businesses, NPPES organizations, verified campuses, current operations or all hospitals. Duplicate IDs reject. The native header column count is recorded, but only documented selected headers are enforced; the advertised 38-column order is not asserted. Source status/type/ownership values remain uninterpreted. ZIP5/ZIP4 remain separate; NPI, parent company, geocodes and current operating status stay unknown. Manifest `completedAt` is the completed acquisition/projection time before publication verification, not a wall-clock claim for the final verifier.
+
+Fixture tests cover four-request sequencing, policy gating before CSV, restricted raw versus selected output, native/injected separation, metadata drift, duplicate IDs, rehashed output tampering, abort and caps, fixed failure diagnostics, manifest-last publication, lease exclusion/changed ownership, cleanup failures and noncooperative fetch/read/cancel. Abort tests exercise caller cancellation, not a full 30-second native timeout. No native CSV, full application check, dispatch, registry rebuild or production pointer update has occurred. Root code review precedes a bounded actual national acquisition; no new credential or paid-access requirement is introduced.
