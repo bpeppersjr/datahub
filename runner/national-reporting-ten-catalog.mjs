@@ -1,0 +1,15 @@
+import {isDeepStrictEqual as same} from 'node:util';
+import {readNationalReportingCatalog,validateNationalReportingCatalog} from './national-reporting-catalog.mjs';
+export const TEN_VERSION='national-reporting-ten@1.0.0';
+export const TEN_STATES=Object.freeze('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
+export const TEN_TERRITORIES=Object.freeze(['AS','GU','MP','PR','VI']);
+export const TEN_DIRECTORIES=Object.freeze([
+ Object.freeze({id:'national-cms-hospitals',kind:'directory',profileId:null,sourceKey:'cms_hospital_directory_reporting',datasetId:'cms-hospital-general-information',label:'CMS hospitals',group:'health-care',rowUnit:'publisher-hospital-facility-directory-row',scope:'Dated hospital directory rows; not reconciled businesses, verified sites or current operations',manifestSha256:'856992891a8ded15d0f924169991cd3c7d0bda6112de1a0702dd5600305e9239',selectedSha256:'30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979',all:5419,stateDC:5354,territories:65,extensionVersion:'cms-hospital-coverage-extension@1.0.0'}),
+ Object.freeze({id:'national-cms-nursing-homes',kind:'directory',profileId:null,sourceKey:'cms_nursing_home_directory_reporting',datasetId:'cms-nursing-home-provider-information',label:'CMS nursing homes',group:'health-care',rowUnit:'publisher-nursing-home-directory-row',scope:'Retained recovery of dated nursing directory rows; historical acquisition remains failed; not verified sites or current operations',manifestSha256:'89ee608067aa5b97833957b753be61003dc2efcfa22cfaedbb3b78f020396d7e',selectedSha256:'677b1dc7b294f72feb0d6a0803d27c9f0f074887e5b9c5a59a6837c87a2320d8',all:14690,stateDC:14680,territories:10,extensionVersion:'cms-nursing-home-coverage-extension@1.0.0'}),
+]);
+const freeze=v=>{if(v&&typeof v==='object'){Object.values(v).forEach(freeze);Object.freeze(v);}return v;};
+const issued=new WeakSet();
+export function isNationalReportingTenCatalog(value){return issued.has(value);}
+export function createNationalReportingTenCatalog(oldValue){const old=validateNationalReportingCatalog(oldValue);const result=freeze({schemaVersion:'national-reporting-catalog@2.0.0',denominatorVersion:TEN_VERSION,denominatorScope:'Ten enrolled national reporting datasets; not all businesses',predecessorScope:old.denominatorScope,exportPolicy:'local-review-only',allBusinessesPercent:null,sources:[...old.sources.map(s=>({...s,kind:s.profileId?'profile':'organization-filing-address',rowUnit:s.profileId?'location-profile records':'organization filing-address records'})),...TEN_DIRECTORIES]});issued.add(result);return result;}
+export function validateNationalReportingTenCatalog(value,oldValue){const expected=createNationalReportingTenCatalog(oldValue);if(!same(value,expected))throw Error('Ten-source catalog rejected.');return expected;}
+export async function readNationalReportingTenCatalog({signal}={}){const old=await readNationalReportingCatalog({signal});return{catalog:createNationalReportingTenCatalog(old.catalog),predecessorCatalogSha256:old.sha256};}
