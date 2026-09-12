@@ -2,6 +2,12 @@
 
 Documentation/metadata audit only, September 12, 2026. No CSV, ZIP bundle, facility rows, or address submissions acquired. No implementation or native acquisition readiness claimed.
 
+## Subsequent offline implementation
+
+The audit above preceded the now-implemented isolated `runner/cms-nursing-home-prerequisite.mjs`, focused test, and separate source policy. `inspectCmsNursingHomeMetadata` validates bounded caller-supplied metadata and preserves the exact dated publisher active-directory assertion; `inspectCmsNursingHomeCsvForConformance` projects caller-supplied CSV with 32 MiB / 25,000-row / 128-column / 64 KiB-record limits. All metadata/CSV outputs remain explicitly offline, transport unverified and acquisition not ready. No live bytes were fetched for these tests.
+
+Ten focused tests pass, including byte/row/column/record caps, selected-header strictness, CCN/ZIP preservation, duplicate rejection, all coordinate eligibility states, unknown-field exclusion, metadata drift, pre-abort and cooperative decoding cancellation. ESLint passes on both owned modules. Transport timers, source leases, artifacts, native replay, managed handoff and runtime are not implemented or tested by this prerequisite. The source policy is declarative offline policy, not a native access approval. Existing hospital files are unchanged.
+
 ## Reuse before acquisition
 
 Targeted searches of main `config`, `runner`, and `docs` found no Provider Information / `4pq5-n9py` adapter or selection. The top-level retained `data/business-sources` inventory contains CMS hospital and NPPES sources, but no nursing-home source. This is a bounded catalog/inventory check, not an exhaustive disk search. Hospital `xubh-q36u` and NPPES evidence do not substitute for this directory. Acquire one national release, then derive all reported-state buckets locally; do not issue separate state downloads.
