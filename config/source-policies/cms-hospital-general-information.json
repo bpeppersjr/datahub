@@ -1,0 +1,23 @@
+{
+  "policy_id": "cms-hospital-general-information",
+  "version": "1.0.0",
+  "status": "offline-prerequisite-only",
+  "publisher": "Centers for Medicare & Medicaid Services (CMS)",
+  "dataset_id": "xubh-q36u",
+  "source_home": "https://data.cms.gov/provider-data/dataset/xubh-q36u",
+  "terms_url": "https://data.cms.gov/provider-data/topics/hospitals/about-data",
+  "ownership": "CMS states U.S. government works are public domain; do not imply government endorsement.",
+  "attribution": "Centers for Medicare & Medicaid Services (CMS)",
+  "allowed_use": ["offline metadata and synthetic selected-field CSV conformance", "source-contract development"],
+  "acquisition_authorized": false,
+  "connector_ready": false,
+  "export_policy": "local-review-only",
+  "public_export_authorized": false,
+  "retention": "This prerequisite writes no dataset artifacts. Any future acquired source requires immutable operation-owned retention and reviewed cleanup.",
+  "redistribution": "Government-data reuse notice is recorded; no public application export is enabled by this prerequisite.",
+  "excluded_fields": ["Telephone Number", "hospital ratings", "quality measure counts and footnotes"],
+  "identity": "Source facility identifier is not an NPI, canonical organization, verified campus or unique business identity.",
+  "temporal": "Metadata modified, released and observation times are separate; no facility current-operation status is inferred.",
+  "geography": "Source address text only; ZIP5 and ZIP4 separate, geocode and governed membership unmeasured.",
+  "reviewed_at": "2026-09-12"
+}
