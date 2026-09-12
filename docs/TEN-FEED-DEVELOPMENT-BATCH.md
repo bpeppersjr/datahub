@@ -27,6 +27,15 @@ The first seven already have substantial connector/retained-release work. They a
 - Give Spark small, implementation-ready contracts across the batch rather than requiring it to rediscover each source. Integrate related typed retained-input handling once with source-specific tests, not seven duplicate mechanisms.
 - Current JSON-download/font/coverage fixes remain its immediate verification task. This batch follows without a detour into guaranteed ten-state runtime scheduling.
 
+## Integration checkpoint — September 12
+
+- PA, CT, MD, VT, CO and IA now share a typed retained-input handoff with source-specific manifest and parent-receipt verification. Read-only plans against all six retained native releases passed. This is reuse evidence, not new acquisition or a completeness measurement.
+- Maine's bounded metadata preflight CLI, offline parser and independently verified receipt bundle are integrated. Native source execution and managed-operation registration are still pending; no Maine business collector is declared ready.
+- JSON downloads, adjustable app fonts and clearer state coverage labels were released in `5ecbc4f`. The next combined service release is undergoing independent integration testing.
+- Independent service development uses detached checkouts beneath `data/worktrees`; the coding/testing lane alone owns main-checkout runtime testing. The integrator merges reviewed changes and publishes only after the shared verification gate.
+- Spark is retained as the preferred coding/testing agent. Its quota is currently exhausted; the disclosed Astra fallback handles verification while separate source agents prepare Maine app handoff and ECHO/FSIS reporting contracts. Restore Spark when available, without creating a duplicate agent.
+- Ten feeds remain the development batch. The current session has four concurrent agent slots including the integrator; do not claim ten live agents. Group compatible feed contracts and reuse shared adapters to advance the batch within that limit.
+
 ## Completion boundary
 
 A feed is finished only when its app-owned process, validated inputs, source policy, provenance, failure/cancellation behavior, useful output and verification evidence are complete for its declared scope. A researched source, ready manifest or configured row alone is not a finished feed. Routine downloads remain Co*Tive's job after handoff.
