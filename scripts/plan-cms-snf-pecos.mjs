@@ -1,0 +1,14 @@
+import {createCliCancellation} from '../runner/cli-cancellation.mjs';
+const cancellation=createCliCancellation();
+try{
+ if(process.argv.length!==2)throw Error('No arguments accepted.');
+ const [{default:path},{lstat,open},{createHash},{APP_ROOT},{mnSelectionCanonical:canonical},{inspectCmsSnfPecosMetadataPlan:inspect,CMS_SNF_PECOS_PLAN_POLICY:policy}]=await Promise.all([import('node:path'),import('node:fs/promises'),import('node:crypto'),import('../runner/paths.mjs'),import('../runner/mn-construction-retained-selection.mjs'),import('../runner/cms-snf-pecos-metadata-prerequisite.mjs')]);
+ const signal=AbortSignal.any([cancellation.signal,AbortSignal.timeout(30000)]),base=path.join(APP_ROOT,'data/tmp/pecos-docs'),saved=[];await canonical(base,{signal});
+ const stable=(a,b)=>['ino','dev','size','mtimeNs','ctimeNs'].every(k=>a[k]===b[k]);
+ async function read(file,max){signal.throwIfAborted();const before=await lstat(file,{bigint:true});if(!before.isFile()||before.isSymbolicLink()||before.nlink!==1n||before.size>BigInt(max))throw Error('Unsafe input.');const h=await open(file,'r'),parts=[];let raw,total=0;try{if(!stable(before,await h.stat({bigint:true})))throw Error('Drift.');for(;;){signal.throwIfAborted();const buffer=Buffer.alloc(65536),{bytesRead}=await h.read(buffer);if(!bytesRead)break;total+=bytesRead;if(total>max)throw Error('Input cap.');parts.push(buffer.subarray(0,bytesRead));}raw=Buffer.concat(parts);if(!stable(before,await h.stat({bigint:true}))||!stable(before,await lstat(file,{bigint:true}))||BigInt(raw.length)!==before.size)throw Error('Drift.');}finally{await h.close();}return {raw,before,hash:createHash('sha256').update(raw).digest('hex')};}
+ async function load(name,max){const file=path.join(base,name),r=await read(file,max);saved.push({file,max,...r});return r.raw;}
+ const policyPath=path.join(APP_ROOT,'config/source-policies/cms-snf-pecos-august-plan.json');await canonical(path.dirname(policyPath),{signal});const p=await read(policyPath,10000);if(JSON.stringify(JSON.parse(p.raw))!==JSON.stringify(policy))throw Error('Policy drift.');saved.push({file:policyPath,max:10000,...p});
+ const result=await inspect({catalog:await load('catalog.json',8388608),enrollmentResources:await load('enrollment-resources.json',1048576),ownerResources:await load('owner-resources.json',1048576),documents:{enrollments:await load('enrollments.pdf',5242880),owners:await load('owners-current.pdf',5242880),guidance:await load('guidance-current.pdf',5242880)}},{signal});
+ for(const r of saved){const after=await read(r.file,r.max);if(after.hash!==r.hash||!stable(r.before,after.before))throw Error('Drift.');}await canonical(base,{signal});signal.throwIfAborted();console.log(JSON.stringify(result));
+}catch{console.error('PECOS retained metadata plan unavailable; no source requests or acquisition authorized.');process.exitCode=1;}
+finally{cancellation.dispose();}

@@ -1,0 +1,21 @@
+{
+  "profile": "cms-snf-pecos-august-metadata-plan@1.0.0",
+  "mode": "retained-metadata-and-proposed-plan-only",
+  "acquisitionReady": false,
+  "executionImplemented": false,
+  "approvedDownloadBudgetBytes": 0,
+  "networkRequestsThisPrerequisite": 0,
+  "attribution": "Centers for Medicare & Medicaid Services (CMS)",
+  "governmentEndorsement": false,
+  "sourceLicense": "https://www.usa.gov/government-works",
+  "rawExportPolicy": "internal",
+  "selectedExportPolicy": "local-review-only",
+  "publicExportAuthorized": false,
+  "individualOwnerFieldsSelected": false,
+  "ownerAddressesSelected": false,
+  "providerCoordination": "future shared physical CMS hospital/nursing exclusive lease required; not implemented by this module",
+  "automaticRetry": false,
+  "redirects": false,
+  "credentials": false,
+  "proposal": {"dataRequests": 3, "enrollmentMaxBytes": 8388608, "ownerMaxBytes": 67108864, "additionalNpiMaxBytes": 65536, "totalDataMaxBytes": 75563008, "requestTimeoutMs": 180000, "metadataRequestTimeoutMs": 30000, "sessionTimeoutMs": 900000, "cleanupTimeoutMs": 1000, "fullCohortStreamingRequired": true}
+}
