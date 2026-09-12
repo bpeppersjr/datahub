@@ -1,0 +1,23 @@
+# Nursing-home coverage extension
+
+Initial source-service slice only: `runner/cms-nursing-home-coverage-extension.mjs` and focused tests. No shared coverage-builder, planner, app, catalog, source acquisition or production-pointer changes are included. The consumer hook remains a separately reviewed integration step.
+
+The optional `cms-nursing-home-coverage-extension@1.0.0` envelope uses `cms_nursing_home_directory_reporting`, separate from hospital and generic business counts. Its source is the exact nursing registry declaration, which identifies a retained recovery and preserves the historical failed acquisition. Native verification delegates full registry membership/source replay; the aggregate helper is not a substitute for source eligibility validation.
+
+State and ZIP5 projections preserve reported values; ZIP4 remains separate and is not grouped. `reporting/cms-nursing-homes/state-zips.jsonl` conserves the entire cohort including missing ZIP/state and rows not represented in old views. National denominators are fixed through filters. The reviewed source has 14,690 rows, 14,680 states/DC and 10 territories; these are source directory rows, not businesses or verified operating sites. Synthetic tests also exercise unknown jurisdictions, missing ZIP and unrepresented geography.
+
+No source coordinate becomes a facility point: the registry preserves the publisher estimates and their quality flags, and the index rejects any record claiming facility-point eligibility. County directory counts remain null, not zero. Current business/site counts and national collection completeness remain null. No county assignment, postal inference or generic resolution profile is created.
+
+The native verifier pins original and retained registry manifests, validates full source membership and chronology, recomputes embedded view metrics and the full state/ZIP artifact, and rechecks bounded hashes/bytes/file identity for each output followed by original and saved registry manifests before checking directory ownership. Undeclared artifacts or retained nursing declarations reject. Shared-view policy preserves established precedence: existing retained-childcare-only views stay internal; existing MN credential combinations retain their reviewed local-review-only policy. The source-only grouped artifact remains local-review-only.
+
+Native verification accepts cancellation only. The separate data/tmp-confined test checkpoint permits mutation immediately before final rechecks; it does not replace source verification.
+
+## Retained-copy validation
+
+Root authorized copying the exact twelve files from failed job `ffb1fac4-4eb4-4ea4-b11c-875ebff4de41` and two files from recovery `9fe3aa54-dd38-42be-b28e-b1d363300a45` into previously absent identical relative paths in this isolated checkout. Copies rejected overwrites and source aliases; every original-before/original-after/copy hash matched. Full native recovery replay subsequently checked the fixed source pins. This was a local byte-preserving copy, not another acquisition or recovery run.
+
+The gated test `DATAHUB_TEST_NURSING_COVERAGE=1 node --test runner/cms-nursing-home-coverage-extension.test.mjs` passed all eight tests in 20.35 seconds with fetch disabled. A tiny synthetic registry/coverage envelope used the actual retained source unchanged, with source-specific full membership verification and no shared production builder. It conserved 14,690/14,680/10 across all/stateDC/territory counts and the complete state/ZIP artifact; counties remained null. It rejected saved-registry and grouped-output mutation after initial reads, and a rehashed altered grouping. Fixture outputs were cleaned after the test. Owned-file ESLint passed.
+
+Recovery manifest SHA256: `89ee608067aa5b97833957b753be61003dc2efcfa22cfaedbb3b78f020396d7e`; selected JSONL 30,397,131 bytes, SHA256 `677b1dc7b294f72feb0d6a0803d27c9f0f074887e5b9c5a59a6837c87a2320d8`. Verification retains original failed-source identity and source clocks. This proof is native retained-input verification within a synthetic aggregate fixture, not a production coverage release, shared-builder integration or completeness measurement.
+
+Dependency preparation in the isolated checkout cherry-picked reviewed nursing commits in order: `6afdbf0`, `3476734`, `70d3472`, `27ec32a`, `9915175`, now local `c15ece9`, `80d147d`, `f2ab1fb`, `135bf17`, `5e418cd`. The prerequisite handoff document was absent locally and was retained from its reviewed commit. These are existing dependencies already on main; integrate only the new coverage files, not the dependency commits or wholesale older shared files.
