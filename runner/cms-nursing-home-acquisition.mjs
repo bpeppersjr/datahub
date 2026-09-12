@@ -6,7 +6,7 @@ import {APP_ROOT} from './paths.mjs';
 import {mnSelectionCanonical as canonical} from './mn-construction-retained-selection.mjs';
 import {inspectCmsNursingHomeMetadata as inspectMetadata,inspectCmsNursingHomeCsvForConformance as inspectCsv,CMS_NURSING_HOME_PREREQUISITE_CONTRACT as CONTRACT} from './cms-nursing-home-prerequisite.mjs';
 
-const VERSION='cms-nursing-home-acquisition@1.0.0',POLICY='cms-nursing-home-acquisition@1.0.0';
+const VERSION='cms-nursing-home-acquisition@1.0.1',POLICY='cms-nursing-home-acquisition@1.0.0';
 const NOTICE='https://data.cms.gov/sites/default/files/2022-12/API%20FAQ%20%20v1_1.pdf';
 const NOTICE_SHA='6c45ef1ccb69bd3da4652769254472555bb83a87e8885d6c144e271cb0f53244';
 const DICTIONARY='https://data.cms.gov/provider-data/sites/default/files/data_dictionaries/nursing_home/NH_Data_Dictionary.pdf';
@@ -26,7 +26,7 @@ function options(v){check(v&&Object.getPrototypeOf(v)===Object.prototype&&Reflec
 function root(synthetic){return path.join(APP_ROOT,synthetic?'data/tmp/cms-nursing-home-acquisition':'data/business-sources/cms-nursing-home-provider-information/jobs');}
 async function read(file,max,signal){await canonical(path.dirname(file),{signal});signal?.throwIfAborted();const before=await lstat(file,{bigint:true});check(before.isFile()&&!before.isSymbolicLink()&&before.nlink===1n&&before.size<=BigInt(max));const h=await open(file,'r'),parts=[];let bytes=0;
  try{check(stable(before,await h.stat({bigint:true})));for(;;){signal?.throwIfAborted();const b=Buffer.alloc(65536),r=await h.read(b);if(!r.bytesRead)break;bytes+=r.bytesRead;check(bytes<=max);parts.push(b.subarray(0,r.bytesRead));}check(stable(before,await h.stat({bigint:true}))&&stable(before,await lstat(file,{bigint:true}))&&BigInt(bytes)===before.size);}finally{await h.close();}const data=Buffer.concat(parts);return {data,bytes,sha256:sha(data),identity:before};}
-function selectedRows(parsed){return parsed.rows.map(r=>({...r,provenance:{...r.provenance,policyProfile:POLICY,sourceProjectionVersion:'cms-nursing-home-prerequisite@1.0.0'}}));}
+function selectedRows(parsed){return parsed.rows.map(r=>({...r,provenance:{...r.provenance,policyProfile:POLICY,sourceProjectionVersion:CONTRACT.schemaVersion}}));}
 function assertNotice(raw,synthetic){check(raw.subarray(0,5).toString()==='%PDF-'&&raw.length<=1048576&&sha(raw)===(synthetic?sha(TEST_NOTICE):NOTICE_SHA));}
 function assertDictionary(raw,synthetic){check(raw.subarray(0,5).toString()==='%PDF-'&&raw.length<=5242880&&sha(raw)===(synthetic?sha(TEST_DICTIONARY):DICTIONARY_SHA));}
 const LIMITS=Object.freeze({requests:5,metadataBytes:1048576,dictionaryBytes:5242880,noticeBytes:1048576,csvBytes:33554432,totalResponseBytes:41943040,rows:25000,jobDeadlineMs:240000,cleanupGraceMs:1000,parallelRequests:1,retries:0,redirects:0});
