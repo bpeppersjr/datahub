@@ -75,7 +75,8 @@ function stageDefinitions(sources,optionalSources=[]) {
   args[0].push(...optionalSources.flatMap(source=>[CHILDCARE[source.sourceKey]?.flag,source.receiptPath??source.manifestPath]));
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,retainedChildcareSelection,mnCredentialSelection,memoryProfile,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,retainedChildcareSelection,mnCredentialSelection,cmsHospitalSelection,memoryProfile,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+  if(cmsHospitalSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('CMS hospital admission requires a fresh plan, not historical recovery.');
   if(mnCredentialSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('Minnesota credential integration requires a fresh plan, not historical recovery.');
   if(retainedChildcareSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('Retained childcare integration requires a fresh plan, not historical recovery.');
   const memoryPolicy = productionMemoryPolicy(memoryProfile);
@@ -117,6 +118,12 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
     stages[0].args.push('--mn-credential-selection',mnCredentialPin.declaration.selection.path);
   }
   const modules=tnChildcare!==undefined||tnFreshChildcare!==undefined||ohio?[...TN_MODULES]:[...MODULES];
+  let cmsHospitalPin=null,cmsHospitalApi=null;
+  if(cmsHospitalSelection!==undefined){
+    cmsHospitalApi=await import('./cms-hospital-production-input.mjs');
+    cmsHospitalPin=await cmsHospitalApi.pinCmsHospitalProductionInput(root,cmsHospitalSelection,{safe,fileHash});
+    stages[0].args.push('--cms-hospital-selection',cmsHospitalPin.declaration.selection.path);
+  }
   if(tnChildcare===undefined&&tnFreshChildcare===undefined&&!ohio){
     if(optionalSourcePins.length)modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs','runner/source-http-guards.mjs','runner/paths.mjs');
     else modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs');
@@ -126,13 +133,15 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   if(memoryPolicy)modules.push('runner/production-memory.mjs','runner/production-reconciliation.mjs');
   if(retainedChildcarePin)modules.push(...await retainedChildcareApi.retainedChildcareImplementationFiles(root));
   if(mnCredentialPin)modules.push(...await mnCredentialApi.mnCredentialImplementationFiles(root));
-  const implementationPins = []; for(const file of retainedChildcarePin||mnCredentialPin?[...new Set(modules)].sort():modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
+  if(cmsHospitalPin)modules.push(...await cmsHospitalApi.cmsHospitalImplementationFiles(root));
+  const implementationPins = []; for(const file of retainedChildcarePin||mnCredentialPin||cmsHospitalPin?[...new Set(modules)].sort():modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
   const outputRoot = `data/reconciliations/production-runs/${runId}`; await safe(root,outputRoot,false);
   const plan = {schemaVersion:1,mode:'production',runId,createdAt:new Date().toISOString(),outputRoot,readinessPlanSha256:report.plan_sha256,definitionSha256:hash(definitionBytes),sourcePins,inputPins,previousOutputs,scriptPins,implementationPins,stages};
   if(memoryPolicy)plan.memoryPolicy=memoryPolicy;
   if(optionalSourcePins.length)plan.optionalSourcePins=optionalSourcePins;
   if(retainedChildcarePin)plan.retainedChildcarePin=retainedChildcarePin;
   if(mnCredentialPin)plan.mnCredentialPin=mnCredentialPin;
+  if(cmsHospitalPin)plan.cmsHospitalPin=cmsHospitalPin;
   if(recoverBenchmarkFrom !== undefined) {
     plan.recovery = await benchmarkRecovery(root,plan,recoverBenchmarkFrom);
     plan.stages = stages.slice(5);
@@ -155,6 +164,7 @@ async function checkPins(root,plan,outputs) {
   const checks = [[DEFINITION,plan.definitionSha256]];
   for(const pin of plan.retainedChildcarePin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
   for(const pin of plan.mnCredentialPin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
+  for(const pin of plan.cmsHospitalPin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
   for(const p of plan.recovery?.evidencePins??[])checks.push([p.path,p.sha256]);
   for(const p of plan.sourcePins) checks.push([p.pointer,p.sha256],[p.manifestPath,p.manifestSha256],[p.connectorConfigPath,p.connectorConfigSha256]);
   for(const p of plan.optionalSourcePins??[]){checks.push([p.manifestPath,p.manifestSha256]);for(const artifact of [...p.artifacts,...p.configurationPins])checks.push([artifact.path,artifact.sha256]);}
@@ -312,7 +322,7 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
   if(Object.hasOwn(plan,'memoryPolicy')&&!isDeepStrictEqual(plan.memoryPolicy,productionMemoryPolicy(plan.memoryPolicy?.id)))throw new Error('Production memory policy changed.');
   const current = await planProductionReconciliation({root,runId:plan.runId,...recoveryOptions,...selected,
     ...(plan.retainedChildcarePin?{retainedChildcareSelection:plan.retainedChildcarePin.declaration.selection.path}:{}),
-    ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
+    ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),...(plan.cmsHospitalPin?{cmsHospitalSelection:plan.cmsHospitalPin.declaration.selection.path}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
   for(const key of Object.keys(current).filter(key=>!['createdAt','planSha256'].includes(key))) if(JSON.stringify(current[key]) !== JSON.stringify(plan[key])) throw new Error(`Production reconciliation plan changed: ${key}.`);
   const runRoot=await safe(root,plan.outputRoot,false), lockPath=await safe(root,'data/reconciliations/controller.lock',false); await mkdir(path.dirname(lockPath),{recursive:true}); await safe(root,path.dirname(lockPath));
   let lock; const token=randomUUID();
@@ -336,7 +346,8 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
       const logPath=path.join(runRoot,`${stage.id}.log`);const result=await executor(stage,{cwd:root,logPath,memoryPolicy:plan.memoryPolicy,onSpawn:async pid=>{record.pid=pid;await save();}});
       record.exitCode=result?.exitCode??1;record.pid??=result?.pid??null;record.finishedAt=new Date().toISOString();record.log={path:path.basename(logPath),...await fileHash(logPath)};
       if(record.exitCode!==0)throw new Error(`Stage ${stage.id} failed with exit code ${record.exitCode}.`);
-      if(stage.kind==='build') {const group=stage.id.split('-')[0];const expected=group==='registry'?[...plan.sourcePins,...(plan.optionalSourcePins??[]),...[...(plan.retainedChildcarePin?.declaration.bindings??[]),...(plan.mnCredentialPin?[plan.mnCredentialPin.declaration.source]:[])].map(b=>({datasetId:b.dataset_id,releaseId:b.release_id,manifestSha256:b.manifest_sha256,manifestPath:b.manifest_path}))]:group==='resolution'?[outputs.registry]:group==='benchmark'?[outputs.registry,outputs.resolution]:[outputs.registry,outputs.resolution,outputs.benchmark,...plan.inputPins.filter(p=>p.id!=='zbp')];outputs[group]=await emitted(root,group,plan.previousOutputs[group],expected,plan.optionalSourcePins?.find(p=>p.sourceKey==='ohChildcareReceipt'));receipt.outputs[group]=outputs[group];record.release=outputs[group];}
+      if(stage.kind==='build') {const group=stage.id.split('-')[0];const expected=group==='registry'?[...plan.sourcePins,...(plan.optionalSourcePins??[]),...[...(plan.retainedChildcarePin?.declaration.bindings??[]),...(plan.mnCredentialPin?[plan.mnCredentialPin.declaration.source]:[]),...(plan.cmsHospitalPin?[plan.cmsHospitalPin.declaration.source]:[])].map(b=>({datasetId:b.dataset_id,releaseId:b.release_id,manifestSha256:b.manifest_sha256,manifestPath:b.manifest_path}))]:group==='resolution'?[outputs.registry]:group==='benchmark'?[outputs.registry,outputs.resolution]:[outputs.registry,outputs.resolution,outputs.benchmark,...plan.inputPins.filter(p=>p.id!=='zbp')];outputs[group]=await emitted(root,group,plan.previousOutputs[group],expected,plan.optionalSourcePins?.find(p=>p.sourceKey==='ohChildcareReceipt'));if(group==='registry'&&plan.cmsHospitalPin){const manifest=JSON.parse(await readFile(await safe(root,outputs[group].manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.cms_hospital_directory_reporting,plan.cmsHospitalPin.declaration))throw new Error('Emitted CMS hospital admission differs from pinned declaration.');}receipt.outputs[group]=outputs[group];record.release=outputs[group];}
+      if(stage.id==='registry-build'&&plan.cmsHospitalPin&&plan.mnCredentialPin){const manifest=JSON.parse(await readFile(await safe(root,outputs.registry.manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.mn_construction_credential_reporting,plan.mnCredentialPin.declaration))throw new Error('Emitted co-selected Minnesota credential admission differs from pinned declaration.');}
       await checkPins(root,plan,outputs);if(persistenceError)throw persistenceError;record.status='SUCCEEDED';await save();
     }
     if(receipt.status==='RUNNING')receipt.status='SUCCEEDED';
