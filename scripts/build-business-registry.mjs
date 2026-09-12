@@ -49,6 +49,7 @@ Options:
   --oh-childcare-receipt <path> Optional verified Ohio app receipt; registry 2.15 reporting only
   --retained-childcare-selection <path> Explicit seven-state retained candidate selection; internal reporting only
   --mn-credential-selection <path> Explicit retained Minnesota credential selection; local-review-only, not physical sites
+  --cms-nursing-home-selection <path> Exact retained recovered nursing directory; no identity or current-operations inference
   --cms-hospital-selection <path> Exact retained CMS hospital selection; directory rows only, not identity reconciled
   --help           Show this help
 `;
@@ -101,6 +102,11 @@ function parseArguments(args) {
       const value=args[++index];
       if(!value||value.startsWith('--')||options.cmsHospitalSelection)throw new Error('Choose one CMS hospital selection.');
       options.cmsHospitalSelection=value;continue;
+    }
+    if (argument === '--cms-nursing-home-selection') {
+      const value=args[++index];
+      if(!value||value.startsWith('--')||options.cmsNursingHomeSelection)throw new Error('Choose one CMS nursing-home selection.');
+      options.cmsNursingHomeSelection=value;continue;
     }
     if (argument === '--retained-childcare-selection') {
       const value = args[++index];
@@ -225,6 +231,7 @@ try {
     retainedChildcareSelection: options.retainedChildcareSelection ? assertInsideApp(path.resolve(APP_ROOT, options.retainedChildcareSelection)) : null,
     mnCredentialSelection: options.mnCredentialSelection ? assertInsideApp(path.resolve(APP_ROOT, options.mnCredentialSelection)) : null,
     cmsHospitalSelection: options.cmsHospitalSelection ? assertInsideApp(path.resolve(APP_ROOT, options.cmsHospitalSelection)) : null,
+    cmsNursingHomeSelection: options.cmsNursingHomeSelection ? assertInsideApp(path.resolve(APP_ROOT, options.cmsNursingHomeSelection)) : null,
     logger: (message) => process.stdout.write(`${message}\n`),
   });
   process.stdout.write(`${JSON.stringify({
