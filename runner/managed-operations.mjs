@@ -15,9 +15,22 @@ import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./s
 import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mjs";
 import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
 import { MN_CREDENTIAL_FLAT_FIELDS, MN_CREDENTIAL_FLAT_REQUIRED_FIELDS, validateMnCredentialFlatRequest, verifyMnCredentialFlatForOperation } from './mn-credential-flat-export.mjs';
+import {CMS_HOSPITAL_RETAINED_ADOPTION,CMS_ADOPTION_DEADLINE_MS,verifyCmsHospitalAdoption} from './cms-hospital-adoption.mjs';
+
+// Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
+// child/verifier fails to settle within its bounded cleanup interval.
+function adoptionStage(work,signal,cleanupMs){
+  return new Promise((resolve,reject)=>{
+    let timer,finished=false;
+    const finish=(error,value)=>{if(finished)return;finished=true;clearTimeout(timer);signal.removeEventListener('abort',abort);if(error)reject(error);else resolve(value);};
+    const abort=()=>{timer=setTimeout(()=>finish(Object.assign(Error('Adoption cleanup remains unconfirmed.'),{code:'CMS_ADOPTION_UNSETTLED'})),cleanupMs);};
+    signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+    Promise.resolve(work).then(value=>finish(signal.aborted?signal.reason:null,value),error=>finish(error));
+  });
+}
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -34,10 +47,11 @@ const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
   artifacts: PRIVATE_EVIDENCE.includes(record.kind) || record.kind==='credential-export'&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
-  result: record.kind==='credential-export' ? publicCredentialResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
+  result: record.kind==='source-adoption' ? publicAdoptionResult(record) : record.kind==='credential-export' ? publicCredentialResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
     ? { ...(record.result ?? {}), [record.kind === "source-acquisition" ? "snapshotReady" : "normalizationReady"]: false, inspectionRequired: true } : record.result ?? {},
 });
 function publicCredentialResult(record){const result={...(record.result??{})};delete result.descriptor;if(['FAILED','CANCELLED','UNKNOWN'].includes(record.status)){result.artifactIntegrityVerified=false;result.inspectionRequired=true;}return result;}
+function publicAdoptionResult(record){const result={...(record.result??{})};delete result.descriptor;if(record.status!=='SUCCEEDED'){delete result.summary;result.receiptIntegrityVerified=false;result.inspectionRequired=true;}return result;}
 async function hashFile(file,signal) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file,{signal})) { signal?.throwIfAborted();bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
 function processPresence(pid) {
@@ -73,6 +87,13 @@ export class ManagedOperations {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
     this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
     this.credentialVerifier = options.credentialVerifier ?? verifyMnCredentialFlatForOperation;
+    this.adoptionVerifier = options.adoptionVerifier ?? verifyCmsHospitalAdoption;
+    this.adoptionTiming={deadlineMs:CMS_ADOPTION_DEADLINE_MS,childCleanupMs:35000,verifierCleanupMs:1000};
+    if(options.adoptionTestTiming!==undefined){
+      const timing=options.adoptionTestTiming;
+      if(typeof options.executor!=='function'||typeof options.adoptionVerifier!=='function'||!timing||Object.keys(timing).length!==3||!Object.keys(this.adoptionTiming).every(key=>Number.isSafeInteger(timing[key])&&timing[key]>0&&timing[key]<=this.adoptionTiming[key]))throw Error('Invalid adoption test timing.');
+      this.adoptionTiming={...timing};
+    }
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
@@ -104,7 +125,8 @@ export class ManagedOperations {
         endpoint: "/api/data-operations/ok-childcare-collections", scope: "one-center-only-public-search", requestCount: 3,
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
-      credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'} };
+      credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
+      retainedSourceAdoptions:[{...CMS_HOSPITAL_RETAINED_ADOPTION}] };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async startCollection(input = {}) {
@@ -118,6 +140,13 @@ export class ManagedOperations {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
     try { return await this.#start("cohort-snapshot", input.includeRetainedSamples ? { includeRetainedSamples: true } : {}); }
     catch (error) { this.reserved = false; throw error; }
+  }
+  async startSourceAdoption(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||Object.getOwnPropertyDescriptor(input,'sourceId')?.value!==CMS_HOSPITAL_RETAINED_ADOPTION.sourceId)throw invalid('Retained adoption requires only the enrolled CMS hospital sourceId.');
+    // Even injected executors cannot change the native fixed operation output root.
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Retained adoption requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('source-adoption',{sourceId:input.sourceId});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -345,14 +374,15 @@ export class ManagedOperations {
     for (let attempt = 0; attempt < (scheduling ? 1 : 4); attempt += 1) { id = scheduling?.operationId ?? this.idFactory(); if (!safeId(id)) throw new Error("Generated operation ID is invalid."); directory = path.join(this.root, id); try { await mkdir(directory); break; } catch (error) { if (error.code === "EEXIST") { if (scheduling) throw conflict("Scheduled operation directory already exists; execution is blocked."); directory = null; continue; } throw error; } }
     if (!directory) throw new Error("Could not allocate an operation ID.");
     if (this.operations.has(id)) throw new Error("Operation ID collision.");
-    const record = { id, kind, status: "QUEUED", createdAt: this.now(), finishedAt: null, error: null, artifacts: [], result: kind === "source-prerequisite" && details.sourceId === "me-asc-preflight" ? { ...ME_ASC_PREREQUISITE_RESULT } : {}, details, owner: { supervisorPid: process.pid } };
+    const record = { id, kind, status: "QUEUED", createdAt: this.now(), finishedAt: null, error: null, artifacts: [], result: kind==='source-adoption'?{sourceId:details.sourceId,receiptIntegrityVerified:false,inspectionRequired:true,newAcquisitionPerformed:false}:kind === "source-prerequisite" && details.sourceId === "me-asc-preflight" ? { ...ME_ASC_PREREQUISITE_RESULT } : {}, details, owner: { supervisorPid: process.pid } };
     if (scheduling) record.scheduling = scheduling;
     this.operations.set(id, record); await this.#persist(record);
     const controller = new AbortController(); this.running.set(id, controller);
     this.reserved = false;
+    const adoptionTimer=kind==='source-adoption'?setTimeout(()=>controller.abort(Error('Retained adoption deadline expired.')),this.adoptionTiming.deadlineMs):null;
     controller.done = this.#run(record, controller).catch((error) => {
       record.status = "FAILED"; record.finishedAt = this.now(); record.error = `Unable to persist operation state: ${cleanError(error)}`;
-    }).finally(() => this.running.delete(id));
+    }).finally(() => {clearTimeout(adoptionTimer);this.running.delete(id);});
     return publicOperation(record);
   }
   async #run(record, controller) {
@@ -363,6 +393,7 @@ export class ManagedOperations {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
+      else if(record.kind==='source-adoption') {script='scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -389,8 +420,18 @@ export class ManagedOperations {
       }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
-      const execution = await this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: ['export','credential-export'].includes(record.kind) ? EXPORT_CANCEL_GRACE_MS : COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, onSpawn: (pid) => { record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
-      if(record.kind==='credential-export') {
+      const work = this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: ['export','credential-export'].includes(record.kind) ? EXPORT_CANCEL_GRACE_MS : COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, onSpawn: (pid) => { if(record.owner)record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
+      const execution = await (record.kind==='source-adoption'?adoptionStage(work,controller.signal,this.adoptionTiming.childCleanupMs):work);
+      if(record.kind==='source-adoption') {
+        if(controller.signal.aborted||execution?.code!==0)throw Error('Retained adoption child did not complete.');
+        if(typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Retained adoption descriptor unavailable.');
+        const descriptor=JSON.parse(execution.stdout),receipt=await adoptionStage(this.adoptionVerifier(descriptor,{operationId:record.id},{signal:controller.signal}),controller.signal,this.adoptionTiming.verifierCleanupMs);
+        controller.signal.throwIfAborted();
+        if(receipt.operationId!==record.id||receipt.executionMode!=='verified-retained-source'||receipt.startedAt<record.startedAt||receipt.finishedAt<receipt.startedAt||receipt.summary.sourceRunId!==CMS_HOSPITAL_RETAINED_ADOPTION.runId||receipt.summary.sourceManifestSha256!==CMS_HOSPITAL_RETAINED_ADOPTION.manifestSha256)throw Error('Retained adoption binding rejected.');
+        record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:true,inspectionRequired:false,adoptedAt:receipt.finishedAt,sourceReplayPerformedAtAdoption:true,sourceReplayPerformedThisRead:false,summary:receipt.summary,exportPolicy:'local-review-only',newAcquisitionPerformed:false,descriptor};
+        record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='credential-export') {
         if(controller.signal.aborted||execution?.code!==0)throw new Error('Credential export did not complete cleanly.');
         if(typeof execution.stdout!=='string'||execution.stdout.length>65536)throw new Error('Credential export descriptor unavailable.');
         const parsed=JSON.parse(execution.stdout);await this.#verifyCredentialExport(record,parsed,controller.signal);
@@ -421,7 +462,7 @@ export class ManagedOperations {
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
     } catch (error) {
-      record.status = controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
+      record.status = error.code==='CMS_ADOPTION_UNSETTLED' ? 'UNKNOWN' : controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
       if (PRIVATE_EVIDENCE.includes(record.kind)) {
         record.result.inspectionRequired = true;
         if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
@@ -437,8 +478,9 @@ export class ManagedOperations {
     }
     if (record.kind === "source-acquisition" && record.status !== "SUCCEEDED") record.result.snapshotReady = false;
     if (record.kind === "source-normalization" && record.status !== "SUCCEEDED") record.result.normalizationReady = false;
+    if(record.kind==='source-adoption'&&record.status!=='SUCCEEDED'){record.artifacts=[];record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:false,inspectionRequired:true,newAcquisitionPerformed:false};}
     if(record.kind==='credential-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={recordUnit:'publisher-business-credential-row',credentialRowsWritten:null,artifactIntegrityVerified:false,inspectionRequired:true,policyMode:'local-review-only',cancellationRequested:controller.signal.aborted};record.error='Credential export did not finish with verified output. Preserve its operation directory for inspection; no automatic retry.';}
-    record.finishedAt = this.now(); delete record.owner; await this.#persist(record);
+    if(record.status!=='UNKNOWN'){record.finishedAt = this.now(); delete record.owner;} await this.#persist(record);
   }
   async #discover(record, directory) {
     if (record.kind === "collection") { record.result = { runId: record.id, plan: { taskCount: record.details.plan.taskCount, gaps: record.details.plan.gaps, warnings: record.details.plan.warnings } }; return; }

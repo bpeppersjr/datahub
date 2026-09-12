@@ -175,3 +175,10 @@ test("managed refresh schedule API creates disabled schedules without launching 
   await assert.rejects(readFile(path.join(fixture.root, "data/refresh-schedules/owner.lock")), /ENOENT/);
   assert.equal(JSON.parse(await readFile(path.join(fixture.root, "data/refresh-schedules/state.json"))).schedules[0].enabled, false);
 });
+
+test('CMS retained adoption API authenticates and rejects caller source/output overrides without dispatch',async t=>{
+  const fixture=await makeFixture(t),route='/api/data-operations/source-adoptions';
+  assert.equal((await request(fixture.base,route,{method:'POST',authenticated:false,body:{sourceId:'cms-hospital-general-information'}})).status,401);
+  for(const body of [{},{sourceId:'other'},{sourceId:'cms-hospital-general-information',url:'https://example.com'},{sourceId:'cms-hospital-general-information',output:'data/elsewhere'}])assert.equal((await request(fixture.base,route,{method:'POST',body})).status,400);
+  assert.deepEqual(await (await request(fixture.base,'/api/data-operations/operations')).json(),[]);
+});

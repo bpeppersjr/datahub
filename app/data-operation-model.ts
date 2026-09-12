@@ -4,12 +4,14 @@ export type Operation = {
   result: { rowsWritten?: number; credentialRowsWritten?:number|null; recordUnit?:string; artifactIntegrityVerified?:boolean; policyMode?: string; sourceId?: string; receiptIntegrityVerified?: boolean;
     inspectionRequired?: boolean; snapshotReady?: boolean; normalizationReady?: boolean; normalizedPublished?: boolean;
     normalizedPlaces?: number; metadataReady?: boolean; runtimeReady?: boolean;
+    adoptedAt?:string; newAcquisitionPerformed?:boolean; summary?:{sourceRunId:string;sourceManifestSha256:string;sourceDates:{issued:string;modified:string;released:string};acquisitionStartedAt:string;acquisitionCompletedAt:string;directoryRows:number;statesDcRows:number;territoryRows:number;unknownStateRows:number;states:Record<string,number>;territories:Record<string,number>};
     plan?: { taskCount?: number }; tasks?: Array<{ task_id: string; source_id?: string; state?: string; status: string }> } | null;
 };
 export function operationLabel(kind: string) {
   const labels: Record<string, string> = { collection: 'Industry collection', export: 'Flat-file export', 'credential-export':'Credential flat-file export',
     'source-prerequisite': 'Source prerequisite', 'source-acquisition': 'Source acquisition',
     'source-normalization': 'Retained-data normalization', 'cohort-snapshot': 'Retained cohort snapshot' };
+  labels['source-adoption']='Retained source inspection / adoption';
   return Object.hasOwn(labels, kind) ? labels[kind] : 'Data operation';
 }
 export function eligibleOvertureAcquisition(operation: Operation) {
@@ -19,6 +21,7 @@ export function eligibleOvertureAcquisition(operation: Operation) {
 }
 export function operationEvidence(operation: Operation) {
   const result = operation.result;
+  if(operation.kind==='source-adoption'&&operation.status==='SUCCEEDED'&&result?.receiptIntegrityVerified===true)return 'Existing source replayed at adoption time; no new acquisition. Dated directory rows, not unique businesses or verified current operating sites. No downloads or national promotion.';
   if(operation.kind==='credential-export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return 'Credential rows independently verified. Local review only; not business or physical-site totals.';
   if (result?.inspectionRequired || (['source-acquisition', 'source-normalization'].includes(operation.kind) && ['FAILED', 'CANCELLED', 'UNKNOWN'].includes(operation.status))) {
     return 'Retained evidence requires inspection. Not ready for downstream processing.';
