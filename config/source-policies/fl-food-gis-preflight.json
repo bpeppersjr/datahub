@@ -1,0 +1,14 @@
+{
+  "profile": "fl-food-gis-preflight@1.0.0",
+  "publisher": "Florida FDACS Division of Food Safety",
+  "serviceItemId": "bd0fc3c55cac44f3bbd5f3c81346b48a",
+  "basis": "Publisher-hosted public-view metadata assessment only; empty dataset notice does not establish provider acquisition or redistribution terms.",
+  "scope": "Fixed service/retail-layer/iteminfo metadata only; no count, feature, ID, export, PDF, contact or geometry queries.",
+  "exportPolicy": "internal",
+  "publicExportAuthorized": false,
+  "facilityAcquisitionPerformed": false,
+  "sharedBudgetKey": "florida-fdacs-food-gis",
+  "retention": "Immutable internal prerequisite evidence; no automatic purge or retry.",
+  "attribution": "Florida Department of Agriculture and Consumer Services, Division of Food Safety.",
+  "secretReferences": []
+}
