@@ -382,6 +382,55 @@ test("an empty task plan fails and preserves explicit state coverage gaps", asyn
   });
 });
 
+test("explicit source selection reports state sources omitted from this plan", () => {
+  const config = offlineConfig();
+  config.sources["state-fixture"].states = ["NY"];
+  config.sources["national-fixture"] = {
+    script: "scripts/build-fdic-bankfind.mjs", scope: "national", states: "all",
+    state_filter_supported: false, prerequisites: [],
+  };
+  config.industries.retail.push("national-fixture");
+
+  const nationalOnly = buildIndustryPlan(config, { industries: ["retail"], states: ["NY"], sourceIds: ["national-fixture"] });
+  assert.deepEqual(nationalOnly.gaps, [{
+    industry: "retail", state: "NY",
+    reason: "configured state source not selected; no state collection in this plan",
+  }]);
+
+  const stateOnly = buildIndustryPlan(config, { industries: ["retail"], states: ["NY"], sourceIds: ["state-fixture"] });
+  assert.deepEqual(stateOnly.gaps, []);
+
+  const defaultPlan = buildIndustryPlan(config, { industries: ["retail"], states: ["CA", "NY", "TX"] });
+  assert.deepEqual(defaultPlan.gaps, [
+    { industry: "retail", state: "CA", reason: "no configured state-scoped source; national sources are not state-filtered" },
+  ]);
+});
+
+test("explicit selection preserves the manual-only state gap reason", () => {
+  const config = offlineConfig();
+  config.sources["state-fixture"].states = ["NY"];
+  config.sources["state-fixture"].manual_selection_required = true;
+  config.sources["ny-fixture"].states = ["CA"];
+  config.sources["national-fixture"] = {
+    script: "scripts/build-fdic-bankfind.mjs", scope: "national", states: "all",
+    state_filter_supported: false, prerequisites: [],
+  };
+  config.industries.retail.push("national-fixture");
+
+  const plan = buildIndustryPlan(config, { industries: ["retail"], states: ["NY"], sourceIds: ["national-fixture"] });
+  assert.deepEqual(plan.gaps, [{
+    industry: "retail", state: "NY",
+    reason: "manual-only state source not selected; no automatic state collection",
+  }]);
+  const defaultPlan = buildIndustryPlan(config, { industries: ["retail"], states: ["NY"] });
+  assert.deepEqual(defaultPlan.gaps, [{
+    industry: "retail", state: "NY",
+    reason: "manual-only state source not selected; no automatic state collection",
+  }]);
+  const selectedManual = buildIndustryPlan(config, { industries: ["retail"], states: ["NY"], sourceIds: ["state-fixture"] });
+  assert.deepEqual(selectedManual.gaps, []);
+});
+
 test("invalid config is rejected before execution", () => {
   assert.throws(() => validateIndustryConfig({ version: 1, max_concurrency: 11, states: [], industries: {}, sources: {} }), /max_concurrency/);
 });

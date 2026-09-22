@@ -111,13 +111,18 @@ export function buildIndustryPlan(config, { industries, states, sourceIds, retai
   const gaps = [];
   if (retained) for (const task of tasks) if (retained[task.sourceId]) task.retainedInput = retained[task.sourceId];
   for (const industry of selectedIndustries) for (const state of selectedStates) {
-    const hasStateSource = config.industries[industry].some((id) => config.sources[id].scope === "state" && config.sources[id].states.includes(state)
-      && (!config.sources[id].manual_selection_required || sourceIds?.includes(id)));
+    const hasStateSource = tasks.some((task) => task.scope === "state" && task.state === state
+      && task.industries.includes(industry));
     if (!hasStateSource) {
       const manualOmitted = config.industries[industry].some(id => config.sources[id].scope === 'state'
-        && config.sources[id].states.includes(state) && config.sources[id].manual_selection_required);
+        && config.sources[id].states.includes(state) && config.sources[id].manual_selection_required
+        && !tasks.some(task => task.sourceId === id && task.state === state && task.industries.includes(industry)));
+      const configuredSourceOmitted = sourceIds !== undefined && config.industries[industry].some(id =>
+        config.sources[id].scope === "state" && config.sources[id].states.includes(state));
       gaps.push({ industry, state, reason: manualOmitted
         ? 'manual-only state source not selected; no automatic state collection'
+        : configuredSourceOmitted
+          ? 'configured state source not selected; no state collection in this plan'
         : "no configured state-scoped source; national sources are not state-filtered" });
     }
   }

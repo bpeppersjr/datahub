@@ -24,7 +24,7 @@ Windows users can run `update-industry.bat plan --industry construction --state 
 
 Published source releases stay inside their run folder. They require a subsequent registry, resolution, benchmark, and coverage rebuild before appearing in production national views. Logs are local and inherit source-connector redaction behavior. An interrupted run is retained for inspection; start a new run ID to retry, since run folders cannot be overwritten. Automatic restart recovery and scheduling are not implemented by this CLI.
 
-Plans also report per-industry/state gaps where no state-scoped source is configured. An empty plan is a failed run. This runner does not download data during planning and has no AI or discovery behavior. Existing builder scripts remain the source of acquisition and validation policy; this layer only coordinates them.
+Plans report per-industry/state gaps where no state-scoped source will run. With an explicit `sourceIds` selection, a configured but omitted state source remains a gap in that plan; manual-only sources retain their separate omission reason. Default broad plans continue to use the configured sources, while national sources never count as state collection. An empty plan is a failed run. This runner does not download data during planning and has no AI or discovery behavior. Existing builder scripts remain the source of acquisition and validation policy; this layer only coordinates them.
 
 ## Tax-exempt organization refresh
 
