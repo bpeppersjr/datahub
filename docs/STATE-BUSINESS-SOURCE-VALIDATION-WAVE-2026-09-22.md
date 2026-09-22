@@ -1,0 +1,9 @@
+# Official-source validation wave — 2026-09-22
+
+This reporting-only wave covers the five previously unassessed broad-organization jurisdictions AR, HI, IL, MS, and NV. It records what the official state publishers currently describe; it does not obtain records or authorize a connector. No account was created, terms accepted, publisher contacted, fee paid, portal automated, file downloaded, or production pointer changed.
+
+All five decisions are **HOLD**. Arkansas advertises paid entity lists but does not publish a stable schema, price, rights, automation, or refresh contract. Hawaii has list services but is in a 2026 portal migration, so current bulk continuity and terms are unresolved. Illinois publishes Corporation and LLC bulk families, but automated website queries are prohibited and eligible address, refresh, and redistribution semantics remain unresolved. Mississippi exposes a free report with documented columns and a 300,000-row Excel ceiling, while full export requires contact and lacks published rights and refresh terms. Nevada's primary law supports paid database searching/access, but no current official complete bulk product or machine contract was established.
+
+Each state has a versioned artifact in `config/state-business-source-<state>-2026-09-22.json`. The artifacts explicitly preserve access mode, fields, legal-status caveat, statewide scope, address/ZIP availability, automation and fees, redistribution, temporal refresh, official citations, unresolved gates, and prohibited actions. They are intentionally separate from the historical production-facing assessment catalog so a source lead cannot masquerade as connector approval.
+
+Run `npm run state-source-validation-wave:check` and `node --test runner/state-business-source-validation-wave.test.mjs` to validate the evidence boundary. These checks are offline and acquire no data.

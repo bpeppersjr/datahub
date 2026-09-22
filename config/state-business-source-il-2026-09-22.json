@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0", "assessment_id": "state-business-source-il-20260922-v1", "observed_at": "2026-09-22", "state_abbreviation": "IL", "publisher": "Illinois Secretary of State, Department of Business Services",
+  "access": { "mode": "bulk-request", "api_available": false, "automation": "Official Corporation and LLC bulk files are exposed through the Data Transparency portal, but automated queries to the website are expressly prohibited and no API is documented.", "fees": "The Data Transparency bulk datasets are publicly downloadable; separate database information is also offered for sale by contract." },
+  "fields": "Separate Corporation and LLC master, name, agent, annual-report, assumed/old-name, stock/other, manager, and series files are listed with downloadable documentation; person and agent tables require exclusion.",
+  "active_status_semantics": "The individual database reports active/inactive status, which is registry standing rather than proof of current business operation.",
+  "statewide_completeness": "Business Services oversees registered corporations, nonprofits, LLCs, LPs, and LLPs, while the published transparency bulk lists specifically identify Corporation and LLC datasets and therefore do not prove complete operating-business coverage.",
+  "address_and_zip": "The search database includes registered-office addresses, but the reviewed bulk landing page does not itself prove an eligible organization-controlled address or ZIP contract.",
+  "redistribution": "The datasets are informational, without completeness/fitness warranties; the search database is state property and unauthorized bulk copying is prohibited. Derived redistribution rights for the transparency files remain unresolved.",
+  "temporal_refresh": "The portal publishes bulk files but the reviewed landing page does not state snapshot timestamps, refresh cadence, deletion/replay semantics, manifests, or checksums.",
+  "decision": "hold", "authorizations": { "download": false, "signup": false, "contact": false, "scraping": false, "production": false },
+  "unresolved_gates": ["entity-type-scope", "eligible-address-role", "status-codebook", "refresh-contract", "automation-boundary", "redistribution"],
+  "citations": [
+    { "url": "https://www.ilsos.gov/data/bus-serv-home.html", "supports": "bulk file families, disclaimers, and automated-query prohibition" },
+    { "url": "https://www.ilsos.gov/departments/business-services/business-searches.html", "supports": "search fields, active/inactive semantics, database ownership and bulk-copy prohibition" },
+    { "url": "https://www.ilsos.gov/departments/business-services.html", "supports": "registered entity-type scope" }
+  ],
+  "next_action": "Review the official file documentation and terms offline for a person-free, organization-address projection and refresh/redistribution contract if separately authorized. Do not download files, automate queries, sign up, contact, or execute production from this assessment."
+}

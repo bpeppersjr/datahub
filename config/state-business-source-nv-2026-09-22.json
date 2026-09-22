@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0", "assessment_id": "state-business-source-nv-20260922-v1", "observed_at": "2026-09-22", "state_abbreviation": "NV", "publisher": "Nevada Secretary of State, Commercial Recordings Division",
+  "access": { "mode": "search-only", "api_available": false, "automation": "Official law authorizes paid searches and access to the Secretary's computer database, but the reviewed primary sources do not document a public bulk file, API, or unattended recurring route.", "fees": "Nevada law requires a reasonable fee for database searches and permits fees for database access; a current statewide extract price was not established." },
+  "fields": "The reviewed official sources establish commercial-record database access authority but do not publish an extract schema, field dictionary, person-free projection, or stable identifier contract.",
+  "active_status_semantics": "No official bulk status codebook was found in the reviewed evidence; legal filing status must not be interpreted as current business activity.",
+  "statewide_completeness": "Commercial Recordings covers Title 7 filings, not all operating organizations, and no official complete-extract scope or control total was established.",
+  "address_and_zip": "No reviewed official extract contract guarantees organization-controlled address and ZIP fields; registered-agent and natural-person addresses remain ineligible.",
+  "redistribution": "Public-record access and statutory fee authority do not establish retention, transformation, geocoding, derived-publication, or redistribution rights.",
+  "temporal_refresh": "No official snapshot date, recurring cadence, changed-since/deletion semantics, replay, manifest, checksum, or service-change contract was established.",
+  "decision": "hold", "authorizations": { "download": false, "signup": false, "contact": false, "scraping": false, "production": false },
+  "unresolved_gates": ["bulk-route", "scope", "schema", "price", "status-codebook", "address-role", "automation", "rights", "refresh-contract"],
+  "citations": [
+    { "url": "https://www.leg.state.nv.us/nrs/NRS-225.html", "supports": "Secretary database-search fee authority" },
+    { "url": "https://www.leg.state.nv.us/nrs/NRS-239.html", "supports": "Nevada public-record copying framework" },
+    { "url": "https://www.leg.state.nv.us/nac/NAC-225.html", "supports": "Commercial Recordings regulatory context and record correction authority" }
+  ],
+  "next_action": "Identify a current official bulk product and obtain written schema, scope, price, status/address dictionaries, refresh controls, automation, and redistribution terms if authorized later. Do not contact, search-enumerate, sign up, pay, download, scrape, or execute production from this assessment."
+}

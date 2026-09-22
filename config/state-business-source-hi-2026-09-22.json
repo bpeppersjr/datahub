@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0", "assessment_id": "state-business-source-hi-20260922-v1", "observed_at": "2026-09-22", "state_abbreviation": "HI", "publisher": "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+  "access": { "mode": "paid-list-builder", "api_available": false, "automation": "DCCA links a Business Data List Builder, while BREG is transitioning systems and says additional services will arrive later; no supported API or unattended route is documented.", "fees": "The service is described as purchasing custom lists, but current pricing was not established on the reviewed official DCCA pages." },
+  "fields": "Historical official inventory describes business lists and addresses/officers/trade names/marks; the current page does not publish a machine schema, field dictionary, or person-free option.",
+  "active_status_semantics": "The registry supports good-standing checks and annual reports for active entities, but registration standing is not proof that an establishment currently operates.",
+  "statewide_completeness": "BREG maintains registrations across many entity types, but not all businesses must register; list-builder scope during the 2026 portal transition is not established as a complete statewide extract.",
+  "address_and_zip": "Business lists may include addresses, but ZIP presence and address roles are not contractually defined; officer, member, manager, and agent addresses require exclusion.",
+  "redistribution": "Purchase and public inspection do not establish retention, transformation, geocoding, derived-publication, or redistribution rights; portal terms require separate review.",
+  "temporal_refresh": "A historical state inventory described weekly bulk data, but current BREG pages announce a July 2026 system transition; current cadence, continuity, deletions, replay, manifest, and checksums are unresolved.",
+  "decision": "hold", "authorizations": { "download": false, "signup": false, "contact": false, "scraping": false, "production": false },
+  "unresolved_gates": ["migration-continuity", "current-bulk-scope", "schema", "price", "status-codebook", "address-role", "automation", "rights", "refresh-contract"],
+  "citations": [
+    { "url": "https://cca.hawaii.gov/breg/", "supports": "BREG authority, registry scope, list-builder link, and 2026 portal transition notice" },
+    { "url": "https://data.capitol.hawaii.gov/sessions/session2023/bills/DC215_.PDF", "supports": "official inventory of weekly bulk registration data and list-builder fields before migration" },
+    { "url": "https://cca.hawaii.gov/breg/faqs/", "supports": "registration limits, public filing content, and good-standing context" }
+  ],
+  "next_action": "Wait for migration stabilization, then obtain current unsigned list/bulk terms, person-free schema, completeness, cadence, automation, and redistribution rights if authorized. Do not purchase, sign up, contact, scrape, download, or execute production from this assessment."
+}

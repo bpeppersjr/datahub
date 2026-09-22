@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0", "assessment_id": "state-business-source-ar-20260922-v1", "observed_at": "2026-09-22", "state_abbreviation": "AR", "publisher": "Arkansas Secretary of State, Business and Commercial Services",
+  "access": { "mode": "bulk-request", "api_available": false, "automation": "The official guide advertises purchase through Business Entity Search, but publishes no supported API, unattended delivery, or recurring automation contract.", "fees": "Charges are calculated by total records; no stable public statewide price was found in the official guide." },
+  "fields": "The guide identifies existing entity name/address and registered-agent name/address, with lists selectable by domestic/foreign and profit/nonprofit type; no exact machine schema is published.",
+  "active_status_semantics": "Certificates distinguish existence and good standing, but neither is proof of present operation; no bulk status dictionary is published.",
+  "statewide_completeness": "The product is described as listings of existing business entities by selected corporate types, not all operating organizations; sole proprietorships generally are not filed with SOS.",
+  "address_and_zip": "Entity and agent addresses are advertised, but ZIP presence and address-role definitions are not guaranteed; registered-agent data is excluded from entity geocoding.",
+  "redistribution": "The official guide establishes purchase availability, not retention, transformation, geocoding, derived-publication, or redistribution permission.",
+  "temporal_refresh": "No snapshot timestamp, update cadence, replacement/delta/deletion semantics, replay, manifest, checksum, or change notice is published.",
+  "decision": "hold", "authorizations": { "download": false, "signup": false, "contact": false, "scraping": false, "production": false },
+  "unresolved_gates": ["exact-scope", "schema", "price", "status-codebook", "address-role", "automation", "rights", "refresh-contract"],
+  "citations": [
+    { "url": "https://www.sos.arkansas.gov/uploads/bcs/DoingBusinessInArkansas2025.pdf", "supports": "bulk listing availability, fields, type filters, record-count pricing, registration limits" },
+    { "url": "https://www.sos.arkansas.gov/business-commercial-services-bcs", "supports": "official BCS authority and business search service" }
+  ],
+  "next_action": "Request unsigned terms and a header-only person-free schema, counts, price, status/address dictionaries, refresh controls, supported automation, and redistribution rights if authorized later. Do not order, pay, sign up, scrape, download, or execute production from this assessment."
+}

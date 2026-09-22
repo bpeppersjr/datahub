@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0", "assessment_id": "state-business-source-ms-20260922-v1", "observed_at": "2026-09-22", "state_abbreviation": "MS", "publisher": "Mississippi Secretary of State, Business Services & Regulation",
+  "access": { "mode": "bulk-request", "api_available": false, "automation": "The public reporting page supports filtering and Excel export up to 300,000 results; a full export requires contacting Business Services, and no API or unattended recurring route is published.", "fees": "The public report is described as free; fees and terms for a full export are not published on the reviewed page." },
+  "fields": "Published columns include business name/ID, other names, profile and domicile type, status, three NAICS codes, address, city, state, county, postal code, and formation date.",
+  "active_status_semantics": "The database includes current registered businesses and a status field, but status is registry standing, not evidence of present operation; the value dictionary is not published on the landing page.",
+  "statewide_completeness": "The page says all current registered businesses in Mississippi, which excludes unregistered activity and does not establish historical or dissolved-entity completeness.",
+  "address_and_zip": "Address line, city, state, county, and postal code are explicit columns, but the address role and organization control are not defined.",
+  "redistribution": "Free query/export availability does not establish indefinite retention, geocoding, transformation, derived publication, or redistribution rights.",
+  "temporal_refresh": "The report identifies current registrations but publishes no snapshot timestamp, refresh cadence, delta/deletion/replay contract, manifest, or checksum.",
+  "decision": "hold", "authorizations": { "download": false, "signup": false, "contact": false, "scraping": false, "production": false },
+  "unresolved_gates": ["full-export-terms", "status-codebook", "address-role", "automation", "rights", "refresh-contract"],
+  "citations": [
+    { "url": "https://corp.sos.ms.gov/corpreporting/Corp/BusinessSearch3", "supports": "scope, columns, Excel limit, and full-export contact requirement" },
+    { "url": "https://corp.sos.ms.gov/corpreporting/Corp/ViewHelpDocument", "supports": "field explanations and business-ID description" },
+    { "url": "https://www.sos.ms.gov/content/documents/ed_pubs/pubs/FY2025%20Annual%20Report.pdf", "supports": "Business Services authority and registry responsibilities" }
+  ],
+  "next_action": "Obtain written full-export terms, a header-only sample, status/address dictionaries, refresh controls, supported automation, and redistribution rights if authorized later. Do not export, contact, sign up, scrape, download, or execute production from this assessment."
+}
