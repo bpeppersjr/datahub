@@ -40,7 +40,10 @@ export async function buildNationalGoalCompletionMatrix({root=APP_ROOT,createdAt
   const sourceMap=new Map(snapshot.sources.map(row=>[row.source_key,row]));
   const broadEvidence=new Map((await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async([state,{sourceKey}])=>[state,await buildBroadOrganizationEvidence({state,source:sourceMap.get(sourceKey),root,asOf:createdAt})]))));
   const catalogMap=new Map(catalog.sources.map(row=>[row.id,row]));
-  let ten=null;try{ten=await tenReader();if(!validTenProjection(ten,snapshot,new Set([...catalog.sources.map(row=>row.id),...DIRECTORY_IDS])))ten=null;}catch{ten=null;}
+  let ten=null,tenCandidate;
+  try{tenCandidate=await tenReader();}catch(error){if(error?.name==='AbortError')throw error;throw Error('Ten-source enrollment evidence could not be read safely.');}
+  if(tenCandidate?.available===true){check(validTenProjection(tenCandidate,snapshot,new Set([...catalog.sources.map(row=>row.id),...DIRECTORY_IDS])),'Ten-source enrollment evidence is invalid or partial.');ten=tenCandidate;}
+  else check(tenCandidate?.reason==='production-enrollment-absent','Ten-source enrollment exists but is invalid or stale.');
   const tenStates=ten?new Map(ten.states.map(row=>[row.code,row])):null,governedSources=ten?ten.states[0].datasets:catalog.sources;
   const categories=['general-business',...[...new Set(governedSources.map(row=>row.group))].sort()];
   const jurisdictions=representation.states.map(state=>({code:state.code,fips:state.fips,name:state.name,all_business_completion_percent:null,
