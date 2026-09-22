@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-14` after staged-refresh cancellation hardening, gated USPS production-input support, and retained nursing-directory readiness changed the reviewed code pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after ten fail-closed state-refresh bindings, nationwide childcare/construction Census aggregate context, and mandatory state-evidence temporal bindings were integrated and regression-tested. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-13`
