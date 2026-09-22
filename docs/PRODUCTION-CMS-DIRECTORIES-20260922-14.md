@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-15` after retained hospital readiness, the Census ZIP-industry view, and governed state-access UI changed the reviewed code pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after Oregon/Illinois/Washington staged-refresh cancellation hardening, an authorization-gated USPS operational ZIP input seam, and retained CMS nursing-home state/ZIP readiness were integrated and regression-tested. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-14`
