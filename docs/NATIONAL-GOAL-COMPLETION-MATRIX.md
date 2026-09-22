@@ -11,3 +11,9 @@ Publication writes `report.json` and then `manifest.json` into a new exclusive r
 Native release identifiers and hashes are emitted by the CLI after independent verification. Each release is local derived evidence, not a production dataset or approval.
 
 Validated native release `national-goal-completion-20260922120100-e89cb315` has report SHA-256 `91898b1eb2519f11de2ebc71f8c05676b3dd210503103b88fc6da73ccf42cb54`: 51 jurisdictions, eight categories and 408 jurisdiction/category cells. The broad-layer requirement is available in eight jurisdictions and explicitly missing in 43. Overall all-business completion remains null.
+
+## Management view
+
+The authenticated read-only route `GET /api/business-map/goal-completion` scans the immutable release directory and verifies the newest versioned release directly; it does not use or create a mutable pointer. Optional closed `state` and `category` query values select detail while retaining all 51 jurisdiction cells for the category. If the newest release is corrupt, the reader fails closed rather than silently substituting an older report.
+
+Heatmap Builder shows this evidence in its existing right-hand summary. It reports governed dataset availability, broad state-layer gaps, source freshness, authorization state and geocode context. “All-business completion” remains **Unknown** because no authoritative all-business denominator exists. Dataset-presence percentages must not be presented as the percentage of U.S. businesses collected.

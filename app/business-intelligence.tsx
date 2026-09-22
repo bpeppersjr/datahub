@@ -113,6 +113,39 @@ type StateSummary = {
     uniquely_assigned_zcta_count: number;
   }>;
 };
+type GoalCompletion = {
+  available: boolean; status: string; release_id: string | null; created_at?: string;
+  denominator?: { version: string; datasets: number; categories: number; meaning: string };
+  category?: string; categories?: string[]; all_business_completion_percent: null;
+  broad_layer_gaps?: number;
+  jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; percent: number | null; broad_layer_gap: boolean }>;
+  selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
+};
+
+const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities' };
+function matrixCategory(categoryId: string) { return MATRIX_CATEGORY[categoryId] ?? categoryId; }
+
+function GoalCompletionSummary({ state, categoryId }: { state?: string; categoryId: string }) {
+  const [view, setView] = useState<GoalCompletion | null>(null);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = new URLSearchParams({ category: matrixCategory(categoryId) }); if (state) query.set('state', state);
+    void runnerJson<GoalCompletion>(`/api/business-map/goal-completion?${query}`, { signal: controller.signal }).then((value) => { setView(value); setError(false); }).catch((reason) => { if (reason?.name !== 'AbortError') { setView(null); setError(true); } });
+    return () => controller.abort();
+  }, [state, categoryId]);
+  if (error) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Evidence unavailable</strong></div><p className="entity-method-note">The newest immutable matrix could not be verified. No older release was substituted.</p></section>;
+  if (!view) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Verifying local evidence…</strong></div></section>;
+  if (!view.available) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Not available</strong></div><p className="entity-method-note">{view.status.replaceAll('-', ' ')}. All-business completion remains unknown.</p></section>;
+  const selected = view.selected?.category;
+  return <section className="state-alignment-card goal-completion-card" aria-label="National business goal completion">
+    <div><span>National goal matrix</span><strong>{view.selected ? `${view.selected.code} · ${selected?.category_id.replaceAll('-', ' ')}` : view.category?.replaceAll('-', ' ')}</strong></div>
+    <dl><div><dt>Governed datasets available</dt><dd>{selected ? `${selected.dataset_availability.available} / ${selected.dataset_availability.denominator}` : 'Select a state'}</dd></div><div><dt>Dataset availability</dt><dd>{selected ? percent(selected.dataset_availability.percent) : '—'}</dd></div><div><dt>Broad state-layer gaps</dt><dd>{count(view.broad_layer_gaps)}</dd></div><div><dt>All-business completion</dt><dd>Unknown</dd></div></dl>
+    {selected && <div className="goal-source-list">{selected.datasets.map((dataset) => <div key={dataset.dataset_id}><strong>{dataset.label}</strong><span>{dataset.availability_status.replaceAll('-', ' ')} · {dataset.state_record_count === null ? 'state count unmeasured' : `${count(dataset.state_record_count)} state records`}</span><small>Freshness: {dataset.temporal_status.status.replaceAll('-', ' ')} · authorization: {dataset.authorization.state.replaceAll('-', ' ')} · geocoded: {percent(dataset.geocode_rate.percent)}</small>{dataset.gap_reason && <small>Gap: {dataset.gap_reason}</small>}</div>)}</div>}
+    <details><summary>All 50 states and D.C. for this category</summary><div className="representation-table"><table><thead><tr><th>State</th><th>Available</th><th>Share</th><th>Broad layer</th></tr></thead><tbody>{view.jurisdictions.map((row) => <tr key={row.code}><th>{row.code}</th><td>{row.available}/{row.denominator}</td><td>{percent(row.percent)}</td><td>{row.broad_layer_gap ? 'Gap' : 'Available'}</td></tr>)}</tbody></table></div></details>
+    <p className="entity-method-note">Denominator: {view.denominator?.version}. These percentages measure governed dataset presence, not the share of U.S. businesses collected. All-business completion has no authoritative denominator and remains null. Release {view.release_id}.</p>
+  </section>;
+}
 
 function reconcileFeature(current: MapFeature | null, response: MapResponse) {
   if (!current) return null;
@@ -398,6 +431,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      <GoalCompletionSummary state={state?.postal_abbreviation} categoryId={categoryId} />
       <DatasetRepresentation stateFips={selectedStateFips} />
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}

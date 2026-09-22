@@ -22,6 +22,7 @@ import { listProductionRunStatus } from './production-run-status.mjs';
 import { createRetainedCredentialsView } from './retained-credentials-view.mjs';
 import { createCredentialHeatmapView } from './credential-heatmap-view.mjs';
 import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
+import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
@@ -466,6 +467,16 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, await businessMap.getStateSummary({
         includeTerritories: url.searchParams.get('include_territories') === 'true',
       }));
+      return;
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/business-map/goal-completion') {
+      if ([...url.searchParams.keys()].some((key) => !['state', 'category'].includes(key))) { json(response, 400, { error: 'Unsupported goal-completion option.' }); return; }
+      try {
+        json(response, 200, await nationalGoalCompletionView({ state: url.searchParams.get('state'), category: url.searchParams.get('category') || 'general-business' }));
+      } catch (error) {
+        json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : 'Goal-completion matrix is unavailable.' });
+      }
       return;
     }
 
