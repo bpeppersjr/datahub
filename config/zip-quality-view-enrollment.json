@@ -1,0 +1,10 @@
+{
+  "schema_version": "1.0.0",
+  "cohort_id": "production-current",
+  "pointer_path": "data/business-registry/current.json",
+  "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
+  "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+  "zip_artifact_sha256": "2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e",
+  "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+  "purpose": "Immutable, read-only ZIP-quality view enrollment; not USPS authorization or operational-status evidence."
+}

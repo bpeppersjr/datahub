@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 
 import { APP_ROOT } from "./paths.mjs";
 
-export const ZIP_DENOMINATOR_AUDIT_SCHEMA_VERSION = "1.1.0";
+export const ZIP_DENOMINATOR_AUDIT_SCHEMA_VERSION = "1.2.0";
 export const ZIP_DENOMINATOR_REASON_CONTRACT_MINIMUM_REGISTRY_VERSION = "2.10.0";
 export const DEFAULT_ZIP_DENOMINATOR_AUDIT_COHORTS = Object.freeze([
   Object.freeze({
@@ -104,13 +104,30 @@ function sourceReleaseForZcta(row) {
   return row.geography?.provenance?.source_release_id ?? null;
 }
 
-function detailForRow(row, includedInZcta, sourceReportedOutside, reason, unresolvedProofGapCodes, postalContractApplicable) {
+function positiveSourceContributions(contributions) {
+  return Object.entries(contributions ?? {}).flatMap(([sourceId, contribution]) => {
+    const positiveCounts = Object.fromEntries(Object.entries(contribution ?? {})
+      .filter(([, value]) => typeof value === "number" && value > 0));
+    if (Object.keys(positiveCounts).length === 0) return [];
+    return [{
+      source_id: sourceId,
+      source_release_id: contribution.source_release_id ?? null,
+      positive_counts: positiveCounts,
+    }];
+  });
+}
+
+function detailForRow(row, qualityClass, includedInZcta, sourceReportedOutside, reason, unresolvedProofGapCodes, postalContractApplicable) {
   const postalCodePresent = Object.hasOwn(row, "postal_code");
   const zip4Present = Object.hasOwn(row, "zip4");
   const postalFieldsValid = postalCodePresent && row.postal_code === row.zip_code
     && zip4Present && row.zip4 === null;
   return {
     zip5: row.zip_code,
+    source_reported_zip5_quality: {
+      class: qualityClass,
+      ordinary_zip5_eligible: qualityClass !== "explicit-placeholder",
+    },
     artifact_postal_fields: {
       zip_code: row.zip_code,
       postal_code_present: postalCodePresent,
@@ -126,6 +143,7 @@ function detailForRow(row, includedInZcta, sourceReportedOutside, reason, unreso
       zip4_is_geometric: false,
     },
     registry_coverage_status: row.registry_coverage.status,
+    positive_source_contributions: row.positive_source_contributions ?? positiveSourceContributions(row.source_contributions),
     governed_zcta_membership: includedInZcta ? {
       status: "included",
       geo_id: row.geography.geo_id,
@@ -163,6 +181,7 @@ export function auditRegistryZipRows(rows, {
   );
   const reasonRequired = postalContractApplicable;
   const allZip5 = [];
+  const explicitPlaceholderZip5 = [];
   const governedZctaMembers = [];
   const sourceReportedOutsideZcta = [];
   const denominatorOnlyOutsideZcta = [];
@@ -200,6 +219,11 @@ export function auditRegistryZipRows(rows, {
 
     const geographyStatus = row.geography?.status;
     const includedInZcta = geographyStatus === "2020-zcta-polygon-available";
+    const explicitPlaceholder = zip5 === "00000";
+    if (explicitPlaceholder) explicitPlaceholderZip5.push(zip5);
+    if (explicitPlaceholder && includedInZcta) {
+      throw new Error("Registry ZIP placeholder 00000 cannot assert governed same-code ZCTA membership.");
+    }
     if (includedInZcta) {
       if (row.geography.geo_id !== `zcta:${zip5}` || row.geography.geoid !== zip5
         || !String(sourceReleaseForZcta(row) ?? "").trim()) {
@@ -212,8 +236,10 @@ export function auditRegistryZipRows(rows, {
         || row.geography?.geo_id != null || row.geography?.geoid != null) {
         throw new Error(`Registry ZIP ${zip5} has an unsupported outside-ZCTA geography shape.`);
       }
-      if (row.registry_coverage.status === "record-level-source-contribution") sourceReportedOutsideZcta.push(zip5);
-      else denominatorOnlyOutsideZcta.push(zip5);
+      if (!explicitPlaceholder) {
+        if (row.registry_coverage.status === "record-level-source-contribution") sourceReportedOutsideZcta.push(zip5);
+        else denominatorOnlyOutsideZcta.push(zip5);
+      }
     }
 
     const uspsStatus = row.current_usps_validity?.status;
@@ -235,7 +261,7 @@ export function auditRegistryZipRows(rows, {
         unresolvedProofGapCodes.push("unverified-usps-evidence-reason-missing");
       }
     }
-    const sourceReportedOutside = !includedInZcta
+    const sourceReportedOutside = !explicitPlaceholder && !includedInZcta
       && row.registry_coverage.status === "record-level-source-contribution";
     if (sourceReportedOutside) {
       unresolvedProofGapCodes.push("source-reported-zip5-outside-governed-census-zcta");
@@ -249,6 +275,10 @@ export function auditRegistryZipRows(rows, {
     }
     if (includeRows) details.push(detailForRow(
       row,
+      explicitPlaceholder ? "explicit-placeholder"
+        : includedInZcta ? "valid-format-same-code-governed-zcta"
+          : sourceReportedOutside ? "valid-format-source-reported-no-same-code-zcta"
+            : "valid-format-denominator-only-no-same-code-zcta",
       includedInZcta,
       sourceReportedOutside,
       reason,
@@ -257,7 +287,7 @@ export function auditRegistryZipRows(rows, {
     ));
   }
 
-  for (const values of [allZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta,
+  for (const values of [allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta,
     unverifiedZip5, missingUnverifiedReasonZip5, missingPostalCodeZip5, joinedPostalCodeZip5,
     mismatchedPostalCodeZip5, missingZip4Zip5, nonNullZip4Zip5]) values.sort();
   if (includeRows) details.sort((left, right) => left.zip5.localeCompare(right.zip5));
@@ -356,11 +386,33 @@ export function auditRegistryZipRows(rows, {
       : unresolvedProofGaps.length > 0 ? "passed-with-unresolved-proof-gaps" : "passed",
     counts: {
       zip5_rows: allZip5.length,
+      explicit_placeholder_zip5: explicitPlaceholderZip5.length,
       governed_census_zcta_members: governedZctaMembers.length,
       source_reported_zip5_outside_governed_census_zcta: sourceReportedOutsideZcta.length,
       denominator_only_zip5_outside_governed_census_zcta: denominatorOnlyOutsideZcta.length,
       usps_operational_status_unverified: unverifiedZip5.length,
       unverified_usps_rows_missing_reason: missingUnverifiedReasonZip5.length,
+    },
+    source_reported_zip5_quality: {
+      semantics: "Mutually exclusive governed classification of every contract-valid registry ZIP row; malformed or missing ZIP5 fails the audit before publication.",
+      conservation: {
+        classified_rows: explicitPlaceholderZip5.length + governedZctaMembers.length
+          + sourceReportedOutsideZcta.length + denominatorOnlyOutsideZcta.length,
+        registry_rows: allZip5.length,
+        status: explicitPlaceholderZip5.length + governedZctaMembers.length
+          + sourceReportedOutsideZcta.length + denominatorOnlyOutsideZcta.length === allZip5.length ? "passed" : "failed",
+      },
+      classes: {
+        contract_invalid_or_missing: evidenceSet([]),
+        explicit_placeholder: evidenceSet(explicitPlaceholderZip5, { includeValues: includeZipLists }),
+        valid_format_same_code_governed_zcta: evidenceSet(governedZctaMembers, { includeValues: includeZipLists }),
+        valid_format_source_reported_no_same_code_zcta: evidenceSet(sourceReportedOutsideZcta, { includeValues: includeZipLists }),
+        valid_format_denominator_only_no_same_code_zcta: evidenceSet(denominatorOnlyOutsideZcta, { includeValues: includeZipLists }),
+      },
+      placeholder_policy: {
+        explicit_values: ["00000"],
+        other_low_number_zip5_values_are_not_placeholders_without_governed_evidence: true,
+      },
     },
     governed_zcta_membership: {
       ...evidenceSet(governedZctaMembers),
@@ -387,7 +439,7 @@ export function auditRegistryZipRows(rows, {
     ...(includeRows ? { rows: details } : {}),
   };
   Object.defineProperty(result, "_audit_sets", {
-    value: { allZip5, governedZctaMembers },
+    value: { allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta },
     enumerable: false,
   });
   return result;
@@ -427,6 +479,7 @@ async function readAndAuditZipArtifact(filePath, artifact, options) {
           source_month: row.current_usps_validity?.source_month,
           deliverability_status: row.current_usps_validity?.deliverability_status,
         },
+        positive_source_contributions: positiveSourceContributions(row.source_contributions),
       });
     } catch (error) {
       throw new Error(`Registry ZIP artifact line ${lineNumber} is invalid JSON: ${error.message}`);

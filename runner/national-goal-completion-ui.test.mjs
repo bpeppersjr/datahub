@@ -28,3 +28,11 @@ test("schema-4 state access is first in the entity panel and distinguishes ZCTA 
   assert.match(server,/\/api\/business-map\/state-access/);assert.ok(server.indexOf('controlPlane.authorize(request)')<server.indexOf("url.pathname==='/api/business-map/state-access'"));assert.match(server,/getAll\(key\)\.length!==1/);
   assert.equal(server.includes('writeStateAccessReport'),false);
 });
+
+test("ZIP-quality API and Heatmap note expose bounded classes without treating ZIP5 as USPS truth",()=>{
+  const route="url.pathname === '/api/business-map/zip-quality'";
+  assert.ok(server.includes(route));
+  assert.ok(server.indexOf('controlPlane.authorize(request)')<server.indexOf(route));
+  assert.match(server,/getAll\('zip'\)\.length > 1/);
+  for(const text of ['ZIP quality:','same-code Census ZCTA members','source-reported ZIP5 without same-code ZCTA','explicit placeholder (`00000`)','USPS operational status is','Other low-number ZIP5 values are not treated as placeholders without governed proof'])assert.ok(ui.includes(text),text);
+});

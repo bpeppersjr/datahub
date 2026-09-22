@@ -991,6 +991,7 @@ export function createBusinessMapStore({
 
   async function listNames({ zipCode, stateFips, categoryId = "all", query = "", limit = 25 } = {}, missingZipOnly = false) {
     const zip = missingZipOnly ? null : fips(zipCode, 5, "five-digit ZIP");
+    if (zip === "00000") throw Object.assign(new Error("ZIP 00000 is retained source placeholder evidence, not an ordinary ZIP5 business-name lookup."), { statusCode: 400 });
     const state = missingZipOnly ? fips(stateFips, 2, "state_fips") : null;
     const selectedCategory = category(categoryId);
     const sourceIds = new Set(selectedCategory.source_ids);

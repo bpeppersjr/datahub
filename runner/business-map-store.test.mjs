@@ -640,6 +640,7 @@ test("childcare rows sharing name and address retain separate source-record line
 
 test("drills from category to real ZIP business names without joining ZIP+4", async (context) => {
   const store = await fixture(context);
+  await assert.rejects(() => store.listBusinessNames({ zipCode: "00000" }), /placeholder evidence/);
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer", query: "market", limit: 10 });
   assert.equal(names.total, 1);
   assert.equal(names.limitation, null);

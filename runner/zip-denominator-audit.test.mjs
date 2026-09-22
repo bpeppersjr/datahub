@@ -22,6 +22,13 @@ function sha256(value) {
 function fixtureRows() {
   return [
     {
+      zip_code: "00000", postal_code: "00000", zip4: null,
+      registry_coverage: { status: "record-level-source-contribution" },
+      source_contributions: { nppes: { primary_count: 1, source_release_id: "nppes-release-1" } },
+      geography: { status: "no-2020-zcta-polygon", geo_id: null, geoid: null },
+      current_usps_validity: { status: "unverified", reason: "Source-reported placeholder; no governed USPS evidence." },
+    },
+    {
       zip_code: "00601",
       postal_code: "00601",
       zip4: null,
@@ -120,20 +127,29 @@ test("audits ZCTA membership, outside source ZIPs, USPS reasons, and split posta
   });
   assert.equal(report.contract_status, "failed");
   assert.deepEqual(report.counts, {
-    zip5_rows: 3,
+    zip5_rows: 4,
+    explicit_placeholder_zip5: 1,
     governed_census_zcta_members: 1,
     source_reported_zip5_outside_governed_census_zcta: 1,
     denominator_only_zip5_outside_governed_census_zcta: 1,
-    usps_operational_status_unverified: 3,
+    usps_operational_status_unverified: 4,
     unverified_usps_rows_missing_reason: 1,
   });
   assert.deepEqual(report.governed_zcta_membership.source_release_ids, ["geography-release-1"]);
   assert.deepEqual(report.source_reported_zip5_outside_governed_zcta.zip5_values, ["99998"]);
+  assert.equal(report.source_reported_zip5_quality.conservation.status, "passed");
+  assert.equal(report.source_reported_zip5_quality.classes.explicit_placeholder.count, 1);
+  assert.deepEqual(report.source_reported_zip5_quality.classes.explicit_placeholder.zip5_values, ["00000"]);
+  assert.equal(report.source_reported_zip5_quality.classes.contract_invalid_or_missing.count, 0);
+  assert.equal(report.rows[0].source_reported_zip5_quality.class, "explicit-placeholder");
+  assert.equal(report.rows[0].ordinary_zip5_eligible, undefined);
+  assert.equal(report.rows[0].source_reported_zip5_quality.ordinary_zip5_eligible, false);
+  assert.equal(report.rows[0].positive_source_contributions[0].source_release_id, "nppes-release-1");
   assert.equal(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "unverified-usps-evidence-reason-missing").contract_violation, true);
   assert.deepEqual(report.rows[0].artifact_postal_fields, {
-    zip_code: "00601",
+    zip_code: "00000",
     postal_code_present: true,
-    postal_code: "00601",
+    postal_code: "00000",
     zip4_present: true,
     zip4: null,
   });
@@ -170,7 +186,7 @@ test("legacy registries report missing reasons as gaps without retroactively cha
     invalid_counts: null,
   });
   assert.deepEqual(report.rows[0].artifact_postal_fields, {
-    zip_code: "00601",
+    zip_code: "00000",
     postal_code_present: false,
     zip4_present: false,
   });
@@ -186,16 +202,16 @@ test("2.10 audit fails when the physical postal_code alias is missing", () => {
   assert.equal(report.contract_status, "failed");
   assert.equal(report.split_postal_field_contract.status, "failed");
   assert.equal(report.split_postal_field_contract.invalid_counts.missing_postal_code, 1);
-  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "postal-code-alias-missing").zip5_values, ["00601"]);
+  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "postal-code-alias-missing").zip5_values, ["00000"]);
 });
 
 test("2.10 audit fails when postal_code contains a joined ZIP+4", () => {
   const rows = fixtureRows();
-  rows[0].postal_code = "00601-1234";
+  rows[0].postal_code = "00000-1234";
   const report = auditRegistryZipRows(rows, { registryPublisherVersion: "2.10.0" });
   assert.equal(report.contract_status, "failed");
   assert.equal(report.split_postal_field_contract.invalid_counts.joined_postal_code, 1);
-  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "postal-code-alias-joined-with-zip4").zip5_values, ["00601"]);
+  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "postal-code-alias-joined-with-zip4").zip5_values, ["00000"]);
 });
 
 test("2.10 audit fails when the separate zip4 field is missing", () => {
@@ -204,7 +220,7 @@ test("2.10 audit fails when the separate zip4 field is missing", () => {
   const report = auditRegistryZipRows(rows, { registryPublisherVersion: "2.10.0" });
   assert.equal(report.contract_status, "failed");
   assert.equal(report.split_postal_field_contract.invalid_counts.missing_zip4, 1);
-  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "separate-zip4-field-missing").zip5_values, ["00601"]);
+  assert.deepEqual(report.unresolved_proof_gaps.find((gap) => gap.gap_code === "separate-zip4-field-missing").zip5_values, ["00000"]);
 });
 
 test("direct row audit requires a valid registry publisher version", () => {
@@ -239,7 +255,7 @@ test("pointer audit is deterministic and fails closed for a 2.10 release missing
   assert.deepEqual(first, second);
   assert.equal(first.overall_contract_status, "failed");
   assert.match(first.audit_id, /^zip-denominator-audit-[a-f0-9]{24}$/);
-  assert.equal(first.cohorts[0].artifact.record_count, 3);
+  assert.equal(first.cohorts[0].artifact.record_count, 4);
   assert.equal(first.cohorts[0].contract_status, "failed");
 });
 

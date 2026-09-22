@@ -1,5 +1,17 @@
 # ZIP denominator audit
 
+## Governed ZIP-quality projection
+
+Schema 1.2 classifies every contract-valid registry ZIP row into exactly one class and publishes a SHA-256 member-set digest for each class:
+
+- `explicit_placeholder`: only the governed literal `00000` rule. It remains in retained source evidence but is not an ordinary ZIP lookup value.
+- `valid_format_same_code_governed_zcta`: the ZIP5 has a same-code member in the selected Census ZCTA polygon release.
+- `valid_format_source_reported_no_same_code_zcta`: a source reported the syntactically valid ZIP5, but the governed ZCTA set has no same-code polygon.
+- `valid_format_denominator_only_no_same_code_zcta`: the registry denominator contains the valid-format ZIP5 without record-level source contribution or a same-code ZCTA.
+- `contract_invalid_or_missing`: always zero in a published audit because malformed or absent ZIP5 values fail the audit instead of becoming reportable members.
+
+No other low-number value is called a placeholder without governed evidence. ZIP5 and ZIP4 remain separate physical fields; aggregate ZIP4 is null and has no polygon. The read-only UI/API view pins the registry pointer, manifest, and ZIP artifact hashes through `config/zip-quality-view-enrollment.json` and fails closed on drift. USPS operational status is deliberately `null`; evidence status remains `unverified` with the retained reason. Census ZCTA membership is statistical geography, not proof of USPS operation or deliverability.
+
 `runner/zip-denominator-audit.mjs` provides a deterministic, read-only inspection of the national business registry's ZIP coverage evidence. It answers four separate questions without treating any one source as proof of the others:
 
 - which ZIP5 rows are members of the complete selected governed Census ZCTA5 polygon set;

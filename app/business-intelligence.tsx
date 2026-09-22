@@ -122,6 +122,16 @@ type GoalCompletion = {
   jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; percent: number | null; broad_layer_gap: boolean }>;
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
 };
+type ZipQualitySummary = {
+  classification: { classes: {
+    explicit_placeholder: { count: number };
+    valid_format_same_code_governed_zcta: { count: number };
+    valid_format_source_reported_no_same_code_zcta: { count: number };
+    valid_format_denominator_only_no_same_code_zcta: { count: number };
+  } };
+  usps_operational_status: null;
+  usps_evidence_status: 'unverified';
+};
 type StateAccess = {
   accessEvidenceStatus: string;
   temporalStatus: { status: string; positiveEvidenceItems: number; statusCounts: Record<string, number>; activeBusinessVerified: false; generalBusinessOperatingStatusAsserted: false };
@@ -503,6 +513,7 @@ function StateAccessSummary({state,industry}:{state?:string;industry?:string}){
 
 function BusinessEvidenceMap() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [zipQuality, setZipQuality] = useState<ZipQualitySummary | null>(null);
   const [savedData, setData] = useState<MapResponse | null>(null);
   const [dataSelection, setDataSelection] = useState('');
   const [stateSummary, setStateSummary] = useState<StateSummary | null>(null);
@@ -526,6 +537,7 @@ function BusinessEvidenceMap() {
   useEffect(() => {
     void request<Catalog>('/api/business-map/catalog').then(setCatalog).catch((reason) => setError(reason instanceof Error ? reason.message : 'Unable to load map catalog.'));
     void request<StateSummary>('/api/business-map/state-summary?include_territories=false').then(setStateSummary).catch(() => setStateSummary(null));
+    void request<ZipQualitySummary>('/api/business-map/zip-quality').then(setZipQuality).catch(() => setZipQuality(null));
   }, []);
 
   useEffect(() => {
@@ -601,6 +613,7 @@ function BusinessEvidenceMap() {
           {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
+          {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">ZIP quality: {count(zipQuality.classification.classes.valid_format_same_code_governed_zcta.count)} same-code Census ZCTA members · {count(zipQuality.classification.classes.valid_format_source_reported_no_same_code_zcta.count)} source-reported ZIP5 without same-code ZCTA · {count(zipQuality.classification.classes.valid_format_denominator_only_no_same_code_zcta.count)} denominator-only without ZCTA · {count(zipQuality.classification.classes.explicit_placeholder.count)} explicit placeholder (`00000`). USPS operational status is {zipQuality.usps_operational_status === null ? 'not asserted' : 'asserted'}; evidence remains {zipQuality.usps_evidence_status}. Other low-number ZIP5 values are not treated as placeholders without governed proof.</p>}
         </div>
         <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} geographyHash={data?.geography_manifest_sha256} mapRevision={data} />
       </div>}
