@@ -529,13 +529,13 @@ test('state ledger labels matching assessment holds as current context without c
   assert.deepEqual(Object.keys(ledger.summary.accessEvidenceStatusCounts).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
 });
 
-test('authoritative catalog reports 43 assessed and 8 unassessed without changing coverage categories', async (t) => {
+test('authoritative catalog reports all 51 assessed without changing coverage categories', async (t) => {
   const f = await fixture(t);
   const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'none', coverage_release_id: f.manifest.release_id, states: [] }) });
   const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: loadStateBusinessSourceAssessmentCatalog });
-  assert.equal(ledger.evidence.assessmentFreshness.assessedJurisdictions, 43);
-  assert.equal(ledger.evidence.assessmentFreshness.unassessedJurisdictions, 8);
-  assert.equal(ledger.evidence.assessmentFreshness.staleJurisdictions, 43);
+  assert.equal(ledger.evidence.assessmentFreshness.assessedJurisdictions, 51);
+  assert.equal(ledger.evidence.assessmentFreshness.unassessedJurisdictions, 0);
+  assert.equal(ledger.evidence.assessmentFreshness.staleJurisdictions, 51);
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
   for (const state of ['CO','CT','DE','FL','IA','NY','OR','PA']) {
     const evidence = ledger.jurisdictions.find((row) => row.state === state).broadOrganizationEvidence;

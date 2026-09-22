@@ -5,6 +5,7 @@ import path from "node:path";
 import { validateStateBusinessSourceDiscoveryQueue } from "../scripts/check-state-business-source-discovery.mjs";
 import { loadStateBusinessSourceAssessmentWave } from "./state-business-source-assessment-wave.mjs";
 import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
+import { EXISTING_SOURCE_STATES, loadExistingGovernedSourceAssessmentWave } from "./state-business-source-existing-wave.mjs";
 import { APP_ROOT } from "./paths.mjs";
 import {
   DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH,
@@ -14,8 +15,8 @@ import {
 } from "./state-business-source-revalidation.mjs";
 
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.0.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-43-2026-09-22";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "cd0b05a3b44d52c00804a37095193569382cea329c6a45f388eeb9da8b21c4a1";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-09-22";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "2aec070420ed885fd52e3a3f7ecd406eb79620a0beee93a455d98254116ab384";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -97,6 +98,13 @@ const SOURCE_ARTIFACT_SPECS = Object.freeze([
     coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
     state_abbreviations: Object.freeze(["KS", "KY", "TX", "UT", "WA"]),
   }),
+  Object.freeze({
+    artifact_id: "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
+    artifact_kind: "existing-governed-source-validation",
+    observed_at: "2026-09-22",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: EXISTING_SOURCE_STATES,
+  }),
 ]);
 const EXPECTED_SOURCE_ARTIFACTS = Object.freeze(SOURCE_ARTIFACT_SPECS.map((artifact) => Object.freeze({
   artifact_id: artifact.artifact_id,
@@ -115,18 +123,20 @@ const EXPECTED_STATE_PROVENANCE = Object.freeze(Object.fromEntries(SOURCE_ARTIFA
   }),
 ]))));
 const BOUNDED_CONNECTOR_STATES = new Set(["DC", "AK"]);
+const EXISTING_GOVERNED_SOURCE_STATES = new Set(EXISTING_SOURCE_STATES);
 const EXPECTED_AUTHORITY_BY_STATE = Object.freeze(Object.fromEntries(EXPECTED_STATE_SCOPE.map((stateAbbreviation) => {
   const boundedConnectorAuthorized = BOUNDED_CONNECTOR_STATES.has(stateAbbreviation);
+  const existingGovernedSource = EXISTING_GOVERNED_SOURCE_STATES.has(stateAbbreviation);
   return [stateAbbreviation, Object.freeze({
-    authorized_next_action_type: boundedConnectorAuthorized ? "bounded-connector-implementation" : "written-preflight-inquiry",
+    authorized_next_action_type: boundedConnectorAuthorized ? "bounded-connector-implementation" : existingGovernedSource ? "retained-source-offline-verification" : "written-preflight-inquiry",
     bounded_connector_implementation_authorized: boundedConnectorAuthorized,
     autonomous_acquisition_authorized: false,
     paid_acquisition_authorized: false,
     complete_source_acquisition_authorized: false,
     row_bearing_preflight_authorized: false,
     offline_fixture_connector_authorized: boundedConnectorAuthorized,
-    production_ready: false,
-    broad_layer_production_ready: false,
+    production_ready: existingGovernedSource,
+    broad_layer_production_ready: existingGovernedSource,
   })];
 })));
 
@@ -238,6 +248,35 @@ function normalizeAssessmentWave(state) {
   };
 }
 
+function normalizeExistingSource(state) {
+  return {
+    state_abbreviation: state.state.abbreviation,
+    state_name: state.state.name,
+    assessment_id: "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
+    assessment_kind: "existing-governed-source-validation",
+    observed_at: state.observed_at,
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    decision: "existing-governed-source",
+    authorized_next_action_type: "retained-source-offline-verification",
+    bounded_connector_implementation_authorized: false,
+    autonomous_acquisition_authorized: false,
+    paid_acquisition_authorized: false,
+    complete_source_acquisition_authorized: false,
+    row_bearing_preflight_authorized: false,
+    offline_fixture_connector_authorized: false,
+    production_ready: true,
+    broad_layer_production_ready: true,
+    candidate: { publisher: state.source.publisher, product: "existing governed organization source", availability: state.access.classification, price: "No assessment-time payment or enrollment" },
+    official_urls: state.citations.map((citation) => citation.url),
+    observed_evidence: [state.fields, state.status_semantics, state.address_zip, state.temporal],
+    unresolved_gates: structuredClone(state.unresolved_gates),
+    required_exclusions: ["natural-person and registered-agent data", "direct contact and sensitive identifiers", "filing documents and free text"],
+    strongest_bounded_next_action: `${state.strongest_next_action} No fresh acquisition or production change is authorized by this assessment.`,
+    prior_decision: null,
+    changed_since_prior_review: false,
+  };
+}
+
 export function validateStateBusinessSourceAssessmentCatalog(catalog) {
   if (catalog?.schema_version !== STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION) fail("unsupported schema version");
   if (catalog?.assessment_catalog_id !== STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID) fail("catalog identity drifted");
@@ -253,7 +292,7 @@ export function validateStateBusinessSourceAssessmentCatalog(catalog) {
     if (state.observed_at !== expectedProvenance.observed_at || state.coverage_release_id !== expectedProvenance.coverage_release_id) fail(`${state.state_abbreviation} assessment date or coverage pin is invalid`);
     const expectedAuthority = EXPECTED_AUTHORITY_BY_STATE[state.state_abbreviation];
     const boundedConnectorAuthorized = expectedAuthority.bounded_connector_implementation_authorized;
-    const expectedDecision = boundedConnectorAuthorized ? "proceed-to-bounded-connector" : "hold";
+    const expectedDecision = boundedConnectorAuthorized ? "proceed-to-bounded-connector" : EXISTING_GOVERNED_SOURCE_STATES.has(state.state_abbreviation) ? "existing-governed-source" : "hold";
     if (state.decision !== expectedDecision || Object.entries(expectedAuthority).some(([field, value]) => state[field] !== value)) fail(`${state.state_abbreviation} authorization boundary drifted`);
     if (!state.candidate?.publisher || !state.candidate?.product || !state.candidate?.availability || !state.candidate?.price) fail(`${state.state_abbreviation} candidate is incomplete`);
     if (!Array.isArray(state.unresolved_gates) || state.unresolved_gates.length === 0 || !Array.isArray(state.official_urls) || state.official_urls.length < 2 || !state.strongest_bounded_next_action) fail(`${state.state_abbreviation} decision evidence is incomplete`);
@@ -273,9 +312,10 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
-  const [assessmentWave, validationWave] = await Promise.all([
+  const [assessmentWave, validationWave, existingSourceWave] = await Promise.all([
     loadStateBusinessSourceAssessmentWave(),
     Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
+    loadExistingGovernedSourceAssessmentWave(),
   ]);
   const sourceArtifacts = [
     {
@@ -292,6 +332,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     })),
     { artifact_id: "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22", artifact_kind: "official-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
     { artifact_id: "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22", artifact_kind: "official-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
+    { artifact_id: "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22", artifact_kind: "existing-governed-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
   ];
   const catalog = {
     schema_version: STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION,
@@ -315,6 +356,10 @@ export async function loadStateBusinessSourceAssessmentCatalog(
       }
       for (const state of assessmentWave.states.map(normalizeAssessmentWave)) {
         if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} wave overlaps prior assessment`);
+        seen.add(state.state_abbreviation); states.push(state);
+      }
+      for (const state of existingSourceWave.states.map(normalizeExistingSource)) {
+        if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} existing-source wave overlaps prior assessment`);
         seen.add(state.state_abbreviation); states.push(state);
       }
       return states;
@@ -343,6 +388,7 @@ export function summarizeStateBusinessSourceAssessments(catalog, currentCoverage
     jurisdictions_revalidated: validated.states.filter((state) => state.assessment_kind === "revalidation").length,
     jurisdictions_discovered: validated.states.filter((state) => state.assessment_kind === "source-discovery").length,
     jurisdictions_official_source_validated: validated.states.filter((state) => state.assessment_kind === "official-source-validation").length,
+    jurisdictions_existing_governed_source_validated: validated.states.filter((state) => state.assessment_kind === "existing-governed-source-validation").length,
     hold_decisions: validated.states.filter((state) => state.decision === "hold").length,
     bounded_connector_decisions: validated.states.filter((state) => state.decision === "proceed-to-bounded-connector").length,
     changed_decisions: validated.states.filter((state) => state.changed_since_prior_review).length,

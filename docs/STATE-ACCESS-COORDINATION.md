@@ -1,5 +1,7 @@
 # State access coordination
 
+September 22 existing-source assessment update: report `data/state-access/reports/20260922130454-b4ed2615-b61f-486a-ae51-44742deea68b.json` covers all 51 state/D.C. jurisdictions and 459 configured industry cells. Assessment context is now present for every jurisdiction: 51 are classified stale against the newer production coverage release and zero are unassessed. Access evidence is unchanged at 202 national-dataset cells, 15 direct-state-publisher cells, 187 missing cells and 55 unmeasured cells. Closing an assessment-catalog omission did not add records, authorize refreshes, alter production pointers or change a coverage classification.
+
 The state-access ledger is a read-only inventory of the 50 states plus the District of Columbia across the industry buckets configured in `config/industry-segments.json`. It does not represent every possible industry or source. A durable report is written exclusively beneath `data/state-access/reports`; it never downloads data, changes a current pointer, promotes production, or launches or watches an acquisition.
 
 ## Assessment freshness (report schema 2)

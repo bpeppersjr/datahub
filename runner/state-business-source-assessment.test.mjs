@@ -15,8 +15,8 @@ function stateAssessment(catalog, stateAbbreviation) {
 
 test("loads a non-overlapping governed catalog across historical and 2026-09-22 waves", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
-  assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ", "MD", "MO", "IN", "SC", "LA", "MN", "AL", "WI", "AR", "HI", "IL", "MS", "NV", "KS", "KY", "TX", "UT", "WA"]);
-  assert.equal(indexStateBusinessSourceAssessments(catalog).size, 43);
+  assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ", "MD", "MO", "IN", "SC", "LA", "MN", "AL", "WI", "AR", "HI", "IL", "MS", "NV", "KS", "KY", "TX", "UT", "WA", "CO", "CT", "DE", "FL", "IA", "NY", "OR", "PA"]);
+  assert.equal(indexStateBusinessSourceAssessments(catalog).size, 51);
   assert.equal(stateAssessment(catalog, "MI").offline_fixture_connector_authorized, false);
   assert.equal(stateAssessment(catalog, "MI").authorized_next_action_type, "written-preflight-inquiry");
   for (const stateAbbreviation of ["DC", "AK"]) {
@@ -25,7 +25,7 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
     schema_version: "1.0.0",
-    assessment_catalog_id: "state-business-source-assessment-catalog-43-2026-09-22",
+    assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-09-22",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-22",
     coverage_release_id: catalog.coverage_release_id,
@@ -42,16 +42,18 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
       "state-business-source-discovery-queue-8-wave-1-2026-09-03",
       "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22",
       "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22",
+      "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
     ],
-    jurisdictions_assessed: 43,
+    jurisdictions_assessed: 51,
     jurisdictions_revalidated: 5,
     jurisdictions_discovered: 28,
     jurisdictions_official_source_validated: 10,
+    jurisdictions_existing_governed_source_validated: 8,
     hold_decisions: 41,
     bounded_connector_decisions: 2,
     changed_decisions: 0,
     autonomous_acquisitions_authorized: 0,
-    production_ready_jurisdictions: 0,
+    production_ready_jurisdictions: 8,
   });
   assert.deepEqual(summarizeLegacyStateBusinessSourceRevalidation(catalog, catalog.coverage_release_id), {
     schema_version: "1.0.0",
