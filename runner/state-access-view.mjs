@@ -23,9 +23,13 @@ export async function stateAccessView({root=APP_ROOT,state,industry}={}){
   const jurisdiction=report.jurisdictions.find(row=>row?.state===state);check(jurisdiction,'State is outside the enrolled ledger.');const cell=jurisdiction.industries?.find(row=>row?.industry===industry);check(cell,'Industry is outside the enrolled ledger.');
   check(typeof cell.accessEvidenceStatus==='string'&&Array.isArray(cell.evidence)&&Array.isArray(cell.limitations));
   const exactBindings=cell.evidence.filter(item=>item?.temporalEvidence).map(item=>({evidenceType:item.type,sourceId:item.sourceId??null,recordCount:item.recordCount??null,temporalEvidence:temporal(item.temporalEvidence)}));
-  if(cell.annualAggregateContext)exactBindings.push({evidenceType:'annual-aggregate-context',sourceId:cell.annualAggregateContext.sourceId??null,recordCount:cell.annualAggregateContext.nonemployerEstablishments??null,temporalEvidence:temporal(cell.annualAggregateContext.temporalEvidence)});
   check(exactBindings.length===(cell.temporalStatus?.positiveEvidenceItems??0),'State-access positive evidence lacks an exact temporal binding.');
   check(typeof cell.temporalStatus?.status==='string'&&cell.temporalStatus.activeBusinessVerified===false&&cell.temporalStatus.generalBusinessOperatingStatusAsserted===false);
+  let contextTemporalEvidence=null;
+  if(cell.annualAggregateContext){
+    check(cell.annualAggregateContext.categoryRelation==='context-only-not-equivalent'&&cell.annualAggregateContext.currentBusinessOperationsVerified===false&&cell.annualAggregateContext.collectionCompletenessPercent===null,'Annual aggregate context is not independently bounded.');
+    contextTemporalEvidence=temporal(cell.annualAggregateContext.temporalEvidence);
+  }
   const retainedDirectoryEvidence=cell.retainedDirectoryEvidence??[];check(Array.isArray(retainedDirectoryEvidence)&&retainedDirectoryEvidence.every(item=>item?.status==='verified-retained-directory-readiness'&&Number.isSafeInteger(item.directoryRows)&&item.directoryRows>=0&&item.namedBusinessCount===null&&item.uniqueBusinessCount===null&&item.physicalSiteCount===null&&item.currentOperatingCount===null&&item.nationalCompletenessPercent===null&&item.currentUspsAssignmentVerified===false&&item.zctaMembershipInferred===false&&item.countyAssignmentPerformed===false&&item.spatialAssignmentPerformed===false));
-  return {accessEvidenceStatus:cell.accessEvidenceStatus,temporalStatus:cell.temporalStatus,exactBindings,...(cell.annualAggregateContext?{annualAggregateContext:cell.annualAggregateContext}:{}),retainedDirectoryEvidence,limitations:cell.limitations};
+  return {accessEvidenceStatus:cell.accessEvidenceStatus,temporalStatus:cell.temporalStatus,exactBindings,...(cell.annualAggregateContext?{annualAggregateContext:cell.annualAggregateContext,contextTemporalEvidence}:{}),retainedDirectoryEvidence,limitations:cell.limitations};
 }

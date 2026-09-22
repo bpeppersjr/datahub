@@ -221,6 +221,8 @@ test('NH retained query sample is admitted only as unmeasured evidence with no b
   const f=await fixture(t);f.nhRestrictedChildcareLoader=async()=>nhRestrictedEvidence();
   const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(row=>row.state==='NH').industries.find(row=>row.industry==='childcare');
   assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.temporalStatus.status,'no-positive-count-evidence');
+  assert.equal(cell.temporalStatus.positiveEvidenceItems,0);
   const evidence=cell.evidence.find(item=>item.evidenceClass==='restricted-retained-childcare-query-sample');
   assert.deepEqual({recordCount:evidence.recordCount,queryZip5:evidence.queryZip5,scope:evidence.scope,statewideCompleteness:evidence.statewideCompleteness},
     {recordCount:6,queryZip5:'03755',scope:'retained-query-sample-not-statewide',statewideCompleteness:'unknown'});
@@ -938,6 +940,19 @@ test('every positive state evidence variant and annual aggregate carries an exac
     const retained = cell.evidence.find((item) => Object.values({CO:'co-cdec-childcare-centers',CT:'ct-oec-childcare-centers',MD:'md-msde-childcare-centers',PA:'pa-dhs-childcare-centers',UT:'ut-dlbc-childcare-centers'}).includes(item.sourceId));
     assert.equal(retained.temporalEvidence.status, 'missing-source-reference');
   }
+});
+
+test('annual aggregate temporal context never inflates access temporal status', async () => {
+  const ledger = await buildStateAccessLedger({ temporalAsOf: '2026-09-22T05:00:00.000Z' });
+  const cells = ledger.jurisdictions.flatMap((jurisdiction) => jurisdiction.industries);
+  const unsupportedWithContext = cells.filter((cell) => cell.accessEvidenceStatus.startsWith('unsupported-') && cell.annualAggregateContext);
+  assert.equal(unsupportedWithContext.length, 57);
+  assert.ok(unsupportedWithContext.every((cell) => cell.temporalStatus.status === 'no-positive-count-evidence' && cell.temporalStatus.positiveEvidenceItems === 0));
+  assert.ok(unsupportedWithContext.every((cell) => cell.annualAggregateContext.temporalEvidence.binding === 'exact-governed-source-release' && cell.annualAggregateContext.temporalEvidence.status === 'within-review-window'));
+  const alChildcare = ledger.jurisdictions.find((jurisdiction) => jurisdiction.state === 'AL').industries.find((cell) => cell.industry === 'childcare');
+  assert.equal(alChildcare.temporalStatus.status, 'no-positive-count-evidence');
+  assert.equal(alChildcare.temporalStatus.positiveEvidenceItems, 0);
+  assert.equal(alChildcare.annualAggregateContext.temporalEvidence.status, 'within-review-window');
 });
 
 test('New York overdue source and publisher-unmeasured childcare control the cell temporal status', async (t) => {

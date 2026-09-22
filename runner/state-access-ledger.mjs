@@ -802,8 +802,10 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         temporalEvidence: temporalEnvelope(coverage.sources.get("census_nonemployer_statistics"), temporalAsOfDate),
       } : null;
       const temporallyBoundEvidence = evidence.map((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0 ? bindTemporalEvidence(item) : item);
-      const positiveTemporalItems = temporallyBoundEvidence.filter((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0);
-      if (annualAggregateContext) positiveTemporalItems.push({ temporalEvidence: annualAggregateContext.temporalEvidence });
+      // A retained restricted query sample is useful provenance, but it is not
+      // statewide named/source access evidence. Keep it in `evidence` while
+      // preventing its rows from making an unsupported cell look measured.
+      const positiveTemporalItems = temporallyBoundEvidence.filter((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0 && item.type !== "retained-state-query-sample-count");
       industries.push({ industry: industryId, accessEvidenceStatus, evidence: temporallyBoundEvidence,
         temporalStatus: cellTemporalStatus(positiveTemporalItems),
         ...(annualAggregateContext ? { annualAggregateContext } : {}), appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : substate ? "NOT_READY_SUBSTATE_EVIDENCE_ONLY" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage.", "Temporal review status describes source evidence currency and never proves that a named business currently operates.", ...(annualAggregateContext ? ["Census Nonemployer Statistics are annual aggregate context only: no named entity, current-operation, licensed-facility, physical-site, employer-universe, ZIP, or ZCTA inference is permitted."] : [])] });
