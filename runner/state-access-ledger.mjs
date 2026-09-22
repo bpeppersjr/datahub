@@ -20,6 +20,7 @@ import { loadRetainedChildcareSnapshotEnrollment } from "./retained-childcare-sn
 import { loadRestrictedChildcareSamples } from "./retained-childcare-restricted-samples.mjs";
 import { readNonemployerIndustryAlignment } from "./nonemployer-industry-alignment.mjs";
 import { loadCmsNursingHomeReportingInput } from "./cms-nursing-home-reporting-input.mjs";
+import { loadCmsHospitalReportingInput } from "./cms-hospital-reporting-input.mjs";
 import { assessBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 
 const PROFILE_IDS = Object.freeze({
@@ -228,7 +229,7 @@ export function projectCmsNursingHomeReadiness(value) {
     nationalCompletenessPercent: null, currentUspsAssignmentVerified: false, zctaMembershipInferred: false, countyAssignmentPerformed: false,
     spatialAssignmentPerformed: false, publisherCoordinatesSpatiallyApproved: false, zip4Aggregated: false, identityMatchingEligible: false,
     publicExportAuthorized: false, exportPolicy: "local-review-only" });
-  const common = { status: "verified-retained-directory-readiness", sourceId: "cms-nursing-home-provider-information",
+  const common = { evidenceType: "cms-nursing-home-retained-directory", status: "verified-retained-directory-readiness", sourceId: "cms-nursing-home-provider-information",
     sourceReleaseId: path.basename(path.dirname(evidence.manifestPath)), sourceManifestPath: evidence.manifestPath,
     sourceManifestSha256: evidence.manifestSha256, selectedArtifactSha256: evidence.selectedArtifact.sha256,
     recordUnit: "publisher-nursing-home-directory-row", sourceIssued: evidence.sourceDates.issued,
@@ -239,6 +240,60 @@ export function projectCmsNursingHomeReadiness(value) {
     publisherCoordinateRows: directoryRows, spatiallyApprovedCoordinateRows: 0 }])),
     territories: { ...common, geographyScope: "reported-address-territories-outside-50-states-and-dc", directoryRows: territoryRows,
       formatValidZip5Rows: territoryRows, missingOrInvalidZip5Rows: 0, separateZip4Rows: 0, publisherCoordinateRows: territoryRows,
+      spatiallyApprovedCoordinateRows: 0, byReportedAddressTerritory: Object.fromEntries([...territories].sort()) },
+    totalDirectoryRows: rows.length };
+}
+
+async function loadCmsHospitalReadiness({ root }) {
+  if (root !== APP_ROOT) return null;
+  return loadCmsHospitalReportingInput();
+}
+
+export function projectCmsHospitalReadiness(value) {
+  if (value === null) return null;
+  const evidence = value?.evidence, rows = value?.rows;
+  if (value?.schemaVersion !== "cms-hospital-reporting-input@1.0.0"
+    || value.verificationMode !== "native-retained-source-replayed" || value.nativeSourceVerified !== true
+    || evidence?.manifestPath !== "data/business-sources/cms-hospital-general-information/jobs/7140acea-6dfb-478e-8769-5dd991bc1875/manifest.json"
+    || evidence.manifestSha256 !== "856992891a8ded15d0f924169991cd3c7d0bda6112de1a0702dd5600305e9239"
+    || evidence.selectionSha256 !== "1ac6c2ca44b160365e245d6d0b5a39b9ec33461f4f7d4f35daf3e8550700b563"
+    || evidence.selectedArtifact?.path !== "selected.jsonl" || evidence.selectedArtifact.bytes !== 7651883
+    || evidence.selectedArtifact.sha256 !== "30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979"
+    || evidence.selectedArtifact.exportPolicy !== "local-review-only"
+    || evidence.sourceDates?.issued !== "2025-01-08" || evidence.sourceDates.modified !== "2026-07-22" || evidence.sourceDates.released !== "2026-08-13"
+    || evidence.sourceReplayThisRead !== true || !Array.isArray(rows) || rows.length !== 5419) throw new Error("CMS hospital readiness evidence is invalid.");
+  const states = new Map(), territories = new Map(), ids = new Set(), sourceIds = new Set();
+  for (const row of rows) {
+    const state = row?.reportedAddress?.state, postal = row?.reportedAddress?.postal, geocode = row?.geocode;
+    if (row?.identifier?.type !== "cms-pdc-hospital-facility-id" || typeof row.identifier.value !== "string" || ids.has(row.identifier.value)
+      || typeof row.sourceRecordId !== "string" || sourceIds.has(row.sourceRecordId)
+      || !/^[A-Z]{2}$/.test(state) || !/^[0-9]{5}$/.test(postal?.zip5) || postal.zip5 === "00000"
+      || postal.zip4 !== null || geocode?.latitude !== null || geocode?.longitude !== null
+      || row.currentOperatingStatus !== null || row.claims?.uniqueBusinessIdentityVerified !== false
+      || row.claims.physicalCampusIdentityVerified !== false || row.claims.currentOperationsVerified !== false
+      || row.claims.exportPolicy !== "local-review-only") throw new Error("CMS hospital readiness row is invalid.");
+    ids.add(row.identifier.value); sourceIds.add(row.sourceRecordId);
+    const map = CANONICAL.has(state) ? states : territories, count = map.get(state) ?? 0; map.set(state, count + 1);
+  }
+  const stateRows = [...states.values()].reduce((sum, count) => sum + count, 0), territoryRows = [...territories.values()].reduce((sum, count) => sum + count, 0);
+  if (states.size !== 51 || stateRows !== 5354 || territoryRows !== 65 || territories.size !== 5
+    || territories.get("AS") !== 1 || territories.get("GU") !== 2 || territories.get("MP") !== 1
+    || territories.get("PR") !== 59 || territories.get("VI") !== 2) throw new Error("CMS hospital readiness geography does not conserve.");
+  const claims = Object.freeze({ namedBusinessCount: null, uniqueBusinessCount: null, physicalSiteCount: null, currentOperatingCount: null,
+    nationalCompletenessPercent: null, currentUspsAssignmentVerified: false, zctaMembershipInferred: false, countyAssignmentPerformed: false,
+    spatialAssignmentPerformed: false, publisherCoordinatesSpatiallyApproved: false, zip4Aggregated: false, identityMatchingEligible: false,
+    publicExportAuthorized: false, exportPolicy: "local-review-only" });
+  const common = { evidenceType: "cms-hospital-retained-directory", status: "verified-retained-directory-readiness",
+    sourceId: "cms-hospital-general-information", sourceReleaseId: path.basename(path.dirname(evidence.manifestPath)),
+    sourceManifestPath: evidence.manifestPath, sourceManifestSha256: evidence.manifestSha256,
+    selectedArtifactSha256: evidence.selectedArtifact.sha256, recordUnit: "publisher-hospital-facility-directory-row",
+    sourceIssued: evidence.sourceDates.issued, sourceModified: evidence.sourceDates.modified, sourceReleased: evidence.sourceDates.released,
+    observedAt: evidence.observedAt, acquisitionCompletedAt: evidence.acquisitionCompletedAt, ...claims };
+  return { states: new Map([...states].map(([state, directoryRows]) => [state, { ...common, publisherJurisdiction: "US-CMS", reportedAddressState: state,
+    directoryRows, formatValidZip5Rows: directoryRows, missingOrInvalidZip5Rows: 0, separateZip4Rows: 0,
+    publisherCoordinateRows: 0, spatiallyApprovedCoordinateRows: 0 }])),
+    territories: { ...common, geographyScope: "reported-address-territories-outside-50-states-and-dc", directoryRows: territoryRows,
+      formatValidZip5Rows: territoryRows, missingOrInvalidZip5Rows: 0, separateZip4Rows: 0, publisherCoordinateRows: 0,
       spatiallyApprovedCoordinateRows: 0, byReportedAddressTerritory: Object.fromEntries([...territories].sort()) },
     totalDirectoryRows: rows.length };
 }
@@ -473,12 +528,13 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, annualAggregateContextLoader = loadAnnualAggregateContexts, cmsNursingHomeReadinessLoader = loadCmsNursingHomeReadiness, temporalAsOf = new Date(), activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, annualAggregateContextLoader = loadAnnualAggregateContexts, cmsNursingHomeReadinessLoader = loadCmsNursingHomeReadiness, cmsHospitalReadinessLoader = loadCmsHospitalReadiness, temporalAsOf = new Date(), activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, substateLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare, annualAggregateInput, cmsNursingHomeInput] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), Promise.all(SUBSTATE_LICENSE_SOURCES.map((item) => governedSubstateLicenseEvidence(root, item))), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root}), annualAggregateContextLoader({root}), cmsNursingHomeReadinessLoader({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, substateLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare, annualAggregateInput, cmsNursingHomeInput, cmsHospitalInput] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), Promise.all(SUBSTATE_LICENSE_SOURCES.map((item) => governedSubstateLicenseEvidence(root, item))), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root}), annualAggregateContextLoader({root}), cmsNursingHomeReadinessLoader({root}), cmsHospitalReadinessLoader({root})]);
   const annualAggregateContexts = validateAnnualAggregateContexts(annualAggregateInput);
   const cmsNursingHomeReadiness = projectCmsNursingHomeReadiness(cmsNursingHomeInput);
+  const cmsHospitalReadiness = projectCmsHospitalReadiness(cmsHospitalInput);
   const temporalAsOfDate = temporalAsOf instanceof Date ? temporalAsOf : new Date(temporalAsOf);
   if (!Number.isFinite(temporalAsOfDate.getTime())) throw new Error("State-access temporal assessment requires a valid as-of instant.");
   const sourceByProfileId = new Map();
@@ -759,7 +815,12 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
     const construction=industries.find(cell=>cell.industry==='construction');
     if(construction)construction.localCredentialEvidence=bindExtensionProjection(projectMnConstructionStateEvidence(localCredentials,state), "mn-construction-credential-reporting");
     const healthCare=industries.find(cell=>cell.industry==='health-care');
-    if(healthCare&&cmsNursingHomeReadiness)healthCare.retainedDirectoryEvidence=cmsNursingHomeReadiness.states.get(state);
+    if(healthCare){
+      const retainedDirectoryEvidence=[];
+      if(cmsNursingHomeReadiness)retainedDirectoryEvidence.push(cmsNursingHomeReadiness.states.get(state));
+      if(cmsHospitalReadiness)retainedDirectoryEvidence.push(cmsHospitalReadiness.states.get(state));
+      if(retainedDirectoryEvidence.length)healthCare.retainedDirectoryEvidence=retainedDirectoryEvidence;
+    }
     const childcare=industries.find(cell=>cell.industry==='childcare');
     if(childcare)childcare.localFacilityEvidence=bindExtensionProjection(projectPaChildcareStateEvidence(localFacilities,state), "pa-dhs-childcare-centers");
     if(childcare)childcare.localSourceCandidateEvidence=state==='UT'
@@ -780,7 +841,8 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   const assessmentCoverageReleaseId = assessments.coverage_release_id ?? null;
   const assessmentCatalogFreshnessStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "current" : "stale";
   const catalogApplicabilityStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "exact-pin" : coverageReassessment && assessmentCoverageApplicabilityCounts.reviewedCompatible === assessmentStates.length ? "reviewed-compatible" : "not-reviewed";
-  return { schemaVersion: 4, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, temporalAsOf: temporalAsOfDate.toISOString(), temporalBindingRequiredForPositiveCounts: true, retainedCmsNursingHomeTerritoryEvidence: cmsNursingHomeReadiness?.territories ?? null, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentObservation: { observedAt: assessments.observed_at ?? null, freshnessStatus: assessments.observed_at ? "not-evaluated-no-age-policy" : "unobserved" }, assessmentCoverageApplicability: { status: catalogApplicabilityStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: catalogApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null, assessedJurisdictions: assessmentStates.length, exactPinJurisdictions: assessmentCoverageApplicabilityCounts.exactPin, reviewedCompatibleJurisdictions: assessmentCoverageApplicabilityCounts.reviewedCompatible, notReviewedJurisdictions: assessmentCoverageApplicabilityCounts.notReviewed, missingCoverageReleaseIdJurisdictions: assessmentCoverageApplicabilityCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentCoverageApplicabilityCounts.unassessed }, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, governedAnnualAggregateContextCells: annualAggregateContextCells.length, previouslyUnsupportedCellsWithAnnualAggregateContext: unsupportedWithAnnualAggregateContext.length, retainedCmsNursingHomeStateDirectoryEvidenceCells: cmsNursingHomeReadiness ? cmsNursingHomeReadiness.states.size : 0, assessmentFreshnessStatusCounts: assessmentFreshnessCounts, assessmentCoverageApplicabilityStatusCounts: assessmentCoverageApplicabilityCounts }, jurisdictions };
+  const retainedCmsDirectoryTerritoryEvidence = [cmsNursingHomeReadiness?.territories, cmsHospitalReadiness?.territories].filter(Boolean);
+  return { schemaVersion: 4, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, temporalAsOf: temporalAsOfDate.toISOString(), temporalBindingRequiredForPositiveCounts: true, retainedCmsDirectoryTerritoryEvidence, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentObservation: { observedAt: assessments.observed_at ?? null, freshnessStatus: assessments.observed_at ? "not-evaluated-no-age-policy" : "unobserved" }, assessmentCoverageApplicability: { status: catalogApplicabilityStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: catalogApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null, assessedJurisdictions: assessmentStates.length, exactPinJurisdictions: assessmentCoverageApplicabilityCounts.exactPin, reviewedCompatibleJurisdictions: assessmentCoverageApplicabilityCounts.reviewedCompatible, notReviewedJurisdictions: assessmentCoverageApplicabilityCounts.notReviewed, missingCoverageReleaseIdJurisdictions: assessmentCoverageApplicabilityCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentCoverageApplicabilityCounts.unassessed }, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, governedAnnualAggregateContextCells: annualAggregateContextCells.length, previouslyUnsupportedCellsWithAnnualAggregateContext: unsupportedWithAnnualAggregateContext.length, retainedCmsNursingHomeStateDirectoryEvidenceCells: cmsNursingHomeReadiness ? cmsNursingHomeReadiness.states.size : 0, retainedCmsHospitalStateDirectoryEvidenceCells: cmsHospitalReadiness ? cmsHospitalReadiness.states.size : 0, assessmentFreshnessStatusCounts: assessmentFreshnessCounts, assessmentCoverageApplicabilityStatusCounts: assessmentCoverageApplicabilityCounts }, jurisdictions };
 }
 
 export async function writeStateAccessReport(options = {}) {
