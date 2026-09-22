@@ -245,6 +245,24 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
         const applies = source.scope === "national" || source.states.includes(state), positive = Number.isSafeInteger(count) && count > 0;
         if (!applies) continue;
+        if (key === 'state-vt-childcare-centers' && state === 'VT') {
+          const cohort = projectVtChildcarePublisherEvidence(localVtCandidates, state);
+          if (cohort.status === 'verified-retained-publisher-cohort') {
+            direct = true;
+            evidence.push({
+              type: 'published-direct-state-publisher-cohort-count', evidenceClass: 'retained-publisher-childcare-candidate',
+              sourceId: cohort.sourceId, recordCount: cohort.publisherCohortRows, rowUnit: 'retained-publisher-childcare-candidate',
+              stateBasis: 'publisher-jurisdiction', publisherJurisdiction: 'VT', reportedAddressState: null,
+              enrollmentSha256: cohort.enrollmentSha256, appReceiptSha256: cohort.appReceiptSha256,
+              acquiredManifestSha256: cohort.acquiredManifestSha256, normalizedManifestSha256: cohort.normalizedManifestSha256,
+              acceptedCohortRows: cohort.acceptedCohortRows, sourceRows: cohort.sourceRows, quarantinedRows: cohort.quarantinedRows,
+              facilityCount: null, uniqueBusinessCount: null, uniqueActiveBusinessCount: null,
+              identityMatchingEligible: false, physicalSiteVerified: false, currentOperationsVerified: false,
+              publicExportAuthorized: false, exportPolicy: 'internal', nationalReportingIntegrated: false,
+              nationalCompletenessPercent: null, reportingPeriod: null, reportingPeriodVerified: false,
+            });
+          }
+        }
         const retainedCount = retainedChildcareStateCount(row, coverage.retainedChildcare, key);
         if (retainedCount > 0) {
           direct = true;

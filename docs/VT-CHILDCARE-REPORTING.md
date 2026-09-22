@@ -1,5 +1,11 @@
 # Vermont retained publisher-cohort reporting
 
+## Direct-state publisher-cohort admission — September 22, 2026
+
+The state-access ledger now admits the verified installed cohort as a Vermont-only `published-direct-state-publisher-cohort-count`: 503 rows with row unit `retained-publisher-childcare-candidate`. Admission replays the existing enrollment, app receipt, acquired manifest and normalized manifest offline. Its state basis is publisher jurisdiction, never reported-address state; all 503 reported state values remain null. Missing, malformed or hash-changed evidence is unavailable or rejected rather than treated as zero, and no other jurisdiction receives this evidence.
+
+This classification does not convert candidates into facilities, unique businesses, physical sites or verified current operations. Public export and national reporting remain false, while unique-business, active-business, facility and national-completeness counts remain null. The retained report is `data/state-access/reports/20260922135802-0250b40d-fa24-4a90-8a01-8373b970f5c2.json`. It was generated without source contact, acquisition, dispatch or a production-pointer change.
+
 The local reporting adapter consumes the verified Co*Tive app receipt and retained acquisition/normalization manifests. It does not download, geocode, deduplicate or promote source records into national production. Use the standalone CLI with its pinned installed enrollment, or explicitly select an app receipt for offline inspection:
 
 ```powershell

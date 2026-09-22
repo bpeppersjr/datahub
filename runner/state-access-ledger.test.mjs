@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
@@ -41,6 +41,45 @@ async function fixture(t, {retained = false} = {}) {
   }
   return { root, manifestPath, manifest, waManifestPath, waManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
 }
+
+async function installVtReportingEnrollment(root) {
+  const relativeConfig = 'config/vt-childcare-reporting-enrollment.json';
+  const binding = JSON.parse(await readFile(path.join(APP_ROOT, relativeConfig)));
+  const target = path.join(root, relativeConfig); await mkdir(path.dirname(target), { recursive: true });
+  await copyFile(path.join(APP_ROOT, relativeConfig), target);
+  const runRelative = binding.app_receipt_path.split('/').slice(0, 4).join('/');
+  await cp(path.join(APP_ROOT, runRelative), path.join(root, runRelative), { recursive: true });
+  return binding;
+}
+
+test('verified VT publisher cohort is admitted as direct VT-only evidence without address-state or business claims', async () => {
+  const binding = JSON.parse(await readFile(path.join(APP_ROOT, 'config/vt-childcare-reporting-enrollment.json')));
+  const ledger = await buildStateAccessLedger();
+  const vt = ledger.jurisdictions.find(row => row.state === 'VT').industries.find(row => row.industry === 'childcare');
+  assert.equal(vt.accessEvidenceStatus, 'direct-state-publisher');
+  const evidence = vt.evidence.find(item => item.type === 'published-direct-state-publisher-cohort-count');
+  assert.deepEqual({recordCount:evidence.recordCount,rowUnit:evidence.rowUnit,stateBasis:evidence.stateBasis,publisherJurisdiction:evidence.publisherJurisdiction,reportedAddressState:evidence.reportedAddressState},
+    {recordCount:503,rowUnit:'retained-publisher-childcare-candidate',stateBasis:'publisher-jurisdiction',publisherJurisdiction:'VT',reportedAddressState:null});
+  assert.equal(evidence.enrollmentSha256, 'f43656656ef9ebd4f6afb1ae35d9ed817aaae173dbdec647a3ea3d0cbeab64b8');
+  assert.equal(evidence.appReceiptSha256, binding.app_receipt_sha256);
+  for (const key of ['facilityCount','uniqueBusinessCount','uniqueActiveBusinessCount','nationalCompletenessPercent','reportingPeriod']) assert.equal(evidence[key], null);
+  for (const key of ['identityMatchingEligible','physicalSiteVerified','currentOperationsVerified','publicExportAuthorized','nationalReportingIntegrated','reportingPeriodVerified']) assert.equal(evidence[key], false);
+  assert.equal(vt.localPublisherCohortEvidence.publisherCohortRows, 503);
+  assert.equal(vt.appHandoff.jobSubmitted, false);
+  for (const jurisdiction of ledger.jurisdictions.filter(row => row.state !== 'VT')) {
+    const cell = jurisdiction.industries.find(row => row.industry === 'childcare');
+    assert.equal(cell.evidence.some(item => item.type === 'published-direct-state-publisher-cohort-count'), false);
+  }
+});
+
+test('VT direct cohort admission rejects tampered and malformed enrollment evidence', async t => {
+  for (const kind of ['tampered-receipt','malformed-binding']) {
+    const f = await fixture(t); const binding = await installVtReportingEnrollment(f.root);
+    if (kind === 'tampered-receipt') await writeFile(path.join(f.root, binding.app_receipt_path), '{}');
+    else await writeFile(path.join(f.root, 'config/vt-childcare-reporting-enrollment.json'), JSON.stringify({...binding, app_receipt_sha256:'invalid'}));
+    await assert.rejects(buildStateAccessLedger(f), /Vermont reporting enrollment rejected/);
+  }
+});
 
 test('WA contractor publisher cohort supplies direct WA-only construction evidence', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
