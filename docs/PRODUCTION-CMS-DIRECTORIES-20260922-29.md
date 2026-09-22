@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-30` after the governed exact-ZIP evidence inspector implementation changed the repository state. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive published a retained-only NPPES pharmacy secondary-address view. That view contains 420 provider-reported non-primary addresses linked by exact NPI to 332 pharmacy-classified organizations across 377 ZIP5 values. It is a separate reporting layer, not confirmed pharmacy-site or current-operation evidence, and it contributes zero additional business/site records to this plan. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-29`
