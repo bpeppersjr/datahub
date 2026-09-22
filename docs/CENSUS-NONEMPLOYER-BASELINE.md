@@ -42,3 +42,16 @@ The tracked contracts are [`config/connectors/us-census-nonemployer.json`](../co
 Release `census-nonemployer-2023-20260830-230249716Z-78268f89` pins the official 2023 combined source archive and independently verifies five artifacts totaling 51,622,242 bytes. The source contains 1,153,323 rows across all published geographies. The governed normalized layer retains 6,412 national, 94,825 state, and 701,010 county industry rows plus one national, 51 state/DC, and 3,143 county all-sector totals.
 
 The published national and summed state/DC totals reconcile exactly to 30,427,808 nonemployer establishments. Published county totals sum to 30,427,807; the one-establishment difference remains explicitly unallocated rather than being forced into a county or ZIP.
+
+## Selected county-industry context
+
+The offline consumer derives a separate immutable release from the fixed retained release above. It currently selects exact 2022 NAICS totals for code `23` (Construction) and `62441` (Child Day Care Services); it does not change the baseline's `current.json` pointer or general business totals.
+
+```powershell
+npm run nonemployer:industry-context:build
+npm run nonemployer:industry-context:verify -- <release-manifest-path>
+```
+
+Each output cell preserves the Census reference year, 2022 NAICS classification, measure flags, raw source values, source record ID, retained release ID, transformation version, and source manifest/artifact hashes. Flagged numeric counts, including zero, are retained as raw evidence while the usable count is null; a true unflagged zero remains zero. County geographies found in the retained all-sector total are represented for both industries; a county without a selected published cell is retained as an explicit missing cell, not as zero. National-minus-county and state-minus-county differences sum usable known county cells only; they do not measure completeness or missing businesses. These remain annual aggregate context, not named businesses, current operations, ZIP/ZCTA allocations, or evidence of collection completeness.
+
+The first verified derived release is `census-nonemployer-industry-context-2023-e3fe540b-889b-4dc2-b279-8e9f515ac97e`; its manifest SHA-256 is `60bc303ec665df2472afb93277ed871c1448a6e891b6294903431b6d15c6715f`. It contains 6,390 cells over the 3,143 retained county geographies plus national/state denominators. Construction has 3,141 usable, one flagged, and one absent county cell; childcare has 3,000 usable, nine flagged, and 134 absent county cells. The differences from the sum of usable known county cells are 5 and 198 respectively. No `current.json` pointer was created.

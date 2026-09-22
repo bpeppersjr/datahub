@@ -1,0 +1,23 @@
+{
+  "connector_id": "census-nonemployer-industry-context",
+  "version": "1.0.0",
+  "description": "Offline derived context from the fixed independently verified retained Census Nonemployer release.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": { "type": "object", "additionalProperties": false, "properties": {} },
+  "named_secret_references": [],
+  "input_artifact_types": ["verified-retained-census-nonemployer-release"],
+  "output_artifact_types": ["census-nonemployer-industry-context-jsonl", "census-nonemployer-industry-residuals-jsonl"],
+  "allowed_hosts": [],
+  "redirect_policy": "No network requests.",
+  "provider_budget_key": "us-census-nonemployer-offline-derived-context",
+  "resource_class": "local-medium",
+  "retry": "No automatic retry; re-run local transformation against the same fixed retained release.",
+  "checkpoint": "Acquire means verify and reuse the fixed retained release offline. Immutable run and release directory; artifacts and manifest written before release directory is published.",
+  "execution_limits": { "network_requests": 0, "maximum_compressed_source_bytes_per_artifact": 60000000, "maximum_uncompressed_bytes_per_artifact": 1000000000, "maximum_jsonl_line_bytes": 65536, "maximum_source_rows_scanned": 802247, "maximum_output_rows": 10000, "maximum_output_bytes": 25000000 },
+  "cancellation": "Cooperative AbortSignal checks during source verification, streaming, and before release publication.",
+  "idempotency": "Each build has a new immutable run id; no current pointer is created or modified.",
+  "source_policy": "config/source-policies/us-census-nonemployer.json",
+  "retention_profile": "Versioned derived aggregate context retains source hashes, release identity, reference year, exact 2022 NAICS selection and measure flags.",
+  "produced_entities": ["annual-industry-geography-aggregate"],
+  "produced_identifiers": ["county-geoid", "state-fips", "naics-2022"]
+}

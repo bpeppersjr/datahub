@@ -59,6 +59,8 @@
     "zbp:verify": "node scripts/verify-census-zbp.mjs",
     "nonemployer:build": "node scripts/build-census-nonemployer.mjs",
     "nonemployer:verify": "node scripts/verify-census-nonemployer.mjs",
+    "nonemployer:industry-context:build": "node scripts/build-census-nonemployer-industry-context.mjs",
+    "nonemployer:industry-context:verify": "node scripts/verify-census-nonemployer-industry-context.mjs",
     "bea-regional-gdp:build": "node scripts/build-bea-regional-gdp.mjs",
     "bea-regional-gdp:verify": "node scripts/verify-bea-regional-gdp.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",

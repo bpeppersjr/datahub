@@ -1,0 +1,34 @@
+{
+  "dataset_id": "census-nonemployer-county-industry-context",
+  "schema_version": "census-nonemployer-county-industry-context@1.0.0",
+  "title": "Census Nonemployer County Industry Context",
+  "status": "derived-retained-verified-context",
+  "description": "Versioned county, state, and national annual aggregate context for explicitly selected 2022 NAICS industries.",
+  "producer": "scripts/build-census-nonemployer-industry-context.mjs",
+  "source_dataset_id": "census-nonemployer-baseline",
+  "source_release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+  "reference_year": 2023,
+  "classification": { "system": "NAICS", "vintage": 2022 },
+  "selected_industries": [
+    { "code": "23", "label": "Construction" },
+    { "code": "62441", "label": "Child Day Care Services" }
+  ],
+  "retained_county_expectations": {
+    "county_geographies": 3143,
+    "by_naics": {
+      "23": { "usable": 3141, "flagged": 1, "absent": 1, "national_minus_known_counties": 5 },
+      "62441": { "usable": 3000, "flagged": 9, "absent": 134, "national_minus_known_counties": 198 }
+    }
+  },
+  "output_root": "data/business-baselines/census-nonemployer-industry-context",
+  "artifacts": ["county-industry-context.jsonl", "geography-residuals.jsonl"],
+  "semantics": [
+    "Annual aggregate counts for businesses with no paid employees; not named businesses or current operating status.",
+    "Missing county cells remain explicitly missing and are not imputed.",
+    "Flagged source values remain in raw fields; their usable measures are null and excluded from residual sums. True unflagged zero remains zero.",
+    "National/state minus county figures sum usable known county cells only and do not measure completeness or missing businesses.",
+    "No ZIP or ZCTA allocation; these data do not establish collection completeness."
+  ],
+  "source_policy": "config/source-policies/us-census-nonemployer.json",
+  "production_pointer_updated": false
+}

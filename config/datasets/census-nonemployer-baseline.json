@@ -23,6 +23,8 @@
   },
   "current_verified_release": {
     "release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+    "manifest_sha256": "7ebdba43630506d1c6bf859fdc91fe57566c0d0b95c4b8f872c40c2c71670f06",
+    "county_industry_sha256": "35571aad99f81e7d03d172d63594d264c36d2b64175a0f29bdb7d920d4e69667",
     "reference_year": 2023,
     "source_rows_all_geographies": 1153323,
     "normalized_national_industry_rows": 6412,
