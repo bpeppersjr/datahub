@@ -16,8 +16,10 @@ test("Iowa refresh readiness is deterministic, evidence-bound, and held", async 
   assert.equal(first.plan.networkRequestCount, 0);
   assert.equal(first.plan.allocationCount, 0);
   assert.equal(first.plan.operationCreated, false);
-  assert.equal(first.plan.evidence.length, 4);
+  assert.equal(first.plan.evidence.length, 6);
   assert.ok(first.plan.evidence.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));
+  assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,true);
+  assert.equal(first.retainedRelease.releaseId,'ia-business-registry-20260903-004117245Z-8e4bf874');
 });
 
 test("managed Iowa preview allocates no operation and start fails closed before executor or receipt writer", async t => {

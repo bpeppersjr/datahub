@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { runnerJson } from './runner-client';
 
-export type IaBusinessRegistryRefreshStatus={sourceId:'ia-business-registry';label:string;readinessStatus:'HOLD';dispatchAvailable:false;freshAcquisitionAuthorized:false;autonomousAcquisitionAuthorized:false;productionPointerChangeAuthorized:false;retainedRelease:{releaseId:string;sourceReleaseId:string;sourceModifiedAt:string;sourceRows:number;activeEntitiesPublished:number};observedAssessment:{assessmentId:string;observedAt:string;decision:string;retainedReleaseId:string;catalogRetainedReleaseMatchesAssessment:boolean};plan:IaRefreshPlan;nextAction:string};
+export type IaBusinessRegistryRefreshStatus={sourceId:'ia-business-registry';label:string;readinessStatus:'HOLD';dispatchAvailable:false;freshAcquisitionAuthorized:false;autonomousAcquisitionAuthorized:false;productionPointerChangeAuthorized:false;retainedRelease:{releaseId:string;sourceReleaseId:string;sourceModifiedAt:string;sourceRows:number;activeEntitiesPublished:number};observedAssessment:{assessmentId:string;observedAt:string;decision:string;retainedReleaseId:string;catalogRetainedReleaseMatchesAssessment:boolean;currentRetainedReleaseMatchesAssessment:boolean};plan:IaRefreshPlan;nextAction:string};
 type IaRefreshPlan={planId:string;sourceId:'ia-business-registry';mode:string;status:'HOLD';allocationCount:0;networkRequestCount:0;operationCreated:false;steps:string[];unresolvedGates:string[]};
 
 export default function IaBusinessRegistryRefreshStatusCard({status}:{status?:IaBusinessRegistryRefreshStatus}){

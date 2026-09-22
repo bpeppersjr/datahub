@@ -32,6 +32,12 @@ async function makeFixture(t) {
   await mkdir(path.join(root, "scripts"), { recursive: true });
   await mkdir(path.join(root, "runner"), { recursive: true });
   await cp(path.join(APP_ROOT, "config"), path.join(root, "config"), { recursive: true });
+  const iaSourceRoot = path.join(APP_ROOT, "data", "business-sources", "ia-business-registry-active-entities");
+  const iaFixtureRoot = path.join(root, "data", "business-sources", "ia-business-registry-active-entities");
+  const iaPointer = JSON.parse(await readFile(path.join(iaSourceRoot, "current.json"), "utf8"));
+  await mkdir(path.dirname(path.join(iaFixtureRoot, ...iaPointer.manifest.split("/"))), { recursive: true });
+  await copyFile(path.join(iaSourceRoot, "current.json"), path.join(iaFixtureRoot, "current.json"));
+  await copyFile(path.join(iaSourceRoot, ...iaPointer.manifest.split("/")), path.join(iaFixtureRoot, ...iaPointer.manifest.split("/")));
   for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",

@@ -49,6 +49,12 @@ All outputs remain under `data/business-sources/ia-business-registry-active-enti
 
 ## Validated live release
 
-Release `ia-business-registry-20260831-053540425Z-9f568d56` is bound to the source refresh at `2026-08-10T12:59:03.509Z` and source release `ia-business-registry-2026-08-10-8fdff50d81e1617a`. Independent verification replayed all 347,200 archive rows against the selected-field snapshot and rehashed and parsed all 23 artifacts totaling 198,106,268 bytes.
+Release `ia-business-registry-20260903-004117245Z-8e4bf874` is the retained release selected by `current.json`. It is bound to the source refresh at `2026-08-10T12:59:03.509Z` and source release `ia-business-registry-2026-08-10-9654242df778d3bb`. Independent verification replayed all 347,200 archive rows against the selected-field snapshot and rehashed and parsed all 23 artifacts totaling 198,106,162 bytes.
 
 The snapshot publishes 347,200 active entity organizations with zero quarantined entities. Exactly 334,176 have an eligible U.S. home-office ZIP contribution, 330,664 preserve a complete source coordinate pair, and no coordinate pair was rejected as incomplete or invalid. The source contributes 9,901 distinct ZIPs; its complete Census-baseline/source union contains 38,176 ZIP rows. Physical-site and establishment counts remain `null`.
+
+## Refresh readiness in Co*Tive Collector
+
+The Data Operations page provides a deterministic, read-only Iowa refresh preview. The preview revalidates the policy, connector, dataset assessment, actual `current.json` pointer, and its manifest. It displays the retained release and produces a hash-bound plan with zero allocations, zero network requests, and no operation.
+
+The official catalog was observed with a newer September 8, 2026 snapshot containing 344,639 rows. That lower count is not treated as evidence that 2,561 businesses closed. A future refresh requires a complete replacement/deletion reconciliation and separate authorization for acquisition and any production-pointer change. Until those gates are resolved, Start remains disabled and a direct start request returns `ACQUISITION_NOT_AUTHORIZED` before an operation, executor, receipt writer, or network request can be created.

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 
@@ -15,12 +15,17 @@ const inputs = Object.freeze({
 const sha256 = value => createHash("sha256").update(value).digest("hex");
 const plainObject = value => value && typeof value === "object" && !Array.isArray(value);
 
-async function governedJson(relative) {
-  const bytes = await readFile(path.join(APP_ROOT, relative));
+async function boundedJson(file,maximum) {
+  const resolved=path.resolve(file),info=await lstat(resolved,{bigint:true});
+  if(!info.isFile()||info.isSymbolicLink()||info.nlink!==1n||info.size<=0n||info.size>BigInt(maximum)||await realpath(resolved)!==resolved)throw new Error("Governed Iowa evidence file is unsafe.");
+  const bytes=await readFile(resolved),after=await lstat(resolved,{bigint:true});
+  if(bytes.length!==Number(info.size)||after.dev!==info.dev||after.ino!==info.ino||after.size!==info.size||after.mtimeNs!==info.mtimeNs||after.ctimeNs!==info.ctimeNs)throw new Error("Governed Iowa evidence changed while read.");
   const value = JSON.parse(bytes.toString("utf8"));
-  if (!plainObject(value)) throw new Error(`Governed Iowa input is invalid: ${relative}.`);
+  if (!plainObject(value)) throw new Error("Governed Iowa evidence is invalid.");
   return { value, sha256: sha256(bytes), bytes: bytes.length };
 }
+
+async function governedJson(relative){return boundedJson(path.join(APP_ROOT,relative),1024*1024);}
 
 export async function getIaBusinessRegistryRefreshReadiness() {
   const [policyEvidence, connectorEvidence, datasetEvidence, assessmentEvidence] = await Promise.all(Object.values(inputs).map(governedJson));
@@ -44,14 +49,19 @@ export async function getIaBusinessRegistryRefreshReadiness() {
     && authorization.autonomous_acquisition_authorized === false
     && authorization.production_pointer_change_authorized === false;
   if (!held) throw new Error("Governed Iowa assessment no longer contains the reviewed acquisition HOLD.");
-  const retained = dataset.current_verified_release;
-  if (!plainObject(retained) || typeof retained.release_id !== "string" || typeof assessment.source.retained_release_id !== "string") throw new Error("Governed Iowa retained-release evidence is incomplete.");
+  const configuredRetained = dataset.current_verified_release;
+  if (!plainObject(configuredRetained) || typeof configuredRetained.release_id !== "string" || typeof assessment.source.retained_release_id !== "string") throw new Error("Governed Iowa retained-release evidence is incomplete.");
+  const sourceRoot=path.join(APP_ROOT,"data/business-sources/ia-business-registry-active-entities"),pointerPath=path.join(sourceRoot,"current.json"),pointerEvidence=await boundedJson(pointerPath,100000),pointer=pointerEvidence.value;
+  if(pointer.dataset_id!==dataset.dataset_id||pointer.release_id!==assessment.source.retained_release_id||pointer.manifest!==`releases/${pointer.release_id}/manifest.json`)throw new Error("Governed Iowa current pointer does not match the assessed retained release.");
+  const manifestPath=path.join(sourceRoot,...pointer.manifest.split('/')),manifestEvidence=await boundedJson(manifestPath,1024*1024),manifest=manifestEvidence.value;
+  if(manifest.dataset_id!==dataset.dataset_id||manifest.release_id!==pointer.release_id||manifest.source_release_id!==pointer.source_release_id||manifest.source_modified_at!==pointer.source_modified_at||manifest.complete_source_snapshot!==true||!plainObject(manifest.coverage)||!Number.isSafeInteger(manifest.coverage.source_rows)||!Number.isSafeInteger(manifest.coverage.active_entities_published))throw new Error("Governed Iowa current manifest does not match its pointer or source contract.");
 
   const evidence = Object.entries(inputs).map(([kind, relative], index) => {
     const item = [policyEvidence, connectorEvidence, datasetEvidence, assessmentEvidence][index];
     return { kind, path: relative, sha256: item.sha256, bytes: item.bytes };
   });
-  const planSeed = JSON.stringify({ sourceId: IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID, evidence, retainedReleaseId: retained.release_id, assessmentId: assessment.assessment_id });
+  evidence.push({kind:"current-pointer",path:path.relative(APP_ROOT,pointerPath).replaceAll('\\','/'),sha256:pointerEvidence.sha256,bytes:pointerEvidence.bytes},{kind:"current-manifest",path:path.relative(APP_ROOT,manifestPath).replaceAll('\\','/'),sha256:manifestEvidence.sha256,bytes:manifestEvidence.bytes});
+  const planSeed = JSON.stringify({ sourceId: IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID, evidence, retainedReleaseId: manifest.release_id, assessmentId: assessment.assessment_id });
   return Object.freeze({
     sourceId: IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,
     label: "Iowa business registry refresh",
@@ -61,13 +71,13 @@ export async function getIaBusinessRegistryRefreshReadiness() {
     autonomousAcquisitionAuthorized: false,
     productionPointerChangeAuthorized: false,
     retainedRelease: {
-      releaseId: retained.release_id,
-      sourceReleaseId: retained.source_release_id,
-      sourceModifiedAt: retained.source_modified_at,
-      sourceRows: retained.source_rows,
-      activeEntitiesPublished: retained.active_entities_published,
+      releaseId: manifest.release_id,
+      sourceReleaseId: manifest.source_release_id,
+      sourceModifiedAt: manifest.source_modified_at,
+      sourceRows: manifest.coverage.source_rows,
+      activeEntitiesPublished: manifest.coverage.active_entities_published,
     },
-    observedAssessment: { assessmentId: assessment.assessment_id, observedAt: assessment.observed_at, decision: assessment.decision, retainedReleaseId: assessment.source.retained_release_id, catalogRetainedReleaseMatchesAssessment: retained.release_id === assessment.source.retained_release_id },
+    observedAssessment: { assessmentId: assessment.assessment_id, observedAt: assessment.observed_at, decision: assessment.decision, retainedReleaseId: assessment.source.retained_release_id, catalogRetainedReleaseMatchesAssessment: configuredRetained.release_id === assessment.source.retained_release_id, currentRetainedReleaseMatchesAssessment: manifest.release_id===assessment.source.retained_release_id },
     plan: {
       planId: `ia-refresh-plan-${sha256(planSeed).slice(0, 20)}`,
       sourceId: IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,
