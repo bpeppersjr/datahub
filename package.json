@@ -14,6 +14,7 @@
     "industry:run": "node scripts/run-industry-segments.mjs run",
     "industry:import-candidate": "node scripts/import-industry-candidate.mjs",
     "state-access:report": "node scripts/report-state-access.mjs",
+    "goal-completion:build": "node scripts/build-national-goal-completion-matrix.mjs",
     "reconciliation:plan": "node scripts/reconcile-business-candidates.mjs plan",
     "reconciliation:run": "node scripts/reconcile-business-candidates.mjs run",
     "reconciliation:production:plan": "node scripts/reconcile-business-production.mjs plan",
