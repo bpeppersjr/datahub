@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded without execution by `production-cms-directories-20260922-10` after Delaware, New Hampshire and locality-scoped license evidence changed repository pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after Washington construction, Iowa/Vermont childcare and Minnesota credential state-cohort evidence were integrated, and historical assessment applicability was separated from observation freshness. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-09`
