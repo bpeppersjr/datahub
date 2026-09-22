@@ -20,6 +20,7 @@
     "reconciliation:production:run": "node scripts/reconcile-business-production.mjs run",
     "reconciliation:production:preflight": "node scripts/preflight-business-production.mjs",
     "reconciliation:production:stop": "node scripts/reconcile-business-production.mjs stop",
+    "reporting:ten:enroll": "node scripts/publish-national-reporting-ten-enrollment.mjs",
     "business:export": "node scripts/compose-flat-business-export.mjs",
     "business:export:verify": "node scripts/verify-flat-business-export.mjs",
     "connectors:check": "node scripts/check-connector-registry.mjs",
