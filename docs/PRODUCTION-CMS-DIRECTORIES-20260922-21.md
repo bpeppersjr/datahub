@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-22`; do not execute this plan.
+
 Fresh governed planning completed after Datahub gained an offline, local-restricted USPS City State operational-denominator candidate builder. That builder requires a separately verified licensed admission, exact source-byte replay, complete four-class scope, and an explicit mapping for every observed status. It creates no current pointer, production admission, redistribution authority, ZIP+4, ZCTA geometry, or address-deliverability claim. No licensed USPS rows were supplied or processed, and the candidate is not an input to this production plan. Collector stop/restart restoration passed with one healthy listener. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-21`
