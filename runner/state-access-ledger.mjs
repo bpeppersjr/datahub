@@ -19,6 +19,7 @@ import { loadMnCredentialPublicationStatus } from "./mn-credential-publication-s
 import { loadRetainedChildcareSnapshotEnrollment } from "./retained-childcare-snapshot-enrollment.mjs";
 import { loadRestrictedChildcareSamples } from "./retained-childcare-restricted-samples.mjs";
 import { readNonemployerIndustryAlignment } from "./nonemployer-industry-alignment.mjs";
+import { assessBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -62,6 +63,86 @@ const STATE_BY_FIPS = Object.freeze(Object.fromEntries([
   ["01","AL"],["02","AK"],["04","AZ"],["05","AR"],["06","CA"],["08","CO"],["09","CT"],["10","DE"],["11","DC"],["12","FL"],["13","GA"],["15","HI"],["16","ID"],["17","IL"],["18","IN"],["19","IA"],["20","KS"],["21","KY"],["22","LA"],["23","ME"],["24","MD"],["25","MA"],["26","MI"],["27","MN"],["28","MS"],["29","MO"],["30","MT"],["31","NE"],["32","NV"],["33","NH"],["34","NJ"],["35","NM"],["36","NY"],["37","NC"],["38","ND"],["39","OH"],["40","OK"],["41","OR"],["42","PA"],["44","RI"],["45","SC"],["46","SD"],["47","TN"],["48","TX"],["49","UT"],["50","VT"],["51","VA"],["53","WA"],["54","WV"],["55","WI"],["56","WY"],
 ]));
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+
+const TEMPORAL_STATUS_PRIORITY = Object.freeze({
+  "within-review-window": 0,
+  "review-due": 1,
+  "missing-source-reference": 2,
+  "future-source-reference": 3,
+  "unconfigured-source-policy": 4,
+});
+
+const SOURCE_KEY_BY_EVIDENCE_ID = Object.freeze({
+  "washington-lni-active-contractor-licenses": "wa_lni_active_contractor_organizations",
+  "delaware-division-of-revenue-current-business-licenses": "de_business_licenses_current",
+  "national-irs-eo-bmf": "irs_eo_bmf_organizations",
+});
+
+function temporalEnvelope(source, asOf) {
+  if (!source) throw new Error("Positive state-access evidence has no exact governed temporal source binding.");
+  const assessed = assessBusinessSourceTemporalStatus(source, { asOf });
+  return {
+    schemaVersion: "state-access-temporal-evidence@1.0.0",
+    binding: "exact-governed-source-release",
+    sourceKey: source.source_key,
+    sourceReleaseId: source.release_metadata?.source_release_id ?? null,
+    status: assessed.status,
+    sourceReferenceField: assessed.source_reference_field,
+    sourceReferenceValue: assessed.source_reference_value,
+    sourceReferenceAt: assessed.source_reference_at,
+    ageDays: assessed.age_days,
+    reviewAfterDays: assessed.review_after_days,
+    reviewDueDate: assessed.review_due_date,
+    cadenceClass: assessed.cadence_class,
+    evidenceScope: assessed.evidence_scope,
+    activeBusinessVerified: false,
+    generalBusinessOperatingStatusAsserted: false,
+    ...(assessed.publisher_currency_basis ? {
+      publisherCurrencyBasis: assessed.publisher_currency_basis,
+      retainedSourceObservedAt: assessed.retained_source_observation?.observed_at ?? null,
+    } : {}),
+  };
+}
+
+function unmeasuredTemporalEnvelope({ sourceId, sourceReleaseId = null, observedAt = null, evidenceScope }) {
+  if (!sourceId || !evidenceScope) throw new Error("Unmeasured temporal evidence requires an exact retained source identity and scope.");
+  return {
+    schemaVersion: "state-access-temporal-evidence@1.0.0",
+    binding: "exact-retained-extension",
+    sourceKey: sourceId,
+    sourceReleaseId,
+    status: "missing-source-reference",
+    sourceReferenceField: null,
+    sourceReferenceValue: null,
+    sourceReferenceAt: null,
+    ageDays: null,
+    reviewAfterDays: null,
+    reviewDueDate: null,
+    cadenceClass: "publisher-currency-unmeasured",
+    evidenceScope,
+    publisherCurrencyBasis: "unmeasured-in-retained-source-contract",
+    retainedSourceObservedAt: observedAt,
+    activeBusinessVerified: false,
+    generalBusinessOperatingStatusAsserted: false,
+  };
+}
+
+function cellTemporalStatus(items) {
+  if (!items.length) return { status: "no-positive-count-evidence", positiveEvidenceItems: 0, activeBusinessVerified: false, generalBusinessOperatingStatusAsserted: false };
+  for (const item of items) if (!item.temporalEvidence || !Object.hasOwn(TEMPORAL_STATUS_PRIORITY, item.temporalEvidence.status)) {
+    throw new Error("Positive state-access evidence lacks an exact temporal binding.");
+  }
+  const worst = items.map((item) => item.temporalEvidence.status)
+    .sort((left, right) => TEMPORAL_STATUS_PRIORITY[right] - TEMPORAL_STATUS_PRIORITY[left])[0];
+  return {
+    status: worst,
+    positiveEvidenceItems: items.length,
+    statusCounts: Object.fromEntries([...new Set(items.map((item) => item.temporalEvidence.status))].sort()
+      .map((status) => [status, items.filter((item) => item.temporalEvidence.status === status).length])),
+    activeBusinessVerified: false,
+    generalBusinessOperatingStatusAsserted: false,
+  };
+}
 
 const ANNUAL_AGGREGATE_INDUSTRIES = Object.freeze({ childcare: "62441", construction: "23" });
 async function loadAnnualAggregateContexts({ root }) {
@@ -335,11 +416,48 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, annualAggregateContextLoader = loadAnnualAggregateContexts, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, annualAggregateContextLoader = loadAnnualAggregateContexts, temporalAsOf = new Date(), activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
   const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, substateLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare, annualAggregateInput] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), Promise.all(SUBSTATE_LICENSE_SOURCES.map((item) => governedSubstateLicenseEvidence(root, item))), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root}), annualAggregateContextLoader({root})]);
   const annualAggregateContexts = validateAnnualAggregateContexts(annualAggregateInput);
+  const temporalAsOfDate = temporalAsOf instanceof Date ? temporalAsOf : new Date(temporalAsOf);
+  if (!Number.isFinite(temporalAsOfDate.getTime())) throw new Error("State-access temporal assessment requires a valid as-of instant.");
+  const sourceByProfileId = new Map();
+  for (const source of coverage.sources.values()) {
+    if (!source?.source_key || !source.release_metadata?.source_release_id) throw new Error("Coverage temporal source identity is incomplete.");
+    if (source.profile_source_id) {
+      if (sourceByProfileId.has(source.profile_source_id)) throw new Error("Coverage temporal profile binding is ambiguous.");
+      sourceByProfileId.set(source.profile_source_id, source);
+    }
+  }
+  const extensionTemporal = new Map();
+  const addExtension = (sourceId, value, evidenceScope) => extensionTemporal.set(sourceId, {
+    sourceId, sourceReleaseId: value?.sourceReleaseId ?? null, observedAt: value?.observedAt ?? null, evidenceScope,
+  });
+  addExtension("mn-construction-credential-reporting", localCredentials, "retained-construction-credential-candidate-evidence-not-general-operation");
+  addExtension("pa-dhs-childcare-centers", projectPaChildcareStateEvidence(localFacilities, "PA"), "retained-childcare-candidate-evidence-not-general-operation");
+  addExtension("ct-oec-childcare-centers", projectCtChildcareStateEvidence(localCtCandidates, "CT"), "retained-childcare-candidate-evidence-not-general-operation");
+  addExtension("md-msde-childcare-centers", projectMdChildcareStateEvidence(localMdCandidates, "MD"), "retained-childcare-candidate-evidence-not-general-operation");
+  addExtension("co-cdec-childcare-centers", projectCoChildcareStateEvidence(localCoCandidates, "CO"), "retained-childcare-candidate-evidence-not-general-operation");
+  addExtension("ut-dlbc-childcare-centers", projectUtChildcareStateEvidence(localUtCandidates, "UT"), "retained-childcare-candidate-evidence-not-general-operation");
+  addExtension("vt-cdd-childcare-centers", projectVtChildcarePublisherEvidence(localVtCandidates, "VT"), "retained-childcare-publisher-cohort-evidence-not-general-operation");
+  addExtension("ia-childcare-centers", projectIaChildcarePublisherEvidence(localIaCandidates, "IA"), "retained-childcare-publisher-cohort-evidence-not-general-operation");
+  const nhTemporal = nhRestrictedChildcare?.status === "available" ? projectNhRestrictedChildcareEvidence(nhRestrictedChildcare, "NH") : null;
+  addExtension("nh-childcare-visible-results", nhTemporal, "restricted-childcare-query-sample-not-general-operation");
+  const bindTemporalEvidence = (item) => {
+    const governed = sourceByProfileId.get(item.sourceId) ?? coverage.sources.get(SOURCE_KEY_BY_EVIDENCE_ID[item.sourceId]);
+    if (governed) return { ...item, temporalEvidence: temporalEnvelope(governed, temporalAsOfDate) };
+    const extension = extensionTemporal.get(item.sourceId);
+    if (extension) return { ...item, temporalEvidence: unmeasuredTemporalEnvelope(extension) };
+    throw new Error(`Positive state-access evidence ${item.sourceId ?? "without-source-id"} has no exact governed temporal source binding.`);
+  };
+  const bindExtensionProjection = (value, sourceId) => {
+    if (!value || ["not-applicable", "not-enrolled", "unavailable"].includes(value.status)) return value;
+    const extension = extensionTemporal.get(sourceId);
+    if (!extension) throw new Error(`Retained extension ${sourceId} has no exact temporal identity.`);
+    return { ...value, temporalEvidence: unmeasuredTemporalEnvelope(extension) };
+  };
   const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
     && credentialPublication.included === true && credentialPublication.credentialRows === 11456
     && credentialPublication.recordUnit === "publisher-business-credential-row"
@@ -567,28 +685,34 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         physicalSitesVerified: false, licensedFacilitiesEquivalent: false, identityMatchingEligible: false,
         employerUniverseIncluded: false, zipAllocationPerformed: false, zipOrZctaInferencePermitted: false,
         collectionCompletenessPercent: null, uniqueBusinessCount: null, exportPolicy: "local-review-only",
+        temporalEvidence: temporalEnvelope(coverage.sources.get("census_nonemployer_statistics"), temporalAsOfDate),
       } : null;
-      industries.push({ industry: industryId, accessEvidenceStatus, evidence, ...(annualAggregateContext ? { annualAggregateContext } : {}), appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : substate ? "NOT_READY_SUBSTATE_EVIDENCE_ONLY" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage.", ...(annualAggregateContext ? ["Census Nonemployer Statistics are annual aggregate context only: no named entity, current-operation, licensed-facility, physical-site, employer-universe, ZIP, or ZCTA inference is permitted."] : [])] });
+      const temporallyBoundEvidence = evidence.map((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0 ? bindTemporalEvidence(item) : item);
+      const positiveTemporalItems = temporallyBoundEvidence.filter((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0);
+      if (annualAggregateContext) positiveTemporalItems.push({ temporalEvidence: annualAggregateContext.temporalEvidence });
+      industries.push({ industry: industryId, accessEvidenceStatus, evidence: temporallyBoundEvidence,
+        temporalStatus: cellTemporalStatus(positiveTemporalItems),
+        ...(annualAggregateContext ? { annualAggregateContext } : {}), appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : substate ? "NOT_READY_SUBSTATE_EVIDENCE_ONLY" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage.", "Temporal review status describes source evidence currency and never proves that a named business currently operates.", ...(annualAggregateContext ? ["Census Nonemployer Statistics are annual aggregate context only: no named entity, current-operation, licensed-facility, physical-site, employer-universe, ZIP, or ZCTA inference is permitted."] : [])] });
     }
     const observedAt = assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null;
     jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt, observation: { observedAt, freshnessStatus: observedAt ? "not-evaluated-no-age-policy" : "unobserved" }, coverageApplicability: { status: assessmentCoverageApplicabilityStatus, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: assessmentCoverageApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null } }, broadOrganizationEvidence: broadEvidence.get(state) ?? null, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
     // Local credential evidence does not change published national status,
     // dispatch readiness, matching profiles or physical-site totals.
     const construction=industries.find(cell=>cell.industry==='construction');
-    if(construction)construction.localCredentialEvidence=projectMnConstructionStateEvidence(localCredentials,state);
+    if(construction)construction.localCredentialEvidence=bindExtensionProjection(projectMnConstructionStateEvidence(localCredentials,state), "mn-construction-credential-reporting");
     const childcare=industries.find(cell=>cell.industry==='childcare');
-    if(childcare)childcare.localFacilityEvidence=projectPaChildcareStateEvidence(localFacilities,state);
+    if(childcare)childcare.localFacilityEvidence=bindExtensionProjection(projectPaChildcareStateEvidence(localFacilities,state), "pa-dhs-childcare-centers");
     if(childcare)childcare.localSourceCandidateEvidence=state==='UT'
-      ?projectUtChildcareStateEvidence(localUtCandidates,state)
+      ?bindExtensionProjection(projectUtChildcareStateEvidence(localUtCandidates,state), "ut-dlbc-childcare-centers")
       :state==='CO'
-      ?projectCoChildcareStateEvidence(localCoCandidates,state)
+      ?bindExtensionProjection(projectCoChildcareStateEvidence(localCoCandidates,state), "co-cdec-childcare-centers")
       :state==='MD'
-      ?projectMdChildcareStateEvidence(localMdCandidates,state)
-      :projectCtChildcareStateEvidence(localCtCandidates,state);
+      ?bindExtensionProjection(projectMdChildcareStateEvidence(localMdCandidates,state), "md-msde-childcare-centers")
+      :bindExtensionProjection(projectCtChildcareStateEvidence(localCtCandidates,state), "ct-oec-childcare-centers");
     // VT reports publisher scope, not address state. Do not turn its unknown
     // address-state bucket into Vermont address coverage or published totals.
-    if(childcare&&state==='VT')childcare.localPublisherCohortEvidence=projectVtChildcarePublisherEvidence(localVtCandidates,state);
-    if(childcare&&state==='IA')childcare.localPublisherCohortEvidence=projectIaChildcarePublisherEvidence(localIaCandidates,state);
+    if(childcare&&state==='VT')childcare.localPublisherCohortEvidence=bindExtensionProjection(projectVtChildcarePublisherEvidence(localVtCandidates,state), "vt-cdd-childcare-centers");
+    if(childcare&&state==='IA')childcare.localPublisherCohortEvidence=bindExtensionProjection(projectIaChildcarePublisherEvidence(localIaCandidates,state), "ia-childcare-centers");
   }
   const counts = {}; for (const jurisdiction of jurisdictions) for (const item of jurisdiction.industries) counts[item.accessEvidenceStatus] = (counts[item.accessEvidenceStatus] ?? 0) + 1;
   const annualAggregateContextCells = jurisdictions.flatMap((jurisdiction) => jurisdiction.industries).filter((item) => item.annualAggregateContext);
@@ -596,7 +720,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   const assessmentCoverageReleaseId = assessments.coverage_release_id ?? null;
   const assessmentCatalogFreshnessStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "current" : "stale";
   const catalogApplicabilityStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "exact-pin" : coverageReassessment && assessmentCoverageApplicabilityCounts.reviewedCompatible === assessmentStates.length ? "reviewed-compatible" : "not-reviewed";
-  return { schemaVersion: 3, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentObservation: { observedAt: assessments.observed_at ?? null, freshnessStatus: assessments.observed_at ? "not-evaluated-no-age-policy" : "unobserved" }, assessmentCoverageApplicability: { status: catalogApplicabilityStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: catalogApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null, assessedJurisdictions: assessmentStates.length, exactPinJurisdictions: assessmentCoverageApplicabilityCounts.exactPin, reviewedCompatibleJurisdictions: assessmentCoverageApplicabilityCounts.reviewedCompatible, notReviewedJurisdictions: assessmentCoverageApplicabilityCounts.notReviewed, missingCoverageReleaseIdJurisdictions: assessmentCoverageApplicabilityCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentCoverageApplicabilityCounts.unassessed }, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, governedAnnualAggregateContextCells: annualAggregateContextCells.length, previouslyUnsupportedCellsWithAnnualAggregateContext: unsupportedWithAnnualAggregateContext.length, assessmentFreshnessStatusCounts: assessmentFreshnessCounts, assessmentCoverageApplicabilityStatusCounts: assessmentCoverageApplicabilityCounts }, jurisdictions };
+  return { schemaVersion: 4, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, temporalAsOf: temporalAsOfDate.toISOString(), temporalBindingRequiredForPositiveCounts: true, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentObservation: { observedAt: assessments.observed_at ?? null, freshnessStatus: assessments.observed_at ? "not-evaluated-no-age-policy" : "unobserved" }, assessmentCoverageApplicability: { status: catalogApplicabilityStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: catalogApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null, assessedJurisdictions: assessmentStates.length, exactPinJurisdictions: assessmentCoverageApplicabilityCounts.exactPin, reviewedCompatibleJurisdictions: assessmentCoverageApplicabilityCounts.reviewedCompatible, notReviewedJurisdictions: assessmentCoverageApplicabilityCounts.notReviewed, missingCoverageReleaseIdJurisdictions: assessmentCoverageApplicabilityCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentCoverageApplicabilityCounts.unassessed }, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, governedAnnualAggregateContextCells: annualAggregateContextCells.length, previouslyUnsupportedCellsWithAnnualAggregateContext: unsupportedWithAnnualAggregateContext.length, assessmentFreshnessStatusCounts: assessmentFreshnessCounts, assessmentCoverageApplicabilityStatusCounts: assessmentCoverageApplicabilityCounts }, jurisdictions };
 }
 
 export async function writeStateAccessReport(options = {}) {

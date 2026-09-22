@@ -9,8 +9,9 @@ import { loadStateBusinessSourceAssessmentCatalog } from './state-business-sourc
 import { BROAD_ORGANIZATION_SOURCES } from './broad-organization-evidence.mjs';
 
 test('retained Census NES adds governed annual aggregate context without changing access evidence status', async () => {
-  const withoutContext = await buildStateAccessLedger({ annualAggregateContextLoader: async () => null });
-  const ledger = await buildStateAccessLedger();
+  const temporalAsOf = new Date('2026-09-22T05:00:00.000Z');
+  const withoutContext = await buildStateAccessLedger({ annualAggregateContextLoader: async () => null, temporalAsOf });
+  const ledger = await buildStateAccessLedger({ temporalAsOf });
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, withoutContext.summary.accessEvidenceStatusCounts);
   assert.equal(ledger.summary.governedAnnualAggregateContextCells, 102);
   assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 57);
@@ -28,6 +29,9 @@ test('retained Census NES adds governed annual aggregate context without changin
       assert.equal(cell.annualAggregateContext.nationalSameIndustryNonemployerEstablishments, nationalCount);
       assert.equal(cell.annualAggregateContext.status, 'published-annual-aggregate-context');
       assert.equal(cell.annualAggregateContext.categoryRelation, 'context-only-not-equivalent');
+      assert.equal(cell.annualAggregateContext.temporalEvidence.status, 'within-review-window');
+      assert.equal(cell.annualAggregateContext.temporalEvidence.sourceReferenceField, 'reference_year');
+      assert.equal(cell.annualAggregateContext.temporalEvidence.activeBusinessVerified, false);
       assert(Number.isSafeInteger(cell.annualAggregateContext.nonemployerEstablishments));
       for (const key of ['namedBusinessEntitiesAvailable','currentBusinessOperationsVerified','physicalSitesVerified','licensedFacilitiesEquivalent','identityMatchingEligible','employerUniverseIncluded','zipAllocationPerformed','zipOrZctaInferencePermitted']) assert.equal(cell.annualAggregateContext[key], false);
       for (const key of ['collectionCompletenessPercent','uniqueBusinessCount']) assert.equal(cell.annualAggregateContext[key], null);
@@ -663,12 +667,15 @@ test('MN governed credential extension is direct reporting evidence without impl
   assert.deepEqual(cell.appHandoff.configuredSources.map(s => s.sourceId).sort(), ['state-mn-contractor-registrations', 'state-mn-residential-contractors']);
   for (const source of cell.appHandoff.configuredSources) assert.equal(source.prerequisiteStatus, 'PRESENT');
   assert.equal(cell.appHandoff.jobSubmitted, false);
-  assert.deepEqual(cell.evidence.filter(e => e.type === 'published-direct-state-credential-count'), [{
+  const credentialEvidence = cell.evidence.find(e => e.type === 'published-direct-state-credential-count');
+  assert.equal(credentialEvidence.temporalEvidence.status, 'missing-source-reference');
+  assert.deepEqual({ ...credentialEvidence, temporalEvidence: undefined }, {
     type: 'published-direct-state-credential-count', sourceId: 'mn-construction-credential-reporting', recordCount: 10899,
     coverageReleaseId: ledger.evidence.coverageReleaseId, artifactPath: ledger.evidence.stateArtifactPath,
     rowUnit: 'publisher-business-credential-row', addressBasis: 'reported-address-state', identityMatchingEligible: false,
     physicalSiteEligible: false, currentOperationsVerified: false, exportPolicy: 'local-review-only', nationalCompletenessPercent: null,
-  }]);
+    temporalEvidence: undefined,
+  });
 });
 
 async function mutateStateRows(f, mutate) {
@@ -786,6 +793,59 @@ test('state ledger identifies positive MA/NJ/TN counts as direct reporting evide
   await assert.rejects(readdir(path.join(f.root,'data/state-access/reports')),/ENOENT/);
 });
 
+test('every positive state evidence variant and annual aggregate carries an exact conservative temporal binding', async (t) => {
+  const f = await fixture(t, { retained: true });
+  const ledger = await buildStateAccessLedger({ ...f, temporalAsOf: '2026-09-22T05:00:00.000Z' });
+  for (const jurisdiction of ledger.jurisdictions) for (const cell of jurisdiction.industries) {
+    for (const evidence of cell.evidence.filter((item) => Number.isSafeInteger(item.recordCount) && item.recordCount > 0)) {
+      assert.equal(evidence.temporalEvidence.schemaVersion, 'state-access-temporal-evidence@1.0.0');
+      assert.equal(evidence.temporalEvidence.activeBusinessVerified, false);
+      assert.equal(evidence.temporalEvidence.generalBusinessOperatingStatusAsserted, false);
+      assert.ok(['exact-governed-source-release','exact-retained-extension'].includes(evidence.temporalEvidence.binding));
+    }
+    if (cell.annualAggregateContext) assert.equal(cell.annualAggregateContext.temporalEvidence.binding, 'exact-governed-source-release');
+    assert.equal(cell.temporalStatus.activeBusinessVerified, false);
+    assert.equal(cell.temporalStatus.generalBusinessOperatingStatusAsserted, false);
+  }
+  const mn = ledger.jurisdictions.find((row) => row.state === 'MN').industries.find((row) => row.industry === 'construction');
+  assert.equal(mn.evidence.find((item) => item.sourceId === 'mn-construction-credential-reporting').temporalEvidence.status, 'missing-source-reference');
+  for (const state of ['CO','CT','MD','PA','UT']) {
+    const cell = ledger.jurisdictions.find((row) => row.state === state).industries.find((row) => row.industry === 'childcare');
+    const retained = cell.evidence.find((item) => Object.values({CO:'co-cdec-childcare-centers',CT:'ct-oec-childcare-centers',MD:'md-msde-childcare-centers',PA:'pa-dhs-childcare-centers',UT:'ut-dlbc-childcare-centers'}).includes(item.sourceId));
+    assert.equal(retained.temporalEvidence.status, 'missing-source-reference');
+  }
+});
+
+test('New York overdue source and publisher-unmeasured childcare control the cell temporal status', async (t) => {
+  const f = await fixture(t); await childcareCounts(f, 7);
+  const ledger = await buildStateAccessLedger({ ...f, temporalAsOf: '2026-09-22T05:00:00.000Z' });
+  const ny = ledger.jurisdictions.find((row) => row.state === 'NY').industries.find((row) => row.industry === 'retail-consumer');
+  const food = ny.evidence.find((item) => item.sourceId === 'new-york-agriculture-markets-retail-food-stores');
+  assert.deepEqual([food.temporalEvidence.status, food.temporalEvidence.sourceReferenceAt, food.temporalEvidence.reviewDueDate],
+    ['review-due', '2025-09-30T15:15:15.000Z', '2026-01-28']);
+  assert.equal(ny.temporalStatus.status, 'review-due');
+  for (const state of ['MA','NJ','TN']) {
+    const cell = ledger.jurisdictions.find((row) => row.state === state).industries.find((row) => row.industry === 'childcare');
+    const item = cell.evidence.find((value) => value.recordCount === 7);
+    assert.equal(item.temporalEvidence.status, 'missing-source-reference');
+    assert.equal(item.temporalEvidence.sourceReferenceAt, null);
+    assert.equal(item.temporalEvidence.publisherCurrencyBasis, 'unmeasured-in-retained-source-contract');
+    assert.equal(cell.temporalStatus.status, 'missing-source-reference');
+  }
+});
+
+test('ledger generation fails when a positive count loses its exact temporal source binding', async (t) => {
+  const f = await fixture(t), artifact = f.manifest.artifacts.find((item) => item.artifact_type === 'source-coverage-view-jsonl');
+  const file = path.join(f.root, path.dirname(f.manifestPath), artifact.path);
+  const rows = (await readFile(file, 'utf8')).trim().split('\n').map(JSON.parse);
+  const snap = rows.find((row) => row.profile_source_id === 'usda-snap-current-retailers');
+  snap.profile_source_id = 'temporally-unbound-snap-profile';
+  const bytes = Buffer.from(`${rows.map(JSON.stringify).join('\n')}\n`);
+  await writeFile(file, bytes); artifact.bytes = bytes.length; artifact.sha256 = createHash('sha256').update(bytes).digest('hex');
+  await writeFile(path.join(f.root, f.manifestPath), JSON.stringify(f.manifest));
+  await assert.rejects(buildStateAccessLedger(f), /no exact governed temporal source binding/);
+});
+
 test('state ledger distinguishes measured zero and rejects malformed reporting counts',async(t)=>{
   const f=await fixture(t);await childcareCounts(f,0);const ledger=await buildStateAccessLedger(f);
   for(const state of ['MA','NJ','TN'])assert.equal(ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare').accessEvidenceStatus,'unsupported-missing');
@@ -813,7 +873,7 @@ test('state ledger discloses historical assessment provenance when coverage snap
   const f = { ...await fixture(t), coverageReassessmentLoader: async () => null };
   const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [] }) });
   const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [{ state_abbreviation: 'AL', assessment_id: 'al-history', decision: 'hold', strongest_bounded_next_action: 'Revalidate against the current release.' }] }) });
-  assert.equal(ledger.schemaVersion, 3);
+  assert.equal(ledger.schemaVersion, 4);
   assert.equal(ledger.evidence.assessmentCoverageReleaseId, 'older-coverage');
   assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-01');
   assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
