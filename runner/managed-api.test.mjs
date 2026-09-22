@@ -215,6 +215,22 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   assert.equal(planResponse.status, 200);
   assert.ok(Number.isInteger((await planResponse.json()).taskCount));
 
+  const batchPlanResponse = await request(fixture.base, "/api/data-operations/plan", { method: "POST", body: {
+    industries: ["childcare"], states: ["MA", "NJ", "PA"], sourceIds: ["state-ma-childcare", "state-nj-childcare"],
+  } });
+  assert.equal(batchPlanResponse.status, 200);
+  const batchPlan = await batchPlanResponse.json();
+  assert.deepEqual(batchPlan.tasks.map(task => task.sourceId).sort(), ["state-ma-childcare", "state-nj-childcare"]);
+  assert.ok(batchPlan.gaps.some(gap => gap.industry === "childcare" && gap.state === "PA"));
+  assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
+  for (const sourceIds of [[], ["state-ma-childcare", "state-ma-childcare"]]) {
+    const invalidBatch = await request(fixture.base, "/api/data-operations/plan", { method: "POST", body: {
+      industries: ["childcare"], states: ["MA", "NJ"], sourceIds,
+    } });
+    assert.equal(invalidBatch.status, 400);
+  }
+  assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
+
   const start = await request(fixture.base, "/api/data-operations/exports", { method: "POST", body: { format: "both", policyMode: "local-review", fields: ["business_name", "state", "zip_code"], outputPrefix: "exported2" } });
   assert.equal(start.status, 202);
   const operation = await waitForOperation(fixture.base, (await start.json()).id);
