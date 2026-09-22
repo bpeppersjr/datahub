@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-17` after state-access temporal status was separated from annual statistical context. Do not execute or approve this plan.
+
 Fresh governed planning completed after the metadata-only Overture Places readiness view was integrated and regression-tested. The view admits zero Overture names, categories, state assignments, ZIP5 rows, or geocodes and exposes no acquisition or retry control. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-16`
