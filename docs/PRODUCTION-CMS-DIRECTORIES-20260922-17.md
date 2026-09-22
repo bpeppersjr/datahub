@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-18` after the governed retained NPPES community/retail-pharmacy subset was added and independently hardened. Do not execute or approve this plan.
+
 Fresh governed planning completed after state-access temporal status was corrected so annual Census aggregate context cannot make unsupported named-business access appear current. The newly enrolled immutable 459-cell report preserves all access classifications and counts while 57 unsupported cells now report no positive access evidence; Census context retains its own independently bound temporal status. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-17`
