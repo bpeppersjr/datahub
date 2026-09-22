@@ -1,0 +1,18 @@
+{
+  "profile": "cms-snf-pecos-acquisition@1.0.0",
+  "nativeExecutionAuthorized": false,
+  "approvedDownloadBudgetBytes": 0,
+  "proposal": {"requests": 9, "dataBytes": 75563008, "totalResponseBytes": 96534528, "sessionMs": 900000, "metadataRequestMs": 30000, "dataRequestMs": 180000, "cleanupMs": 1000, "parallelRequests": 1, "retries": 0, "redirects": 0, "selectedBytesPerFile": 536870912, "selectedTotalBytes": 805306368, "rows": {"enrollments": 50000, "owners": 500000, "additionalNpis": 50000}},
+  "sourcePeriod": "2026-08-01/2026-08-31",
+  "rawExportPolicy": "internal",
+  "selectedExportPolicy": "local-review-only",
+  "publicExportAuthorized": false,
+  "retainedDocumentsCopied": true,
+  "documentsDownloadedThisRun": false,
+  "attribution": "Centers for Medicare & Medicaid Services (CMS)",
+  "governmentEndorsement": false,
+  "sourceLicense": "https://www.usa.gov/government-works",
+  "projectionVersion": "cms-snf-pecos-august-projection@1.0.0",
+  "individualOwnerFieldsSelected": false,
+  "ownerAddressesSelected": false
+}
