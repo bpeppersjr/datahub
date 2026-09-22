@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-29` after the retained NPPES pharmacy secondary-address view changed the executable code fingerprint. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive gained a default-denied Nebraska childcare ArcGIS metadata/aggregate prerequisite. That prerequisite remains on `HOLD` unless a separate, exact hash-bound scope decision is recorded; it acquired no facility rows, made no native source request, and is not a production input. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-28`
