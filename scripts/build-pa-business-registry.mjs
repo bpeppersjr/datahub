@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { buildPaBusinessRegistry, publishPaBusinessRegistryStaging } from "../runner/pa-business-registry.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Build the governed Pennsylvania Department of State active-registration release.
@@ -31,12 +32,15 @@ function parseArguments(args) {
     minimumOrganizations: 2_000_000,
     resumeStagingRun: null,
   };
+  const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
     if (["--output", "--zbp", "--page-size", "--minimum-organizations", "--resume-staging-run"].includes(argument)) {
       const value = args[index + 1];
-      if (!value) throw new Error(`${argument} requires a value.`);
+      if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value.`);
+      if (seen.has(argument)) throw new Error(`${argument} may only be supplied once.`);
+      seen.add(argument);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--zbp") options.zbp = value;
@@ -50,6 +54,7 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
@@ -58,12 +63,13 @@ try {
   }
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   const result = options.resumeStagingRun
-    ? await publishPaBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishPaBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildPaBusinessRegistry({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       pageSize: options.pageSize,
       minimumOrganizations: options.minimumOrganizations,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -73,6 +79,8 @@ try {
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`Pennsylvania Business Registry build failed: ${error.message}\n`);
+  process.stderr.write(cancellation.signal.aborted ? "Pennsylvania Business Registry build cancelled; inspect retained run evidence before resuming.\n" : `Pennsylvania Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

@@ -5,6 +5,7 @@ import process from "node:process";
 import { readFile } from "node:fs/promises";
 import { buildFlBusinessRegistry, loadFlBusinessRegistrySourceRelease, publishFlBusinessRegistryStaging } from "../runner/fl-business-registry.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 
 function usage() {
   return `Build the governed Florida quarterly active corporate-entity release.
@@ -39,12 +40,15 @@ function parseArguments(args) {
     resumeSourceStagingRun: null,
     sourceRelease: null,
   };
+  const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help") return { help: true };
     if (["--output", "--zbp", "--archive", "--source-release", "--minimum", "--resume-staging-run", "--resume-source-staging-run"].includes(argument)) {
       const value = args[index + 1];
-      if (!value) throw new Error(`${argument} requires a value.`);
+      if (!value || value.startsWith("--")) throw new Error(`${argument} requires a value.`);
+      if (seen.has(argument)) throw new Error(`${argument} may only be supplied once.`);
+      seen.add(argument);
       index += 1;
       if (argument === "--output") options.output = value;
       if (argument === "--zbp") options.zbp = value;
@@ -61,6 +65,7 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
@@ -77,6 +82,7 @@ try {
     const replay = await loadFlBusinessRegistrySourceRelease({
       releasePath: assertInsideApp(path.resolve(APP_ROOT, options.sourceRelease)),
       allowedRoot: APP_ROOT,
+      signal: cancellation.signal,
     });
     sourceSnapshotPath = replay.sourceSnapshotPath;
     sourceMetadata = replay.sourceMetadata;
@@ -84,7 +90,7 @@ try {
   } else if (options.resumeSourceStagingRun) {
     const staging = assertInsideApp(path.join(outputRoot, ".staging", options.resumeSourceStagingRun));
     sourceSnapshotPath = assertInsideApp(path.join(staging, "source", "selected-corporate-records.jsonl.gz"));
-    const preflight = JSON.parse(await readFile(assertInsideApp(path.join(staging, "source", "preflight.json")), "utf8"));
+    const preflight = JSON.parse(await readFile(assertInsideApp(path.join(staging, "source", "preflight.json")), { encoding: "utf8", signal: cancellation.signal }));
     sourceMetadata = {
       remotePath: preflight.remote_path,
       bytes: preflight.remote_bytes,
@@ -94,7 +100,7 @@ try {
     };
   }
   const result = options.resumeStagingRun
-    ? await publishFlBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishFlBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildFlBusinessRegistry({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
@@ -102,6 +108,7 @@ try {
       sourceSnapshotPath,
       sourceMetadata,
       minimumOrganizations: options.minimum,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -111,6 +118,8 @@ try {
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`Florida Business Registry build failed: ${error.message}\n`);
+  process.stderr.write(cancellation.signal.aborted ? "Florida Business Registry build cancelled; inspect retained run evidence before resuming.\n" : `Florida Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

@@ -86,10 +86,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
   for await (const chunk of createReadStream(filename)) {
+    signal?.throwIfAborted?.();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -527,26 +528,30 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
-async function loadZbpBaseline(pointerPath) {
+async function loadZbpBaseline(pointerPath, signal) {
+  signal?.throwIfAborted?.();
   const absolutePointer = path.resolve(pointerPath);
-  const pointer = JSON.parse(await readFile(absolutePointer, "utf8"));
+  const pointer = JSON.parse(await readFile(absolutePointer, { encoding: "utf8", signal }));
   const base = path.dirname(absolutePointer);
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
   assertContained(base, manifestPath, "Census ZBP manifest");
-  const manifestBuffer = await readFile(manifestPath);
+  const manifestBuffer = await readFile(manifestPath, { signal });
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "census-zbp-baseline" || !manifest.complete_national_release) throw new Error("A complete Census ZBP baseline release is required.");
   const artifact = manifest.artifacts.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
   if (!artifact) throw new Error("Census ZBP ZIP coverage artifact is missing.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const rows = (await readFile(artifactPath, "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+  const rows = (await readFile(artifactPath, { encoding: "utf8", signal })).split(/\r?\n/).filter(Boolean).map(JSON.parse);
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
+async function* gzipRecords(filename, signal) {
   const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+  for await (const line of lines) {
+    signal?.throwIfAborted?.();
+    if (line) yield JSON.parse(line);
+  }
 }
 
 async function acquireSelectedSource({ input, writer, signal, logger }) {
@@ -630,10 +635,12 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-export async function loadFlBusinessRegistrySourceRelease({ releasePath, allowedRoot } = {}) {
+export async function loadFlBusinessRegistrySourceRelease({ releasePath, allowedRoot, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!releasePath || !allowedRoot) throw new Error("releasePath and allowedRoot are required for Florida source-release replay.");
   const referencePath = await resolveExistingAllowedPath(allowedRoot, releasePath, "Florida source-release reference");
   const referenceFile = await readBoundedJson(referencePath, "Florida source-release reference");
+  signal?.throwIfAborted?.();
   let reference;
   try {
     reference = JSON.parse(referenceFile.buffer.toString("utf8"));
@@ -763,7 +770,7 @@ export async function buildFlBusinessRegistry({
   const releaseId = `fl-business-registry-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
   let metadata = sourceMetadata ? validateRemoteMetadata({ ...sourceMetadata }) : null;
   let downloadedArchive = null;
   let archivePath = sourceArchivePath;
@@ -781,7 +788,7 @@ export async function buildFlBusinessRegistry({
         throw new Error("Florida selected-source snapshot changed after source-release verification.");
       }
       sourceRecords = 0;
-      for await (const record of gzipRecords(selectedPath)) {
+      for await (const record of gzipRecords(selectedPath, signal)) {
         void record;
         sourceRecords += 1;
       }
@@ -866,7 +873,7 @@ export async function buildFlBusinessRegistry({
     let eligibleAddresses = 0;
     let sourceOrdinal = 0;
     try {
-      for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+      for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
         signal?.throwIfAborted?.();
         sourceOrdinal += 1;
         const sourceStatus = text(source.status)?.toUpperCase();
@@ -1022,7 +1029,7 @@ export async function buildFlBusinessRegistry({
       artifacts,
     };
     await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-    const publication = await publishFlBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+    const publication = await publishFlBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
     logger(`Published ${organizations.toLocaleString("en-US")} Florida quarterly active-source organizations.`);
     return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
   } finally {
@@ -1042,16 +1049,17 @@ function replayComparisonRecord(record) {
   return comparison;
 }
 
-export async function publishFlBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishFlBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) throw new Error("outputRoot and a valid stagingRunId are required.");
   const stagingRoot = path.join(outputRoot, ".staging");
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Florida staging run");
+  signal?.throwIfAborted?.();
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "fl-business-registry-quarterly-active-entities" || manifest.status !== "published" || manifest.raw_archive_retained !== false) throw new Error("Florida staging manifest does not match the requested complete privacy-minimized run.");
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Florida staging release ID does not match the build result.");
-  await verifyFlBusinessRegistry(manifestPath);
+  await verifyFlBusinessRegistry(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -1061,6 +1069,7 @@ export async function publishFlBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -1069,7 +1078,8 @@ export async function publishFlBusinessRegistryStaging({ outputRoot, stagingRunI
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyFlBusinessRegistry(manifestPath) {
+export async function verifyFlBusinessRegistry(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
@@ -1077,10 +1087,11 @@ export async function verifyFlBusinessRegistry(manifestPath) {
   if (manifest.dataset_id !== "fl-business-registry-quarterly-active-entities" || manifest.status !== "published" || !manifest.complete_selected_quarterly_active_entity_snapshot || manifest.raw_archive_retained !== false) failures.push({ path: "manifest.json", reason: "unexpected, incomplete, or non-minimized manifest" });
   if (manifest.artifacts?.some((artifact) => /cordata\.zip|unminimized/i.test(artifact.path))) failures.push({ path: "manifest.json", reason: "raw Florida archive was retained as a release artifact" });
   for (const artifact of manifest.artifacts ?? []) {
+    signal?.throwIfAborted?.();
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
@@ -1114,7 +1125,7 @@ export async function verifyFlBusinessRegistry(manifestPath) {
       let sourceCount = 0;
       let activeSourceCount = 0;
       let inactiveSourceCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
         for (const field of Object.keys(record)) if (!FL_BUSINESS_REGISTRY_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const id = text(record.corporation_number)?.toUpperCase() ?? null;
         const validId = /^[A-Z0-9]{6,12}$/.test(id ?? "");
@@ -1152,7 +1163,7 @@ export async function verifyFlBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const id = record.external_identifiers?.find((item) => item.type === "fl_corporation_document_number")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned document number ${id}`);
         ids.add(id);
@@ -1180,7 +1191,7 @@ export async function verifyFlBusinessRegistry(manifestPath) {
   let inactiveSourceRecords = 0;
   if (excludedInactiveArtifacts.length === 1) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, excludedInactiveArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, excludedInactiveArtifacts[0].path), signal)) {
         if (!(/^[A-Z0-9]{6,12}$/.test(record.source_record_id ?? "") || /^source-row:\d+$/.test(record.source_record_id ?? "")) || record.reason !== "source-record-is-inactive" || record.export_policy !== "internal" || record.source_release_id !== manifest.source_release_id || excludedIds.has(record.source_record_id) || ids.has(record.source_record_id)) throw new Error(`invalid inactive-source exclusion ${record.source_record_id}`);
         excludedIds.add(record.source_record_id);
         actualExcludedInactiveHash.update(json(record));
@@ -1195,7 +1206,7 @@ export async function verifyFlBusinessRegistry(manifestPath) {
   const quarantineIds = new Set();
   if (quarantineArtifacts.length === 1) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path), signal)) {
         if (!(/^[A-Z0-9]{6,12}$/.test(record.source_record_id ?? "") || /^source-row:\d+$/.test(record.source_record_id ?? "")) || record.export_policy !== "internal" || record.source_release_id !== manifest.source_release_id || ids.has(record.source_record_id) || excludedIds.has(record.source_record_id) || quarantineIds.has(record.source_record_id)) throw new Error(`invalid quarantine record ${record.source_record_id}`);
         quarantineIds.add(record.source_record_id);
         actualQuarantineHash.update(json(record));

@@ -49,10 +49,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
   for await (const chunk of createReadStream(filename)) {
+    signal?.throwIfAborted?.();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -225,6 +226,24 @@ function retryDelay(response, attempt) {
   return Math.min(4_000, 250 * (2 ** attempt));
 }
 
+function paAbortable(work, signal) {
+  signal?.throwIfAborted?.();
+  if (!signal) return Promise.resolve().then(work);
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener("abort", abort);
+    const abort = () => { cleanup(); reject(signal.reason); };
+    signal.addEventListener("abort", abort, { once: true });
+    Promise.resolve().then(() => { signal.throwIfAborted(); return work(); }).then(
+      (value) => { cleanup(); resolve(value); },
+      (error) => { cleanup(); reject(error); },
+    );
+  });
+}
+
+async function paWait(milliseconds, signal, sleep) {
+  return paAbortable(() => sleep(milliseconds, signal), signal);
+}
+
 export async function requestPaJson(urlValue, {
   fetchImpl = globalThis.fetch,
   signal,
@@ -238,27 +257,28 @@ export async function requestPaJson(urlValue, {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     signal?.throwIfAborted?.();
     try {
-      const response = await fetchImpl(url, {
+      const response = await paAbortable(() => fetchImpl(url, {
         method: "GET",
         redirect: "manual",
         signal,
         headers: { accept: "application/json", "user-agent": "Co*Tive-Collector/0.1 governed-public-data-connector" },
-      });
+      }), signal);
       if (response.status >= 300 && response.status < 400) throw new Error("Pennsylvania source redirect rejected.");
       if ((response.status === 429 || response.status >= 500) && attempt < attempts - 1) {
-        await sleep(retryDelay(response, attempt));
+        await paWait(retryDelay(response, attempt), signal, sleep);
         continue;
       }
       if (!response.ok) throw new Error(`Pennsylvania source request failed with HTTP ${response.status}.`);
       const declaredBytes = Number(response.headers?.get?.("content-length"));
       if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Pennsylvania source response exceeds the configured byte limit.");
-      const body = await response.text();
+      const body = await paAbortable(() => response.text(), signal);
       if (Buffer.byteLength(body) > maximumResponseBytes) throw new Error("Pennsylvania source response exceeds the configured byte limit.");
       return JSON.parse(body);
     } catch (error) {
       lastError = error;
       if (error.name === "AbortError" || /redirect rejected|byte limit|HTTP 4\d\d/.test(error.message) || attempt === attempts - 1) throw error;
-      await sleep(250 * (2 ** attempt));
+      signal?.throwIfAborted?.();
+      await paWait(250 * (2 ** attempt), signal, sleep);
     }
   }
   throw lastError;
@@ -349,26 +369,30 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
-async function loadZbpBaseline(pointerPath) {
+async function loadZbpBaseline(pointerPath, signal) {
+  signal?.throwIfAborted?.();
   const absolutePointer = path.resolve(pointerPath);
-  const pointer = JSON.parse(await readFile(absolutePointer, "utf8"));
+  const pointer = JSON.parse(await readFile(absolutePointer, { encoding: "utf8", signal }));
   const base = path.dirname(absolutePointer);
   const manifestPath = path.resolve(base, pointer.manifest ?? "");
   assertContained(base, manifestPath, "Census ZBP manifest");
-  const manifestBuffer = await readFile(manifestPath);
+  const manifestBuffer = await readFile(manifestPath, { signal });
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "census-zbp-baseline" || !manifest.complete_national_release) throw new Error("A complete Census ZBP baseline release is required.");
   const artifact = manifest.artifacts.find((candidate) => candidate.path === "derived/zip-coverage.jsonl");
   if (!artifact) throw new Error("Census ZBP ZIP coverage artifact is missing.");
   const artifactPath = path.resolve(path.dirname(manifestPath), artifact.path);
   assertContained(path.dirname(manifestPath), artifactPath, "Census ZBP coverage artifact");
-  const rows = (await readFile(artifactPath, "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+  const rows = (await readFile(artifactPath, { encoding: "utf8", signal })).split(/\r?\n/).filter(Boolean).map(JSON.parse);
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
+async function* gzipRecords(filename, signal) {
   const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+  for await (const line of lines) {
+    signal?.throwIfAborted?.();
+    if (line) yield JSON.parse(line);
+  }
 }
 
 function sourceSafeRecord(record) {
@@ -484,7 +508,7 @@ export async function buildPaBusinessRegistry({
   const releaseId = `pa-business-registry-${releaseTimestamp(retrievedAt)}-${runId.slice(0, 8)}`;
   const stagingDirectory = path.join(outputRoot, ".staging", runId);
   await mkdir(stagingDirectory, { recursive: true });
-  const baseline = await loadZbpBaseline(zbpPointer);
+  const baseline = await loadZbpBaseline(zbpPointer, signal);
   const requestOptions = { fetchImpl, signal, sleep, type: "metadata" };
   const initialMetadata = catalogMetadata ?? await requestPaJson(PA_BUSINESS_REGISTRY_METADATA_URL, requestOptions);
   const catalog = validateCatalogMetadata(initialMetadata, schemaFingerprintExpected);
@@ -562,7 +586,7 @@ export async function buildPaBusinessRegistry({
     group = [];
   };
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
       signal?.throwIfAborted?.();
       if (group.length && source.filing_number !== group[0].filing_number) await emitGroup();
       group.push(source);
@@ -669,7 +693,7 @@ export async function buildPaBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishPaBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishPaBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} Pennsylvania active registered organizations.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -680,20 +704,21 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishPaBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishPaBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
   const stagingRoot = path.join(outputRoot, ".staging");
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Pennsylvania staging run");
+  signal?.throwIfAborted?.();
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "pa-business-registry-active-registrations" || manifest.status !== "published") {
     throw new Error("Pennsylvania staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Pennsylvania staging release ID does not match the build result.");
-  await verifyPaBusinessRegistry(manifestPath);
+  await verifyPaBusinessRegistry(manifestPath, { signal });
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -703,7 +728,8 @@ export async function publishPaBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await paWait(250, signal, (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -718,17 +744,19 @@ export async function publishPaBusinessRegistryStaging({ outputRoot, stagingRunI
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyPaBusinessRegistry(manifestPath) {
+export async function verifyPaBusinessRegistry(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
   if (manifest.dataset_id !== "pa-business-registry-active-registrations" || manifest.status !== "published" || !manifest.complete_active_registration_snapshot) failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
   for (const artifact of manifest.artifacts ?? []) {
+    signal?.throwIfAborted?.();
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
@@ -746,7 +774,7 @@ export async function verifyPaBusinessRegistry(manifestPath) {
       let distinctFilings = 0;
       let previousFiling = null;
       let previousRowId = null;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
         for (const field of Object.keys(record)) if (!PA_BUSINESS_REGISTRY_SOURCE_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const filing = textValue(record.filing_number);
         const rowId = textValue(record.socrata_row_id);
@@ -774,7 +802,7 @@ export async function verifyPaBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const id = record.external_identifiers?.find((item) => item.type === "pa_department_of_state_filing_number")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned filing number ${id}`);
         ids.add(id);
