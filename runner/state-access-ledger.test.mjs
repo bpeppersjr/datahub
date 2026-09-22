@@ -4,7 +4,7 @@ import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile
 import path from 'node:path';
 import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
-import { buildStateAccessLedger, writeStateAccessReport } from './state-access-ledger.mjs';
+import { buildStateAccessLedger, projectNhRestrictedChildcareEvidence, writeStateAccessReport } from './state-access-ledger.mjs';
 import { loadStateBusinessSourceAssessmentCatalog } from './state-business-source-assessment.mjs';
 import { BROAD_ORGANIZATION_SOURCES } from './broad-organization-evidence.mjs';
 
@@ -45,8 +45,40 @@ async function fixture(t, {retained = false} = {}) {
     await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
   }
   return { root, manifestPath, manifest, waManifestPath, waManifest, deManifestPath, deManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
+    nhRestrictedChildcareLoader: async () => ({status:'not-enrolled'}),
     mnCredentialPublicationLoader: async () => ({status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:manifest.release_id,coverageManifestSha256:createHash('sha256').update(await readFile(path.join(root,manifestPath))).digest('hex'),productionRunId:'production-mn-credentials-20260910-01',productionReceiptSha256:'b'.repeat(64),reportingReleaseId:'fixture-reporting',reportingManifestSha256:'c'.repeat(64)}) };
 }
+
+function nhRestrictedEvidence() {
+  const claims={identity_matching_eligible:false,physical_sites_verified:false,current_operations_verified:false,statewide_completeness_percent:null,national_completeness_percent:null,national_reporting_integrated:false,public_export_authorized:false,export_policy:'internal'};
+  const rows=Array.from({length:6},(_,index)=>({row_ordinal:index+1,query_zip5:'03755',address:{state:'NH'}}));
+  return {status:'available',enrollment:{enrollment_sha256:'a'.repeat(64),operation_id:'86c727ff-e93d-42d0-9a05-9aab9a81c365',operation_receipt_sha256:'b'.repeat(64)},samples:{claims,groups:[{state:'OK'},{state:'NH',count:6,rows,query_zip5:'03755',scope:'retained-query-sample-not-statewide',observed_at:'2026-09-10T17:57:56.067Z',normalized_at:'2026-09-10T18:01:14.356Z',source_policy:'nh-childcare-visible-internal@1.0.0'}]}};
+}
+
+test('NH retained query sample is admitted only as unmeasured evidence with no business, site, or operation claims',async t=>{
+  const f=await fixture(t);f.nhRestrictedChildcareLoader=async()=>nhRestrictedEvidence();
+  const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(row=>row.state==='NH').industries.find(row=>row.industry==='childcare');
+  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  const evidence=cell.evidence.find(item=>item.evidenceClass==='restricted-retained-childcare-query-sample');
+  assert.deepEqual({recordCount:evidence.recordCount,queryZip5:evidence.queryZip5,scope:evidence.scope,statewideCompleteness:evidence.statewideCompleteness},
+    {recordCount:6,queryZip5:'03755',scope:'retained-query-sample-not-statewide',statewideCompleteness:'unknown'});
+  for(const key of ['identityMatchingEligible','physicalSiteVerified','currentOperationsVerified','nationalReportingIntegrated','publicExportAuthorized'])assert.equal(evidence[key],false);
+  for(const key of ['uniqueBusinessCount','physicalSiteCount','activeBusinessCount','statewideCompletenessPercent','nationalCompletenessPercent'])assert.equal(evidence[key],null);
+  assert.equal(cell.evidence.some(item=>item.type.startsWith('published-direct')||item.type.startsWith('published-national')),false);
+  for(const jurisdiction of ledger.jurisdictions.filter(row=>row.state!=='NH'))assert.equal(jurisdiction.industries.find(row=>row.industry==='childcare').evidence.some(item=>item.evidenceClass==='restricted-retained-childcare-query-sample'),false);
+});
+
+test('NH restricted sample rejects tamper, malformed content, and non-NH leakage; missing evidence remains missing',async()=>{
+  const missing=projectNhRestrictedChildcareEvidence({status:'not-enrolled'},'NH');assert.equal(missing.status,'not-enrolled');
+  for(const mutate of [
+    value=>{value.samples.groups[1].count=5;},
+    value=>{value.samples.groups[1].query_zip5='03756';},
+    value=>{value.samples.groups[1].rows[0].address.state='VT';},
+    value=>{value.samples.claims.current_operations_verified=true;},
+    value=>{value.samples.groups.push({...value.samples.groups[1]});},
+  ]){const value=nhRestrictedEvidence();mutate(value);assert.throws(()=>projectNhRestrictedChildcareEvidence(value,'NH'),/New Hampshire restricted childcare evidence is invalid/);}
+  assert.deepEqual(projectNhRestrictedChildcareEvidence(nhRestrictedEvidence(),'VT'),{status:'not-applicable'});
+});
 
 async function installVtReportingEnrollment(root) {
   const relativeConfig = 'config/vt-childcare-reporting-enrollment.json';

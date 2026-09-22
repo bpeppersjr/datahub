@@ -16,6 +16,8 @@ import { loadIaChildcareReportingEnrollment, projectIaChildcarePublisherEvidence
 import { BROAD_ORGANIZATION_SOURCES, buildBroadOrganizationEvidence } from "./broad-organization-evidence.mjs";
 import { loadStateCoverageReassessment } from "./state-coverage-reassessment.mjs";
 import { loadMnCredentialPublicationStatus } from "./mn-credential-publication-status.mjs";
+import { loadRetainedChildcareSnapshotEnrollment } from "./retained-childcare-snapshot-enrollment.mjs";
+import { loadRestrictedChildcareSamples } from "./retained-childcare-restricted-samples.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -56,6 +58,37 @@ const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcar
 const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 const CANONICAL = new Set(STATES);
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+
+async function loadNhRestrictedChildcareEvidence({ root = APP_ROOT, signal } = {}) {
+  if (root !== APP_ROOT) throw new Error("New Hampshire restricted childcare evidence requires an explicit fixture loader outside the application root.");
+  const enrollment = await loadRetainedChildcareSnapshotEnrollment({ root, signal });
+  if (enrollment.status !== "available") return enrollment;
+  const replayed = await loadRestrictedChildcareSamples({ signal });
+  const saved = enrollment.view?.restricted_samples;
+  if (JSON.stringify(saved) !== JSON.stringify(replayed)) throw new Error("New Hampshire restricted childcare evidence does not match the enrolled replay-verified snapshot.");
+  return { status: "available", enrollment, samples: replayed };
+}
+
+export function projectNhRestrictedChildcareEvidence(value, state) {
+  if (state !== "NH") return { status: "not-applicable" };
+  if (value?.status !== "available") return { status: value?.status === "unavailable" ? "unavailable" : "not-enrolled" };
+  const groups = value.samples?.groups;
+  const group = Array.isArray(groups) ? groups.filter((item) => item?.state === "NH") : [];
+  const claims = value.samples?.claims;
+  if (group.length !== 1 || groups.length !== 2 || group[0].count !== 6 || group[0].rows?.length !== 6
+    || group[0].query_zip5 !== "03755" || group[0].scope !== "retained-query-sample-not-statewide"
+    || group[0].rows.some((row) => row?.address?.state !== "NH" || row.query_zip5 !== "03755")
+    || claims?.identity_matching_eligible !== false || claims?.physical_sites_verified !== false
+    || claims?.current_operations_verified !== false || claims?.statewide_completeness_percent !== null
+    || claims?.national_completeness_percent !== null || claims?.national_reporting_integrated !== false
+    || claims?.public_export_authorized !== false || claims?.export_policy !== "internal") {
+    throw new Error("New Hampshire restricted childcare evidence is invalid.");
+  }
+  return { status: "verified-restricted-query-sample", sourceId: "nh-childcare-visible-results", recordCount: 6,
+    queryZip5: "03755", scope: group[0].scope, observedAt: group[0].observed_at, normalizedAt: group[0].normalized_at,
+    sourcePolicy: group[0].source_policy, enrollmentSha256: value.enrollment.enrollment_sha256,
+    operationId: value.enrollment.operation_id, operationReceiptSha256: value.enrollment.operation_receipt_sha256 };
+}
 
 function validateMnCredentialMetric(metric) {
   if (metric === undefined) return null;
@@ -231,10 +264,10 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root})]);
   const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
     && credentialPublication.included === true && credentialPublication.credentialRows === 11456
     && credentialPublication.recordUnit === "publisher-business-credential-row"
@@ -333,6 +366,23 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
           sourceManifestSha256: deLicenseEvidence.manifestSha256, identityMatchingEligible: false, physicalSiteEligible: false,
           currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
           exportPolicy: "local-review-only", aggregateDistribution: "public-with-provenance-and-semantic-limitations" });
+      }
+      if (industryId === "childcare" && state === "NH") {
+        const sample = projectNhRestrictedChildcareEvidence(nhRestrictedChildcare, state);
+        if (sample.status === "verified-restricted-query-sample") {
+          unmeasured = true;
+          evidence.push({ type: "retained-state-query-sample-count", evidenceClass: "restricted-retained-childcare-query-sample",
+            sourceId: sample.sourceId, recordCount: sample.recordCount, rowUnit: "publisher-visible-childcare-search-result",
+            stateBasis: "source-row-address-state", publisherJurisdiction: "NH", queryZip5: sample.queryZip5,
+            scope: sample.scope, statewideCompleteness: "unknown", statewideCompletenessPercent: null,
+            enrollmentSha256: sample.enrollmentSha256, operationId: sample.operationId,
+            operationReceiptSha256: sample.operationReceiptSha256, observedAt: sample.observedAt,
+            normalizedAt: sample.normalizedAt, sourcePolicy: sample.sourcePolicy,
+            identityMatchingEligible: false, uniqueBusinessCount: null, physicalSiteVerified: false,
+            physicalSiteCount: null, currentOperationsVerified: false, activeBusinessCount: null,
+            nationalReportingIntegrated: false, nationalCompletenessPercent: null,
+            publicExportAuthorized: false, exportPolicy: "internal" });
+        }
       }
       for (const key of sourceKeys) {
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
