@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-16` after the metadata-only Overture readiness view was integrated. Do not execute or approve this plan.
+
 Fresh governed planning completed after retained CMS hospital state/ZIP readiness, an authenticated retained Census ZBP ZIP-industry view, and a schema-4 state-access card were integrated and regression-tested. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-15`
