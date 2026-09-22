@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-24`; do not execute this plan.
+
 Fresh governed planning completed after Co*Tive corrected industry-plan gap reporting to reflect the state sources that will actually run. Explicitly narrowed plans now retain gaps for configured-but-unselected state sources, while manual-only omissions remain distinct. The change affects planning truthfulness only; it downloaded no data and executed no production work. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-23`
