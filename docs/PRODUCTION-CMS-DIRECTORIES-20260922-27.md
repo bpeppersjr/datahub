@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-28` after the governed Nebraska childcare prerequisite changed the executable code fingerprint. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive's Data Operations page gained reviewed multi-source collection batching. Operators can select several enrolled sources, preview the exact scoped tasks and omitted state/industry gaps, and then explicitly start one managed operation; existing source authorization, prerequisites, concurrency, and manual-selection rules remain unchanged. Preview creates no operation, and this change dispatched no collection or acquisition. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-27`
