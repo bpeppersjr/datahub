@@ -1,0 +1,38 @@
+{
+  "connector_id": "ne-childcare-aggregate-preflight",
+  "version": "1.0.0",
+  "implementation_status": "bounded-metadata-and-aggregate-prerequisite",
+  "description": "Nebraska DHHS childcare ArcGIS metadata and two fixed center-only aggregate requests; no facility rows.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type": "object", "additionalProperties": false, "properties": {}},
+  "named_secret_references": [],
+  "input_artifact_types": ["ne-childcare-arcgis-metadata", "ne-childcare-center-aggregate-counts"],
+  "output_artifact_types": ["ne-childcare-aggregate-preflight-receipt-json"],
+  "output_schema_contract": {
+    "version": "ne-childcare-aggregate-preflight@1.0.0",
+    "scope": "License_Type IN ('Child Care Center','Provisional Child Care Center')",
+    "row_unit": "historical/current-source aggregate cohort only; zero facility rows",
+    "temporal_semantics": "Roster_Date is a source date-only value; aggregate requests are sequential and not an atomic snapshot; no current-operation inference",
+    "identity_and_geography": "No facility identifiers, addresses, ZIPs, coordinates, geocoding, or coverage outputs"
+  },
+  "allowed_hosts": ["www.arcgis.com", "gis.ne.gov"],
+  "allowed_urls": [
+    "https://www.arcgis.com/sharing/rest/content/items/d3d3f44cb252424fb2f76e27162f534c?f=pjson",
+    "https://gis.ne.gov/Agency/rest/services/DHHS_Licensed_Child_Care/FeatureServer?f=pjson",
+    "https://gis.ne.gov/Agency/rest/services/DHHS_Licensed_Child_Care/FeatureServer/0?f=pjson",
+    "https://gis.ne.gov/Agency/rest/services/DHHS_Licensed_Child_Care/FeatureServer/0/query?f=json&where=License_Type%20IN%20%28%27Child%20Care%20Center%27%2C%27Provisional%20Child%20Care%20Center%27%29&returnGeometry=false&groupByFieldsForStatistics=License_Type&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22OBJECTID%22%2C%22outStatisticFieldName%22%3A%22center_rows%22%7D%5D",
+    "https://gis.ne.gov/Agency/rest/services/DHHS_Licensed_Child_Care/FeatureServer/0/query?f=json&where=License_Type%20IN%20%28%27Child%20Care%20Center%27%2C%27Provisional%20Child%20Care%20Center%27%29&returnGeometry=false&groupByFieldsForStatistics=License_Type&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22Roster_Date%22%2C%22outStatisticFieldName%22%3A%22roster_rows%22%7D%2C%7B%22statisticType%22%3A%22min%22%2C%22onStatisticField%22%3A%22Roster_Date%22%2C%22outStatisticFieldName%22%3A%22roster_min%22%7D%2C%7B%22statisticType%22%3A%22max%22%2C%22onStatisticField%22%3A%22Roster_Date%22%2C%22outStatisticFieldName%22%3A%22roster_max%22%7D%5D"
+  ],
+  "redirect_policy": "Exact five static URLs only; reject all redirects and URL drift.",
+  "provider_budget_key": "ne-dhhs-arcgis-metadata-aggregate",
+  "resource_class": "bounded-metadata-and-aggregate-only",
+  "execution_limits": {"max_parallel_requests": 1, "maximum_requests": 5, "metadata_requests": 3, "aggregate_requests": 2, "minimum_request_spacing_ms": 1000, "request_timeout_ms": 15000, "maximum_response_bytes": 1000000, "facility_rows_requested": 0},
+  "retry": "No retries, redirects, alternate hosts, fallback queries, or feature/ID requests.",
+  "checkpoint": "Transient bodies are parsed in memory and discarded; sanitized hashes, lengths, status, metadata summary, and aggregate values only.",
+  "idempotency": "Immutable UUID intent and receipt; manifest published last without overwrite.",
+  "cancellation": "Cooperative abort during spacing, request, and response-body reads; no manifest on incomplete operation; verify retained bundle before use.",
+  "source_policy": "config/source-policies/ne-childcare-aggregate-preflight.json",
+  "retention_profile": "Internal source metadata and two center-only aggregate results; no provider rows or contacts.",
+  "produced_entities": ["source-readiness-assertion"],
+  "produced_identifiers": ["ne-childcare-arcgis-item-id"]
+}

@@ -32,6 +32,7 @@
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
     "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
     "tn-childcare:preflight": "node scripts/preflight-tn-childcare.mjs",
+    "ne-childcare:preflight": "node scripts/preflight-ne-childcare-aggregate.mjs",
     "oh-childcare:verify-acquired": "node scripts/verify-oh-childcare-acquired.mjs",
     "oh-childcare:reprocess": "node scripts/reprocess-oh-childcare.mjs",
     "oh-childcare:build": "node scripts/build-oh-childcare.mjs",

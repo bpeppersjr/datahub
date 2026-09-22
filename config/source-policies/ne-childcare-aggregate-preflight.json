@@ -1,0 +1,13 @@
+{
+  "policy_id": "ne-childcare-aggregate-preflight",
+  "version": "1.0.0",
+  "ownership": "Nebraska DHHS Public Health Informatics; service hosted by Nebraska GIS",
+  "allowed_use": ["Conditional internal source-contract metadata and fixed aggregate assessment after the separately recorded scope decision validates"],
+  "prohibited_use": ["Facility-row, object-ID, or feature export; home-provider enumeration; purchase; reCAPTCHA automation; public redistribution; current-operation, completeness, ZIP coverage, geocoding, or national coverage claims"],
+  "attribution": "DHHS DPH Licensure, DHHS GIS; DHHS Licensed Child Care via NebraskaMAP",
+  "retention": "Only exact metadata anchors, aggregate counts/date-only extrema, request status/byte/hash metadata, and immutable intent/receipt/manifest are retained internally; no raw response bodies.",
+  "redistribution": "No public data or provider export authorized; output is a prerequisite observation only.",
+  "policy_evidence": "DHHS public-use item notice and linked Nebraska.gov automation/copying policy have unresolved applicability to automated access; no scope decision is included or presumed.",
+  "temporal_limits": "Observed source cohort dated 2025-10-15 (699 Child Care Center; 51 Provisional Child Care Center); not current 2026 evidence and not current operations.",
+  "review": "docs/states/NE-SOURCE-FOLLOWUP-2026-09-09.md"
+}
