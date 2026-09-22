@@ -1,0 +1,32 @@
+{
+  "policy_id": "fl-food-retail-acquisition",
+  "version": "1.0.0",
+  "status": "blocked-offline-fixture-only",
+  "ownership": "Official Florida FDACS retail food establishment records exposed by the publisher-controlled public GIS service; record acquisition rights and reuse terms have not yet been approved",
+  "allowed_use": [
+    "offline contract validation with synthetic injected fixtures containing no provider records",
+    "development and verification of bounded lifecycle, cancellation, integrity, and recovery behavior",
+    "retention of synthetic run receipts inside datahub"
+  ],
+  "prohibited_use": [
+    "native count, ID, feature, geometry, export, or other provider record queries",
+    "production dispatch or scheduled refresh",
+    "claiming current operations, grocery classification, unique businesses, or nationwide completeness",
+    "public or record-level redistribution",
+    "collection of owner, contact, operating-hours, or FDA workplan fields"
+  ],
+  "attribution": "Florida Department of Agriculture and Consumer Services, Division of Food Safety. Attribution applies only after a separately approved provider-record acquisition.",
+  "retention": "Retain immutable synthetic fixtures and run-scoped receipts only for local engineering evidence. No provider record retention is authorized by this policy.",
+  "redistribution": "No provider-derived record or aggregate redistribution is authorized. Synthetic test evidence may remain internal to the repository.",
+  "export_policy": "blocked",
+  "public_export_authorized": false,
+  "native_acquisition_authorized": false,
+  "provider_record_acquisition_performed": false,
+  "shared_budget_key": "florida-fdacs-food-gis",
+  "prerequisites": [
+    "approved record-use and redistribution basis",
+    "publisher-documented FE_TYPE codebook",
+    "defined currentness and edition semantics",
+    "approved native acquisition plan and explicit operator authorization"
+  ]
+}
