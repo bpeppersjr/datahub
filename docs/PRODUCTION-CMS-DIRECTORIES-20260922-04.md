@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-05` after implementation pins changed. Do not approve or execute this plan.
+
 Fresh governed planning completed after the ten-state official-source assessment wave, authoritative 43-jurisdiction assessment catalog and Heatmap completion-matrix view were integrated and runtime-restored. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-04`
