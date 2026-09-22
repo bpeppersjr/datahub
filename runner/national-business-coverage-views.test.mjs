@@ -642,9 +642,49 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   const zips = (await readFile(path.join(result.releaseDirectory, "views/zips.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(zips[0].spatial_zip_polygon_membership.status, "included");
   assert.equal(zips[0].spatial_zip_polygon_membership.zip4_polygon_applicability, "not-applicable");
-  assert.equal(zips[0].coverage_gap_codes.includes("authoritative-current-usps-validity-unverified"), false);
+  assert.equal(zips[0].coverage_gap_codes.includes("authoritative-current-usps-validity-unverified"), true);
+  assert.equal(zips[1].coverage_gap_codes.includes("authoritative-current-usps-validity-unverified"), true);
   assert.equal(zips[1].spatial_zip_polygon_membership.status, "not-in-denominator");
   assert.equal(zips[1].coverage_gap_codes.includes("not-in-census-zcta5-polygon-denominator"), true);
+  const initialGaps = (await readFile(path.join(result.releaseDirectory, "views/coverage-gaps.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const uspsGap = initialGaps.filter(row => row.gap_type === "authoritative-current-usps-zip-denominator-unavailable");
+  assert.equal(uspsGap.length, 1);
+  assert.deepEqual(uspsGap[0].evidence, {
+    authoritative_current_usps_zip_denominator: null,
+    registry_zip_rows: 2,
+    unverified_zip_rows: 2,
+    unverified_zip5_member_set_sha256: sha256("12345\n54321\n"),
+    address_level_deliverability_asserted: false,
+    blocks_claim: "complete-current-valid-usps-zip-denominator",
+  });
+  {
+    const registryFile = path.join(registryRelease, "manifest.json"), zipFile = path.join(registryRelease, "derived/zip-coverage.jsonl");
+    const originalRegistry = await readFile(registryFile), originalZips = await readFile(zipFile);
+    try {
+      const verifiedRows = structuredClone(zipRows);
+      verifiedRows[0].current_usps_validity = { status: "listed-in-current-usps-area-district-file" };
+      verifiedRows[1].current_usps_validity = { status: "not-listed-in-current-usps-area-district-file" };
+      const zipText = jsonLines(verifiedRows), registryManifest = JSON.parse(originalRegistry);
+      const zipDescriptor = registryManifest.artifacts.find(item => item.artifact_type === "registry-zip-coverage-jsonl");
+      zipDescriptor.bytes = Buffer.byteLength(zipText); zipDescriptor.sha256 = sha256(zipText);
+      registryManifest.coverage.authoritative_current_usps_zip_denominator = { count: 1, evidence_scope: "current-usps-area-district-5-digit-zip-assignments", source_month: "2026-08", dataset_id: "usps-operational-zip-assignments", release_id: "usps-fixture", address_level_deliverability_asserted: false, distribution_policy: "local-restricted" };
+      await writeFile(zipFile, zipText); await writeFile(registryFile, json(registryManifest));
+      const verified = await buildNationalBusinessCoverageViews({ registryPointerPath: registry.pointerPath, geographyPointerPath: geography.pointerPath,
+        crosswalkPointerPath: crosswalk.pointerPath, resolutionPointerPath: resolution.pointerPath, benchmarkPointerPath: benchmark.pointerPath,
+        nonemployerPointerPath: nonemployer.pointerPath, outputRoot: path.join(root, "coverage-views-usps-verified"), logger() {} });
+      const verifiedManifestPath = path.join(verified.releaseDirectory, "manifest.json");
+      await verifyNationalBusinessCoverageViewsRelease(verifiedManifestPath);
+      const verifiedZips = (await readFile(path.join(verified.releaseDirectory, "views/zips.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+      const verifiedGaps = (await readFile(path.join(verified.releaseDirectory, "views/coverage-gaps.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+      assert.equal(verifiedZips.some(row => row.coverage_gap_codes.includes("authoritative-current-usps-validity-unverified")), false);
+      assert.equal(verifiedGaps.some(row => row.gap_type === "authoritative-current-usps-zip-denominator-unavailable"), false);
+      const crossed = JSON.parse(await readFile(verifiedManifestPath, "utf8"));
+      crossed.authoritative_current_usps_zip_denominator.count = 2;
+      crossed.usps_operational_zip_evidence.count = 2;
+      await writeFile(verifiedManifestPath, json(crossed));
+      await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(verifiedManifestPath), /do not conserve the authoritative denominator/);
+    } finally { await writeFile(zipFile, originalZips); await writeFile(registryFile, originalRegistry); }
+  }
   const states = (await readFile(path.join(result.releaseDirectory, "views/states.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(states[0].registry_evidence.reported_address_profile_count, 9);
   assert.equal(states[0].registry_evidence.coordinate_assigned_profile_count, 2);
@@ -865,6 +905,16 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
   };
 
   try {
+    const legacyZips = originalZipText.trim().split("\n").map(JSON.parse);
+    for (const row of legacyZips) row.coverage_gap_codes = row.coverage_gap_codes.filter(code => code !== "authoritative-current-usps-validity-unverified");
+    const legacyGaps = originalGapText.trim().split("\n").map(JSON.parse).filter(row => row.gap_type !== "authoritative-current-usps-zip-denominator-unavailable");
+    await writeMutation({ zipText: jsonLines(legacyZips), gapText: jsonLines(legacyGaps), mutateManifest: manifest => {
+      delete manifest.usps_validity_gap_contract;
+      manifest.coverage.gap_views -= 1;
+      delete manifest.coverage.gap_counts_by_type["authoritative-current-usps-zip-denominator-unavailable"];
+    } });
+    await verifyNationalBusinessCoverageViewsRelease(manifestPath);
+
     const duplicateZips = originalZipText.trim().split("\n").map(JSON.parse);
     duplicateZips[1].zip_code = duplicateZips[0].zip_code;
     duplicateZips[1].view_id = duplicateZips[0].view_id;
@@ -884,6 +934,11 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
     excludedGap.gap_id = "gap:reported-zip5-outside-zcta:99999";
     await writeMutation({ gapText: jsonLines(wrongGapScope) });
     await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /do not exactly match their coverage-gap scopes/);
+
+    const wrongUspsGap = originalGapText.trim().split("\n").map(JSON.parse);
+    wrongUspsGap.find(row => row.gap_type === "authoritative-current-usps-zip-denominator-unavailable").evidence.unverified_zip5_member_set_sha256 = "0".repeat(64);
+    await writeMutation({ gapText: jsonLines(wrongUspsGap) });
+    await assert.rejects(() => verifyNationalBusinessCoverageViewsRelease(manifestPath), /does not conserve ZIP evidence/);
 
     await writeMutation({
       mutateManifest: (manifest) => {

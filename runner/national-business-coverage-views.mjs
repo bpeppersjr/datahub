@@ -19,6 +19,8 @@ export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage
 export const TN_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.9.0";
 export const TN_FRESH_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.10.0";
 export const OH_COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.11.0";
+const USPS_VALIDITY_GAP_CONTRACT = Object.freeze({ version: "1.0.0", claim: "complete-current-valid-usps-zip-denominator",
+  census_zcta_spatial_denominator_independent: true, zip4_polygon_applicability: "not-applicable" });
 const OH_SOURCE = "oh-dcy-publisher-open-childcare-centers", OH_KEY = "oh_childcare_centers";
 const ohioCoverage = () => import("./oh-childcare-coverage-evidence.mjs");
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -456,6 +458,33 @@ function hasPublishedEmployerBaseline(row) {
     && Number.isFinite(row.employer_baseline.establishments);
 }
 
+function zip5MemberSetSha256(rows) {
+  return sha256(rows.map((row) => row.zip_code).sort().join("\n") + (rows.length ? "\n" : ""));
+}
+
+function verifyUspsValidityConservation(zipViews, denominator) {
+  const listed = [], notListed = [], unverified = [];
+  for (const row of zipViews) {
+    const status = row.current_usps_validity?.status;
+    if (status === "listed-in-current-usps-area-district-file") listed.push(row);
+    else if (status === "not-listed-in-current-usps-area-district-file") notListed.push(row);
+    else if (status === "unverified") unverified.push(row);
+    else throw new Error(`ZIP ${row.zip_code} has unsupported current USPS validity evidence.`);
+  }
+  if (denominator === null) {
+    if (unverified.length !== zipViews.length || listed.length || notListed.length) {
+      throw new Error("ZIP USPS validity rows do not conserve an unavailable authoritative denominator.");
+    }
+  } else if (!denominator || !Number.isSafeInteger(denominator.count) || denominator.count < 1
+      || denominator.evidence_scope !== "current-usps-area-district-5-digit-zip-assignments"
+      || denominator.address_level_deliverability_asserted !== false
+      || unverified.length || listed.length !== denominator.count
+      || listed.length + notListed.length !== zipViews.length) {
+    throw new Error("ZIP USPS validity rows do not conserve the authoritative denominator.");
+  }
+  return { listed, notListed, unverified };
+}
+
 function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, profileSummary, registry, resolution, benchmark, nonemployer, lineage }) {
   const gaps = [];
   const add = (gap) => gaps.push({
@@ -473,6 +502,23 @@ function buildGapRecords({ zipViews, zctaSummaries, stateViews, countyViews, pro
     severity: "fundamental",
     evidence: { complete_national_business_registry: registry.manifest.complete_national_business_registry },
     consequence: "The registry and every derived view are partial governed source evidence, not a census of all active U.S. businesses.",
+  });
+  const usps = verifyUspsValidityConservation(zipViews, registry.manifest.coverage.authoritative_current_usps_zip_denominator);
+  if (usps.unverified.length) add({
+    gap_id: "gap:authoritative-current-usps-zip-denominator-unavailable",
+    gap_type: "authoritative-current-usps-zip-denominator-unavailable",
+    scope_type: "national",
+    scope_id: "registry-union",
+    severity: "postal-denominator-blocking",
+    evidence: {
+      authoritative_current_usps_zip_denominator: null,
+      registry_zip_rows: zipViews.length,
+      unverified_zip_rows: usps.unverified.length,
+      unverified_zip5_member_set_sha256: zip5MemberSetSha256(usps.unverified),
+      address_level_deliverability_asserted: false,
+      blocks_claim: "complete-current-valid-usps-zip-denominator",
+    },
+    consequence: "Census ZCTA membership and source-reported ZIP5 values do not establish a complete current USPS operational ZIP denominator.",
   });
   add({
     gap_id: "gap:address-derived-zip-county-crosswalk",
@@ -1165,6 +1211,7 @@ export async function buildNationalBusinessCoverageViews({
     }
     const relationships = zcta ? relationshipsByZcta.get(zcta) ?? [] : [];
     const gapCodes = ["incomplete-business-universe", "entity-resolution-not-applied", "no-census-nonemployer-zip-allocation"];
+    if (row.current_usps_validity?.status === "unverified") gapCodes.push("authoritative-current-usps-validity-unverified");
     if (row.registry_coverage.status !== "record-level-source-contribution") gapCodes.push("no-record-level-source-contribution");
     if (!zcta) gapCodes.push("not-in-census-zcta5-polygon-denominator");
     if (!hasPublishedEmployerBaseline(row)) gapCodes.push("no-published-census-zbp-employer-baseline");
@@ -1467,6 +1514,7 @@ export async function buildNationalBusinessCoverageViews({
     spatial_zip_polygon_denominator: spatialZipPolygonDenominator,
     usps_operational_zip_evidence: registry.manifest.coverage.authoritative_current_usps_zip_denominator,
     authoritative_current_usps_zip_denominator: registry.manifest.coverage.authoritative_current_usps_zip_denominator,
+    usps_validity_gap_contract: USPS_VALIDITY_GAP_CONTRACT,
     normalized_postal_field_migration: {
       status: registryPostalContractEnforced ? "enforced-in-registry-release" : "pre-migration-registry-release",
       registry_publisher_version: registry.manifest.publisher?.version ?? null,
@@ -1747,6 +1795,10 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
       !== JSON.stringify(manifest.authoritative_current_usps_zip_denominator ?? null)) {
     throw new Error("Supplemental USPS operational ZIP evidence is inconsistent with the compatibility field.");
   }
+  const uspsGapSupported = Object.hasOwn(manifest, "usps_validity_gap_contract");
+  if (uspsGapSupported && !isDeepStrictEqual(manifest.usps_validity_gap_contract, USPS_VALIDITY_GAP_CONTRACT)) {
+    throw new Error("USPS validity gap contract is invalid.");
+  }
   const failures = [];
   for (const artifact of manifest.artifacts ?? []) {
     const absolutePath = path.resolve(releaseDirectory, artifact.path);
@@ -1912,6 +1964,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   const zipViewIds = new Set();
   const includedZctaCodes = new Set();
   const excludedSpatialZipCodes = new Set();
+  const uspsRows = [];
   const zipCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("zip-coverage-view-jsonl").path), (row) => {
     trackOhio("zips", row);
     if (tnSupported) {
@@ -1935,10 +1988,14 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
         || row.spatial_zip_polygon_membership?.zip4_polygon_applicability !== "not-applicable"
         || (includedInSpatialDenominator && row.geography?.geoid !== row.zip_code)
         || (includedInSpatialDenominator && row.spatial_zip_polygon_membership?.geo_id !== `zcta:${row.zip_code}`)
-        || (!includedInSpatialDenominator && (row.spatial_zip_polygon_membership?.geo_id !== null || !row.coverage_gap_codes.includes("not-in-census-zcta5-polygon-denominator")))
-        || row.coverage_gap_codes.includes("authoritative-current-usps-validity-unverified")) {
+        || (!includedInSpatialDenominator && (row.spatial_zip_polygon_membership?.geo_id !== null || !row.coverage_gap_codes.includes("not-in-census-zcta5-polygon-denominator")))) {
       throw new Error(`${row.view_id} has inconsistent Census ZCTA5 polygon membership.`);
     }
+    const unverifiedUsps = row.current_usps_validity?.status === "unverified";
+    if (row.coverage_gap_codes.includes("authoritative-current-usps-validity-unverified") !== (uspsGapSupported && unverifiedUsps)) {
+      throw new Error(`${row.view_id} has inconsistent current USPS validity gap evidence.`);
+    }
+    uspsRows.push(row);
     if (includedInSpatialDenominator) includedZctaCodes.add(row.zip_code);
     else excludedSpatialZipCodes.add(row.zip_code);
     zipPhysicalSites += row.registry_coverage.physical_site_count;
@@ -1978,6 +2035,7 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   });
   const gapCountsByType = {};
   const excludedSpatialGapZipCodes = new Set();
+  let unavailableUspsGap = null;
   const gapCount = await countJsonLines(path.join(releaseDirectory, artifacts.get("coverage-gap-view-jsonl").path), (row) => {
     trackOhio("gaps", row);
     if (row.gap_type === "reporting-source-zip-unavailable" && row.evidence?.source_id !== OH_SOURCE) {
@@ -1986,6 +2044,10 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
         || row.evidence.zip_inferred !== false || !isDeepStrictEqual(row.evidence.reasons, tnTotal.missing_zip_reasons)) throw new Error("TN missing ZIP gap differs.");
     }
     increment(gapCountsByType, row.gap_type);
+    if (row.gap_type === "authoritative-current-usps-zip-denominator-unavailable") {
+      if (unavailableUspsGap) throw new Error("Current USPS denominator gap is duplicated.");
+      unavailableUspsGap = row;
+    }
     if (row.gap_type === "reported-zip5-not-in-census-zcta5-polygon-denominator") {
       if (row.scope_type !== "zip" || !/^\d{5}$/.test(row.scope_id ?? "") || row.gap_id !== `gap:reported-zip5-outside-zcta:${row.scope_id}`) {
         throw new Error(`${row.gap_id ?? "<unknown>"} has invalid excluded spatial ZIP scope.`);
@@ -2033,8 +2095,22 @@ export async function verifyNationalBusinessCoverageViewsRelease(manifestPath) {
   if (zipRowsWithPublishedEmployerBaseline !== coverage.zip_views_with_published_employer_baseline) throw new Error("ZIP employer-baseline count does not match manifest.");
   if (zipCount - zipRowsWithPublishedEmployerBaseline !== coverage.zip_views_without_published_employer_baseline) throw new Error("ZIP missing-employer-baseline count does not match manifest.");
   if (JSON.stringify(sortedObject(gapCountsByType)) !== JSON.stringify(coverage.gap_counts_by_type)) throw new Error("Coverage-gap type counts do not match manifest.");
-  if (gapCountsByType["authoritative-current-usps-zip-denominator-unavailable"] !== undefined
-      || (gapCountsByType["reported-zip5-not-in-census-zcta5-polygon-denominator"] ?? 0) !== zipCount - zipRowsWithZcta) {
+  const conservedUsps = uspsGapSupported ? verifyUspsValidityConservation(uspsRows, manifest.authoritative_current_usps_zip_denominator) : null;
+  if (uspsGapSupported && manifest.authoritative_current_usps_zip_denominator === null) {
+    const evidence = unavailableUspsGap?.evidence;
+    if (gapCountsByType["authoritative-current-usps-zip-denominator-unavailable"] !== 1
+        || unavailableUspsGap.scope_type !== "national" || unavailableUspsGap.scope_id !== "registry-union"
+        || evidence?.authoritative_current_usps_zip_denominator !== null
+        || evidence.registry_zip_rows !== zipCount || evidence.unverified_zip_rows !== conservedUsps.unverified.length
+        || evidence.unverified_zip5_member_set_sha256 !== zip5MemberSetSha256(conservedUsps.unverified)
+        || evidence.address_level_deliverability_asserted !== false
+        || evidence.blocks_claim !== "complete-current-valid-usps-zip-denominator") {
+      throw new Error("Unavailable current USPS denominator gap does not conserve ZIP evidence.");
+    }
+  } else if (unavailableUspsGap || gapCountsByType["authoritative-current-usps-zip-denominator-unavailable"] !== undefined) {
+    throw new Error("Verified current USPS denominator must not retain an unavailable-denominator gap.");
+  }
+  if ((gapCountsByType["reported-zip5-not-in-census-zcta5-polygon-denominator"] ?? 0) !== zipCount - zipRowsWithZcta) {
     throw new Error("Coverage gaps do not match the Census ZCTA5 spatial denominator policy.");
   }
   if (excludedSpatialGapZipCodes.size !== excludedSpatialZipCodes.size
