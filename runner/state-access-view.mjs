@@ -12,6 +12,7 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 function check(value,message='State-access evidence is unavailable.'){if(!value)throw Error(message);}
 function inside(root,value){const file=path.resolve(root,value),relative=path.relative(root,file);check(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative));return file;}
 function temporal(value){check(value?.schemaVersion===TEMPORAL&&typeof value.binding==='string'&&typeof value.status==='string'&&value.activeBusinessVerified===false&&value.generalBusinessOperatingStatusAsserted===false,'State-access temporal binding is invalid.');return value;}
+function positiveAccessEvidence(item){return Number.isSafeInteger(item?.recordCount)&&item.recordCount>0&&(item.type??item.evidenceType)!=='retained-state-query-sample-count';}
 
 export async function stateAccessView({root=APP_ROOT,state,industry}={}){
   check(STATE.test(state??''),'Invalid state selection.');check(INDUSTRY.test(industry??''),'Invalid industry selection.');
@@ -22,7 +23,8 @@ export async function stateAccessView({root=APP_ROOT,state,industry}={}){
   check(report.schemaVersion===4&&report.evidence?.temporalBindingRequiredForPositiveCounts===true&&report.summary?.jurisdictions===51&&report.jurisdictions?.length===51,'State-access enrolled report schema is invalid.');
   const jurisdiction=report.jurisdictions.find(row=>row?.state===state);check(jurisdiction,'State is outside the enrolled ledger.');const cell=jurisdiction.industries?.find(row=>row?.industry===industry);check(cell,'Industry is outside the enrolled ledger.');
   check(typeof cell.accessEvidenceStatus==='string'&&Array.isArray(cell.evidence)&&Array.isArray(cell.limitations));
-  const exactBindings=cell.evidence.filter(item=>item?.temporalEvidence).map(item=>({evidenceType:item.type,sourceId:item.sourceId??null,recordCount:item.recordCount??null,temporalEvidence:temporal(item.temporalEvidence)}));
+  const temporalBindings=cell.evidence.filter(item=>item?.temporalEvidence).map(item=>({evidenceType:item.type,sourceId:item.sourceId??null,recordCount:item.recordCount??null,temporalEvidence:temporal(item.temporalEvidence)}));
+  const exactBindings=temporalBindings.filter(positiveAccessEvidence);
   check(exactBindings.length===(cell.temporalStatus?.positiveEvidenceItems??0),'State-access positive evidence lacks an exact temporal binding.');
   check(typeof cell.temporalStatus?.status==='string'&&cell.temporalStatus.activeBusinessVerified===false&&cell.temporalStatus.generalBusinessOperatingStatusAsserted===false);
   let contextTemporalEvidence=null;
