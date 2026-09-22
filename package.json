@@ -28,6 +28,7 @@
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
     "state-source-validation-wave:check": "node scripts/check-state-business-source-validation-wave.mjs",
+    "state-source-wave:check": "node scripts/check-state-business-source-assessment-wave.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
     "nj-childcare:preflight": "node scripts/preflight-nj-childcare.mjs",
     "tn-childcare:preflight": "node scripts/preflight-tn-childcare.mjs",

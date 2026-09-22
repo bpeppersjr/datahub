@@ -1,0 +1,9 @@
+# Official source validation wave — September 22, 2026
+
+This wave covers the previously unassessed missing broad-organization jurisdictions Kansas, Kentucky, Texas, Utah and Washington. It used only official state sources and made zero record requests, downloads, account creations, term acceptances, purchases, portal automations or production changes. Each versioned state artifact records access mode, published fields, status meaning, statewide scope, address/ZIP evidence, automation/fees, rights and refresh semantics with direct official citations.
+
+All five decisions are `HOLD`. Kansas advertises a $1,500/month entity bulk service after enrollment but publishes no complete schema or rights contract. Kentucky offers strong monthly/daily/weekly subscriber files and a format workbook, but registration, agreement-controlled reuse, status/address semantics and change controls remain unresolved. Texas prices business-entity master unloads, but current product/schema and reuse terms are not public; UCC bulk data is explicitly not a substitute. Utah exposes official entity search without a documented bulk/API contract. Washington supports public advanced-search CSV exports, but warns against broad queries and provides no complete-snapshot or automation contract.
+
+The strongest safe next step is written, non-row-bearing preflight for each state: unsigned terms, person-free schema/header, aggregate counts, identifier lifecycle, status and address dictionaries, complete/delta/deletion/replay/checksum behavior, supported unattended delivery and explicit retention, transformation, geocoding, derived-publication and redistribution rights. No connector implementation or source acquisition is authorized by these assessments.
+
+Run `node scripts/check-state-business-source-assessment-wave.mjs` to validate the exact five artifacts and non-acquisition controls.
