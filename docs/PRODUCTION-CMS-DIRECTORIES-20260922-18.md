@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-19` after the governed pharmacy geographic heatmap and bounded geometry-loading changes were promoted. Do not execute or approve this plan.
+
 Fresh governed planning completed after a local-only CMS NPPES community/retail-pharmacy subset was built, independently audited, hardened, and exposed through an authenticated Heatmap mode. The subset contains 89,077 unique organization NPI rows carrying taxonomy `3336C0003X`; 90,074 is retained separately as taxonomy-slot occurrences and is not called a record count. The subset does not increment generic NPPES, health-care, or all-business totals and is not an input to this production plan. Collector stop/restart restoration passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-18`
