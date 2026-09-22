@@ -10,7 +10,7 @@ The original response observation is `2026-09-09T02:14:36.039Z`; processing time
 
 ZIP percentages use accepted retained publisher-cohort rows as the denominator, not unique active businesses or nationwide industry completeness. Rows are attributed to the Iowa publisher, not inferred Iowa address-state membership. Duplicates and quarantined rows remain accountable; excluded provider classes do not enter the denominator.
 
-The state-access ledger exposes Iowa childcare `localPublisherCohortEvidence`. National evidence status, totals and dispatch remain separate. This increment does not implement heatmap UI integration, national promotion, public export, recurring refreshes or new acquisition.
+The state-access ledger now admits the checksum-bound cohort as Iowa-only `published-direct-state-publisher-cohort-count` evidence with the distinct `retained-iowa-publisher-scope-childcare-candidate` class and row unit. Its state basis is publisher jurisdiction and its reported-address state remains null; it cannot populate address-state counts. Facility, unique-business, active-business, physical-site, current-operation, public-export and completeness claims remain false or null. `localPublisherCohortEvidence` retains the detailed offline projection. This does not change a production pointer, acquire data, authorize public export, or infer statewide facility coverage.
 
 Reporting and enrollment tests cover offline execution, installed native evidence, duplicate/quarantine conservation, unknown fields, cancellation, tampering, invalid paths and redacted CLI errors. The ledger regression verifies unavailable local enrollment does not change other cells or national totals.
 

@@ -52,6 +52,62 @@ async function installVtReportingEnrollment(root) {
   return binding;
 }
 
+async function installIaReportingEnrollment(root) {
+  const relativeConfig = 'config/ia-childcare-reporting-enrollment.json';
+  const binding = JSON.parse(await readFile(path.join(APP_ROOT, relativeConfig)));
+  const target = path.join(root, relativeConfig); await mkdir(path.dirname(target), { recursive: true });
+  await copyFile(path.join(APP_ROOT, relativeConfig), target);
+  const runRelative = binding.app_receipt_path.split('/').slice(0, 4).join('/');
+  await cp(path.join(APP_ROOT, runRelative), path.join(root, runRelative), { recursive: true });
+  const receipt = JSON.parse(await readFile(path.join(root, binding.app_receipt_path)));
+  for (const manifestPath of [receipt.acquired.manifest_path, receipt.normalized.manifest_path]) {
+    const relative = path.relative(APP_ROOT, manifestPath); const source = path.join(APP_ROOT, relative); const destination = path.join(root, relative);
+    await mkdir(path.dirname(destination), { recursive: true }); await cp(path.dirname(source), path.dirname(destination), { recursive: true });
+  }
+  return binding;
+}
+
+test('verified IA publisher cohort is admitted as direct IA-only evidence without address-state, facility, or business claims', async () => {
+  const binding = JSON.parse(await readFile(path.join(APP_ROOT, 'config/ia-childcare-reporting-enrollment.json')));
+  const ledger = await buildStateAccessLedger();
+  const ia = ledger.jurisdictions.find(row => row.state === 'IA').industries.find(row => row.industry === 'childcare');
+  assert.equal(ia.accessEvidenceStatus, 'direct-state-publisher');
+  const evidence = ia.evidence.find(item => item.evidenceClass === 'retained-iowa-publisher-scope-childcare-candidate');
+  assert.deepEqual({recordCount:evidence.recordCount,rowUnit:evidence.rowUnit,stateBasis:evidence.stateBasis,publisherJurisdiction:evidence.publisherJurisdiction,reportedAddressState:evidence.reportedAddressState},
+    {recordCount:1476,rowUnit:'retained-iowa-publisher-childcare-candidate',stateBasis:'publisher-jurisdiction',publisherJurisdiction:'IA',reportedAddressState:null});
+  assert.equal(evidence.enrollmentSha256, '0786c71df45fb9e38310358cf167d69af77f6325d79b83b5b7acc2d40607cdce');
+  assert.equal(evidence.appReceiptSha256, binding.app_receipt_sha256);
+  assert.deepEqual({accepted:evidence.acceptedCohortRows,source:evidence.sourceRows,response:evidence.sourceResponseRows,excluded:evidence.excludedSourceRows,duplicates:evidence.duplicateSelectedRows,quarantined:evidence.quarantinedRows},
+    {accepted:1476,source:1476,response:3201,excluded:1725,duplicates:0,quarantined:0});
+  assert.equal(evidence.rowsWithReportedAddressState, 0); assert.equal(evidence.rowsWithoutReportedAddressState, 1476);
+  for (const key of ['facilityCount','uniqueBusinessCount','uniqueActiveBusinessCount','nationalCompletenessPercent','reportingPeriod']) assert.equal(evidence[key], null);
+  for (const key of ['identityMatchingEligible','physicalSiteVerified','currentOperationsVerified','publicExportAuthorized','nationalReportingIntegrated','reportingPeriodVerified']) assert.equal(evidence[key], false);
+  assert.equal(ia.evidence.some(item => item.addressBasis === 'reported-address-state' && item.sourceId === 'ia-childcare-centers'), false);
+  for (const jurisdiction of ledger.jurisdictions.filter(row => row.state !== 'IA')) {
+    const cell = jurisdiction.industries.find(row => row.industry === 'childcare');
+    assert.equal(cell.evidence.some(item => item.evidenceClass === 'retained-iowa-publisher-scope-childcare-candidate'), false);
+  }
+});
+
+test('IA publisher-cohort admission rejects missing, tampered, and malformed enrolled evidence', async t => {
+  for (const kind of ['missing-receipt','tampered-receipt','malformed-binding']) {
+    const f = await fixture(t); const binding = kind === 'missing-receipt'
+      ? JSON.parse(await readFile(path.join(APP_ROOT, 'config/ia-childcare-reporting-enrollment.json')))
+      : await installIaReportingEnrollment(f.root);
+    if (kind === 'missing-receipt') {
+      await copyFile(path.join(APP_ROOT, 'config/ia-childcare-reporting-enrollment.json'), path.join(f.root, 'config/ia-childcare-reporting-enrollment.json'));
+      const ledger = await buildStateAccessLedger(f), ia = ledger.jurisdictions.find(row => row.state === 'IA').industries.find(row => row.industry === 'childcare');
+      assert.equal(ia.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+      assert.equal(ia.evidence.some(item => item.evidenceClass === 'retained-iowa-publisher-scope-childcare-candidate'), false);
+      assert.equal(ia.localPublisherCohortEvidence.status, 'unavailable');
+      continue;
+    }
+    if (kind === 'tampered-receipt') await writeFile(path.join(f.root, binding.app_receipt_path), '{}');
+    else await writeFile(path.join(f.root, 'config/ia-childcare-reporting-enrollment.json'), JSON.stringify({...binding, app_receipt_sha256:'invalid'}));
+    await assert.rejects(buildStateAccessLedger(f), /Iowa reporting enrollment rejected/);
+  }
+});
+
 test('verified VT publisher cohort is admitted as direct VT-only evidence without address-state or business claims', async () => {
   const binding = JSON.parse(await readFile(path.join(APP_ROOT, 'config/vt-childcare-reporting-enrollment.json')));
   const ledger = await buildStateAccessLedger();
@@ -68,7 +124,7 @@ test('verified VT publisher cohort is admitted as direct VT-only evidence withou
   assert.equal(vt.appHandoff.jobSubmitted, false);
   for (const jurisdiction of ledger.jurisdictions.filter(row => row.state !== 'VT')) {
     const cell = jurisdiction.industries.find(row => row.industry === 'childcare');
-    assert.equal(cell.evidence.some(item => item.type === 'published-direct-state-publisher-cohort-count'), false);
+    assert.equal(cell.evidence.some(item => item.evidenceClass === 'retained-publisher-childcare-candidate'), false);
   }
 });
 

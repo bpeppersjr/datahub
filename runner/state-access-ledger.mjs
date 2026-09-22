@@ -263,6 +263,27 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
             });
           }
         }
+        if (key === 'state-ia-childcare-centers' && state === 'IA') {
+          const cohort = projectIaChildcarePublisherEvidence(localIaCandidates, state);
+          if (cohort.status === 'verified-retained-publisher-cohort') {
+            direct = true;
+            evidence.push({
+              type: 'published-direct-state-publisher-cohort-count', evidenceClass: 'retained-iowa-publisher-scope-childcare-candidate',
+              sourceId: cohort.sourceId, recordCount: cohort.publisherCohortRows, rowUnit: 'retained-iowa-publisher-childcare-candidate',
+              stateBasis: 'publisher-jurisdiction', publisherJurisdiction: 'IA', reportedAddressState: null,
+              enrollmentSha256: cohort.enrollmentSha256, appReceiptSha256: cohort.appReceiptSha256,
+              acquiredManifestSha256: cohort.acquiredManifestSha256, normalizedManifestSha256: cohort.normalizedManifestSha256,
+              acceptedCohortRows: cohort.acceptedCohortRows, sourceRows: cohort.sourceRows,
+              sourceResponseRows: cohort.sourceResponseRows, excludedSourceRows: cohort.excludedSourceRows,
+              duplicateSelectedRows: cohort.duplicateSelectedRows, quarantinedRows: cohort.quarantinedRows,
+              rowsWithReportedAddressState: 0, rowsWithoutReportedAddressState: cohort.reportedAddressStateUnavailableRows,
+              facilityCount: null, uniqueBusinessCount: null, uniqueActiveBusinessCount: null,
+              identityMatchingEligible: false, physicalSiteVerified: false, currentOperationsVerified: false,
+              publicExportAuthorized: false, exportPolicy: 'internal', nationalReportingIntegrated: false,
+              nationalCompletenessPercent: null, reportingPeriod: null, reportingPeriodVerified: false,
+            });
+          }
+        }
         const retainedCount = retainedChildcareStateCount(row, coverage.retainedChildcare, key);
         if (retainedCount > 0) {
           direct = true;
