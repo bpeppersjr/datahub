@@ -69,6 +69,7 @@
     "usps-city-state:verify": "node scripts/verify-usps-city-state-admission.mjs",
     "usps-city-state-denominator:build": "node scripts/build-usps-city-state-denominator-candidate.mjs",
     "usps-city-state-denominator:verify": "node scripts/verify-usps-city-state-denominator-candidate.mjs",
+    "usps-city-state:preview": "node scripts/preview-usps-city-state-candidate.mjs",
     "snap:build": "node scripts/build-usda-snap-retailers.mjs",
     "snap:verify": "node scripts/verify-usda-snap-retailers.mjs",
     "nppes:prepare": "node scripts/prepare-nppes-source.mjs",
