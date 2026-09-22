@@ -34,11 +34,11 @@ Retries are bounded to HTTP 429, 5xx, and transient transport failures. No key, 
 
 ## Current verified release
 
-Release `ny-business-registry-20260831-073558948Z-56408686` represents source release `ny-business-registry-2026-08-30-8e153afc36235e65`, whose catalog rows were updated at `2026-08-30T12:29:07.000Z`.
+Release `ny-business-registry-20260903-005209518Z-d9e3551f` is the retained release selected by `current.json`. It represents source release `ny-business-registry-2026-09-02-9d8490fb18678e54`, whose catalog rows were updated at `2026-09-02T13:39:39.000Z`.
 
-It independently verifies 4,275,497 selected source rows, 4,275,497 provisional organizations, zero quarantined rows, 352,234 eligible reported U.S. location-address/ZIP contributions across 8,653 source ZIPs, and 3,923,263 organizations without an eligible U.S. ZIP address. The 22 checksummed artifacts total 346,827,382 bytes. Physical-site and establishment counts are intentionally `null` in the source manifest.
+It independently verifies 4,273,072 selected source rows, 4,273,072 provisional organizations, zero quarantined rows, 350,933 eligible reported U.S. location-address/ZIP contributions across 8,646 source ZIPs, and 3,922,139 organizations without an eligible U.S. ZIP address. The 22 checksummed artifacts total 346,483,030 bytes. Physical-site and establishment counts are intentionally `null` in the source manifest.
 
-The source ZIP view retains all 38,514 ZIPs in its Census ZBP/ZCTA plus source-evidence union. Current USPS ZIP validity remains unverified because no authorized current USPS denominator is integrated.
+The source ZIP view retains all 38,513 ZIPs in its Census ZBP/ZCTA plus source-evidence union. Current USPS ZIP validity remains unverified because no authorized current USPS denominator is integrated.
 
 ## Commands
 
@@ -48,3 +48,9 @@ npm run ny-business:verify
 ```
 
 Generated releases remain under `data/business-sources/ny-business-registry-active-entities/` and are excluded from Git. Contracts, source policy, connector configuration, tests, and this documentation are versioned.
+
+## Refresh readiness in Co*Tive Collector
+
+The Data Operations page provides a deterministic, read-only New York refresh preview. It revalidates the source policy, connector, assessment, actual `current.json` pointer, and retained manifest before producing a six-file hash-bound plan. Previewing creates no operation, allocation, receipt, network request, or pointer change.
+
+Fresh acquisition, autonomous acquisition, and production-pointer changes remain unauthorized. Start is disabled, and a direct start request returns `ACQUISITION_NOT_AUTHORIZED` before any executor or receipt writer can run. A future monthly snapshot must be compared as registration evidence without interpreting absence or row-count changes as proof of closure or current operation.

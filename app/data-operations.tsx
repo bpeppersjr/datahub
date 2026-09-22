@@ -10,6 +10,7 @@ import CmsHospitalAdoption from './cms-hospital-adoption';
 import CmsSnfPecosStatusCard, {type CmsSnfPecosStatus} from './cms-snf-pecos-status';
 import IaBusinessRegistryRefreshStatusCard, {type IaBusinessRegistryRefreshStatus} from './ia-business-registry-refresh-status';
 import OrBusinessRegistryRefreshStatusCard, {type OrBusinessRegistryRefreshStatus} from './or-business-registry-refresh-status';
+import NyBusinessRegistryRefreshStatusCard, {type NyBusinessRegistryRefreshStatus} from './ny-business-registry-refresh-status';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -19,7 +20,7 @@ type Catalog = {
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
   credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
   retainedSourceAdoptions?:Array<{sourceId:string;action:string}>;
-  governedSourceServices?:Array<CmsSnfPecosStatus|IaBusinessRegistryRefreshStatus|OrBusinessRegistryRefreshStatus>;
+  governedSourceServices?:Array<CmsSnfPecosStatus|IaBusinessRegistryRefreshStatus|OrBusinessRegistryRefreshStatus|NyBusinessRegistryRefreshStatus>;
 };
 type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
@@ -127,6 +128,7 @@ export default function DataOperations() {
     <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find((source):source is CmsSnfPecosStatus=>source.sourceId==='cms-snf-pecos')}/>
     <IaBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is IaBusinessRegistryRefreshStatus=>source.sourceId==='ia-business-registry')}/>
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')}/>
+    <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')}/>
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />
