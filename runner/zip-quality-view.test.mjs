@@ -60,6 +60,8 @@ test("lookup retains source evidence, separates ZIP4, and exposes no asserted US
 
 test("view fails closed when enrolled content is tampered", async (t) => {
   const { root, enrollment, artifactPath } = await fixture(t);
+  const view = createZipQualityView({ appRoot: root, enrollment });
+  assert.equal((await view({ zip: "00000" })).found, true);
   await writeFile(artifactPath, "{}\n");
-  await assert.rejects(() => createZipQualityView({ appRoot: root, enrollment })(), /bytes, SHA-256, or record count/);
+  await assert.rejects(() => view({ zip: "00000" }), /bytes, SHA-256, or record count/);
 });

@@ -80,6 +80,12 @@ When a county is selected, all materially intersecting ZCTA polygons remain visi
 
 All counts remain source-preserving evidence rather than deduplicated or complete active-business counts. Business records retain only address-associated latitude and longitude; business geometry and bounding boxes are not stored. Polygon geometry remains confined to the governed U.S., state, county, and ZIP/ZCTA geography layers. The current coverage release's provenance, temporal limitations, source policy, export policy, completeness flag, and entity-resolution status remain authoritative.
 
+### Exact ZIP5 evidence inspector
+
+The Heatmap includes an exact five-digit ZIP inspector. Entering a ZIP5 directly or selecting a ZIP polygon loads the same detail. Its response joins the selected coverage ZIP view to the retained registry ZIP-quality audit only when the registry release and manifest hashes match the selected coverage dependency; it also binds the governed geography release. A ZIP can be outside the Census ZCTA denominator while still carrying positive source-reported evidence, or can be denominator-only with no positive source contribution. Those conditions are not interchangeable.
+
+The inspector distinguishes an explicit `00000` placeholder from an ordinary ZIP5, and absence from selected evidence is not represented as an invalid USPS ZIP. USPS operation and deliverability remain unasserted. Census ZCTA membership, coverage counts, postal ZIP5/ZIP+4 fields, employer baseline status, source contribution counts/release IDs, and gap codes remain separate. A missing employer baseline stays null; measured zero stays zero, and alignment percent is null when the baseline is absent or zero. Cross-boundary ZCTAs are reported without assignment to an individual county. No temporal period is synthesized from source releases. The inspector is a read-only protected API and does not alter map or national totals.
+
 ## Local API
 
 The loopback runner exposes:
@@ -92,6 +98,7 @@ The loopback runner exposes:
 - `GET /api/business-map/features?level=zips&state_fips=01&county_geoid=01001&category=retail-consumer&enhancer=business_count`;
 - `GET /api/business-map/state-summary?include_territories=false`; and
 - `GET /api/business-map/names?zip=35022&category=retail-consumer&query=&limit=25`; and
+- `GET /api/business-map/zip-inspector?zip=10001` for strict exact-ZIP evidence detail; and
 - `GET /api/business-map/pharmacies/map?level=states` or `GET /api/business-map/pharmacies/map?level=zctas&state=TX&zip=75001&limit=25` for the governed pharmacy map and bounded ZIP names.
 
 Identifiers and demographic thresholds are validated before constructing artifact paths or filtering results. Thresholds must be non-negative whole numbers. Geometry and indexes must be declared by compatible published manifests, and the business-name registry release must match the registry release pinned in the coverage view when that lineage field is present. Responses contain no secrets.

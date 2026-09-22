@@ -27,6 +27,8 @@ import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
+import { createZipInspectorView } from './zip-inspector-view.mjs';
+import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
 import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
@@ -142,6 +144,7 @@ const store = await createStore();
 const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
+const zipInspectorView = createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
 let refreshSchedulerUnavailable = false;
@@ -524,6 +527,10 @@ const server = http.createServer(async (request, response) => {
       }
       try { json(response, 200, await zipQualityView({ zip: url.searchParams.get('zip') ?? undefined })); }
       catch (error) { json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : 'ZIP-quality evidence is unavailable.' }); }
+      return;
+    }
+    if (url.pathname === '/api/business-map/zip-inspector') {
+      await zipInspectorHttp(request, response, url, zipInspectorView, json);
       return;
     }
 

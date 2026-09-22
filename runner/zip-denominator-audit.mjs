@@ -109,9 +109,13 @@ function positiveSourceContributions(contributions) {
     const positiveCounts = Object.fromEntries(Object.entries(contribution ?? {})
       .filter(([, value]) => typeof value === "number" && value > 0));
     if (Object.keys(positiveCounts).length === 0) return [];
+    const sourceDates = Object.fromEntries(["source_through_date", "source_date", "source_month", "reference_year"]
+      .filter((key) => typeof contribution?.[key] === "string" || Number.isInteger(contribution?.[key]))
+      .map((key) => [key, contribution[key]]));
     return [{
       source_id: sourceId,
       source_release_id: contribution.source_release_id ?? null,
+      ...sourceDates,
       positive_counts: positiveCounts,
     }];
   });

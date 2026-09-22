@@ -24,29 +24,26 @@ function publicUspsEvidence(row) {
 }
 
 export function createZipQualityView({ appRoot = APP_ROOT, enrollment: suppliedEnrollment } = {}) {
-  let cached;
   async function load() {
-    if (cached) return cached;
-    cached = (async () => {
-      const enrollment = suppliedEnrollment ?? JSON.parse(await readFile(DEFAULT_ENROLLMENT_PATH, "utf8"));
-      assertEnrollment(enrollment);
-      const report = await auditZipDenominators({
-        appRoot,
-        cohorts: [{ cohort_id: enrollment.cohort_id, pointer: enrollment.pointer_path, required: true }],
-        includeRows: true,
-        includeZipLists: false,
-      });
-      const cohort = report.cohorts[0];
-      if (cohort.release_id !== enrollment.release_id
-        || cohort.pointer_sha256 !== enrollment.pointer_sha256
-        || cohort.manifest_sha256 !== enrollment.manifest_sha256
-        || cohort.artifact.sha256 !== enrollment.zip_artifact_sha256) {
-        throw new Error("ZIP-quality enrolled pointer, manifest, or ZIP artifact hash drifted.");
-      }
-      const byZip = new Map(cohort.rows.map((row) => [row.zip5, row]));
-      return { enrollment, report, cohort, byZip };
-    })().catch((error) => { cached = undefined; throw error; });
-    return cached;
+    // Re-audit artifact bytes on every request. A warm process must not trust a
+    // previously verified ZIP map after retained evidence has been changed.
+    const enrollment = suppliedEnrollment ?? JSON.parse(await readFile(DEFAULT_ENROLLMENT_PATH, "utf8"));
+    assertEnrollment(enrollment);
+    const report = await auditZipDenominators({
+      appRoot,
+      cohorts: [{ cohort_id: enrollment.cohort_id, pointer: enrollment.pointer_path, required: true }],
+      includeRows: true,
+      includeZipLists: false,
+    });
+    const cohort = report.cohorts[0];
+    if (cohort.release_id !== enrollment.release_id
+      || cohort.pointer_sha256 !== enrollment.pointer_sha256
+      || cohort.manifest_sha256 !== enrollment.manifest_sha256
+      || cohort.artifact.sha256 !== enrollment.zip_artifact_sha256) {
+      throw new Error("ZIP-quality enrolled pointer, manifest, or ZIP artifact hash drifted.");
+    }
+    const byZip = new Map(cohort.rows.map((row) => [row.zip5, row]));
+    return { enrollment, report, cohort, byZip };
   }
 
   return async function zipQualityView({ zip } = {}) {

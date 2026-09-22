@@ -738,6 +738,10 @@ export function createBusinessMapStore({
   async function getCatalog() {
     const index = await ensureIndex();
     if (!index) return { available: false };
+    const coverageDependencies = Array.isArray(index.coverage.manifest.dependencies)
+      ? index.coverage.manifest.dependencies
+      : [];
+    const registryDependency = coverageDependencies.find((item) => item.dataset_id === "national-business-registry") ?? null;
     const groups = [];
     for (const item of CATEGORY_DEFINITIONS) {
       let group = groups.find(({ id }) => id === item.group_id);
@@ -750,6 +754,8 @@ export function createBusinessMapStore({
     return {
       available: true,
       coverage_release_id: index.coverage.manifest.release_id,
+      registry_release_id: registryDependency?.release_id ?? null,
+      registry_manifest_sha256: registryDependency?.manifest_sha256 ?? null,
       geography_release_id: index.geography.manifest.release_id,
       geography_manifest_sha256: index.geography.manifestSha256,
       gdp_release_id: index.gdp?.manifest.release_id ?? null,

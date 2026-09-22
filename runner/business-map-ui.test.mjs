@@ -46,10 +46,36 @@ test('map hover reconciles selected geoid against new response and uses source-p
 test('selection change withholds previous map response before effects run', () => {
   const catalog = { available: true, categories: [], enhancers: [], category_groups: [], semantics: {} };
   const current = ['childcare', 'retained_childcare_county_points', 'counties', '42', '', '', ''];
-  const values = [catalog, null, response(), JSON.stringify(['childcare', 'business_count', 'counties', '42', '', '', '']), null,
+  const values = [catalog, null, '', null, '', false, response(), JSON.stringify(['childcare', 'business_count', 'counties', '42', '', '', '']), null,
     null, null, null, 'counties', 'childcare', 'retained_childcare_county_points', '', '', '42', 'Pennsylvania', '', '', false, ''];
   const h = harness(values);
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), false);
-  values[3] = JSON.stringify(current);
+  values[7] = JSON.stringify(current);
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), true);
+});
+
+test('exact ZIP inspector aborts stale fetches and withholds an older ZIP detail', async () => {
+  const values = [{ available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} }, null, '10001'];
+  const effects = [], pending = [], componentExports = {}; let index = 0, effectIndex = 0;
+  runInNewContext(`${code}\nexports.Page = BusinessEvidenceMap;`, {
+    exports: componentExports, URLSearchParams, AbortController, window: { setTimeout: () => 1, clearTimeout() {} },
+    require: name => name === './runner-client' ? { runnerJson: (url, options = {}) => url.includes('/zip-inspector?') ? new Promise(resolve => pending.push({ url, options, resolve })) : new Promise(() => {}) }
+      : name === 'react' ? {
+        useState(initial) { const slot = index++; if (!(slot in values)) values[slot] = initial; return [values[slot], next => { values[slot] = typeof next === 'function' ? next(values[slot]) : next; }]; },
+        useMemo: factory => factory(),
+        useEffect(effect, deps) { const slot = effectIndex++, prior = effects[slot]; if (!prior || deps.some((value, i) => !Object.is(value, prior.deps[i]))) { prior?.cleanup?.(); effects[slot] = { effect, deps, cleanup: null }; } },
+      } : name.startsWith('./') ? { default: function Stub() { return null; } } : require(name),
+  });
+  const render = () => { index = 0; effectIndex = 0; const tree = componentExports.Page(); for (const slot of effects) if (slot?.cleanup === null) slot.cleanup = slot.effect(); return tree; };
+  let tree = render();
+  const input = () => nodes(tree).find(node => node.props?.['aria-label'] === 'Inspect exact ZIP5');
+  assert.equal(pending.length, 1);
+  input().props.onChange({ target: { value: '20002' } });
+  tree = render();
+  assert.equal(pending.length, 2);
+  assert.equal(pending[0].options.signal.aborted, true);
+  pending[1].resolve({ zip5: '20002', evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: '20002' }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' } });
+  await new Promise(resolve => setImmediate(resolve)); assert.equal(values[2], '20002'); assert.equal(values[3]?.zip5, '20002');
+  pending[0].resolve({ zip5: '10001', evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: '10001' }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' } });
+  await new Promise(resolve => setImmediate(resolve)); tree = render(); assert.equal(values[3]?.zip5, '20002'); assert.doesNotMatch(text(tree), /governed Census ZCTA 10001/);
 });

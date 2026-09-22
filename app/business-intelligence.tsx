@@ -16,6 +16,8 @@ type Enhancer = { id: string; label: string; kind: string };
 type Catalog = {
   available: boolean;
   coverage_release_id: string;
+  registry_release_id?: string | null;
+  registry_manifest_sha256?: string | null;
   geography_release_id: string;
   geography_manifest_sha256?: string;
   gdp_release_id: string | null;
@@ -134,6 +136,18 @@ type ZipQualitySummary = {
   } };
   usps_operational_status: null;
   usps_evidence_status: 'unverified';
+};
+type ZipInspection = {
+  zip5: string; evidence_status: string; coverage_status: string | null;
+  classification: { class: string; ordinary_zip5_eligible: boolean } | null;
+  bindings: Record<string, string | null>;
+  governed_zcta: { status: string; geoid: string | null };
+  counts: null | { physical_sites: number; establishments: number; organization_primary_locations: number; employer_establishments: number | null; employer_baseline_status: string };
+  contributions: Array<{ source_id: string; source_release_id: string | null; source_through_date?: string; source_date?: string; source_month?: string; reference_year?: number; positive_counts: Record<string, number> }>;
+  coverage_gap_codes: string[];
+  employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
+  zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
+  denominator_semantics: string; limitations: string[];
 };
 type StateAccess = {
   accessEvidenceStatus: string;
@@ -518,6 +532,10 @@ function StateAccessSummary({state,industry}:{state?:string;industry?:string}){
 function BusinessEvidenceMap() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [zipQuality, setZipQuality] = useState<ZipQualitySummary | null>(null);
+  const [inspectionZip, setInspectionZip] = useState('');
+  const [zipInspection, setZipInspection] = useState<ZipInspection | null>(null);
+  const [zipInspectionError, setZipInspectionError] = useState('');
+  const [zipInspectionLoading, setZipInspectionLoading] = useState(false);
   const [savedData, setData] = useState<MapResponse | null>(null);
   const [dataSelection, setDataSelection] = useState('');
   const [stateSummary, setStateSummary] = useState<StateSummary | null>(null);
@@ -538,11 +556,28 @@ function BusinessEvidenceMap() {
   const selectionKey = JSON.stringify([categoryId, enhancerId, level, stateFips, countyGeoid, minPopulation, minHousingUnits]);
   const data = dataSelection === selectionKey ? savedData : null;
 
+  function selectInspectionZip(zip: string) {
+    setInspectionZip(zip);
+    setZipInspection(null);
+    setZipInspectionError('');
+    setZipInspectionLoading(/^\d{5}$/.test(zip));
+  }
+
   useEffect(() => {
     void request<Catalog>('/api/business-map/catalog').then(setCatalog).catch((reason) => setError(reason instanceof Error ? reason.message : 'Unable to load map catalog.'));
     void request<StateSummary>('/api/business-map/state-summary?include_territories=false').then(setStateSummary).catch(() => setStateSummary(null));
     void request<ZipQualitySummary>('/api/business-map/zip-quality').then(setZipQuality).catch(() => setZipQuality(null));
   }, []);
+
+  useEffect(() => {
+    if (!/^\d{5}$/.test(inspectionZip)) return;
+    const controller = new AbortController();
+    void runnerJson<ZipInspection>(`/api/business-map/zip-inspector?zip=${encodeURIComponent(inspectionZip)}`, { signal: controller.signal })
+      .then((detail) => { if (!controller.signal.aborted) setZipInspection(detail); })
+      .catch((reason) => { if (!controller.signal.aborted && reason?.name !== 'AbortError') setZipInspectionError(reason instanceof Error ? reason.message : 'Exact ZIP evidence is unavailable.'); })
+      .finally(() => { if (!controller.signal.aborted) setZipInspectionLoading(false); });
+    return () => controller.abort();
+  }, [inspectionZip]);
 
   useEffect(() => {
     if (!catalog?.available) return;
@@ -577,7 +612,7 @@ function BusinessEvidenceMap() {
       setStateFeature(feature); setCountyFeature(null); setZipFeature(null); setStateFips(feature.properties.geoid); setStateName(feature.properties.name); setCountyGeoid(''); setCountyName(''); setLevel('counties');
     } else if (level === 'counties') {
       setCountyFeature(feature); setZipFeature(null); setCountyGeoid(feature.properties.geoid); setCountyName(feature.properties.name); setLevel('zips');
-    } else { setZipFeature(feature); }
+    } else { setZipFeature(feature); selectInspectionZip(feature.properties.geoid); }
   }
 
   function national() {
@@ -618,6 +653,26 @@ function BusinessEvidenceMap() {
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
           {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">ZIP quality: {count(zipQuality.classification.classes.valid_format_same_code_governed_zcta.count)} same-code Census ZCTA members · {count(zipQuality.classification.classes.valid_format_source_reported_no_same_code_zcta.count)} source-reported ZIP5 without same-code ZCTA · {count(zipQuality.classification.classes.valid_format_denominator_only_no_same_code_zcta.count)} denominator-only without ZCTA · {count(zipQuality.classification.classes.explicit_placeholder.count)} explicit placeholder (`00000`). USPS operational status is {zipQuality.usps_operational_status === null ? 'not asserted' : 'asserted'}; evidence remains {zipQuality.usps_evidence_status}. Other low-number ZIP5 values are not treated as placeholders without governed proof.</p>}
+          <section className="state-alignment-card" aria-label="Exact ZIP5 evidence inspector" data-testid="zip-inspector">
+            <label><span>Inspect exact ZIP5</span><input aria-label="Inspect exact ZIP5" inputMode="numeric" maxLength={5} value={inspectionZip} onChange={(event) => selectInspectionZip(event.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="Five digits" /></label>
+            {inspectionZip.length > 0 && inspectionZip.length !== 5 && <p>Enter exactly five digits.</p>}
+            {zipInspectionLoading && <p>Verifying selected ZIP evidence…</p>}
+            {zipInspectionError && <p role="alert">{zipInspectionError}</p>}
+            {zipInspection?.zip5 === inspectionZip && <>
+              <div><span>ZIP {zipInspection.zip5}</span><strong>{zipInspection.evidence_status.replaceAll('-', ' ')}</strong></div>
+              <p>{zipInspection.classification?.class.replaceAll('-', ' ') ?? 'No selected registry evidence'} · {zipInspection.governed_zcta.status === 'included' ? `governed Census ZCTA ${zipInspection.governed_zcta.geoid}` : 'outside the governed ZCTA denominator'}.</p>
+              {zipInspection.counts && <dl><div><dt>Physical-site evidence</dt><dd>{count(zipInspection.counts.physical_sites)}</dd></div><div><dt>Organization primary locations</dt><dd>{count(zipInspection.counts.organization_primary_locations)}</dd></div><div><dt>Employer baseline</dt><dd>{count(zipInspection.counts.employer_establishments)}</dd></div><div><dt>Physical sites / employer baseline</dt><dd>{percent(zipInspection.employer_alignment.percent)}</dd></div></dl>}
+              <p>{zipInspection.employer_alignment.basis}</p>
+              <p>{zipInspection.denominator_semantics}</p>
+              <details><summary>Source contributions and release provenance ({zipInspection.contributions.length})</summary>
+                {zipInspection.contributions.map((item) => <p key={item.source_id}><strong>{item.source_id}</strong> · source release {item.source_release_id ?? 'not supplied'}{item.source_through_date ? ` · through ${item.source_through_date}` : ''}{item.source_date ? ` · source date ${item.source_date}` : ''}{item.source_month ? ` · month ${item.source_month}` : ''}{item.reference_year ? ` · reference year ${item.reference_year}` : ''} · {Object.entries(item.positive_counts).map(([name, value]) => `${name}: ${count(value)}`).join(', ')}</p>)}
+                <p>Coverage {zipInspection.bindings.coverage_release_id}; registry {zipInspection.bindings.registry_release_id}; Census geography {zipInspection.bindings.geography_release_id}.</p>
+                <p>ZIP5 {String(zipInspection.zip_quality.postal_fields?.zip_code ?? 'not present')}; ZIP+4 {String(zipInspection.zip_quality.postal_fields?.zip4 ?? 'null / not supplied')}. USPS status is not asserted.</p>
+              </details>
+              {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
+              {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}
+            </>}
+          </section>
         </div>
         <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} geographyHash={data?.geography_manifest_sha256} mapRevision={data} />
       </div>}
