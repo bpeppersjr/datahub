@@ -182,6 +182,18 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .heatmap-canvas svg { width: 100%; min-height: 470px; display: block; touch-action: none; }
 .heatmap-shape { stroke: #53616b; stroke-width: .55; vector-effect: non-scaling-stroke; cursor: pointer; transition: fill 100ms ease, stroke 100ms ease; }
 .heatmap-shape:hover, .heatmap-shape:focus { outline: none; stroke: #dffbf4; stroke-width: 1.2; }
+.pharmacy-map-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(260px,320px); gap: 14px; align-items: start; margin-top: 14px; }
+.pharmacy-map-summary { min-width: 0; border: 1px solid #27313a; border-radius: 10px; padding: 14px; background: rgba(10,18,24,.76); }
+.pharmacy-map-summary > span { display: block; color: #9db0bb; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+.pharmacy-map-summary > strong { display: block; margin-top: 4px; color: #f2fbf7; font-size: 1.1rem; }
+.pharmacy-map-summary > small { display: block; color: #91a2ac; margin-top: 3px; }
+.pharmacy-map-summary dl { display: grid; gap: 8px; margin: 14px 0; }
+.pharmacy-map-summary dl div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(140,164,175,.14); padding-bottom: 6px; }
+.pharmacy-map-summary dt { color: #9db0bb; font-size: .78rem; }
+.pharmacy-map-summary dd { color: #e5f7ef; font-weight: 700; margin: 0; text-align: right; }
+.pharmacy-map-canvas { min-height: 520px; }
+.pharmacy-map-canvas svg { min-height: 490px; }
+@media (max-width: 1050px) { .pharmacy-map-layout { grid-template-columns: 1fr; } }
 .map-zoom-controls { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; align-items: center; overflow: hidden; border: 1px solid #34404a; border-radius: 7px; background: rgba(9,14,18,.92); box-shadow: 0 7px 20px rgba(0,0,0,.25); }
 .map-zoom-controls button { min-width: 30px; height: 30px; padding: 0 7px; border: 0; border-right: 1px solid #303a44; background: transparent; color: #b9c3cb; font-size: 0.625rem; cursor: pointer; }
 .map-zoom-controls button:hover { color: var(--cyan); background: rgba(82,216,218,.06); }
