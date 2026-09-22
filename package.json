@@ -148,6 +148,8 @@
     "entity-resolution:benchmark:labels:publish": "node scripts/publish-entity-resolution-benchmark-labels.mjs",
     "entity-resolution:benchmark:labels:verify": "node scripts/verify-entity-resolution-benchmark-labels.mjs",
     "pharmacy:build": "node scripts/build-retail-pharmacy-directory.mjs",
+    "pharmacy:nppes:build": "node scripts/build-cms-nppes-community-retail-pharmacies.mjs",
+    "pharmacy:nppes:verify": "node scripts/verify-cms-nppes-community-retail-pharmacies.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "test:desktop": "node scripts/verify-desktop-control-plane.mjs",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",

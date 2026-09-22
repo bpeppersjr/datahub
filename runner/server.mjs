@@ -27,6 +27,8 @@ import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
+import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
+import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
@@ -391,6 +393,9 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/census-zbp-industry') {
       await censusZbpIndustryHttp(request,response,url,censusZbpIndustryView,json);return;
+    }
+    if (url.pathname === '/api/business-map/pharmacies') {
+      await cmsNppesPharmacyHttp(request, response, url, cmsNppesPharmacyView, json); return;
     }
     if (request.method === 'GET' && url.pathname === '/api/overture-heatmap-readiness') {
       const [{ createOvertureHeatmapReadiness },{ overtureHeatmapReadinessHttp }]=await Promise.all([import('./overture-heatmap-readiness.mjs'),import('./overture-heatmap-readiness-http.mjs')]);
