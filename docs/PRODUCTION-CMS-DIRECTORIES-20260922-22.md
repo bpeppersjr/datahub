@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-23`; do not execute this plan.
+
 Fresh governed planning completed after Datahub gained an isolated, read-only USPS City State candidate preview. The preview replays the exact licensed admission, source bytes, status mapping, and candidate publication; exposes bounded candidate membership with temporal provenance; and performs no writes or network requests. It does not alter the national registry builder, write a current pointer, assert postal operation or nationwide completeness, or add ZCTA geometry. The USPS candidate and preview are not inputs to this production plan. Collector stop/restart restoration passed with one healthy listener. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-22`
