@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-03`. This plan is not an approval or execution target.
+
 Fresh governed planning completed after the Minnesota/Ohio state-evidence projection and USPS ZIP-validity gap contract were integrated. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-02`
