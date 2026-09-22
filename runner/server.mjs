@@ -22,10 +22,13 @@ import { listProductionRunStatus } from './production-run-status.mjs';
 import { createRetainedCredentialsView } from './retained-credentials-view.mjs';
 import { createCredentialHeatmapView } from './credential-heatmap-view.mjs';
 import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
+import { createCensusZbpIndustryView } from './census-zbp-industry-view.mjs';
+import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
+const censusZbpIndustryView=createCensusZbpIndustryView();
 
 try {
   process.loadEnvFile(path.join(APP_ROOT, '.env'));
@@ -384,6 +387,9 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/credential-heatmap') {
       await credentialHeatmapHttp(request,response,url,credentialHeatmapView,json);return;
     }
+    if (url.pathname === '/api/census-zbp-industry') {
+      await censusZbpIndustryHttp(request,response,url,censusZbpIndustryView,json);return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
       json(response,200,await retainedCredentialsView.get(url.searchParams));return;
     }
@@ -688,6 +694,7 @@ async function stopServices() {
   server.close();
   const credentialCleanup=await credentialHeatmapView.close();
   if(credentialCleanup.loaderCleanup!=='settled')console.warn('Credential heatmap loader cleanup could not be verified before shutdown.');
+  await censusZbpIndustryView.close();
   await refreshScheduler.close().catch(() => {});
   await pool.close();
   await managedOperations.close();

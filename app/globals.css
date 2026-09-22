@@ -192,6 +192,12 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .heatmap-legend i:nth-of-type(3) { background: hsl(114 78% 43%); }
 .heatmap-legend i:nth-of-type(4) { background: hsl(73 78% 50%); }
 .heatmap-legend i:nth-of-type(5) { background: hsl(34 78% 57%); }
+.census-industry-panel { position: relative; }
+.census-industry-panel form { display: flex; gap: 10px; align-items: end; margin: 16px 0; }
+.census-industry-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(72px,1fr)); gap: 5px; margin: 16px 0 48px; }
+.census-industry-grid span { min-height: 48px; padding: 7px; border-radius: 5px; color: #fff; display: flex; flex-direction: column; justify-content: space-between; }
+.census-industry-grid small { color: inherit; }
+.census-industry-panel details { margin-top: 18px; overflow: auto; }
 .map-tooltip { position: absolute; right: 12px; top: 12px; z-index: 2; width: min(235px,calc(100% - 24px)); display: grid; gap: 3px; padding: 10px 11px; border: 1px solid #34414b; border-radius: 7px; background: rgba(8,13,17,.94); pointer-events: none; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
 .map-tooltip strong { color: var(--cyan); font-size: 0.6875rem; }
 .map-tooltip span, .map-tooltip small { color: #74808a; font-size: 0.5rem; }

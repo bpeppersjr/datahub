@@ -1,6 +1,7 @@
 'use client';
 import DatasetRepresentation from './dataset-representation';
 import CredentialHeatmap from './credential-heatmap';
+import CensusZbpIndustryHeatmap from './census-zbp-industry-heatmap';
 
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
@@ -471,7 +472,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
 export default function BusinessIntelligence() {
   const [mode,setMode]=useState('business');
-  return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="credentials">MN credential rows · local review</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:<BusinessEvidenceMap/>}</div>;
+  return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="census-industry">Census employer industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:mode==='census-industry'?<CensusZbpIndustryHeatmap/>:<BusinessEvidenceMap/>}</div>;
 }
 
 function BusinessEvidenceMap() {

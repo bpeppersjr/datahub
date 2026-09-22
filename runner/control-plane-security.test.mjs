@@ -151,6 +151,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/connectors/us-census-geography"],
     ["POST", "/api/connectors/us-census-geography/validate", "{}"],
     ["GET", "/api/business-coverage"],
+    ["GET", "/api/census-zbp-industry?naics=23----"],
     ["GET", "/api/retained-credentials"],
     ["GET", "/api/business-coverage/states"],
     ["GET", "/api/business-map/catalog"],
