@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-13` after governed state-refresh bindings, annual Census aggregate context, and state-evidence temporal bindings changed the reviewed code pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after cooperative cancellation was integrated and regression-tested across the Colorado, Connecticut, Florida, and Pennsylvania registry build, replay, publication, and verification paths. Collector stop/restart restoration also passed with one listener and a healthy application endpoint. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-12`
