@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { APP_ROOT } from './paths.mjs';
-import { planProductionReconciliation, runProductionReconciliation, requestProductionReconciliationStop } from './production-reconciliation.mjs';
+import { planProductionReconciliation, revalidateProductionReconciliationPlan, runProductionReconciliation, requestProductionReconciliationStop } from './production-reconciliation.mjs';
 import { buildMaChildcareRelease } from './ma-childcare-release.mjs';
 import { buildNjChildcareRelease } from './nj-childcare-release.mjs';
 import { acquireTnChildcare } from './tn-childcare-acquisition.mjs';
@@ -78,6 +78,32 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   await release(f.root, value('--output'), datasets[key], `fresh-${key}`, extra);
   return { exitCode: 0 };
 }
+
+test('read-only production preflight reconstructs every pin and refuses exact-plan or resource drift',async t=>{
+  const f=await fixture(t),plan=await planProductionReconciliation({...f,runId:'read-only-preflight'});
+  const before=await readdir(path.join(f.root,'data/reconciliations')).catch(()=>[]);
+  const ready=await revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,
+    filesystem:async()=>({bavail:1000,bsize:4096})});
+  assert.deepEqual(ready,{status:'READY',read_only:true,run_id:plan.runId,plan_sha256:plan.planSha256,pins_revalidated:true,
+    source_acquisition_stages:0,network_stages:0,stage_count:8,retained_inputs:{cms_hospital:false,cms_nursing_home:false},
+    resources:{memory_profile:null,node_arguments:[],available_disk_bytes:4096000,required_disk_bytes:0},writes_performed:false});
+  assert.deepEqual(await readdir(path.join(f.root,'data/reconciliations')).catch(()=>[]),before);
+  await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:'0'.repeat(64),filesystem:async()=>({bavail:1000,bsize:4096})}),/Expected production plan/);
+  await writeFile(path.join(f.root,plan.implementationPins[0].path),'drift');
+  await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})}),/changed|pin/i);
+});
+
+test('read-only production preflight rejects insufficient disk and acquisition-shaped stages',async t=>{
+  const f=await fixture(t);
+  const manifestPath=path.join(f.root,'data/business-registry/releases/previous-registry/manifest.json');
+  const manifest=JSON.parse(await readFile(manifestPath));manifest.artifacts=[{path:'registry.jsonl',bytes:4097}];await json(manifestPath,manifest);
+  const pointerPath=path.join(f.root,'data/business-registry/current.json'),pointer=JSON.parse(await readFile(pointerPath));
+  const plan=await planProductionReconciliation({...f,runId:'disk-preflight'});
+  await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1,bsize:4096})}),/disk headroom/);
+  const changed=structuredClone(plan);changed.stages[0].script='scripts/acquire-source.mjs';delete changed.planSha256;changed.planSha256=sha(JSON.stringify(changed));
+  await assert.rejects(revalidateProductionReconciliationPlan(changed,{...f,expectedPlanSha256:changed.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})}),/changed|acquisition/);
+  assert.equal(pointer.release_id,'previous-registry');
+});
 
 test('MN planner optional evidence preserves combined cohorts and rejects drift', {timeout:120000}, async t=>{
   if(!process.execArgv.includes('--experimental-test-module-mocks')){

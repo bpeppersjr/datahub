@@ -16,3 +16,15 @@ Eight stages rebuild and independently verify registry, entity resolution, bench
 Memory profile remains `national-12g`: 12,288 MiB V8 old-space ceiling per child, with 16,384 MiB free / 24,576 MiB total preflight thresholds. This is RAM configuration, not storage allocation, a reservation or an overall RSS cap.
 
 Execution awaits approval of this exact plan. Historical MN approval is not reused. Main executable/configuration pins stay unchanged while awaiting disposition; app and source development continue in isolated checkouts. The unresolved Census geocoding quarantine is unrelated to this retained-only rebuild and remains intact.
+
+## Read-only exact-plan revalidation
+
+Immediately before any separately authorized execution, run:
+
+```powershell
+npm run reconciliation:production:preflight -- --run-id production-cms-directories-20260912-01 --expected-plan-sha256 c601fd2ab3d6762a57f8b1dd17ee3629ea16aa836babee70a66dbd56a6cd780e
+```
+
+The command is deliberately non-promoting. It creates no approval, lock, run directory, receipt, output, or pointer update and launches no stage. It requires the exact stored plan hash, reconstructs the plan against all current source pointers, manifests, connector configurations, baseline inputs, optional inputs, previous-output pointers, retained CMS evidence and implementation files, and fails if any pin or plan structure drifted. It also applies the plan's current RAM policy and requires available disk at least equal to the declared artifact bytes in the four current production outputs, a conservative point-in-time rebuild floor rather than a reservation or peak-size guarantee. Its success report must state zero network and source-acquisition stages.
+
+This preflight does not approve or execute the plan. A later execution still requires the user's explicit approval of the exact run ID and SHA-256 above.

@@ -2,7 +2,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { link, mkdir, open, readFile, realpath, unlink, writeFile } from 'node:fs/promises';
+import { link, mkdir, open, readFile, realpath, statfs, unlink, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { finished } from 'node:stream/promises';
 import { isDeepStrictEqual } from 'node:util';
@@ -168,6 +168,49 @@ export function executeProductionStage(stage,{cwd,logPath,onSpawn,memoryPolicy})
     log.once('error',()=>{child.stdout.unpipe(log);child.stderr.unpipe(log);child.stdout.resume();child.stderr.resume();});
     child.once('close',code=>{void (async()=>{const ownerError=await ownership;if(!log.destroyed)log.end();const logError=await done;const error=spawnError??(ownerError instanceof Error?ownerError:null)??logError;resolve({exitCode:error?1:code??1,pid:child.pid,error:error?.message});})();});
   });
+}
+
+function stablePlan(plan) {
+  return Object.fromEntries(Object.entries(plan).filter(([key])=>!['createdAt','planSha256'].includes(key)));
+}
+function unsignedPlan(plan) { return Object.fromEntries(Object.entries(plan).filter(([key])=>key!=='planSha256')); }
+async function previousOutputBytes(root,plan) {
+  let bytes=0;
+  for(const pin of Object.values(plan.previousOutputs??{})) {
+    const manifest=JSON.parse(await readFile(await safe(root,pin.manifestPath),'utf8'));
+    if(!Array.isArray(manifest.artifacts))throw new Error(`Previous output manifest has no artifact inventory: ${pin.manifestPath}.`);
+    for(const artifact of manifest.artifacts) {
+      if(!Number.isSafeInteger(artifact?.bytes)||artifact.bytes<0)throw new Error(`Previous output artifact has an invalid size: ${pin.manifestPath}.`);
+      bytes+=artifact.bytes;if(!Number.isSafeInteger(bytes))throw new Error('Previous output disk prerequisite exceeds safe integer range.');
+    }
+  }
+  return bytes;
+}
+
+/** Read-only reconstruction and resource preflight. Does not lock, create a run, write a pointer, or launch a stage. */
+export async function revalidateProductionReconciliationPlan(plan,{root=APP_ROOT,expectedPlanSha256,readinessInspector=inspectNormalizedUsPostalMigration,memoryAvailable,nodeOptions,filesystem=statfs}={}) {
+  root=await realpath(path.resolve(root));
+  if(!/^[a-f0-9]{64}$/.test(expectedPlanSha256??'')||plan?.planSha256!==expectedPlanSha256)throw new Error('Expected production plan SHA-256 does not match the supplied plan.');
+  if(plan?.schemaVersion!==1||plan.mode!=='production'||!ID.test(plan.runId??'')||hash(JSON.stringify(unsignedPlan(plan)))!==plan.planSha256)throw new Error('Invalid production reconciliation plan.');
+  if(plan.optionalSourcePins!==undefined&&(!Array.isArray(plan.optionalSourcePins)||!plan.optionalSourcePins.length||plan.optionalSourcePins.length>4||plan.optionalSourcePins.some(p=>!p||!Object.hasOwn(CHILDCARE,p.sourceKey))||new Set(plan.optionalSourcePins.map(p=>p.sourceKey)).size!==plan.optionalSourcePins.length))throw new Error('Invalid optional childcare input cohort.');
+  const selected=Object.fromEntries((plan.optionalSourcePins??[]).map(p=>[p.sourceKey,p.sourceKey==='ohChildcareReceipt'?p.receiptPath:p.manifestPath]));
+  if(plan.recovery&&!['benchmark-status-classification','resolution-registry-compatibility'].includes(plan.recovery.kind))throw new Error('Unknown production recovery kind.');
+  const recoveryOptions=plan.recovery?.kind==='resolution-registry-compatibility'?{recoverResolutionFrom:plan.recovery.fromRunId}:{recoverBenchmarkFrom:plan.recovery?.fromRunId};
+  if(Object.hasOwn(plan,'memoryPolicy')&&!isDeepStrictEqual(plan.memoryPolicy,productionMemoryPolicy(plan.memoryPolicy?.id)))throw new Error('Production memory policy changed.');
+  const current=await planProductionReconciliation({root,runId:plan.runId,...recoveryOptions,...selected,
+    ...(plan.retainedChildcarePin?{retainedChildcareSelection:plan.retainedChildcarePin.declaration.selection.path}:{}),
+    ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),
+    ...(plan.cmsHospitalPin?{cmsHospitalSelection:plan.cmsHospitalPin.declaration.selection.path}:{}),
+    ...(plan.cmsNursingHomePin?{cmsNursingHomeSelection:plan.cmsNursingHomePin.declaration.selection.path}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
+  if(!isDeepStrictEqual(stablePlan(current),stablePlan(plan)))throw new Error('Production reconciliation plan changed from its current pinned inputs or implementation.');
+  const allowedStages=new Set(STAGES.map(([,kind,script])=>`${kind}:${script}`));
+  if(plan.stages.some(stage=>!allowedStages.has(`${stage.kind}:${stage.script}`)||stage.args.some(value=>typeof value==='string'&&/^[a-z]+:\/\//i.test(value))))throw new Error('Production plan contains a network or source-acquisition stage.');
+  const memoryArguments=productionMemoryArguments(plan.memoryPolicy,memoryAvailable,nodeOptions);
+  const requiredDiskBytes=await previousOutputBytes(root,plan),disk=await filesystem(root),availableDiskBytes=Number(disk.bavail)*Number(disk.bsize);
+  if(!Number.isSafeInteger(availableDiskBytes)||availableDiskBytes<requiredDiskBytes)throw new Error('Production disk headroom unavailable; no stage launched.');
+  return {status:'READY',read_only:true,run_id:plan.runId,plan_sha256:plan.planSha256,pins_revalidated:true,
+    source_acquisition_stages:0,network_stages:0,stage_count:plan.stages.length,retained_inputs:{cms_hospital:Boolean(plan.cmsHospitalPin),cms_nursing_home:Boolean(plan.cmsNursingHomePin)},
+    resources:{memory_profile:plan.memoryPolicy?.id??null,node_arguments:memoryArguments,available_disk_bytes:availableDiskBytes,required_disk_bytes:requiredDiskBytes},writes_performed:false};
 }
 async function checkPins(root,plan,outputs) {
   const checks = [[DEFINITION,plan.definitionSha256]];
