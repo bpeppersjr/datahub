@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-26`; do not execute this plan.
+
 Fresh governed planning completed after Co*Tive added and published an immutable, pointerless county-industry context derived offline from the verified 2023 Census Nonemployer Statistics release. It contains exact 2022 NAICS 23 construction and 62441 childcare annual aggregate cells across the 3,143 retained county geographies, with suppression flags masked from usable arithmetic, explicit missing cells, exact source hashes, and known-cell difference semantics. It is not named-business evidence, current-operation evidence, ZIP/ZCTA allocation, or a completeness denominator, and it is not an input to this production plan. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-25`
