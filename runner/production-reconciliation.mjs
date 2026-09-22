@@ -69,13 +69,15 @@ async function pinChildcare(root, key, selected) {
   for(const relative of [`config/connectors/${contract.dataset}.json`,`config/source-policies/${contract.policy}.json`])configurationPins.push({path:relative,...await fileHash(await safe(root,relative))});
   return {sourceKey:key,manifestPath:rel(root,file),manifestSha256:before.sha256,releaseId:manifest.release_id,datasetId:manifest.dataset_id,artifacts,configurationPins};
 }
-function stageDefinitions(sources,optionalSources=[]) {
+function stageDefinitions(sources,optionalSources=[],uspsOperationalZipPin=null) {
   const pointer = group => `${OUTPUTS[group]}/current.json`;
   const args = [ ['--output',OUTPUTS.registry,...sources.flatMap(source => [FLAGS[source.sourceKey],source.pointer])], [pointer('registry')], ['--output',OUTPUTS.resolution,'--registry',pointer('registry')], [pointer('resolution')], ['--output',OUTPUTS.benchmark,'--registry',pointer('registry'),'--resolution',pointer('resolution')], [pointer('benchmark')], ['--output',OUTPUTS.coverage,'--registry',pointer('registry'),'--resolution',pointer('resolution'),'--benchmark',pointer('benchmark'),'--geography',INPUTS.geography,'--crosswalk',INPUTS.crosswalk,'--nonemployer',INPUTS.nonemployer], [pointer('coverage')] ];
   args[0].push(...optionalSources.flatMap(source=>[CHILDCARE[source.sourceKey]?.flag,source.receiptPath??source.manifestPath]));
+  if(uspsOperationalZipPin)args[0].push('--usps-zips',uspsOperationalZipPin.pointer);
   return STAGES.map(([id,kind,script],index) => ({id,kind,script,args:args[index]}));
 }
-export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,retainedChildcareSelection,mnCredentialSelection,cmsHospitalSelection,cmsNursingHomeSelection,memoryProfile,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+export async function planProductionReconciliation({root=APP_ROOT,runId=randomUUID(),recoverBenchmarkFrom,recoverResolutionFrom,maChildcare,njChildcare,tnChildcare,tnFreshChildcare,ohChildcareReceipt,retainedChildcareSelection,mnCredentialSelection,cmsHospitalSelection,cmsNursingHomeSelection,uspsOperationalZips,memoryProfile,readinessInspector=inspectNormalizedUsPostalMigration}={}) {
+  if(uspsOperationalZips!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('USPS operational ZIP selection requires a fresh plan, not historical recovery.');
   if(cmsNursingHomeSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('CMS nursing-home admission requires a fresh plan, not historical recovery.');
   if(cmsHospitalSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('CMS hospital admission requires a fresh plan, not historical recovery.');
   if(mnCredentialSelection!==undefined&&(recoverBenchmarkFrom!==undefined||recoverResolutionFrom!==undefined))throw new Error('Minnesota credential integration requires a fresh plan, not historical recovery.');
@@ -105,7 +107,9 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   let ohio = null;
   if(ohChildcareReceipt!==undefined){ohio=await import('./oh-childcare-production-input.mjs');optionalSourcePins.push(await ohio.pinOhioProductionInput(root,ohChildcareReceipt,{safe,fileHash,rel}));}
   if(new Set(optionalSourcePins.map(p=>p.manifestPath)).size!==optionalSourcePins.length)throw new Error('Duplicate childcare release selection.');
-  const stages = stageDefinitions(sourcePins,optionalSourcePins), scriptPins = []; for(const stage of stages) scriptPins.push({stage:stage.id,path:stage.script,...await fileHash(await safe(root,stage.script))});
+  let uspsOperationalZipPin=null,uspsOperationalZipApi=null;
+  if(uspsOperationalZips!==undefined){uspsOperationalZipApi=await import('./usps-operational-zip-production-input.mjs');uspsOperationalZipPin=await uspsOperationalZipApi.pinUspsOperationalZipProductionInput(root,uspsOperationalZips,{safe,fileHash,rel});}
+  const stages = stageDefinitions(sourcePins,optionalSourcePins,uspsOperationalZipPin), scriptPins = []; for(const stage of stages) scriptPins.push({stage:stage.id,path:stage.script,...await fileHash(await safe(root,stage.script))});
   let retainedChildcarePin=null,retainedChildcareApi=null;
   if(retainedChildcareSelection!==undefined){
     retainedChildcareApi=await import('./retained-childcare-production-input.mjs');
@@ -142,7 +146,8 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   if(mnCredentialPin)modules.push(...await mnCredentialApi.mnCredentialImplementationFiles(root));
   if(cmsHospitalPin)modules.push(...await cmsHospitalApi.cmsHospitalImplementationFiles(root));
   if(cmsNursingHomePin)modules.push(...await cmsNursingHomeApi.cmsNursingHomeImplementationFiles(root));
-  const implementationPins = []; for(const file of retainedChildcarePin||mnCredentialPin||cmsHospitalPin||cmsNursingHomePin?[...new Set(modules)].sort():modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
+  if(uspsOperationalZipPin)modules.push(...uspsOperationalZipApi.USPS_OPERATIONAL_ZIP_PRODUCTION_FILES.slice(0,2));
+  const implementationPins = []; for(const file of retainedChildcarePin||mnCredentialPin||cmsHospitalPin||cmsNursingHomePin||uspsOperationalZipPin?[...new Set(modules)].sort():modules) implementationPins.push({path:file,...await fileHash(await safe(root,file))});
   const outputRoot = `data/reconciliations/production-runs/${runId}`; await safe(root,outputRoot,false);
   const plan = {schemaVersion:1,mode:'production',runId,createdAt:new Date().toISOString(),outputRoot,readinessPlanSha256:report.plan_sha256,definitionSha256:hash(definitionBytes),sourcePins,inputPins,previousOutputs,scriptPins,implementationPins,stages};
   if(memoryPolicy)plan.memoryPolicy=memoryPolicy;
@@ -151,6 +156,7 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   if(mnCredentialPin)plan.mnCredentialPin=mnCredentialPin;
   if(cmsHospitalPin)plan.cmsHospitalPin=cmsHospitalPin;
   if(cmsNursingHomePin)plan.cmsNursingHomePin=cmsNursingHomePin;
+  if(uspsOperationalZipPin)plan.uspsOperationalZipPin=uspsOperationalZipPin;
   if(recoverBenchmarkFrom !== undefined) {
     plan.recovery = await benchmarkRecovery(root,plan,recoverBenchmarkFrom);
     plan.stages = stages.slice(5);
@@ -201,15 +207,16 @@ export async function revalidateProductionReconciliationPlan(plan,{root=APP_ROOT
     ...(plan.retainedChildcarePin?{retainedChildcareSelection:plan.retainedChildcarePin.declaration.selection.path}:{}),
     ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),
     ...(plan.cmsHospitalPin?{cmsHospitalSelection:plan.cmsHospitalPin.declaration.selection.path}:{}),
-    ...(plan.cmsNursingHomePin?{cmsNursingHomeSelection:plan.cmsNursingHomePin.declaration.selection.path}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
+    ...(plan.cmsNursingHomePin?{cmsNursingHomeSelection:plan.cmsNursingHomePin.declaration.selection.path}:{}),...(plan.uspsOperationalZipPin?{uspsOperationalZips:plan.uspsOperationalZipPin.pointer}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
   if(!isDeepStrictEqual(stablePlan(current),stablePlan(plan)))throw new Error('Production reconciliation plan changed from its current pinned inputs or implementation.');
   const allowedStages=new Set(STAGES.map(([,kind,script])=>`${kind}:${script}`));
   if(plan.stages.some(stage=>!allowedStages.has(`${stage.kind}:${stage.script}`)||stage.args.some(value=>typeof value==='string'&&/^[a-z]+:\/\//i.test(value))))throw new Error('Production plan contains a network or source-acquisition stage.');
   const memoryArguments=productionMemoryArguments(plan.memoryPolicy,memoryAvailable,nodeOptions);
   const requiredDiskBytes=await previousOutputBytes(root,plan),disk=await filesystem(root),availableDiskBytes=Number(disk.bavail)*Number(disk.bsize);
   if(!Number.isSafeInteger(availableDiskBytes)||availableDiskBytes<requiredDiskBytes)throw new Error('Production disk headroom unavailable; no stage launched.');
+  const retainedInputs={cms_hospital:Boolean(plan.cmsHospitalPin),cms_nursing_home:Boolean(plan.cmsNursingHomePin)};if(plan.uspsOperationalZipPin)retainedInputs.usps_operational_zips=true;
   return {status:'READY',read_only:true,run_id:plan.runId,plan_sha256:plan.planSha256,pins_revalidated:true,
-    source_acquisition_stages:0,network_stages:0,stage_count:plan.stages.length,retained_inputs:{cms_hospital:Boolean(plan.cmsHospitalPin),cms_nursing_home:Boolean(plan.cmsNursingHomePin)},
+    source_acquisition_stages:0,network_stages:0,stage_count:plan.stages.length,retained_inputs:retainedInputs,
     resources:{memory_profile:plan.memoryPolicy?.id??null,node_arguments:memoryArguments,available_disk_bytes:availableDiskBytes,required_disk_bytes:requiredDiskBytes},writes_performed:false};
 }
 async function checkPins(root,plan,outputs) {
@@ -218,6 +225,7 @@ async function checkPins(root,plan,outputs) {
   for(const pin of plan.mnCredentialPin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
   for(const pin of plan.cmsHospitalPin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
   for(const pin of plan.cmsNursingHomePin?.evidencePins??[])checks.push([pin.path,pin.sha256]);
+  if(plan.uspsOperationalZipPin){const p=plan.uspsOperationalZipPin;checks.push([p.pointer,p.pointerSha256],[p.manifestPath,p.manifestSha256]);for(const item of [...p.artifacts,...p.configurationPins])checks.push([item.path,item.sha256]);}
   for(const p of plan.recovery?.evidencePins??[])checks.push([p.path,p.sha256]);
   for(const p of plan.sourcePins) checks.push([p.pointer,p.sha256],[p.manifestPath,p.manifestSha256],[p.connectorConfigPath,p.connectorConfigSha256]);
   for(const p of plan.optionalSourcePins??[]){checks.push([p.manifestPath,p.manifestSha256]);for(const artifact of [...p.artifacts,...p.configurationPins])checks.push([artifact.path,artifact.sha256]);}
@@ -240,6 +248,10 @@ async function emitted(root,group,previous,expected,ohioSource) {
   }
   for(const p of expected) { const matches = dependencies.filter(d=>d?.dataset_id === p.datasetId); if(matches.length !== 1 || matches[0].release_id !== p.releaseId || matches[0].manifest_sha256 !== p.manifestSha256) throw new Error(`Emitted ${group} dependency does not match ${p.datasetId}.`); }
   return output;
+}
+function registryExpectedInputs(plan){
+  const governed=[...(plan.retainedChildcarePin?.declaration.bindings??[]),...(plan.mnCredentialPin?[plan.mnCredentialPin.declaration.source]:[]),...(plan.cmsHospitalPin?[plan.cmsHospitalPin.declaration.source]:[]),...(plan.cmsNursingHomePin?[plan.cmsNursingHomePin.declaration.source]:[])].map(binding=>({datasetId:binding.dataset_id,releaseId:binding.release_id,manifestSha256:binding.manifest_sha256,manifestPath:binding.manifest_path}));
+  return [...plan.sourcePins,...(plan.optionalSourcePins??[]),...(plan.uspsOperationalZipPin?[{datasetId:plan.uspsOperationalZipPin.datasetId,releaseId:plan.uspsOperationalZipPin.releaseId,manifestSha256:plan.uspsOperationalZipPin.manifestSha256,manifestPath:plan.uspsOperationalZipPin.manifestPath}]:[]),...governed];
 }
 
 // Narrow recovery for the historical benchmark status-classification failure.
@@ -375,7 +387,7 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
   if(Object.hasOwn(plan,'memoryPolicy')&&!isDeepStrictEqual(plan.memoryPolicy,productionMemoryPolicy(plan.memoryPolicy?.id)))throw new Error('Production memory policy changed.');
   const current = await planProductionReconciliation({root,runId:plan.runId,...recoveryOptions,...selected,
     ...(plan.retainedChildcarePin?{retainedChildcareSelection:plan.retainedChildcarePin.declaration.selection.path}:{}),
-    ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),...(plan.cmsHospitalPin?{cmsHospitalSelection:plan.cmsHospitalPin.declaration.selection.path}:{}),...(plan.cmsNursingHomePin?{cmsNursingHomeSelection:plan.cmsNursingHomePin.declaration.selection.path}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
+    ...(plan.mnCredentialPin?{mnCredentialSelection:plan.mnCredentialPin.declaration.selection.path}:{}),...(plan.cmsHospitalPin?{cmsHospitalSelection:plan.cmsHospitalPin.declaration.selection.path}:{}),...(plan.cmsNursingHomePin?{cmsNursingHomeSelection:plan.cmsNursingHomePin.declaration.selection.path}:{}),...(plan.uspsOperationalZipPin?{uspsOperationalZips:plan.uspsOperationalZipPin.pointer}:{}),memoryProfile:plan.memoryPolicy?.id,readinessInspector});
   for(const key of Object.keys(current).filter(key=>!['createdAt','planSha256'].includes(key))) if(JSON.stringify(current[key]) !== JSON.stringify(plan[key])) throw new Error(`Production reconciliation plan changed: ${key}.`);
   const runRoot=await safe(root,plan.outputRoot,false), lockPath=await safe(root,'data/reconciliations/controller.lock',false); await mkdir(path.dirname(lockPath),{recursive:true}); await safe(root,path.dirname(lockPath));
   let lock; const token=randomUUID();
@@ -399,7 +411,7 @@ export async function runProductionReconciliation(plan,{root=APP_ROOT,readinessI
       const logPath=path.join(runRoot,`${stage.id}.log`);const result=await executor(stage,{cwd:root,logPath,memoryPolicy:plan.memoryPolicy,onSpawn:async pid=>{record.pid=pid;await save();}});
       record.exitCode=result?.exitCode??1;record.pid??=result?.pid??null;record.finishedAt=new Date().toISOString();record.log={path:path.basename(logPath),...await fileHash(logPath)};
       if(record.exitCode!==0)throw new Error(`Stage ${stage.id} failed with exit code ${record.exitCode}.`);
-      if(stage.kind==='build') {const group=stage.id.split('-')[0];const expected=group==='registry'?[...plan.sourcePins,...(plan.optionalSourcePins??[]),...[...(plan.retainedChildcarePin?.declaration.bindings??[]),...(plan.mnCredentialPin?[plan.mnCredentialPin.declaration.source]:[]),...(plan.cmsHospitalPin?[plan.cmsHospitalPin.declaration.source]:[]),...(plan.cmsNursingHomePin?[plan.cmsNursingHomePin.declaration.source]:[])].map(b=>({datasetId:b.dataset_id,releaseId:b.release_id,manifestSha256:b.manifest_sha256,manifestPath:b.manifest_path}))]:group==='resolution'?[outputs.registry]:group==='benchmark'?[outputs.registry,outputs.resolution]:[outputs.registry,outputs.resolution,outputs.benchmark,...plan.inputPins.filter(p=>p.id!=='zbp')];outputs[group]=await emitted(root,group,plan.previousOutputs[group],expected,plan.optionalSourcePins?.find(p=>p.sourceKey==='ohChildcareReceipt'));if(group==='registry'&&plan.cmsHospitalPin){const manifest=JSON.parse(await readFile(await safe(root,outputs[group].manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.cms_hospital_directory_reporting,plan.cmsHospitalPin.declaration))throw new Error('Emitted CMS hospital admission differs from pinned declaration.');}receipt.outputs[group]=outputs[group];record.release=outputs[group];}
+      if(stage.kind==='build') {const group=stage.id.split('-')[0];const expected=group==='registry'?registryExpectedInputs(plan):group==='resolution'?[outputs.registry]:group==='benchmark'?[outputs.registry,outputs.resolution]:[outputs.registry,outputs.resolution,outputs.benchmark,...plan.inputPins.filter(p=>p.id!=='zbp')];outputs[group]=await emitted(root,group,plan.previousOutputs[group],expected,plan.optionalSourcePins?.find(p=>p.sourceKey==='ohChildcareReceipt'));if(group==='registry'&&plan.cmsHospitalPin){const manifest=JSON.parse(await readFile(await safe(root,outputs[group].manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.cms_hospital_directory_reporting,plan.cmsHospitalPin.declaration))throw new Error('Emitted CMS hospital admission differs from pinned declaration.');}receipt.outputs[group]=outputs[group];record.release=outputs[group];}
       if(stage.id==='registry-build'&&plan.cmsNursingHomePin){const manifest=JSON.parse(await readFile(await safe(root,outputs.registry.manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.cms_nursing_home_directory_reporting,plan.cmsNursingHomePin.declaration))throw new Error('Emitted CMS nursing-home admission differs from pinned declaration.');}
       if(stage.id==='registry-build'&&(plan.cmsHospitalPin||plan.cmsNursingHomePin)&&plan.mnCredentialPin){const manifest=JSON.parse(await readFile(await safe(root,outputs.registry.manifestPath),'utf8'));if(!isDeepStrictEqual(manifest.mn_construction_credential_reporting,plan.mnCredentialPin.declaration))throw new Error('Emitted co-selected Minnesota credential admission differs from pinned declaration.');}
       await checkPins(root,plan,outputs);if(persistenceError)throw persistenceError;record.status='SUCCEEDED';await save();

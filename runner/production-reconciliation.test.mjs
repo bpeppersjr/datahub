@@ -67,6 +67,7 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
   if (key === 'registry') {
     extra = { dependencies: await Promise.all(f.definition.sources.map((s) => dependency(f.root, s.pointer))) };
     for(const flag of ['--ma-childcare','--nj-childcare','--tn-childcare','--tn-fresh-childcare'])if(stage.args.includes(flag)){const bytes=await readFile(path.resolve(f.root,value(flag))), m=JSON.parse(bytes);extra.dependencies.push({dataset_id:m.dataset_id,release_id:m.release_id,manifest_sha256:sha(bytes)});}
+    if(stage.args.includes('--usps-zips'))extra.dependencies.push(await dependency(f.root,value('--usps-zips')));
   }
   if (key === 'resolution') extra = { dependency: await dependency(f.root, value('--registry')) };
   if (key === 'benchmark') extra = { status: 'awaiting-independent-labels', dependencies: { registry: await dependency(f.root, value('--registry')), resolution: await dependency(f.root, value('--resolution')) } };
@@ -81,6 +82,7 @@ async function executeFixture(f, stage, { logPath, onSpawn }) {
 
 test('read-only production preflight reconstructs every pin and refuses exact-plan or resource drift',async t=>{
   const f=await fixture(t),plan=await planProductionReconciliation({...f,runId:'read-only-preflight'});
+  assert.equal(Object.hasOwn(plan,'uspsOperationalZipPin'),false);assert.equal(plan.stages[0].args.includes('--usps-zips'),false);
   const before=await readdir(path.join(f.root,'data/reconciliations')).catch(()=>[]);
   const ready=await revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,
     filesystem:async()=>({bavail:1000,bsize:4096})});
@@ -91,6 +93,31 @@ test('read-only production preflight reconstructs every pin and refuses exact-pl
   await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:'0'.repeat(64),filesystem:async()=>({bavail:1000,bsize:4096})}),/Expected production plan/);
   await writeFile(path.join(f.root,plan.implementationPins[0].path),'drift');
   await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})}),/changed|pin/i);
+});
+
+test('fresh USPS operational ZIP selection is independently pinned, threaded, and preflight detects drift',async t=>{
+  const f=await fixture(t),directory=path.join(f.root,'data/zip-validity/usps-operational-zips'),releaseId='usps-2026-08-fixture';
+  const releaseDirectory=path.join(directory,'releases',releaseId),artifactPath=path.join(releaseDirectory,'derived/operational-zip-assignments.jsonl');
+  const row=Buffer.from(`${JSON.stringify({zip_code:'00501',assignment_status:'listed-in-current-usps-area-district-file',deliverability_status:'not-asserted',zcta_status:'not-asserted',export_policy:'permission-governed'})}\n`);
+  await mkdir(path.dirname(artifactPath),{recursive:true});await writeFile(artifactPath,row);
+  const manifest={dataset_id:'usps-operational-zip-assignments',release_id:releaseId,status:'published-local-restricted',source_month:'2026-08',complete_source_release:true,complete_current_area_district_assignment_file:true,complete_current_delivery_zip_registry:false,use_authorization:{basis:'usps-written-permission',permission_reference:'fixture-governed-authorization',redistribution_authorized:true},coverage:{current_area_district_zip_assignment_denominator:1},export_policy:'Permission-governed',artifacts:[{path:'derived/operational-zip-assignments.jsonl',artifact_type:'usps-operational-zip-assignment-jsonl',record_count:1,bytes:row.length,sha256:sha(row)}]};
+  await json(path.join(releaseDirectory,'manifest.json'),manifest);await json(path.join(directory,'current.json'),{dataset_id:manifest.dataset_id,release_id:releaseId,manifest:`releases/${releaseId}/manifest.json`});
+  for(const file of ['runner/usps-operational-zip-production-input.mjs','runner/usps-operational-zip-assignments.mjs']){await mkdir(path.dirname(path.join(f.root,file)),{recursive:true});await writeFile(path.join(f.root,file),'// pinned fixture\n');}
+  for(const file of ['config/connectors/usps-operational-zip-assignments.json','config/source-policies/usps-operational-zip-assignments.json','config/datasets/usps-operational-zip-assignments.json'])await json(path.join(f.root,file),{fixture:true});
+  const pointer='data/zip-validity/usps-operational-zips/current.json',plan=await planProductionReconciliation({...f,runId:'usps-pin-preflight',uspsOperationalZips:pointer});
+  assert.equal(plan.uspsOperationalZipPin.sourceMonth,'2026-08');assert.deepEqual(plan.uspsOperationalZipPin.useAuthorization,{basis:'usps-written-permission',permissionReference:'fixture-governed-authorization',redistributionAuthorized:true});
+  assert.deepEqual(plan.stages[0].args.slice(-2),['--usps-zips',pointer]);
+  const ready=await revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})});assert.equal(ready.retained_inputs.usps_operational_zips,true);
+  const manifestPath=path.join(releaseDirectory,'manifest.json'),manifestBytes=await readFile(manifestPath);const changedAuthorization={...manifest,use_authorization:{...manifest.use_authorization,permission_reference:'changed-reference'}};await json(manifestPath,changedAuthorization);
+  await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})}),/changed|plan|verification/i);await writeFile(manifestPath,manifestBytes);
+  const run=await runProductionReconciliation(plan,{...f,executor:(stage,options)=>executeFixture(f,stage,options),filesystem:async()=>({bavail:1000,bsize:4096})});assert.equal(run.receipt.status,'SUCCEEDED');
+  const registryManifest=JSON.parse(await readFile(path.join(f.root,run.receipt.outputs.registry.manifestPath)));assert.ok(registryManifest.dependencies.some(d=>d.dataset_id==='usps-operational-zip-assignments'&&d.release_id===releaseId&&d.manifest_sha256===plan.uspsOperationalZipPin.manifestSha256));
+  await writeFile(artifactPath,'changed');await assert.rejects(revalidateProductionReconciliationPlan(plan,{...f,expectedPlanSha256:plan.planSha256,filesystem:async()=>({bavail:1000,bsize:4096})}),/verification failed|changed/i);
+});
+
+test('USPS production selection is forbidden in both historical recovery modes before filesystem access',async()=>{
+  await assert.rejects(planProductionReconciliation({root:'Z:/not-used',uspsOperationalZips:'current.json',recoverBenchmarkFrom:'old'}),/fresh plan/);
+  await assert.rejects(planProductionReconciliation({root:'Z:/not-used',uspsOperationalZips:'current.json',recoverResolutionFrom:'old'}),/fresh plan/);
 });
 
 test('read-only production preflight rejects insufficient disk and acquisition-shaped stages',async t=>{

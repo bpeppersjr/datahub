@@ -73,3 +73,9 @@ npm run usps-zips:verify
 - [AISU record layout](https://postalpro.usps.com/ais-viewer/aisulout)
 - [USPS site terms of use](https://about.usps.com/who/legal/terms-of-use.htm)
 - [USPS AIS copyright/license resource](https://postalpro.usps.com/AISCopyright_License)
+
+# Production planning gate
+
+An already-published local release can be selected only on a fresh production plan with `--usps-operational-zips <current.json>`. Planning independently verifies the immutable release, exact-hash pins the pointer, manifest, artifacts, connector configuration, source policy, dataset configuration, and implementation, and passes that same pinned pointer to the registry as `--usps-zips`.
+
+Admission requires an exact `YYYY-MM` source-month receipt plus explicit `usps-written-permission` authorization with a non-empty governed permission reference. A personal/home-use declaration is not production authorization. The planner never creates the pointer, downloads USPS material, upgrades authorization, or adds this input to historical recovery. Omitting the option preserves the legacy plan and execution path exactly.
