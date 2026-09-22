@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded without execution by `production-cms-directories-20260922-11` after five-state retained refresh readiness changed repository pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after Delaware current-license, New Hampshire restricted-sample, and Los Angeles/Chicago/New York City locality-scoped evidence were integrated and runtime-restored. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-10`
