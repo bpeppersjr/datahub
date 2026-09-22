@@ -21,4 +21,8 @@ test('pharmacy mode is a distinct non-additive source layer', async () => {
   assert.match(pharmacy, /County view: unavailable/);
   assert.match(pharmacy, /global_nonpolygon_count/);
   assert.match(pharmacy, /aria-label="Pharmacy map state"/);
+  assert.match(pharmacy, /address_role: 'non-primary-practice-location'/);
+  assert.match(pharmacy, /Reported non-primary practice addresses/);
+  assert.match(pharmacy, /not a confirmed pharmacy location or current operation/);
+  assert.match(pharmacy, /do not contribute to business or site counts/);
 });

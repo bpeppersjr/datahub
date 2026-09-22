@@ -15,3 +15,5 @@ The audited September 2026 release contains 89,077 unique organization NPIs and 
 The public normalized projection explicitly leaves unique-business, current-operation, physical-site, governed-geocode, nationwide-completeness, NABP/NCPDP, drive-through, network-affiliation, and parent-company claims null or false. Parent organization text, when retained, is source-reported text only and is not an ownership relationship.
 
 Use `npm run pharmacy:nppes:verify` to re-check the projection and its exact dependency hashes. The authenticated read-only endpoint `/api/business-map/pharmacies` and the distinct Heatmap mode expose bounded names/NPI/address browsing and aggregate evidence. Pharmacy rows do not increment generic business totals or the generic NPPES health-care category.
+
+Provider-reported non-primary practice locations for pharmacy-classified NPIs are retained in a separate, non-additive projection. See [CMS NPPES pharmacy non-primary addresses](CMS-NPPES-PHARMACY-NONPRIMARY-ADDRESSES.md) for the exact-NPI linkage, independent verification, and limits; these secondary addresses are not confirmed pharmacy locations or current operations.

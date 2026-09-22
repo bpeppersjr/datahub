@@ -26,6 +26,8 @@ The pharmacy mode is a separate source layer backed by the retained CMS NPPES co
 
 The protected read-only endpoint is `GET /api/business-map/pharmacies/map?level=states|zctas&state=TX`. It binds the pharmacy pointer/release to the exact NPPES dependency and the pinned Census geography release `us-census-geography-20260830-132803990Z-3629abc0`. State and ZCTA colors count retained source records; the right-hand summary reports exact-ZCTA, nonpolygon, unassigned, temporal, and bounded-name evidence. Peer-median percentages compare records at the same map level and are not percentages of all U.S. businesses. NPI/taxonomy evidence does not assert NABP/NCPDP, drive-through, network affiliation, parent company, current operation, physical site, geocode, or nationwide completeness.
 
+For a selected state and ZIP5, `address_role=non-primary-practice-location` on the same protected endpoint reads the separately verified retained secondary-address projection. The Heatmap labels these as reported non-primary NPPES addresses associated with pharmacy-classified organizations. They are not confirmed pharmacy locations or current operations, and they never contribute to map counts or business/site totals. Secondary-only ZIP5 values can be queried directly even without a primary pharmacy-address count.
+
 The category control is one hierarchy of source-preserving evidence:
 
 - consumer-facing retail locations;

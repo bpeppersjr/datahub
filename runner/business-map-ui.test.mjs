@@ -46,10 +46,10 @@ test('map hover reconciles selected geoid against new response and uses source-p
 test('selection change withholds previous map response before effects run', () => {
   const catalog = { available: true, categories: [], enhancers: [], category_groups: [], semantics: {} };
   const current = ['childcare', 'retained_childcare_county_points', 'counties', '42', '', '', ''];
-  const values = [catalog, response(), JSON.stringify(['childcare', 'business_count', 'counties', '42', '', '', '']), null,
+  const values = [catalog, null, response(), JSON.stringify(['childcare', 'business_count', 'counties', '42', '', '', '']), null,
     null, null, null, 'counties', 'childcare', 'retained_childcare_county_points', '', '', '42', 'Pennsylvania', '', '', false, ''];
   const h = harness(values);
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), false);
-  values[2] = JSON.stringify(current);
+  values[3] = JSON.stringify(current);
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), true);
 });
