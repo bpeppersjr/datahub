@@ -6,6 +6,7 @@ import RefreshSchedules from './refresh-schedules';
 import ProductionRuns from './production-runs';
 import OvertureNormalization from './overture-normalization';
 import CmsHospitalAdoption from './cms-hospital-adoption';
+import CmsSnfPecosStatusCard, {type CmsSnfPecosStatus} from './cms-snf-pecos-status';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -15,6 +16,7 @@ type Catalog = {
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
   credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
   retainedSourceAdoptions?:Array<{sourceId:string;action:string}>;
+  governedSourceServices?:CmsSnfPecosStatus[];
 };
 type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
@@ -119,6 +121,7 @@ export default function DataOperations() {
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
+    <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find(source=>source.sourceId==='cms-snf-pecos')}/>
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />
     <section className="operations-history" aria-labelledby="operations-history-title"><h3 id="operations-history-title">Operation history</h3>

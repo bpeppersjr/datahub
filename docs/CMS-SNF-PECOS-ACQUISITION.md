@@ -2,6 +2,8 @@
 
 Implementation review candidate only. **No native CSV acquisition has occurred.** Version `cms-snf-pecos-acquisition@1.0.0` has compiled/configured `nativeExecutionAuthorized:false` and `approvedDownloadBudgetBytes:0`; the native entry rejects before taking a lease or making requests. Removing that hold requires a separately reviewed policy/version decision, not a CLI switch or environment override. This service does not depend on app UI integration and does not update any production pointer, registry, map or existing source receipt.
 
+The Co*Tive management catalog now exposes a read-only service card with the exact authorization and budget hold, retained-document prerequisite status, and truthful absence of a native acquisition receipt. The card has no dispatch request and the server has no PECOS acquisition route. This is a future app-owned handoff boundary, not enrollment or approval.
+
 ## Independent handoff
 
 - `runner/cms-snf-pecos-acquisition.mjs`: `acquireCmsSnfPecos({signal?})` and `verifyCmsSnfPecosAcquisition(absoluteManifestPath, sha256, {signal?})`.

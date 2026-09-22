@@ -17,6 +17,7 @@ import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-ret
 import { MN_CREDENTIAL_FLAT_FIELDS, MN_CREDENTIAL_FLAT_REQUIRED_FIELDS, validateMnCredentialFlatRequest, verifyMnCredentialFlatForOperation } from './mn-credential-flat-export.mjs';
 import {CMS_HOSPITAL_RETAINED_ADOPTION,CMS_ADOPTION_DEADLINE_MS,verifyCmsHospitalAdoption} from './cms-hospital-adoption.mjs';
 import {CMS_NURSING_HOME_RETAINED_ADOPTION,verifyCmsNursingHomeAdoption} from './cms-nursing-home-adoption.mjs';
+import {getCmsSnfPecosAppStatus} from './cms-snf-pecos-app-status.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 
 // Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
@@ -128,7 +129,7 @@ export class ManagedOperations {
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
       credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
-      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})) };
+      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus()] };
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async startCollection(input = {}) {
