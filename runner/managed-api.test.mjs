@@ -10,6 +10,7 @@ import { once } from "node:events";
 import { pathToFileURL } from "node:url";
 import { APP_ROOT } from "./paths.mjs";
 import { RETAINED_BUSINESS_REFRESH_DESCRIPTORS } from "./retained-business-refresh-readiness.mjs";
+import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS } from "./governed-source-refresh-registry.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const token = "managed-api-fixture-token-that-is-long-enough-2026";
@@ -80,6 +81,12 @@ async function makeFixture(t) {
     const stub = path.join(root, ...source.script.split("/"));
     await mkdir(path.dirname(stub), { recursive: true });
     await writeFile(stub, "process.exitCode = 0;\n", { flag: "wx" }).catch((error) => { if (error.code !== "EEXIST") throw error; });
+  }
+  for (const descriptor of Object.values(GOVERNED_SOURCE_REFRESH_DESCRIPTORS)) {
+    for (const relative of [descriptor.builder, descriptor.verifier]) {
+      const target = path.join(root, ...relative.split("/")); await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(path.join(APP_ROOT, ...relative.split("/")), target);
+    }
   }
 
   const release = path.join(root, "data", "business-registry", "release");

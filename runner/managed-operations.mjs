@@ -22,6 +22,7 @@ import {getIaBusinessRegistryRefreshReadiness,IA_BUSINESS_REGISTRY_REFRESH_SOURC
 import {getOrBusinessRegistryRefreshReadiness,OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './or-business-registry-refresh-readiness.mjs';
 import {getNyBusinessRegistryRefreshReadiness,NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ny-business-registry-refresh-readiness.mjs';
 import {getRetainedBusinessRefreshReadiness,RETAINED_BUSINESS_REFRESH_DESCRIPTORS,RETAINED_BUSINESS_REFRESH_SOURCE_IDS} from './retained-business-refresh-readiness.mjs';
+import {GOVERNED_SOURCE_REFRESH_SOURCE_IDS,governedSourceRefreshHoldPlan,validateGovernedSourceRefreshDescriptor} from './governed-source-refresh-registry.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 const SOURCE_REFRESH_DISPATCH=new Map([
   [IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getIaBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
@@ -29,6 +30,13 @@ const SOURCE_REFRESH_DISPATCH=new Map([
   [NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getNyBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: New York refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
   ...RETAINED_BUSINESS_REFRESH_SOURCE_IDS.map(sourceId=>[sourceId,{readiness:()=>getRetainedBusinessRefreshReadiness(sourceId),rejection:`ACQUISITION_NOT_AUTHORIZED: ${RETAINED_BUSINESS_REFRESH_DESCRIPTORS[sourceId].name} refresh remains on the reviewed source-assessment HOLD; no operation was created.`}]),
 ]);
+for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){
+  const prior=SOURCE_REFRESH_DISPATCH.get(sourceId);
+  SOURCE_REFRESH_DISPATCH.set(sourceId,{readiness:async()=>{
+    const binding=await validateGovernedSourceRefreshDescriptor(sourceId),existing=prior?await prior.readiness():null,hold=await governedSourceRefreshHoldPlan(sourceId);
+    return existing?{...existing,plan:{...existing.plan,implementation:hold.implementation}}:{sourceId,label:`${binding.state} governed source refresh`,readinessStatus:'HOLD',dispatchAvailable:false,freshAcquisitionAuthorized:false,autonomousAcquisitionAuthorized:false,productionPointerChangeAuthorized:false,plan:hold};
+  },rejection:prior?.rejection??`ACQUISITION_NOT_AUTHORIZED: ${sourceId} managed refresh remains on HOLD; no operation was created.`});
+}
 
 // Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
 // child/verifier fails to settle within its bounded cleanup interval.
