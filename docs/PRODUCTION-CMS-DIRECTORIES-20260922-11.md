@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-12` after the Colorado, Connecticut, Florida, and Pennsylvania registry cancellation implementation changed the reviewed code pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after generic retained-release refresh readiness for Colorado, Connecticut, Delaware, Florida, and Pennsylvania was integrated, regression-tested, and runtime-restored. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-11`
