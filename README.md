@@ -51,6 +51,8 @@ The [business-source temporal audit](docs/BUSINESS-SOURCE-TEMPORAL-STATUS.md) gi
 
 The [state source-readiness view](docs/BUSINESS-STATE-SOURCE-READINESS.md) separates broad state organization layers from statewide scoped, local, and national sector evidence. The current production view has broad layers for 8 of 51 jurisdictions and explicit gaps for 43; its 7,981,531 state-scoped location profiles have 994,523 coordinate assignments (12.46%). These are profiles rather than deduplicated businesses, and the UI preserves that boundary. Business entities receive no geometry—only address latitude/longitude when genuinely sourced or governed-geocoded.
 
+The [retained business-source refresh-readiness contract](docs/RETAINED-BUSINESS-REFRESH-READINESS.md) provides one read-only, descriptor-driven HOLD service for Colorado, Connecticut, Delaware, Florida, and Pennsylvania. It validates retained release evidence before preview or rejection and performs no acquisition, operation allocation, or pointer change.
+
 ## Data locations
 
 All local files remain inside the `datahub` repository:

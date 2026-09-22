@@ -21,11 +21,13 @@ import {getCmsSnfPecosAppStatus} from './cms-snf-pecos-app-status.mjs';
 import {getIaBusinessRegistryRefreshReadiness,IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ia-business-registry-refresh-readiness.mjs';
 import {getOrBusinessRegistryRefreshReadiness,OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './or-business-registry-refresh-readiness.mjs';
 import {getNyBusinessRegistryRefreshReadiness,NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ny-business-registry-refresh-readiness.mjs';
+import {getRetainedBusinessRefreshReadiness,RETAINED_BUSINESS_REFRESH_DESCRIPTORS,RETAINED_BUSINESS_REFRESH_SOURCE_IDS} from './retained-business-refresh-readiness.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 const SOURCE_REFRESH_DISPATCH=new Map([
   [IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getIaBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
   [OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getOrBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Oregon refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
   [NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getNyBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: New York refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
+  ...RETAINED_BUSINESS_REFRESH_SOURCE_IDS.map(sourceId=>[sourceId,{readiness:()=>getRetainedBusinessRefreshReadiness(sourceId),rejection:`ACQUISITION_NOT_AUTHORIZED: ${RETAINED_BUSINESS_REFRESH_DESCRIPTORS[sourceId].name} refresh remains on the reviewed source-assessment HOLD; no operation was created.`}]),
 ]);
 
 // Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
@@ -137,7 +139,7 @@ export class ManagedOperations {
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
       credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
-      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),await getIaBusinessRegistryRefreshReadiness(),await getOrBusinessRegistryRefreshReadiness(),await getNyBusinessRegistryRefreshReadiness()] };
+      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),await getIaBusinessRegistryRefreshReadiness(),await getOrBusinessRegistryRefreshReadiness(),await getNyBusinessRegistryRefreshReadiness(),...await Promise.all(RETAINED_BUSINESS_REFRESH_SOURCE_IDS.map(getRetainedBusinessRefreshReadiness))] };
   }
   async sourceRefreshPlan(input = {}) {
     const dispatch=this.#exactSourceRefreshInput(input);
@@ -145,6 +147,7 @@ export class ManagedOperations {
   }
   async startSourceRefresh(input = {}) {
     const dispatch=this.#exactSourceRefreshInput(input);
+    await dispatch.readiness();
     throw Object.assign(new Error(dispatch.rejection), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
