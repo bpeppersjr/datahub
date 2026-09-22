@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-27`; do not execute this plan.
+
 Fresh governed planning completed after Heatmap Builder gained a separate authenticated Census nonemployer county-industry choropleth. It pins the immutable 2023 NAICS 23/62441 context and Census county geography releases, verifies their hashes on every read, and distinguishes usable, true-zero, flagged, not-published, and outside-native-universe counties. State/national percentages are annual aggregate shares, not business coverage or market share. This read-only view performs no source replay, acquisition, ZIP/ZCTA allocation, national-total mutation, or production-pointer change, and is not an input to this plan. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-26`
