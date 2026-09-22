@@ -1,0 +1,16 @@
+{
+  "policy_id": "usps-city-state-licensed",
+  "version": "1.0.0",
+  "publisher": "United States Postal Service",
+  "ownership": "Licensed USPS City State Product data",
+  "source_home": "https://postalpro.usps.com/address-quality/city-state-product",
+  "terms_url": "https://postalpro.usps.com/AISCopyright_License",
+  "attribution": "Source: United States Postal Service City State Product, used under the operator's applicable license or written permission.",
+  "allowed_use": ["Only uses covered by the operator's current USPS license or written permission"],
+  "prohibited_use": ["network acquisition", "credential storage", "licensed-row redistribution", "production admission", "current-pointer mutation", "treating ZIP5 as ZCTA geometry", "joining ZIP+4 into ZIP5"],
+  "retention": "The admission retains only hashes, counts, declarations, and a non-secret permission reference. The licensed input remains operator-managed local material.",
+  "redistribution": "local-restricted",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-09-22"
+}
