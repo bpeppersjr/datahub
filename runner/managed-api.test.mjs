@@ -9,6 +9,7 @@ import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { pathToFileURL } from "node:url";
 import { APP_ROOT } from "./paths.mjs";
+import { RETAINED_BUSINESS_REFRESH_DESCRIPTORS } from "./retained-business-refresh-readiness.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const token = "managed-api-fixture-token-that-is-long-enough-2026";
@@ -50,6 +51,14 @@ async function makeFixture(t) {
   await mkdir(path.dirname(path.join(nyFixtureRoot, ...nyPointer.manifest.split("/"))), { recursive: true });
   await copyFile(path.join(nySourceRoot, "current.json"), path.join(nyFixtureRoot, "current.json"));
   await copyFile(path.join(nySourceRoot, ...nyPointer.manifest.split("/")), path.join(nyFixtureRoot, ...nyPointer.manifest.split("/")));
+  for (const descriptor of Object.values(RETAINED_BUSINESS_REFRESH_DESCRIPTORS)) {
+    const sourceRoot = path.join(APP_ROOT, "data", "business-sources", descriptor.datasetId);
+    const fixtureRoot = path.join(root, "data", "business-sources", descriptor.datasetId);
+    const pointer = JSON.parse(await readFile(path.join(sourceRoot, "current.json"), "utf8"));
+    await mkdir(path.dirname(path.join(fixtureRoot, ...pointer.manifest.split("/"))), { recursive: true });
+    await copyFile(path.join(sourceRoot, "current.json"), path.join(fixtureRoot, "current.json"));
+    await copyFile(path.join(sourceRoot, ...pointer.manifest.split("/")), path.join(fixtureRoot, ...pointer.manifest.split("/")));
+  }
   for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
