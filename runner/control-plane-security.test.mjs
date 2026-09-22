@@ -179,6 +179,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/ok-childcare-collections", "{}"],
     ["GET", "/api/business-map/retained-childcare"],
     ["GET", "/api/business-map/retained-childcare-counties"],
+    ["GET", "/api/business-map/pharmacies"],
     ["POST", "/api/data-operations/operations/fixture/cancel", "{}"],
     ["GET", "/api/data-operations/operations/fixture/artifacts/records.csv"],
     ["GET", "/api/entity-resolution/benchmark"],

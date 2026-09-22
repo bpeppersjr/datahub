@@ -3,11 +3,13 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
+import { createHash } from 'node:crypto';
 import { APP_ROOT } from './paths.mjs';
 import { verifyCmsNppesCommunityRetailPharmacies } from './cms-nppes-community-retail-pharmacy.mjs';
 
 const DEFAULT_POINTER = path.join(APP_ROOT, 'data/business-sources/cms-nppes-community-retail-pharmacies/current.json');
 const LIMIT_MAX = 100;
+const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
 function queryValue(value, label, pattern) {
   if (value == null || value === '') return null;
@@ -25,10 +27,16 @@ export function createCmsNppesPharmacyView({ pointerPath = DEFAULT_POINTER } = {
   async function load() {
     if (cached) return cached;
     cached = (async () => {
-      const verification = await verifyCmsNppesCommunityRetailPharmacies(pointerPath);
-      const pointer = JSON.parse(await readFile(pointerPath, 'utf8'));
+      // Capture one pointer/manifest snapshot, verify it, load only that
+      // release, then recheck the pointer and manifest before caching. This
+      // prevents a current-pointer swap from mixing releases in one response.
+      const pointerBuffer = await readFile(pointerPath);
+      const pointer = JSON.parse(pointerBuffer.toString('utf8'));
       const manifestPath = path.resolve(path.dirname(pointerPath), pointer.manifest);
-      const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+      const manifestBuffer = await readFile(manifestPath);
+      if (pointer.manifest_sha256 && pointer.manifest_sha256 !== sha256(manifestBuffer)) throw new Error('Pharmacy pointer manifest hash drifted.');
+      const manifest = JSON.parse(manifestBuffer.toString('utf8'));
+      await verifyCmsNppesCommunityRetailPharmacies(pointerPath);
       const releaseDirectory = path.dirname(manifestPath);
       const stateArtifact = manifest.artifacts.find((item) => item.artifact_type === 'nppes-community-retail-pharmacy-state-aggregate-json');
       const zipArtifact = manifest.artifacts.find((item) => item.artifact_type === 'nppes-community-retail-pharmacy-zip5-aggregate-jsonl');
@@ -36,7 +44,11 @@ export function createCmsNppesPharmacyView({ pointerPath = DEFAULT_POINTER } = {
       const zipAggregate = (await readFile(path.join(releaseDirectory, zipArtifact.path), 'utf8')).split(/\r?\n/).filter(Boolean).map(JSON.parse);
       const rows = [];
       for (const artifact of manifest.artifacts.filter((item) => item.artifact_type === 'normalized-nppes-community-retail-pharmacy-jsonl-gzip')) await readGzipRecords(path.join(releaseDirectory, artifact.path), rows);
-      return { verification, pointer, manifest, rows, stateRows: stateAggregate.rows, zipRows: zipAggregate };
+      const finalPointerBuffer = await readFile(pointerPath);
+      const finalManifestBuffer = await readFile(manifestPath);
+      if (!finalPointerBuffer.equals(pointerBuffer) || !finalManifestBuffer.equals(manifestBuffer) || sha256(finalManifestBuffer) !== (pointer.manifest_sha256 ?? sha256(manifestBuffer))) throw new Error('Pharmacy pointer or manifest changed while loading; response was not cached.');
+      const finalVerification = await verifyCmsNppesCommunityRetailPharmacies(pointerPath);
+      return { verification: finalVerification, pointer, manifest, rows, stateRows: stateAggregate.rows, zipRows: zipAggregate };
     })().catch((error) => { cached = undefined; throw error; });
     return cached;
   }
@@ -44,7 +56,8 @@ export function createCmsNppesPharmacyView({ pointerPath = DEFAULT_POINTER } = {
     async get({ state, zip, query, limit = '25' } = {}) {
       const safeState = queryValue(state, 'State', /^(?:[A-Z]{2}|UNASSIGNED)$/);
       const safeZip = queryValue(zip, 'ZIP5', /^\d{5}$/);
-      const safeQuery = query == null ? null : String(query).trim().slice(0, 100);
+      const safeQuery = query == null ? null : String(query).trim();
+      if (safeQuery !== null && safeQuery.length > 100) { const error = new Error('Query must be 100 characters or fewer.'); error.statusCode = 400; throw error; }
       const parsedLimit = limit == null || limit === '' ? 25 : Number(limit);
       if (!Number.isInteger(parsedLimit) || parsedLimit < 1) { const error = new Error('Limit must be a positive integer.'); error.statusCode = 400; throw error; }
       const safeLimit = Math.min(LIMIT_MAX, parsedLimit);
@@ -52,7 +65,8 @@ export function createCmsNppesPharmacyView({ pointerPath = DEFAULT_POINTER } = {
       if (safeState && safeState !== 'UNASSIGNED' && !view.stateRows.some((row) => row.state === safeState)) { const error = new Error('State is outside the governed NPPES pharmacy state/territory set.'); error.statusCode = 400; throw error; }
       const selectedStates = safeState === 'UNASSIGNED' ? [] : safeState ? view.stateRows.filter((row) => row.state === safeState) : view.stateRows;
       const selectedZips = safeZip ? view.zipRows.filter((row) => row.zip_code === safeZip) : view.zipRows;
-      const matches = view.rows.filter((row) => (!safeState || (safeState === 'UNASSIGNED' ? !row.address : row.address?.state === safeState)) && (!safeZip || row.address?.zip_code === safeZip) && (!safeQuery || `${row.legal_business_name ?? ''} ${row.other_organization_name ?? ''} ${row.npi ?? ''}`.toLocaleLowerCase('en-US').includes(safeQuery.toLocaleLowerCase('en-US')))).slice(0, safeLimit).map((row) => ({
+      const matchingRows = view.rows.filter((row) => (!safeState || (safeState === 'UNASSIGNED' ? !row.address : row.address?.state === safeState)) && (!safeZip || row.address?.zip_code === safeZip) && (!safeQuery || `${row.legal_business_name ?? ''} ${row.other_organization_name ?? ''} ${row.npi ?? ''}`.toLocaleLowerCase('en-US').includes(safeQuery.toLocaleLowerCase('en-US'))));
+      const matches = matchingRows.slice(0, safeLimit).map((row) => ({
         pharmacy_record_id: row.pharmacy_record_id,
         npi: row.npi,
         legal_business_name: row.legal_business_name,
@@ -75,8 +89,11 @@ export function createCmsNppesPharmacyView({ pointerPath = DEFAULT_POINTER } = {
         selection: { state: safeState, zip5: safeZip, query: safeQuery, limit: safeLimit },
         states: selectedStates,
         zips: selectedZips.slice(0, safeLimit),
+        zips_total: selectedZips.length,
+        zips_truncated: selectedZips.length > safeLimit,
         names: matches,
-        names_truncated: matches.length === safeLimit,
+        names_total: matchingRows.length,
+        names_truncated: matchingRows.length > safeLimit,
         limitations: view.manifest.limitations,
       };
     },
