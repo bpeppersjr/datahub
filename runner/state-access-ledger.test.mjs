@@ -39,7 +39,8 @@ async function fixture(t, {retained = false} = {}) {
     await writeFile(file,bytes); artifact.bytes=bytes.length; artifact.sha256=createHash('sha256').update(bytes).digest('hex');
     await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
   }
-  return { root, manifestPath, manifest, waManifestPath, waManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
+  return { root, manifestPath, manifest, waManifestPath, waManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
+    mnCredentialPublicationLoader: async () => ({status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:manifest.release_id,coverageManifestSha256:createHash('sha256').update(await readFile(path.join(root,manifestPath))).digest('hex'),productionRunId:'production-mn-credentials-20260910-01',productionReceiptSha256:'b'.repeat(64),reportingReleaseId:'fixture-reporting',reportingManifestSha256:'c'.repeat(64)}) };
 }
 
 async function installVtReportingEnrollment(root) {
@@ -150,7 +151,6 @@ test('WA contractor publisher cohort supplies direct WA-only construction eviden
   for (const state of ledger.jurisdictions.filter(row => row.state !== 'WA' && row.state !== 'MN')) {
     const cell = state.industries.find(row => row.industry === 'construction');
     assert.notEqual(cell.accessEvidenceStatus, 'direct-state-publisher');
-    assert.notEqual(cell.accessEvidenceStatus, 'national-dataset-state-evidence');
     assert.equal(cell.evidence.some(item => item.type === evidence.type), false);
   }
 });
@@ -555,14 +555,40 @@ test('malformed governed MN credential semantics are rejected', async (t) => {
   await assert.rejects(buildStateAccessLedger(f), /Minnesota credential reporting metric/);
 });
 
-test('out-of-state rows from the MN publisher do not become direct state-publisher coverage', async (t) => {
+test('positive out-of-state MN credential rows become national source-cohort evidence, never direct publisher access', async (t) => {
   const f = await fixture(t), ledger = await buildStateAccessLedger(f);
   const alabama = ledger.jurisdictions.find(row => row.state === 'AL').industries.find(row => row.industry === 'construction');
   const artifact = f.manifest.artifacts.find(item => item.artifact_type === 'state-coverage-view-jsonl');
   const rows = (await readFile(path.join(f.root, path.dirname(f.manifestPath), artifact.path), 'utf8')).trim().split('\n').map(JSON.parse);
   assert.ok(rows.find(row => row.postal_abbreviation === 'AL').mn_construction_credential_reporting.credential_rows > 0);
-  assert.equal(alabama.accessEvidenceStatus, 'unsupported-missing');
+  assert.equal(alabama.accessEvidenceStatus, 'national-dataset-state-evidence');
   assert.equal(alabama.evidence.some(item => item.type === 'published-direct-state-credential-count'), false);
+  const evidence=alabama.evidence.find(item=>item.type==='published-national-source-cohort-reported-address-count');
+  assert.deepEqual({publisher:evidence.publisherJurisdiction,state:evidence.reportedAddressState,rows:evidence.recordCount,rowUnit:evidence.rowUnit,policy:evidence.exportPolicy},
+    {publisher:'MN',state:'AL',rows:1,rowUnit:'publisher-business-credential-row',policy:'local-review-only'});
+  for(const key of ['uniqueBusinessCount','activeBusinessCount','physicalSiteCount','nationalCompletenessPercent'])assert.equal(evidence[key],null);
+  for(const key of ['identityMatchingEligible','physicalSiteEligible','currentOperationsVerified','geographicAssignmentPerformed','publicExportAuthorized'])assert.equal(evidence[key],false);
+});
+
+test('zero MN credential observations remain missing and do not manufacture publisher access',async(t)=>{
+  const f=await fixture(t),ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(r=>r.state==='AK').industries.find(r=>r.industry==='construction');
+  assert.equal(cell.accessEvidenceStatus,'unsupported-missing');
+  assert.equal(cell.evidence.some(e=>e.sourceId==='mn-construction-credential-reporting'),false);
+});
+
+test('MN credential admission rejects an unverified or mismatched publication receipt chain',async(t)=>{
+  for(const publication of [{status:'evidence-unverified'},{status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:'wrong',coverageManifestSha256:'a'.repeat(64)}]){
+    const f=await fixture(t);await assert.rejects(buildStateAccessLedger({...f,mnCredentialPublicationLoader:async()=>publication}),/verified downstream publication receipt chain/);
+  }
+});
+
+test('MN credential source-cohort admission conserves positive state rows and is construction-only',async(t)=>{
+  const f=await fixture(t),ledger=await buildStateAccessLedger(f);
+  const admitted=ledger.jurisdictions.flatMap(j=>j.industries.filter(i=>i.industry==='construction').flatMap(i=>i.evidence.filter(e=>e.type==='published-national-source-cohort-reported-address-count')));
+  assert.equal(admitted.length,33);assert.equal(admitted.reduce((sum,e)=>sum+e.recordCount,0),557);
+  assert.equal(ledger.jurisdictions.find(j=>j.state==='MN').industries.find(i=>i.industry==='construction').evidence.find(e=>e.type==='published-direct-state-credential-count').recordCount,10899);
+  assert.equal(557+10899,11456);
+  for(const jurisdiction of ledger.jurisdictions)for(const cell of jurisdiction.industries.filter(i=>i.industry!=='construction'))assert.equal(cell.evidence.some(e=>e.sourceId==='mn-construction-credential-reporting'),false);
 });
 
 test('MN and OH reporting projections conserve the four state-access categories', async (t) => {
@@ -572,8 +598,8 @@ test('MN and OH reporting projections conserve the four state-access categories'
   assert.deepEqual(Object.keys(after).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
   assert.equal(after['direct-state-publisher'], before['direct-state-publisher'] + 2);
   assert.equal(after['unsupported-evidence-not-measured'], before['unsupported-evidence-not-measured'] - 2);
-  assert.equal(after['national-dataset-state-evidence'], before['national-dataset-state-evidence']);
-  assert.equal(after['unsupported-missing'], before['unsupported-missing']);
+  assert.equal(after['national-dataset-state-evidence'], before['national-dataset-state-evidence'] + 32);
+  assert.equal(after['unsupported-missing'], before['unsupported-missing'] - 32);
   assert.equal(Object.values(after).reduce((sum, count) => sum + count, 0), projected.summary.industryCells);
 });
 
@@ -604,7 +630,7 @@ test('state ledger keeps absent MA/NJ/TN reporting integration unmeasured rather
 
 test('state ledger identifies positive MA/NJ/TN counts as direct reporting evidence without submitting jobs',async(t)=>{
   const f=await fixture(t);await childcareCounts(f,7);
-  const ledger=await buildStateAccessLedger({...f,assessmentLoader:async()=>({assessment_catalog_id:'historic-hold',coverage_release_id:'older-coverage',states:[{state_abbreviation:'NJ',decision:'hold',assessment_id:'unrelated-publisher-hold',strongest_bounded_next_action:'Review another state source.'}]})});
+  const ledger=await buildStateAccessLedger({...f,coverageReassessmentLoader:async()=>null,assessmentLoader:async()=>({assessment_catalog_id:'historic-hold',coverage_release_id:'older-coverage',states:[{state_abbreviation:'NJ',decision:'hold',assessment_id:'unrelated-publisher-hold',strongest_bounded_next_action:'Review another state source.'}]})});
   for(const state of ['MA','NJ','TN']){
     const cell=ledger.jurisdictions.find(r=>r.state===state).industries.find(r=>r.industry==='childcare');
     assert.equal(cell.accessEvidenceStatus,'direct-state-publisher');assert.equal(cell.appHandoff.status,'APP_PREFLIGHT_REQUIRED');

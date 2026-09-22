@@ -15,6 +15,7 @@ import { loadUtChildcareReportingEnrollment, projectUtChildcareStateEvidence } f
 import { loadIaChildcareReportingEnrollment, projectIaChildcarePublisherEvidence } from "./ia-childcare-reporting-enrollment.mjs";
 import { BROAD_ORGANIZATION_SOURCES, buildBroadOrganizationEvidence } from "./broad-organization-evidence.mjs";
 import { loadStateCoverageReassessment } from "./state-coverage-reassessment.mjs";
+import { loadMnCredentialPublicationStatus } from "./mn-credential-publication-status.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -199,10 +200,20 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, waContractorEvidence, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
+    && credentialPublication.included === true && credentialPublication.credentialRows === 11456
+    && credentialPublication.recordUnit === "publisher-business-credential-row"
+    && credentialPublication.exportPolicy === "local-review-only"
+    && credentialPublication.uniqueBusinessCount === null && credentialPublication.activeBusinessCount === null
+    && credentialPublication.physicalSiteCount === null && credentialPublication.nationalCompletenessPercent === null
+    && credentialPublication.geographicAssignmentPerformed === false && credentialPublication.publicExportAuthorized === false
+    && credentialPublication.coverageReleaseId === coverage.releaseId
+    && credentialPublication.coverageManifestSha256 === coverage.manifestSha256;
+  if ([...coverage.rows.values()].some((row) => row.mn_construction_credential_reporting !== undefined) && !credentialPublicationVerified) throw new Error("Published Minnesota credential reporting requires its verified downstream publication receipt chain.");
   const assessmentStates = assessments.states ?? [];
   if (!Array.isArray(assessmentStates) || assessmentStates.some((item) => !CANONICAL.has(item.state_abbreviation)) || new Set(assessmentStates.map((item) => item.state_abbreviation)).size !== assessmentStates.length) throw new Error("Assessment states must contain unique canonical state codes.");
   for (const sourceKeys of Object.values(industryRead.value.industries)) for (const key of sourceKeys) if (!Object.hasOwn(PROFILE_IDS, key)) throw new Error(`Industry source ${key} has no explicit coverage profile mapping.`);
@@ -252,6 +263,23 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
             coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath, rowUnit: metric.record_unit,
             addressBasis: "reported-address-state", identityMatchingEligible: false, physicalSiteEligible: false,
             currentOperationsVerified: false, exportPolicy: metric.export_policy, nationalCompletenessPercent: null });
+        }
+      }
+      if (industryId === "construction" && state !== "MN") {
+        const metric = validateMnCredentialMetric(row.mn_construction_credential_reporting);
+        if (credentialPublicationVerified && metric?.credential_rows > 0) {
+          national = true;
+          evidence.push({ type: "published-national-source-cohort-reported-address-count", evidenceClass: "minnesota-publisher-residential-construction-credential-cohort",
+            sourceId: "mn-construction-credential-reporting", publisherJurisdiction: "MN", reportedAddressState: state,
+            recordCount: metric.credential_rows, selectedCohortRows: metric.selected_cohort_rows,
+            coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256,
+            artifactPath: coverage.artifactPath, artifactSha256: coverage.artifactSha256,
+            productionRunId: credentialPublication.productionRunId, productionReceiptSha256: credentialPublication.productionReceiptSha256,
+            reportingReleaseId: credentialPublication.reportingReleaseId, reportingManifestSha256: credentialPublication.reportingManifestSha256,
+            rowUnit: metric.record_unit, addressBasis: "reported-address-state", identityMatchingEligible: false,
+            uniqueBusinessCount: null, activeBusinessCount: null, physicalSiteEligible: false, physicalSiteCount: null,
+            currentOperationsVerified: false, nationalCompletenessPercent: null, geographicAssignmentPerformed: false,
+            publicExportAuthorized: false, exportPolicy: metric.export_policy });
         }
       }
       if (industryId === "construction" && state === "WA") {
