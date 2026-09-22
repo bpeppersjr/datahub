@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { validateStateBusinessSourceDiscoveryQueue } from "../scripts/check-state-business-source-discovery.mjs";
+import { loadStateBusinessSourceAssessmentWave } from "./state-business-source-assessment-wave.mjs";
+import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
 import { APP_ROOT } from "./paths.mjs";
 import {
   DEFAULT_STATE_BUSINESS_SOURCE_REVALIDATION_PATH,
@@ -12,8 +14,8 @@ import {
 } from "./state-business-source-revalidation.mjs";
 
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.0.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-queue-8-2026-09-03";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "fdd63d2709641a7cad0e09bff3392635ffb2bbb17b85a15052f159fc26adf2f0";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-43-2026-09-22";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "cd0b05a3b44d52c00804a37095193569382cea329c6a45f388eeb9da8b21c4a1";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -80,6 +82,20 @@ const SOURCE_ARTIFACT_SPECS = Object.freeze([
     observed_at: "2026-09-03",
     coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
     state_abbreviations: Object.freeze(["LA", "MN", "AL", "WI"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22",
+    artifact_kind: "official-source-validation",
+    observed_at: "2026-09-22",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["AR", "HI", "IL", "MS", "NV"]),
+  }),
+  Object.freeze({
+    artifact_id: "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22",
+    artifact_kind: "official-source-validation",
+    observed_at: "2026-09-22",
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    state_abbreviations: Object.freeze(["KS", "KY", "TX", "UT", "WA"]),
   }),
 ]);
 const EXPECTED_SOURCE_ARTIFACTS = Object.freeze(SOURCE_ARTIFACT_SPECS.map((artifact) => Object.freeze({
@@ -166,6 +182,62 @@ function normalizeDiscovery(queue) {
   }));
 }
 
+function holdAuthority() {
+  return {
+    authorized_next_action_type: "written-preflight-inquiry",
+    bounded_connector_implementation_authorized: false,
+    autonomous_acquisition_authorized: false,
+    paid_acquisition_authorized: false,
+    complete_source_acquisition_authorized: false,
+    row_bearing_preflight_authorized: false,
+    offline_fixture_connector_authorized: false,
+    production_ready: false,
+    broad_layer_production_ready: false,
+  };
+}
+
+function normalizeValidationWave(state) {
+  return {
+    state_abbreviation: state.state_abbreviation,
+    state_name: state.state_abbreviation,
+    assessment_id: "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22",
+    assessment_kind: "official-source-validation",
+    observed_at: state.observed_at,
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    decision: "hold",
+    ...holdAuthority(),
+    candidate: { publisher: state.publisher, product: "official business-organization source", availability: state.access.mode, price: state.access.fees },
+    official_urls: state.citations.map((citation) => citation.url),
+    observed_evidence: [state.fields, state.active_status_semantics, state.statewide_completeness, state.address_and_zip, state.temporal_refresh],
+    unresolved_gates: structuredClone(state.unresolved_gates),
+    required_exclusions: ["natural-person and registered-agent data", "direct contact and sensitive identifiers", "filing documents and free text"],
+    strongest_bounded_next_action: state.next_action,
+    prior_decision: null,
+    changed_since_prior_review: false,
+  };
+}
+
+function normalizeAssessmentWave(state) {
+  return {
+    state_abbreviation: state.state.abbreviation,
+    state_name: state.state.name,
+    assessment_id: "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22",
+    assessment_kind: "official-source-validation",
+    observed_at: state.observed_at,
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    decision: "hold",
+    ...holdAuthority(),
+    candidate: { publisher: `${state.state.name} official state publisher`, product: "official business-organization source", availability: state.access.classification, price: state.automation_terms_fees },
+    official_urls: state.citations.map((citation) => citation.url),
+    observed_evidence: [state.fields.summary, state.active_status_semantics, state.statewide_completeness, state.address_zip, state.temporal_refresh],
+    unresolved_gates: structuredClone(state.unresolved_gates),
+    required_exclusions: ["natural-person and registered-agent data", "direct contact and sensitive identifiers", "filing documents and free text"],
+    strongest_bounded_next_action: `${state.strongest_next_action} Do not acquire or execute production from this assessment.`,
+    prior_decision: null,
+    changed_since_prior_review: false,
+  };
+}
+
 export function validateStateBusinessSourceAssessmentCatalog(catalog) {
   if (catalog?.schema_version !== STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION) fail("unsupported schema version");
   if (catalog?.assessment_catalog_id !== STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID) fail("catalog identity drifted");
@@ -201,6 +273,10 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
+  const [assessmentWave, validationWave] = await Promise.all([
+    loadStateBusinessSourceAssessmentWave(),
+    Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
+  ]);
   const sourceArtifacts = [
     {
       artifact_id: revalidation.revalidation_id,
@@ -214,6 +290,8 @@ export async function loadStateBusinessSourceAssessmentCatalog(
       observed_at: queue.observed_at,
       coverage_release_id: queue.coverage_release_id,
     })),
+    { artifact_id: "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22", artifact_kind: "official-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
+    { artifact_id: "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22", artifact_kind: "official-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
   ];
   const catalog = {
     schema_version: STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION,
@@ -230,6 +308,14 @@ export async function loadStateBusinessSourceAssessmentCatalog(
           seen.add(state.state_abbreviation);
           states.push(state);
         }
+      }
+      for (const state of validationWave.map(normalizeValidationWave)) {
+        if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} wave overlaps prior assessment`);
+        seen.add(state.state_abbreviation); states.push(state);
+      }
+      for (const state of assessmentWave.states.map(normalizeAssessmentWave)) {
+        if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} wave overlaps prior assessment`);
+        seen.add(state.state_abbreviation); states.push(state);
       }
       return states;
     })(),
@@ -256,6 +342,7 @@ export function summarizeStateBusinessSourceAssessments(catalog, currentCoverage
     jurisdictions_assessed: validated.states.length,
     jurisdictions_revalidated: validated.states.filter((state) => state.assessment_kind === "revalidation").length,
     jurisdictions_discovered: validated.states.filter((state) => state.assessment_kind === "source-discovery").length,
+    jurisdictions_official_source_validated: validated.states.filter((state) => state.assessment_kind === "official-source-validation").length,
     hold_decisions: validated.states.filter((state) => state.decision === "hold").length,
     bounded_connector_decisions: validated.states.filter((state) => state.decision === "proceed-to-bounded-connector").length,
     changed_decisions: validated.states.filter((state) => state.changed_since_prior_review).length,

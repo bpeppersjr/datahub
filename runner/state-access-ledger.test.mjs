@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
 import { buildStateAccessLedger, writeStateAccessReport } from './state-access-ledger.mjs';
+import { loadStateBusinessSourceAssessmentCatalog } from './state-business-source-assessment.mjs';
 
 async function fixture(t, {retained = false} = {}) {
   const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
@@ -525,4 +526,14 @@ test('state ledger labels matching assessment holds as current context without c
   assert.equal(ledger.evidence.assessmentFreshness.currentJurisdictions, 1);
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
   assert.deepEqual(Object.keys(ledger.summary.accessEvidenceStatusCounts).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
+});
+
+test('authoritative catalog reports 43 assessed and 8 unassessed without changing coverage categories', async (t) => {
+  const f = await fixture(t);
+  const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'none', coverage_release_id: f.manifest.release_id, states: [] }) });
+  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: loadStateBusinessSourceAssessmentCatalog });
+  assert.equal(ledger.evidence.assessmentFreshness.assessedJurisdictions, 43);
+  assert.equal(ledger.evidence.assessmentFreshness.unassessedJurisdictions, 8);
+  assert.equal(ledger.evidence.assessmentFreshness.staleJurisdictions, 43);
+  assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
 });

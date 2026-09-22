@@ -22,7 +22,7 @@ if (summary.coverage_release_matches_current !== true) {
   if(catalog.coverage_release_id!==reassessment.historicalRelease || catalog.states.some(state=>!reassessment.states.some(row=>row.state===state.state_abbreviation)))throw new Error("Assessment coverage reassessment does not cover the historical catalog.");
   console.log(`Coverage reassessment ${reassessment.id}: PASS; historical source reviews remain dated ${catalog.observed_at}, not freshly authorized.`);
 }
-if (summary.jurisdictions_assessed !== 33 || summary.jurisdictions_revalidated !== 5 || summary.jurisdictions_discovered !== 28 || summary.hold_decisions !== 31 || summary.bounded_connector_decisions !== 2 || summary.autonomous_acquisitions_authorized !== 0 || summary.production_ready_jurisdictions !== 0) {
+if (summary.jurisdictions_assessed !== 43 || summary.jurisdictions_revalidated !== 5 || summary.jurisdictions_discovered !== 28 || summary.jurisdictions_official_source_validated !== 10 || summary.hold_decisions !== 41 || summary.bounded_connector_decisions !== 2 || summary.autonomous_acquisitions_authorized !== 0 || summary.production_ready_jurisdictions !== 0) {
   throw new Error("State-source assessment decision totals drifted.");
 }
 
