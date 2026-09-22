@@ -131,9 +131,9 @@ type StateAccess = {
   limitations: string[];
 };
 
-const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'retail-consumer': 'retail-consumer', 'health-care': 'health-care', 'financial-services': 'financial-services', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities', transportation: 'transportation' };
+const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'retail-consumer': 'retail-consumer', 'health-care': 'health-care', 'financial-services': 'financial-services', 'tax-exempt-organizations': 'tax-exempt-organizations', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities', transportation: 'transportation' };
 function matrixCategory(categoryId: string) { return MATRIX_CATEGORY[categoryId] ?? null; }
-const STATE_ACCESS_INDUSTRIES=new Set(['retail-consumer','health-care','financial-services','transportation','childcare']);
+const STATE_ACCESS_INDUSTRIES=new Set(['retail-consumer','health-care','financial-services','transportation','tax-exempt-organizations','childcare']);
 function stateAccessIndustry(categoryId:string){return STATE_ACCESS_INDUSTRIES.has(categoryId)?categoryId:undefined;}
 
 function GoalCompletionSummary({ state, categoryId }: { state?: string; categoryId: string }) {
@@ -447,6 +447,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
     <aside className="map-entity-summary" aria-live="polite">
       <StateAccessSummary key={`${state?.postal_abbreviation??''}:${categoryId}`} state={state?.postal_abbreviation} industry={stateAccessIndustry(categoryId)} />
       <GoalCompletionSummary state={state?.postal_abbreviation} categoryId={categoryId} />
+      {categoryId === 'tax-exempt-organizations' && <p className="entity-method-note">IRS EO BMF current-extract filing-address records only. A filing address may be a headquarters, mailing address, or P.O. box; it is not a verified physical site or proof of current operations. This local-review view has no all-business completeness denominator.</p>}
       <DatasetRepresentation stateFips={selectedStateFips} />
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}

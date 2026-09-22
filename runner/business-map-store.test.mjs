@@ -21,7 +21,7 @@ function polygon(west, south, east, north) {
   return { type: "Polygon", coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] };
 }
 
-async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views", ohioOrigin = undefined, ohioCount = 5, ohioWithoutZip = 0, capturePaths = null } = {}) {
+async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geography-1", reportingRow = null, invalidReportingHash = false, mislabeledChildcare = null, tnRows = null, tnVersion = "2.9.0", coverageTamper = null, registryPublisher = "national-business-registry", coveragePublisher = "national-business-coverage-views", ohioOrigin = undefined, ohioCount = 5, ohioWithoutZip = 0, irsCount = 0, irsProfile = null, capturePaths = null } = {}) {
   await mkdir(TEMP_DIR, { recursive: true });
   const root = await mkdtemp(path.join(TEMP_DIR, "datahub-business-map-"));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -86,7 +86,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
       ...baseCoverage,
       view_id: "zip:12345",
       zip_code: "12345",
-      registry_coverage: { ...baseCoverage.registry_coverage, physical_site_count: 5, establishment_count: 5, snap_authorization_evidence_count: 3, nppes_primary_practice_location_count: 2 },
+      registry_coverage: { ...baseCoverage.registry_coverage, physical_site_count: 5, establishment_count: 5, snap_authorization_evidence_count: 3, nppes_primary_practice_location_count: 2, irs_eo_organization_filing_address_count: irsCount },
       geography: { status: "2020-zcta-polygon-available", geoid: "12345" },
       jurisdiction_overlay: { relationships: [{ county_geo_id: "county:01001", state_geo_id: "state:01", material_intersection: true }] },
     },
@@ -195,6 +195,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     { zip_code: "12345", names: [{ raw: "Main Street Market" }], address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" }, location: { type: "Point", coordinates: [-86.1234, 32.5678] }, source: { source_id: "usda-snap-current-retailers" }, observed_at: "2026-01-01T00:00:00.000Z", export_policy: "public" },
     { zip_code: "12345", names: [{ raw: "Alpha Clinic" }], address: { street: "2 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: { latitude: " ", longitude: false }, source: { source_id: "cms-nppes-monthly-v2" }, observed_at: "2026-01-02T00:00:00.000Z", export_policy: "public" },
   ];
+  if (irsProfile) profiles.push(irsProfile);
   const profilePath = path.join(registryRelease, "resolution", "location-profiles", "zip2=12.jsonl.gz");
   if (mislabeledChildcare) profiles.push(mislabeledChildcare);
   await pipeline(Readable.from([profiles.map(json).join("")]), createGzip(), await import("node:fs").then(({ createWriteStream }) => createWriteStream(profilePath)));
@@ -211,7 +212,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     dataset_id: "national-business-registry",
     release_id: "registry-1",
     status: "published-partial",
-    artifacts: [{ artifact_type: "entity-resolution-location-profile-jsonl-gzip", path: "resolution/location-profiles/zip2=12.jsonl.gz", record_count: 2 }, ...reportingArtifacts],
+    artifacts: [{ artifact_type: "entity-resolution-location-profile-jsonl-gzip", path: "resolution/location-profiles/zip2=12.jsonl.gz", record_count: profiles.length }, ...reportingArtifacts],
   }));
   await writeFile(path.join(registryRoot, "current.json"), json({ dataset_id: "national-business-registry", release_id: "registry-1", manifest: "releases/registry-1/manifest.json" }));
 
@@ -311,6 +312,37 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     gdpPointerPath: path.join(gdpRoot, "current.json"),
   });
 }
+
+test("IRS tax-exempt category moves filing-address evidence without changing all-category totals", async context => {
+  const without = await fixture(context), withIrs = await fixture(context, { irsCount: 17 });
+  const before = await without.getFeatures({ level: "states", categoryId: "all" });
+  const after = await withIrs.getFeatures({ level: "states", categoryId: "all" });
+  const irs = await withIrs.getFeatures({ level: "states", categoryId: "tax-exempt-organizations" });
+  const mixed = await withIrs.getFeatures({ level: "states", categoryId: "registrations-nonprofits" });
+  assert.equal(after.features[0].properties.business_count - before.features[0].properties.business_count, 17);
+  assert.equal(irs.features[0].properties.business_count, 17);
+  assert.equal(mixed.features[0].properties.business_count, 0);
+  const catalog = await withIrs.getCatalog(), category = catalog.categories.find(row => row.id === "tax-exempt-organizations");
+  assert.deepEqual(category.evidence_fields, ["irs_eo_organization_filing_address_count"]);
+  assert.deepEqual(category.source_ids, ["irs-eo-bmf-organizations"]);
+  assert.equal(catalog.categories.flatMap(row => row.evidence_fields ?? []).filter(field => field === "irs_eo_organization_filing_address_count").length, 1);
+  const legacyAllBeforeReassignment = 3 + 2 + 17; // SNAP + NPPES + IRS when IRS lived in registrations-nonprofits.
+  assert.equal(after.features[0].properties.business_count, legacyAllBeforeReassignment);
+  assert.equal(after.features[0].properties.business_count, catalog.categories.filter(row => row.id !== "all").reduce((sum, row) => sum + (row.id === "tax-exempt-organizations" ? 17 : row.id === "retail-consumer" ? 3 : row.id === "health-care" ? 2 : 0), 0));
+  assert.match(catalog.semantics.tax_exempt_organizations, /not verified physical sites, current operations/);
+});
+
+test("IRS category filters the exact registry profile source and rejects public-policy escalation", async context => {
+  const profile = { zip_code: "12345", names: [{ raw: "Fixture Exempt Organization" }], address: { street: "3 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: null, source: { source_id: "irs-eo-bmf-organizations", source_release_id: "irs-fixture", source_record_id: "12-3456789" }, observed_at: "2026-08-11T00:00:00.000Z", export_policy: "local-review-only" };
+  const store = await fixture(context, { irsCount: 1, irsProfile: profile });
+  const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "tax-exempt-organizations" });
+  assert.equal(names.total, 1); assert.equal(names.records[0].business_name, "Fixture Exempt Organization");
+  assert.equal(names.records[0].source_id, "irs-eo-bmf-organizations"); assert.equal(names.records[0].export_policy, "local-review-only"); assert.equal(names.local_review_only, true);
+  const unrelated = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer" });
+  assert.equal(unrelated.records.some(row => row.source_id === "irs-eo-bmf-organizations"), false);
+  const escalated = await fixture(context, { irsCount: 1, irsProfile: { ...profile, export_policy: "public" } });
+  await assert.rejects(escalated.listBusinessNames({ zipCode: "12345", categoryId: "tax-exempt-organizations" }), /local-review-only/);
+});
 
 test('Ohio coverage preserves TN origins and excludes OH from jurisdiction unit/site totals', async context => {
   for (const origin of [null, 'fresh', 'recovered']) {

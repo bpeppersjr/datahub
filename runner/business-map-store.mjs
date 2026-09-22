@@ -10,6 +10,7 @@ import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeograph
 import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
+const IRS_EO_SOURCE = "irs-eo-bmf-organizations";
 
 async function readReportingRows(registry, artifact) {
   if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 || artifact.bytes > 100_000_000) throw new Error("Reporting-only artifact byte limit.");
@@ -90,6 +91,14 @@ const CATEGORY_DEFINITIONS = Object.freeze([
     source_ids: ["fmcsa-company-census-active-us-principal-office"],
   },
   {
+    id: "tax-exempt-organizations",
+    label: "IRS tax-exempt organization filing addresses",
+    group_id: "services",
+    group_label: "Services",
+    fields: ["irs_eo_organization_filing_address_count"],
+    source_ids: ["irs-eo-bmf-organizations"],
+  },
+  {
     id: "licensed-businesses",
     label: "State & local licensed locations",
     group_id: "licensed",
@@ -117,7 +126,6 @@ const CATEGORY_DEFINITIONS = Object.freeze([
     group_id: "licensed",
     group_label: "Licensed & registered",
     fields: [
-      "irs_eo_organization_filing_address_count",
       "ct_business_registry_organization_reported_business_address_count",
       "de_business_license_organization_reported_business_address_count",
       "co_business_registry_organization_principal_office_address_count",
@@ -759,6 +767,7 @@ export function createBusinessMapStore({
         nonemployer: "Census Nonemployer Statistics are direct state/county annual aggregates. They are not current operating-status or completeness measures and are never allocated to ZIP/ZCTA geography.",
         zip: "Five-digit ZCTA/ZIP evidence only. ZIP+4 is not joined and has no polygon.",
         gdp: "BEA current-dollar GDP estimates are joined only by exact state or county GEOID. No GDP is allocated to ZIP/ZCTA geography or used in relative coverage alignment.",
+        tax_exempt_organizations: "IRS EO BMF current-extract filing-address records are source evidence, not verified physical sites, current operations, or a complete nonprofit, tax-exempt, or business universe. Record-level review remains local-only.",
       },
     };
   }
@@ -1065,6 +1074,7 @@ export function createBusinessMapStore({
       }
       const sourceId = row.source?.source_id;
       if (row.zip_code !== zip || !sourceIds.has(sourceId)) continue;
+      if (sourceId === IRS_EO_SOURCE && row.export_policy !== "local-review-only") throw new Error("IRS EO names require local-review-only source profiles.");
       if (missingZipOnly && row.address.state !== index.states.get(state)?.postal_abbreviation) continue;
       for (const name of row.names ?? []) {
         const businessName = String(name.raw ?? "").trim();
@@ -1094,7 +1104,7 @@ export function createBusinessMapStore({
           transformation_version: row.source?.transformation_version ?? null,
           policy_id: row.source?.policy_id ?? null,
           observed_at: row.observed_at ?? null,
-          export_policy: row.export_policy ?? "local-review-only",
+          export_policy: sourceId === IRS_EO_SOURCE ? "local-review-only" : (row.export_policy ?? "local-review-only"),
           ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
           ...(sourceId === OH_SOURCE ? { governed_geographic_assignment_eligible: false } : {}),
         });
