@@ -1,0 +1,4 @@
+import assert from'node:assert/strict';import{readFile}from'node:fs/promises';import test from'node:test';
+const ui=await readFile(new URL('../app/overture-readiness.tsx',import.meta.url),'utf8'),server=await readFile(new URL('./server.mjs',import.meta.url),'utf8');
+test('readiness card has no dispatch control and shows governed blockers',()=>{assert.match(ui,/Retry authorized<\/dt><dd>No/);assert.match(ui,/snapshot ready: no · resumable: no/);assert.match(ui,/No start or retry control/);assert.equal(ui.includes('<button'),false);assert.equal(ui.includes("method:'POST'"),false)});
+test('readiness API is authenticated GET-only and cannot allocate',()=>{const route="endpoint === 'overture-readiness'";assert.ok(server.indexOf('controlPlane.authorize(request)')<server.indexOf(route));assert.match(server,/overture-readiness.*request\.method === 'GET'/);});

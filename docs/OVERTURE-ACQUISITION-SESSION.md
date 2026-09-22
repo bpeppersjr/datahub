@@ -1,5 +1,7 @@
 # App-owned bounded Overture acquisition
 
+The management page now includes an authenticated, read-only readiness card backed by `GET /api/data-operations/overture-readiness`. It independently replays retained metadata/runtime prerequisites with current code, summarizes the failed acquisition journal, reports stable redacted reason codes and fixed resource limits, and lists app-owned recovery steps. The route allocates no operation and performs no network request. The card deliberately has no start or retry button and always reports retry authorization as false; a fresh explicit operator authorization remains separate.
+
 Co*Tive can now execute the bounded selected-source acquisition as a managed child process. A live Codex or ChatGPT session is not required to run or supervise it. This worker retains selected source evidence; it does **not** normalize, reconcile or publish businesses, refresh the national registry, or establish complete coverage.
 
 ## Operator handoff

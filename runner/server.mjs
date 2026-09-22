@@ -259,6 +259,11 @@ const server = http.createServer(async (request, response) => {
 
     if (segments[0] === 'api' && segments[1] === 'data-operations') {
       const endpoint = segments[2];
+      if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
+        try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
+        catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }
+        return;
+      }
       if (endpoint === 'overture-normalization-baselines' && segments.length === 3 && request.method === 'GET') {
         try { const { listOvertureNormalizationBaselines } = await import('./overture-normalization-baselines.mjs'); json(response, 200, await listOvertureNormalizationBaselines()); }
         catch { json(response, 503, { error: 'Retained Census baseline choices are unavailable. No data was changed.' }); }
