@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-20` after retained-adoption provenance visibility and the 51-jurisdiction source-readiness record were aligned. Do not execute or approve this plan.
+
 Fresh governed planning completed after the CMS NPPES community/retail-pharmacy heatmap gained real, bounded state and exact-code ZCTA geometry. The national view loads no ZCTA partitions; a selected state loads only its required prefix partitions. The map conserves 87,659 state/DC records, 1,415 territory records, and 3 unassigned records against the 89,077-record local pharmacy projection. It remains a separate, non-additive source view and is not an input to this production plan. Collector stop/restart restoration passed with one listener, a healthy application endpoint, and an unauthenticated pharmacy request correctly rejected. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-19`
