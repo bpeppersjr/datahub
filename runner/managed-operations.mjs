@@ -19,7 +19,12 @@ import {CMS_HOSPITAL_RETAINED_ADOPTION,CMS_ADOPTION_DEADLINE_MS,verifyCmsHospita
 import {CMS_NURSING_HOME_RETAINED_ADOPTION,verifyCmsNursingHomeAdoption} from './cms-nursing-home-adoption.mjs';
 import {getCmsSnfPecosAppStatus} from './cms-snf-pecos-app-status.mjs';
 import {getIaBusinessRegistryRefreshReadiness,IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ia-business-registry-refresh-readiness.mjs';
+import {getOrBusinessRegistryRefreshReadiness,OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './or-business-registry-refresh-readiness.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
+const SOURCE_REFRESH_DISPATCH=new Map([
+  [IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getIaBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
+  [OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getOrBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Oregon refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
+]);
 
 // Cancellation does not prove work stopped. Preserve UNKNOWN ownership if a
 // child/verifier fails to settle within its bounded cleanup interval.
@@ -130,15 +135,15 @@ export class ManagedOperations {
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
       credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
-      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),await getIaBusinessRegistryRefreshReadiness()] };
+      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),await getIaBusinessRegistryRefreshReadiness(),await getOrBusinessRegistryRefreshReadiness()] };
   }
   async sourceRefreshPlan(input = {}) {
-    this.#exactIowaRefreshInput(input);
-    return (await getIaBusinessRegistryRefreshReadiness()).plan;
+    const dispatch=this.#exactSourceRefreshInput(input);
+    return (await dispatch.readiness()).plan;
   }
   async startSourceRefresh(input = {}) {
-    this.#exactIowaRefreshInput(input);
-    throw Object.assign(new Error("ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
+    const dispatch=this.#exactSourceRefreshInput(input);
+    throw Object.assign(new Error(dispatch.rejection), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async startCollection(input = {}) {
@@ -363,9 +368,11 @@ export class ManagedOperations {
   }
   async close() { await this.ready; this.closed = true; while (this.reserved) await new Promise((resolve) => setTimeout(resolve, 5)); for (const controller of this.running.values()) controller.abort(); await Promise.allSettled([...this.running.values()].map((controller) => controller.done)); }
   #selection(input) { return { industries: this.#strings(input.industries, "industries"), states: this.#strings(input.states, "states").map((x) => x.toUpperCase()), ...(Object.hasOwn(input,"sourceIds") ? {sourceIds: input.sourceIds === undefined ? null : input.sourceIds} : {}), ...(Object.hasOwn(input,'retainedInputs') ? {retainedInputs: input.retainedInputs === undefined ? null : input.retainedInputs} : {}) }; }
-  #exactIowaRefreshInput(input) {
+  #exactSourceRefreshInput(input) {
     const descriptor = input && Object.getPrototypeOf(input) === Object.prototype && Object.getOwnPropertyDescriptor(input, "sourceId");
-    if (!descriptor || !Object.hasOwn(descriptor, "value") || Reflect.ownKeys(input).length !== 1 || descriptor.value !== IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID) throw invalid("Source refresh requires only the Iowa sourceId.");
+    const dispatch=descriptor&&Object.hasOwn(descriptor,"value")&&SOURCE_REFRESH_DISPATCH.get(descriptor.value);
+    if (!dispatch || Reflect.ownKeys(input).length !== 1) throw invalid("Source refresh requires exactly one supported sourceId.");
+    return dispatch;
   }
   #strings(value, name) { if (value === undefined) return []; if (!Array.isArray(value) || value.some((x) => typeof x !== "string" || !x.trim())) throw invalid(`${name} must be an array of strings.`); return [...new Set(value.map((x) => x.trim()))]; }
   #only(input, allowed) { if (!input || typeof input !== "object" || Array.isArray(input)) throw invalid("Operation input must be an object."); for (const key of Object.keys(input)) if (!allowed.includes(key)) throw invalid(`Unsupported operation option: ${key}`); }

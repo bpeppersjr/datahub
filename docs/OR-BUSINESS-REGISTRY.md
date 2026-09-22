@@ -58,6 +58,12 @@ A complete staged source snapshot can be revalidated and normalized into a new r
 
 ## Validated live release
 
-Release `or-business-registry-20260831-032756653Z-8c05d229` is bound to the source refresh at `2026-08-25T13:43:02Z` and source release `or-business-registry-2026-08-25-5d7cd42cfd1506c1`. Independent verification rehashed and parsed all 21 artifacts totaling 136,372,176 bytes.
+Release `or-business-registry-20260903-004514399Z-1d3068a7` is the retained release selected by `current.json`. It is bound to the source refresh at `2026-09-01T13:44:15.000Z` and source release `or-business-registry-2026-09-01-c58ca37fef13c0e9`. Independent verification rehashed and parsed all 21 artifacts totaling 136,439,619 bytes.
 
-The snapshot contains 559,498 principal-place rows for 559,490 registrations. It publishes 443,158 legal-entity registrations and 116,332 assumed-business-name registrations; no registration group was quarantined. Eight registrations retain two principal-place rows. Exactly 559,140 registrations have at least one eligible U.S. principal-place ZIP, producing 559,141 distinct registration/ZIP contributions across 9,177 source ZIPs; 350 registrations remain published without an eligible U.S. ZIP allocation. Physical-site and establishment counts remain `null`.
+The snapshot contains 559,882 principal-place rows for 559,874 registrations. It publishes 443,445 legal-entity registrations and 116,429 assumed-business-name registrations; no registration group was quarantined. Eight registrations retain two principal-place rows. Exactly 559,522 registrations have at least one eligible U.S. principal-place ZIP, producing 559,523 distinct registration/ZIP contributions across 9,184 source ZIPs; 352 registrations remain published without an eligible U.S. ZIP allocation. Physical-site and establishment counts remain `null`.
+
+## Refresh readiness in Co*Tive Collector
+
+The Data Operations page provides a deterministic, read-only Oregon refresh preview. It revalidates the policy, connector, dataset assessment, actual `current.json` pointer, and retained manifest. The manifest is authoritative for retained counts; the dataset catalog still describes the older August 31 release and is reported as not matching rather than silently treated as current.
+
+The assessment records a metadata-date conflict, so portal observations are not treated as proof of a newer record release. A future refresh requires a governed transport and metadata preflight, full-snapshot comparison that does not reinterpret row loss as closure, preserved legal-entity versus assumed-name semantics, and separate authorization for acquisition and any production-pointer change. Until then, Start remains disabled and a direct start request returns `ACQUISITION_NOT_AUTHORIZED` before an operation, executor, receipt writer, or network request can be created.

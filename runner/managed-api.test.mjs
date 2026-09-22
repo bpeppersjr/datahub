@@ -38,6 +38,12 @@ async function makeFixture(t) {
   await mkdir(path.dirname(path.join(iaFixtureRoot, ...iaPointer.manifest.split("/"))), { recursive: true });
   await copyFile(path.join(iaSourceRoot, "current.json"), path.join(iaFixtureRoot, "current.json"));
   await copyFile(path.join(iaSourceRoot, ...iaPointer.manifest.split("/")), path.join(iaFixtureRoot, ...iaPointer.manifest.split("/")));
+  const orSourceRoot = path.join(APP_ROOT, "data", "business-sources", "or-business-registry-active-registrations");
+  const orFixtureRoot = path.join(root, "data", "business-sources", "or-business-registry-active-registrations");
+  const orPointer = JSON.parse(await readFile(path.join(orSourceRoot, "current.json"), "utf8"));
+  await mkdir(path.dirname(path.join(orFixtureRoot, ...orPointer.manifest.split("/"))), { recursive: true });
+  await copyFile(path.join(orSourceRoot, "current.json"), path.join(orFixtureRoot, "current.json"));
+  await copyFile(path.join(orSourceRoot, ...orPointer.manifest.split("/")), path.join(orFixtureRoot, ...orPointer.manifest.split("/")));
   for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
@@ -137,6 +143,11 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   assert.equal(iowaRefresh.readinessStatus, "HOLD");
   assert.equal(iowaRefresh.dispatchAvailable, false);
   assert.equal(catalog.collectionSources.some(source => source.id === "ia-business-registry"), false);
+  const oregonRefresh = catalog.governedSourceServices.find(service => service.sourceId === "or-business-registry");
+  assert.equal(oregonRefresh.readinessStatus, "HOLD");
+  assert.equal(oregonRefresh.dispatchAvailable, false);
+  assert.equal(oregonRefresh.retainedRelease.activeRegistrationsPublished, 559874);
+  assert.equal(catalog.collectionSources.some(source => source.id === "or-business-registry"), false);
 
   const refreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "ia-business-registry" } });
   assert.equal(refreshPlanResponse.status, 200);
@@ -147,6 +158,16 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   const refreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "ia-business-registry" } });
   assert.equal(refreshStartResponse.status, 409);
   assert.match((await refreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
+  assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
+  const orRefreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "or-business-registry" } });
+  assert.equal(orRefreshPlanResponse.status, 200);
+  const orRefreshPlan = await orRefreshPlanResponse.json();
+  assert.equal(orRefreshPlan.operationCreated, false);
+  assert.equal(orRefreshPlan.networkRequestCount, 0);
+  assert.equal(orRefreshPlan.allocationCount, 0);
+  const orRefreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "or-business-registry" } });
+  assert.equal(orRefreshStartResponse.status, 409);
+  assert.match((await orRefreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
   assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
 
   const bad = await request(fixture.base, "/api/data-operations/exports", { method: "POST", body: { format: "xml" } });
