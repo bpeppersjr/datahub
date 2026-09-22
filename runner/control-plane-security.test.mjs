@@ -158,6 +158,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/business-map/features?level=states"],
     ["GET", "/api/business-map/state-summary"],
     ["GET", "/api/business-map/goal-completion"],
+    ["GET", "/api/business-map/state-access?state=NY&industry=retail-consumer"],
     ["GET", "/api/business-map/names?zip=12345"],
     ["GET", "/api/business-map/state-names?state=47&category=childcare"],
     ["GET", "/api/data-operations/catalog"],

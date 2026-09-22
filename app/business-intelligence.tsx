@@ -122,9 +122,19 @@ type GoalCompletion = {
   jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; percent: number | null; broad_layer_gap: boolean }>;
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
 };
+type StateAccess = {
+  accessEvidenceStatus: string;
+  temporalStatus: { status: string; positiveEvidenceItems: number; statusCounts: Record<string, number>; activeBusinessVerified: false; generalBusinessOperatingStatusAsserted: false };
+  exactBindings: Array<{ evidenceType: string; sourceId: string | null; recordCount: number | null; temporalEvidence: { binding: string; status: string; sourceReferenceField: string | null; sourceReferenceValue: string | number | null; reviewDueDate: string | null; evidenceScope: string } }>;
+  annualAggregateContext?: { referenceYear: number; naics: string; nonemployerEstablishments: number; nationalSameIndustryNonemployerEstablishments: number; percentOfNationalSameIndustry: number; zipOrZctaInferencePermitted: false; collectionCompletenessPercent: null };
+  retainedDirectoryEvidence: Array<{ sourceId: string; directoryRows: number; sourceReleased: string; namedBusinessCount: null; physicalSiteCount: null; currentOperatingCount: null; nationalCompletenessPercent: null; currentUspsAssignmentVerified: false; zctaMembershipInferred: false }>;
+  limitations: string[];
+};
 
 const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'retail-consumer': 'retail-consumer', 'health-care': 'health-care', 'financial-services': 'financial-services', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities', transportation: 'transportation' };
 function matrixCategory(categoryId: string) { return MATRIX_CATEGORY[categoryId] ?? null; }
+const STATE_ACCESS_INDUSTRIES=new Set(['retail-consumer','health-care','financial-services','transportation','childcare']);
+function stateAccessIndustry(categoryId:string){return STATE_ACCESS_INDUSTRIES.has(categoryId)?categoryId:undefined;}
 
 function GoalCompletionSummary({ state, categoryId }: { state?: string; categoryId: string }) {
   const [view, setView] = useState<GoalCompletion | null>(null);
@@ -394,9 +404,9 @@ function BusinessNames({ selectedZip, stateFips, stateName, categoryId, canDrill
 
   return (
     <section className="business-name-drill">
-      <div className="name-drill-heading"><div><span>Business-name drill-down</span><strong>{missingZip ? `${stateName || stateFips} · ZIP unavailable` : selectedZip ? `ZIP ${selectedZip}` : 'Select a ZIP polygon'}</strong></div>{canQuery && <input aria-label="Filter business names" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Filter names" />}</div>
-      {stateFips && canDrill && <label className="business-name-scope">Address scope <select aria-label="Business name address scope" value={scope} onChange={event => changeScope(event.target.value === 'missing' ? 'missing' : 'zip')}><option value="zip">Selected ZIP</option><option value="missing">ZIP unavailable in this state</option></select></label>}
-      {!selectedZip && !missingZip && <p>Click a state, then county, then a five-digit ZCTA to inspect governed physical-location names, or choose ZIP-unavailable records for the selected state.</p>}
+      <div className="name-drill-heading"><div><span>Business-name drill-down by reported ZIP5</span><strong>{missingZip ? `${stateName || stateFips} · reported ZIP5 unavailable` : selectedZip ? `Reported ZIP5 ${selectedZip} · matches selected ZCTA identifier, not boundary membership` : 'Select a Census ZCTA polygon'}</strong></div>{canQuery && <input aria-label="Filter business names" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder="Filter names" />}</div>
+      {stateFips && canDrill && <label className="business-name-scope">Address scope <select aria-label="Business name address scope" value={scope} onChange={event => changeScope(event.target.value === 'missing' ? 'missing' : 'zip')}><option value="zip">Reported ZIP5 matching ZCTA identifier</option><option value="missing">Reported ZIP5 unavailable in this state</option></select></label>}
+      {!selectedZip && !missingZip && <p>Click a state, then county, then a five-digit Census ZCTA polygon to inspect names indexed by the matching source-reported ZIP5, or choose records with reported ZIP5 unavailable. ZCTA is not a USPS ZIP boundary.</p>}
       {!canDrill && <p>This category contains organization-address assertions, not physical-location profiles, so names are not exposed by this map index.</p>}
       {missingZip && <p>Source records without a usable ZIP, across the selected state—not just the selected county. ZIPs are not inferred from coordinates.</p>}
       {loading && <p role="status">{missingZip ? 'Loading records without a source ZIP…' : 'Scanning the matching ZIP partition…'}</p>}
@@ -435,6 +445,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      <StateAccessSummary key={`${state?.postal_abbreviation??''}:${categoryId}`} state={state?.postal_abbreviation} industry={stateAccessIndustry(categoryId)} />
       <GoalCompletionSummary state={state?.postal_abbreviation} categoryId={categoryId} />
       <DatasetRepresentation stateFips={selectedStateFips} />
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
@@ -444,7 +455,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
         <dl><div><dt>State-assigned category evidence</dt><dd>{count(nationalCategoryCount)}</dd></div><div><dt>State-assigned all-category evidence</dt><dd>{count(stateSummary.national_all_category_evidence_count)}</dd></div><div><dt>Share of state-assigned national evidence</dt><dd>{percent(nationalCategoryShare)}</dd></div></dl>
         <p className="entity-method-note">{stateSummary.national_percentage_basis?.geography_scope ?? '50 states and District of Columbia'}. Category count ÷ all-category count. {stateSummary.assignment.semantics} Excludes {count(Number(stateSummary.assignment.excluded_ambiguous_business_evidence))} ambiguous and {count(Number(stateSummary.assignment.excluded_unmatched_business_evidence))} unmatched evidence records. Categories group source evidence and may overlap. The percentage of all U.S. businesses collected is unknown.</p>
       </section>}
-      <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or ZIP details appear here after selection.'}</small></div>
+      <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level==='zip'?'CENSUS ZCTA POLYGON':properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or Census ZCTA polygon details appear here after selection.'}</small></div>
       {properties ? <>
         <div className="entity-stat-grid">
           <div><span>Observed business units</span><strong>{count(properties.observed_business_units)}</strong><small>Provisional establishments</small></div>
@@ -473,6 +484,20 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 export default function BusinessIntelligence() {
   const [mode,setMode]=useState('business');
   return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="census-industry">Census employer industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:mode==='census-industry'?<CensusZbpIndustryHeatmap/>:<BusinessEvidenceMap/>}</div>;
+}
+
+function StateAccessSummary({state,industry}:{state?:string;industry?:string}){
+  const [view,setView]=useState<StateAccess|null>(null),[error,setError]=useState(false);
+  useEffect(()=>{if(!state||!industry||industry==='all')return;const controller=new AbortController(),query=new URLSearchParams({state,industry});void runnerJson<StateAccess>(`/api/business-map/state-access?${query}`,{signal:controller.signal}).then(value=>setView(value)).catch(reason=>{if(reason?.name!=='AbortError')setError(true);});return()=>controller.abort();},[state,industry]);
+  if(!state||!industry)return <section className="state-alignment-card"><div><span>Governed state-industry evidence</span><strong>{state?'Category outside schema-4 industry buckets':'Select a state and governed industry'}</strong></div><p className="entity-method-note">No unlike record units are combined into a synthetic completeness measure.</p></section>;
+  if(error)return <section className="state-alignment-card"><div><span>Governed state-industry evidence</span><strong>Unavailable</strong></div><p className="entity-method-note">The exact enrolled schema-4 report could not be verified; no fallback was substituted.</p></section>;
+  if(!view)return <section className="state-alignment-card"><div><span>Governed state-industry evidence</span><strong>Verifying exact report…</strong></div></section>;
+  return <section className="state-alignment-card state-access-card" aria-label="Governed state industry access evidence"><div><span>Governed state-industry evidence</span><strong>{state} · {industry.replaceAll('-',' ')}</strong></div>
+    <dl><div><dt>Access evidence</dt><dd>{view.accessEvidenceStatus.replaceAll('-',' ')}</dd></div><div><dt>Worst temporal status</dt><dd>{view.temporalStatus.status.replaceAll('-',' ')}</dd></div><div><dt>Exact temporal bindings</dt><dd>{view.exactBindings.length} / {view.temporalStatus.positiveEvidenceItems}</dd></div><div><dt>All-business completion</dt><dd>Unknown</dd></div></dl>
+    <details><summary>Temporal source bindings</summary>{view.exactBindings.map((item,index)=><p key={`${item.sourceId}:${index}`}><strong>{item.sourceId??item.evidenceType}</strong> — {item.temporalEvidence.status.replaceAll('-',' ')}; {item.temporalEvidence.sourceReferenceField??'publisher reference'}: {String(item.temporalEvidence.sourceReferenceValue??'missing')}; review due {item.temporalEvidence.reviewDueDate??'unmeasured'}. <small>{item.temporalEvidence.evidenceScope.replaceAll('-',' ')}</small></p>)}</details>
+    {view.annualAggregateContext&&<div className="entity-method-note"><strong>Annual aggregate context — {view.annualAggregateContext.referenceYear} NAICS {view.annualAggregateContext.naics}</strong><br/>{count(view.annualAggregateContext.nonemployerEstablishments)} state nonemployer establishments · {percent(view.annualAggregateContext.percentOfNationalSameIndustry)} of {count(view.annualAggregateContext.nationalSameIndustryNonemployerEstablishments)} nationwide in the same industry. Context only: not named businesses, current operations, collection completeness, ZIP5, or ZCTA allocation.</div>}
+    {view.retainedDirectoryEvidence.map(item=><div className="entity-method-note" key={item.sourceId}><strong>{item.sourceId.replaceAll('-',' ')}</strong><br/>{count(item.directoryRows)} publisher directory rows · source released {item.sourceReleased}. Not named-business, physical-site, current-operation, completeness, current USPS ZIP, or Census ZCTA evidence.</div>)}
+  </section>;
 }
 
 function BusinessEvidenceMap() {
@@ -567,14 +592,14 @@ function BusinessEvidenceMap() {
             <label><span>Minimum housing units</span><input aria-label="Minimum housing units" type="number" min="0" step="1" inputMode="numeric" value={minHousingUnits} onChange={(event) => { setMinHousingUnits(event.target.value); setZipFeature(null); }} placeholder="No minimum" /></label>
             <button type="button" onClick={() => { setMinPopulation(''); setMinHousingUnits(''); }}>Clear filters</button>
           </fieldset>
-          <div className="scope-card"><span>Current scope</span><strong>{selectedZip ? `ZIP ${selectedZip}` : countyName || stateName || 'United States'}</strong><small>{activeCategory?.label}</small></div>
+          <div className="scope-card"><span>Current scope</span><strong>{selectedZip ? `Census ZCTA ${selectedZip}` : countyName || stateName || 'United States'}</strong><small>{activeCategory?.label}</small></div>
         </aside>
         <div className="map-stage">
-          <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>ZIP {selectedZip}</strong></>}</nav>
+          <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>Census ZCTA {selectedZip}</strong></>}</nav>
           {loading && <div className="map-loading overlay">Loading {level} polygons and evidence…</div>}
           {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
-          <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed ZCTAs materially intersect the selected county; their direct ZIP values are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
+          <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
         </div>
         <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} geographyHash={data?.geography_manifest_sha256} mapRevision={data} />
       </div>}

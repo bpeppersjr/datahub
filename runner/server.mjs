@@ -25,6 +25,7 @@ import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
 import { createCensusZbpIndustryView } from './census-zbp-industry-view.mjs';
 import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
+import { stateAccessView } from './state-access-view.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
@@ -491,6 +492,11 @@ const server = http.createServer(async (request, response) => {
         json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : 'Goal-completion matrix is unavailable.' });
       }
       return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/state-access'){
+      if([...url.searchParams.keys()].some(key=>!['state','industry'].includes(key))||['state','industry'].some(key=>url.searchParams.getAll(key).length!==1)){json(response,400,{error:'Unsupported or repeated state-access option.'});return;}
+      try{json(response,200,await stateAccessView({state:url.searchParams.get('state'),industry:url.searchParams.get('industry')}));}
+      catch(error){json(response,/Invalid|outside/.test(error.message)?400:503,{error:/Invalid|outside/.test(error.message)?error.message:'State-access evidence is unavailable.'});}return;
     }
 
     if (request.method === 'GET' && url.pathname === '/api/business-map/state-names') {

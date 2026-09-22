@@ -21,3 +21,10 @@ test("goal-completion API is read-only, closed to unknown options, and behind sh
   assert.match(server, /\['state', 'category'\]/);
   assert.equal(server.includes("publishNationalGoalCompletionMatrix"), false);
 });
+
+test("schema-4 state access is first in the entity panel and distinguishes ZCTA polygons from ZIP5",()=>{
+  assert.ok(ui.indexOf('<StateAccessSummary')<ui.indexOf('<GoalCompletionSummary'));
+  for(const text of ['Worst temporal status','Exact temporal bindings','Annual aggregate context','All-business completion</dt><dd>Unknown','Census ZCTA polygon','source-reported ZIP5 values are address fields, not polygon boundaries'])assert.ok(ui.includes(text),text);
+  assert.match(server,/\/api\/business-map\/state-access/);assert.ok(server.indexOf('controlPlane.authorize(request)')<server.indexOf("url.pathname==='/api/business-map/state-access'"));assert.match(server,/getAll\(key\)\.length!==1/);
+  assert.equal(server.includes('writeStateAccessReport'),false);
+});
