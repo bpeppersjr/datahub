@@ -771,19 +771,23 @@ export async function buildIaBusinessRegistry({
     artifacts,
   };
   await writeFile(path.join(stagingDirectory, "manifest.json"), json(manifest), { flag: "wx" });
-  return publishIaBusinessRegistryStaging({ outputRoot, stagingRunId: runId });
+  return publishIaBusinessRegistryStaging({ outputRoot, stagingRunId: runId, signal });
 }
 
-export async function publishIaBusinessRegistryStaging({ outputRoot, stagingRunId } = {}) {
+export async function publishIaBusinessRegistryStaging({ outputRoot, stagingRunId, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f-]{36}$/i.test(stagingRunId ?? "")) throw new Error("outputRoot and a UUID stagingRunId are required.");
   const stagingDirectory = path.join(outputRoot, ".staging", stagingRunId);
   assertContained(outputRoot, stagingDirectory, "Iowa staging directory");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "ia-business-registry-active-entities") throw new Error("Iowa staged manifest identity does not match the requested run.");
   await verifyIaBusinessRegistry(manifestPath);
+  signal?.throwIfAborted?.();
   const releaseDirectory = path.join(outputRoot, "releases", manifest.release_id);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const pointerTemporary = `${pointerPath}.tmp-${randomUUID()}`;

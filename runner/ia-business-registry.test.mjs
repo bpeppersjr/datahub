@@ -12,6 +12,7 @@ import {
   IA_BUSINESS_REGISTRY_SELECTED_FIELDS,
   IA_BUSINESS_REGISTRY_SELECTED_SCHEMA,
   normalizeIaBusinessEntity,
+  publishIaBusinessRegistryStaging,
   requestIaColumns,
   requestIaMetadata,
   schemaFingerprint,
@@ -241,4 +242,16 @@ test("blocks Iowa schema drift, duplicate identity, count drift, and pre-cancell
   const controller = new AbortController();
   controller.abort();
   await assert.rejects(() => buildIaBusinessRegistry({ outputRoot: path.join(root, "cancelled"), zbpPointer, metadataResponse: metadata({ numRows: 1 }), columns: columns(), sourceRecords: [row()], minimumEntities: 1, signal: controller.signal, logger: () => {} }), { name: "AbortError" });
+});
+
+test("refuses a pre-cancelled Iowa staged publication before filesystem work", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ia-business-publish-cancel-test-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(() => publishIaBusinessRegistryStaging({
+    outputRoot: path.join(root, "output"),
+    stagingRunId: "11111111-1111-4111-8111-111111111111",
+    signal: controller.signal,
+  }), { name: "AbortError" });
 });

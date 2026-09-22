@@ -8,6 +8,7 @@ import {
   IA_BUSINESS_REGISTRY_SELECTED_SCHEMA,
   publishIaBusinessRegistryStaging,
 } from "../runner/ia-business-registry.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
 
 function usage() {
@@ -63,10 +64,12 @@ function validUuid(value, argument) {
   }
 }
 
-async function resumedSource(outputRoot, runId) {
+async function resumedSource(outputRoot, runId, signal) {
   if (!runId) return null;
+  signal?.throwIfAborted?.();
   const sourceDirectory = assertInsideApp(path.join(outputRoot, ".staging", runId, "source"));
   const preflight = JSON.parse(await readFile(path.join(sourceDirectory, "preflight.json"), "utf8"));
+  signal?.throwIfAborted?.();
   return {
     sourceArchivePath: assertInsideApp(path.join(sourceDirectory, "active_iowa_business_entities_554_rows.zip")),
     metadataResponse: {
@@ -87,26 +90,27 @@ async function resumedSource(outputRoot, runId) {
   };
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     process.stdout.write(usage());
-    process.exit(0);
-  }
+  } else {
   validUuid(options.resumeStagingRun, "--resume-staging-run");
   validUuid(options.resumeSourceStagingRun, "--resume-source-staging-run");
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
-  const resumed = await resumedSource(outputRoot, options.resumeSourceStagingRun);
+  const resumed = await resumedSource(outputRoot, options.resumeSourceStagingRun, cancellation.signal);
   if (resumed && JSON.stringify(resumed.columns.map(({ name, type }) => [name, type])) !== JSON.stringify(IA_BUSINESS_REGISTRY_SELECTED_SCHEMA)) {
     throw new Error("Staged Iowa selected schema does not match the current connector contract.");
   }
   const result = options.resumeStagingRun
-    ? await publishIaBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishIaBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildIaBusinessRegistry({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       minimumEntities: options.minimumEntities,
       ...resumed,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -115,7 +119,11 @@ try {
     manifest: path.join(result.releaseDirectory, "manifest.json"),
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
+  }
 } catch (error) {
-  process.stderr.write(`Iowa Business Registry build failed: ${error.message}\n`);
+  if (cancellation.signal.aborted) process.stderr.write("Iowa Business Registry build cancelled; inspect retained run evidence before resuming.\n");
+  else process.stderr.write(`Iowa Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }
