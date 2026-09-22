@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-21` after the offline USPS City State denominator-candidate contract was added. Do not execute or approve this plan.
+
 Fresh governed planning completed after the application exposed the preserved CMS retained-adoption manifest and selected-artifact hashes and the narrative source-readiness record was aligned with the machine-validated 51-jurisdiction catalog. The catalog reports 41 holds, two bounded-connector decisions, eight retained production-ready broad layers, and zero autonomous acquisitions. Production-ready does not mean complete active-business coverage. Collector stop/restart restoration passed with one listener, a healthy application endpoint, and an unauthenticated management request correctly rejected. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-20`
