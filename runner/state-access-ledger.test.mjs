@@ -21,7 +21,12 @@ async function fixture(t, {retained = false} = {}) {
   const irsManifestPath = path.join(path.dirname(irsPointerPath), irsPointer.manifest);
   const irsManifest = JSON.parse(await readFile(path.join(APP_ROOT, irsManifestPath)));
   const irsSummary = irsManifest.artifacts.find(a => a.artifact_type === 'irs-eo-bmf-source-summary');
-  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
+  const waPointerPath = 'data/business-sources/wa-lni-active-contractor-organizations/current.json';
+  const waPointer = JSON.parse(await readFile(path.join(APP_ROOT, waPointerPath)));
+  const waManifestPath = path.join(path.dirname(waPointerPath), waPointer.manifest);
+  const waManifest = JSON.parse(await readFile(path.join(APP_ROOT, waManifestPath)));
+  const waSummary = waManifest.artifacts.find(a => a.artifact_type === 'wa-lni-active-contractor-licenses-source-summary');
+  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), waPointerPath, waManifestPath, path.join(path.dirname(waManifestPath), waSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
   // Existing enrollment cases explicitly exercise pre-integration coverage.
   if (!retained) {
@@ -34,8 +39,43 @@ async function fixture(t, {retained = false} = {}) {
     await writeFile(file,bytes); artifact.bytes=bytes.length; artifact.sha256=createHash('sha256').update(bytes).digest('hex');
     await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
   }
-  return { root, manifestPath, manifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
+  return { root, manifestPath, manifest, waManifestPath, waManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
 }
+
+test('WA contractor publisher cohort supplies direct WA-only construction evidence', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const wa = ledger.jurisdictions.find(row => row.state === 'WA').industries.find(row => row.industry === 'construction');
+  assert.equal(wa.accessEvidenceStatus, 'direct-state-publisher');
+  const evidence = wa.evidence.find(item => item.type === 'published-direct-state-contractor-license-organization-count');
+  assert.equal(evidence.recordCount, 72819);
+  assert.equal(evidence.rowUnit, 'publisher-ubi-organization-with-one-or-more-a-active-contractor-license-rows');
+  assert.equal(evidence.identityMatchingEligible, false); assert.equal(evidence.physicalSiteEligible, false);
+  assert.equal(evidence.currentOperationsVerified, false); assert.equal(evidence.uniqueBusinessCount, null);
+  assert.match(evidence.aggregateDistribution, /pddl/); assert.equal(evidence.exportPolicy, 'local-review-only');
+  for (const state of ledger.jurisdictions.filter(row => row.state !== 'WA' && row.state !== 'MN')) {
+    const cell = state.industries.find(row => row.industry === 'construction');
+    assert.notEqual(cell.accessEvidenceStatus, 'direct-state-publisher');
+    assert.notEqual(cell.accessEvidenceStatus, 'national-dataset-state-evidence');
+    assert.equal(cell.evidence.some(item => item.type === evidence.type), false);
+  }
+});
+
+test('WA contractor admission rejects tampered, malformed, and non-positive summaries', async (t) => {
+  for (const mutate of [
+    summary => { summary.active_contractor_organizations = 0; },
+    summary => { summary.active_contractor_organizations = '72819'; },
+    summary => { summary.active_contractor_organizations -= 1; },
+  ]) {
+    const f = await fixture(t); const artifact = f.waManifest.artifacts.find(a => a.artifact_type === 'wa-lni-active-contractor-licenses-source-summary');
+    const file = path.join(f.root, path.dirname(f.waManifestPath), artifact.path); const summary = JSON.parse(await readFile(file)); mutate(summary);
+    const bytes = Buffer.from(JSON.stringify(summary)); await writeFile(file, bytes); artifact.bytes = bytes.length; artifact.sha256 = createHash('sha256').update(bytes).digest('hex');
+    await writeFile(path.join(f.root, f.waManifestPath), JSON.stringify(f.waManifest));
+    await assert.rejects(buildStateAccessLedger(f), /Washington contractor source summary/);
+  }
+  const f = await fixture(t); const artifact = f.waManifest.artifacts.find(a => a.artifact_type === 'wa-lni-active-contractor-licenses-source-summary');
+  await writeFile(path.join(f.root, path.dirname(f.waManifestPath), artifact.path), '{}');
+  await assert.rejects(buildStateAccessLedger(f), /integrity/);
+});
 
 test('IRS filing-address aggregate supplies national state evidence without profile, site, identity, or completeness claims', async (t) => {
   const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
@@ -334,13 +374,6 @@ test('state access reports are unique local artifacts and preserve their evidenc
   assert.notEqual(first.reportPath, second.reportPath);
   assert.ok(path.relative(f.root, first.reportPath).replaceAll('\\', '/').startsWith('data/state-access/reports/'));
   assert.equal(createHash('sha256').update(await readFile(first.reportPath)).digest('hex'), createHash('sha256').update(before).digest('hex'));
-});
-
-test('state ledger does not treat a configured state connector as measured access', async (t) => {
-  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
-  const construction = ledger.jurisdictions.find(r => r.state === 'WA').industries.find(r => r.industry === 'construction');
-  assert.notEqual(construction.accessEvidenceStatus, 'direct-state-publisher');
-  assert.match(construction.accessEvidenceStatus, /not-measured|configured|unsupported/);
 });
 
 test('MA childcare app enrollment does not manufacture national reporting evidence', async (t) => {

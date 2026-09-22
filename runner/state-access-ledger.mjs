@@ -136,6 +136,32 @@ async function governedIrsStateEvidence(root, catalogPath) {
   return { counts, source, contract, releaseId: manifest.value.release_id, manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
 }
 
+async function governedWaContractorEvidence(root, pointerPath) {
+  const pointer = await readPinnedJson(root, pointerPath);
+  const manifest = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pointer.file), pointer.value.manifest)));
+  if (pointer.value.dataset_id !== "wa-lni-active-contractor-organizations"
+    || manifest.value.dataset_id !== pointer.value.dataset_id
+    || manifest.value.release_id !== pointer.value.release_id
+    || manifest.value.status !== "published") throw new Error("Washington contractor pointer does not identify a published release.");
+  const artifacts = manifest.value.artifacts?.filter((item) => item.artifact_type === "wa-lni-active-contractor-licenses-source-summary") ?? [];
+  if (artifacts.length !== 1 || !Number.isSafeInteger(artifacts[0].bytes) || artifacts[0].bytes <= 0 || !/^[a-f0-9]{64}$/.test(artifacts[0].sha256)) throw new Error("Washington contractor release must contain one verified source summary.");
+  const summaryPath = inside(root, path.resolve(path.dirname(manifest.file), artifacts[0].path));
+  await rejectLinks(root, summaryPath);
+  const bytes = await readFile(summaryPath);
+  if (bytes.length !== artifacts[0].bytes || digest(bytes) !== artifacts[0].sha256) throw new Error("Washington contractor source summary integrity failed.");
+  const summary = JSON.parse(bytes);
+  const count = summary.active_contractor_organizations;
+  if (!Number.isSafeInteger(count) || count <= 0
+    || count !== manifest.value.coverage?.organizations_published
+    || summary.active_contractor_license_source_rows !== manifest.value.coverage?.source_active_contractor_license_rows
+    || summary.active_contractor_license_activities !== manifest.value.coverage?.active_contractor_license_activities
+    || manifest.value.coverage?.physical_sites !== null || manifest.value.coverage?.establishments !== null) {
+    throw new Error("Washington contractor source summary has invalid or unreconciled cohort semantics.");
+  }
+  return { count, releaseId: manifest.value.release_id, sourceReleaseId: manifest.value.source_release_id,
+    manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
+}
+
 async function governedStates(root, pointer) {
   const pp = await readPinnedJson(root, pointer);
   const mp = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pp.file), pp.value.manifest)));
@@ -172,10 +198,10 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
   const assessmentStates = assessments.states ?? [];
   if (!Array.isArray(assessmentStates) || assessmentStates.some((item) => !CANONICAL.has(item.state_abbreviation)) || new Set(assessmentStates.map((item) => item.state_abbreviation)).size !== assessmentStates.length) throw new Error("Assessment states must contain unique canonical state codes.");
   for (const sourceKeys of Object.values(industryRead.value.industries)) for (const key of sourceKeys) if (!Object.hasOwn(PROFILE_IDS, key)) throw new Error(`Industry source ${key} has no explicit coverage profile mapping.`);
@@ -204,6 +230,16 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
             addressBasis: "reported-address-state", identityMatchingEligible: false, physicalSiteEligible: false,
             currentOperationsVerified: false, exportPolicy: metric.export_policy, nationalCompletenessPercent: null });
         }
+      }
+      if (industryId === "construction" && state === "WA") {
+        direct = true;
+        evidence.push({ type: "published-direct-state-contractor-license-organization-count", evidenceClass: "washington-publisher-active-contractor-license-organization-cohort",
+          sourceId: "washington-lni-active-contractor-licenses", sourceReleaseId: waContractorEvidence.sourceReleaseId,
+          recordCount: waContractorEvidence.count, rowUnit: "publisher-ubi-organization-with-one-or-more-a-active-contractor-license-rows",
+          artifactPath: waContractorEvidence.artifactPath, artifactSha256: waContractorEvidence.artifactSha256,
+          sourceManifestSha256: waContractorEvidence.manifestSha256, identityMatchingEligible: false, physicalSiteEligible: false,
+          currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
+          exportPolicy: "local-review-only", aggregateDistribution: "public-under-pddl-with-l-and-i-attribution-and-semantic-limitations" });
       }
       for (const key of sourceKeys) {
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
