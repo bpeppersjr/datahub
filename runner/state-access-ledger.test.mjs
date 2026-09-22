@@ -4,9 +4,70 @@ import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile
 import path from 'node:path';
 import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
-import { buildStateAccessLedger, projectNhRestrictedChildcareEvidence, writeStateAccessReport } from './state-access-ledger.mjs';
+import { buildStateAccessLedger, projectCmsNursingHomeReadiness, projectNhRestrictedChildcareEvidence, writeStateAccessReport } from './state-access-ledger.mjs';
+import { loadCmsNursingHomeReportingInput } from './cms-nursing-home-reporting-input.mjs';
 import { loadStateBusinessSourceAssessmentCatalog } from './state-business-source-assessment.mjs';
 import { BROAD_ORGANIZATION_SOURCES } from './broad-organization-evidence.mjs';
+
+test('retained CMS nursing-home rows add governed state and territory readiness without changing access status', async () => {
+  const temporalAsOf = new Date('2026-09-22T05:00:00.000Z');
+  const withoutReadiness = await buildStateAccessLedger({ cmsNursingHomeReadinessLoader: async () => null, temporalAsOf });
+  const ledger = await buildStateAccessLedger({ temporalAsOf });
+  assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, withoutReadiness.summary.accessEvidenceStatusCounts);
+  assert.equal(ledger.summary.retainedCmsNursingHomeStateDirectoryEvidenceCells, 51);
+  assert.equal(withoutReadiness.summary.retainedCmsNursingHomeStateDirectoryEvidenceCells, 0);
+
+  const stateEvidence = [];
+  for (const jurisdiction of ledger.jurisdictions) {
+    const prior = withoutReadiness.jurisdictions.find((item) => item.state === jurisdiction.state);
+    const cell = jurisdiction.industries.find((item) => item.industry === 'health-care');
+    const priorCell = prior.industries.find((item) => item.industry === 'health-care');
+    assert.equal(cell.accessEvidenceStatus, priorCell.accessEvidenceStatus);
+    assert.deepEqual(cell.evidence, priorCell.evidence);
+    assert.equal(cell.retainedDirectoryEvidence.reportedAddressState, jurisdiction.state);
+    assert.equal(cell.retainedDirectoryEvidence.formatValidZip5Rows, cell.retainedDirectoryEvidence.directoryRows);
+    assert.equal(cell.retainedDirectoryEvidence.missingOrInvalidZip5Rows, 0);
+    assert.equal(cell.retainedDirectoryEvidence.separateZip4Rows, 0);
+    assert.equal(cell.retainedDirectoryEvidence.publisherCoordinateRows, cell.retainedDirectoryEvidence.directoryRows);
+    assert.equal(cell.retainedDirectoryEvidence.spatiallyApprovedCoordinateRows, 0);
+    assert.equal(cell.retainedDirectoryEvidence.namedBusinessCount, null);
+    assert.equal(cell.retainedDirectoryEvidence.currentOperatingCount, null);
+    assert.equal(cell.retainedDirectoryEvidence.currentUspsAssignmentVerified, false);
+    assert.equal(cell.retainedDirectoryEvidence.zctaMembershipInferred, false);
+    assert.equal(cell.retainedDirectoryEvidence.countyAssignmentPerformed, false);
+    assert.equal(cell.retainedDirectoryEvidence.spatialAssignmentPerformed, false);
+    stateEvidence.push(cell.retainedDirectoryEvidence);
+  }
+  assert.equal(stateEvidence.reduce((sum, item) => sum + item.directoryRows, 0), 14680);
+  const territories = ledger.evidence.retainedCmsNursingHomeTerritoryEvidence;
+  assert.equal(territories.directoryRows, 10);
+  assert.deepEqual(territories.byReportedAddressTerritory, { GU: 1, PR: 9 });
+  assert.equal(territories.formatValidZip5Rows, 10);
+  assert.equal(territories.separateZip4Rows, 0);
+  assert.equal(territories.publisherCoordinateRows, 10);
+  assert.equal(territories.spatiallyApprovedCoordinateRows, 0);
+  assert.equal(stateEvidence.reduce((sum, item) => sum + item.directoryRows, 0) + territories.directoryRows, 14690);
+});
+
+test('CMS nursing-home readiness rejects pin, ZIP, coordinate, identity, operation and conservation tampering', async () => {
+  const retained = await loadCmsNursingHomeReportingInput();
+  const changeEvidence = (change) => ({ ...retained, evidence: change(structuredClone(retained.evidence)), rows: retained.rows });
+  const changeRow = (change) => {
+    const rows = [...retained.rows];
+    rows[0] = structuredClone(rows[0]);
+    change(rows[0], rows);
+    return { ...retained, evidence: retained.evidence, rows };
+  };
+  assert.throws(() => projectCmsNursingHomeReadiness(changeEvidence((evidence) => (evidence.manifestSha256 = '0'.repeat(64), evidence))), /readiness evidence/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeEvidence((evidence) => (evidence.selectionSha256 = '0'.repeat(64), evidence))), /readiness evidence/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeEvidence((evidence) => (evidence.selectedArtifact.sha256 = '0'.repeat(64), evidence))), /readiness evidence/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeRow((row) => { row.reportedAddress.postal.zip5 = '00000'; })), /readiness row/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeRow((row) => { row.reportedAddress.postal.zip4 = '1234'; })), /readiness row/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeRow((row) => { row.sourceGeocode.facilityPointEligible = true; })), /readiness row/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeRow((row) => { row.currentOperatingStatus = 'active'; })), /readiness row/);
+  assert.throws(() => projectCmsNursingHomeReadiness(changeRow((row, rows) => { row.identifier.value = rows[1].identifier.value; })), /readiness row/);
+  assert.throws(() => projectCmsNursingHomeReadiness({ ...retained, rows: retained.rows.slice(1) }), /readiness evidence/);
+});
 
 test('retained Census NES adds governed annual aggregate context without changing access evidence status', async () => {
   const temporalAsOf = new Date('2026-09-22T05:00:00.000Z');
