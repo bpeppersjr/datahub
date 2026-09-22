@@ -5,6 +5,7 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
@@ -66,10 +67,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted?.();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -401,9 +403,12 @@ async function loadZbpBaseline(pointerPath) {
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+async function* gzipRecords(filename, signal) {
+  const lines = createInterface({ input: createReadStream(filename, { signal }).pipe(createGunzip()), crlfDelay: Infinity });
+  for await (const line of lines) {
+    signal?.throwIfAborted?.();
+    if (line) yield JSON.parse(line);
+  }
 }
 
 function sourceSafeRecord(record) {
@@ -738,7 +743,7 @@ export async function buildWaLniActiveContractors({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishWaLniActiveContractorStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishWaLniActiveContractorStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} Washington L&I active-contractor organizations from ${activeLicenseActivities.toLocaleString("en-US")} license activities.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -749,7 +754,8 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishWaLniActiveContractorStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishWaLniActiveContractorStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -757,12 +763,14 @@ export async function publishWaLniActiveContractorStaging({ outputRoot, stagingR
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Washington L&I staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(manifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "wa-lni-active-contractor-organizations" || manifest.status !== "published") {
     throw new Error("Washington L&I staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Washington L&I staging release ID does not match the build result.");
-  await verifyWaLniActiveContractors(manifestPath);
+  await verifyWaLniActiveContractors(manifestPath,{signal});
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -772,7 +780,8 @@ export async function publishWaLniActiveContractorStaging({ outputRoot, stagingR
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await delay(250,undefined,{signal});
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -787,19 +796,22 @@ export async function publishWaLniActiveContractorStaging({ outputRoot, stagingR
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyWaLniActiveContractors(manifestPath) {
+export async function verifyWaLniActiveContractors(manifestPath,{signal}={}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
-  const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(absoluteManifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   const failures = [];
   if (manifest.dataset_id !== "wa-lni-active-contractor-organizations" || manifest.status !== "published" || !manifest.complete_selected_active_contractor_license_snapshot || manifest.raw_unselected_fields_retained !== false) failures.push({ path: "manifest.json", reason: "unexpected, incomplete, or over-retained manifest" });
   for (const artifact of manifest.artifacts ?? []) {
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -819,7 +831,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
     try {
       let previousUbi = null;
       let currentUbiLicenseNumbers = new Set();
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
         for (const field of Object.keys(record)) if (!WA_LNI_CONTRACTOR_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         if (containsExcludedField(record)) throw new Error("excluded source field leaked");
         const ubi = normalizedUbi(record.ubi);
@@ -833,6 +845,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
       }
       if (sourceRows !== sourceArtifacts[0].record_count || sourceRows !== manifest.coverage?.source_active_contractor_license_rows) throw new Error("source record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: sourceArtifacts[0].path, reason: `source validation failed: ${error.message}` });
     }
   }
@@ -850,7 +863,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const ubi = record.external_identifiers?.find((item) => item.type === "wa_unified_business_identifier")?.value;
         if (!/^\d{9}$/.test(ubi ?? "") || ids.has(ubi) || sha256(ubi)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned UBI ${ubi}`);
         ids.add(ubi);
@@ -892,6 +905,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
       if (partitionCount !== artifact.record_count) throw new Error("partition record count mismatch");
       organizations += partitionCount;
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
@@ -899,7 +913,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
   let quarantinedSourceRows = 0;
   if (quarantineArtifacts.length === 1) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path), signal)) {
         if (!/^\d{9}$/.test(record.source_ubi ?? "") || !new Set(["missing-or-invalid-organization-identity", "duplicate-or-missing-contractor-license-number"]).has(record.reason) || record.export_policy !== "internal" || record.source_release_id !== manifest.source_release_id || quarantineUbis.has(record.source_ubi) || ids.has(record.source_ubi) || !Number.isInteger(record.source_row_count) || record.source_row_count < 1) {
           throw new Error(`invalid quarantine group ${record.source_ubi}`);
         }
@@ -909,6 +923,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
       }
       if (quarantinedGroups !== quarantineArtifacts[0].record_count) throw new Error("quarantine group count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: quarantineArtifacts[0].path, reason: `quarantine validation failed: ${error.message}` });
     }
   }
@@ -930,6 +945,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
         if (row.wa_lni_active_contractor_license_snapshot.physical_site_count !== null || row.wa_lni_active_contractor_license_snapshot.physical_site_inference_permitted !== false) throw new Error(`ZIP ${row.zip_code} implies a physical site`);
       }
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }
@@ -938,6 +954,7 @@ export async function verifyWaLniActiveContractors(manifestPath) {
       const metadata = JSON.parse(await readFile(path.join(releaseDirectory, metadataArtifacts[0].path), "utf8"));
       if (metadata.dataset_id !== WA_LNI_CONTRACTOR_DATASET_ID || metadata.license_id !== "PDDL" || metadata.selected_schema_fingerprint !== WA_LNI_CONTRACTOR_SCHEMA_FINGERPRINT || JSON.stringify(metadata.selected_fields) !== JSON.stringify(WA_LNI_CONTRACTOR_FIELDS) || metadata.explicitly_excluded_fields?.sort().join(",") !== [...EXCLUDED_SOURCE_FIELDS].sort().join(",")) throw new Error("source governance metadata changed or is incomplete");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: metadataArtifacts[0].path, reason: `release metadata validation failed: ${error.message}` });
     }
   }

@@ -65,7 +65,7 @@ try {
     ? assertInsideApp(path.join(outputRoot, ".staging", options.resumeSourceStagingRun, "source", "active-contractor-license-rows.jsonl.gz"))
     : null;
   const result = options.resumeStagingRun
-    ? await publishWaLniActiveContractorStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishWaLniActiveContractorStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildWaLniActiveContractors({
       signal: cancellation.signal,
       outputRoot,
@@ -76,7 +76,7 @@ try {
     });
   process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, release_directory: result.releaseDirectory, manifest: path.join(result.releaseDirectory, "manifest.json"), coverage: result.manifest.coverage }, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`Washington L&I active-contractor build failed: ${error.message}\n`);
+  process.stderr.write(cancellation.signal.aborted ? "Washington L&I active-contractor build cancelled; inspect retained run evidence before resuming.\n" : `Washington L&I active-contractor build failed: ${error.message}\n`);
   process.exitCode = 1;
 } finally {
   cancellation.dispose();

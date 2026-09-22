@@ -4,6 +4,8 @@ import path from "node:path";
 import process from "node:process";
 import { buildIllinoisBusinessRegistry, publishIllinoisBusinessRegistryStaging } from "../runner/il-business-registry.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed offline Illinois corporation and LLC organization release.
@@ -69,8 +71,9 @@ try {
   }
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   const result = options.resumeStagingRun
-    ? await publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildIllinoisBusinessRegistry({
+      signal: cancellation.signal,
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       sourcePaths: {
@@ -86,6 +89,8 @@ try {
     });
   process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, release_directory: result.releaseDirectory, manifest: path.join(result.releaseDirectory, "manifest.json"), coverage: result.manifest.coverage }, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`Illinois Business Registry build failed: ${error.message}\n`);
+  process.stderr.write(cancellation.signal.aborted ? "Illinois Business Registry build cancelled; inspect retained run evidence before resuming.\n" : `Illinois Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

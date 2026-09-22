@@ -5,6 +5,7 @@ import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
@@ -64,10 +65,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted?.();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -386,9 +388,12 @@ async function loadZbpBaseline(pointerPath) {
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
-  for await (const line of lines) if (line) yield JSON.parse(line);
+async function* gzipRecords(filename, signal) {
+  const lines = createInterface({ input: createReadStream(filename, { signal }).pipe(createGunzip()), crlfDelay: Infinity });
+  for await (const line of lines) {
+    signal?.throwIfAborted?.();
+    if (line) yield JSON.parse(line);
+  }
 }
 
 function sourceSafeRecord(record) {
@@ -753,7 +758,7 @@ export async function buildOrBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishOrBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishOrBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${registrations.toLocaleString("en-US")} Oregon active registrations.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -764,7 +769,8 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishOrBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishOrBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -772,12 +778,14 @@ export async function publishOrBusinessRegistryStaging({ outputRoot, stagingRunI
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Oregon staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(manifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "or-business-registry-active-registrations" || manifest.status !== "published") {
     throw new Error("Oregon staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Oregon staging release ID does not match the build result.");
-  await verifyOrBusinessRegistry(manifestPath);
+  await verifyOrBusinessRegistry(manifestPath,{signal});
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -787,7 +795,8 @@ export async function publishOrBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await delay(250,undefined,{signal});
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -802,10 +811,12 @@ export async function publishOrBusinessRegistryStaging({ outputRoot, stagingRunI
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyOrBusinessRegistry(manifestPath) {
+export async function verifyOrBusinessRegistry(manifestPath,{signal}={}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
-  const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(absoluteManifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   const failures = [];
   if (manifest.dataset_id !== "or-business-registry-active-registrations" || manifest.status !== "published" || !manifest.complete_selected_active_registration_snapshot) {
     failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
@@ -814,9 +825,10 @@ export async function verifyOrBusinessRegistry(manifestPath) {
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -836,7 +848,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
     try {
       let sourceCount = 0;
       let previousRegistry = null;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
         for (const field of Object.keys(record)) if (!OR_BUSINESS_REGISTRY_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const registryNumber = text(record.registry_number);
         const rowId = text(record[":id"]);
@@ -854,6 +866,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
       if (sourceCount !== sourceArtifacts[0].record_count || sourceCount !== manifest.coverage?.source_principal_place_rows) throw new Error("source row count mismatch");
       if (sourceRowsByRegistration.size !== manifest.coverage?.distinct_source_registrations) throw new Error("distinct source registration count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: sourceArtifacts[0].path, reason: `source validation failed: ${error.message}` });
     }
   }
@@ -871,7 +884,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         const id = record.external_identifiers?.find((item) => item.type === "or_business_registry_number")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix || !sourceRowsByRegistration.has(id)) throw new Error(`duplicate, missing, or incorrectly partitioned registry number ${id}`);
         ids.add(id);
@@ -914,6 +927,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
       if (partitionCount !== artifact.record_count) throw new Error("partition record count mismatch");
       registrations += partitionCount;
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
@@ -922,7 +936,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
   let quarantinedSourceRows = 0;
   if (quarantineArtifacts.length === 1) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path), signal)) {
         if (!/^\d+$/.test(record.source_record_id ?? "") || !["missing-or-invalid-registration-identity", "inconsistent-registration-group"].includes(record.reason)
           || record.export_policy !== "internal" || record.source_release_id !== manifest.source_release_id || quarantineIds.has(record.source_record_id) || ids.has(record.source_record_id)
           || !Array.isArray(record.source_row_ids) || record.source_row_ids.length !== record.source_row_count) {
@@ -940,6 +954,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
       }
       if (quarantinedGroups !== quarantineArtifacts[0].record_count) throw new Error("quarantine record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: quarantineArtifacts[0].path, reason: `quarantine validation failed: ${error.message}` });
     }
   }
@@ -970,6 +985,7 @@ export async function verifyOrBusinessRegistry(manifestPath) {
       }
       if (total !== eligibleZipContributions) throw new Error("ZIP registration address counts do not reconcile");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }

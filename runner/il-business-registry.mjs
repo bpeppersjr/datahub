@@ -52,10 +52,11 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
+    signal?.throwIfAborted?.();
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -662,14 +663,15 @@ export async function buildIllinoisBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} Illinois active organization records for local review.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
 
-async function* gzipRecords(filename) {
+async function* gzipRecords(filename, signal) {
   let pending = "";
-  for await (const chunk of createReadStream(filename).pipe(createGunzip())) {
+  for await (const chunk of createReadStream(filename, { signal }).pipe(createGunzip())) {
+    signal?.throwIfAborted?.();
     pending += chunk.toString("utf8");
     let delimiter;
     while ((delimiter = pending.indexOf("\n")) >= 0) {
@@ -687,16 +689,19 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishIllinoisBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) throw new Error("outputRoot and a valid stagingRunId are required.");
   const stagingRoot = path.join(outputRoot, ".staging");
   const stagingDirectory = path.resolve(stagingRoot, stagingRunId);
   assertContained(stagingRoot, stagingDirectory, "Illinois staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(manifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "il-business-registry-active-organizations" || manifest.status !== "published") throw new Error("Illinois staging manifest does not match the requested complete run.");
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Illinois staging release ID does not match the build result.");
-  await verifyIllinoisBusinessRegistry(manifestPath);
+  await verifyIllinoisBusinessRegistry(manifestPath,{signal});
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -714,10 +719,12 @@ export async function publishIllinoisBusinessRegistryStaging({ outputRoot, stagi
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyIllinoisBusinessRegistry(manifestPath) {
+export async function verifyIllinoisBusinessRegistry(manifestPath,{signal}={}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
-  const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(absoluteManifestPath, {encoding:"utf8",signal}));
+  signal?.throwIfAborted?.();
   const failures = [];
   if (manifest.dataset_id !== "il-business-registry-active-organizations" || manifest.status !== "published" || manifest.export_policy !== "local-review-only" || !manifest.complete_official_daily_file_set) failures.push({ path: "manifest.json", reason: "unexpected, incomplete, or non-review-only manifest" });
   for (const [gate, value] of Object.entries(manifest.quality_gates ?? {})) {
@@ -731,9 +738,10 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
     try {
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -750,6 +758,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       if (manifest.source_release_id !== `il-business-registry-${metadata.source_run_date}-${digest.slice(0, 16)}` || metadata.source_run_date !== manifest.source_run_date) throw new Error("source release identity is not bound to all five input checksums and the common run date");
       if (new Set(SOURCE_KEYS.map((key) => metadata.documents[key].run_date)).size !== 1) throw new Error("metadata contains mixed source run dates");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: metadataArtifact.path, reason: error.message });
     }
   }
@@ -759,7 +768,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       let count = 0;
       const ids = new Set();
       const records = new Map();
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         if (!/^\d{8}$/.test(record.file_number ?? "") || ids.has(record.file_number) || containsExcludedField(record)) throw new Error(`invalid, duplicate, or non-minimized source record ${record.file_number}`);
         ids.add(record.file_number);
         records.set(record.file_number, record);
@@ -770,6 +779,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       if (!key || manifest.coverage?.source_records?.[key] !== count) throw new Error("source artifact does not reconcile to the manifest source count");
       sourceRecordsByKey.set(key, records);
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `source validation failed: ${error.message}` });
     }
   }
@@ -779,6 +789,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       assertSameSet(new Set(sourceRecordsByKey.get("corporation_master").keys()), new Set(sourceRecordsByKey.get("corporation_annual").keys()), "Verified corporation master/annual join");
       assertSameSet(new Set(sourceRecordsByKey.get("llc_master").keys()), new Set(sourceRecordsByKey.get("llc_name").keys()), "Verified LLC master/name join");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: "manifest.json", reason: error.message });
     }
   }
@@ -794,7 +805,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
         assertNormalizedUsPostalFieldsDeep(record);
         const identifier = record.external_identifiers?.find((item) => item.type === "il_sos_file_number");
         const identity = `${identifier?.entity_kind}:${identifier?.value}`;
@@ -828,6 +839,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       if (partitionCount !== artifact.record_count) throw new Error("normalized partition count mismatch");
       organizations += partitionCount;
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
@@ -853,6 +865,7 @@ export async function verifyIllinoisBusinessRegistry(manifestPath) {
       }
       if (total !== eligibleAddresses) throw new Error("ZIP address counts do not reconcile");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }

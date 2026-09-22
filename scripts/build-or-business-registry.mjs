@@ -9,6 +9,8 @@ import {
   publishOrBusinessRegistryStaging,
 } from "../runner/or-business-registry.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
+const cancellation = createCliCancellation();
 
 function usage() {
   return `Build the governed Oregon active business-registration release.
@@ -66,8 +68,9 @@ function validUuid(value, argument) {
   }
 }
 
-async function resumedCatalogMetadata(outputRoot, runId) {
+async function resumedCatalogMetadata(outputRoot, runId, signal) {
   if (!runId) return null;
+  signal?.throwIfAborted();
   const metadataPath = assertInsideApp(path.join(outputRoot, ".staging", runId, "source", "release-metadata.json"));
   const metadata = JSON.parse(await readFile(metadataPath, "utf8"));
   return {
@@ -96,10 +99,11 @@ try {
   const sourceSnapshotPath = options.resumeSourceStagingRun
     ? assertInsideApp(path.join(outputRoot, ".staging", options.resumeSourceStagingRun, "source", "active-business-principal-place-rows.jsonl.gz"))
     : null;
-  const catalogMetadata = await resumedCatalogMetadata(outputRoot, options.resumeSourceStagingRun);
+  const catalogMetadata = await resumedCatalogMetadata(outputRoot, options.resumeSourceStagingRun, cancellation.signal);
   const result = options.resumeStagingRun
-    ? await publishOrBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishOrBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildOrBusinessRegistry({
+      signal: cancellation.signal,
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       pageSize: options.pageSize,
@@ -115,6 +119,8 @@ try {
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
 } catch (error) {
-  process.stderr.write(`Oregon Business Registry build failed: ${error.message}\n`);
+  process.stderr.write(cancellation.signal.aborted ? "Oregon Business Registry build cancelled; inspect retained run evidence before resuming.\n" : `Oregon Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }
