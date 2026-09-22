@@ -345,29 +345,84 @@ test('TN childcare enrollment remains unmeasured until national reporting integr
   assert.equal(cell.appHandoff.jobSubmitted, false);
 });
 
-test('OH native enrollment remains unmeasured and does not imply national integration or job submission', async (t) => {
+test('OH published reporting count is direct evidence without implying identity matching or job submission', async (t) => {
   const f = await fixture(t);
   await copyFile(path.join(APP_ROOT, 'config/oh-childcare-app-enrollment.json'), path.join(f.root, 'config/oh-childcare-app-enrollment.json'));
   const ledger = await buildStateAccessLedger(f), cell = ledger.jurisdictions.find(r => r.state === 'OH').industries.find(r => r.industry === 'childcare');
-  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
-  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.accessEvidenceStatus, 'direct-state-publisher');
+  assert.equal(cell.appHandoff.status, 'APP_PREFLIGHT_REQUIRED');
   assert.equal(cell.appHandoff.configuredSources[0].sourceId, 'state-oh-childcare');
   assert.equal(cell.appHandoff.configuredSources[0].prerequisiteStatus, 'PRESENT');
   assert.equal(cell.appHandoff.jobSubmitted, false);
-  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+  assert.deepEqual(cell.evidence.filter(e => e.recordCount !== undefined).map(e => [e.type, e.sourceId, e.recordCount]), [['published-direct-state-reporting-count', 'oh-dcy-publisher-open-childcare-centers', 4237]]);
 });
 
-test('MN construction app enrollment does not manufacture national coverage or dispatch', async (t) => {
+test('MN governed credential extension is direct reporting evidence without implying businesses, sites or dispatch', async (t) => {
   const f = await fixture(t);
   await copyFile(path.join(APP_ROOT, 'config/mn-construction-app-enrollment.json'), path.join(f.root, 'config/mn-construction-app-enrollment.json'));
   const ledger = await buildStateAccessLedger(f);
   const cell = ledger.jurisdictions.find(r => r.state === 'MN').industries.find(r => r.industry === 'construction');
-  assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
-  assert.equal(cell.appHandoff.status, 'NOT_READY_EVIDENCE_UNMEASURED');
+  assert.equal(cell.accessEvidenceStatus, 'direct-state-publisher');
+  assert.equal(cell.appHandoff.status, 'APP_PREFLIGHT_REQUIRED');
   assert.deepEqual(cell.appHandoff.configuredSources.map(s => s.sourceId).sort(), ['state-mn-contractor-registrations', 'state-mn-residential-contractors']);
   for (const source of cell.appHandoff.configuredSources) assert.equal(source.prerequisiteStatus, 'PRESENT');
   assert.equal(cell.appHandoff.jobSubmitted, false);
-  assert.equal(cell.evidence.some(e => e.recordCount !== undefined), false);
+  assert.deepEqual(cell.evidence.filter(e => e.type === 'published-direct-state-credential-count'), [{
+    type: 'published-direct-state-credential-count', sourceId: 'mn-construction-credential-reporting', recordCount: 10899,
+    coverageReleaseId: ledger.evidence.coverageReleaseId, artifactPath: ledger.evidence.stateArtifactPath,
+    rowUnit: 'publisher-business-credential-row', addressBasis: 'reported-address-state', identityMatchingEligible: false,
+    physicalSiteEligible: false, currentOperationsVerified: false, exportPolicy: 'local-review-only', nationalCompletenessPercent: null,
+  }]);
+});
+
+async function mutateStateRows(f, mutate) {
+  const artifact = f.manifest.artifacts.find(a => a.artifact_type === 'state-coverage-view-jsonl');
+  const file = path.join(f.root, path.dirname(f.manifestPath), artifact.path);
+  const rows = (await readFile(file, 'utf8')).trim().split('\n').map(line => JSON.parse(line));
+  await mutate(rows);
+  const bytes = Buffer.from(`${rows.map(row => JSON.stringify(row)).join('\n')}\n`);
+  await writeFile(file, bytes); artifact.bytes = bytes.length; artifact.sha256 = createHash('sha256').update(bytes).digest('hex');
+  await writeFile(path.join(f.root, f.manifestPath), JSON.stringify(f.manifest));
+}
+
+test('absent governed MN and OH reporting remains unmeasured despite app enrollment', async (t) => {
+  const f = await fixture(t);
+  await mutateStateRows(f, rows => { for (const row of rows) delete row.mn_construction_credential_reporting; const ohio = rows.find(row => row.postal_abbreviation === 'OH'); delete ohio.registry_evidence.source_profile_counts_by_reported_address_state['oh-dcy-publisher-open-childcare-centers']; });
+  const ledger = await buildStateAccessLedger(f);
+  for (const [state, industry] of [['MN', 'construction'], ['OH', 'childcare']]) {
+    const cell = ledger.jurisdictions.find(row => row.state === state).industries.find(row => row.industry === industry);
+    assert.equal(cell.accessEvidenceStatus, 'unsupported-evidence-not-measured');
+    assert.equal(cell.evidence.some(item => item.recordCount !== undefined), false);
+    assert.equal(cell.appHandoff.jobSubmitted, false);
+  }
+});
+
+test('malformed governed MN credential semantics are rejected', async (t) => {
+  const f = await fixture(t);
+  await mutateStateRows(f, rows => { rows.find(row => row.postal_abbreviation === 'MN').mn_construction_credential_reporting.unique_business_count = 10899; });
+  await assert.rejects(buildStateAccessLedger(f), /Minnesota credential reporting metric/);
+});
+
+test('out-of-state rows from the MN publisher do not become direct state-publisher coverage', async (t) => {
+  const f = await fixture(t), ledger = await buildStateAccessLedger(f);
+  const alabama = ledger.jurisdictions.find(row => row.state === 'AL').industries.find(row => row.industry === 'construction');
+  const artifact = f.manifest.artifacts.find(item => item.artifact_type === 'state-coverage-view-jsonl');
+  const rows = (await readFile(path.join(f.root, path.dirname(f.manifestPath), artifact.path), 'utf8')).trim().split('\n').map(JSON.parse);
+  assert.ok(rows.find(row => row.postal_abbreviation === 'AL').mn_construction_credential_reporting.credential_rows > 0);
+  assert.equal(alabama.accessEvidenceStatus, 'unsupported-missing');
+  assert.equal(alabama.evidence.some(item => item.type === 'published-direct-state-credential-count'), false);
+});
+
+test('MN and OH reporting projections conserve the four state-access categories', async (t) => {
+  const f = await fixture(t), projected = await buildStateAccessLedger(f);
+  await mutateStateRows(f, rows => { for (const row of rows) delete row.mn_construction_credential_reporting; const ohio = rows.find(row => row.postal_abbreviation === 'OH'); delete ohio.registry_evidence.source_profile_counts_by_reported_address_state['oh-dcy-publisher-open-childcare-centers']; });
+  const absent = await buildStateAccessLedger(f), before = absent.summary.accessEvidenceStatusCounts, after = projected.summary.accessEvidenceStatusCounts;
+  assert.deepEqual(Object.keys(after).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
+  assert.equal(after['direct-state-publisher'], before['direct-state-publisher'] + 2);
+  assert.equal(after['unsupported-evidence-not-measured'], before['unsupported-evidence-not-measured'] - 2);
+  assert.equal(after['national-dataset-state-evidence'], before['national-dataset-state-evidence']);
+  assert.equal(after['unsupported-missing'], before['unsupported-missing']);
+  assert.equal(Object.values(after).reduce((sum, count) => sum + count, 0), projected.summary.industryCells);
 });
 
 async function childcareCounts(f, value) {

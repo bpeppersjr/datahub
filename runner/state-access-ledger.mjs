@@ -35,7 +35,7 @@ const PROFILE_IDS = Object.freeze({
   "state-tn-childcare": "tn-dhs-active-childcare-centers",
   // Native collection is enrolled, but no national reporting adapter/release
   // exists yet. Configuration or local downloads cannot manufacture coverage.
-  "state-oh-childcare": null,
+  "state-oh-childcare": "oh-dcy-publisher-open-childcare-centers",
   "state-pa-childcare-centers": null,
   "state-ct-childcare-centers": null,
   "state-md-childcare-centers": null,
@@ -49,10 +49,35 @@ const PROFILE_IDS = Object.freeze({
 });
 // The coverage view retains this historical count-field name for both evidence
 // classes. These sources are reporting-only, never identity-matching profiles.
-const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcare", "state-tn-childcare"]);
+const REPORTING_ONLY_SOURCES = new Set(["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare"]);
 const STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
 const CANONICAL = new Set(STATES);
 const digest = (value) => createHash("sha256").update(value).digest("hex");
+
+function validateMnCredentialMetric(metric) {
+  if (metric === undefined) return null;
+  const count = metric?.credential_rows, selected = metric?.selected_cohort_rows, categories = metric?.by_category;
+  const expectedPercent = selected > 0 ? 100 * count / selected : null;
+  const categoryIds = ["construction-contractor-registration", "residential-building-contractor", "residential-remodeler", "residential-roofer", "manufactured-home-installer"];
+  if (metric?.schema_version !== "mn-credential-registry-input@1.0.0"
+    || !Number.isSafeInteger(count) || count < 0
+    || !Number.isSafeInteger(metric.missing_reported_zip5_rows) || metric.missing_reported_zip5_rows < 0 || metric.missing_reported_zip5_rows > count
+    || !Number.isSafeInteger(selected) || selected < count
+    || metric.percent_of_selected_credential_cohort !== expectedPercent
+    || !Array.isArray(categories) || categories.length !== 5
+    || JSON.stringify(categories.map((item) => item?.category)) !== JSON.stringify(categoryIds)
+    || categories.some((item) => !Number.isSafeInteger(item?.credential_rows) || item.credential_rows < 0)
+    || categories.reduce((sum, item) => sum + item.credential_rows, 0) !== count
+    || metric.denominator !== "all accepted credential rows in the explicitly selected Minnesota source cohort; not all U.S. construction businesses"
+    || metric.record_unit !== "publisher-business-credential-row"
+    || metric.identity_matching_eligible !== false || metric.physical_site_eligible !== false
+    || metric.geographic_assignment_performed !== false || metric.current_operations_verified !== false
+    || metric.unique_business_count !== null || metric.active_business_count !== null || metric.national_completeness_percent !== null
+    || metric.public_export_authorized !== false || metric.export_policy !== "local-review-only" || metric.zip4_aggregated !== false) {
+    throw new Error("Published Minnesota credential reporting metric is invalid.");
+  }
+  return metric;
+}
 
 function inside(root, value) {
   const base = path.resolve(root), file = path.resolve(base, value), relative = path.relative(base, file);
@@ -93,6 +118,7 @@ async function governedStates(root, pointer) {
   if (bytes.length !== artifact.bytes || digest(bytes) !== artifact.sha256) throw new Error("State coverage artifact integrity failed.");
   const rows = bytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.is_50_states_or_dc === true && CANONICAL.has(row.postal_abbreviation));
   if (rows.length !== 51 || new Set(rows.map((row) => row.postal_abbreviation)).size !== 51) throw new Error("Coverage artifact must contain the unique 50 states plus DC.");
+  for (const row of rows) validateMnCredentialMetric(row.mn_construction_credential_reporting);
   return { retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
 }
 
@@ -131,6 +157,16 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
     else assessmentFreshnessCounts[assessmentFreshnessStatus] += 1;
     for (const [industryId, sourceKeys] of Object.entries(industryRead.value.industries)) {
       const evidence = [], appSources = []; let direct = false, national = false, unmeasured = false;
+      if (industryId === "construction" && state === "MN") {
+        const metric = validateMnCredentialMetric(row.mn_construction_credential_reporting);
+        if (metric?.credential_rows > 0) {
+          direct = true;
+          evidence.push({ type: "published-direct-state-credential-count", sourceId: "mn-construction-credential-reporting", recordCount: metric.credential_rows,
+            coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath, rowUnit: metric.record_unit,
+            addressBasis: "reported-address-state", identityMatchingEligible: false, physicalSiteEligible: false,
+            currentOperationsVerified: false, exportPolicy: metric.export_policy, nationalCompletenessPercent: null });
+        }
+      }
       for (const key of sourceKeys) {
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
         const applies = source.scope === "national" || source.states.includes(state), positive = Number.isSafeInteger(count) && count > 0;

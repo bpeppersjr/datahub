@@ -28,7 +28,9 @@ Active-business count and physical-site count remain null; current USPS assignme
 
 Validation: final `npm run check` passed with 1,076 tests passed, 11 skipped and zero failures, plus lint, web/desktop builds and desktop smoke. The dependency audit found zero vulnerabilities. Tests cover missing enrollment versus unavailable data, rejected path/pin/configuration changes, cross-state cohort percentages, unchanged fixture national evidence, and distinct record-observation/transfer timestamps.
 
-National registry/coverage integration still needs an explicit credential-only projection and a newly reviewed production plan; do not reuse a childcare physical-site projection. The local report and separate panel make verified acquired evidence visible without claiming national integration.
+The historical paragraph above predates the completed `production-mn-credentials-20260910-01` run. That run published the credential-only projection into governed registry and coverage releases. State-access reporting now consumes only the MN publisher-jurisdiction metric from that hash-bound coverage artifact: 10,899 publisher credential rows in the current release. It does not reinterpret the 557 rows reported outside Minnesota as access to those states' publishers.
+
+The governed evidence type is `published-direct-state-credential-count`. It preserves the publisher-row unit and explicitly records that identity matching, physical-site eligibility, current operations and national completeness are not established. Local credential evidence remains separately visible for cohort inspection. App enrollment alone still creates no coverage: if the governed extension is absent, MN remains unmeasured.
 
 To disable this local enrollment, remove its configuration only after preserving its Git history; retained receipts and reports are not deleted. Never change a receipt hash to match unverified files or point enrollment at a failed/injected cohort simply to obtain counts.
 
