@@ -56,10 +56,10 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -362,8 +362,8 @@ async function loadZbpBaseline(pointerPath) {
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
+async function* gzipRecords(filename, signal) {
+  const lines = createInterface({ input: createReadStream(filename, { signal }).pipe(createGunzip()), crlfDelay: Infinity });
   for await (const line of lines) if (line) yield JSON.parse(line);
 }
 
@@ -472,7 +472,7 @@ export async function buildCoBusinessRegistry({
   const initialMetadata = catalogMetadata ?? await requestCoJson(CO_BUSINESS_REGISTRY_METADATA_URL, requestOptions);
   const catalog = validateCatalogMetadata(initialMetadata, schemaFingerprintExpected);
   const fixtureInput = sourceRecords !== null;
-  const resumedSourceInput = sourceSnapshotPath ? gzipRecords(sourceSnapshotPath) : null;
+  const resumedSourceInput = sourceSnapshotPath ? gzipRecords(sourceSnapshotPath, signal) : null;
   const sourceInput = sourceRecords ?? resumedSourceInput;
   const expectedCount = fixtureInput || (sourceSnapshotPath && catalogMetadata)
     ? Number(initialMetadata.selectedRecordCount ?? sourceRecords?.length)
@@ -511,7 +511,7 @@ export async function buildCoBusinessRegistry({
   let delinquentOrganizations = 0;
   let quarantinedRecords = 0;
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
       signal?.throwIfAborted?.();
       let normalized;
       try {
@@ -644,7 +644,7 @@ export async function buildCoBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishCoBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishCoBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} Good Standing or Delinquent Colorado registered organizations.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -655,7 +655,8 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishCoBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishCoBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -664,11 +665,13 @@ export async function publishCoBusinessRegistryStaging({ outputRoot, stagingRunI
   assertContained(stagingRoot, stagingDirectory, "Colorado staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "co-business-registry-good-standing-or-delinquent-organizations" || manifest.status !== "published") {
     throw new Error("Colorado staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Colorado staging release ID does not match the build result.");
-  await verifyCoBusinessRegistry(manifestPath);
+  await verifyCoBusinessRegistry(manifestPath, { signal });
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -678,7 +681,18 @@ export async function publishCoBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.("abort", onAbort);
+      resolve();
+    }, 250);
+    signal?.addEventListener?.("abort", onAbort, { once: true });
+  });
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -693,19 +707,23 @@ export async function publishCoBusinessRegistryStaging({ outputRoot, stagingRunI
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyCoBusinessRegistry(manifestPath) {
+export async function verifyCoBusinessRegistry(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   const failures = [];
   if (manifest.dataset_id !== "co-business-registry-good-standing-or-delinquent-organizations" || manifest.status !== "published" || !manifest.complete_selected_business_entities_snapshot) failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
   for (const artifact of manifest.artifacts ?? []) {
     try {
+      signal?.throwIfAborted?.();
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -721,7 +739,8 @@ export async function verifyCoBusinessRegistry(manifestPath) {
     try {
       let sourceCount = 0;
       let previousId = null;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
+        signal?.throwIfAborted?.();
         for (const field of Object.keys(record)) if (!CO_BUSINESS_REGISTRY_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const id = text(record.entityid);
         if (!/^\d{11}$/.test(id ?? "") || !new Set(["Good Standing", "Delinquent"]).has(text(record.entitystatus)) || (previousId && id.localeCompare(previousId) <= 0)) throw new Error(`invalid source ordering or status at ${id}`);
@@ -730,6 +749,7 @@ export async function verifyCoBusinessRegistry(manifestPath) {
       }
       if (sourceCount !== sourceArtifacts[0].record_count || sourceCount !== manifest.coverage?.source_good_standing_or_delinquent_records) throw new Error("source record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: sourceArtifacts[0].path, reason: `source validation failed: ${error.message}` });
     }
   }
@@ -744,7 +764,8 @@ export async function verifyCoBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
+        signal?.throwIfAborted?.();
         const id = record.external_identifiers?.find((item) => item.type === "co_business_entity_id")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned source ID ${id}`);
         ids.add(id);
@@ -766,13 +787,15 @@ export async function verifyCoBusinessRegistry(manifestPath) {
       if (partitionCount !== artifact.record_count) throw new Error("partition record count mismatch");
       organizations += partitionCount;
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
   let quarantinedRecords = 0;
   if (quarantineArtifacts.length === 1) {
     try {
-      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, quarantineArtifacts[0].path), signal)) {
+        signal?.throwIfAborted?.();
         if (!/^\d{11}$/.test(record.source_record_id ?? "") || record.reason !== "missing-or-invalid-organization-identity" || record.export_policy !== "internal" || record.source_release_id !== manifest.source_release_id || quarantineIds.has(record.source_record_id) || ids.has(record.source_record_id)) {
           throw new Error(`invalid quarantine record ${record.source_record_id}`);
         }
@@ -781,6 +804,7 @@ export async function verifyCoBusinessRegistry(manifestPath) {
       }
       if (quarantinedRecords !== quarantineArtifacts[0].record_count) throw new Error("quarantine record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: quarantineArtifacts[0].path, reason: `quarantine validation failed: ${error.message}` });
     }
   }
@@ -792,7 +816,9 @@ export async function verifyCoBusinessRegistry(manifestPath) {
   if (!zipArtifact) failures.push({ path: "manifest.json", reason: "missing ZIP coverage artifact" });
   else {
     try {
+      signal?.throwIfAborted?.();
       const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+      signal?.throwIfAborted?.();
       if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage?.zip_union_records) throw new Error("ZIP row count mismatch");
       const total = rows.reduce((sum, row) => sum + row.co_business_registry_registration_snapshot.organization_reported_business_address_count, 0);
       if (total !== eligibleAddresses) throw new Error("ZIP organization address counts do not reconcile");
@@ -802,6 +828,7 @@ export async function verifyCoBusinessRegistry(manifestPath) {
         if (row.co_business_registry_registration_snapshot.physical_site_count !== null || row.co_business_registry_registration_snapshot.physical_site_inference_permitted !== false) throw new Error(`ZIP ${row.zip_code} implies a physical site`);
       }
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }

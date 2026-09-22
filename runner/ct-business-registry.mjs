@@ -68,10 +68,10 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-async function hashFile(filename) {
+async function hashFile(filename, signal) {
   const hash = createHash("sha256");
   let bytes = 0;
-  for await (const chunk of createReadStream(filename)) {
+  for await (const chunk of createReadStream(filename, { signal })) {
     bytes += chunk.length;
     hash.update(chunk);
   }
@@ -407,8 +407,8 @@ async function loadZbpBaseline(pointerPath) {
   return { rows, byZip: new Map(rows.map((row) => [row.zip_code, row])), manifest, manifestSha256: sha256(manifestBuffer) };
 }
 
-async function* gzipRecords(filename) {
-  const lines = createInterface({ input: createReadStream(filename).pipe(createGunzip()), crlfDelay: Infinity });
+async function* gzipRecords(filename, signal) {
+  const lines = createInterface({ input: createReadStream(filename, { signal }).pipe(createGunzip()), crlfDelay: Infinity });
   for await (const line of lines) if (line) yield JSON.parse(line);
 }
 
@@ -491,6 +491,7 @@ export async function buildCtBusinessRegistry({
   zbpPointer,
   catalogMetadata = null,
   sourceRecords = null,
+  sourceSnapshotPath = null,
   minimumOrganizations = 400_000,
   pageSize = 25_000,
   schemaFingerprintExpected = CT_BUSINESS_REGISTRY_SCHEMA_FINGERPRINT,
@@ -501,6 +502,8 @@ export async function buildCtBusinessRegistry({
   now = () => new Date(),
 } = {}) {
   if (!outputRoot || !zbpPointer) throw new Error("outputRoot and zbpPointer are required.");
+  if (sourceRecords && sourceSnapshotPath) throw new Error("sourceRecords and sourceSnapshotPath are mutually exclusive.");
+  if (sourceSnapshotPath) assertContained(outputRoot, sourceSnapshotPath, "Connecticut staged source snapshot");
   if (!Number.isInteger(minimumOrganizations) || minimumOrganizations < 1) throw new Error("minimumOrganizations must be a positive integer.");
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 50_000) throw new Error("pageSize must be from 1 through 50000.");
   signal?.throwIfAborted?.();
@@ -513,12 +516,16 @@ export async function buildCtBusinessRegistry({
   const requestOptions = { fetchImpl, signal, sleep, type: "metadata" };
   const initialMetadata = catalogMetadata ?? await requestCtJson(CT_BUSINESS_REGISTRY_METADATA_URL, requestOptions);
   const catalog = validateCatalogMetadata(initialMetadata, schemaFingerprintExpected);
-  const expectedCount = sourceRecords ? Number(initialMetadata.activeRecordCount ?? sourceRecords.length) : await activeRecordCount({ fetchImpl, signal, sleep, type: "data" });
+  const resumedSourceInput = sourceSnapshotPath ? gzipRecords(sourceSnapshotPath, signal) : null;
+  const sourceInput = sourceRecords ?? resumedSourceInput;
+  const expectedCount = sourceRecords || (sourceSnapshotPath && catalogMetadata)
+    ? Number(initialMetadata.activeRecordCount ?? sourceRecords?.length)
+    : await activeRecordCount({ fetchImpl, signal, sleep, type: "data" });
   if (!Number.isInteger(expectedCount) || expectedCount < minimumOrganizations) throw new Error(`Connecticut active organization count ${expectedCount} is below the ${minimumOrganizations} quality floor.`);
   const rawWriter = await openGzipWriter(stagingDirectory, "source/active-business-master.jsonl.gz");
   let sourceArtifact;
   try {
-    await acquireSource({ writer: rawWriter, sourceRecords, expectedCount, fetchImpl, signal, sleep, pageSize, logger });
+    await acquireSource({ writer: rawWriter, sourceRecords: sourceInput, expectedCount, fetchImpl, signal, sleep, pageSize, logger });
     sourceArtifact = await closeGzipWriter(rawWriter, "ct-business-registry-source-jsonl-gzip", { export_policy: "internal" });
   } catch (error) {
     abortGzipWriters([rawWriter]);
@@ -548,7 +555,7 @@ export async function buildCtBusinessRegistry({
   let placeholderAleiRecords = 0;
   let activeRecordsWithDissolutionDate = 0;
   try {
-    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path))) {
+    for await (const source of gzipRecords(path.join(stagingDirectory, sourceArtifact.path), signal)) {
       signal?.throwIfAborted?.();
       const normalized = normalizeCtBusinessOrganization(source, context);
       assertNormalizedUsPostalFieldsDeep(normalized);
@@ -669,7 +676,7 @@ export async function buildCtBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishCtBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishCtBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} active Connecticut registered organizations.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -680,7 +687,8 @@ function containsExcludedField(value) {
   return Object.entries(value).some(([key, child]) => EXCLUDED_SOURCE_FIELDS.has(key.toLowerCase()) || containsExcludedField(child));
 }
 
-export async function publishCtBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishCtBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -689,11 +697,13 @@ export async function publishCtBusinessRegistryStaging({ outputRoot, stagingRunI
   assertContained(stagingRoot, stagingDirectory, "Connecticut staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "ct-business-registry-active-organizations" || manifest.status !== "published") {
     throw new Error("Connecticut staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("Connecticut staging release ID does not match the build result.");
-  await verifyCtBusinessRegistry(manifestPath);
+  await verifyCtBusinessRegistry(manifestPath, { signal });
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -703,7 +713,18 @@ export async function publishCtBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.("abort", onAbort);
+      resolve();
+    }, 250);
+    signal?.addEventListener?.("abort", onAbort, { once: true });
+  });
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
@@ -718,19 +739,23 @@ export async function publishCtBusinessRegistryStaging({ outputRoot, stagingRunI
   return { manifest, releaseDirectory, pointerPath };
 }
 
-export async function verifyCtBusinessRegistry(manifestPath) {
+export async function verifyCtBusinessRegistry(manifestPath, { signal } = {}) {
+  signal?.throwIfAborted?.();
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   const failures = [];
   if (manifest.dataset_id !== "ct-business-registry-active-organizations" || manifest.status !== "published" || !manifest.complete_active_business_master_snapshot) failures.push({ path: "manifest.json", reason: "unexpected or incomplete manifest" });
   for (const artifact of manifest.artifacts ?? []) {
     try {
+      signal?.throwIfAborted?.();
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Artifact ${artifact.path}`);
-      const actual = await hashFile(filename);
+      const actual = await hashFile(filename, signal);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
@@ -744,7 +769,8 @@ export async function verifyCtBusinessRegistry(manifestPath) {
     try {
       let sourceCount = 0;
       let previousId = null;
-      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, sourceArtifacts[0].path), signal)) {
+        signal?.throwIfAborted?.();
         for (const field of Object.keys(record)) if (!CT_BUSINESS_REGISTRY_FIELDS.includes(field)) throw new Error(`unapproved source field ${field}`);
         const id = text(record.id);
         if (!id || text(record.status) !== "Active" || (previousId && id.localeCompare(previousId) <= 0)) throw new Error(`invalid source ordering or status at ${id}`);
@@ -753,6 +779,7 @@ export async function verifyCtBusinessRegistry(manifestPath) {
       }
       if (sourceCount !== sourceArtifacts[0].record_count || sourceCount !== manifest.coverage?.source_active_records) throw new Error("source record count mismatch");
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: sourceArtifacts[0].path, reason: `source validation failed: ${error.message}` });
     }
   }
@@ -765,7 +792,8 @@ export async function verifyCtBusinessRegistry(manifestPath) {
     try {
       const prefix = artifact.path.match(/id-hash-prefix=([0-9a-f])/)?.[1];
       let partitionCount = 0;
-      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path))) {
+      for await (const record of gzipRecords(path.join(releaseDirectory, artifact.path), signal)) {
+        signal?.throwIfAborted?.();
         const id = record.external_identifiers?.find((item) => item.type === "ct_business_registry_record_id")?.value;
         if (!id || ids.has(id) || sha256(id)[0] !== prefix) throw new Error(`duplicate, missing, or incorrectly partitioned source ID ${id}`);
         ids.add(id);
@@ -788,6 +816,7 @@ export async function verifyCtBusinessRegistry(manifestPath) {
       if (partitionCount !== artifact.record_count) throw new Error("partition record count mismatch");
       organizations += partitionCount;
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: artifact.path, reason: `normalized validation failed: ${error.message}` });
     }
   }
@@ -797,7 +826,9 @@ export async function verifyCtBusinessRegistry(manifestPath) {
   if (!zipArtifact) failures.push({ path: "manifest.json", reason: "missing ZIP coverage artifact" });
   else {
     try {
+      signal?.throwIfAborted?.();
       const rows = (await readFile(path.join(releaseDirectory, zipArtifact.path), "utf8")).split(/\r?\n/).filter(Boolean).map(JSON.parse);
+      signal?.throwIfAborted?.();
       if (rows.length !== zipArtifact.record_count || rows.length !== manifest.coverage?.zip_union_records) throw new Error("ZIP row count mismatch");
       const total = rows.reduce((sum, row) => sum + row.ct_business_registry_active_snapshot.organization_reported_business_address_count, 0);
       if (total !== eligibleAddresses) throw new Error("ZIP organization address counts do not reconcile");
@@ -807,6 +838,7 @@ export async function verifyCtBusinessRegistry(manifestPath) {
         if (row.ct_business_registry_active_snapshot.physical_site_count !== null || row.ct_business_registry_active_snapshot.physical_site_inference_permitted !== false) throw new Error(`ZIP ${row.zip_code} implies a physical site`);
       }
     } catch (error) {
+      signal?.throwIfAborted?.();
       failures.push({ path: zipArtifact.path, reason: `ZIP validation failed: ${error.message}` });
     }
   }

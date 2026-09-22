@@ -214,4 +214,29 @@ test("blocks schema drift, duplicate identity, and pre-cancelled runs", async (t
     signal: controller.signal,
     logger: () => {},
   }), { name: "AbortError" });
+
+  await assert.rejects(() => verifyCtBusinessRegistry(path.join(root, "missing.json"), { signal: controller.signal }), { name: "AbortError" });
+});
+
+test("cancels the stalled Connecticut pre-publication checkpoint without moving the pointer", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ct-business-publish-cancel-test-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const outputRoot = path.join(root, "output");
+  const zbpPointer = await writeBaseline(path.join(root, "zbp"));
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 75);
+  try {
+    await assert.rejects(() => buildCtBusinessRegistry({
+      outputRoot,
+      zbpPointer,
+      catalogMetadata: metadata({ activeRecordCount: 1 }),
+      sourceRecords: [organization()],
+      minimumOrganizations: 1,
+      signal: controller.signal,
+      logger: () => {},
+    }), { name: "AbortError" });
+  } finally {
+    clearTimeout(timer);
+  }
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
 });
