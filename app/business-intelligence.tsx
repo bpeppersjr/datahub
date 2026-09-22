@@ -122,18 +122,21 @@ type GoalCompletion = {
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
 };
 
-const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities' };
-function matrixCategory(categoryId: string) { return MATRIX_CATEGORY[categoryId] ?? categoryId; }
+const MATRIX_CATEGORY: Record<string, string> = { all: 'general-business', 'retail-consumer': 'retail-consumer', 'health-care': 'health-care', 'financial-services': 'financial-services', 'food-production': 'regulated-meat-poultry-egg-establishments', 'environmental-facilities': 'cross-industry-regulated-facilities', transportation: 'transportation' };
+function matrixCategory(categoryId: string) { return MATRIX_CATEGORY[categoryId] ?? null; }
 
 function GoalCompletionSummary({ state, categoryId }: { state?: string; categoryId: string }) {
   const [view, setView] = useState<GoalCompletion | null>(null);
   const [error, setError] = useState(false);
+  const matrixCategoryId = matrixCategory(categoryId);
   useEffect(() => {
+    if (!matrixCategoryId) return;
     const controller = new AbortController();
-    const query = new URLSearchParams({ category: matrixCategory(categoryId) }); if (state) query.set('state', state);
+    const query = new URLSearchParams({ category: matrixCategoryId }); if (state) query.set('state', state);
     void runnerJson<GoalCompletion>(`/api/business-map/goal-completion?${query}`, { signal: controller.signal }).then((value) => { setView(value); setError(false); }).catch((reason) => { if (reason?.name !== 'AbortError') { setView(null); setError(true); } });
     return () => controller.abort();
-  }, [state, categoryId]);
+  }, [state, matrixCategoryId]);
+  if (!matrixCategoryId) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Category outside denominator</strong></div><p className="entity-method-note">This selected category is not represented by the current eight-dataset national reporting denominator. No substitute percentage is shown; all-business completion remains unknown.</p></section>;
   if (error) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Evidence unavailable</strong></div><p className="entity-method-note">The newest immutable matrix could not be verified. No older release was substituted.</p></section>;
   if (!view) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Verifying local evidence…</strong></div></section>;
   if (!view.available) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Not available</strong></div><p className="entity-method-note">{view.status.replaceAll('-', ' ')}. All-business completion remains unknown.</p></section>;

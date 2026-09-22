@@ -1,4 +1,4 @@
-import { lstat, readdir, readFile, realpath } from "node:fs/promises";
+import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 import { verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
@@ -22,9 +22,8 @@ export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT }
   const directory = path.join(releases, candidates[0]);
   if (await realpath(directory) !== directory || !(await lstat(directory)).isDirectory()) throw new Error("Newest goal-completion matrix path is not canonical.");
   const manifestPath = path.join(directory, "manifest.json");
-  await verifyNationalGoalCompletionMatrix(manifestPath);
-  const report = JSON.parse(await readFile(path.join(directory, "report.json"), "utf8"));
-  return { report, manifestPath };
+  const verified = await verifyNationalGoalCompletionMatrix(manifestPath);
+  return { report: verified.report, manifestPath };
 }
 
 export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business" } = {}) {
