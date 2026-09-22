@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded without execution by `production-cms-directories-20260922-07` after the Iowa cancellation and retained-release readiness implementation changed the repository pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after the New York connector cancellation handoff and the complete 51-jurisdiction source-assessment catalog were integrated, fully tested and runtime-restored. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-06`
