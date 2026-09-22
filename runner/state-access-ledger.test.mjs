@@ -31,7 +31,13 @@ async function fixture(t, {retained = false} = {}) {
   const deManifestPath = path.join(path.dirname(dePointerPath), dePointer.manifest);
   const deManifest = JSON.parse(await readFile(path.join(APP_ROOT, deManifestPath)));
   const deSummary = deManifest.artifacts.find(a => a.artifact_type === 'de-business-licenses-source-summary');
-  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), waPointerPath, waManifestPath, path.join(path.dirname(waManifestPath), waSummary.path), dePointerPath, deManifestPath, path.join(path.dirname(deManifestPath), deSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
+  const substate = [];
+  for (const [key, type] of [['la-active-business-location-accounts','la-active-business-source-summary'],['chicago-active-business-license-sites','chicago-active-business-license-source-summary'],['nyc-dcwp-active-license-sites','nyc-dcwp-active-license-source-summary']]) {
+    const pointerPath = `data/business-sources/${key}/current.json`, pointer = JSON.parse(await readFile(path.join(APP_ROOT, pointerPath)));
+    const manifestPath = path.join(path.dirname(pointerPath), pointer.manifest), manifest = JSON.parse(await readFile(path.join(APP_ROOT, manifestPath)));
+    const summary = manifest.artifacts.find(a => a.artifact_type === type); substate.push({key,pointerPath,manifestPath,manifest,summary});
+  }
+  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), waPointerPath, waManifestPath, path.join(path.dirname(waManifestPath), waSummary.path), dePointerPath, deManifestPath, path.join(path.dirname(deManifestPath), deSummary.path), ...substate.flatMap(item=>[item.pointerPath,item.manifestPath,path.join(path.dirname(item.manifestPath),item.summary.path)]), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
   // Existing enrollment cases explicitly exercise pre-integration coverage.
   if (!retained) {
@@ -44,7 +50,7 @@ async function fixture(t, {retained = false} = {}) {
     await writeFile(file,bytes); artifact.bytes=bytes.length; artifact.sha256=createHash('sha256').update(bytes).digest('hex');
     await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
   }
-  return { root, manifestPath, manifest, waManifestPath, waManifest, deManifestPath, deManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
+  return { root, manifestPath, manifest, waManifestPath, waManifest, deManifestPath, deManifest, substate, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
     nhRestrictedChildcareLoader: async () => ({status:'not-enrolled'}),
     mnCredentialPublicationLoader: async () => ({status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:manifest.release_id,coverageManifestSha256:createHash('sha256').update(await readFile(path.join(root,manifestPath))).digest('hex'),productionRunId:'production-mn-credentials-20260910-01',productionReceiptSha256:'b'.repeat(64),reportingReleaseId:'fixture-reporting',reportingManifestSha256:'c'.repeat(64)}) };
 }
@@ -224,6 +230,45 @@ test('Delaware current-license admission rejects tampered, malformed, non-positi
   const f = await fixture(t); const artifact = f.deManifest.artifacts.find(a => a.artifact_type === 'de-business-licenses-source-summary');
   await writeFile(path.join(f.root, path.dirname(f.deManifestPath), artifact.path), '{}');
   await assert.rejects(buildStateAccessLedger(f), /integrity/);
+});
+
+test('retained LA, Chicago, and NYC cohorts are locality-scoped evidence only in CA, IL, and NY', async (t) => {
+  const ledger = await buildStateAccessLedger(await fixture(t));
+  const expected = {
+    CA:{count:633232,locality:'City of Los Angeles',unit:'publisher-active-business-location-account'},
+    IL:{count:42940,locality:'City of Chicago',unit:'publisher-active-business-license-account-site'},
+    NY:{count:31163,locality:'New York City',unit:'publisher-active-premises-license-business-site'},
+  };
+  for (const [state, value] of Object.entries(expected)) {
+    const cell = ledger.jurisdictions.find(row=>row.state===state).industries.find(row=>row.industry==='local-business-licenses');
+    assert.equal(cell.accessEvidenceStatus,'local-publisher-substate-evidence'); assert.equal(cell.appHandoff.status,'NOT_READY_SUBSTATE_EVIDENCE_ONLY');
+    const evidence=cell.evidence.find(item=>item.type==='published-local-publisher-substate-cohort-count');
+    assert.deepEqual({count:evidence.recordCount,unit:evidence.rowUnit,basis:evidence.stateBasis,stateContext:evidence.stateContext,locality:evidence.issuingLocality,reported:evidence.reportedAddressState},
+      {count:value.count,unit:value.unit,basis:'issuing-locality',stateContext:state,locality:value.locality,reported:null});
+    assert.equal(evidence.statewideCoverageComplete,false); assert.equal(evidence.statewideGapRemaining,true); assert.equal(evidence.completeAllBusinesses,false);
+    assert.equal(evidence.currentOperationsVerified,false); assert.equal(evidence.uniqueBusinessCount,null); assert.equal(evidence.nationalCompletenessPercent,null);
+  }
+  for (const jurisdiction of ledger.jurisdictions.filter(row=>!Object.hasOwn(expected,row.state))) {
+    const cell=jurisdiction.industries.find(row=>row.industry==='local-business-licenses');
+    assert.equal(cell.evidence.some(item=>item.type==='published-local-publisher-substate-cohort-count'),false);
+  }
+});
+
+test('substate license admission rejects tampered, malformed, non-positive, and unconserved summaries', async (t) => {
+  const mutations = [
+    ['la-active-business-location-accounts', s=>{s.normalized_us_location_accounts=0;}],
+    ['chicago-active-business-license-sites', s=>{s.normalized_licensed_sites='42940';}],
+    ['nyc-dcwp-active-license-sites', s=>{s.normalized_licensed_sites-=1;}],
+    ['chicago-active-business-license-sites', s=>{s.quarantined_site_groups-=1;}],
+  ];
+  for (const [key, mutate] of mutations) {
+    const f=await fixture(t), item=f.substate.find(row=>row.key===key), file=path.join(f.root,path.dirname(item.manifestPath),item.summary.path);
+    const summary=JSON.parse(await readFile(file)); mutate(summary); const bytes=Buffer.from(JSON.stringify(summary)); await writeFile(file,bytes);
+    item.summary.bytes=bytes.length; item.summary.sha256=createHash('sha256').update(bytes).digest('hex'); await writeFile(path.join(f.root,item.manifestPath),JSON.stringify(item.manifest));
+    await assert.rejects(buildStateAccessLedger(f),/license source summary/);
+  }
+  const f=await fixture(t), item=f.substate[2], file=path.join(f.root,path.dirname(item.manifestPath),item.summary.path); await writeFile(file,'{}');
+  await assert.rejects(buildStateAccessLedger(f),/integrity/);
 });
 
 test('WA contractor admission rejects tampered, malformed, and non-positive summaries', async (t) => {
@@ -666,7 +711,7 @@ test('MN and OH reporting projections conserve the four state-access categories'
   const f = await fixture(t), projected = await buildStateAccessLedger(f);
   await mutateStateRows(f, rows => { for (const row of rows) delete row.mn_construction_credential_reporting; const ohio = rows.find(row => row.postal_abbreviation === 'OH'); delete ohio.registry_evidence.source_profile_counts_by_reported_address_state['oh-dcy-publisher-open-childcare-centers']; });
   const absent = await buildStateAccessLedger(f), before = absent.summary.accessEvidenceStatusCounts, after = projected.summary.accessEvidenceStatusCounts;
-  assert.deepEqual(Object.keys(after).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
+  assert.deepEqual(Object.keys(after).sort(), ['direct-state-publisher', 'local-publisher-substate-evidence', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
   assert.equal(after['direct-state-publisher'], before['direct-state-publisher'] + 2);
   assert.equal(after['unsupported-evidence-not-measured'], before['unsupported-evidence-not-measured'] - 2);
   assert.equal(after['national-dataset-state-evidence'], before['national-dataset-state-evidence'] + 32);
@@ -775,7 +820,7 @@ test('state ledger labels matching assessment holds as current context without c
   assert.equal(ledger.evidence.assessmentFreshness.status, 'current');
   assert.equal(ledger.evidence.assessmentFreshness.currentJurisdictions, 1);
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
-  assert.deepEqual(Object.keys(ledger.summary.accessEvidenceStatusCounts).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
+  assert.deepEqual(Object.keys(ledger.summary.accessEvidenceStatusCounts).sort(), ['direct-state-publisher', 'local-publisher-substate-evidence', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
 });
 
 test('authoritative catalog reports all 51 assessed without changing coverage categories', async (t) => {

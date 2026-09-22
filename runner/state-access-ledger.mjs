@@ -228,6 +228,31 @@ async function governedDelawareLicenseEvidence(root, pointerPath) {
     manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
 }
 
+const SUBSTATE_LICENSE_SOURCES = Object.freeze([
+  { state: "CA", locality: "City of Los Angeles", pointer: "data/business-sources/la-active-business-location-accounts/current.json", datasetId: "la-active-business-location-accounts", summaryType: "la-active-business-source-summary", publisher: "City of Los Angeles Office of Finance", countField: "normalized_us_location_accounts", sourceField: "source_location_accounts", quarantineField: "quarantined_source_records", evidenceClass: "los-angeles-publisher-active-business-location-account-cohort", sourceId: "los-angeles-office-of-finance-active-businesses", rowUnit: "publisher-active-business-location-account" },
+  { state: "IL", locality: "City of Chicago", pointer: "data/business-sources/chicago-active-business-license-sites/current.json", datasetId: "chicago-active-business-license-sites", summaryType: "chicago-active-business-license-source-summary", publisher: "City of Chicago Department of Business Affairs and Consumer Protection", countField: "normalized_licensed_sites", sourceField: "source_active_license_records", acceptedField: "accepted_active_license_records", quarantineField: "quarantined_source_records", groupField: "source_account_site_groups", quarantineGroupField: "quarantined_site_groups", evidenceClass: "chicago-publisher-current-active-business-license-site-cohort", sourceId: "city-of-chicago-bacp-current-active-business-licenses", rowUnit: "publisher-active-business-license-account-site" },
+  { state: "NY", locality: "New York City", pointer: "data/business-sources/nyc-dcwp-active-license-sites/current.json", datasetId: "nyc-dcwp-active-license-sites", summaryType: "nyc-dcwp-active-license-source-summary", publisher: "New York City Department of Consumer and Worker Protection", countField: "normalized_licensed_sites", sourceField: "source_active_premise_license_records", acceptedField: "accepted_active_premise_license_records", quarantineField: "quarantined_source_records", groupField: "source_business_unique_id_groups", quarantineGroupField: "quarantined_business_groups", evidenceClass: "nyc-dcwp-publisher-active-premises-license-site-cohort", sourceId: "nyc-dcwp-issued-licenses-active-premises", rowUnit: "publisher-active-premises-license-business-site" },
+]);
+
+async function governedSubstateLicenseEvidence(root, config) {
+  const pointer = await readPinnedJson(root, config.pointer), manifest = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pointer.file), pointer.value.manifest)));
+  if (pointer.value.dataset_id !== config.datasetId || manifest.value.dataset_id !== config.datasetId || manifest.value.release_id !== pointer.value.release_id
+    || manifest.value.status !== "complete" || manifest.value.complete_source_snapshot !== true || manifest.value.source?.publisher !== config.publisher
+    || manifest.value.coverage?.complete_all_businesses !== false) throw new Error(`${config.locality} license pointer does not identify the governed complete local release.`);
+  const artifacts = manifest.value.artifacts?.filter((item) => item.artifact_type === config.summaryType) ?? [];
+  if (artifacts.length !== 1 || !Number.isSafeInteger(artifacts[0].bytes) || artifacts[0].bytes <= 0 || !/^[a-f0-9]{64}$/.test(artifacts[0].sha256)) throw new Error(`${config.locality} license release must contain one verified source summary.`);
+  const summaryPath = inside(root, path.resolve(path.dirname(manifest.file), artifacts[0].path)); await rejectLinks(root, summaryPath);
+  const bytes = await readFile(summaryPath); if (bytes.length !== artifacts[0].bytes || digest(bytes) !== artifacts[0].sha256) throw new Error(`${config.locality} license source summary integrity failed.`);
+  const summary = JSON.parse(bytes), coverage = manifest.value.coverage, count = summary[config.countField];
+  const invalid = !Number.isSafeInteger(count) || count <= 0 || count !== coverage?.[config.countField] || summary[config.sourceField] !== coverage[config.sourceField]
+    || summary[config.quarantineField] !== coverage[config.quarantineField]
+    || (config.acceptedField ? summary[config.acceptedField] !== coverage[config.acceptedField] || summary[config.acceptedField] + summary[config.quarantineField] !== summary[config.sourceField] : count + summary[config.quarantineField] !== summary[config.sourceField])
+    || (config.groupField ? summary[config.groupField] !== coverage[config.groupField] || summary[config.quarantineGroupField] !== coverage[config.quarantineGroupField] || count + summary[config.quarantineGroupField] !== summary[config.groupField] : false);
+  if (invalid) throw new Error(`${config.locality} license source summary has invalid or unconserved cohort semantics.`);
+  return { ...config, count, sourceReleaseId: manifest.value.source_release_id, manifestSha256: manifest.sha256,
+    artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
+}
+
 async function governedStates(root, pointer) {
   const pp = await readPinnedJson(root, pointer);
   const mp = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pp.file), pp.value.manifest)));
@@ -267,7 +292,7 @@ async function missingPrerequisites(root, prerequisites) {
 export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, nhRestrictedChildcareLoader = loadNhRestrictedChildcareEvidence, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, substateLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates, nhRestrictedChildcare] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), Promise.all(SUBSTATE_LICENSE_SOURCES.map((item) => governedSubstateLicenseEvidence(root, item))), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root}), nhRestrictedChildcareLoader({root})]);
   const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
     && credentialPublication.included === true && credentialPublication.credentialRows === 11456
     && credentialPublication.recordUnit === "publisher-business-credential-row"
@@ -318,7 +343,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
     else if (assessmentCoverageApplicabilityStatus === "missing-coverage-release-id") assessmentCoverageApplicabilityCounts.missingCoverageReleaseId += 1;
     else assessmentCoverageApplicabilityCounts.unassessed += 1;
     for (const [industryId, sourceKeys] of Object.entries(industryRead.value.industries)) {
-      const evidence = [], appSources = []; let direct = false, national = false, unmeasured = false;
+      const evidence = [], appSources = []; let direct = false, national = false, substate = false, unmeasured = false;
       if (industryId === "construction" && state === "MN") {
         const metric = validateMnCredentialMetric(row.mn_construction_credential_reporting);
         if (metric?.credential_rows > 0) {
@@ -366,6 +391,19 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
           sourceManifestSha256: deLicenseEvidence.manifestSha256, identityMatchingEligible: false, physicalSiteEligible: false,
           currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
           exportPolicy: "local-review-only", aggregateDistribution: "public-with-provenance-and-semantic-limitations" });
+      }
+      if (industryId === "local-business-licenses") {
+        const local = substateLicenseEvidence.find((item) => item.state === state);
+        if (local) {
+          substate = true;
+          evidence.push({ type: "published-local-publisher-substate-cohort-count", evidenceClass: local.evidenceClass,
+            sourceId: local.sourceId, sourceReleaseId: local.sourceReleaseId, recordCount: local.count, rowUnit: local.rowUnit,
+            stateBasis: "issuing-locality", stateContext: state, issuingLocality: local.locality, reportedAddressState: null,
+            artifactPath: local.artifactPath, artifactSha256: local.artifactSha256, sourceManifestSha256: local.manifestSha256,
+            statewideCoverageComplete: false, statewideGapRemaining: true, completeAllBusinesses: false,
+            currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
+            exportPolicy: "local-review-only", aggregateDistribution: "public-with-provenance-and-semantic-limitations" });
+        }
       }
       if (industryId === "childcare" && state === "NH") {
         const sample = projectNhRestrictedChildcareEvidence(nhRestrictedChildcare, state);
@@ -454,7 +492,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         else if (source.scope === "national" && positive) { national = true; evidence.push({ type: "published-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (profileId === null || reportingOnly && (count === undefined || count === null)) unmeasured = true;
       }
-      const accessEvidenceStatus = direct ? "direct-state-publisher" : national ? "national-dataset-state-evidence" : unmeasured ? "unsupported-evidence-not-measured" : "unsupported-missing";
+      const accessEvidenceStatus = direct ? "direct-state-publisher" : national ? "national-dataset-state-evidence" : substate ? "local-publisher-substate-evidence" : unmeasured ? "unsupported-evidence-not-measured" : "unsupported-missing";
       if (assessment?.decision === "hold") evidence.push({
         type: assessmentFreshnessStatus === "current" ? "current-state-publisher-assessment-hold" : "historical-state-publisher-assessment-hold",
         evidenceClass: "assessment-context-not-coverage-evidence",
@@ -468,7 +506,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         reason: assessment.strongest_bounded_next_action,
       });
       const prerequisiteReady = appSources.length > 0 && appSources.every((item) => item.prerequisiteStatus === "PRESENT");
-      industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
+      industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : substate ? "NOT_READY_SUBSTATE_EVIDENCE_ONLY" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
     }
     const observedAt = assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null;
     jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt, observation: { observedAt, freshnessStatus: observedAt ? "not-evaluated-no-age-policy" : "unobserved" }, coverageApplicability: { status: assessmentCoverageApplicabilityStatus, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: assessmentCoverageApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null } }, broadOrganizationEvidence: broadEvidence.get(state) ?? null, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
