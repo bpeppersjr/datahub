@@ -512,6 +512,12 @@ const server = http.createServer(async (request, response) => {
       try{json(response,200,await stateAccessView({state:url.searchParams.get('state'),industry:url.searchParams.get('industry')}));}
       catch(error){json(response,/Invalid|outside/.test(error.message)?400:503,{error:/Invalid|outside/.test(error.message)?error.message:'State-access evidence is unavailable.'});}return;
     }
+    if (url.pathname === '/api/business-map/nonemployer-county-heatmap') {
+      const [{ nonemployerCountyHeatmapView }, { censusNonemployerCountyHeatmapHttp }] = await Promise.all([
+        import('./census-nonemployer-county-heatmap-view.mjs'), import('./census-nonemployer-county-heatmap-http.mjs'),
+      ]);
+      await censusNonemployerCountyHeatmapHttp(request, response, url, nonemployerCountyHeatmapView, json); return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/business-map/zip-quality') {
       if ([...url.searchParams.keys()].some((key) => key !== 'zip') || url.searchParams.getAll('zip').length > 1) {
         json(response, 400, { error: 'Unsupported or repeated ZIP-quality option.' }); return;

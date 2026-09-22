@@ -2,6 +2,7 @@
 import DatasetRepresentation from './dataset-representation';
 import CredentialHeatmap from './credential-heatmap';
 import CensusZbpIndustryHeatmap from './census-zbp-industry-heatmap';
+import CensusNonemployerCountyHeatmap from './census-nonemployer-county-heatmap';
 import OvertureHeatmapReadiness from './overture-heatmap-readiness';
 import NppesPharmacyHeatmap from './nppes-pharmacy-heatmap';
 
@@ -497,7 +498,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
 export default function BusinessIntelligence() {
   const [mode,setMode]=useState('business');
-  return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="census-industry">Census employer industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option><option value="pharmacy">CMS NPPES community / retail pharmacy · reported evidence</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:mode==='census-industry'?<CensusZbpIndustryHeatmap/>:mode==='pharmacy'?<NppesPharmacyHeatmap/>:<BusinessEvidenceMap/>}</div>;
+  return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="census-industry">Census employer industry · annual aggregate</option><option value="census-nonemployer-county">Census nonemployer county industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option><option value="pharmacy">CMS NPPES community / retail pharmacy · reported evidence</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:mode==='census-industry'?<CensusZbpIndustryHeatmap/>:mode==='census-nonemployer-county'?<CensusNonemployerCountyHeatmap/>:mode==='pharmacy'?<NppesPharmacyHeatmap/>:<BusinessEvidenceMap/>}</div>;
 }
 
 function StateAccessSummary({state,industry}:{state?:string;industry?:string}){

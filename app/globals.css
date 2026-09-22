@@ -204,6 +204,8 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .heatmap-legend i:nth-of-type(3) { background: hsl(114 78% 43%); }
 .heatmap-legend i:nth-of-type(4) { background: hsl(73 78% 50%); }
 .heatmap-legend i:nth-of-type(5) { background: hsl(34 78% 57%); }
+.nonemployer-context-legend { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 7px; margin: 10px 12px; color: #9da8b2; font-size: 0.7rem; }
+.nonemployer-context-legend i { width: 18px; height: 10px; border: 1px solid #a2aab2; background: hsl(196 78% 29%); }
 .census-industry-panel { position: relative; }
 .census-industry-panel form { display: flex; gap: 10px; align-items: end; margin: 16px 0; }
 .census-industry-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(72px,1fr)); gap: 5px; margin: 16px 0 48px; }
