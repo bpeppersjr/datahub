@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-06` after the New York cancellation handoff and complete state-source assessment catalog changed implementation pins. Do not approve or execute this plan.
+
 Fresh governed planning completed after fail-closed ten-source enrollment handling and verified-only Overture readiness context were integrated, tested and runtime-restored. Execution was not dispatched.
 
 - Run ID: `production-cms-directories-20260922-05`
