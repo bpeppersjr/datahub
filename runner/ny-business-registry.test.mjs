@@ -11,6 +11,7 @@ import {
   NY_BUSINESS_REGISTRY_SCHEMA,
   NY_BUSINESS_REGISTRY_SCHEMA_FINGERPRINT,
   normalizeNyBusinessOrganization,
+  publishNyBusinessRegistryStaging,
   requestNyJson,
   schemaFingerprint,
   verifyNyBusinessRegistry,
@@ -227,5 +228,17 @@ test("blocks schema drift, duplicate DOS identity, count drift, and pre-cancelle
     minimumOrganizations: 1,
     signal: controller.signal,
     logger: () => {},
+  }), { name: "AbortError" });
+});
+
+test("refuses a pre-cancelled staged publication before filesystem work", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "datahub-ny-business-publish-cancel-test-"));
+  t.after(async () => rm(root, { recursive: true, force: true }));
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(() => publishNyBusinessRegistryStaging({
+    outputRoot: path.join(root, "output"),
+    stagingRunId: "11111111-1111-4111-8111-111111111111",
+    signal: controller.signal,
   }), { name: "AbortError" });
 });

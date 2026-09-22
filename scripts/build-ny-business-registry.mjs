@@ -3,6 +3,7 @@
 import path from "node:path";
 import process from "node:process";
 import { buildNyBusinessRegistry, publishNyBusinessRegistryStaging } from "../runner/ny-business-registry.mjs";
+import { createCliCancellation } from "../runner/cli-cancellation.mjs";
 import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
 
 function usage() {
@@ -51,12 +52,12 @@ function parseArguments(args) {
   return options;
 }
 
+const cancellation = createCliCancellation();
 try {
   const options = parseArguments(process.argv.slice(2));
   if (options.help) {
     process.stdout.write(usage());
-    process.exit(0);
-  }
+  } else {
   const outputRoot = assertInsideApp(path.resolve(APP_ROOT, options.output));
   if (options.resumeSourceStagingRun && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.resumeSourceStagingRun)) {
     throw new Error("--resume-source-staging-run requires a UUID.");
@@ -65,12 +66,13 @@ try {
     ? assertInsideApp(path.join(outputRoot, ".staging", options.resumeSourceStagingRun, "source", "active-corporations-selected-fields.jsonl.gz"))
     : null;
   const result = options.resumeStagingRun
-    ? await publishNyBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun })
+    ? await publishNyBusinessRegistryStaging({ outputRoot, stagingRunId: options.resumeStagingRun, signal: cancellation.signal })
     : await buildNyBusinessRegistry({
       outputRoot,
       zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
       pageSize: options.pageSize,
       sourceSnapshotPath,
+      signal: cancellation.signal,
       logger: (message) => process.stdout.write(`${message}\n`),
     });
   process.stdout.write(`${JSON.stringify({
@@ -79,7 +81,11 @@ try {
     manifest: path.join(result.releaseDirectory, "manifest.json"),
     coverage: result.manifest.coverage,
   }, null, 2)}\n`);
+  }
 } catch (error) {
-  process.stderr.write(`New York Business Registry build failed: ${error.message}\n`);
+  if (cancellation.signal.aborted) process.stderr.write("New York Business Registry build cancelled; inspect retained run evidence before resuming.\n");
+  else process.stderr.write(`New York Business Registry build failed: ${error.message}\n`);
   process.exitCode = 1;
+} finally {
+  cancellation.dispose();
 }

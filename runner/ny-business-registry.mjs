@@ -643,7 +643,7 @@ export async function buildNyBusinessRegistry({
     artifacts,
   };
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  const publication = await publishNyBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId });
+  const publication = await publishNyBusinessRegistryStaging({ outputRoot, stagingRunId: runId, expectedReleaseId: releaseId, signal });
   logger(`Published ${organizations.toLocaleString("en-US")} New York active-extract organizations.`);
   return { manifest, releaseDirectory: publication.releaseDirectory, pointerPath: publication.pointerPath };
 }
@@ -660,7 +660,8 @@ function replayComparisonRecord(record) {
   return comparison;
 }
 
-export async function publishNyBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null } = {}) {
+export async function publishNyBusinessRegistryStaging({ outputRoot, stagingRunId, expectedReleaseId = null, signal } = {}) {
+  signal?.throwIfAborted?.();
   if (!outputRoot || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stagingRunId ?? "")) {
     throw new Error("outputRoot and a valid stagingRunId are required.");
   }
@@ -669,11 +670,13 @@ export async function publishNyBusinessRegistryStaging({ outputRoot, stagingRunI
   assertContained(stagingRoot, stagingDirectory, "New York staging run");
   const manifestPath = path.join(stagingDirectory, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  signal?.throwIfAborted?.();
   if (manifest.run_id !== stagingRunId || manifest.dataset_id !== "ny-business-registry-active-entities" || manifest.status !== "published") {
     throw new Error("New York staging manifest does not match the requested complete run.");
   }
   if (expectedReleaseId && manifest.release_id !== expectedReleaseId) throw new Error("New York staging release ID does not match the build result.");
   await verifyNyBusinessRegistry(manifestPath);
+  signal?.throwIfAborted?.();
   const releasesDirectory = path.join(outputRoot, "releases");
   await mkdir(releasesDirectory, { recursive: true });
   const releaseDirectory = path.join(releasesDirectory, manifest.release_id);
@@ -683,7 +686,18 @@ export async function publishNyBusinessRegistryStaging({ outputRoot, stagingRunI
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  await new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(signal.reason ?? new DOMException("The operation was aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.("abort", onAbort);
+      resolve();
+    }, 250);
+    signal?.addEventListener?.("abort", onAbort, { once: true });
+  });
+  signal?.throwIfAborted?.();
   await renameWithRetry(stagingDirectory, releaseDirectory);
   const pointerPath = path.join(outputRoot, "current.json");
   const temporaryPointer = `${pointerPath}.tmp-${randomUUID()}`;
