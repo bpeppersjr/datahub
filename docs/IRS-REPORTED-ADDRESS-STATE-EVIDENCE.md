@@ -14,6 +14,8 @@ The source has 1,955,841 accepted organization filing-address records across 56 
 
 The UI's denominator remains six configured nationwide datasets, not organization or business counts. All 50 states and D.C. now have evidence from 6/6 configured datasets. This is dataset presence, not all-business completeness, which remains unknown. IRS records are labelled `organization filing-address records`, with evidence kind `organization-filing-address` and no location `profileId`. Other datasets retain their separate location-profile evidence. Filing/headquarters address state is not a verified physical operating site, current-operation claim, ZIP polygon assignment or county membership. No ZIP-derived state inference is used. No percentage of the 56-jurisdiction IRS record population is displayed.
 
+The state-access ledger also admits the pinned `derived/source-summary.json` counts for the 50 states and D.C. as `published-state-reported-address-aggregate-count` evidence. This is an offline reuse of the verified summary: the ledger validates the current pointer, release manifest, artifact size and SHA-256 before reading it, and does not scan normalized records or contact the publisher. The evidence remains an aggregate count of organization filing-address records. It is not a location profile, unique-business count, physical-site count, current-operation assertion, or all-business completeness measure.
+
 Example counts: Illinois 74,541; Minnesota 40,094; Oklahoma 22,343; New Hampshire 9,481; D.C. 14,126. Source posting and observation dates are visible alongside IRS state evidence.
 
 ## Verification evidence

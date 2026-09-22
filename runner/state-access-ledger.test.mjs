@@ -16,7 +16,12 @@ async function fixture(t, {retained = false} = {}) {
   const pointer = JSON.parse(await readFile(path.join(APP_ROOT, pointerPath)));
   const manifestPath = path.join(path.dirname(pointerPath), pointer.manifest);
   const manifest = JSON.parse(await readFile(path.join(APP_ROOT, manifestPath)));
-  const files = [pointerPath, manifestPath, 'config/industry-segments.json', 'config/state-access-workstreams.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
+  const irsPointerPath = 'data/business-sources/irs-eo-bmf-organizations/current.json';
+  const irsPointer = JSON.parse(await readFile(path.join(APP_ROOT, irsPointerPath)));
+  const irsManifestPath = path.join(path.dirname(irsPointerPath), irsPointer.manifest);
+  const irsManifest = JSON.parse(await readFile(path.join(APP_ROOT, irsManifestPath)));
+  const irsSummary = irsManifest.artifacts.find(a => a.artifact_type === 'irs-eo-bmf-source-summary');
+  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
   // Existing enrollment cases explicitly exercise pre-integration coverage.
   if (!retained) {
@@ -31,6 +36,23 @@ async function fixture(t, {retained = false} = {}) {
   }
   return { root, manifestPath, manifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }) };
 }
+
+test('IRS filing-address aggregate supplies national state evidence without profile, site, identity, or completeness claims', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  for (const state of ledger.jurisdictions) {
+    const cell = state.industries.find(item => item.industry === 'tax-exempt-organizations');
+    assert.equal(cell.accessEvidenceStatus, 'national-dataset-state-evidence');
+    const evidence = cell.evidence.find(item => item.type === 'published-state-reported-address-aggregate-count');
+    assert.ok(evidence.recordCount > 0);
+    assert.equal(evidence.evidenceClass, 'reported-filing-address-aggregate');
+    assert.equal(evidence.rowUnit, 'organization-filing-address-record');
+    assert.equal(evidence.addressBasis, 'reported-filing-address-state');
+    assert.equal(evidence.identityMatchingEligible, false);
+    assert.equal(evidence.physicalSiteEligible, false);
+    assert.equal(evidence.currentOperationsVerified, false);
+    assert.equal(evidence.allBusinessCompleteness, null);
+  }
+});
 
 test('promoted retained childcare counts become direct candidate evidence without assigning unknown address states',async t=>{
   const f=await fixture(t,{retained:true}),ledger=await buildStateAccessLedger(f);

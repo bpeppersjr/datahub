@@ -107,6 +107,35 @@ async function readPinnedJson(root, value) {
   return { file, bytes, value: JSON.parse(bytes), sha256: digest(bytes) };
 }
 
+async function governedIrsStateEvidence(root, catalogPath) {
+  const catalog = await readPinnedJson(root, catalogPath);
+  const source = catalog.value?.sources?.find((item) => item.id === "national-irs-eo-bmf");
+  const contract = source?.stateEvidence;
+  if (catalog.value?.schemaVersion !== "national-reporting-catalog@1.0.0"
+    || source?.profileId !== null || source?.sourceKey !== "irs_eo_bmf_organizations"
+    || contract?.kind !== "reported-filing-address-aggregate" || contract?.artifactType !== "irs-eo-bmf-source-summary"
+    || contract?.field !== "states_and_territories" || contract?.rowUnit !== "organization-filing-address-record"
+    || contract?.identityMatchingEligible !== false || contract?.physicalSiteEligible !== false
+    || contract?.currentOperationsVerified !== false || contract?.allBusinessCompleteness !== null) {
+    throw new Error("IRS state aggregate evidence contract is invalid.");
+  }
+  const pointer = await readPinnedJson(root, contract.pointer);
+  const manifest = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pointer.file), pointer.value.manifest)));
+  if (pointer.value.dataset_id !== "irs-eo-bmf-organizations" || manifest.value.dataset_id !== pointer.value.dataset_id
+    || manifest.value.release_id !== pointer.value.release_id || !String(manifest.value.status).startsWith("published")) {
+    throw new Error("IRS state aggregate pointer does not identify a published release.");
+  }
+  const artifacts = manifest.value.artifacts?.filter((item) => item.artifact_type === contract.artifactType) ?? [];
+  if (artifacts.length !== 1 || !Number.isSafeInteger(artifacts[0].bytes) || !/^[a-f0-9]{64}$/.test(artifacts[0].sha256)) throw new Error("IRS state aggregate summary artifact is invalid.");
+  const summaryPath = inside(root, path.resolve(path.dirname(manifest.file), artifacts[0].path));
+  await rejectLinks(root, summaryPath);
+  const bytes = await readFile(summaryPath);
+  if (bytes.length !== artifacts[0].bytes || digest(bytes) !== artifacts[0].sha256) throw new Error("IRS state aggregate summary integrity failed.");
+  const counts = JSON.parse(bytes)[contract.field];
+  if (!counts || STATES.some((state) => !Number.isSafeInteger(counts[state]) || counts[state] <= 0)) throw new Error("IRS state aggregate summary must contain positive counts for all 50 states and DC.");
+  return { counts, source, contract, releaseId: manifest.value.release_id, manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
+}
+
 async function governedStates(root, pointer) {
   const pp = await readPinnedJson(root, pointer);
   const mp = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pp.file), pp.value.manifest)));
@@ -143,10 +172,10 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const [coverage, irsStateEvidence, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
   const assessmentStates = assessments.states ?? [];
   if (!Array.isArray(assessmentStates) || assessmentStates.some((item) => !CANONICAL.has(item.state_abbreviation)) || new Set(assessmentStates.map((item) => item.state_abbreviation)).size !== assessmentStates.length) throw new Error("Assessment states must contain unique canonical state codes.");
   for (const sourceKeys of Object.values(industryRead.value.industries)) for (const key of sourceKeys) if (!Object.hasOwn(PROFILE_IDS, key)) throw new Error(`Industry source ${key} has no explicit coverage profile mapping.`);
@@ -192,6 +221,17 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         if (reportingOnly && count !== undefined && count !== null && (!Number.isSafeInteger(count) || count < 0)) throw new Error("Published childcare reporting count must be a non-negative integer.");
         const missing = await missingPrerequisites(root, source.prerequisites ?? []);
         appSources.push({ sourceId: key, acquisitionExecutor: "cotive-app", ...(source.manual_selection_required ? { manualSelectionRequired: true } : {}), prerequisiteStatus: missing.length ? "MISSING" : "PRESENT", missingPrerequisites: missing, limitations: source.coverage_notes ?? [] });
+        if (key === "national-irs-eo-bmf") {
+          const aggregateCount = irsStateEvidence.counts[state];
+          national = true;
+          evidence.push({ type: "published-state-reported-address-aggregate-count", evidenceClass: irsStateEvidence.contract.kind,
+            sourceId: key, sourceReleaseId: irsStateEvidence.releaseId, recordCount: aggregateCount,
+            artifactPath: irsStateEvidence.artifactPath, artifactSha256: irsStateEvidence.artifactSha256,
+            rowUnit: irsStateEvidence.contract.rowUnit, addressBasis: "reported-filing-address-state",
+            identityMatchingEligible: false, physicalSiteEligible: false, currentOperationsVerified: false,
+            allBusinessCompleteness: null });
+          continue;
+        }
         if (source.scope === "state" && positive) { direct = true; evidence.push({ type: reportingOnly ? "published-direct-state-reporting-count" : "published-direct-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (source.scope === "national" && positive) { national = true; evidence.push({ type: "published-state-profile-count", sourceId: profileId, recordCount: count, coverageReleaseId: coverage.releaseId, artifactPath: coverage.artifactPath }); }
         else if (profileId === null || reportingOnly && (count === undefined || count === null)) unmeasured = true;

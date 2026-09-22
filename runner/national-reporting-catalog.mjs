@@ -27,9 +27,12 @@ export function validateNationalReportingCatalog(value) {
     && value.predecessorScope === 'Six configured nationwide collection datasets'
     && value.exportPolicy === 'local-review-only' && value.allBusinessesPercent === null && dense(value.sources) && value.sources.length === 8);
   value.sources.forEach((source,index) => {
-    check(exact(source,['id','profileId','sourceKey','label','group','scope']));
+    const keys = index === 5 ? ['id','profileId','sourceKey','label','group','scope','stateEvidence'] : ['id','profileId','sourceKey','label','group','scope'];
+    check(exact(source,keys));
     check(JSON.stringify([source.id,source.profileId,source.sourceKey,source.group]) === JSON.stringify(mappings[index]));
     for (const field of ['label','scope']) check(typeof source[field] === 'string' && source[field].trim() === source[field] && source[field].length > 0 && source[field].length <= 500);
+    if (index === 5) check(exact(source.stateEvidence,['kind','pointer','artifactType','field','rowUnit','identityMatchingEligible','physicalSiteEligible','currentOperationsVerified','allBusinessCompleteness'])
+      && JSON.stringify(source.stateEvidence) === JSON.stringify({kind:'reported-filing-address-aggregate',pointer:'data/business-sources/irs-eo-bmf-organizations/current.json',artifactType:'irs-eo-bmf-source-summary',field:'states_and_territories',rowUnit:'organization-filing-address-record',identityMatchingEligible:false,physicalSiteEligible:false,currentOperationsVerified:false,allBusinessCompleteness:null}));
   });
   return structuredClone(value);
 }

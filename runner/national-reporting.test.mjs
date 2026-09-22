@@ -13,6 +13,7 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 test('versioned eight-source catalog is closed and preserves unknown completeness',async()=>{
   const {catalog}=await readNationalReportingCatalog();assert.equal(catalog.sources.length,8);
   assert.equal(catalog.sources[5].profileId,null);assert.equal(catalog.sources[6].sourceKey,'epa_echo_active_facilities');
+  assert.deepEqual(catalog.sources[5].stateEvidence,{kind:'reported-filing-address-aggregate',pointer:'data/business-sources/irs-eo-bmf-organizations/current.json',artifactType:'irs-eo-bmf-source-summary',field:'states_and_territories',rowUnit:'organization-filing-address-record',identityMatchingEligible:false,physicalSiteEligible:false,currentOperationsVerified:false,allBusinessCompleteness:null});
   for(const mutate of [v=>v.sources.pop(),v=>v.sources[7]=v.sources[6],v=>v.script='download.mjs',v=>v.sources[0].args=[],v=>v.allBusinessesPercent=100,v=>v.denominatorVersion='legacy-six',v=>v.exportPolicy='public']) {
     const value=structuredClone(catalog);mutate(value);assert.throws(()=>validateNationalReportingCatalog(value));
   }
