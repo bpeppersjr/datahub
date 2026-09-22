@@ -26,7 +26,12 @@ async function fixture(t, {retained = false} = {}) {
   const waManifestPath = path.join(path.dirname(waPointerPath), waPointer.manifest);
   const waManifest = JSON.parse(await readFile(path.join(APP_ROOT, waManifestPath)));
   const waSummary = waManifest.artifacts.find(a => a.artifact_type === 'wa-lni-active-contractor-licenses-source-summary');
-  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), waPointerPath, waManifestPath, path.join(path.dirname(waManifestPath), waSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
+  const dePointerPath = 'data/business-sources/de-business-licenses-current/current.json';
+  const dePointer = JSON.parse(await readFile(path.join(APP_ROOT, dePointerPath)));
+  const deManifestPath = path.join(path.dirname(dePointerPath), dePointer.manifest);
+  const deManifest = JSON.parse(await readFile(path.join(APP_ROOT, deManifestPath)));
+  const deSummary = deManifest.artifacts.find(a => a.artifact_type === 'de-business-licenses-source-summary');
+  const files = [pointerPath, manifestPath, irsPointerPath, irsManifestPath, path.join(path.dirname(irsManifestPath), irsSummary.path), waPointerPath, waManifestPath, path.join(path.dirname(waManifestPath), waSummary.path), dePointerPath, deManifestPath, path.join(path.dirname(deManifestPath), deSummary.path), 'config/industry-segments.json', 'config/state-access-workstreams.json', 'config/national-reporting-sources.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
   // Existing enrollment cases explicitly exercise pre-integration coverage.
   if (!retained) {
@@ -39,7 +44,7 @@ async function fixture(t, {retained = false} = {}) {
     await writeFile(file,bytes); artifact.bytes=bytes.length; artifact.sha256=createHash('sha256').update(bytes).digest('hex');
     await writeFile(path.join(root,manifestPath),JSON.stringify(manifest));
   }
-  return { root, manifestPath, manifest, waManifestPath, waManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
+  return { root, manifestPath, manifest, waManifestPath, waManifest, deManifestPath, deManifest, assessmentLoader: async () => ({ assessment_catalog_id: 'fixture-assessments', coverage_release_id: manifest.release_id, states: [] }),
     mnCredentialPublicationLoader: async () => ({status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:manifest.release_id,coverageManifestSha256:createHash('sha256').update(await readFile(path.join(root,manifestPath))).digest('hex'),productionRunId:'production-mn-credentials-20260910-01',productionReceiptSha256:'b'.repeat(64),reportingReleaseId:'fixture-reporting',reportingManifestSha256:'c'.repeat(64)}) };
 }
 
@@ -153,6 +158,40 @@ test('WA contractor publisher cohort supplies direct WA-only construction eviden
     assert.notEqual(cell.accessEvidenceStatus, 'direct-state-publisher');
     assert.equal(cell.evidence.some(item => item.type === evidence.type), false);
   }
+});
+
+test('Delaware current-license cohort supplies direct DE-only evidence without address-state, site, operation, business, or completeness claims', async (t) => {
+  const f = await fixture(t); const ledger = await buildStateAccessLedger(f);
+  const de = ledger.jurisdictions.find(row => row.state === 'DE').industries.find(row => row.industry === 'local-business-licenses');
+  assert.equal(de.accessEvidenceStatus, 'direct-state-publisher');
+  const evidence = de.evidence.find(item => item.evidenceClass === 'delaware-publisher-current-license-organization-cohort');
+  assert.deepEqual({recordCount:evidence.recordCount,rowUnit:evidence.rowUnit,stateBasis:evidence.stateBasis,publisherJurisdiction:evidence.publisherJurisdiction,reportedAddressState:evidence.reportedAddressState},
+    {recordCount:66667,rowUnit:'publisher-current-license-number-organization-candidate',stateBasis:'publisher-jurisdiction',publisherJurisdiction:'DE',reportedAddressState:null});
+  assert.equal(evidence.identityMatchingEligible, false); assert.equal(evidence.physicalSiteEligible, false);
+  assert.equal(evidence.currentOperationsVerified, false); assert.equal(evidence.uniqueBusinessCount, null);
+  assert.equal(evidence.nationalCompletenessPercent, null); assert.equal(evidence.exportPolicy, 'local-review-only');
+  for (const jurisdiction of ledger.jurisdictions.filter(row => row.state !== 'DE')) {
+    const cell = jurisdiction.industries.find(row => row.industry === 'local-business-licenses');
+    assert.equal(cell.evidence.some(item => item.evidenceClass === evidence.evidenceClass), false);
+  }
+});
+
+test('Delaware current-license admission rejects tampered, malformed, non-positive, and unconserved summaries', async (t) => {
+  for (const mutate of [
+    summary => { summary.distinct_licenses_published = 0; },
+    summary => { summary.distinct_licenses_published = '66667'; },
+    summary => { summary.distinct_licenses_published -= 1; },
+    summary => { summary.quarantined_license_groups -= 1; },
+  ]) {
+    const f = await fixture(t); const artifact = f.deManifest.artifacts.find(a => a.artifact_type === 'de-business-licenses-source-summary');
+    const file = path.join(f.root, path.dirname(f.deManifestPath), artifact.path); const summary = JSON.parse(await readFile(file)); mutate(summary);
+    const bytes = Buffer.from(JSON.stringify(summary)); await writeFile(file, bytes); artifact.bytes = bytes.length; artifact.sha256 = createHash('sha256').update(bytes).digest('hex');
+    await writeFile(path.join(f.root, f.deManifestPath), JSON.stringify(f.deManifest));
+    await assert.rejects(buildStateAccessLedger(f), /Delaware license source summary/);
+  }
+  const f = await fixture(t); const artifact = f.deManifest.artifacts.find(a => a.artifact_type === 'de-business-licenses-source-summary');
+  await writeFile(path.join(f.root, path.dirname(f.deManifestPath), artifact.path), '{}');
+  await assert.rejects(buildStateAccessLedger(f), /integrity/);
 });
 
 test('WA contractor admission rejects tampered, malformed, and non-positive summaries', async (t) => {

@@ -164,6 +164,37 @@ async function governedWaContractorEvidence(root, pointerPath) {
     manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
 }
 
+async function governedDelawareLicenseEvidence(root, pointerPath) {
+  const pointer = await readPinnedJson(root, pointerPath);
+  const manifest = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pointer.file), pointer.value.manifest)));
+  if (pointer.value.dataset_id !== "de-business-licenses-current"
+    || manifest.value.dataset_id !== pointer.value.dataset_id
+    || manifest.value.release_id !== pointer.value.release_id
+    || manifest.value.status !== "published"
+    || manifest.value.complete_current_license_snapshot !== true) throw new Error("Delaware license pointer does not identify a published complete release.");
+  const artifacts = manifest.value.artifacts?.filter((item) => item.artifact_type === "de-business-licenses-source-summary") ?? [];
+  if (artifacts.length !== 1 || !Number.isSafeInteger(artifacts[0].bytes) || artifacts[0].bytes <= 0 || !/^[a-f0-9]{64}$/.test(artifacts[0].sha256)) throw new Error("Delaware license release must contain one verified source summary.");
+  const summaryPath = inside(root, path.resolve(path.dirname(manifest.file), artifacts[0].path));
+  await rejectLinks(root, summaryPath);
+  const bytes = await readFile(summaryPath);
+  if (bytes.length !== artifacts[0].bytes || digest(bytes) !== artifacts[0].sha256) throw new Error("Delaware license source summary integrity failed.");
+  const summary = JSON.parse(bytes), count = summary.distinct_licenses_published, coverage = manifest.value.coverage;
+  if (!Number.isSafeInteger(count) || count <= 0
+    || count !== coverage?.distinct_licenses_published
+    || summary.source_current_license_rows !== coverage.source_current_license_rows
+    || summary.accepted_current_license_rows !== coverage.accepted_current_license_rows
+    || summary.distinct_source_license_numbers !== coverage.distinct_source_license_numbers
+    || summary.quarantined_source_records !== coverage.quarantined_source_records
+    || summary.quarantined_license_groups !== coverage.quarantined_license_groups
+    || summary.accepted_current_license_rows + summary.quarantined_source_records !== summary.source_current_license_rows
+    || summary.distinct_licenses_published + summary.quarantined_license_groups !== summary.distinct_source_license_numbers
+    || coverage.physical_sites !== null || coverage.establishments !== null) {
+    throw new Error("Delaware license source summary has invalid or unconserved cohort semantics.");
+  }
+  return { count, releaseId: manifest.value.release_id, sourceReleaseId: manifest.value.source_release_id,
+    manifestSha256: manifest.sha256, artifactPath: path.relative(root, summaryPath).replaceAll("\\", "/"), artifactSha256: artifacts[0].sha256 };
+}
+
 async function governedStates(root, pointer) {
   const pp = await readPinnedJson(root, pointer);
   const mp = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pp.file), pp.value.manifest)));
@@ -200,10 +231,10 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", deLicensePointer = "data/business-sources/de-business-licenses-current/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, mnCredentialPublicationLoader = loadMnCredentialPublicationStatus, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
-  const [coverage, irsStateEvidence, waContractorEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
+  const [coverage, irsStateEvidence, waContractorEvidence, deLicenseEvidence, assessments, credentialPublication, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), governedDelawareLicenseEvidence(root, deLicensePointer), assessmentLoader(), mnCredentialPublicationLoader({root}), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
   const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
     && credentialPublication.included === true && credentialPublication.credentialRows === 11456
     && credentialPublication.recordUnit === "publisher-business-credential-row"
@@ -291,6 +322,17 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
           sourceManifestSha256: waContractorEvidence.manifestSha256, identityMatchingEligible: false, physicalSiteEligible: false,
           currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
           exportPolicy: "local-review-only", aggregateDistribution: "public-under-pddl-with-l-and-i-attribution-and-semantic-limitations" });
+      }
+      if (industryId === "local-business-licenses" && state === "DE") {
+        direct = true;
+        evidence.push({ type: "published-direct-state-publisher-cohort-count", evidenceClass: "delaware-publisher-current-license-organization-cohort",
+          sourceId: "delaware-division-of-revenue-current-business-licenses", sourceReleaseId: deLicenseEvidence.sourceReleaseId,
+          recordCount: deLicenseEvidence.count, rowUnit: "publisher-current-license-number-organization-candidate",
+          stateBasis: "publisher-jurisdiction", publisherJurisdiction: "DE", reportedAddressState: null,
+          artifactPath: deLicenseEvidence.artifactPath, artifactSha256: deLicenseEvidence.artifactSha256,
+          sourceManifestSha256: deLicenseEvidence.manifestSha256, identityMatchingEligible: false, physicalSiteEligible: false,
+          currentOperationsVerified: false, uniqueBusinessCount: null, nationalCompletenessPercent: null,
+          exportPolicy: "local-review-only", aggregateDistribution: "public-with-provenance-and-semantic-limitations" });
       }
       for (const key of sourceKeys) {
         const source = industryRead.value.sources[key], profileId = PROFILE_IDS[key], count = profileId === null ? null : row.registry_evidence?.source_profile_counts_by_reported_address_state?.[profileId];
