@@ -97,7 +97,7 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 79);
+  assert.equal(registry.connectorCount, 80);
   assert.equal(registry.get("ia-childcare-centers-acquisition").resource_class, "bounded-center-directory");
   assert.equal(registry.get("ia-childcare-schema-probe").resource_class, "bounded-schema-assessment");
   assert.deepEqual(registry.get("ut-childcare-centers-app").allowed_hosts, []);
@@ -126,9 +126,12 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("ak-active-business-licenses-app").version, "1.0.0");
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
-  assert.equal(registry.policyProfileCount, 61);
+  assert.equal(registry.policyProfileCount, 62);
   assert.equal(registry.get("usps-city-state-admission").implementation_status, "offline-governed-prerequisite-only");
   assert.deepEqual(registry.get("usps-city-state-admission").allowed_hosts, []);
+  assert.equal(registry.get("usps-city-state-operational-denominator-candidate").implementation_status, "offline-local-candidate-only");
+  assert.deepEqual(registry.get("usps-city-state-operational-denominator-candidate").allowed_hosts, []);
+  assert.equal(registry.get("usps-city-state-operational-denominator-candidate").resource_class, "local-cpu-disk");
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
   }

@@ -1,0 +1,17 @@
+{
+  "policy_id": "usps-city-state-operational-denominator-candidate",
+  "version": "1.0.0",
+  "dataset_id": "usps-city-state-operational-denominator-candidate",
+  "publisher": "United States Postal Service",
+  "source_product": "USPS City State Product",
+  "not_area_or_district": true,
+  "attribution": "Source: United States Postal Service City State Product; local-restricted use under the operator's applicable license or written permission.",
+  "ownership": "Licensed USPS City State Product data supplied by the operator",
+  "allowed_use": ["Offline local derivation under the operator's applicable license or written permission"],
+  "prohibited_use": ["network acquisition", "credential storage", "licensed-row redistribution", "current-pointer mutation", "production admission", "ZIP+4 joining", "ZCTA geometry inference", "address deliverability claim", "relabeling as Area or District"],
+  "retention": "Retain only the derived local-restricted candidate and immutable verification metadata; the operator-managed input remains outside the release.",
+  "redistribution": "not authorized",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-09-22"
+}

@@ -1,0 +1,21 @@
+{
+  "profile_id": "usps-city-state-operational-denominator",
+  "version": "1.0.0",
+  "dataset_id": "usps-city-state-operational-denominator-candidate",
+  "source_product": "USPS City State Product",
+  "source_family": "usps-city-state",
+  "source_route": "City State",
+  "not_area_or_district": true,
+  "row_unit": "one unique source-reported ZIP5 row",
+  "zip_classes": ["standard", "po-box", "unique", "military"],
+  "status_mapping": "operator-supplied explicit mapping with non-secret semantics reference",
+  "network_requests": 0,
+  "downloaded_bytes": 0,
+  "production_admitted": false,
+  "current_pointer_written": false,
+  "operational_denominator_semantics": "candidate evidence for source-reported operational-code membership only; not proof of address deliverability or business coverage",
+  "zip4": "not present",
+  "zcta_geometry": "not present",
+  "retention": "derived local-restricted release; operator-managed licensed input is not copied",
+  "redistribution": "not authorized"
+}

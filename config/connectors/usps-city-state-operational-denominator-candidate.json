@@ -1,0 +1,36 @@
+{
+  "connector_id": "usps-city-state-operational-denominator-candidate",
+  "version": "1.0.0",
+  "implementation_status": "offline-local-candidate-only",
+  "description": "Builds a separately governed local-restricted candidate from a verified City State admission manifest and the exact same operator-managed JSONL.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["admission_manifest", "input", "status_mapping"],
+    "properties": {
+      "admission_manifest": { "type": "string" },
+      "input": { "type": "string" },
+      "status_mapping": { "type": "string" },
+      "source_profile": { "type": "string" },
+      "output": { "type": "string" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["verified-usps-city-state-admission-manifest-json", "operator-managed-licensed-usps-city-state-zip5-jsonl", "city-state-status-semantics-map-json"],
+  "output_artifact_types": ["usps-city-state-operational-denominator-candidate-jsonl", "candidate-receipt-json", "candidate-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "not-applicable-no-network",
+  "provider_budget_key": "offline-only",
+  "resource_class": "local-cpu-disk",
+  "execution_limits": { "maximum_input_bytes": 52428800, "network_requests": 0, "maximum_candidate_bytes": 209715200 },
+  "retry": "No automatic retry; correct the rejected local input or semantics map and invoke again.",
+  "checkpoint": "No checkpoint; exact source replay completes before immutable manifest publication.",
+  "idempotency": "Source month, source SHA-256 and semantics-map SHA-256 determine the immutable candidate identity; an existing identity is never overwritten.",
+  "cancellation": "Cancellation before manifest publication removes only this new staging directory and produces no completed candidate.",
+  "source_policy": "config/source-policies/usps-city-state-operational-denominator-candidate.json",
+  "source_profile": "config/source-profiles/usps-city-state-operational-denominator.json",
+  "retention_profile": "local-restricted derived metadata and selected ZIP5 rows; no redistribution authorization",
+  "produced_entities": ["zip5-operational-denominator-candidate"],
+  "produced_identifiers": ["zip5"]
+}

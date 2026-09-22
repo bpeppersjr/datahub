@@ -1,0 +1,19 @@
+{
+  "dataset_id": "usps-city-state-operational-denominator-candidate",
+  "version": "1.0.0",
+  "label": "USPS City State operational-denominator candidate",
+  "row_unit": "selected unique source-reported ZIP5",
+  "record_schema": "usps-city-state-operational-denominator-row@1.0.0",
+  "record_fields": ["schema_version", "zip_code", "postal_code", "zip4", "zip_class", "source_status", "assignment_status", "evidence_scope", "deliverability_status", "zcta_status", "source_month", "source_version", "observed_at", "created_at", "export_policy", "provenance"],
+  "source_profile": "config/source-profiles/usps-city-state-operational-denominator.json",
+  "policy_profile": "config/source-policies/usps-city-state-operational-denominator-candidate.json",
+  "zip5": "string five-digit source code",
+  "zip4": "separate field absent",
+  "zcta_geometry": "absent",
+  "status_semantics": "explicit per-observed-status mapping required",
+  "complete_candidate": "all four source ZIP classes must be included and represented",
+  "export_policy": "local-restricted",
+  "current_pointer": false,
+  "production_admission": false,
+  "network_requests": 0
+}
