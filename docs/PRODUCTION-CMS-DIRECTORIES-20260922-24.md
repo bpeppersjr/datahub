@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-25`; do not execute this plan.
+
 Fresh governed planning completed after Co*Tive added a separate, in-memory CMS nursing-home chain assertion view over the retained fixed release. That view preserves source-row, CCN, artifact, manifest, raw CSV, temporal, and publisher-group evidence while denying legal-parent, canonical-network, unique-business, physical-site, and current-operation claims. It is local-review-only, performs no network activity, persists no artifact, changes no national total or production pointer, and is not an input to this plan. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-24`
