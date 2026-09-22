@@ -392,6 +392,11 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/census-zbp-industry') {
       await censusZbpIndustryHttp(request,response,url,censusZbpIndustryView,json);return;
     }
+    if (request.method === 'GET' && url.pathname === '/api/overture-heatmap-readiness') {
+      const [{ createOvertureHeatmapReadiness },{ overtureHeatmapReadinessHttp }]=await Promise.all([import('./overture-heatmap-readiness.mjs'),import('./overture-heatmap-readiness-http.mjs')]);
+      await overtureHeatmapReadinessHttp(request,response,createOvertureHeatmapReadiness,json);
+      return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/retained-credentials') {
       json(response,200,await retainedCredentialsView.get(url.searchParams));return;
     }

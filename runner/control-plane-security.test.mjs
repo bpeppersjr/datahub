@@ -152,6 +152,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/connectors/us-census-geography/validate", "{}"],
     ["GET", "/api/business-coverage"],
     ["GET", "/api/census-zbp-industry?naics=23----"],
+    ["GET", "/api/overture-heatmap-readiness"],
     ["GET", "/api/retained-credentials"],
     ["GET", "/api/business-coverage/states"],
     ["GET", "/api/business-map/catalog"],
@@ -248,6 +249,8 @@ test("protects every live management endpoint while leaving only narrow liveness
   assert.equal(retained.status,200);assert.equal(retained.headers['cache-control'],'no-store');assert.equal(JSON.parse(retained.body).available,false);
   const invalidRetained=await rawRequest({port,hostHeader,pathname:'/api/retained-credentials?state=ZZ',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(invalidRetained.status,400);
   const foreignRetained=await rawRequest({port,hostHeader,origin:'https://evil.example',pathname:'/api/retained-credentials',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(foreignRetained.status,403);
+  const overture=await rawRequest({port,hostHeader,pathname:'/api/overture-heatmap-readiness',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(overture.status,503);assert.equal(overture.headers['cache-control'],'no-store');assert.match(overture.body,/No source data was admitted/);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],

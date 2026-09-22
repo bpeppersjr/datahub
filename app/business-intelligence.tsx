@@ -2,6 +2,7 @@
 import DatasetRepresentation from './dataset-representation';
 import CredentialHeatmap from './credential-heatmap';
 import CensusZbpIndustryHeatmap from './census-zbp-industry-heatmap';
+import OvertureHeatmapReadiness from './overture-heatmap-readiness';
 
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
@@ -455,6 +456,7 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
+      <OvertureHeatmapReadiness />
       <StateAccessSummary key={`${state?.postal_abbreviation??''}:${categoryId}`} state={state?.postal_abbreviation} industry={stateAccessIndustry(categoryId)} />
       <GoalCompletionSummary state={state?.postal_abbreviation} categoryId={categoryId} />
       {categoryId === 'tax-exempt-organizations' && <p className="entity-method-note">IRS EO BMF current-extract filing-address records only. A filing address may be a headquarters, mailing address, or P.O. box; it is not a verified physical site or proof of current operations. This local-review view has no all-business completeness denominator.</p>}
