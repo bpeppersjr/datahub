@@ -8,6 +8,34 @@ import { buildStateAccessLedger, projectNhRestrictedChildcareEvidence, writeStat
 import { loadStateBusinessSourceAssessmentCatalog } from './state-business-source-assessment.mjs';
 import { BROAD_ORGANIZATION_SOURCES } from './broad-organization-evidence.mjs';
 
+test('retained Census NES adds governed annual aggregate context without changing access evidence status', async () => {
+  const withoutContext = await buildStateAccessLedger({ annualAggregateContextLoader: async () => null });
+  const ledger = await buildStateAccessLedger();
+  assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, withoutContext.summary.accessEvidenceStatusCounts);
+  assert.equal(ledger.summary.governedAnnualAggregateContextCells, 102);
+  assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 57);
+  assert.equal(withoutContext.summary.governedAnnualAggregateContextCells, 0);
+  assert.equal(withoutContext.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 0);
+
+  for (const jurisdiction of ledger.jurisdictions) {
+    const prior = withoutContext.jurisdictions.find((item) => item.state === jurisdiction.state);
+    for (const [industry, naics, nationalCount] of [['childcare', '62441', 533596], ['construction', '23', 2917631]]) {
+      const cell = jurisdiction.industries.find((item) => item.industry === industry);
+      const priorCell = prior.industries.find((item) => item.industry === industry);
+      assert.equal(cell.accessEvidenceStatus, priorCell.accessEvidenceStatus);
+      assert.deepEqual(cell.evidence, priorCell.evidence);
+      assert.equal(cell.annualAggregateContext.naics, naics);
+      assert.equal(cell.annualAggregateContext.nationalSameIndustryNonemployerEstablishments, nationalCount);
+      assert.equal(cell.annualAggregateContext.status, 'published-annual-aggregate-context');
+      assert.equal(cell.annualAggregateContext.categoryRelation, 'context-only-not-equivalent');
+      assert(Number.isSafeInteger(cell.annualAggregateContext.nonemployerEstablishments));
+      for (const key of ['namedBusinessEntitiesAvailable','currentBusinessOperationsVerified','physicalSitesVerified','licensedFacilitiesEquivalent','identityMatchingEligible','employerUniverseIncluded','zipAllocationPerformed','zipOrZctaInferencePermitted']) assert.equal(cell.annualAggregateContext[key], false);
+      for (const key of ['collectionCompletenessPercent','uniqueBusinessCount']) assert.equal(cell.annualAggregateContext[key], null);
+    }
+    for (const cell of jurisdiction.industries.filter((item) => !['childcare','construction'].includes(item.industry))) assert.equal(cell.annualAggregateContext, undefined);
+  }
+});
+
 async function fixture(t, {retained = false} = {}) {
   const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
   const root = await mkdtemp(path.join(temp, 'state-ledger-'));
