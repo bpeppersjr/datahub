@@ -8,6 +8,7 @@ import OvertureNormalization from './overture-normalization';
 import OvertureReadiness from './overture-readiness';
 import CmsHospitalAdoption from './cms-hospital-adoption';
 import CmsSnfPecosStatusCard, {type CmsSnfPecosStatus} from './cms-snf-pecos-status';
+import IaBusinessRegistryRefreshStatusCard, {type IaBusinessRegistryRefreshStatus} from './ia-business-registry-refresh-status';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -17,7 +18,7 @@ type Catalog = {
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
   credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
   retainedSourceAdoptions?:Array<{sourceId:string;action:string}>;
-  governedSourceServices?:CmsSnfPecosStatus[];
+  governedSourceServices?:Array<CmsSnfPecosStatus|IaBusinessRegistryRefreshStatus>;
 };
 type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
@@ -122,7 +123,8 @@ export default function DataOperations() {
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
-    <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find(source=>source.sourceId==='cms-snf-pecos')}/>
+    <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find((source):source is CmsSnfPecosStatus=>source.sourceId==='cms-snf-pecos')}/>
+    <IaBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is IaBusinessRegistryRefreshStatus=>source.sourceId==='ia-business-registry')}/>
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />

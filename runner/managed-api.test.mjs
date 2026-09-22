@@ -127,6 +127,21 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   assert.equal(catalogResponse.status, 200);
   const catalog = await catalogResponse.json();
   assert.ok(catalog.export.policyModes.includes("local-review"));
+  const iowaRefresh = catalog.governedSourceServices.find(service => service.sourceId === "ia-business-registry");
+  assert.equal(iowaRefresh.readinessStatus, "HOLD");
+  assert.equal(iowaRefresh.dispatchAvailable, false);
+  assert.equal(catalog.collectionSources.some(source => source.id === "ia-business-registry"), false);
+
+  const refreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "ia-business-registry" } });
+  assert.equal(refreshPlanResponse.status, 200);
+  const refreshPlan = await refreshPlanResponse.json();
+  assert.equal(refreshPlan.operationCreated, false);
+  assert.equal(refreshPlan.networkRequestCount, 0);
+  assert.equal(refreshPlan.allocationCount, 0);
+  const refreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "ia-business-registry" } });
+  assert.equal(refreshStartResponse.status, 409);
+  assert.match((await refreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
+  assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
 
   const bad = await request(fixture.base, "/api/data-operations/exports", { method: "POST", body: { format: "xml" } });
   assert.equal(bad.status, 400);
