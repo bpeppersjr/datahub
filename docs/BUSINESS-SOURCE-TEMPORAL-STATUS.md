@@ -42,3 +42,13 @@ The management API includes `source_temporal_summary` in `GET /api/business-cove
 ## Boundaries
 
 The audit is read-only. It does not download a source, alter a release, infer an expiration date, remove a record, geocode an address, create business geometry, execute a postal migration, or change a production pointer.
+
+## Cross-release conservation audit
+
+`npm run source-temporal:conservation` independently verifies the current registry, entity-resolution and coverage pointer identities, manifest hashes and exact dependency pins. It streams every checksum-declared registry location profile and resolution decision without loading the national corpus into memory. Per source it records status-present/status-missing and observation-present/observation-missing counts, earliest/latest observations, and a SHA-256 digest of the canonical status distribution. Status payloads are not copied into the audit output.
+
+The audit treats `decision_status: active` only as the lifecycle of a reversible resolution decision. A resolution decision carrying `source_status`, `current_operations_verified` or `active_business` is rejected. Registry, resolution and coverage profile totals must reconcile exactly. Because current coverage views do not retain a per-record status distribution, the receipt explicitly reports `coverageRetainsPerRecordStatusDistribution: false`; it does not claim downstream equality that cannot be proven.
+
+Reporting-only childcare rows are replayed and must remain ineligible for identity matching with `active_business_verified: false`. The retained-childcare extension must retain `current_operations_verified: false`, and the Minnesota credential extension is checked against the retained registry manifest for null active-business count and false current-operation/identity-matching claims. These extensions are inventoried separately from the 30 legacy source temporal policies.
+
+The first retained national audit reconciled 8,011,835 registry location profiles to the same resolution and coverage counts, then checked 2,578,153 resolution decisions. Of those, 2,472,090 have an `active` decision lifecycle; this is explicitly not an active-business count. It also replayed 13,182 reporting-only childcare rows and inventoried 12,206 retained-childcare candidates plus 11,456 Minnesota credentials. No general operating status was inferred. Coverage still lacks the per-record status distribution, so the audit preserves that limitation rather than claiming end-to-end status equality.
