@@ -10,6 +10,7 @@ import { readNationalReportingTen } from './national-reporting-ten-projection.mj
 import { readSelectedIrsStateSummary } from './irs-eo-state-summary.mjs';
 import { assessBusinessSourceTemporalStatus, summarizeBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { assessStateBusinessSourceReadiness, summarizeStateBusinessSourceReadiness } from "./business-state-source-readiness.mjs";
+import { loadStateCoverageReassessment } from "./state-coverage-reassessment.mjs";
 import {
   indexStateBusinessSourceAssessments,
   loadStateBusinessSourceAssessmentCatalog,
@@ -26,6 +27,7 @@ const DEFAULT_STATE_SOURCE_REVALIDATION_PROVIDER = Object.freeze({
   index: indexStateBusinessSourceAssessments,
   summarize: summarizeStateBusinessSourceAssessments,
   summarizeLegacy: summarizeLegacyStateBusinessSourceRevalidation,
+  reconcileCoverage: (pointer) => loadStateCoverageReassessment(pointer),
 });
 const DIMENSION_ARTIFACT_TYPES = Object.freeze({
   states: "state-coverage-view-jsonl",
@@ -105,7 +107,7 @@ async function readCompactZipIndex(filePath) {
   return records;
 }
 
-function stateApiRow(row, sourceRevalidation = null, sourceRevalidationDocument = null, currentCoverageReleaseId = null) {
+function stateApiRow(row, sourceRevalidation = null, sourceRevalidationDocument = null, currentCoverageReleaseId = null, applicability = null) {
   const assessmentKind = sourceRevalidation?.assessment_kind ?? "revalidation";
   const assessmentId = sourceRevalidation?.assessment_id ?? sourceRevalidationDocument?.assessment_catalog_id ?? sourceRevalidationDocument?.revalidation_id ?? null;
   const revalidationId = assessmentKind === "revalidation"
@@ -118,6 +120,9 @@ function stateApiRow(row, sourceRevalidation = null, sourceRevalidationDocument 
     observed_at: sourceRevalidation.observed_at ?? sourceRevalidationDocument?.observed_at ?? null,
     coverage_release_id: sourceRevalidation.coverage_release_id ?? sourceRevalidationDocument?.coverage_release_id ?? null,
     coverage_release_matches_current: (sourceRevalidation.coverage_release_id ?? sourceRevalidationDocument?.coverage_release_id) === currentCoverageReleaseId,
+    observation_freshness_status: "not-evaluated-no-age-policy",
+    coverage_applicability_status: applicability?.states?.has(row.postal_abbreviation) ? applicability.status : applicability?.status === "exact-pin" ? "exact-pin" : "not-reviewed",
+    coverage_reconciliation_id: applicability?.states?.has(row.postal_abbreviation) ? applicability.reconciliationId : null,
     prior_decision: sourceRevalidation.prior_decision ?? null,
     decision: sourceRevalidation.decision,
     changed_since_prior_review: sourceRevalidation.changed_since_prior_review,
@@ -258,7 +263,7 @@ export function createBusinessCoverageViewStore({
     }
     const releaseDirectory = path.dirname(manifestPath);
     const artifacts = new Map((manifest.artifacts ?? []).map((artifact) => [artifact.artifact_type, artifact]));
-    const loadedRelease = { manifest, releaseDirectory, artifacts };
+    const loadedRelease = { pointer, manifest, releaseDirectory, artifacts };
     const latestPointer = JSON.parse(await readFile(pointerPath, "utf8"));
     if (latestPointer.dataset_id !== pointer.dataset_id || latestPointer.release_id !== pointer.release_id || latestPointer.manifest !== pointer.manifest) return ensureRelease();
     release = loadedRelease;
@@ -291,11 +296,27 @@ export function createBusinessCoverageViewStore({
       if (dimension === "states") {
         const sourceRevalidation = await ensureStateSourceRevalidation();
         const sourceRevalidationIndex = sourceRevalidation ? stateSourceRevalidationProvider.index(sourceRevalidation) : new Map();
+        let applicability = null;
+        if (sourceRevalidation) {
+          const assessmentRelease = sourceRevalidation.coverage_release_id ?? null;
+          if (assessmentRelease === current.manifest.release_id) applicability = { status: "exact-pin", reconciliationId: null, states: new Set() };
+          else if (assessmentRelease && stateSourceRevalidationProvider.reconcileCoverage) {
+            try {
+              const reassessment = await stateSourceRevalidationProvider.reconcileCoverage(current.pointer);
+              if (reassessment.historicalRelease !== assessmentRelease) throw new Error("Coverage reassessment does not originate at the assessment coverage release.");
+              applicability = { status: "reviewed-compatible", reconciliationId: reassessment.id, states: new Set(reassessment.states.map(item => item.state)) };
+            } catch (error) {
+              if (!/no reviewed reassessment transition/i.test(error?.message ?? "")) throw error;
+              applicability = { status: "not-reviewed", reconciliationId: null, states: new Set() };
+            }
+          }
+        }
         records = records.map((row) => stateApiRow(
           row,
           sourceRevalidationIndex.get(row.postal_abbreviation) ?? null,
           sourceRevalidation,
           current.manifest.release_id,
+          applicability,
         ));
       }
       if (dimension === "counties") records = records.map(countyApiRow);

@@ -14,6 +14,7 @@ import { loadVtChildcareReportingEnrollment, projectVtChildcarePublisherEvidence
 import { loadUtChildcareReportingEnrollment, projectUtChildcareStateEvidence } from "./ut-childcare-reporting-enrollment.mjs";
 import { loadIaChildcareReportingEnrollment, projectIaChildcarePublisherEvidence } from "./ia-childcare-reporting-enrollment.mjs";
 import { BROAD_ORGANIZATION_SOURCES, buildBroadOrganizationEvidence } from "./broad-organization-evidence.mjs";
+import { loadStateCoverageReassessment } from "./state-coverage-reassessment.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -182,7 +183,7 @@ async function governedStates(root, pointer) {
   const sourceBytes = await readFile(sourceArtifactPath);
   if (sourceBytes.length !== sourceArtifact.bytes || digest(sourceBytes) !== sourceArtifact.sha256) throw new Error("Source coverage artifact integrity failed.");
   const sources = sourceBytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
-  return { retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), sources: new Map(sources.map((row) => [row.source_key, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
+  return { pointer: pp.value, retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), sources: new Map(sources.map((row) => [row.source_key, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
 }
 
 function validateWorkstreams(config) {
@@ -198,7 +199,7 @@ async function missingPrerequisites(root, prerequisites) {
   return missing;
 }
 
-export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
+export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer = "data/business-coverage-views/current.json", waContractorPointer = "data/business-sources/wa-lni-active-contractor-organizations/current.json", industryConfigPath = "config/industry-segments.json", workstreamConfigPath = "config/state-access-workstreams.json", nationalReportingConfigPath = "config/national-reporting-sources.json", assessmentLoader = loadStateBusinessSourceAssessmentCatalog, coverageReassessmentLoader = loadStateCoverageReassessment, activeAssignments = [], observedTotalActiveAgents = null } = {}) {
   const industryRead = await readPinnedJson(root, industryConfigPath); validateIndustryConfig(industryRead.value, industryRead.file);
   const workstreamRead = await readPinnedJson(root, workstreamConfigPath), workstreams = validateWorkstreams(workstreamRead.value);
   const [coverage, irsStateEvidence, waContractorEvidence, assessments, localCredentials, localFacilities, localCtCandidates, localMdCandidates, localVtCandidates, localCoCandidates, localUtCandidates, localIaCandidates] = await Promise.all([governedStates(root, coveragePointer), governedIrsStateEvidence(root, nationalReportingConfigPath), governedWaContractorEvidence(root, waContractorPointer), assessmentLoader(), loadMnConstructionReportingEnrollment({root}), loadPaChildcareReportingEnrollment({root}), loadCtChildcareReportingEnrollment({root}), loadMdChildcareReportingEnrollment({root}), loadVtChildcareReportingEnrollment({root}), loadCoChildcareReportingEnrollment({root}), loadUtChildcareReportingEnrollment({root}), loadIaChildcareReportingEnrollment({root})]);
@@ -208,8 +209,20 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   if (!Array.isArray(activeAssignments) || activeAssignments.some((state) => !CANONICAL.has(state)) || new Set(activeAssignments).size !== activeAssignments.length || activeAssignments.length > workstreams.max_total_agent_concurrency) throw new Error("activeAssignments must contain unique canonical state codes within total concurrency.");
   if (observedTotalActiveAgents !== null && (!Number.isInteger(observedTotalActiveAgents) || observedTotalActiveAgents < activeAssignments.length || observedTotalActiveAgents > workstreams.max_total_agent_concurrency)) throw new Error("observedTotalActiveAgents is invalid.");
   const assessmentByState = new Map(assessmentStates.map((item) => [item.state_abbreviation, item])), active = new Set(activeAssignments), jurisdictions = [];
+  const catalogCoverageReleaseId = assessments.coverage_release_id ?? null;
+  let coverageReassessment = null;
+  if (catalogCoverageReleaseId && catalogCoverageReleaseId !== coverage.releaseId) {
+    try {
+      coverageReassessment = await coverageReassessmentLoader(coverage.pointer, { root });
+    } catch (error) {
+      if (!/no reviewed reassessment transition/i.test(error?.message ?? "")) throw error;
+    }
+  }
+  if (coverageReassessment && coverageReassessment.historicalRelease !== catalogCoverageReleaseId) throw new Error("Coverage reassessment does not originate at the assessment coverage release.");
+  const reassessedStates = new Set(coverageReassessment?.states?.map((item) => item.state) ?? []);
   const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, { sourceKey }]) => [state, await buildBroadOrganizationEvidence({ state, source: coverage.sources.get(sourceKey), root, asOf: new Date() })])));
   const assessmentFreshnessCounts = { current: 0, stale: 0, missingCoverageReleaseId: 0, unassessed: 0 };
+  const assessmentCoverageApplicabilityCounts = { exactPin: 0, reviewedCompatible: 0, notReviewed: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   for (const state of workstreams.jurisdictions) {
     const row = coverage.rows.get(state), assignment = workstreams.workstreams.find((item) => item.state === state), assessment = assessmentByState.get(state), industries = [];
     const assessmentCoverageReleaseId = assessment ? assessment.coverage_release_id ?? assessments.coverage_release_id ?? null : null;
@@ -217,8 +230,18 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
       : !assessmentCoverageReleaseId ? "missing-coverage-release-id"
       : assessmentCoverageReleaseId === coverage.releaseId ? "current"
       : "stale";
+    const assessmentCoverageApplicabilityStatus = !assessment ? "unassessed"
+      : !assessmentCoverageReleaseId ? "missing-coverage-release-id"
+      : assessmentCoverageReleaseId === coverage.releaseId ? "exact-pin"
+      : reassessedStates.has(state) ? "reviewed-compatible"
+      : "not-reviewed";
     if (assessmentFreshnessStatus === "missing-coverage-release-id") assessmentFreshnessCounts.missingCoverageReleaseId += 1;
     else assessmentFreshnessCounts[assessmentFreshnessStatus] += 1;
+    if (assessmentCoverageApplicabilityStatus === "exact-pin") assessmentCoverageApplicabilityCounts.exactPin += 1;
+    else if (assessmentCoverageApplicabilityStatus === "reviewed-compatible") assessmentCoverageApplicabilityCounts.reviewedCompatible += 1;
+    else if (assessmentCoverageApplicabilityStatus === "not-reviewed") assessmentCoverageApplicabilityCounts.notReviewed += 1;
+    else if (assessmentCoverageApplicabilityStatus === "missing-coverage-release-id") assessmentCoverageApplicabilityCounts.missingCoverageReleaseId += 1;
+    else assessmentCoverageApplicabilityCounts.unassessed += 1;
     for (const [industryId, sourceKeys] of Object.entries(industryRead.value.industries)) {
       const evidence = [], appSources = []; let direct = false, national = false, unmeasured = false;
       if (industryId === "construction" && state === "MN") {
@@ -319,13 +342,16 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         assessmentCoverageReleaseId,
         currentCoverageReleaseId: coverage.releaseId,
         assessmentFreshnessStatus,
+        assessmentCoverageApplicabilityStatus,
+        coverageReassessmentId: assessmentCoverageApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null,
         observedAt: assessment.observed_at ?? assessments.observed_at ?? null,
         reason: assessment.strongest_bounded_next_action,
       });
       const prerequisiteReady = appSources.length > 0 && appSources.every((item) => item.prerequisiteStatus === "PRESENT");
       industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
     }
-    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt: assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null }, broadOrganizationEvidence: broadEvidence.get(state) ?? null, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
+    const observedAt = assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null;
+    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt, observation: { observedAt, freshnessStatus: observedAt ? "not-evaluated-no-age-policy" : "unobserved" }, coverageApplicability: { status: assessmentCoverageApplicabilityStatus, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: assessmentCoverageApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null } }, broadOrganizationEvidence: broadEvidence.get(state) ?? null, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
     // Local credential evidence does not change published national status,
     // dispatch readiness, matching profiles or physical-site totals.
     const construction=industries.find(cell=>cell.industry==='construction');
@@ -347,7 +373,8 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   const counts = {}; for (const jurisdiction of jurisdictions) for (const item of jurisdiction.industries) counts[item.accessEvidenceStatus] = (counts[item.accessEvidenceStatus] ?? 0) + 1;
   const assessmentCoverageReleaseId = assessments.coverage_release_id ?? null;
   const assessmentCatalogFreshnessStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "current" : "stale";
-  return { schemaVersion: 2, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, assessmentFreshnessStatusCounts: assessmentFreshnessCounts }, jurisdictions };
+  const catalogApplicabilityStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "exact-pin" : coverageReassessment && assessmentCoverageApplicabilityCounts.reviewedCompatible === assessmentStates.length ? "reviewed-compatible" : "not-reviewed";
+  return { schemaVersion: 3, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentObservation: { observedAt: assessments.observed_at ?? null, freshnessStatus: assessments.observed_at ? "not-evaluated-no-age-policy" : "unobserved" }, assessmentCoverageApplicability: { status: catalogApplicabilityStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, exactReleaseMatch: assessmentCoverageReleaseId === coverage.releaseId, reconciliationId: catalogApplicabilityStatus === "reviewed-compatible" ? coverageReassessment.id : null, assessedJurisdictions: assessmentStates.length, exactPinJurisdictions: assessmentCoverageApplicabilityCounts.exactPin, reviewedCompatibleJurisdictions: assessmentCoverageApplicabilityCounts.reviewedCompatible, notReviewedJurisdictions: assessmentCoverageApplicabilityCounts.notReviewed, missingCoverageReleaseIdJurisdictions: assessmentCoverageApplicabilityCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentCoverageApplicabilityCounts.unassessed }, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, assessmentFreshnessStatusCounts: assessmentFreshnessCounts, assessmentCoverageApplicabilityStatusCounts: assessmentCoverageApplicabilityCounts }, jurisdictions };
 }
 
 export async function writeStateAccessReport(options = {}) {

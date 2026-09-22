@@ -304,6 +304,8 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(states.records[0].latest_source_revalidation.decision, "hold");
   assert.equal(states.records[0].latest_source_revalidation.candidate.product, "Fixture source candidate");
   assert.equal(states.records[0].latest_source_revalidation.coverage_release_matches_current, false);
+  assert.equal(states.records[0].latest_source_revalidation.coverage_applicability_status, "not-reviewed");
+  assert.equal(states.records[0].latest_source_revalidation.observation_freshness_status, "not-evaluated-no-age-policy");
   assert.equal(states.records[0].latest_source_assessment.assessment_kind, "revalidation");
   assert.equal(states.records[0].latest_source_assessment.candidate.product, "Fixture source candidate");
   assert.equal(states.records[0].latest_source_assessment.authorized_next_action_type, "written-preflight-inquiry");
@@ -386,6 +388,12 @@ test("serves filtered read-only coverage dimensions and compact ZIP records", as
   assert.equal(rollover.total, 1);
   assert.equal(rollover.records[0].state_name, "Rollover State");
   assert.equal(rollover.records[0].latest_source_revalidation.coverage_release_matches_current, false);
+
+  const tamperedStore = createBusinessCoverageViewStore({ pointerPath, stateSourceRevalidationPath: "fixture", stateSourceRevalidationProvider: {
+    ...stateSourceRevalidationProvider,
+    async reconcileCoverage() { throw new Error("Reassessment manifest evidence changed."); },
+  } });
+  await assert.rejects(tamperedStore.listDimension("states"), /evidence changed/);
 });
 
 test("projects exact HOLD and bounded-connector permissions from the governed catalog", async () => {
@@ -398,6 +406,10 @@ test("projects exact HOLD and bounded-connector permissions from the governed ca
   }
   const hold = states.find((state) => state.postal_abbreviation === "MI").latest_source_assessment;
   assert.equal(hold.decision, "hold");
+  assert.equal(hold.coverage_release_matches_current, false);
+  assert.equal(hold.coverage_applicability_status, "reviewed-compatible");
+  assert.equal(hold.observation_freshness_status, "not-evaluated-no-age-policy");
+  assert.equal(hold.coverage_reconciliation_id, "state-coverage-reassessment-20260911-mn-credentials");
   assert.equal(hold.authorized_next_action_type, "written-preflight-inquiry");
   assert.equal(hold.offline_fixture_connector_authorized, false);
 });

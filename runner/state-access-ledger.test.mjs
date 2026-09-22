@@ -640,10 +640,10 @@ test('state ledger rejects more reported active state agents than the entire run
 });
 
 test('state ledger discloses historical assessment provenance when coverage snapshots differ', async (t) => {
-  const f = await fixture(t);
+  const f = { ...await fixture(t), coverageReassessmentLoader: async () => null };
   const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [] }) });
   const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [{ state_abbreviation: 'AL', assessment_id: 'al-history', decision: 'hold', strongest_bounded_next_action: 'Revalidate against the current release.' }] }) });
-  assert.equal(ledger.schemaVersion, 2);
+  assert.equal(ledger.schemaVersion, 3);
   assert.equal(ledger.evidence.assessmentCoverageReleaseId, 'older-coverage');
   assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-01');
   assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
@@ -661,6 +661,8 @@ test('state ledger discloses historical assessment provenance when coverage snap
   assert.deepEqual(alabama.assessmentContext, {
     status: 'stale', assessmentId: 'al-history', assessmentCoverageReleaseId: 'older-coverage',
     currentCoverageReleaseId: ledger.evidence.coverageReleaseId, observedAt: '2026-09-01',
+    observation: { observedAt: '2026-09-01', freshnessStatus: 'not-evaluated-no-age-policy' },
+    coverageApplicability: { status: 'not-reviewed', assessmentCoverageReleaseId: 'older-coverage', currentCoverageReleaseId: ledger.evidence.coverageReleaseId, exactReleaseMatch: false, reconciliationId: null },
   });
   assert.equal(ledger.jurisdictions.find((row) => row.state === 'AK').assessmentContext.status, 'unassessed');
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
@@ -682,10 +684,15 @@ test('state ledger labels matching assessment holds as current context without c
 test('authoritative catalog reports all 51 assessed without changing coverage categories', async (t) => {
   const f = await fixture(t);
   const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'none', coverage_release_id: f.manifest.release_id, states: [] }) });
-  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: loadStateBusinessSourceAssessmentCatalog });
+  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: loadStateBusinessSourceAssessmentCatalog,
+    coverageReassessmentLoader: async () => ({ id: 'fixture-reviewed-transition', historicalRelease: 'national-business-coverage-views-20260902-115337634Z-ba689784', states: Array.from({length:51}, (_, index) => ({ state: ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'][index] })) }) });
   assert.equal(ledger.evidence.assessmentFreshness.assessedJurisdictions, 51);
   assert.equal(ledger.evidence.assessmentFreshness.unassessedJurisdictions, 0);
   assert.equal(ledger.evidence.assessmentFreshness.staleJurisdictions, 51);
+  assert.equal(ledger.evidence.assessmentCoverageApplicability.status, 'reviewed-compatible');
+  assert.equal(ledger.evidence.assessmentCoverageApplicability.reviewedCompatibleJurisdictions, 51);
+  assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
+  assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-22');
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
   for (const state of ['CO','CT','DE','FL','IA','NY','OR','PA']) {
     const evidence = ledger.jurisdictions.find((row) => row.state === state).broadOrganizationEvidence;
@@ -694,4 +701,25 @@ test('authoritative catalog reports all 51 assessed without changing coverage ca
     assert.equal(evidence.authorization.acquisition_authorized, false);
     assert.match(evidence.policy.sha256, /^[a-f0-9]{64}$/);
   }
+});
+
+test('coverage applicability is per-state and preserves historical observation provenance', async (t) => {
+  const f = await fixture(t), assessmentLoader = async () => ({ assessment_catalog_id: 'mixed', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [
+    { state_abbreviation: 'AL', assessment_id: 'al-old', observed_at: '2026-08-31' },
+    { state_abbreviation: 'AK', assessment_id: 'ak-old', observed_at: '2026-09-01' },
+  ] });
+  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader, coverageReassessmentLoader: async () => ({ id: 'review-one', historicalRelease: 'older-coverage', states: [{ state: 'AL' }] }) });
+  assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
+  assert.deepEqual(ledger.summary.assessmentCoverageApplicabilityStatusCounts, { exactPin: 0, reviewedCompatible: 1, notReviewed: 1, missingCoverageReleaseId: 0, unassessed: 49 });
+  const al = ledger.jurisdictions.find(row => row.state === 'AL').assessmentContext;
+  const ak = ledger.jurisdictions.find(row => row.state === 'AK').assessmentContext;
+  assert.deepEqual([al.coverageApplicability.status, ak.coverageApplicability.status], ['reviewed-compatible', 'not-reviewed']);
+  assert.deepEqual([al.observedAt, ak.observedAt], ['2026-08-31', '2026-09-01']);
+  assert.equal(al.observation.freshnessStatus, 'not-evaluated-no-age-policy');
+});
+
+test('coverage applicability fails closed for wrong-origin and tampered reassessments', async (t) => {
+  const f = await fixture(t), assessmentLoader = async () => ({ assessment_catalog_id: 'old', coverage_release_id: 'older-coverage', states: [{ state_abbreviation: 'AL' }] });
+  await assert.rejects(buildStateAccessLedger({ ...f, assessmentLoader, coverageReassessmentLoader: async () => ({ id: 'wrong', historicalRelease: 'different', states: [{ state: 'AL' }] }) }), /does not originate/);
+  await assert.rejects(buildStateAccessLedger({ ...f, assessmentLoader, coverageReassessmentLoader: async () => { throw new Error('Reassessment manifest evidence changed.'); } }), /evidence changed/);
 });

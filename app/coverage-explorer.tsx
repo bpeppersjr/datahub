@@ -278,6 +278,9 @@ type StateSourceAssessment = {
   observed_at: string;
   coverage_release_id: string;
   coverage_release_matches_current: boolean;
+  observation_freshness_status: 'not-evaluated-no-age-policy';
+  coverage_applicability_status: 'exact-pin' | 'reviewed-compatible' | 'not-reviewed';
+  coverage_reconciliation_id: string | null;
   prior_decision: 'hold' | 'proceed-to-bounded-connector' | null;
   decision: 'hold' | 'proceed-to-bounded-connector';
   changed_since_prior_review: boolean;
@@ -430,7 +433,7 @@ function StateRows({ records }: { records: StateRow[] }) {
         {assessment ? <>
           <strong className={assessment.decision === 'hold' ? 'coverage-warn' : 'coverage-ok'}>{assessment.assessment_kind === 'source-discovery' ? 'First-pass source discovery' : 'Source revalidation'}: {label(assessment.decision)}</strong>
           <span>{assessment.candidate.product}</span>
-          <details><summary>{assessment.assessment_kind === 'source-discovery' ? 'Discovery gate' : 'Revalidation gate'}</summary><p>{!assessment.coverage_release_matches_current && <b>Source assessment pinned to prior coverage release. </b>}Authorized next action: {label(assessment.authorized_next_action_type)}. Offline fixture connector: {assessment.offline_fixture_connector_authorized ? 'authorized' : 'not authorized'}. {assessment.strongest_bounded_next_action} Unresolved: {assessment.unresolved_gates.map(label).join(', ')}.</p></details>
+          <details><summary>{assessment.assessment_kind === 'source-discovery' ? 'Discovery gate' : 'Revalidation gate'}</summary><p>{!assessment.coverage_release_matches_current && <b>Source assessment remains pinned to its historical coverage release. </b>}Coverage applicability: {label(assessment.coverage_applicability_status)}. Observation freshness: not evaluated (no age policy); observed {assessment.observed_at}. Authorized next action: {label(assessment.authorized_next_action_type)}. Offline fixture connector: {assessment.offline_fixture_connector_authorized ? 'authorized' : 'not authorized'}. {assessment.strongest_bounded_next_action} Unresolved: {assessment.unresolved_gates.map(label).join(', ')}.</p></details>
         </> : <><strong>Source assessment unavailable</strong><span>Not included in the current governed assessment catalog</span></>}
       </div>
       <span>{count(row.reported_address_profile_count)}</span>
