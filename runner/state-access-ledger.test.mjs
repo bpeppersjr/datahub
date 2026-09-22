@@ -6,6 +6,7 @@ import test from 'node:test';
 import { APP_ROOT } from './paths.mjs';
 import { buildStateAccessLedger, writeStateAccessReport } from './state-access-ledger.mjs';
 import { loadStateBusinessSourceAssessmentCatalog } from './state-business-source-assessment.mjs';
+import { BROAD_ORGANIZATION_SOURCES } from './broad-organization-evidence.mjs';
 
 async function fixture(t, {retained = false} = {}) {
   const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
@@ -15,7 +16,7 @@ async function fixture(t, {retained = false} = {}) {
   const pointer = JSON.parse(await readFile(path.join(APP_ROOT, pointerPath)));
   const manifestPath = path.join(path.dirname(pointerPath), pointer.manifest);
   const manifest = JSON.parse(await readFile(path.join(APP_ROOT, manifestPath)));
-  const files = [pointerPath, manifestPath, 'config/industry-segments.json', 'config/state-access-workstreams.json', ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
+  const files = [pointerPath, manifestPath, 'config/industry-segments.json', 'config/state-access-workstreams.json', ...Object.values(BROAD_ORGANIZATION_SOURCES).map(({policy})=>path.join('config/source-policies',policy)), ...manifest.artifacts.filter(a => ['state-coverage-view-jsonl', 'source-coverage-view-jsonl'].includes(a.artifact_type)).map(a => path.join(path.dirname(manifestPath), a.path))];
   for (const file of files) { await mkdir(path.dirname(path.join(root, file)), { recursive: true }); await copyFile(path.join(APP_ROOT, file), path.join(root, file)); }
   // Existing enrollment cases explicitly exercise pre-integration coverage.
   if (!retained) {
@@ -536,4 +537,11 @@ test('authoritative catalog reports 43 assessed and 8 unassessed without changin
   assert.equal(ledger.evidence.assessmentFreshness.unassessedJurisdictions, 8);
   assert.equal(ledger.evidence.assessmentFreshness.staleJurisdictions, 43);
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
+  for (const state of ['CO','CT','DE','FL','IA','NY','OR','PA']) {
+    const evidence = ledger.jurisdictions.find((row) => row.state === state).broadOrganizationEvidence;
+    assert.equal(evidence.state, state);
+    assert.equal(evidence.geocode.status, 'unmeasured-at-source-level');
+    assert.equal(evidence.authorization.acquisition_authorized, false);
+    assert.match(evidence.policy.sha256, /^[a-f0-9]{64}$/);
+  }
 });

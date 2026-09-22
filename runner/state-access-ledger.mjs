@@ -13,6 +13,7 @@ import { loadMdChildcareReportingEnrollment, projectMdChildcareStateEvidence } f
 import { loadVtChildcareReportingEnrollment, projectVtChildcarePublisherEvidence } from "./vt-childcare-reporting-enrollment.mjs";
 import { loadUtChildcareReportingEnrollment, projectUtChildcareStateEvidence } from "./ut-childcare-reporting-enrollment.mjs";
 import { loadIaChildcareReportingEnrollment, projectIaChildcarePublisherEvidence } from "./ia-childcare-reporting-enrollment.mjs";
+import { BROAD_ORGANIZATION_SOURCES, buildBroadOrganizationEvidence } from "./broad-organization-evidence.mjs";
 
 const PROFILE_IDS = Object.freeze({
   "national-snap-retailers": "usda-snap-current-retailers",
@@ -111,7 +112,9 @@ async function governedStates(root, pointer) {
   const mp = await readPinnedJson(root, inside(root, path.resolve(path.dirname(pp.file), pp.value.manifest)));
   if (mp.value.dataset_id !== "national-business-coverage-views" || mp.value.release_id !== pp.value.release_id || !String(mp.value.status).startsWith("published")) throw new Error("Coverage pointer does not identify a published release.");
   const artifact = mp.value.artifacts?.find((item) => item.artifact_type === "state-coverage-view-jsonl");
+  const sourceArtifact = mp.value.artifacts?.find((item) => item.artifact_type === "source-coverage-view-jsonl");
   if (!artifact || !Number.isSafeInteger(artifact.bytes) || !/^[a-f0-9]{64}$/.test(artifact.sha256)) throw new Error("Coverage release has no governed state artifact.");
+  if (!sourceArtifact || !Number.isSafeInteger(sourceArtifact.bytes) || !/^[a-f0-9]{64}$/.test(sourceArtifact.sha256)) throw new Error("Coverage release has no governed source artifact.");
   const artifactPath = inside(root, path.resolve(path.dirname(mp.file), artifact.path));
   await rejectLinks(root, artifactPath);
   const bytes = await readFile(artifactPath);
@@ -119,7 +122,12 @@ async function governedStates(root, pointer) {
   const rows = bytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)).filter((row) => row.is_50_states_or_dc === true && CANONICAL.has(row.postal_abbreviation));
   if (rows.length !== 51 || new Set(rows.map((row) => row.postal_abbreviation)).size !== 51) throw new Error("Coverage artifact must contain the unique 50 states plus DC.");
   for (const row of rows) validateMnCredentialMetric(row.mn_construction_credential_reporting);
-  return { retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
+  const sourceArtifactPath = inside(root, path.resolve(path.dirname(mp.file), sourceArtifact.path));
+  await rejectLinks(root, sourceArtifactPath);
+  const sourceBytes = await readFile(sourceArtifactPath);
+  if (sourceBytes.length !== sourceArtifact.bytes || digest(sourceBytes) !== sourceArtifact.sha256) throw new Error("Source coverage artifact integrity failed.");
+  const sources = sourceBytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+  return { retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), sources: new Map(sources.map((row) => [row.source_key, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
 }
 
 function validateWorkstreams(config) {
@@ -145,6 +153,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   if (!Array.isArray(activeAssignments) || activeAssignments.some((state) => !CANONICAL.has(state)) || new Set(activeAssignments).size !== activeAssignments.length || activeAssignments.length > workstreams.max_total_agent_concurrency) throw new Error("activeAssignments must contain unique canonical state codes within total concurrency.");
   if (observedTotalActiveAgents !== null && (!Number.isInteger(observedTotalActiveAgents) || observedTotalActiveAgents < activeAssignments.length || observedTotalActiveAgents > workstreams.max_total_agent_concurrency)) throw new Error("observedTotalActiveAgents is invalid.");
   const assessmentByState = new Map(assessmentStates.map((item) => [item.state_abbreviation, item])), active = new Set(activeAssignments), jurisdictions = [];
+  const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, { sourceKey }]) => [state, await buildBroadOrganizationEvidence({ state, source: coverage.sources.get(sourceKey), root, asOf: new Date() })])));
   const assessmentFreshnessCounts = { current: 0, stale: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   for (const state of workstreams.jurisdictions) {
     const row = coverage.rows.get(state), assignment = workstreams.workstreams.find((item) => item.state === state), assessment = assessmentByState.get(state), industries = [];
@@ -201,7 +210,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
       const prerequisiteReady = appSources.length > 0 && appSources.every((item) => item.prerequisiteStatus === "PRESENT");
       industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
     }
-    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt: assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null }, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
+    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt: assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null }, broadOrganizationEvidence: broadEvidence.get(state) ?? null, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
     // Local credential evidence does not change published national status,
     // dispatch readiness, matching profiles or physical-site totals.
     const construction=industries.find(cell=>cell.industry==='construction');
