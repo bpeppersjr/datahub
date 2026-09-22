@@ -397,6 +397,9 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/business-map/pharmacies') {
       await cmsNppesPharmacyHttp(request, response, url, cmsNppesPharmacyView, json); return;
     }
+    if (url.pathname === '/api/business-map/pharmacies/map') {
+      await cmsNppesPharmacyHttp(request, response, url, cmsNppesPharmacyView, json); return;
+    }
     if (request.method === 'GET' && url.pathname === '/api/overture-heatmap-readiness') {
       const [{ createOvertureHeatmapReadiness },{ overtureHeatmapReadinessHttp }]=await Promise.all([import('./overture-heatmap-readiness.mjs'),import('./overture-heatmap-readiness-http.mjs')]);
       await overtureHeatmapReadinessHttp(request,response,createOvertureHeatmapReadiness,json);

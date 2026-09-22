@@ -20,6 +20,12 @@ Six non-browser component-handler tests cover scope requests, nullable postal di
 
 The map starts with the 50 states and District of Columbia. Select a business category and a data enhancer, optionally set independent minimum-population and minimum-housing-unit filters, then click a state to show its counties, click a county to show the 2020 Census ZCTAs that materially intersect it, and click a ZCTA to inspect physical-location business names. Use the on-map controls or hold `Ctrl` while scrolling up or down to zoom. The breadcrumb returns to any broader scope. The response and UI disclose both the remaining and filtered-out polygon counts.
 
+### Community / retail pharmacy geographic mode
+
+The pharmacy mode is a separate source layer backed by the retained CMS NPPES community/retail taxonomy projection. National scope renders only the governed 50 states and D.C. state polygons; the response preserves 87,659 map-eligible source records, 1,415 territory records, and three address-unassigned records. Selecting a state loads only exact-match 2020 Census ZCTA polygons associated with that state's reported address rows. A polygon is never created for the 175 nonpolygon rows or the three unassigned rows, and no county view is offered because exact pharmacy-to-county assignment is not governed.
+
+The protected read-only endpoint is `GET /api/business-map/pharmacies/map?level=states|zctas&state=TX`. It binds the pharmacy pointer/release to the exact NPPES dependency and the pinned Census geography release `us-census-geography-20260830-132803990Z-3629abc0`. State and ZCTA colors count retained source records; the right-hand summary reports exact-ZCTA, nonpolygon, unassigned, temporal, and bounded-name evidence. Peer-median percentages compare records at the same map level and are not percentages of all U.S. businesses. NPI/taxonomy evidence does not assert NABP/NCPDP, drive-through, network affiliation, parent company, current operation, physical site, geocode, or nationwide completeness.
+
 The category control is one hierarchy of source-preserving evidence:
 
 - consumer-facing retail locations;
@@ -83,6 +89,7 @@ The loopback runner exposes:
 - `GET /api/business-map/features?level=counties&state_fips=01&category=all&enhancer=nonemployer_establishments`;
 - `GET /api/business-map/features?level=zips&state_fips=01&county_geoid=01001&category=retail-consumer&enhancer=business_count`;
 - `GET /api/business-map/state-summary?include_territories=false`; and
-- `GET /api/business-map/names?zip=35022&category=retail-consumer&query=&limit=25`.
+- `GET /api/business-map/names?zip=35022&category=retail-consumer&query=&limit=25`; and
+- `GET /api/business-map/pharmacies/map?level=states` or `GET /api/business-map/pharmacies/map?level=zctas&state=TX&zip=75001&limit=25` for the governed pharmacy map and bounded ZIP names.
 
 Identifiers and demographic thresholds are validated before constructing artifact paths or filtering results. Thresholds must be non-negative whole numbers. Geometry and indexes must be declared by compatible published manifests, and the business-name registry release must match the registry release pinned in the coverage view when that lineage field is present. Responses contain no secrets.
