@@ -405,7 +405,7 @@ test('state ledger identifies positive MA/NJ/TN counts as direct reporting evide
     assert.equal(cell.appHandoff.jobSubmitted,false);assert.equal(cell.appHandoff.prerequisiteContentsValidated,false);
   }
   const nj=ledger.jurisdictions.find(r=>r.state==='NJ').industries.find(r=>r.industry==='childcare');
-  assert.ok(nj.evidence.some(e=>e.type==='separate-state-publisher-assessment-hold'&&e.assessmentCoverageReleaseId==='older-coverage'));
+  assert.ok(nj.evidence.some(e=>e.type==='historical-state-publisher-assessment-hold'&&e.assessmentCoverageReleaseId==='older-coverage'&&e.assessmentFreshnessStatus==='stale'&&e.evidenceClass==='assessment-context-not-coverage-evidence'));
   await assert.rejects(readdir(path.join(f.root,'data/state-access/reports')),/ENOENT/);
 });
 
@@ -434,9 +434,40 @@ test('state ledger rejects more reported active state agents than the entire run
 
 test('state ledger discloses historical assessment provenance when coverage snapshots differ', async (t) => {
   const f = await fixture(t);
-  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [] }) });
+  const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [] }) });
+  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [{ state_abbreviation: 'AL', assessment_id: 'al-history', decision: 'hold', strongest_bounded_next_action: 'Revalidate against the current release.' }] }) });
+  assert.equal(ledger.schemaVersion, 2);
   assert.equal(ledger.evidence.assessmentCoverageReleaseId, 'older-coverage');
   assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-01');
   assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
+  assert.deepEqual(ledger.evidence.assessmentFreshness, {
+    status: 'stale',
+    currentCoverageReleaseId: ledger.evidence.coverageReleaseId,
+    assessmentCoverageReleaseId: 'older-coverage',
+    assessedJurisdictions: 1,
+    currentJurisdictions: 0,
+    staleJurisdictions: 1,
+    missingCoverageReleaseIdJurisdictions: 0,
+    unassessedJurisdictions: 50,
+  });
+  const alabama = ledger.jurisdictions.find((row) => row.state === 'AL');
+  assert.deepEqual(alabama.assessmentContext, {
+    status: 'stale', assessmentId: 'al-history', assessmentCoverageReleaseId: 'older-coverage',
+    currentCoverageReleaseId: ledger.evidence.coverageReleaseId, observedAt: '2026-09-01',
+  });
+  assert.equal(ledger.jurisdictions.find((row) => row.state === 'AK').assessmentContext.status, 'unassessed');
+  assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
   assert.match(ledger.evidence.stateArtifactSha256, /^[a-f0-9]{64}$/);
+});
+
+test('state ledger labels matching assessment holds as current context without changing coverage categories', async (t) => {
+  const f = await fixture(t), currentRelease = f.manifest.release_id;
+  const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'none', coverage_release_id: currentRelease, states: [] }) });
+  const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'current-assessment', coverage_release_id: currentRelease, observed_at: '2026-09-22', states: [{ state_abbreviation: 'AL', assessment_id: 'al-current', decision: 'hold', strongest_bounded_next_action: 'Retain the governed hold.' }] }) });
+  const cell = ledger.jurisdictions.find((row) => row.state === 'AL').industries[0];
+  assert.ok(cell.evidence.some((item) => item.type === 'current-state-publisher-assessment-hold' && item.assessmentFreshnessStatus === 'current'));
+  assert.equal(ledger.evidence.assessmentFreshness.status, 'current');
+  assert.equal(ledger.evidence.assessmentFreshness.currentJurisdictions, 1);
+  assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
+  assert.deepEqual(Object.keys(ledger.summary.accessEvidenceStatusCounts).sort(), ['direct-state-publisher', 'national-dataset-state-evidence', 'unsupported-evidence-not-measured', 'unsupported-missing']);
 });

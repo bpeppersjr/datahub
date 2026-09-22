@@ -2,6 +2,14 @@
 
 The state-access ledger is a read-only inventory of the 50 states plus the District of Columbia across the industry buckets configured in `config/industry-segments.json`. It does not represent every possible industry or source. A durable report is written exclusively beneath `data/state-access/reports`; it never downloads data, changes a current pointer, promotes production, or launches or watches an acquisition.
 
+## Assessment freshness (report schema 2)
+
+State-access report schema 2 makes source-assessment age explicit. The governed coverage release remains the sole release used for the four access categories: `direct-state-publisher`, `national-dataset-state-evidence`, `unsupported-missing`, and `unsupported-evidence-not-measured`. Assessment holds are context only and cannot change those categories.
+
+Every jurisdiction now has an `assessmentContext.status` of `current`, `stale`, `missing-coverage-release-id`, or `unassessed`. Each hold evidence item is labeled `current-state-publisher-assessment-hold` or `historical-state-publisher-assessment-hold`, carries both the assessment and current coverage release IDs, and declares `evidenceClass: assessment-context-not-coverage-evidence`. The report-level `evidence.assessmentFreshness` and `summary.assessmentFreshnessStatusCounts` quantify the mismatch across all 51 jurisdictions. An absent assessment release ID is never treated as a match.
+
+At the time this change was prepared, the latest retained schema-1 report compared current coverage `national-business-coverage-views-20260911-040908332Z-f01c882a` with assessment coverage `national-business-coverage-views-20260902-115337634Z-ba689784`. Those identifiers differ. The new report contract therefore classifies catalog assessments pinned to the latter release as stale; it does not refresh them, fabricate coverage, or change a production pointer.
+
 Each state has one flat peer-workstream template in `config/state-access-workstreams.json`. A configured peer name is not a live agent. `IN_PROGRESS` appears only when a caller explicitly supplies that state as an operator-reported assignment. The configured concurrency of four is total agent capacity, not four available state workers. Available capacity remains unknown unless the caller supplies an observed total covering all active work, including the coordinator and unrelated rebuild work.
 
 ## Evidence meanings

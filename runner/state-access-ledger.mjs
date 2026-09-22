@@ -119,8 +119,16 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   if (!Array.isArray(activeAssignments) || activeAssignments.some((state) => !CANONICAL.has(state)) || new Set(activeAssignments).size !== activeAssignments.length || activeAssignments.length > workstreams.max_total_agent_concurrency) throw new Error("activeAssignments must contain unique canonical state codes within total concurrency.");
   if (observedTotalActiveAgents !== null && (!Number.isInteger(observedTotalActiveAgents) || observedTotalActiveAgents < activeAssignments.length || observedTotalActiveAgents > workstreams.max_total_agent_concurrency)) throw new Error("observedTotalActiveAgents is invalid.");
   const assessmentByState = new Map(assessmentStates.map((item) => [item.state_abbreviation, item])), active = new Set(activeAssignments), jurisdictions = [];
+  const assessmentFreshnessCounts = { current: 0, stale: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   for (const state of workstreams.jurisdictions) {
     const row = coverage.rows.get(state), assignment = workstreams.workstreams.find((item) => item.state === state), assessment = assessmentByState.get(state), industries = [];
+    const assessmentCoverageReleaseId = assessment ? assessment.coverage_release_id ?? assessments.coverage_release_id ?? null : null;
+    const assessmentFreshnessStatus = !assessment ? "unassessed"
+      : !assessmentCoverageReleaseId ? "missing-coverage-release-id"
+      : assessmentCoverageReleaseId === coverage.releaseId ? "current"
+      : "stale";
+    if (assessmentFreshnessStatus === "missing-coverage-release-id") assessmentFreshnessCounts.missingCoverageReleaseId += 1;
+    else assessmentFreshnessCounts[assessmentFreshnessStatus] += 1;
     for (const [industryId, sourceKeys] of Object.entries(industryRead.value.industries)) {
       const evidence = [], appSources = []; let direct = false, national = false, unmeasured = false;
       for (const key of sourceKeys) {
@@ -144,11 +152,20 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
         else if (profileId === null || reportingOnly && (count === undefined || count === null)) unmeasured = true;
       }
       const accessEvidenceStatus = direct ? "direct-state-publisher" : national ? "national-dataset-state-evidence" : unmeasured ? "unsupported-evidence-not-measured" : "unsupported-missing";
-      if (assessment?.decision === "hold") evidence.push({ type: "separate-state-publisher-assessment-hold", assessmentId: assessment.assessment_id, assessmentCoverageReleaseId: assessment.coverage_release_id ?? assessments.coverage_release_id ?? null, observedAt: assessment.observed_at ?? assessments.observed_at ?? null, reason: assessment.strongest_bounded_next_action });
+      if (assessment?.decision === "hold") evidence.push({
+        type: assessmentFreshnessStatus === "current" ? "current-state-publisher-assessment-hold" : "historical-state-publisher-assessment-hold",
+        evidenceClass: "assessment-context-not-coverage-evidence",
+        assessmentId: assessment.assessment_id,
+        assessmentCoverageReleaseId,
+        currentCoverageReleaseId: coverage.releaseId,
+        assessmentFreshnessStatus,
+        observedAt: assessment.observed_at ?? assessments.observed_at ?? null,
+        reason: assessment.strongest_bounded_next_action,
+      });
       const prerequisiteReady = appSources.length > 0 && appSources.every((item) => item.prerequisiteStatus === "PRESENT");
       industries.push({ industry: industryId, accessEvidenceStatus, evidence, appHandoff: { acquisitionExecutor: "cotive-app", status: (direct || national) && prerequisiteReady ? "APP_PREFLIGHT_REQUIRED" : !prerequisiteReady ? "BLOCKED_PREREQUISITE" : unmeasured ? "NOT_READY_EVIDENCE_UNMEASURED" : "NOT_READY_NO_PUBLISHED_STATE_EVIDENCE", configuredSources: appSources, prerequisiteContentsValidated: false, jobSubmitted: false, recurringSchedulerImplemented: null, schedulerObservation: "not-inspected-by-ledger" }, limitations: ["Published counts are source-specific profiles or explicitly identified reporting-only records, not deduplicated businesses or proof of complete industry coverage."] });
     }
-    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
+    jurisdictions.push({ state, jurisdictionKind: state === "DC" ? "district" : "state", assessmentContext: { status: assessmentFreshnessStatus, assessmentId: assessment?.assessment_id ?? null, assessmentCoverageReleaseId, currentCoverageReleaseId: coverage.releaseId, observedAt: assessment ? assessment.observed_at ?? assessments.observed_at ?? null : null }, workstream: { ...assignment, status: active.has(state) ? "IN_PROGRESS" : "UNASSIGNED", assignee: active.has(state) ? `peer:${assignment.peer_task_name}` : null, assignmentEvidence: active.has(state) ? "operator-reported" : null }, industries });
     // Local credential evidence does not change published national status,
     // dispatch readiness, matching profiles or physical-site totals.
     const construction=industries.find(cell=>cell.industry==='construction');
@@ -169,7 +186,8 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   }
   const counts = {}; for (const jurisdiction of jurisdictions) for (const item of jurisdiction.industries) counts[item.accessEvidenceStatus] = (counts[item.accessEvidenceStatus] ?? 0) + 1;
   const assessmentCoverageReleaseId = assessments.coverage_release_id ?? null;
-  return { schemaVersion: 1, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts }, jurisdictions };
+  const assessmentCatalogFreshnessStatus = !assessmentCoverageReleaseId ? "missing-coverage-release-id" : assessmentCoverageReleaseId === coverage.releaseId ? "current" : "stale";
+  return { schemaVersion: 2, generatedAt: new Date().toISOString(), scope: { configuredIndustryBucketsOnly: true, industryBucketCount: Object.keys(industryRead.value.industries).length }, evidence: { coverageReleaseId: coverage.releaseId, coverageManifestSha256: coverage.manifestSha256, stateArtifactPath: coverage.artifactPath, stateArtifactSha256: coverage.artifactSha256, stateArtifactBytes: coverage.artifactBytes, assessmentCatalogId: assessments.assessment_catalog_id, assessmentCoverageReleaseId, assessmentObservedAt: assessments.observed_at ?? null, assessmentCoverageMatchesCurrent: assessmentCoverageReleaseId === coverage.releaseId, assessmentFreshness: { status: assessmentCatalogFreshnessStatus, currentCoverageReleaseId: coverage.releaseId, assessmentCoverageReleaseId, assessedJurisdictions: assessmentStates.length, currentJurisdictions: assessmentFreshnessCounts.current, staleJurisdictions: assessmentFreshnessCounts.stale, missingCoverageReleaseIdJurisdictions: assessmentFreshnessCounts.missingCoverageReleaseId, unassessedJurisdictions: assessmentFreshnessCounts.unassessed }, industryConfigSha256: industryRead.sha256, workstreamConfigSha256: workstreamRead.sha256 }, dispatch: { maxTotalAgentConcurrency: 4, operatorReportedActiveStateAssignments: activeAssignments.length, observedTotalActiveAgents, availableDispatchSlots: observedTotalActiveAgents === null ? null : Math.max(0, 4 - observedTotalActiveAgents) }, summary: { jurisdictions: 51, states: 50, districts: 1, industryCells: jurisdictions.reduce((sum, item) => sum + item.industries.length, 0), accessEvidenceStatusCounts: counts, assessmentFreshnessStatusCounts: assessmentFreshnessCounts }, jurisdictions };
 }
 
 export async function writeStateAccessReport(options = {}) {
