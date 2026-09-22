@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { createCmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
 
 test('pharmacy view rejects overlong queries before attempting to load a release', async () => {
@@ -34,5 +35,24 @@ test('pharmacy geographic view renders governed state and exact-ZCTA polygons wi
 test('pharmacy geographic view fails closed on a source geometry-release mismatch', async () => {
   const view = createCmsNppesPharmacyView({ geographyManifestSha256: '0'.repeat(64) });
   await assert.rejects(view.get({ level: 'states' }), /different Census geography release|manifest hash/i);
+  view.close();
+});
+
+test('pharmacy geometry loading is state-first and partition-bounded', async () => {
+  const reads = [];
+  const tracedReadFile = async (filename, options) => {
+    reads.push(String(filename));
+    return readFile(filename, options);
+  };
+  const view = createCmsNppesPharmacyView({ readFileImpl: tracedReadFile });
+  const national = await view.get({ level: 'states' });
+  assert.equal(national.geometry.artifacts.zcta_geometry.length, 0);
+  assert.equal(reads.filter((filename) => /source[\\/]zctas[\\/]prefix=\d\.geojson$/.test(filename)).length, 0);
+  reads.length = 0;
+  const state = await view.get({ level: 'zctas', state: 'AL' });
+  const prefixReads = reads.filter((filename) => /source[\\/]zctas[\\/]prefix=\d\.geojson$/.test(filename));
+  assert.ok(prefixReads.length > 0);
+  assert.deepEqual([...new Set(prefixReads)].map((filename) => filename.match(/source[\\/]zctas[\\/]prefix=\d\.geojson$/)?.[0].replaceAll('/', '\\')).sort(), state.geometry.artifacts.zcta_geometry.map((artifact) => artifact.path.replaceAll('/', '\\')).sort());
+  assert.equal(new Set(prefixReads).size, state.geometry.artifacts.zcta_geometry.length);
   view.close();
 });

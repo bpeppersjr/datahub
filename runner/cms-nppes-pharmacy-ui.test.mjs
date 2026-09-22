@@ -11,6 +11,7 @@ test('pharmacy mode is a distinct non-additive source layer', async () => {
   assert.doesNotMatch(mapStore, /cms-nppes-community-retail-pharmacies/);
   assert.doesNotMatch(mapStore, /3336C0003X/);
   assert.match(pharmacy, /<svg[^>]+onWheel=\{wheel\}/);
+  assert.doesNotMatch(pharmacy, /<svg[^>]+role="img"/);
   assert.match(pharmacy, /<path[^>]+role="button"/);
   assert.match(pharmacy, /role="group"/);
   assert.match(pharmacy, /key=\{feature\.properties\.geoid\}/);
