@@ -599,7 +599,16 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   }
   if (coverageReassessment && coverageReassessment.historicalRelease !== catalogCoverageReleaseId) throw new Error("Coverage reassessment does not originate at the assessment coverage release.");
   const reassessedStates = new Set(coverageReassessment?.states?.map((item) => item.state) ?? []);
-  const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, { sourceKey }]) => [state, await buildBroadOrganizationEvidence({ state, source: coverage.sources.get(sourceKey), registryCoverage: coverage.registryCoverage, root, asOf: new Date() })])));
+  const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, spec]) => [state, await buildBroadOrganizationEvidence({
+    state,
+    source: coverage.sources.get(spec.sourceKey),
+    registryCoverage: coverage.registryCoverage,
+    reportedAddressProfileCounts: state === "TX"
+      ? Object.fromEntries([...coverage.rows].map(([code, row]) => [code, row.registry_evidence.source_profile_counts_by_reported_address_state?.[spec.profileSourceId] ?? 0]))
+      : null,
+    root,
+    asOf: new Date(),
+  })])));
   const assessmentFreshnessCounts = { current: 0, stale: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   const assessmentCoverageApplicabilityCounts = { exactPin: 0, reviewedCompatible: 0, notReviewed: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   for (const state of workstreams.jurisdictions) {

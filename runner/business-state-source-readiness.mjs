@@ -1,4 +1,4 @@
-export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.3.0";
+export const BUSINESS_STATE_SOURCE_READINESS_POLICY_VERSION = "1.4.0";
 const STATE_CHILDCARE_REPORTING = Object.freeze({ MA: "ma-licensed-center-based-childcare", NJ: "nj-licensed-childcare-centers", TN: "tn-dhs-active-childcare-centers" });
 
 const BROAD_ORGANIZATION_LAYERS = Object.freeze({
@@ -11,12 +11,12 @@ const BROAD_ORGANIZATION_LAYERS = Object.freeze({
   OR: "or_business_registry_active_registrations",
   PA: "pa_business_registry_active_registrations",
   DC: "dc_basic_business_license_sites",
+  TX: "tx_active_sales_tax_permit_outlets",
 });
 
 const STATEWIDE_SCOPED_LAYERS = Object.freeze({
   AK: Object.freeze(["ak_active_business_licenses"]),
   CA: Object.freeze(["california_abc_active_issued_license_sites"]),
-  TX: Object.freeze(["tx_active_sales_tax_permit_outlets"]),
   WA: Object.freeze(["wa_lni_active_contractor_organizations"]),
 });
 

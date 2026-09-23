@@ -12,11 +12,13 @@ import { BROAD_ORGANIZATION_SOURCES, buildBroadOrganizationEvidence } from './br
 import { readNationalReportingTen } from './national-reporting-ten-projection.mjs';
 import { TEN_VERSION, TEN_DIRECTORIES, TEN_STATES } from './national-reporting-ten-catalog.mjs';
 
-const VERSION='national-goal-completion-matrix@1.2.0';
-const PREVIOUS_VERSION='national-goal-completion-matrix@1.1.0';
+const VERSION='national-goal-completion-matrix@1.3.0';
+const PREVIOUS_VERSION='national-goal-completion-matrix@1.2.0';
+const PREVIOUS_PREVIOUS_VERSION='national-goal-completion-matrix@1.1.0';
 const LEGACY_VERSION='national-goal-completion-matrix@1.0.0';
-const BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.2.0';
-const PREVIOUS_BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.1.0';
+const BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.3.0';
+const PREVIOUS_BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.2.0';
+const PREVIOUS_PREVIOUS_BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.1.0';
 const LEGACY_BROAD_LAYER_VERSION='broad-jurisdiction-layer@1.0.0';
 const check=(value,message='National goal-completion matrix rejected.')=>{if(!value)throw Error(message);};
 const hash=value=>createHash('sha256').update(value).digest('hex');
@@ -51,7 +53,7 @@ export async function buildNationalGoalCompletionMatrix({root=APP_ROOT,createdAt
   let irs=null;try{irs=await irsReader({root,pointerPath,coverageManifest:snapshot.manifest,sourceRow:irsSource});}catch{irs=null;}
   const representation=nationalDatasetRepresentation(catalog,snapshot.states,snapshot.sources,irs);
   const sourceMap=new Map(snapshot.sources.map(row=>[row.source_key,row]));
-  const broadEvidence=new Map((await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async([state,{sourceKey}])=>[state,await buildBroadOrganizationEvidence({state,source:sourceMap.get(sourceKey),registryCoverage:snapshot.manifest.coverage,root,asOf:createdAt})]))));
+  const broadEvidence=new Map((await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async([state,spec])=>[state,await buildBroadOrganizationEvidence({state,source:sourceMap.get(spec.sourceKey),registryCoverage:snapshot.manifest.coverage,reportedAddressProfileCounts:state==='TX'?Object.fromEntries(snapshot.states.map(row=>[row.postal_abbreviation,row.registry_evidence.source_profile_counts_by_reported_address_state?.[spec.profileSourceId]??0])):null,root,asOf:createdAt})]))));
   const catalogMap=new Map(catalog.sources.map(row=>[row.id,row]));
   let ten=null,tenCandidate;
   try{tenCandidate=await tenReader();}catch(error){if(error?.name==='AbortError')throw error;throw Error('Ten-source enrollment evidence could not be read safely.');}
@@ -94,12 +96,12 @@ export async function publishNationalGoalCompletionMatrix({root=APP_ROOT,...opti
 
 export async function verifyNationalGoalCompletionMatrix(manifestPath,{root=APP_ROOT,catalogReader=readNationalReportingCatalog,snapshotReader=readNationalReportingSnapshot,irsReader=readSelectedIrsStateSummary,tenReader=readNationalReportingTen}={}){
   const manifest=JSON.parse(await readFile(manifestPath,'utf8')),directory=path.dirname(manifestPath),schema=manifest.schema_version;
-  check([LEGACY_VERSION,PREVIOUS_VERSION,VERSION].includes(schema)&&manifest.dataset_id==='national-goal-completion-matrix'&&manifest.status==='published-local-derived-report'&&manifest.production_pointers_changed===false&&manifest.network_requests===0&&manifest.artifacts?.length===1);
+  check([LEGACY_VERSION,PREVIOUS_PREVIOUS_VERSION,PREVIOUS_VERSION,VERSION].includes(schema)&&manifest.dataset_id==='national-goal-completion-matrix'&&manifest.status==='published-local-derived-report'&&manifest.production_pointers_changed===false&&manifest.network_requests===0&&manifest.artifacts?.length===1);
   const bytes=await readFile(path.join(directory,'report.json')),artifact=manifest.artifacts[0];check(bytes.length===artifact.bytes&&hash(bytes)===artifact.sha256);const report=JSON.parse(bytes),isCurrent=schema===VERSION,hasMeasuredAvailability=schema!==LEGACY_VERSION;
   check(report.schema_version===schema&&report.release_id===manifest.release_id&&report.all_business_completion_percent===null&&report.jurisdictions?.length===51&&report.jurisdictions.every(row=>row.all_business_completion_percent===null&&row.categories.every(category=>category.all_business_completion_percent===null
     &&(hasMeasuredAvailability?validDatasetAvailability(category.dataset_availability,category.datasets):validLegacyDatasetAvailability(category.dataset_availability,category.datasets))
     &&category.datasets.every(dataset=>(hasMeasuredAvailability?validGeocodeRate:validLegacyGeocodeRate)(dataset.geocode_rate)))),'Matrix availability, geocode, or structural invariants are invalid.');
-  if([`${TEN_VERSION}+${LEGACY_BROAD_LAYER_VERSION}`,`${TEN_VERSION}+${PREVIOUS_BROAD_LAYER_VERSION}`,`${TEN_VERSION}+${BROAD_LAYER_VERSION}`].includes(report.denominator?.version)){check(report.denominator.datasets===11&&isSha(report.evidence?.ten_source_enrollment_sha256)&&isSha(report.evidence?.ten_source_production_receipt_sha256)&&isSha(report.evidence?.ten_source_predecessor_catalog_sha256));for(const state of report.jurisdictions){const health=state.categories.find(row=>row.category_id==='health-care'),directories=health?.datasets?.filter(row=>DIRECTORY_IDS.has(row.dataset_id));check(directories?.length===2&&directories.every(row=>row.authorization?.export_policy==='local-review-only'&&row.evidence?.enrollment_sha256===report.evidence.ten_source_enrollment_sha256&&row.evidence?.production_receipt_sha256===report.evidence.ten_source_production_receipt_sha256&&isSha(row.evidence?.source_manifest_sha256)&&row.geocode_rate?.percent===null&&row.zip_contribution?.rows===null&&row.directory_reporting?.business_count===null&&row.directory_reporting?.physical_site_count===null&&row.directory_reporting?.current_operating_count===null&&row.directory_reporting?.national_completeness_percent===null&&row.directory_reporting?.geographic_assignment_performed===false));}}
+  if([`${TEN_VERSION}+${LEGACY_BROAD_LAYER_VERSION}`,`${TEN_VERSION}+${PREVIOUS_PREVIOUS_BROAD_LAYER_VERSION}`,`${TEN_VERSION}+${PREVIOUS_BROAD_LAYER_VERSION}`,`${TEN_VERSION}+${BROAD_LAYER_VERSION}`].includes(report.denominator?.version)){check(report.denominator.datasets===11&&isSha(report.evidence?.ten_source_enrollment_sha256)&&isSha(report.evidence?.ten_source_production_receipt_sha256)&&isSha(report.evidence?.ten_source_predecessor_catalog_sha256));for(const state of report.jurisdictions){const health=state.categories.find(row=>row.category_id==='health-care'),directories=health?.datasets?.filter(row=>DIRECTORY_IDS.has(row.dataset_id));check(directories?.length===2&&directories.every(row=>row.authorization?.export_policy==='local-review-only'&&row.evidence?.enrollment_sha256===report.evidence.ten_source_enrollment_sha256&&row.evidence?.production_receipt_sha256===report.evidence.ten_source_production_receipt_sha256&&isSha(row.evidence?.source_manifest_sha256)&&row.geocode_rate?.percent===null&&row.zip_contribution?.rows===null&&row.directory_reporting?.business_count===null&&row.directory_reporting?.physical_site_count===null&&row.directory_reporting?.current_operating_count===null&&row.directory_reporting?.national_completeness_percent===null&&row.directory_reporting?.geographic_assignment_performed===false));}}
   if(isCurrent){
     if(manifest.created_at!==report.created_at||stable(manifest.evidence)!==stable(report.evidence))throw verificationFailure('GOAL_MATRIX_SEMANTIC_TAMPER','Matrix manifest provenance does not exactly match its report.');
     let replayed;try{replayed=await buildNationalGoalCompletionMatrix({root,createdAt:report.created_at,releaseId:report.release_id,catalogReader,snapshotReader,irsReader,tenReader});}

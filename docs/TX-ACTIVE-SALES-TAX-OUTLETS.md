@@ -31,6 +31,10 @@ Release `tx-active-sales-tax-20260831-235045220Z-c067b3eb` captures source relea
 
 The 21 independently verified artifacts total 260,059,941 bytes. Record-level output remains `local-review-only`; the release explicitly sets `complete_all_businesses` to false.
 
+## National goal evidence boundary
+
+The retained layer is admitted under `tx-active-sales-tax-permit-outlet-evidence@1.0.0`, pinned to dataset release `tx-active-sales-tax-20260903-004825316Z-3ba279b8` and its manifest SHA-256. It is source-specific sales-tax taxpayer/outlet evidence, not the Texas Secretary of State entity master or all Texas businesses. Source `Active` does not establish continuous operation; outlets are not unique businesses or independently verified operating sites. The retained source has 885,278 rows, 885,097 normalized permitted outlets, 700,705 taxpayer organizations, 181 quarantined rows, and 2,156 source ZIP keys. In the cited coverage summary, 885,093 profiles are reported to Texas and four to CO, FL, LA, and VA; these address-state counts are distinct from source-wide outlet counts. No source geocodes are present, so no state-wide coordinate count is borrowed. Record-level output remains local-review-only and all-business/active-business completeness remains null.
+
 ## Official references
 
 - [Texas Active Sales Tax Permit Holders](https://data.texas.gov/d/jrea-zgmq)

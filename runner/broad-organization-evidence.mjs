@@ -6,8 +6,9 @@ import { assessBusinessSourceTemporalStatus } from "./business-source-temporal-s
 import { APP_ROOT } from "./paths.mjs";
 import { BROAD_ORGANIZATION_ZIP_SOURCES } from "./broad-organization-zip-descriptors.mjs";
 
-export const BROAD_ORGANIZATION_EVIDENCE_VERSION = "1.2.0";
+export const BROAD_ORGANIZATION_EVIDENCE_VERSION = "1.3.0";
 export const DC_BROAD_ORGANIZATION_CONTRACT_VERSION = "dc-basic-business-license-organization-evidence@1.0.0";
+export const TX_BROAD_ORGANIZATION_CONTRACT_VERSION = "tx-active-sales-tax-permit-outlet-evidence@1.0.0";
 export const DC_BROAD_ORGANIZATION_SOURCE = Object.freeze({
   datasetId: "dc-basic-business-license-sites",
   sourceKey: "dc_basic_business_license_sites",
@@ -42,9 +43,51 @@ export const DC_BROAD_ORGANIZATION_SOURCE = Object.freeze({
     active_business_completeness_percent: null,
   }),
 });
+export const TX_BROAD_ORGANIZATION_SOURCE = Object.freeze({
+  datasetId: "tx-active-sales-tax-outlets",
+  datasetReleaseId: "tx-active-sales-tax-20260903-004825316Z-3ba279b8",
+  datasetManifestPath: "data/business-sources/tx-active-sales-tax-outlets/releases/tx-active-sales-tax-20260903-004825316Z-3ba279b8/manifest.json",
+  datasetManifestSha256: "7654c7ec1439a29e76abc2e2c19ce05c53901b836f43b1bb42b4c71cd032c499",
+  sourceKey: "tx_active_sales_tax_permit_outlets",
+  profileSourceId: "texas-comptroller-active-sales-tax-permits",
+  sourceReleaseId: "tx-active-sales-tax-2026-08-29-98b90d177d81493e",
+  policy: "tx-active-sales-tax-permits.json",
+  localReviewOnly: true,
+  pinCoverageReleaseMetadata: true,
+  fieldExportPolicyKey: "normalized_record_level_taxpayers_outlets_sites_assertions_relationships_and_match_profiles",
+  sourceLevelGeocode: false,
+  sourceProfileCountsByAddressState: Object.freeze({ CO: 1, FL: 1, LA: 1, TX: 885093, VA: 1 }),
+  coverageFields: Object.freeze({
+    sourceRows: "tx_active_sales_tax_source_outlet_permits",
+    normalizedOutlets: "tx_active_sales_tax_normalized_outlet_permits",
+    uniqueTaxpayers: "tx_active_sales_tax_unique_taxpayers",
+    quarantinedRows: "tx_active_sales_tax_quarantined_source_records",
+  }),
+  recordUnitSemantics: "Source-defined active Texas sales-tax taxpayer/outlet permit evidence. Each accepted taxpayer/outlet pair is one provisional permitted outlet, not a unique business or independently verified operating site; taxpayer numbers group provisional taxpayer organizations. This is not the Texas Secretary of State entity master or all Texas businesses.",
+  evidenceContract: Object.freeze({
+    schema_version: TX_BROAD_ORGANIZATION_CONTRACT_VERSION,
+    publisher: "Texas Comptroller of Public Accounts",
+    license_scope: "Source-defined active sales-tax permit taxpayers and permitted outlets under Texas Tax Code Chapter 151, Subchapter F.",
+    excluded_business_universe: "This sales-tax permit layer is not the Texas Secretary of State entity master and does not represent all Texas businesses, exempt businesses, or businesses without an active permit in this source.",
+    active_status_semantics: "An active permit is not proof of continuous operation, current occupancy, public access, solvency, or compliance with other licensing requirements.",
+    organization_key_semantics: "The taxpayer number groups source outlet permits to a provisional taxpayer organization; outlet records are not unique businesses and no parent or cross-source identity is inferred.",
+    outlet_semantics: "Accepted taxpayer/outlet pairs represent source-reported permitted outlets; they do not establish a currently operating or verified physical site.",
+    record_level_distribution: "local-review-only",
+    source_geocodes: "not-provided; source-level geocode rate is unmeasured and no state-wide coordinates are borrowed",
+    source_rows: 885278,
+    normalized_permitted_outlets: 885097,
+    unique_taxpayer_organizations: 700705,
+    quarantined_source_rows: 181,
+    source_zip_keys: 2156,
+    reported_address_profiles_by_state: Object.freeze({ CO: 1, FL: 1, LA: 1, TX: 885093, VA: 1 }),
+    all_business_completeness_percent: null,
+    active_business_completeness_percent: null,
+  }),
+});
 export const BROAD_ORGANIZATION_SOURCES = Object.freeze({
   ...Object.fromEntries(Object.entries(BROAD_ORGANIZATION_ZIP_SOURCES).map(([state, spec]) => [state, Object.freeze({ sourceKey: spec.registryKey, profileSourceId: spec.profileSourceId ?? null, sourceReleaseId: spec.sourceReleaseId, policy: spec.policy, localReviewOnly: spec.localReviewOnly === true, pinCoverageReleaseMetadata: spec.pinCoverageReleaseMetadata === true, recordUnitSemantics: spec.recordUnitSemantics ?? null })])),
   DC: DC_BROAD_ORGANIZATION_SOURCE,
+  TX: TX_BROAD_ORGANIZATION_SOURCE,
 });
 
 const POLICY_IDS = Object.freeze(Object.fromEntries(Object.entries(BROAD_ORGANIZATION_SOURCES).map(([state, value]) => [state, value.policy.replace(/\.json$/, "")])));
@@ -60,7 +103,7 @@ function geocodePercent(assigned, eligible) {
   return Number(scaled) / Number(scale);
 }
 
-export async function buildBroadOrganizationEvidence({ state, source, registryCoverage = null, root = APP_ROOT, asOf = new Date() }) {
+export async function buildBroadOrganizationEvidence({ state, source, registryCoverage = null, reportedAddressProfileCounts = null, root = APP_ROOT, asOf = new Date() }) {
   const spec = BROAD_ORGANIZATION_SOURCES[state];
   if (!spec) return null;
   check(source?.source_key === spec.sourceKey, `${state} source identity drifted`);
@@ -68,6 +111,27 @@ export async function buildBroadOrganizationEvidence({ state, source, registryCo
   if (spec.pinCoverageReleaseMetadata) {
     check(source.release_metadata?.source_release_id === spec.sourceReleaseId, `${state} source release lineage drifted`);
     check(source.release_metadata?.record_level_distribution === "local-review-only", `${state} record-level distribution policy drifted`);
+  }
+  let txRelease = null;
+  if (state === "TX") {
+    const datasetManifestPath = path.join(root, ...spec.datasetManifestPath.split("/"));
+    const manifestBytes = await readFile(datasetManifestPath);
+    check(sha256(manifestBytes) === spec.datasetManifestSha256, "TX retained dataset manifest hash drifted");
+    txRelease = JSON.parse(manifestBytes);
+    check(txRelease.dataset_id === spec.datasetId && txRelease.release_id === spec.datasetReleaseId
+      && txRelease.source_release_id === spec.sourceReleaseId && txRelease.status === "complete"
+      && txRelease.complete_source_snapshot === true && txRelease.policy?.policy_id === POLICY_IDS.TX
+      && txRelease.policy?.record_level_distribution === "local-review-only", "TX retained dataset release or policy drifted");
+    const expectedCoverage = spec.coverageFields;
+    check(txRelease.coverage?.source_outlet_permits === registryCoverage?.[expectedCoverage.sourceRows]
+      && txRelease.coverage?.normalized_outlet_permits === registryCoverage?.[expectedCoverage.normalizedOutlets]
+      && txRelease.coverage?.unique_taxpayers === registryCoverage?.[expectedCoverage.uniqueTaxpayers]
+      && txRelease.coverage?.quarantined_source_records === registryCoverage?.[expectedCoverage.quarantinedRows]
+      && txRelease.coverage?.source_zip_codes === spec.evidenceContract.source_zip_keys
+      && txRelease.coverage?.source_outlet_permits === txRelease.coverage?.normalized_outlet_permits + txRelease.coverage?.quarantined_source_records,
+    "TX retained outlet/quarantine counts or ZIP-key evidence do not match the pinned source release");
+    check(reportedAddressProfileCounts && JSON.stringify(Object.fromEntries(Object.entries(reportedAddressProfileCounts).filter(([, count]) => count > 0).sort(([a], [b]) => a.localeCompare(b)))
+      ) === JSON.stringify(spec.sourceProfileCountsByAddressState), "TX reported-address-state profile counts drifted from the retained contract");
   }
   check(source.complete_source_for_all_businesses === false, `${state} completeness boundary drifted`);
   check(Number.isSafeInteger(source.zip_rows_with_contribution) && source.zip_rows_with_contribution >= 0, `${state} ZIP contribution is invalid`);
@@ -134,6 +198,7 @@ export async function buildBroadOrganizationEvidence({ state, source, registryCo
     zip_contribution: { rows: source.zip_rows_with_contribution, address_counts: structuredClone(addressCounts), scope: "source-release" },
     geocode,
     ...(spec.evidenceContract ? { evidence_contract: structuredClone(spec.evidenceContract) } : {}),
+    ...(txRelease ? { dataset_release_id: txRelease.release_id, dataset_manifest_sha256: spec.datasetManifestSha256 } : {}),
     ...(quarantine ? { quarantine } : {}),
     policy: {
       id: policy.policy_id,

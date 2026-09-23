@@ -105,6 +105,19 @@ test('selected goal evidence labels D.C. geocoding at source-profile scope', () 
   assert.doesNotMatch(rendered, /D\.C\. geocoding: 77\.88%/);
 });
 
+test('selected Texas goal evidence keeps geocoding unmeasured despite state-wide coordinates', () => {
+  const view = { available: true, status: 'verified-immutable-release', release_id: 'matrix', category: 'general-business', all_business_completion_percent: null,
+    broad_layer_gaps: 0, denominator: { version: 'fixture' },
+    selected: { code: 'TX', name: 'Texas', category: { category_id: 'general-business',
+      dataset_availability: { available: 1, denominator: 1, measured: 1, unmeasured: 0, measurement_status: 'measured', percent: 100 },
+      datasets: [{ dataset_id: 'tx_active_sales_tax_permit_outlets', label: 'Texas Active Sales Tax Permits', availability_status: 'available', state_record_count: 885093,
+        authorization: { state: 'retained-governed-source' }, temporal_status: { status: 'current-source-snapshot' },
+        geocode_rate: { percent: null, assigned: null, eligible: null, status: 'unmeasured-at-source-level' }, gap_reason: null }] } }, jurisdictions: [] };
+  const rendered = text(harness([view, false]).goal('TX', 'all'));
+  assert.match(rendered, /source geocoded: —/);
+  assert.doesNotMatch(rendered, /28,374|28\.374%|source geocoded: \d/);
+});
+
 test('exact ZIP inspector requests the selected category and aborts stale ZIP/category responses', async () => {
   const values = [{ available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} }, null, '10001'];
   const effects = [], pending = [], componentExports = {}; let index = 0, effectIndex = 0;
