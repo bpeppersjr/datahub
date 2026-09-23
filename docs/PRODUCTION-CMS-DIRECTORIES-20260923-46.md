@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **SUPERSEDED — DO NOT APPROVE OR EXECUTE.** Commit `7ca8bbe` added the governed national ZIP coverage summary and changed the verified implementation after this plan was generated. Use Plan 47, run ID `production-cms-directories-20260923-47`, and its exact confirmation SHA-256 instead. Plan 46 was never executed.
+
 Fresh governed planning completed after commits `28d0795` and `4ec40df`. The first makes the current national goal-completion matrix independently replay its retained source evidence during verification and distinguishes evidence drift from semantic tampering. The second keeps the selected governed business category attached to exact ZIP inspection while retaining all-source counts separately and refusing to represent missing positive evidence as zero or as a completeness percentage.
 
 - Run ID: `production-cms-directories-20260923-46`
