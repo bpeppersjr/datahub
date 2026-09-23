@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+**Superseded:** implementation commit `335be21` changed the repository after this plan was created. Do not approve or execute run 38; use the separately documented run 39 only if its exact current ID and SHA-256 are later approved.
+
 Fresh governed planning completed after Co*Tive added the immutable broad-organization authorization packet and corrected stale completion-matrix documentation. Release `broad-organization-authorization-packet-2026-09-22-99e3b9c24e75` is derived from the verified 43-jurisdiction backlog and contains 74 non-row-bearing evidence specifications for the exact first wave: AK, DC, IL, MS, AR, KY, HI, KS, NV, and UT. Its manifest SHA-256 is `59d1a9cd556ed225f9665c4bb4491beb2513520ab147f942401f911474452418`; its artifact SHA-256 is `99e3b9c24e757bd3c97320f1819ae546ade6f1c022f99ce916bd2d6486cfd51f`. It records zero source actions, grants no contact, download, payment, record-request, acquisition, or production authority, changes no pointer, and is not a source dataset or completeness claim.
 
 - Run ID: `production-cms-directories-20260923-38`
