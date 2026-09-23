@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-33` after the governed organization ZIP evidence export was integrated into managed operations. Do not approve or execute this plan.
+
 Fresh governed planning completed after Co*Tive added the fixed-release organization and registration address-evidence consumer. The authenticated exact-ZIP panel reads the already published eight-source derivative without changing business, site, geography, or completeness totals. It preserves publisher jurisdiction separately from reported address state, ZIP5 separately from ZIP+4, Oregon registrations separately from brands, and Delaware record-level restrictions. Its standalone JSONL/CSV exporter is run-scoped and independently replay-verifiable; neither the consumer nor exporter is a registry input.
 
 - Run ID: `production-cms-directories-20260922-32`
