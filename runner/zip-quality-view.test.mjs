@@ -21,7 +21,7 @@ async function fixture(t) {
     { zip_code: "99999", postal_code: "99999", zip4: null, registry_coverage: { status: "denominator-only-no-record-level-contribution" }, source_contributions: {}, geography: { status: "not-observed-in-integrated-census-coverage-union", geo_id: null, geoid: null }, current_usps_validity: { status: "unverified", reason: "No governed USPS evidence." } },
   ];
   const artifactText = `${rows.map(JSON.stringify).join("\n")}\n`;
-  const artifact = { path: "derived/zip-coverage.jsonl", bytes: Buffer.byteLength(artifactText), sha256: hash(artifactText), record_count: rows.length, artifact_type: "registry-zip-coverage-jsonl" };
+  const artifact = { path: "derived/zip-coverage.jsonl", bytes: Buffer.byteLength(artifactText), sha256: hash(artifactText), record_count: rows.length, artifact_type: "registry-zip-coverage-jsonl", distribution_policy: "local-review-only" };
   const manifest = { dataset_id: "national-business-registry", release_id: "r1", status: "published-partial", complete_national_business_registry: false, publisher: { version: "2.15.0" }, artifacts: [artifact] };
   const manifestText = `${JSON.stringify(manifest)}\n`;
   const pointer = { dataset_id: manifest.dataset_id, release_id: manifest.release_id, status: manifest.status, manifest: "releases/r1/manifest.json" };
@@ -36,6 +36,10 @@ test("summary conserves mutually exclusive classes and does not invent low-numbe
   const { root, enrollment } = await fixture(t);
   const view = createZipQualityView({ appRoot: root, enrollment });
   const summary = await view();
+  assert.equal(summary.schema_version, "2.0.0");
+  assert.equal(summary.national_zip_coverage.schema_version, "national-zip-coverage-summary@1.0.0");
+  assert.equal(summary.national_zip_coverage.usps_assignment.governed_dependency_present, false);
+  assert.equal(summary.national_zip_coverage.census_zcta.statistical_geography_not_usps_postal_delivery_boundary, true);
   assert.equal(summary.classification.conservation.status, "passed");
   assert.equal(summary.classification.classes.contract_invalid_or_missing.count, 0);
   assert.equal(summary.classification.classes.explicit_placeholder.count, 1);

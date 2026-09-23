@@ -189,8 +189,11 @@ export function auditRegistryZipRows(rows, {
   const governedZctaMembers = [];
   const sourceReportedOutsideZcta = [];
   const denominatorOnlyOutsideZcta = [];
+  const recordContributionZip5 = [];
+  const denominatorOnlyZip5 = [];
   const unverifiedZip5 = [];
   const listedUspsZip5 = [];
+  const notListedUspsZip5 = [];
   const missingUnverifiedReasonZip5 = [];
   const missingPostalCodeZip5 = [];
   const joinedPostalCodeZip5 = [];
@@ -221,6 +224,8 @@ export function auditRegistryZipRows(rows, {
     if (!["record-level-source-contribution", "denominator-only-no-record-level-contribution"].includes(row.registry_coverage?.status)) {
       throw new Error(`Registry ZIP ${zip5} has an unsupported registry coverage status.`);
     }
+    if (row.registry_coverage.status === "record-level-source-contribution") recordContributionZip5.push(zip5);
+    else denominatorOnlyZip5.push(zip5);
 
     const geographyStatus = row.geography?.status;
     const includedInZcta = geographyStatus === "2020-zcta-polygon-available";
@@ -267,6 +272,8 @@ export function auditRegistryZipRows(rows, {
       }
     } else if (uspsStatus === "listed-in-current-usps-area-district-file") {
       listedUspsZip5.push(zip5);
+    } else {
+      notListedUspsZip5.push(zip5);
     }
     const sourceReportedOutside = !explicitPlaceholder && !includedInZcta
       && row.registry_coverage.status === "record-level-source-contribution";
@@ -294,7 +301,8 @@ export function auditRegistryZipRows(rows, {
     ));
   }
 
-  for (const values of [allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta, listedUspsZip5,
+  for (const values of [allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta,
+    recordContributionZip5, denominatorOnlyZip5, listedUspsZip5, notListedUspsZip5,
     unverifiedZip5, missingUnverifiedReasonZip5, missingPostalCodeZip5, joinedPostalCodeZip5,
     mismatchedPostalCodeZip5, missingZip4Zip5, nonNullZip4Zip5]) values.sort();
   if (includeRows) details.sort((left, right) => left.zip5.localeCompare(right.zip5));
@@ -397,8 +405,22 @@ export function auditRegistryZipRows(rows, {
       governed_census_zcta_members: governedZctaMembers.length,
       source_reported_zip5_outside_governed_census_zcta: sourceReportedOutsideZcta.length,
       denominator_only_zip5_outside_governed_census_zcta: denominatorOnlyOutsideZcta.length,
+      record_level_source_contribution_zip5: recordContributionZip5.length,
+      denominator_only_zip5: denominatorOnlyZip5.length,
+      usps_operational_status_listed: listedUspsZip5.length,
+      usps_operational_status_not_listed: notListedUspsZip5.length,
       usps_operational_status_unverified: unverifiedZip5.length,
       unverified_usps_rows_missing_reason: missingUnverifiedReasonZip5.length,
+    },
+    registry_zip5_members: evidenceSet(allZip5),
+    registry_coverage: {
+      record_level_source_contribution: evidenceSet(recordContributionZip5),
+      denominator_only_no_record_level_contribution: evidenceSet(denominatorOnlyZip5),
+      conservation: {
+        classified_rows: recordContributionZip5.length + denominatorOnlyZip5.length,
+        registry_rows: allZip5.length,
+        status: recordContributionZip5.length + denominatorOnlyZip5.length === allZip5.length ? "passed" : "failed",
+      },
     },
     source_reported_zip5_quality: {
       semantics: "Mutually exclusive governed classification of every contract-valid registry ZIP row; malformed or missing ZIP5 fails the audit before publication.",
@@ -430,6 +452,9 @@ export function auditRegistryZipRows(rows, {
     denominator_only_zip5_outside_governed_zcta: evidenceSet(denominatorOnlyOutsideZcta, { includeValues: includeZipLists }),
     usps_operational_evidence: {
       status_counts: Object.fromEntries([...statusCounts.entries()].sort(([left], [right]) => left.localeCompare(right))),
+      listed_members: evidenceSet(listedUspsZip5),
+      not_listed_members: evidenceSet(notListedUspsZip5),
+      unverified_members: evidenceSet(unverifiedZip5),
       status_and_reason_distribution: reasonDistribution,
       address_level_deliverability_asserted: false,
     },
@@ -446,7 +471,8 @@ export function auditRegistryZipRows(rows, {
     ...(includeRows ? { rows: details } : {}),
   };
   Object.defineProperty(result, "_audit_sets", {
-    value: { allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta, listedUspsZip5 },
+    value: { allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta,
+      recordContributionZip5, denominatorOnlyZip5, listedUspsZip5, notListedUspsZip5, unverifiedZip5 },
     enumerable: false,
   });
   return result;
@@ -504,6 +530,7 @@ async function readAndAuditZipArtifact(filePath, artifact, options) {
       sha256: actualSha256,
       record_count: rows.length,
       artifact_type: artifact.artifact_type,
+      distribution_policy: artifact.distribution_policy ?? null,
     },
   };
 }
@@ -577,7 +604,12 @@ async function inspectCohort(appRoot, definition, options) {
       throw new Error(`${definition.cohort_id} USPS ZIP member-set reconciliation failed.`);
     }
     reconciliation = { path: reconciliationArtifact.path, bytes: document.bytes, sha256: document.sha256,
-      exact_member_set_match: true, member_count: listed.count };
+      exact_member_set_match: true, member_count: listed.count,
+      source_dataset_id: document.value.source?.dataset_id ?? null,
+      source_release_id: document.value.source?.release_id ?? null,
+      source_manifest_sha256: document.value.source?.manifest_sha256 ?? null,
+      source_month: document.value.source?.source_month ?? null,
+      assignment_artifact_sha256: document.value.source?.assignment_artifact_sha256 ?? null };
   }
   const completeUspsDenominator = Boolean(denominator && reconciliation && audited.analysis.counts.usps_operational_status_unverified === 0
     && reconciliation.member_count === denominator.count);
@@ -587,12 +619,17 @@ async function inspectCohort(appRoot, definition, options) {
       availability: "available",
       pointer_path: path.relative(appRoot, safePointerPath).replaceAll("\\", "/"),
       pointer_sha256: pointerDocument.sha256,
+      pointer_dataset_id: pointer.dataset_id,
+      pointer_release_id: pointer.release_id,
+      pointer_status: pointer.status,
+      pointer_manifest: pointer.manifest,
       manifest_path: path.relative(appRoot, manifestPath).replaceAll("\\", "/"),
       manifest_sha256: manifestDocument.sha256,
       dataset_id: manifest.dataset_id,
       release_id: manifest.release_id,
       publisher_version: publisherVersion,
       release_status: manifest.status,
+      complete_national_business_registry: manifest.complete_national_business_registry,
       authoritative_current_usps_zip_denominator: denominator,
       usps_zip_member_set_reconciliation: reconciliation,
       complete_current_usps_assignment_denominator_verified: completeUspsDenominator,

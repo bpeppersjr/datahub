@@ -23,6 +23,10 @@ The audit does not download data, change a current pointer, publish a release, o
 
 Audit schema 1.3 also verifies the optional registry ZIP5 reconciliation artifact. A complete current USPS assignment-denominator claim is possible only when a required cohort has a governed USPS denominator, zero unverified rows, and an exact member-set reconciliation whose artifact bytes and SHA-256 match the registry manifest. Census ZCTA membership alone can never satisfy this gate. The reconciliation exposes only aggregate counts and member-set digests; restricted USPS member lists remain outside audit output.
 
+`runner/national-zip-coverage-summary.mjs` projects one governed cohort into `national-zip-coverage-summary@1.0.0`. Its immutable `zip-coverage-summary.json` artifact contains only counts, member-set digests, evidence bindings, conservation results, and semantic claim boundaries. It never contains ZIP member arrays or samples. Census ZCTA statistical polygons, registry record-contribution and denominator-only keys, USPS assignment states, and non-geometric ZIP+4 policy remain separate. The verifier replays the current enrolled audit and fails closed on pointer, manifest, ZIP artifact, Census denominator, reconciliation, semantic, or artifact-byte drift. All-business and active-business completion percentages remain null.
+
+The ZIP-quality summary endpoint exposes a live, freshly verified projection as `national_zip_coverage` under response schema 2.0. It is not the immutable published summary artifact and identifies its projection mode accordingly. ZIP lookups remain schema 1.0 and expose a USPS status only when the audited row carries governed USPS evidence; the top-level USPS status becomes exact only when the complete assignment denominator passes exact reconciliation, and neither surface infers delivery eligibility.
+
 ## Run it
 
 Inspect both the production registry and the isolated normalized-postal candidate:

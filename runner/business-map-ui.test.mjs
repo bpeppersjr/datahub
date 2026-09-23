@@ -54,6 +54,28 @@ test('selection change withholds previous map response before effects run', () =
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), true);
 });
 
+test('Heatmap ZIP summary keeps registry ZIP5, Census ZCTA, USPS assignments, and completion claims separate', () => {
+  const summary = {
+    national_zip_coverage: {
+      registry_zip5: { members: { count: 42000 }, record_level_source_contribution: { count: 31000 }, denominator_only_no_record_level_contribution: { count: 11000 } },
+      census_zcta: { same_code_governed_zcta_members: { count: 33120 }, statistical_geography_not_usps_postal_delivery_boundary: true },
+      usps_assignment: { governed_dependency_present: false, assignment_members: null, complete_current_assignment_denominator_verified: false },
+      claim_boundary: { active_business_completion_percentage: null, all_business_completion_percentage: null },
+    },
+    classification: { classes: {
+      explicit_placeholder: { count: 10 }, valid_format_same_code_governed_zcta: { count: 20000 },
+      valid_format_source_reported_no_same_code_zcta: { count: 11000 }, valid_format_denominator_only_no_same_code_zcta: { count: 11000 },
+    } }, usps_operational_status: null, usps_evidence_status: 'unverified',
+  };
+  const catalog = { available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} };
+  const tree = harness([catalog, summary]).page();
+  const note = nodes(tree).find(node => node.props?.['data-testid'] === 'zip-quality-note');
+  assert.ok(note);
+  const rendered = text(note);
+  for (const phrase of ['Registry ZIP5 total: 42,000', 'same-code Census ZCTA members: 33,120', 'source-contributed ZIP5: 31,000', 'denominator-only ZIP5: 11,000', 'USPS governed assignment denominator: not verified', 'Active-business completion remains unknown (null)', 'a ZCTA is not a USPS boundary', 'ZIP totals do not measure business coverage']) assert.ok(rendered.includes(phrase), phrase);
+  assert.doesNotMatch(rendered, /business completion[^.]*100%/i);
+});
+
 test('exact ZIP inspector requests the selected category and aborts stale ZIP/category responses', async () => {
   const values = [{ available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} }, null, '10001'];
   const effects = [], pending = [], componentExports = {}; let index = 0, effectIndex = 0;

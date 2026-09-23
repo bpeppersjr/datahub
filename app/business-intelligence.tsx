@@ -129,6 +129,26 @@ type GoalCompletion = {
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
 };
 type ZipQualitySummary = {
+  national_zip_coverage: {
+    registry_zip5: {
+      members: { count: number };
+      record_level_source_contribution: { count: number };
+      denominator_only_no_record_level_contribution: { count: number };
+    };
+    census_zcta: {
+      same_code_governed_zcta_members: { count: number };
+      statistical_geography_not_usps_postal_delivery_boundary: true;
+    };
+    usps_assignment: {
+      governed_dependency_present: boolean;
+      assignment_members: { count: number } | null;
+      complete_current_assignment_denominator_verified: boolean;
+    };
+    claim_boundary: {
+      active_business_completion_percentage: null;
+      all_business_completion_percentage: null;
+    };
+  };
   classification: { classes: {
     explicit_placeholder: { count: number };
     valid_format_same_code_governed_zcta: { count: number };
@@ -661,7 +681,10 @@ function BusinessEvidenceMap() {
           {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
-          {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">ZIP quality: {count(zipQuality.classification.classes.valid_format_same_code_governed_zcta.count)} same-code Census ZCTA members · {count(zipQuality.classification.classes.valid_format_source_reported_no_same_code_zcta.count)} source-reported ZIP5 without same-code ZCTA · {count(zipQuality.classification.classes.valid_format_denominator_only_no_same_code_zcta.count)} denominator-only without ZCTA · {count(zipQuality.classification.classes.explicit_placeholder.count)} explicit placeholder (`00000`). USPS operational status is {zipQuality.usps_operational_status === null ? 'not asserted' : 'asserted'}; evidence remains {zipQuality.usps_evidence_status}. Other low-number ZIP5 values are not treated as placeholders without governed proof.</p>}
+          {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">
+            Registry ZIP5 total: {count(zipQuality.national_zip_coverage.registry_zip5.members.count)} · same-code Census ZCTA members: {count(zipQuality.national_zip_coverage.census_zcta.same_code_governed_zcta_members.count)} · source-contributed ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.record_level_source_contribution.count)} · denominator-only ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.denominator_only_no_record_level_contribution.count)}. USPS governed assignment denominator: {zipQuality.national_zip_coverage.usps_assignment.complete_current_assignment_denominator_verified ? 'verified' : 'not verified'}{zipQuality.national_zip_coverage.usps_assignment.assignment_members ? ` (${count(zipQuality.national_zip_coverage.usps_assignment.assignment_members.count)} governed assignments)` : ''}. Active-business completion remains unknown (null); no percentage is claimed. Registry ZIP5 keys and Census ZCTAs are distinct measures; a ZCTA is not a USPS boundary, and ZIP totals do not measure business coverage.
+            {' '}ZIP quality classes: {count(zipQuality.classification.classes.valid_format_same_code_governed_zcta.count)} same-code Census ZCTA members · {count(zipQuality.classification.classes.valid_format_source_reported_no_same_code_zcta.count)} source-reported ZIP5 without same-code ZCTA · {count(zipQuality.classification.classes.valid_format_denominator_only_no_same_code_zcta.count)} denominator-only without ZCTA · {count(zipQuality.classification.classes.explicit_placeholder.count)} explicit placeholder (`00000`). USPS operational status is {zipQuality.usps_operational_status === null ? 'not asserted' : 'asserted'}; evidence remains {zipQuality.usps_evidence_status}. Other low-number ZIP5 values are not treated as placeholders without governed proof.
+          </p>}
           <section className="state-alignment-card" aria-label="Exact ZIP5 evidence inspector" data-testid="zip-inspector">
             <label><span>Inspect exact ZIP5</span><input aria-label="Inspect exact ZIP5" inputMode="numeric" maxLength={5} value={inspectionZip} onChange={(event) => selectInspectionZip(event.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="Five digits" /></label>
             {inspectionZip.length > 0 && inspectionZip.length !== 5 && <p>Enter exactly five digits.</p>}

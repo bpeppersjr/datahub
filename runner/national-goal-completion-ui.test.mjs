@@ -36,5 +36,5 @@ test("ZIP-quality API and Heatmap note expose bounded classes without treating Z
   assert.ok(server.includes(route));
   assert.ok(server.indexOf('controlPlane.authorize(request)')<server.indexOf(route));
   assert.match(server,/getAll\('zip'\)\.length > 1/);
-  for(const text of ['ZIP quality:','same-code Census ZCTA members','source-reported ZIP5 without same-code ZCTA','explicit placeholder (`00000`)','USPS operational status is','Other low-number ZIP5 values are not treated as placeholders without governed proof'])assert.ok(ui.includes(text),text);
+  for(const text of ['ZIP quality classes:','Registry ZIP5 total:','same-code Census ZCTA members:','Active-business completion remains unknown (null)','a ZCTA is not a USPS boundary','ZIP totals do not measure business coverage','source-reported ZIP5 without same-code ZCTA','explicit placeholder (`00000`)','USPS operational status is','Other low-number ZIP5 values are not treated as placeholders without governed proof'])assert.ok(ui.includes(text),text);
 });

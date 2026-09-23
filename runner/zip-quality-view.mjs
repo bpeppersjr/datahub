@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { APP_ROOT } from "./paths.mjs";
 import { auditZipDenominators } from "./zip-denominator-audit.mjs";
+import { buildNationalZipCoverageSummary } from "./national-zip-coverage-summary.mjs";
 
 const DEFAULT_ENROLLMENT_PATH = path.join(APP_ROOT, "config", "zip-quality-view-enrollment.json");
 
@@ -13,9 +14,10 @@ function assertEnrollment(enrollment) {
 }
 
 function publicUspsEvidence(row) {
+  const verified = row.usps_operational_evidence.status !== "unverified";
   return {
-    operational_status: null,
-    evidence_status: "unverified",
+    operational_status: verified ? row.usps_operational_evidence.status : null,
+    evidence_status: row.usps_operational_evidence.status,
     reason: row.usps_operational_evidence.reason,
     source_release_id: row.usps_operational_evidence.source_release_id,
     source_month: row.usps_operational_evidence.source_month,
@@ -43,7 +45,13 @@ export function createZipQualityView({ appRoot = APP_ROOT, enrollment: suppliedE
       throw new Error("ZIP-quality enrolled pointer, manifest, or ZIP artifact hash drifted.");
     }
     const byZip = new Map(cohort.rows.map((row) => [row.zip5, row]));
-    return { enrollment, report, cohort, byZip };
+    const nationalSummary = buildNationalZipCoverageSummary(report, {
+      cohortId: enrollment.cohort_id,
+      releaseId: `live-${report.audit_id}`,
+      createdAt: new Date().toISOString(),
+      projectionMode: "live-verified-projection",
+    });
+    return { enrollment, report, cohort, byZip, nationalSummary };
   }
 
   return async function zipQualityView({ zip } = {}) {
@@ -52,7 +60,7 @@ export function createZipQualityView({ appRoot = APP_ROOT, enrollment: suppliedE
       error.statusCode = 400;
       throw error;
     }
-    const { enrollment, report, cohort, byZip } = await load();
+    const { enrollment, report, cohort, byZip, nationalSummary } = await load();
     const bindings = {
       audit_id: report.audit_id,
       release_id: cohort.release_id,
@@ -62,12 +70,13 @@ export function createZipQualityView({ appRoot = APP_ROOT, enrollment: suppliedE
     };
     if (zip == null) {
       return {
-        schema_version: "1.0.0",
+        schema_version: "2.0.0",
         bindings,
+        national_zip_coverage: nationalSummary,
         classification: cohort.source_reported_zip5_quality,
         postal_fields: cohort.postal_field_policy,
-        usps_operational_status: null,
-        usps_evidence_status: "unverified",
+        usps_operational_status: nationalSummary.usps_assignment.complete_current_assignment_denominator_verified ? "exact-governed-assignment-set" : null,
+        usps_evidence_status: nationalSummary.usps_assignment.governed_dependency_present ? "governed-exact-reconciliation" : "unverified",
         limitation: report.claim_boundary.reason,
       };
     }

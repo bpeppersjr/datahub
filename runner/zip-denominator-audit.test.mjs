@@ -142,6 +142,10 @@ test("audits ZCTA membership, outside source ZIPs, USPS reasons, and split posta
     governed_census_zcta_members: 1,
     source_reported_zip5_outside_governed_census_zcta: 1,
     denominator_only_zip5_outside_governed_census_zcta: 1,
+    record_level_source_contribution_zip5: 3,
+    denominator_only_zip5: 1,
+    usps_operational_status_listed: 0,
+    usps_operational_status_not_listed: 0,
     usps_operational_status_unverified: 4,
     unverified_usps_rows_missing_reason: 1,
   });
