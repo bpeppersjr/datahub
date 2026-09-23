@@ -165,6 +165,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/business-map/state-names?state=47&category=childcare"],
     ["GET", "/api/data-operations/catalog"],
     ["GET", "/api/data-operations/operations"],
+    ["GET", "/api/data-operations/broad-organization-authorization-packet"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -254,6 +255,8 @@ test("protects every live management endpoint while leaving only narrow liveness
   const foreignRetained=await rawRequest({port,hostHeader,origin:'https://evil.example',pathname:'/api/retained-credentials',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(foreignRetained.status,403);
   const overture=await rawRequest({port,hostHeader,pathname:'/api/overture-heatmap-readiness',authorization:`Bearer ${CONTROL_TOKEN}`});
   assert.equal(overture.status,503);assert.equal(overture.headers['cache-control'],'no-store');assert.match(overture.body,/No source data was admitted/);
+  const packetUnavailable=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-packet',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(packetUnavailable.status,503);assert.match(packetUnavailable.body,/unavailable/);assert.equal(packetUnavailable.body.includes('manifest.json'),false);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],

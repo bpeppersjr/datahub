@@ -13,6 +13,7 @@ import IaBusinessRegistryRefreshStatusCard, {type IaBusinessRegistryRefreshStatu
 import OrBusinessRegistryRefreshStatusCard, {type OrBusinessRegistryRefreshStatus} from './or-business-registry-refresh-status';
 import NyBusinessRegistryRefreshStatusCard, {type NyBusinessRegistryRefreshStatus} from './ny-business-registry-refresh-status';
 import RetainedBusinessRefreshStatusCard, {type RetainedBusinessRefreshStatus} from './retained-business-refresh-status';
+import BroadOrganizationAuthorizationPacket from './broad-organization-authorization-packet';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -141,6 +142,7 @@ export default function DataOperations() {
       <button type="button" className="primary-button" disabled={!catalog||!/^\d{5}$/.test(organizationZip5)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/organization-zip-evidence-exports',{zip5:organizationZip5,...(organizationPublisher?{publisher_state:organizationPublisher}:{}),policy_mode:organizationPolicy,format:organizationFormat})))}>Build verified organization ZIP export</button>
       <p className="operations-note">Public-only omits Delaware record-level details while its policy-excluded count remains reported as neither missing nor zero evidence. Choose local review only where that restricted detail is appropriate.</p>
     </section>
+    <BroadOrganizationAuthorizationPacket />
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}

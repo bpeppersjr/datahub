@@ -31,6 +31,8 @@ import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { organizationZipEvidenceReader } from './organization-zip-evidence-reader.mjs';
 import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
+import { broadOrganizationAuthorizationPacketHttp } from './broad-organization-authorization-packet-http.mjs';
+import { loadBroadOrganizationAuthorizationPacketManagementView } from './broad-organization-authorization-packet-view.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -273,6 +275,10 @@ const server = http.createServer(async (request, response) => {
 
     if (segments[0] === 'api' && segments[1] === 'data-operations') {
       const endpoint = segments[2];
+      if (url.pathname === '/api/data-operations/broad-organization-authorization-packet') {
+        await broadOrganizationAuthorizationPacketHttp(request, response, url, loadBroadOrganizationAuthorizationPacketManagementView, json);
+        return;
+      }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

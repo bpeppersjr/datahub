@@ -18,3 +18,9 @@ node scripts/build-broad-organization-authorization-packet.mjs --backlog-manifes
 ```
 
 Packet releases are written beneath `data/broad-organization-authorization-packet/releases/<release-id>/`, using owned staging, manifest-last writes, verification, and atomic directory rename. Output must remain beneath canonical `APP_ROOT/data` without symlink or junction ancestry. No mutable current pointer is created. The verifier re-verifies the source backlog and exact first-wave selection, binds both source hashes, recomputes the packet and manifest, checks authority boundaries, and rejects unexpected release contents.
+
+## Read-only management view
+
+The authenticated empty-GET endpoint `/api/data-operations/broad-organization-authorization-packet` independently verifies the canonical immutable packet on every request. Its bounded response contains release and source-lineage identifiers, the exact first-wave jurisdictions, unresolved gates, non-row-bearing evidence specifications and acceptance criteria, privacy exclusions, source-status/address limitations, and explicit false authority flags. It omits filesystem paths, raw assessment snapshots, official URLs, candidate payloads, and every operation or approval control. Query parameters, request bodies, non-GET methods, missing evidence, ambiguous releases, and verification failures fail closed.
+
+The Data Operations page exposes that same projection with a local jurisdiction filter and a recheck button. Recheck only repeats offline verification; it does not contact a publisher, request evidence, download records, grant approval, schedule work, or start an acquisition or production operation.
