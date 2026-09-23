@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `f78629a` added the verified in-app current authorization-chain view after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-54` was never executed and must not be approved or used. It is replaced by run `production-cms-directories-20260923-55` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-55.md`.
+
 Fresh governed planning completed after implementation commit `eceaf21`. That commit completes four separately versioned, ten-state approval-only packets for all 40 current broad-organization gaps. The packets organize authorization work; they do not claim the missing business data has been collected.
 
 - Run ID: `production-cms-directories-20260923-54`
