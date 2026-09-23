@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **SUPERSEDED — DO NOT APPROVE OR EXECUTE.** Commits `28d0795` and `4ec40df` changed the verified implementation after this plan was generated. Use Plan 46, run ID `production-cms-directories-20260923-46`, and its exact confirmation SHA-256 instead. Plan 45 was never executed.
+
 Fresh governed planning completed after commits `38e72bf` and `00d0438`. The first adds an explicit `tax-exempt-organizations` flat-file category bound only to retained IRS EO BMF profiles and the existing local-review export gate. The second makes exact USPS ZIP5 member-set reconciliation mandatory whenever a future governed USPS dependency is selected. This plan selects no USPS dependency, so its operational ZIP denominator remains unverified and Census ZCTA geometry remains a separate evidence class.
 
 - Run ID: `production-cms-directories-20260923-45`
