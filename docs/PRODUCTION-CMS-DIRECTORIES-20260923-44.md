@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded without execution by `production-cms-directories-20260923-45` after commits `38e72bf` and `00d0438` extended governed flat-file selection and exact USPS ZIP member-set verification. This plan is retained as immutable planning history and must not be approved or executed.
+
 Fresh governed planning completed after commit `06b7eac` added an exact, read-only pin for the immutable CMS retained-directory coverage catalog. The catalog is pre-production evidence about retained row coverage only. It remains outside source, optional-source, input, stage, registry-dependency, output, receipt, current-pointer, production-enrollment, and national-reporting-denominator paths.
 
 - Run ID: `production-cms-directories-20260923-44`
