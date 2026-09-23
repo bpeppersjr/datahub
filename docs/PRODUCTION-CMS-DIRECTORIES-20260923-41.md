@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded by `production-cms-directories-20260923-42` after Alaska retained broad-organization evidence and the current ZIP denominator audit were reconciled. This plan must not be executed.
+
 Fresh governed planning completed after Co*Tive added the authenticated, read-only nationwide broad-organization authorization-program management view. The view independently re-verifies release `broad-organization-authorization-program-2026-09-22-b3af1531c834` on every load and exposes its five bounded waves, 43 jurisdictions, 371 gate items, and 28 exact gate keys without exposing source-action controls or granting authority. The program manifest SHA-256 is `46980eff42e8e0ffbef9b8ddfc56232f7e86441e8b29cc28ea4fdc155bd87878`; its artifact SHA-256 is `b3af1531c8342f086efc18d3a331df26b53e29660d2bf9dc3c9d480c5f50992f`.
 
 The program performs zero source actions, creates no pointer, and grants no contact, download, payment, record-request, acquisition, scheduling, or production authority. Ordinary items can establish only contract-evidence sufficiency. AK/DC large-acquisition authorization remains a separately authenticated, proposal-specific user decision that no document, upload, or program artifact can close. The existing ten-jurisdiction authorization packet and its separate management panel remain unchanged and independently verify.
