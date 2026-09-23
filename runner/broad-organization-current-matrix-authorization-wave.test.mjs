@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT, verifyBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
-import { deriveCurrentMatrixAuthorizationWave, buildCurrentMatrixAuthorizationWave, verifyCurrentMatrixAuthorizationWave } from "./broad-organization-current-matrix-authorization-wave.mjs";
+import { DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT, deriveCurrentMatrixAuthorizationWave, buildCurrentMatrixAuthorizationWave, verifyCurrentMatrixAuthorizationWave } from "./broad-organization-current-matrix-authorization-wave.mjs";
 import { DATA_DIR } from "./paths.mjs";
 
 const temp = path.join(DATA_DIR, `.tmp-current-matrix-wave-${process.pid}`);
@@ -41,6 +41,28 @@ test("selects exactly the ten highest historical priorities still in the current
   assert.equal(wave.scope.current_pointer_changed, false);
 });
 
+test("publishes wave two as the next exact ten with 10 + 10 + 20 gap conservation", async (t) => {
+  await rm(temp, { recursive: true, force: true });
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot: path.join(temp, "wave-two-root") });
+  const expected = ["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"];
+  assert.deepEqual(built.wave.wave_state_abbreviations, expected);
+  assert.equal(built.wave.scope.wave_number, 2);
+  assert.equal(built.wave.scope.prior_wave_jurisdictions, 10);
+  assert.equal(built.wave.scope.selected_jurisdictions, 10);
+  assert.equal(built.wave.scope.remaining_current_gaps, 20);
+  assert.equal(built.wave.scope.conservation_total, 40);
+  assert.equal(built.wave.scope.wave_number, 2);
+  assert.equal(built.manifest.remaining_gap_count, 20);
+  assert.match(built.wave.prior_wave.release_id, /^broad-organization-current-matrix-authorization-wave-/);
+  assert.equal(built.wave.prior_wave.wave_state_abbreviations.join(","), "IL,MS,AR,KY,HI,KS,NV,UT,WA,OK");
+  assert.equal(new Set([...built.wave.prior_wave.wave_state_abbreviations, ...built.wave.wave_state_abbreviations]).size, 20);
+  assert.ok(built.wave.states.every((row, index) => row.wave_position === index + 1 && row.approval_status === "HOLD" && row.item_kind === "approval-only" && row.acquisition_authorized === false));
+  assert.ok(built.wave.states.every((row) => row.assessment_snapshot.state_abbreviation === row.state_abbreviation && JSON.stringify(row.unresolved_gates) === JSON.stringify(row.assessment_snapshot.unresolved_gates) && JSON.stringify(row.required_exclusions) === JSON.stringify(row.assessment_snapshot.required_exclusions)));
+  const manifestPath = path.join(built.releaseDirectory, "manifest.json");
+  assert.deepEqual((await verifyCurrentMatrixAuthorizationWave(manifestPath)).wave.wave_state_abbreviations, expected);
+});
+
 test("rejects projection and source-hash drift rather than widening or reordering the wave", async () => {
   const source = await sourceProjection();
   const alteredRoster = structuredClone(source.projection);
@@ -70,4 +92,23 @@ test("publishes immutable packet, rejects rehashed authority widening, cancellat
   const controller = new AbortController(); controller.abort();
   await assert.rejects(buildCurrentMatrixAuthorizationWave({ outputRoot: path.join(temp, "cancelled"), signal: controller.signal }), { name: "AbortError" });
   await assert.rejects(buildCurrentMatrixAuthorizationWave({ outputRoot: os.tmpdir() }), /canonical APP_ROOT\/data/);
+});
+
+test("wave-two verifier rejects a rehashed overlap with wave one and authority widening", async (t) => {
+  await rm(temp, { recursive: true, force: true });
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot: path.join(temp, "overlap-root") });
+  const manifestPath = path.join(built.releaseDirectory, "manifest.json"), artifactPath = path.join(built.releaseDirectory, "authorization-wave.json");
+  const altered = JSON.parse(await readFile(artifactPath, "utf8"));
+  const priorDirectory = path.join(DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT, "releases", built.wave.prior_wave.release_id);
+  const prior = JSON.parse(await readFile(path.join(priorDirectory, "authorization-wave.json"), "utf8"));
+  altered.states[0] = prior.states[0];
+  altered.wave_state_abbreviations[0] = prior.states[0].state_abbreviation;
+  altered.states[0].acquisition_authorized = true;
+  const bytes = Buffer.from(`${JSON.stringify(altered, null, 2)}\n`), manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.artifacts[0].bytes = bytes.length;
+  manifest.artifacts[0].sha256 = digest(bytes);
+  await writeFile(artifactPath, bytes);
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await assert.rejects(verifyCurrentMatrixAuthorizationWave(manifestPath), /differs from exact current projection|widens authority/);
 });
