@@ -35,6 +35,8 @@ import { broadOrganizationAuthorizationPacketHttp } from './broad-organization-a
 import { loadBroadOrganizationAuthorizationPacketManagementView } from './broad-organization-authorization-packet-view.mjs';
 import { broadOrganizationAuthorizationProgramHttp } from './broad-organization-authorization-program-http.mjs';
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
+import { broadOrganizationCurrentAuthorizationChainHttp } from './broad-organization-current-authorization-chain-http.mjs';
+import { loadBroadOrganizationCurrentAuthorizationChainManagementView } from './broad-organization-current-authorization-chain-view.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -263,7 +265,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain') {
       response.writeHead(204);
       response.end();
       return;
@@ -283,6 +285,10 @@ const server = http.createServer(async (request, response) => {
       }
       if (url.pathname === '/api/data-operations/broad-organization-authorization-program') {
         await broadOrganizationAuthorizationProgramHttp(request, response, url, loadBroadOrganizationAuthorizationProgramManagementView, json);
+        return;
+      }
+      if (url.pathname === '/api/data-operations/broad-organization-current-authorization-chain') {
+        await broadOrganizationCurrentAuthorizationChainHttp(request, response, url, loadBroadOrganizationCurrentAuthorizationChainManagementView, json);
         return;
       }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {

@@ -167,6 +167,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/operations"],
     ["GET", "/api/data-operations/broad-organization-authorization-packet"],
     ["GET", "/api/data-operations/broad-organization-authorization-program"],
+    ["GET", "/api/data-operations/broad-organization-current-authorization-chain"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -264,6 +265,12 @@ test("protects every live management endpoint while leaving only narrow liveness
   assert.equal(programQuery.status,400);
   const programBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-program',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});
   assert.equal(programBody.status,400);
+  const chain=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(chain.status,503);assert.equal(chain.headers['cache-control'],'no-store');assert.match(chain.body,/unavailable/);assert.equal(chain.body.includes('manifest.json'),false);
+  const chainQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-current-authorization-chain?wave=1',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(chainQuery.status,400);
+  const chainBodyRequest=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(chainBodyRequest.status,400);
+  const chainOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/broad-organization-current-authorization-chain'});assert.equal(chainOptions.status,401);
+  const chainPut=await rawRequest({port,hostHeader,method:'PUT',pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(chainPut.status,405);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],
