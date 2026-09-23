@@ -1,0 +1,68 @@
+{
+  "schema_version": "cms-retained-directory-coverage-catalog@1.0.0",
+  "dataset_id": "cms-retained-directory-coverage-catalog",
+  "release_id": "cms-retained-directory-coverage-catalog-379f82bdf30a2834",
+  "status": "published-pre-production-evidence",
+  "release_only": true,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "current_pointer_written": false,
+  "source_actions_performed": 0,
+  "network_requests_performed": 0,
+  "export_policy": "local-review-only",
+  "jurisdiction_count": 56,
+  "source_count": 2,
+  "denominators": {
+    "all_retained_directory_rows": 20109,
+    "state_dc_retained_directory_rows": 20034,
+    "territory_retained_directory_rows": 75
+  },
+  "source_denominators": {
+    "hospital": {
+      "all_retained_directory_rows": 5419,
+      "state_dc_retained_directory_rows": 5354,
+      "territory_retained_directory_rows": 65
+    },
+    "nursing_home": {
+      "all_retained_directory_rows": 14690,
+      "state_dc_retained_directory_rows": 14680,
+      "territory_retained_directory_rows": 10
+    }
+  },
+  "claims": {
+    "named_business_count": null,
+    "unique_business_count": null,
+    "physical_site_count": null,
+    "current_operating_count": null,
+    "national_completeness_percent": null,
+    "identity_reconciliation_status": "not-yet-reconciled",
+    "geographic_assignment_performed": false,
+    "county_assignment_performed": false,
+    "zcta_membership_inferred": false,
+    "spatial_assignment_performed": false,
+    "publisher_coordinates_spatially_approved": false,
+    "zip4_aggregated": false,
+    "coordinates_retained": false,
+    "zip_values_retained": false,
+    "public_export_authorized": false,
+    "export_policy": "local-review-only"
+  },
+  "artifacts": [
+    {
+      "path": "jurisdictions.jsonl",
+      "artifact_type": "cms-retained-directory-jurisdictions-jsonl",
+      "bytes": 41354,
+      "sha256": "38178db0ac613e6592c5974d39d8b16666bd00962aa44332ef70d4f2fa4b122c",
+      "record_count": 56,
+      "export_policy": "local-review-only"
+    },
+    {
+      "path": "sources.json",
+      "artifact_type": "cms-retained-directory-sources-json",
+      "bytes": 6454,
+      "sha256": "0d4fa7200e4b0a8ac7f03e7a8f7b7463fa47869d9197efed3c5ac9da574cb177",
+      "record_count": 2,
+      "export_policy": "local-review-only"
+    }
+  ]
+}
