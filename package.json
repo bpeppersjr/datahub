@@ -24,6 +24,8 @@
     "reporting:ten:enroll": "node scripts/publish-national-reporting-ten-enrollment.mjs",
     "business:export": "node scripts/compose-flat-business-export.mjs",
     "business:export:verify": "node scripts/verify-flat-business-export.mjs",
+    "broad-org-zip:build": "node scripts/build-broad-organization-zip-evidence.mjs",
+    "broad-org-zip:verify": "node scripts/verify-broad-organization-zip-evidence.mjs",
     "connectors:check": "node scripts/check-connector-registry.mjs",
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",

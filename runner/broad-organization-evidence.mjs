@@ -4,17 +4,11 @@ import path from "node:path";
 
 import { assessBusinessSourceTemporalStatus } from "./business-source-temporal-status.mjs";
 import { APP_ROOT } from "./paths.mjs";
+import { BROAD_ORGANIZATION_ZIP_SOURCES } from "./broad-organization-zip-descriptors.mjs";
 
 export const BROAD_ORGANIZATION_EVIDENCE_VERSION = "1.0.0";
 export const BROAD_ORGANIZATION_SOURCES = Object.freeze({
-  CO: Object.freeze({ sourceKey: "co_business_registry_good_standing_or_delinquent_organizations", policy: "co-business-registry.json" }),
-  CT: Object.freeze({ sourceKey: "ct_business_registry_active_organizations", policy: "ct-business-registry.json" }),
-  DE: Object.freeze({ sourceKey: "de_business_licenses_current", policy: "de-business-licenses.json" }),
-  FL: Object.freeze({ sourceKey: "fl_business_registry_quarterly_active_entities", policy: "fl-business-registry.json" }),
-  IA: Object.freeze({ sourceKey: "ia_business_registry_active_entities", policy: "ia-business-registry.json" }),
-  NY: Object.freeze({ sourceKey: "ny_business_registry_active_entities", policy: "ny-business-registry.json" }),
-  OR: Object.freeze({ sourceKey: "or_business_registry_active_registrations", policy: "or-business-registry.json" }),
-  PA: Object.freeze({ sourceKey: "pa_business_registry_active_registrations", policy: "pa-business-registry.json" }),
+  ...Object.fromEntries(Object.entries(BROAD_ORGANIZATION_ZIP_SOURCES).map(([state, spec]) => [state, Object.freeze({ sourceKey: spec.registryKey, policy: spec.policy })])),
 });
 
 const POLICY_IDS = Object.freeze(Object.fromEntries(Object.entries(BROAD_ORGANIZATION_SOURCES).map(([state, value]) => [state, value.policy.replace(/\.json$/, "")])));
