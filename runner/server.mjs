@@ -33,6 +33,8 @@ import { organizationZipEvidenceReader } from './organization-zip-evidence-reade
 import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
 import { broadOrganizationAuthorizationPacketHttp } from './broad-organization-authorization-packet-http.mjs';
 import { loadBroadOrganizationAuthorizationPacketManagementView } from './broad-organization-authorization-packet-view.mjs';
+import { broadOrganizationAuthorizationProgramHttp } from './broad-organization-authorization-program-http.mjs';
+import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -277,6 +279,10 @@ const server = http.createServer(async (request, response) => {
       const endpoint = segments[2];
       if (url.pathname === '/api/data-operations/broad-organization-authorization-packet') {
         await broadOrganizationAuthorizationPacketHttp(request, response, url, loadBroadOrganizationAuthorizationPacketManagementView, json);
+        return;
+      }
+      if (url.pathname === '/api/data-operations/broad-organization-authorization-program') {
+        await broadOrganizationAuthorizationProgramHttp(request, response, url, loadBroadOrganizationAuthorizationProgramManagementView, json);
         return;
       }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {

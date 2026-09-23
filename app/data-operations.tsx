@@ -14,6 +14,7 @@ import OrBusinessRegistryRefreshStatusCard, {type OrBusinessRegistryRefreshStatu
 import NyBusinessRegistryRefreshStatusCard, {type NyBusinessRegistryRefreshStatus} from './ny-business-registry-refresh-status';
 import RetainedBusinessRefreshStatusCard, {type RetainedBusinessRefreshStatus} from './retained-business-refresh-status';
 import BroadOrganizationAuthorizationPacket from './broad-organization-authorization-packet';
+import BroadOrganizationAuthorizationProgram from './broad-organization-authorization-program';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -143,6 +144,7 @@ export default function DataOperations() {
       <p className="operations-note">Public-only omits Delaware record-level details while its policy-excluded count remains reported as neither missing nor zero evidence. Choose local review only where that restricted detail is appropriate.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
+    <BroadOrganizationAuthorizationProgram />
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}

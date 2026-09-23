@@ -14,3 +14,5 @@ npm run broad-org-authorization-program:verify
 ```
 
 An exact backlog manifest can be selected with `--backlog-manifest <path>`; output can be directed only to a child of canonical `APP_ROOT/data`. Build and verify are offline and do not request, fetch, or inspect source records.
+
+The Data Operations page includes a separate read-only all-wave view backed by authenticated `GET /api/data-operations/broad-organization-authorization-program`. Every load and recheck independently verifies the sole canonical program release and its backlog/catalog lineage. The endpoint accepts no query string or request body and fails closed with redacted errors. The UI exposes only bounded state, gate, exclusion, limitation, count, authority, and hash-lineage fields; it omits file paths, URLs, assessment snapshots, product/access/price payloads, and acquisition controls. Jurisdiction filtering is constrained to the selected wave. AK/DC large-acquisition items are visibly approval-only and cannot be closed by uploading evidence; other items are non-row-bearing evidence specifications and grant no action authority.

@@ -166,6 +166,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/catalog"],
     ["GET", "/api/data-operations/operations"],
     ["GET", "/api/data-operations/broad-organization-authorization-packet"],
+    ["GET", "/api/data-operations/broad-organization-authorization-program"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -257,6 +258,12 @@ test("protects every live management endpoint while leaving only narrow liveness
   assert.equal(overture.status,503);assert.equal(overture.headers['cache-control'],'no-store');assert.match(overture.body,/No source data was admitted/);
   const packetUnavailable=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-packet',authorization:`Bearer ${CONTROL_TOKEN}`});
   assert.equal(packetUnavailable.status,503);assert.match(packetUnavailable.body,/unavailable/);assert.equal(packetUnavailable.body.includes('manifest.json'),false);
+  const programUnavailable=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-program',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(programUnavailable.status,503);assert.match(programUnavailable.body,/unavailable/);assert.equal(programUnavailable.body.includes('manifest.json'),false);
+  const programQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-program?wave=1',authorization:`Bearer ${CONTROL_TOKEN}`});
+  assert.equal(programQuery.status,400);
+  const programBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-authorization-program',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});
+  assert.equal(programBody.status,400);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],
