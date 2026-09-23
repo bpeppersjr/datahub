@@ -16,18 +16,18 @@ const catalog = {
 };
 
 function fixture(request) {
-  const values = [catalog, [], '', [], [], null], exports = {};
+  const values = [catalog, [], '', [], [], null], exports = {}, downloads=[];
   let index = 0;
   const noop = () => null;
   runInNewContext(code, {
     exports,
-    require: (name) => name === './runner-client' ? { runnerJson: request, downloadRunnerArtifact: noop }
+    require: (name) => name === './runner-client' ? { runnerJson: request, downloadRunnerArtifact: (...args)=>downloads.push(args) }
       : name === './data-operation-model' ? { operationLabel: () => 'Collection', operationEvidence: () => null }
       : name === 'react' ? { useState(value) { const i = index++; if (!(i in values)) values[i] = value; return [values[i], (next) => { values[i] = typeof next === 'function' ? next(values[i]) : next; }]; }, useEffect() {} }
         : name === 'react/jsx-runtime' ? { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'fragment' }
           : { __esModule: true, default: noop },
   });
-  return { values, render() { index = 0; return exports.default(); } };
+  return { values, downloads, render() { index = 0; return exports.default(); } };
 }
 
 function nodes(tree) {
@@ -83,4 +83,18 @@ test('select all chooses only currently matching sources', () => {
   assert.match(textOf(tree), /Selected 2 sources: state ma childcare, state nj childcare/);
   assert.deepEqual(nodes(tree).find(node => node.type === 'select' && node.props['aria-describedby'] === 'collection-source-guidance').props.value,
     ['state-ma-childcare', 'state-nj-childcare']);
+});
+
+test('retained organization ZIP export submits exact policy-bound selection and exposes every verified download', async () => {
+  const calls=[]; const artifacts=[{name:'organization-addresses.csv',bytes:120},{name:'organization-addresses.jsonl',bytes:140},{name:'manifest.json',bytes:300}];
+  const f=fixture(async(url,options={})=>{calls.push({url,body:options.body?JSON.parse(options.body):null});return {id:'org-zip-op',kind:'organization-zip-export',status:'SUCCEEDED',createdAt:'2026-09-22T00:00:00Z',finishedAt:'2026-09-22T00:00:01Z',error:null,artifacts,result:{organizationZip5:'02110',organizationZipRowCount:2,policyMode:'public-only',artifactIntegrityVerified:true}};});
+  let tree=f.render(); const input=nodes(tree).find(node=>node.type==='input'&&node.props['aria-label']==='Organization evidence exact ZIP5');
+  input.props.onChange({target:{value:'02110'}}); tree=f.render();
+  assert.match(textOf(tree),/not a map layer, physical-site list, current-operation claim, or business\/site total/);
+  button(tree,'Build verified organization ZIP export').props.onClick(); await settle();
+  assert.equal(calls.length,1); assert.equal(calls[0].url,'/api/data-operations/organization-zip-evidence-exports');
+  assert.deepEqual(calls[0].body,{zip5:'02110',policy_mode:'public-only',format:'both'});
+  tree=f.render(); const downloads=nodes(tree).filter(node=>node.type==='button'&&textOf(node).startsWith('Download '));
+  assert.equal(downloads.length,artifacts.length); for(const download of downloads) download.props.onClick(); await settle();
+  assert.equal(f.downloads.length,artifacts.length); assert.deepEqual(f.downloads.map(item=>item[0]).sort(),artifacts.map(item=>`/api/data-operations/operations/org-zip-op/artifacts/${encodeURIComponent(item.name)}`).sort());
 });

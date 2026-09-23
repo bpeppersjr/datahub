@@ -15,6 +15,7 @@ import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./s
 import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mjs";
 import { mnSelectionCanonical, mnSelectionReadJson } from "./mn-construction-retained-selection.mjs";
 import { MN_CREDENTIAL_FLAT_FIELDS, MN_CREDENTIAL_FLAT_REQUIRED_FIELDS, validateMnCredentialFlatRequest, verifyMnCredentialFlatForOperation } from './mn-credential-flat-export.mjs';
+import { exportOrganizationZipEvidence, verifyOrganizationZipEvidenceExport } from './organization-zip-evidence-export.mjs';
 import {CMS_HOSPITAL_RETAINED_ADOPTION,CMS_ADOPTION_DEADLINE_MS,verifyCmsHospitalAdoption} from './cms-hospital-adoption.mjs';
 import {CMS_NURSING_HOME_RETAINED_ADOPTION,verifyCmsNursingHomeAdoption} from './cms-nursing-home-adoption.mjs';
 import {getCmsSnfPecosAppStatus} from './cms-snf-pecos-app-status.mjs';
@@ -58,20 +59,23 @@ const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight",
 const uuid = value => typeof value === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value);
 const FORMATS = ["csv", "jsonl", "both"];
 const POLICIES = ["public-only", "local-review"];
+const ORGANIZATION_ZIP_PUBLISHERS = Object.freeze(["CO", "CT", "DE", "FL", "IA", "NY", "OR", "PA"]);
 const safeId = (value) => typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value);
 const contained = (base, target) => { const relative = path.relative(base, target); return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative)); };
 const cleanError = (error) => {
   const text = String(error?.message ?? error ?? "Operation failed.").replace(/[\r\n\t]+/g, " ");
   return text.length > 300 ? `${text.slice(0, 297)}...` : text;
 };
+const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: PRIVATE_EVIDENCE.includes(record.kind) || record.kind==='credential-export'&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
-  result: record.kind==='source-adoption' ? publicAdoptionResult(record) : record.kind==='credential-export' ? publicCredentialResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
+  artifacts: PRIVATE_EVIDENCE.includes(record.kind) || ['credential-export','organization-zip-export'].includes(record.kind)&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
+  result: record.kind==='source-adoption' ? publicAdoptionResult(record) : record.kind==='credential-export' ? publicCredentialResult(record) : record.kind==='organization-zip-export' ? publicOrganizationZipExportResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
     ? { ...(record.result ?? {}), [record.kind === "source-acquisition" ? "snapshotReady" : "normalizationReady"]: false, inspectionRequired: true } : record.result ?? {},
 });
 function publicCredentialResult(record){const result={...(record.result??{})};delete result.descriptor;if(['FAILED','CANCELLED','UNKNOWN'].includes(record.status)){result.artifactIntegrityVerified=false;result.inspectionRequired=true;}return result;}
+function publicOrganizationZipExportResult(record){const result={...(record.result??{})};delete result.descriptor;if(record.status!=='SUCCEEDED'){result.artifactIntegrityVerified=false;result.inspectionRequired=true;}return result;}
 function publicAdoptionResult(record){const result={...(record.result??{})};delete result.descriptor;if(record.status!=='SUCCEEDED'){delete result.summary;result.receiptIntegrityVerified=false;result.inspectionRequired=true;}return result;}
 async function hashFile(file,signal) { const hash = createHash("sha256"); let bytes = 0; for await (const chunk of createReadStream(file,{signal})) { signal?.throwIfAborted();bytes += chunk.length; hash.update(chunk); } return { bytes, sha256: hash.digest("hex") }; }
 const atomicJson = writeReconciliationReceipt;
@@ -108,6 +112,8 @@ export class ManagedOperations {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
     this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
     this.credentialVerifier = options.credentialVerifier ?? verifyMnCredentialFlatForOperation;
+    this.organizationZipExporter = options.organizationZipExporter ?? exportOrganizationZipEvidence;
+    this.organizationZipVerifier = options.organizationZipVerifier ?? verifyOrganizationZipEvidenceExport;
     this.adoptionVerifier = options.adoptionVerifier ?? null;
     this.adoptionTiming={deadlineMs:CMS_ADOPTION_DEADLINE_MS,childCleanupMs:35000,verifierCleanupMs:1000};
     if(options.adoptionTestTiming!==undefined){
@@ -128,7 +134,7 @@ export class ManagedOperations {
       if (!entry.isDirectory() || !safeId(entry.name)) continue;
       try {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
-        if (record.id !== entry.name || !["collection", "export", "credential-export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
+        if (record.id !== entry.name || !["collection", "export", "credential-export", "organization-zip-export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
           const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
@@ -333,6 +339,16 @@ export class ManagedOperations {
       this.#only(input, ["categories", "states", "fields", "format", "policyMode", "sourceIds", "outputPrefix"]); const args = this.#exportArgs(input); const parsed = validate(() => parseArguments(args)); return await this.#start("export", { args, outputPrefix: parsed.outputPrefix ?? "export" }); }
     catch (error) { this.reserved = false; throw error; }
   }
+  async startOrganizationZipEvidenceExport(input = {}) {
+    await this.ready; await this.#refreshUnknown(); this.#reserve();
+    try {
+      const allowed = ["zip5", "publisher_state", "policy_mode", "format"];
+      if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).some(key => !allowed.includes(key) || !Object.hasOwn(Object.getOwnPropertyDescriptor(input, key) ?? {}, "value"))) throw invalid("Organization ZIP export accepts only an exact ZIP and optional publisher, policy, and format.");
+      if (!/^\d{5}$/.test(input.zip5 ?? "") || Object.hasOwn(input, "publisher_state") && !ORGANIZATION_ZIP_PUBLISHERS.includes(input.publisher_state)
+        || !["public-only", "local-review"].includes(input.policy_mode) || !["jsonl", "csv", "both"].includes(input.format)) throw invalid("Organization ZIP export selection is invalid.");
+      return await this.#start("organization-zip-export", { zip5: input.zip5, publisherState: input.publisher_state ?? null, policyMode: input.policy_mode, format: input.format });
+    } catch (error) { this.reserved = false; throw error; }
+  }
   async #refreshUnknown() {
     for (const [id, previous] of this.operations) {
       if (previous.status !== "UNKNOWN") continue;
@@ -371,6 +387,11 @@ export class ManagedOperations {
     if(record.kind==='credential-export') {
       if(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true)return null;
       try {await this.#verifyCredentialExport(record,record.result.descriptor);} catch {record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Credential artifact could not be independently verified.');}
+    }
+    if(record.kind==='organization-zip-export') {
+      if(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true)return null;
+      try { await this.#verifyOrganizationZipExport(record, record.result.descriptor); }
+      catch { record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Organization ZIP export artifact could not be independently verified.'); }
     }
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
@@ -426,6 +447,12 @@ export class ManagedOperations {
     try {
       record.status = "RUNNING"; record.startedAt = this.now(); record.owner = { supervisorPid: process.pid }; await this.#persist(record);
       controller.signal.throwIfAborted();
+      if (record.kind === "organization-zip-export") {
+        const descriptor = await this.organizationZipExporter({ zip5: record.details.zip5, publisherState: record.details.publisherState,
+          policyMode: record.details.policyMode, format: record.details.format, signal: controller.signal, outputRoot: path.join(directory, "output") });
+        await this.#verifyOrganizationZipExport(record, descriptor, controller.signal);
+        controller.signal.throwIfAborted(); record.status = "SUCCEEDED";
+      } else {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
@@ -498,8 +525,9 @@ export class ManagedOperations {
       }
       else if (execution?.code !== 0) throw new Error("Managed child process failed.");
       else { if (record.kind === "collection" && this.verifyChildReceipts) await this.#verifyCollection(record); await this.#discover(record, directory); record.status = "SUCCEEDED"; }
+      }
     } catch (error) {
-      record.status = error.code==='CMS_ADOPTION_UNSETTLED' ? 'UNKNOWN' : controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
+      record.status = error.code==='CMS_ADOPTION_UNSETTLED' ? 'UNKNOWN' : controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = record.kind==='organization-zip-export' ? "Organization ZIP export did not finish verification; no artifact is downloadable." : PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
       if (PRIVATE_EVIDENCE.includes(record.kind)) {
         record.result.inspectionRequired = true;
         if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
@@ -517,6 +545,7 @@ export class ManagedOperations {
     if (record.kind === "source-normalization" && record.status !== "SUCCEEDED") record.result.normalizationReady = false;
     if(record.kind==='source-adoption'&&record.status!=='SUCCEEDED'){record.artifacts=[];record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:false,inspectionRequired:true,newAcquisitionPerformed:false};}
     if(record.kind==='credential-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={recordUnit:'publisher-business-credential-row',credentialRowsWritten:null,artifactIntegrityVerified:false,inspectionRequired:true,policyMode:'local-review-only',cancellationRequested:controller.signal.aborted};record.error='Credential export did not finish with verified output. Preserve its operation directory for inspection; no automatic retry.';}
+    if(record.kind==='organization-zip-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={zip5:record.details.zip5,publisherState:record.details.publisherState,format:record.details.format,policyMode:record.details.policyMode,rowCount:null,artifactIntegrityVerified:false,inspectionRequired:true};record.error='Organization ZIP export did not finish with verified output. No artifact is downloadable.';}
     if(record.status!=='UNKNOWN'){record.finishedAt = this.now(); delete record.owner;} await this.#persist(record);
   }
   async #discover(record, directory) {
@@ -543,6 +572,37 @@ export class ManagedOperations {
       artifacts.push({name:item.path,relativePath:path.relative(directory,file),...actual});
     }
     signal?.throwIfAborted();record.artifacts=artifacts;record.result={credentialRowsWritten:manifest.credential_rows_written,recordUnit:'publisher-business-credential-row',policyMode:'local-review-only',localReviewOnly:true,artifactIntegrityVerified:true,inspectionRequired:false,descriptor};
+  }
+  async #verifyOrganizationZipExport(record, descriptor, signal) {
+    signal?.throwIfAborted();
+    const fields = ['manifest_path','manifest_sha256','run_id','row_count','status','artifact_paths'];
+    if (!descriptor || Object.getPrototypeOf(descriptor)!==Object.prototype || Reflect.ownKeys(descriptor).length!==fields.length || !fields.every(field=>Object.hasOwn(descriptor,field))
+      || !uuid(descriptor.run_id) || descriptor.status!=='verified' || !Number.isSafeInteger(descriptor.row_count) || descriptor.row_count<0
+      || !/^[a-f0-9]{64}$/.test(descriptor.manifest_sha256??'') || !Array.isArray(descriptor.artifact_paths)) throw new Error('Organization ZIP export proof rejected.');
+    const operationDirectory=path.join(this.root,record.id), expectedManifest=path.join(operationDirectory,'output','jobs',descriptor.run_id,'manifest.json');
+    if (path.resolve(descriptor.manifest_path)!==path.resolve(expectedManifest)) throw new Error('Organization ZIP export manifest is outside its managed operation.');
+    const proof=await this.organizationZipVerifier(expectedManifest,descriptor.manifest_sha256,{root:APP_ROOT,signal}); signal?.throwIfAborted();
+    if (!proof || proof.status!=='verified' || proof.run_id!==descriptor.run_id || proof.rows!==descriptor.row_count || proof.manifest_sha256!==descriptor.manifest_sha256) throw new Error('Organization ZIP export independent verification disagrees.');
+    const manifestBytes=await readFile(expectedManifest); if (sha(manifestBytes)!==descriptor.manifest_sha256 || manifestBytes.length>100_000) throw new Error('Organization ZIP export manifest changed.');
+    const manifest=JSON.parse(manifestBytes.toString('utf8'));
+    if (manifest.schema_version!=='organization-zip-evidence-export@1.0.0' || manifest.run_id!==descriptor.run_id || manifest.row_count!==descriptor.row_count
+      || manifest.selection?.zip5!==record.details.zip5 || manifest.selection?.publisher_state!==record.details.publisherState || manifest.selection?.policy_mode!==record.details.policyMode || manifest.selection?.format!==record.details.format
+      || manifest.claims?.reported_administrative_addresses_only!==true || manifest.claims?.physical_sites_asserted!==false || manifest.claims?.current_operations_asserted!==false
+      || manifest.claims?.general_business_or_site_totals_changed!==false || manifest.claims?.source_acquisition_performed!==false || !Array.isArray(manifest.artifacts)) throw new Error('Organization ZIP export selection or claims drifted.');
+    const expectedNames=record.details.format==='both'?['organization-addresses.jsonl','organization-addresses.csv']:[`organization-addresses.${record.details.format}`];
+    if(manifest.artifacts.length!==expectedNames.length || manifest.artifacts.some((item,index)=>item.path!==expectedNames[index])) throw new Error('Organization ZIP export artifact roster drifted.');
+    const release=path.dirname(expectedManifest), releaseReal=await realpath(release), opReal=await realpath(operationDirectory), artifacts=[];
+    if(!contained(opReal,releaseReal)) throw new Error('Organization ZIP export escaped its operation directory.');
+    for(const item of [...manifest.artifacts,{path:'manifest.json',bytes:manifestBytes.length,sha256:descriptor.manifest_sha256}]) {
+      signal?.throwIfAborted(); if(!safeId(item.path)||item.path.includes('..')) throw new Error('Organization ZIP export contains an invalid artifact path.');
+      const file=path.join(release,item.path), fileReal=await realpath(file); if(!contained(releaseReal,fileReal)) throw new Error('Organization ZIP export artifact escaped its release.');
+      const statResult=await lstat(file); if(!statResult.isFile()||statResult.isSymbolicLink()||statResult.nlink!==1) throw new Error('Organization ZIP export artifact is unsafe.');
+      const actual=await hashFile(file,signal); if(actual.sha256!==item.sha256||actual.bytes!==item.bytes) throw new Error('Organization ZIP export artifact changed.');
+      artifacts.push({name:item.path,relativePath:path.relative(operationDirectory,file),...actual});
+    }
+    if(!isDeepStrictEqual(descriptor.artifact_paths.map(file=>path.resolve(file)).sort(),manifest.artifacts.map(item=>path.resolve(release,item.path)).sort())) throw new Error('Organization ZIP export artifact paths differ from its manifest.');
+    signal?.throwIfAborted(); record.artifacts=artifacts; record.result={zip5:record.details.zip5,organizationZip5:record.details.zip5,publisherState:record.details.publisherState,format:record.details.format,policyMode:record.details.policyMode,
+      rowCount:descriptor.row_count,organizationZipRowCount:descriptor.row_count,artifactIntegrityVerified:true,inspectionRequired:false,descriptor};
   }
   async #verifyCohortSnapshot(record, stdout) {
     const reject = () => { throw new Error("Cohort snapshot child evidence rejected."); };

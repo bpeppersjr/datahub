@@ -52,6 +52,10 @@ export default function DataOperations() {
   const [policyMode, setPolicyMode] = useState('public-only');
   const [exportType,setExportType]=useState('business');
   const [credentialFields,setCredentialFields]=useState(['business_name_source','reported_city','reported_zip5','reported_zip4']);
+  const [organizationZip5,setOrganizationZip5]=useState('');
+  const [organizationPublisher,setOrganizationPublisher]=useState('');
+  const [organizationPolicy,setOrganizationPolicy]=useState<'public-only'|'local-review'>('public-only');
+  const [organizationFormat,setOrganizationFormat]=useState('both');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -124,6 +128,18 @@ export default function DataOperations() {
         <button className="primary-button" disabled={!catalog || (!credentialMode&&!fields.length) || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/exports', credentialMode?{exportType:'mn-construction-credentials',states:exportStates,fields:credentialFields,format,policyMode:'local-review-only'}:{ categories: category ? [category] : [], states: exportStates, fields, format, policyMode })))}>{credentialMode?'Build credential file':'Build file'}</button>
       </section>
     </div>
+    <section aria-labelledby="organization-zip-export-title" className="operations-builder">
+      <h3 id="organization-zip-export-title">Export retained organization ZIP evidence</h3>
+      <p className="operations-note">A separate, fixed-release export of source-reported administrative organization or registration addresses at one exact ZIP5. It is not a map layer, physical-site list, current-operation claim, or business/site total. The source release is retained locally; this operation does not acquire data.</p>
+      <div className="operations-options">
+        <label>Exact ZIP5 <input aria-label="Organization evidence exact ZIP5" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={organizationZip5} disabled={busy} onChange={event=>setOrganizationZip5(event.target.value)}/></label>
+        <label>Publisher jurisdiction <select aria-label="Organization evidence publisher" value={organizationPublisher} disabled={busy} onChange={event=>setOrganizationPublisher(event.target.value)}><option value="">All fixed publishers</option>{['CO','CT','DE','FL','IA','NY','OR','PA'].map(state=><option key={state} value={state}>{state}</option>)}</select></label>
+        <label>Policy mode <select aria-label="Organization evidence policy" value={organizationPolicy} disabled={busy} onChange={event=>setOrganizationPolicy(event.target.value as 'public-only'|'local-review')}><option value="public-only">Public-only · omit Delaware details</option><option value="local-review">Local review · restricted Delaware details included</option></select></label>
+        <label>Format <select aria-label="Organization evidence format" value={organizationFormat} disabled={busy} onChange={event=>setOrganizationFormat(event.target.value)}><option value="both">CSV and JSONL</option><option value="csv">CSV</option><option value="jsonl">JSONL</option></select></label>
+      </div>
+      <button type="button" className="primary-button" disabled={!catalog||!/^\d{5}$/.test(organizationZip5)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/organization-zip-evidence-exports',{zip5:organizationZip5,...(organizationPublisher?{publisher_state:organizationPublisher}:{}),policy_mode:organizationPolicy,format:organizationFormat})))}>Build verified organization ZIP export</button>
+      <p className="operations-note">Public-only omits Delaware record-level details while its policy-excluded count remains reported as neither missing nor zero evidence. Choose local review only where that restricted detail is appropriate.</p>
+    </section>
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
@@ -146,6 +162,7 @@ export default function DataOperations() {
         {operation.status === 'SUCCEEDED' && operation.result?.normalizationReady === true && typeof operation.result.normalizedPlaces === 'number' && <p>{operation.result.normalizedPlaces.toLocaleString()} normalized source places · not a unique-business count</p>}
         {typeof operation.result?.rowsWritten === 'number' && <p>{operation.result.rowsWritten.toLocaleString()} exported records · {label(operation.result.policyMode ?? '')}</p>}
         {typeof operation.result?.credentialRowsWritten === 'number' && <p>{operation.result.credentialRowsWritten.toLocaleString()} credential rows · local review only · separate from business totals</p>}
+        {operation.kind==='organization-zip-export'&&typeof operation.result?.organizationZipRowCount==='number'&&<p>{operation.result.organizationZipRowCount.toLocaleString()} verified administrative address rows at ZIP5 {operation.result.organizationZip5} · {operation.result.policyMode} · not site/business totals</p>}
         {typeof operation.result?.plan?.taskCount === 'number' && <p>{operation.result.plan.taskCount} source updates in the collection plan</p>}
         {!!operation.result?.tasks?.length && <ul className="operation-task-list">{operation.result.tasks.map((task) => <li key={task.task_id}><span>{label(task.source_id ?? task.task_id)} · {task.state ?? 'national'}</span><strong>{label(task.status)}</strong></li>)}</ul>}
         {operation.error && <p role="status">{operation.error}</p>}

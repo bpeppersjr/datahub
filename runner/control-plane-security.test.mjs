@@ -172,6 +172,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/plan", "{}"],
     ["POST", "/api/data-operations/collections", "{}"],
     ["POST", "/api/data-operations/exports", "{}"],
+    ["POST", "/api/data-operations/organization-zip-evidence-exports", "{}"],
     ["POST", "/api/data-operations/cohort-snapshots", "{}"],
     ["POST", "/api/data-operations/source-prerequisites", '{"sourceId":"ne-childcare-pdf"}'],
     ["POST", "/api/data-operations/overture-acquisitions", "{}"],
