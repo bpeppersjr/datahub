@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `702e00c` added the governed immutable registry ZIP evidence-key delta review after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-58` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-59` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-59.md`.
+
 Fresh governed planning completed after implementation commit `48f76e316c8ccd32ab8d3e9b8fb3901f0dee5289`. That commit adds a protected read-only Co*Tive view over the exact immutable reported-organization ZIP evidence release. The view verifies the manifest and all 108 retained shards through stable file handles, enforces configuration and schema safety declarations, preserves source export restrictions, and exposes only non-additive aggregate management evidence.
 
 - Run ID: `production-cms-directories-20260923-58`
