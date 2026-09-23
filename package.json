@@ -39,6 +39,8 @@
     "broad-org-authorization-packet:verify": "node scripts/verify-broad-organization-authorization-packet.mjs",
     "broad-org-authorization-program:build": "node scripts/build-broad-organization-authorization-program.mjs",
     "broad-org-authorization-program:verify": "node scripts/verify-broad-organization-authorization-program.mjs",
+    "broad-org-matrix-gaps:build": "node scripts/build-broad-organization-matrix-gap-projection.mjs",
+    "broad-org-matrix-gaps:verify": "node scripts/verify-broad-organization-matrix-gap-projection.mjs",
     "state-source-validation-wave:check": "node scripts/check-state-business-source-validation-wave.mjs",
     "state-source-wave:check": "node scripts/check-state-business-source-assessment-wave.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
