@@ -15,6 +15,8 @@ npm run cms:retained-directory-coverage:verify -- --manifest data/cms-retained-d
 
 The builder writes two artifacts before writing the manifest, then atomically renames its owned staging directory into an immutable release. No `current.json` pointer is created.
 
+When a production plan selects both retained CMS inputs, planning re-verifies and pins the exact package-canonical catalog release by release ID, manifest path, and SHA-256; other immutable release history is allowed. The plan also records minimized source bindings for each selected CMS input and pins the manifest and both artifacts by path, SHA-256, and byte count. These are read-only pre-production evidence pins, not registry source inputs/dependencies, stage arguments, outputs, enrollment, or production receipts. A missing or changed canonical release or a mismatch between selected CMS source lineage and catalog source lineage fails plan reconstruction; plans selecting only one or neither CMS input do not acquire this catalog pin.
+
 ## Canonical release
 
 - Release: `cms-retained-directory-coverage-catalog-379f82bdf30a2834`

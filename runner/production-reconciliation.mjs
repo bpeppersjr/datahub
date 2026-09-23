@@ -69,6 +69,57 @@ async function pinChildcare(root, key, selected) {
   for(const relative of [`config/connectors/${contract.dataset}.json`,`config/source-policies/${contract.policy}.json`])configurationPins.push({path:relative,...await fileHash(await safe(root,relative))});
   return {sourceKey:key,manifestPath:rel(root,file),manifestSha256:before.sha256,releaseId:manifest.release_id,datasetId:manifest.dataset_id,artifacts,configurationPins};
 }
+async function pinCmsRetainedDirectoryCoverageCatalog(cmsHospitalPin,cmsNursingHomePin) {
+  const catalog = await import('./cms-retained-directory-coverage-catalog.mjs');
+  const releaseId=catalog.CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_RELEASE_ID;
+  const relativePath=catalog.CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_MANIFEST_PATH;
+  const manifestFile=await safe(APP_ROOT,relativePath),before=await fileHash(manifestFile);
+  if(before.sha256!==catalog.CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_MANIFEST_SHA256)throw new Error('Canonical CMS retained-directory coverage catalog manifest SHA-256 changed.');
+  const verified=await catalog.verifyCmsRetainedDirectoryCoverageCatalog(manifestFile,{expectedManifestSha256:catalog.CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_MANIFEST_SHA256});
+  const after=await fileHash(manifestFile);
+  if(before.sha256!==after.sha256||before.bytes!==after.bytes||verified.manifestSha256!==before.sha256
+    ||verified.manifest.release_id!==releaseId||verified.manifest.dataset_id!==catalog.CMS_RETAINED_DIRECTORY_COVERAGE_DATASET
+    ||verified.manifest.status!=='published-pre-production-evidence'||verified.manifest.production_enrollment!==false
+    ||verified.manifest.national_reporting_denominator_enrollment!==false||verified.manifest.current_pointer_written!==false)throw new Error('Canonical CMS retained-directory coverage catalog pin or pre-production boundary drifted.');
+  const expectedArtifacts=[
+    {path:catalog.CMS_RETAINED_DIRECTORY_COVERAGE_ARTIFACTS.jurisdictions,artifact_type:'cms-retained-directory-jurisdictions-jsonl'},
+    {path:catalog.CMS_RETAINED_DIRECTORY_COVERAGE_ARTIFACTS.sources,artifact_type:'cms-retained-directory-sources-json'},
+  ];
+  if(!Array.isArray(verified.manifest.artifacts)||verified.manifest.artifacts.length!==expectedArtifacts.length)throw new Error('Canonical CMS retained-directory coverage catalog artifact inventory changed.');
+  const artifacts=[];
+  for(let index=0;index<expectedArtifacts.length;index++){
+    const expected=expectedArtifacts[index],declared=verified.manifest.artifacts[index];
+    if(declared.path!==expected.path||declared.artifact_type!==expected.artifact_type||!Number.isSafeInteger(declared.bytes)||declared.bytes<0||!/^[a-f0-9]{64}$/.test(declared.sha256??''))throw new Error('Canonical CMS retained-directory coverage catalog artifact contract changed.');
+    const artifactPath=`${path.posix.dirname(relativePath)}/${declared.path}`,actual=await fileHash(await safe(APP_ROOT,artifactPath));
+    if(actual.sha256!==declared.sha256||actual.bytes!==declared.bytes)throw new Error('Canonical CMS retained-directory coverage catalog artifact changed.');
+    artifacts.push({path:artifactPath,sha256:actual.sha256,bytes:actual.bytes});
+  }
+  const sourceRows=verified.sources?.sources;
+  if(!Array.isArray(sourceRows)||sourceRows.length!==2)throw new Error('Canonical CMS retained-directory coverage catalog source bindings are missing.');
+  const sourceBindings={};
+  for(const [key,sourceId,selectedPin] of [
+    ['hospital','cms-hospital-general-information',cmsHospitalPin],
+    ['nursingHome','cms-nursing-home-provider-information',cmsNursingHomePin],
+  ]){
+    const declaration=selectedPin?.declaration,source=declaration?.source,selection=declaration?.selection;
+    const row=sourceRows.find(candidate=>candidate.source_id===sourceId);
+    const mismatches=[];
+    if(!row)mismatches.push('catalog-source');
+    if(source?.dataset_id!==sourceId)mismatches.push('dataset');
+    if(source?.release_id!==row?.release_id)mismatches.push('release');
+    if(source?.manifest_sha256!==row?.source_manifest_sha256)mismatches.push('source-manifest-sha256');
+    if(source?.selected_artifact?.sha256!==row?.selected_artifact_sha256)mismatches.push('selected-artifact-sha256');
+    if(selection?.sha256!==row?.selection_sha256)mismatches.push('selection-sha256');
+    if(mismatches.length)throw new Error(`Canonical CMS retained-directory catalog source binding differs from the selected ${key} input (${mismatches.join(', ')}).`);
+    sourceBindings[key]={sourceId:row.source_id,releaseId:row.release_id,sourceManifestSha256:row.source_manifest_sha256,
+      selectedArtifactSha256:row.selected_artifact_sha256,selectionSha256:row.selection_sha256};
+  }
+  return {datasetId:verified.manifest.dataset_id,releaseId,manifestPath:relativePath,manifestSha256:before.sha256,manifestBytes:before.bytes,status:verified.manifest.status,
+    productionEnrollment:false,nationalReportingDenominatorEnrollment:false,currentPointerWritten:false,artifacts,
+    sourceBindings,denominators:structuredClone(verified.manifest.denominators),jurisdictionCount:verified.manifest.jurisdiction_count,
+    sourceCount:verified.manifest.source_count,sourceActionsPerformed:verified.manifest.source_actions_performed,
+    networkRequestsPerformed:verified.manifest.network_requests_performed,exportPolicy:verified.manifest.export_policy};
+}
 function stageDefinitions(sources,optionalSources=[],uspsOperationalZipPin=null) {
   const pointer = group => `${OUTPUTS[group]}/current.json`;
   const args = [ ['--output',OUTPUTS.registry,...sources.flatMap(source => [FLAGS[source.sourceKey],source.pointer])], [pointer('registry')], ['--output',OUTPUTS.resolution,'--registry',pointer('registry')], [pointer('resolution')], ['--output',OUTPUTS.benchmark,'--registry',pointer('registry'),'--resolution',pointer('resolution')], [pointer('benchmark')], ['--output',OUTPUTS.coverage,'--registry',pointer('registry'),'--resolution',pointer('resolution'),'--benchmark',pointer('benchmark'),'--geography',INPUTS.geography,'--crosswalk',INPUTS.crosswalk,'--nonemployer',INPUTS.nonemployer], [pointer('coverage')] ];
@@ -135,6 +186,8 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
     cmsNursingHomePin=await cmsNursingHomeApi.pinCmsNursingHomeProductionInput(root,cmsNursingHomeSelection,{safe,fileHash});
     stages[0].args.push('--cms-nursing-home-selection',cmsNursingHomePin.declaration.selection.path);
   }
+  const cmsRetainedDirectoryCoverageCatalogPin=cmsHospitalPin&&cmsNursingHomePin?await pinCmsRetainedDirectoryCoverageCatalog(cmsHospitalPin,cmsNursingHomePin):null;
+  if(cmsRetainedDirectoryCoverageCatalogPin)modules.push('runner/cms-retained-directory-coverage-catalog.mjs','runner/cms-hospital-reporting-input.mjs','runner/cms-nursing-home-reporting-input.mjs','runner/state-access-ledger.mjs');
   if(tnChildcare===undefined&&tnFreshChildcare===undefined&&!ohio){
     if(optionalSourcePins.length)modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs','runner/source-http-guards.mjs','runner/paths.mjs');
     else modules.push('runner/childcare-geographic-evidence.mjs','runner/normalized-us-postal-code.mjs');
@@ -156,6 +209,7 @@ export async function planProductionReconciliation({root=APP_ROOT,runId=randomUU
   if(mnCredentialPin)plan.mnCredentialPin=mnCredentialPin;
   if(cmsHospitalPin)plan.cmsHospitalPin=cmsHospitalPin;
   if(cmsNursingHomePin)plan.cmsNursingHomePin=cmsNursingHomePin;
+  if(cmsRetainedDirectoryCoverageCatalogPin)plan.cmsRetainedDirectoryCoverageCatalogPin=cmsRetainedDirectoryCoverageCatalogPin;
   if(uspsOperationalZipPin)plan.uspsOperationalZipPin=uspsOperationalZipPin;
   if(recoverBenchmarkFrom !== undefined) {
     plan.recovery = await benchmarkRecovery(root,plan,recoverBenchmarkFrom);
@@ -232,6 +286,15 @@ async function checkPins(root,plan,outputs) {
   for(const p of [...plan.inputPins,...Object.values(outputs)]) checks.push([p.path,p.sha256],[p.manifestPath,p.manifestSha256]);
   for(const p of [...plan.scriptPins,...plan.implementationPins]) checks.push([p.path,p.sha256]);
   for(const [file,expected] of checks) if((await fileHash(await safe(root,file))).sha256 !== expected) throw new Error(`Pinned input or output changed: ${file}.`);
+  const catalogPin=plan.cmsRetainedDirectoryCoverageCatalogPin;
+  if(catalogPin){
+    const manifest=await fileHash(await safe(APP_ROOT,catalogPin.manifestPath));
+    if(manifest.sha256!==catalogPin.manifestSha256||manifest.bytes!==catalogPin.manifestBytes)throw new Error(`Pinned CMS retained-directory catalog manifest changed: ${catalogPin.manifestPath}.`);
+    for(const item of catalogPin.artifacts){
+      const actual=await fileHash(await safe(APP_ROOT,item.path));
+      if(actual.sha256!==item.sha256||actual.bytes!==item.bytes)throw new Error(`Pinned CMS retained-directory catalog artifact changed: ${item.path}.`);
+    }
+  }
 }
 async function emitted(root,group,previous,expected,ohioSource) {
   const output = await pin(root,group,`${OUTPUTS[group]}/current.json`), manifest = JSON.parse(await readFile(path.join(root,output.manifestPath),'utf8'));

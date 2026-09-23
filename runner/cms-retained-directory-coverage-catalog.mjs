@@ -14,6 +14,15 @@ export const CMS_RETAINED_DIRECTORY_COVERAGE_ARTIFACTS = Object.freeze({
   jurisdictions: "jurisdictions.jsonl",
   sources: "sources.json",
 });
+// The production planner may bind this pre-production catalog as read-only
+// evidence. Keep that binding package-owned and exact; immutable history may
+// contain additional releases without changing which release is canonical.
+export const CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_RELEASE_ID =
+  "cms-retained-directory-coverage-catalog-379f82bdf30a2834";
+export const CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_MANIFEST_PATH =
+  `data/${CMS_RETAINED_DIRECTORY_COVERAGE_DATASET}/releases/${CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_RELEASE_ID}/manifest.json`;
+export const CANONICAL_CMS_RETAINED_DIRECTORY_COVERAGE_MANIFEST_SHA256 =
+  "2eef0a317cb190968763fad2a2f90069f6b7a3fb86291ec6fde59a4f5671363c";
 
 const STATES = Object.freeze("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MO MS MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
 const TERRITORIES = Object.freeze(["AS", "GU", "MP", "PR", "VI"]);
