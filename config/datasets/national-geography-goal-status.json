@@ -1,0 +1,18 @@
+{
+  "dataset_id": "national-geography-goal-status",
+  "schema_version": "national-geography-goal-status@1.0.0",
+  "title": "National Geography Goal Status",
+  "description": "Immutable aggregate-only verification of Census polygon completeness, overlay diagnostics, and separate USPS ZIP evidence limitations.",
+  "current_pointer": null,
+  "selected_release": {
+    "release_id": "national-geography-goal-status-20260923204343-55952349",
+    "manifest_path": "data/national-geography-goal-status/releases/national-geography-goal-status-20260923204343-55952349/manifest.json",
+    "manifest_sha256": "5b933dcda10c3c063a5a10ce3ed83c5391eb17b80ad807a768870b1c8bf5aaad",
+    "artifact_sha256": "18cb495c6215bad8948c6764b7e3f58c70f01213527bcf4f9f9d56349f75cda1"
+  },
+  "distribution_policy": "local-review-aggregate-only",
+  "record_rows_exposed": false,
+  "zip_lists_exposed": false,
+  "production_pointer_changes": false,
+  "documentation": "docs/NATIONAL-GEOGRAPHY-GOAL-STATUS.md"
+}

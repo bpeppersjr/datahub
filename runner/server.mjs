@@ -39,6 +39,8 @@ import { broadOrganizationCurrentAuthorizationChainHttp } from './broad-organiza
 import { loadBroadOrganizationCurrentAuthorizationChainManagementView } from './broad-organization-current-authorization-chain-view.mjs';
 import { documentOnlyInquiryProposalRegistryHttp } from './document-only-inquiry-proposal-registry-http.mjs';
 import { loadDocumentOnlyInquiryProposalRegistryView } from './document-only-inquiry-proposal-registry-view.mjs';
+import { nationalGeographyGoalStatusHttp } from './national-geography-goal-status-http.mjs';
+import { loadNationalGeographyGoalStatusView } from './national-geography-goal-status-view.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -267,7 +269,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -295,6 +297,10 @@ const server = http.createServer(async (request, response) => {
       }
       if (url.pathname === '/api/data-operations/document-only-inquiry-proposals') {
         await documentOnlyInquiryProposalRegistryHttp(request, response, url, loadDocumentOnlyInquiryProposalRegistryView, json);
+        return;
+      }
+      if (url.pathname === '/api/data-operations/national-geography-goal-status') {
+        await nationalGeographyGoalStatusHttp(request, response, url, loadNationalGeographyGoalStatusView, json);
         return;
       }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {

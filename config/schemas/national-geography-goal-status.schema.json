@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-geography-goal-status.schema.json",
+  "title": "National Geography Goal Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "dataset_id", "release_id", "created_at", "status", "network_requests", "production_pointer_changes", "input_bindings", "census_polygon_completeness", "temporal_vintage", "overlay_diagnostics", "usps_operational_denominator", "zip4", "claim_boundaries"],
+  "properties": {
+    "schema_version": { "const": "national-geography-goal-status@1.0.0" },
+    "dataset_id": { "const": "national-geography-goal-status" },
+    "release_id": { "type": "string", "pattern": "^national-geography-goal-status-[0-9]{14}-[a-f0-9]{8}$" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "status": { "const": "published-immutable-aggregate-only" },
+    "network_requests": { "const": 0 },
+    "production_pointer_changes": { "const": false },
+    "input_bindings": { "type": "object" },
+    "census_polygon_completeness": { "type": "object" },
+    "temporal_vintage": { "type": "object" },
+    "overlay_diagnostics": { "type": "object" },
+    "usps_operational_denominator": { "type": "object" },
+    "zip4": { "type": "object" },
+    "claim_boundaries": { "type": "object" }
+  }
+}

@@ -16,6 +16,8 @@
     "state-access:report": "node scripts/report-state-access.mjs",
     "goal-completion:build": "node scripts/build-national-goal-completion-matrix.mjs",
     "zip-coverage-summary:build": "node scripts/build-national-zip-coverage-summary.mjs",
+    "geography-goal-status:build": "node scripts/build-national-geography-goal-status.mjs",
+    "geography-goal-status:verify": "node scripts/verify-national-geography-goal-status.mjs",
     "zip-business-alignment:build": "node scripts/build-national-zip-business-evidence-alignment.mjs",
     "reconciliation:plan": "node scripts/reconcile-business-candidates.mjs plan",
     "reconciliation:run": "node scripts/reconcile-business-candidates.mjs run",

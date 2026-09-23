@@ -169,6 +169,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/broad-organization-authorization-program"],
     ["GET", "/api/data-operations/broad-organization-current-authorization-chain"],
     ["GET", "/api/data-operations/document-only-inquiry-proposals"],
+    ["GET", "/api/data-operations/national-geography-goal-status"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -277,6 +278,11 @@ test("protects every live management endpoint while leaving only narrow liveness
   const proposalsBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(proposalsBody.status,400);
   const proposalsOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/document-only-inquiry-proposals'});assert.equal(proposalsOptions.status,401);
   const proposalsPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposalsPost.status,405);
+  const geographyGoal=await rawRequest({port,hostHeader,pathname:'/api/data-operations/national-geography-goal-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(geographyGoal.status,503);assert.equal(geographyGoal.headers['cache-control'],'no-store');assert.match(geographyGoal.body,/unavailable/);assert.equal(geographyGoal.body.includes('manifest.json'),false);
+  const geographyGoalQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/national-geography-goal-status?detail=rows',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(geographyGoalQuery.status,400);
+  const geographyGoalBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/national-geography-goal-status',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(geographyGoalBody.status,400);
+  const geographyGoalOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/national-geography-goal-status'});assert.equal(geographyGoalOptions.status,401);
+  const geographyGoalPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/national-geography-goal-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(geographyGoalPost.status,405);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],
