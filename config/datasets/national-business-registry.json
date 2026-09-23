@@ -23,7 +23,15 @@
     "role": "optional-supplemental-routing-evidence",
     "required": false,
     "provides_polygon_geometry": false,
-    "absence_effect": "Does not block publication or use of the Census ZCTA5 spatial polygon denominator."
+    "absence_effect": "Does not block publication or use of the Census ZCTA5 spatial polygon denominator.",
+    "member_set_reconciliation": {
+      "artifact_type": "registry-zip5-evidence-reconciliation-json",
+      "path": "derived/zip5-evidence-reconciliation.json",
+      "required_when_present": true,
+      "verification": "Exact sorted ZIP5 member-set SHA-256 equality between the pinned USPS assignment artifact and registry rows marked listed; count equality alone is insufficient.",
+      "distribution": "local-restricted aggregate counts and digests only; no USPS member list",
+      "separate_semantics": ["USPS assignment is not address deliverability", "Census ZCTA is not USPS geometry", "ZIP+4 is non-geometric", "business coverage remains incomplete"]
+    }
   },
   "next_release_contract": {
     "publisher_version": "2.10.0",

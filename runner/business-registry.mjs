@@ -1450,6 +1450,55 @@ function sha256Buffer(buffer) {
   return createHash("sha256").update(buffer).digest("hex");
 }
 
+function zipMemberSetEvidence(values) {
+  const members = [...new Set(values)].sort();
+  return {
+    count: members.length,
+    member_set_sha256: sha256Buffer(Buffer.from(members.length ? `${members.join("\n")}\n` : "", "utf8")),
+  };
+}
+
+function createZip5EvidenceReconciliation(zipRows, uspsZips) {
+  const listed = zipRows.filter((row) => row.current_usps_validity?.status === "listed-in-current-usps-area-district-file").map((row) => row.zip_code);
+  const usps = uspsZips.zipRows.map((row) => row.zip_code);
+  const zcta = zipRows.filter((row) => row.geography?.status === "2020-zcta-polygon-available").map((row) => row.zip_code);
+  const contributions = zipRows.filter((row) => row.registry_coverage?.status === "record-level-source-contribution").map((row) => row.zip_code);
+  const uspsSet = new Set(usps), zctaSet = new Set(zcta), contributionSet = new Set(contributions);
+  const sourceArtifact = uspsZips.manifest.artifacts.find((artifact) => artifact.artifact_type === "usps-operational-zip-assignment-jsonl");
+  return {
+    schema_version: "zip5-evidence-reconciliation@1.0.0",
+    semantics: {
+      usps_assignment_is_address_deliverability: false,
+      zcta_is_usps_delivery_geometry: false,
+      zip4_is_geometric: false,
+      business_coverage_is_complete: false,
+    },
+    source: {
+      dataset_id: uspsZips.manifest.dataset_id,
+      release_id: uspsZips.manifest.release_id,
+      manifest_sha256: uspsZips.manifestSha256,
+      source_month: uspsZips.manifest.source_month,
+      assignment_artifact_sha256: sourceArtifact.sha256,
+      assignment_members: zipMemberSetEvidence(usps),
+    },
+    registry_listed_members: zipMemberSetEvidence(listed),
+    exact_usps_member_set_match: isDeepStrictEqual(zipMemberSetEvidence(usps), zipMemberSetEvidence(listed)),
+    classes: {
+      usps_and_zcta: zipMemberSetEvidence(usps.filter((zip) => zctaSet.has(zip))),
+      usps_without_zcta: zipMemberSetEvidence(usps.filter((zip) => !zctaSet.has(zip))),
+      zcta_without_usps: zipMemberSetEvidence(zcta.filter((zip) => !uspsSet.has(zip))),
+      usps_with_record_level_contribution: zipMemberSetEvidence(usps.filter((zip) => contributionSet.has(zip))),
+      usps_denominator_only: zipMemberSetEvidence(usps.filter((zip) => !contributionSet.has(zip))),
+      source_reported_not_listed_usps: zipMemberSetEvidence(contributions.filter((zip) => !uspsSet.has(zip))),
+    },
+    postal_contract: {
+      zip5_rows: zipRows.length,
+      postal_code_mismatches: zipRows.filter((row) => row.postal_code !== row.zip_code).length,
+      non_null_zip4_rows: zipRows.filter((row) => row.zip4 !== null).length,
+    },
+  };
+}
+
 async function hashFile(filePath) {
   const hash = createHash("sha256");
   let bytes = 0;
@@ -2390,6 +2439,7 @@ async function loadUspsOperationalZipRelease(pointerPath) {
   return {
     manifest,
     manifestSha256: sha256Buffer(manifestBuffer),
+    manifestPath,
     zipRows,
   };
 }
@@ -4173,6 +4223,12 @@ export async function buildNationalBusinessRegistry({
       ? (uspsZips.manifest.use_authorization?.redistribution_authorized ? "permission-governed" : "local-restricted")
       : "public-source-layer",
   }));
+  if (uspsZips) {
+    artifacts.push(await writeArtifact(stagingDirectory, "derived/zip5-evidence-reconciliation.json", json(createZip5EvidenceReconciliation(zipCoverage, uspsZips)), {
+      artifact_type: "registry-zip5-evidence-reconciliation-json",
+      distribution_policy: "local-restricted-aggregate-digests-only",
+    }));
+  }
   const sourceContribution = {
     ...Object.fromEntries(childcareInputs.map((input) => [input.key, childcareSourceSummary(input)])),
     usda_snap_retailers: {
@@ -4889,6 +4945,8 @@ export async function buildNationalBusinessRegistry({
       zips_with_record_level_contributions: new Set([...childcareInputs.flatMap((input) => input.contributions.map((row) => row.zipCode).filter((zip) => zip !== null)), ...snapCountsByZip.keys(), ...nppesPrimaryCountsByZip.keys(), ...nppesSecondaryCountsByZip.keys(), ...fdicLocationCountsByZip.keys(), ...ncuaLocationCountsByZip.keys(), ...fsisEstablishmentCountsByZip.keys(), ...echoFacilityCountsByZip.keys(), ...fmcsaRecordCountsByZip.keys(), ...irsEoOrganizationCountsByZip.keys(), ...ctBusinessOrganizationCountsByZip.keys(), ...deBusinessOrganizationCountsByZip.keys(), ...akBusinessOrganizationCountsByZip.keys(), ...akBusinessSiteCountsByZip.keys(), ...coBusinessOrganizationCountsByZip.keys(), ...waLniMailingAddressCountsByZip.keys(), ...orBusinessRegistrationCountsByZip.keys(), ...iaBusinessOrganizationCountsByZip.keys(), ...nyBusinessOrganizationCountsByZip.keys(), ...flBusinessOrganizationCountsByZip.keys(), ...paBusinessOrganizationCountsByZip.keys(), ...ilBusinessOrganizationCountsByZip.keys(), ...laActiveBusinessLocationCountsByZip.keys(), ...txActiveSalesTaxOutletCountsByZip.keys(), ...chicagoActiveBusinessLicenseSiteCountsByZip.keys(), ...dcBasicBusinessLicenseSiteCountsByZip.keys(), ...caAbcActiveLicenseSiteCountsByZip.keys(), ...nyRetailFoodStoreZipEvidenceCountsByZip.keys(), ...nycDcwpActiveLicenseSiteCountsByZip.keys()]).size,
       authoritative_current_usps_zip_denominator: uspsZips ? {
         count: uspsZips.zipRows.length,
+        member_set_sha256: zipMemberSetEvidence(uspsZips.zipRows.map((row) => row.zip_code)).member_set_sha256,
+        assignment_artifact_sha256: uspsZips.manifest.artifacts.find((artifact) => artifact.artifact_type === "usps-operational-zip-assignment-jsonl").sha256,
         evidence_scope: "current-usps-area-district-5-digit-zip-assignments",
         source_month: uspsZips.manifest.source_month,
         dataset_id: uspsZips.manifest.dataset_id,
@@ -5037,6 +5095,7 @@ export async function buildNationalBusinessRegistry({
         dataset_id: uspsZips.manifest.dataset_id,
         release_id: uspsZips.manifest.release_id,
         manifest_sha256: uspsZips.manifestSha256,
+        manifest_path_from_registry_release: path.relative(stagingDirectory, uspsZips.manifestPath).replaceAll("\\", "/"),
       }] : []),
       ...(snap.manifest.dependencies ?? []),
       ...(nppes?.manifest.dependencies ?? []),
@@ -5541,6 +5600,7 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
   }
   const uspsDependency = manifest.dependencies?.find((dependency) => dependency.dataset_id === "usps-operational-zip-assignments");
   const uspsDenominator = manifest.coverage?.authoritative_current_usps_zip_denominator;
+  const uspsReconciliationArtifact = manifest.artifacts?.find((artifact) => artifact.artifact_type === "registry-zip5-evidence-reconciliation-json");
   if (uspsDependency) {
     if (!uspsDenominator || uspsDenominator.dataset_id !== uspsDependency.dataset_id
       || uspsDenominator.release_id !== uspsDependency.release_id || !Number.isInteger(uspsDenominator.count)
@@ -5548,6 +5608,12 @@ export async function verifyNationalBusinessRegistry(manifestPath) {
       || uspsDenominator.address_level_deliverability_asserted !== false
       || !["local-restricted", "permission-governed"].includes(uspsDenominator.distribution_policy)) {
       failures.push({ path: "manifest.json", reason: "invalid governed USPS Area/District ZIP denominator claim" });
+    }
+    if (!/^[a-f0-9]{64}$/.test(uspsDenominator?.member_set_sha256 ?? "")
+      || !/^[a-f0-9]{64}$/.test(uspsDenominator?.assignment_artifact_sha256 ?? "")
+      || !uspsReconciliationArtifact || uspsReconciliationArtifact.path !== "derived/zip5-evidence-reconciliation.json"
+      || uspsReconciliationArtifact.distribution_policy !== "local-restricted-aggregate-digests-only") {
+      failures.push({ path: "manifest.json", reason: "invalid governed USPS ZIP member-set reconciliation declaration" });
     }
   } else if (uspsDenominator !== null) {
     failures.push({ path: "manifest.json", reason: "USPS ZIP denominator has no governed source dependency" });
@@ -6241,6 +6307,61 @@ if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.
         || row.current_usps_validity?.source_month !== uspsDenominator.source_month
         || row.current_usps_validity?.export_policy !== uspsDenominator.distribution_policy)) {
         throw new Error("ZIP coverage overstates or mislabels USPS assignment evidence");
+      }
+      if (uspsReconciliationArtifact) {
+        const reconciliation = JSON.parse(await readFile(path.join(releaseDirectory, uspsReconciliationArtifact.path), "utf8"));
+        if (typeof uspsDependency.manifest_path_from_registry_release !== "string" || !uspsDependency.manifest_path_from_registry_release) {
+          throw new Error("USPS ZIP reconciliation dependency manifest path is missing");
+        }
+        const sourceManifestPath = path.resolve(releaseDirectory, uspsDependency.manifest_path_from_registry_release);
+        assertContained(path.resolve(releaseDirectory, "../../.."), sourceManifestPath, "USPS ZIP dependency manifest");
+        const sourceManifestBuffer = await readFile(sourceManifestPath);
+        if (sha256Buffer(sourceManifestBuffer) !== uspsDependency.manifest_sha256) throw new Error("USPS ZIP dependency manifest SHA-256 mismatch");
+        const sourceManifest = JSON.parse(sourceManifestBuffer.toString("utf8"));
+        if (sourceManifest.dataset_id !== uspsDependency.dataset_id || sourceManifest.release_id !== uspsDependency.release_id
+          || sourceManifest.source_month !== uspsDenominator.source_month) throw new Error("USPS ZIP dependency identity or source month mismatch");
+        const sourceArtifact = sourceManifest.artifacts?.find((artifact) => artifact.artifact_type === "usps-operational-zip-assignment-jsonl");
+        if (!sourceArtifact || sourceArtifact.sha256 !== uspsDenominator.assignment_artifact_sha256) throw new Error("USPS ZIP assignment artifact declaration mismatch");
+        const sourceArtifactPath = path.resolve(path.dirname(sourceManifestPath), sourceArtifact.path);
+        assertContained(path.dirname(sourceManifestPath), sourceArtifactPath, "USPS ZIP assignment artifact");
+        const sourceActual = await hashFile(sourceArtifactPath);
+        if (sourceActual.bytes !== sourceArtifact.bytes || sourceActual.sha256 !== sourceArtifact.sha256) throw new Error("USPS ZIP assignment artifact integrity mismatch");
+        const sourceRows = (await readFile(sourceArtifactPath, "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+        const sourceMembers = sourceRows.map((row) => row.zip_code);
+        if (sourceRows.length !== sourceArtifact.record_count || sourceRows.length !== uspsDenominator.count
+          || sourceMembers.some((zip) => !/^\d{5}$/.test(zip)) || new Set(sourceMembers).size !== sourceMembers.length) {
+          throw new Error("USPS ZIP assignment artifact membership is invalid");
+        }
+        const sourceEvidence = zipMemberSetEvidence(sourceMembers);
+        const listedEvidence = zipMemberSetEvidence(listed.map((row) => row.zip_code));
+        const zcta = rows.filter((row) => row.geography?.status === "2020-zcta-polygon-available").map((row) => row.zip_code);
+        const contributions = rows.filter((row) => row.registry_coverage?.status === "record-level-source-contribution").map((row) => row.zip_code);
+        const listedSet = new Set(listed.map((row) => row.zip_code)), zctaSet = new Set(zcta), contributionSet = new Set(contributions);
+        const expected = {
+          schema_version: "zip5-evidence-reconciliation@1.0.0",
+          semantics: { usps_assignment_is_address_deliverability: false, zcta_is_usps_delivery_geometry: false, zip4_is_geometric: false, business_coverage_is_complete: false },
+          source: {
+            dataset_id: uspsDenominator.dataset_id, release_id: uspsDenominator.release_id,
+            manifest_sha256: uspsDependency.manifest_sha256, source_month: uspsDenominator.source_month,
+            assignment_artifact_sha256: uspsDenominator.assignment_artifact_sha256,
+            assignment_members: sourceEvidence,
+          },
+          registry_listed_members: listedEvidence,
+          exact_usps_member_set_match: true,
+          classes: {
+            usps_and_zcta: zipMemberSetEvidence([...listedSet].filter((zip) => zctaSet.has(zip))),
+            usps_without_zcta: zipMemberSetEvidence([...listedSet].filter((zip) => !zctaSet.has(zip))),
+            zcta_without_usps: zipMemberSetEvidence(zcta.filter((zip) => !listedSet.has(zip))),
+            usps_with_record_level_contribution: zipMemberSetEvidence([...listedSet].filter((zip) => contributionSet.has(zip))),
+            usps_denominator_only: zipMemberSetEvidence([...listedSet].filter((zip) => !contributionSet.has(zip))),
+            source_reported_not_listed_usps: zipMemberSetEvidence(contributions.filter((zip) => !listedSet.has(zip))),
+          },
+          postal_contract: { zip5_rows: rows.length, postal_code_mismatches: rows.filter((row) => row.postal_code !== row.zip_code).length, non_null_zip4_rows: rows.filter((row) => row.zip4 !== null).length },
+        };
+        if (!isDeepStrictEqual(sourceEvidence, { count: uspsDenominator.count, member_set_sha256: uspsDenominator.member_set_sha256 })
+          || !isDeepStrictEqual(reconciliation, expected) || !isDeepStrictEqual(listedEvidence, sourceEvidence)) {
+          throw new Error("USPS ZIP member set does not exactly reconcile with the pinned assignment evidence");
+        }
       }
     } else if (rows.some((row) => !isValidUnverifiedUspsEvidence(row.current_usps_validity, {
       reasonRequired: separatedPostalFieldsRequired,

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -87,7 +87,7 @@ test('outside-ZCTA publisher status-only fallback accepts absent or null identif
   }
 });
 
-async function writeRegistryFixture(root, { publisherVersion = "2.10.0", rows = fixtureRows() } = {}) {
+async function writeRegistryFixture(root, { publisherVersion = "2.10.0", rows = fixtureRows(), usps = false } = {}) {
   const releaseDirectory = path.join(root, "registry", "releases", "release-1");
   await mkdir(path.join(releaseDirectory, "derived"), { recursive: true });
   const content = `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`;
@@ -98,6 +98,16 @@ async function writeRegistryFixture(root, { publisherVersion = "2.10.0", rows = 
     record_count: rows.length,
     artifact_type: "registry-zip-coverage-jsonl",
   };
+  const listed = rows.filter((row) => row.current_usps_validity.status === "listed-in-current-usps-area-district-file").map((row) => row.zip_code).sort();
+  const listedDigest = sha256(listed.length ? `${listed.join("\n")}\n` : "");
+  const artifacts = [artifact];
+  if (usps) {
+    const value = { schema_version: "zip5-evidence-reconciliation@1.0.0", exact_usps_member_set_match: true,
+      source: { assignment_members: { count: listed.length, member_set_sha256: listedDigest } },
+      registry_listed_members: { count: listed.length, member_set_sha256: listedDigest } };
+    const text = `${JSON.stringify(value)}\n`, item = { path: "derived/zip5-evidence-reconciliation.json", bytes: Buffer.byteLength(text), sha256: sha256(text), artifact_type: "registry-zip5-evidence-reconciliation-json" };
+    await writeFile(path.join(releaseDirectory, item.path), text); artifacts.push(item);
+  }
   const manifest = {
     schema_version: "1.0.0",
     dataset_id: "national-business-registry",
@@ -105,8 +115,8 @@ async function writeRegistryFixture(root, { publisherVersion = "2.10.0", rows = 
     release_id: "release-1",
     status: "published-partial",
     complete_national_business_registry: false,
-    coverage: { authoritative_current_usps_zip_denominator: null },
-    artifacts: [artifact],
+    coverage: { authoritative_current_usps_zip_denominator: usps ? { count: listed.length, member_set_sha256: listedDigest } : null },
+    artifacts,
   };
   const pointer = {
     dataset_id: manifest.dataset_id,
@@ -271,4 +281,39 @@ test("pointer audit rejects a ZIP artifact that no longer matches its manifest",
     }),
     /bytes, SHA-256, or record count do not match/,
   );
+});
+
+test("pointer audit certifies only an exact governed USPS member-set reconciliation", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "zip-denominator-audit-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const rows = fixtureRows().map((row, index) => ({ ...row, current_usps_validity: index < 2
+    ? { status: "listed-in-current-usps-area-district-file", source_month: "2026-08", deliverability_status: "not-asserted" }
+    : { status: "not-listed-in-current-usps-area-district-file", source_month: "2026-08", deliverability_status: "not-asserted" } }));
+  await writeRegistryFixture(root, { rows, usps: true });
+  const report = await auditZipDenominators({ appRoot: root, cohorts: [{ cohort_id: "fixture", pointer: "registry/current.json", required: true }] });
+  assert.equal(report.claim_boundary.valid_usps_zip_denominator_complete, true);
+  assert.equal(report.cohorts[0].usps_zip_member_set_reconciliation.exact_member_set_match, true);
+});
+
+test("pointer audit rejects an equal-count USPS listed set that differs from the reconciliation digest", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "zip-denominator-audit-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const rows = fixtureRows().map((row, index) => ({ ...row, current_usps_validity: index < 2
+    ? { status: "listed-in-current-usps-area-district-file", source_month: "2026-08", deliverability_status: "not-asserted" }
+    : { status: "not-listed-in-current-usps-area-district-file", source_month: "2026-08", deliverability_status: "not-asserted" } }));
+  const { artifactPath } = await writeRegistryFixture(root, { rows, usps: true });
+  [rows[0].current_usps_validity, rows[2].current_usps_validity]
+    = [rows[2].current_usps_validity, rows[0].current_usps_validity];
+  const swapped = `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`;
+  await writeFile(artifactPath, swapped);
+  const manifestPath = path.join(root, "registry", "releases", "release-1", "manifest.json");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const artifact = manifest.artifacts.find((item) => item.artifact_type === "registry-zip-coverage-jsonl");
+  artifact.bytes = Buffer.byteLength(swapped);
+  artifact.sha256 = sha256(swapped);
+  await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`);
+  await assert.rejects(() => auditZipDenominators({
+    appRoot: root,
+    cohorts: [{ cohort_id: "fixture", pointer: "registry/current.json", required: true }],
+  }), /USPS ZIP member-set reconciliation failed/);
 });

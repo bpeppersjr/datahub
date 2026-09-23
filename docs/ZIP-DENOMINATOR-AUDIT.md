@@ -21,6 +21,8 @@ No other low-number value is called a placeholder without governed evidence. ZIP
 
 The audit does not download data, change a current pointer, publish a release, or execute the normalized-postal cutover. It verifies the pointer/manifest relationship and the ZIP artifact's declared byte count, record count, and SHA-256 before reporting any counts. Its audit ID is derived from the audit schema version plus the input pointer, manifest, and artifact hashes, so unchanged inputs under unchanged audit semantics produce the same report and ID.
 
+Audit schema 1.3 also verifies the optional registry ZIP5 reconciliation artifact. A complete current USPS assignment-denominator claim is possible only when a required cohort has a governed USPS denominator, zero unverified rows, and an exact member-set reconciliation whose artifact bytes and SHA-256 match the registry manifest. Census ZCTA membership alone can never satisfy this gate. The reconciliation exposes only aggregate counts and member-set digests; restricted USPS member lists remain outside audit output.
+
 ## Run it
 
 Inspect both the production registry and the isolated normalized-postal candidate:
@@ -45,7 +47,7 @@ Immutable publisher-2.9 releases are not rewritten retroactively. Their split-fi
 
 ## Current read-only result
 
-Against the current pointers on September 23, 2026, audit schema 1.2.0 produces deterministic audit ID `zip-denominator-audit-5d4eb9cf1e530323b2d8f22f` and passes both applicable registry contracts.
+Against the current pointers on September 23, 2026, audit schema 1.3.0 produces deterministic audit ID `zip-denominator-audit-dbb540102808fdd023589476` and passes both applicable registry contracts. Neither current cohort carries a governed USPS dependency, so the new exact-member-set gate correctly remains false.
 
 | Cohort | Publisher | ZIP5 rows | Governed ZCTA members | Source ZIP5 outside ZCTA | Unverified USPS | Missing reason | Missing alias | Missing `zip4` | Contract |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|

@@ -3011,9 +3011,39 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(result.manifest.coverage.zip_union_records, 24);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.count, 3);
   assert.equal(result.manifest.coverage.authoritative_current_usps_zip_denominator.address_level_deliverability_asserted, false);
+  assert.match(result.manifest.coverage.authoritative_current_usps_zip_denominator.member_set_sha256, /^[a-f0-9]{64}$/);
+  const reconciliationArtifact = result.manifest.artifacts.find((artifact) => artifact.artifact_type === "registry-zip5-evidence-reconciliation-json");
+  assert.equal(reconciliationArtifact.path, "derived/zip5-evidence-reconciliation.json");
+  assert.equal(reconciliationArtifact.distribution_policy, "local-restricted-aggregate-digests-only");
+  const reconciliation = JSON.parse(await readFile(path.join(result.releaseDirectory, reconciliationArtifact.path), "utf8"));
+  assert.equal(reconciliation.exact_usps_member_set_match, true);
+  assert.equal(reconciliation.source.assignment_members.member_set_sha256, reconciliation.registry_listed_members.member_set_sha256);
+  assert.equal(Object.hasOwn(reconciliation, "zip5_values"), false);
 
   const verification = await verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json"));
   assert.equal(verification.status, "published-partial");
+  const manifestPath = path.join(result.releaseDirectory, "manifest.json"), originalManifestText = await readFile(manifestPath, "utf8");
+  const proofRemoved = JSON.parse(originalManifestText);
+  delete proofRemoved.coverage.authoritative_current_usps_zip_denominator.member_set_sha256;
+  delete proofRemoved.coverage.authoritative_current_usps_zip_denominator.assignment_artifact_sha256;
+  proofRemoved.artifacts = proofRemoved.artifacts.filter((artifact) => artifact.artifact_type !== "registry-zip5-evidence-reconciliation-json");
+  await writeFile(manifestPath, `${JSON.stringify(proofRemoved)}\n`);
+  await assert.rejects(() => verifyNationalBusinessRegistry(manifestPath),
+    (error) => error.failures?.some((failure) => failure.reason === "invalid governed USPS ZIP member-set reconciliation declaration"));
+  await writeFile(manifestPath, originalManifestText);
+  const originalManifest = JSON.parse(originalManifestText);
+  const uspsDependency = originalManifest.dependencies.find((dependency) => dependency.dataset_id === "usps-operational-zip-assignments");
+  const uspsManifestPath = path.resolve(result.releaseDirectory, uspsDependency.manifest_path_from_registry_release);
+  const uspsManifest = JSON.parse(await readFile(uspsManifestPath, "utf8"));
+  const uspsAssignment = uspsManifest.artifacts.find((artifact) => artifact.artifact_type === "usps-operational-zip-assignment-jsonl");
+  const uspsAssignmentPath = path.resolve(path.dirname(uspsManifestPath), uspsAssignment.path);
+  const originalUspsAssignment = await readFile(uspsAssignmentPath, "utf8");
+  const changedUspsRows = originalUspsAssignment.trim().split("\n").map(JSON.parse);
+  changedUspsRows[0].zip_code = changedUspsRows[0].zip_code === "00001" ? "00002" : "00001";
+  await writeFile(uspsAssignmentPath, `${changedUspsRows.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await assert.rejects(() => verifyNationalBusinessRegistry(manifestPath),
+    (error) => error.failures?.some((failure) => failure.reason === "ZIP coverage validation failed: USPS ZIP assignment artifact integrity mismatch"));
+  await writeFile(uspsAssignmentPath, originalUspsAssignment);
   const zipArtifact = result.manifest.artifacts.find((artifact) => artifact.artifact_type === "registry-zip-coverage-jsonl");
   const zipRows = (await readFile(path.join(result.releaseDirectory, zipArtifact.path), "utf8")).trim().split("\n").map(JSON.parse);
   const uncovered = zipRows.find((row) => row.zip_code === "99999");
@@ -3056,6 +3086,21 @@ test("publishes and verifies a combined partial registry while retaining denomin
   assert.equal(zipRows.find((row) => row.zip_code === "90210").registry_coverage.fmcsa_active_registration_principal_office_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "20001").registry_coverage.dc_basic_business_license_site_count, 1);
   assert.equal(zipRows.find((row) => row.zip_code === "94102").registry_coverage.ca_abc_active_issued_license_site_count, 1);
+
+  // Count-only verification would miss this: exchange one listed and one unlisted ZIP while retaining the listed count.
+  const listedIndex = zipRows.findIndex((row) => row.current_usps_validity.status === "listed-in-current-usps-area-district-file");
+  const unlistedIndex = zipRows.findIndex((row) => row.current_usps_validity.status === "not-listed-in-current-usps-area-district-file");
+  [zipRows[listedIndex].current_usps_validity, zipRows[unlistedIndex].current_usps_validity]
+    = [zipRows[unlistedIndex].current_usps_validity, zipRows[listedIndex].current_usps_validity];
+  const swapped = `${zipRows.map((row) => JSON.stringify(row)).join("\n")}\n`;
+  await writeFile(path.join(result.releaseDirectory, zipArtifact.path), swapped);
+  const tamperedManifest = JSON.parse(await readFile(path.join(result.releaseDirectory, "manifest.json"), "utf8"));
+  const tamperedZipArtifact = tamperedManifest.artifacts.find((artifact) => artifact.artifact_type === "registry-zip-coverage-jsonl");
+  tamperedZipArtifact.bytes = Buffer.byteLength(swapped);
+  tamperedZipArtifact.sha256 = createHash("sha256").update(swapped).digest("hex");
+  await writeFile(path.join(result.releaseDirectory, "manifest.json"), `${JSON.stringify(tamperedManifest)}\n`);
+  await assert.rejects(() => verifyNationalBusinessRegistry(path.join(result.releaseDirectory, "manifest.json")),
+    (error) => error.failures?.some((failure) => /member set does not exactly reconcile/.test(failure.reason)));
 });
 
 test("verifier rejects a completeness claim", async (t) => {

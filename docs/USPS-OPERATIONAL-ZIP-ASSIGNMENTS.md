@@ -79,3 +79,9 @@ npm run usps-zips:verify
 An already-published local release can be selected only on a fresh production plan with `--usps-operational-zips <current.json>`. Planning independently verifies the immutable release, exact-hash pins the pointer, manifest, artifacts, connector configuration, source policy, dataset configuration, and implementation, and passes that same pinned pointer to the registry as `--usps-zips`.
 
 Admission requires an exact `YYYY-MM` source-month receipt plus explicit `usps-written-permission` authorization with a non-empty governed permission reference. A personal/home-use declaration is not production authorization. The planner never creates the pointer, downloads USPS material, upgrades authorization, or adds this input to historical recovery. Omitting the option preserves the legacy plan and execution path exactly.
+
+## Exact registry member-set reconciliation
+
+New registry releases that select this source publish `derived/zip5-evidence-reconciliation.json`. The aggregate-only, local-restricted artifact contains counts and sorted-member-set SHA-256 digests, never the USPS ZIP member list. Registry verification reopens the exact dependency manifest named by the release, checks its SHA-256, release ID and source month, verifies the normalized assignment artifact's bytes and SHA-256, parses unique ZIP5 members, and requires exact member-set equality with registry rows marked `listed-in-current-usps-area-district-file`. Equal counts are insufficient.
+
+The reconciliation also preserves separate aggregate classes for USPS/ZCTA intersection and differences, and for ZIPs with record-level business evidence versus denominator-only rows. These classes do not turn a USPS assignment into deliverability, create Census geometry, attach geometry to ZIP+4, or claim complete business coverage. Registry releases without a governed USPS dependency remain compatible with their existing verification contract.

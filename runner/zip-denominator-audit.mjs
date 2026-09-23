@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 
 import { APP_ROOT } from "./paths.mjs";
 
-export const ZIP_DENOMINATOR_AUDIT_SCHEMA_VERSION = "1.2.0";
+export const ZIP_DENOMINATOR_AUDIT_SCHEMA_VERSION = "1.3.0";
 export const ZIP_DENOMINATOR_REASON_CONTRACT_MINIMUM_REGISTRY_VERSION = "2.10.0";
 export const DEFAULT_ZIP_DENOMINATOR_AUDIT_COHORTS = Object.freeze([
   Object.freeze({
@@ -190,6 +190,7 @@ export function auditRegistryZipRows(rows, {
   const sourceReportedOutsideZcta = [];
   const denominatorOnlyOutsideZcta = [];
   const unverifiedZip5 = [];
+  const listedUspsZip5 = [];
   const missingUnverifiedReasonZip5 = [];
   const missingPostalCodeZip5 = [];
   const joinedPostalCodeZip5 = [];
@@ -264,6 +265,8 @@ export function auditRegistryZipRows(rows, {
         missingUnverifiedReasonZip5.push(zip5);
         unresolvedProofGapCodes.push("unverified-usps-evidence-reason-missing");
       }
+    } else if (uspsStatus === "listed-in-current-usps-area-district-file") {
+      listedUspsZip5.push(zip5);
     }
     const sourceReportedOutside = !explicitPlaceholder && !includedInZcta
       && row.registry_coverage.status === "record-level-source-contribution";
@@ -291,7 +294,7 @@ export function auditRegistryZipRows(rows, {
     ));
   }
 
-  for (const values of [allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta,
+  for (const values of [allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta, listedUspsZip5,
     unverifiedZip5, missingUnverifiedReasonZip5, missingPostalCodeZip5, joinedPostalCodeZip5,
     mismatchedPostalCodeZip5, missingZip4Zip5, nonNullZip4Zip5]) values.sort();
   if (includeRows) details.sort((left, right) => left.zip5.localeCompare(right.zip5));
@@ -443,7 +446,7 @@ export function auditRegistryZipRows(rows, {
     ...(includeRows ? { rows: details } : {}),
   };
   Object.defineProperty(result, "_audit_sets", {
-    value: { allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta },
+    value: { allZip5, explicitPlaceholderZip5, governedZctaMembers, sourceReportedOutsideZcta, denominatorOnlyOutsideZcta, listedUspsZip5 },
     enumerable: false,
   });
   return result;
@@ -555,6 +558,29 @@ async function inspectCohort(appRoot, definition, options) {
     includeRows: options.includeRows,
     includeZipLists: options.includeZipLists,
   });
+  const denominator = manifest.coverage?.authoritative_current_usps_zip_denominator ?? null;
+  const reconciliationArtifact = manifest.artifacts?.find((candidate) => candidate.artifact_type === "registry-zip5-evidence-reconciliation-json");
+  let reconciliation = null;
+  if (reconciliationArtifact) {
+    const candidate = path.resolve(releaseDirectory, reconciliationArtifact.path);
+    assertContained(releaseDirectory, candidate, `${definition.cohort_id} ZIP reconciliation artifact`);
+    const document = await readJsonDocument(await resolveExistingInside(appRoot, path.relative(appRoot, candidate), `${definition.cohort_id} ZIP reconciliation artifact`), `${definition.cohort_id} ZIP reconciliation artifact`);
+    const listed = evidenceSet(audited.analysis._audit_sets.listedUspsZip5);
+    if (document.bytes !== reconciliationArtifact.bytes || document.sha256 !== reconciliationArtifact.sha256
+      || document.value?.schema_version !== "zip5-evidence-reconciliation@1.0.0"
+      || document.value.exact_usps_member_set_match !== true
+      || document.value.registry_listed_members?.count !== listed.count
+      || document.value.registry_listed_members?.member_set_sha256 !== listed.zip5_member_set_sha256
+      || document.value.source?.assignment_members?.count !== denominator?.count
+      || document.value.source?.assignment_members?.member_set_sha256 !== denominator?.member_set_sha256
+      || document.value.registry_listed_members.member_set_sha256 !== document.value.source.assignment_members.member_set_sha256) {
+      throw new Error(`${definition.cohort_id} USPS ZIP member-set reconciliation failed.`);
+    }
+    reconciliation = { path: reconciliationArtifact.path, bytes: document.bytes, sha256: document.sha256,
+      exact_member_set_match: true, member_count: listed.count };
+  }
+  const completeUspsDenominator = Boolean(denominator && reconciliation && audited.analysis.counts.usps_operational_status_unverified === 0
+    && reconciliation.member_count === denominator.count);
   return {
     public: {
       cohort_id: definition.cohort_id,
@@ -567,7 +593,9 @@ async function inspectCohort(appRoot, definition, options) {
       release_id: manifest.release_id,
       publisher_version: publisherVersion,
       release_status: manifest.status,
-      authoritative_current_usps_zip_denominator: manifest.coverage?.authoritative_current_usps_zip_denominator ?? null,
+      authoritative_current_usps_zip_denominator: denominator,
+      usps_zip_member_set_reconciliation: reconciliation,
+      complete_current_usps_assignment_denominator_verified: completeUspsDenominator,
       artifact: audited.artifact_evidence,
       ...audited.analysis,
     },
@@ -577,6 +605,7 @@ async function inspectCohort(appRoot, definition, options) {
       pointer_sha256: pointerDocument.sha256,
       manifest_sha256: manifestDocument.sha256,
       zip_artifact_sha256: audited.artifact_evidence.sha256,
+      reconciliation_artifact_sha256: reconciliation?.sha256 ?? null,
     },
     sets: audited.analysis._audit_sets,
   };
@@ -620,6 +649,9 @@ export async function auditZipDenominators({
   const contractFailures = available.filter((cohort) => cohort.public.contract_status === "failed");
   const unavailableRequired = inspected.filter((cohort) => cohort.public.availability !== "available"
     && cohorts.find((definition) => definition.cohort_id === cohort.public.cohort_id)?.required);
+  const claimCohort = inspected.find((cohort) => cohorts.find((definition) => definition.cohort_id === cohort.public.cohort_id)?.required)
+    ?? inspected[0];
+  const completeUspsDenominator = claimCohort?.public.complete_current_usps_assignment_denominator_verified === true;
   const fingerprint = inspected.map((cohort) => cohort.fingerprint);
   return {
     schema_version: ZIP_DENOMINATOR_AUDIT_SCHEMA_VERSION,
@@ -630,8 +662,10 @@ export async function auditZipDenominators({
     audit_mode: "read-only",
     overall_contract_status: contractFailures.length || unavailableRequired.length ? "failed" : "passed",
     claim_boundary: {
-      valid_usps_zip_denominator_complete: false,
-      reason: "Census ZCTA membership and source-reported ZIP5 values do not establish a complete current USPS operational ZIP denominator.",
+      valid_usps_zip_denominator_complete: completeUspsDenominator,
+      reason: completeUspsDenominator
+        ? "The governed current USPS Area/District ZIP5 assignment artifact exactly matches the registry's listed ZIP5 member set; this does not assert address deliverability."
+        : "Census ZCTA membership and source-reported ZIP5 values do not establish a complete current USPS operational ZIP denominator without exact governed USPS member-set reconciliation.",
       zcta_is_statistical_polygon_not_postal_delivery_boundary: true,
       zip4_is_non_geometric: true,
     },
