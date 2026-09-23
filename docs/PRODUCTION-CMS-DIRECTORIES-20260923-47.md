@@ -21,7 +21,7 @@ Immutable local-review release `national-zip-coverage-20260923121929-ffe55c41`, 
 
 The authenticated Heatmap view now shows these evidence counts while explicitly stating that Census ZCTAs are not USPS delivery boundaries, ZIP totals do not measure business coverage, and active-business completion remains unknown. Immutable summary publication is local-review-only; the API serves a freshly verified live projection rather than mislabeling it as the immutable artifact.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and SHA-256. Plan 46 and every earlier CMS directory plan or approval are superseded. No production execution occurred while preparing this plan.
+This document and plan do not constitute approval. Plan 47 was never executed and is superseded by Plan 48 after implementation commit `4f342ee` added the governed national ZIP/business evidence alignment and state freshness/authorization visibility. Plan 46 and every earlier CMS directory plan or approval remain superseded.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20260923-47 --expected-plan-sha256 ca69ffd9ac2f6ed98f474ec311f15ec9f11dd9cfb7ab07d4498376c970a1fae5
