@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260923-37` after the governed broad-organization acquisition backlog implementation changed. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive versioned the national goal-completion matrix as `national-goal-completion-matrix@1.1.0`. Category cells now report measured and unmeasured denominator members separately, calculate availability only among measured members, and retain null percentage when no member is measured. Observed zero remains measured evidence at 0%. Historical `@1.0.0` releases remain independently verifiable and are normalized by the read-only view. The new immutable release is `national-goal-completion-20260923040507-ab8f34fc`, report SHA-256 `11162dc115b9019eee29b3e841594ee009ff16c127aafbab7a4196ea0876ae23`. This status-only change does not alter registry, map, business, site, or source counts.
 
 - Run ID: `production-cms-directories-20260922-36`
