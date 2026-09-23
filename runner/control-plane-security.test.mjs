@@ -170,6 +170,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/broad-organization-current-authorization-chain"],
     ["GET", "/api/data-operations/document-only-inquiry-proposals"],
     ["GET", "/api/data-operations/national-geography-goal-status"],
+    ["GET", "/api/data-operations/reported-organization-zip-evidence-status"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -283,6 +284,11 @@ test("protects every live management endpoint while leaving only narrow liveness
   const geographyGoalBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/national-geography-goal-status',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(geographyGoalBody.status,400);
   const geographyGoalOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/national-geography-goal-status'});assert.equal(geographyGoalOptions.status,401);
   const geographyGoalPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/national-geography-goal-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(geographyGoalPost.status,405);
+  const organizationZipStatus=await rawRequest({port,hostHeader,pathname:'/api/data-operations/reported-organization-zip-evidence-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(organizationZipStatus.status,503);assert.equal(organizationZipStatus.headers['cache-control'],'no-store');assert.match(organizationZipStatus.body,/unavailable/);assert.equal(organizationZipStatus.body.includes('manifest.json'),false);
+  const organizationZipStatusQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/reported-organization-zip-evidence-status?zip=00000',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(organizationZipStatusQuery.status,400);
+  const organizationZipStatusBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/reported-organization-zip-evidence-status',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(organizationZipStatusBody.status,400);
+  const organizationZipStatusOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/reported-organization-zip-evidence-status'});assert.equal(organizationZipStatusOptions.status,401);
+  const organizationZipStatusPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/reported-organization-zip-evidence-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(organizationZipStatusPost.status,405);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],
