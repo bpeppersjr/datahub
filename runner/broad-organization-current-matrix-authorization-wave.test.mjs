@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT, verifyBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
 import { DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT, deriveCurrentMatrixAuthorizationWave, buildCurrentMatrixAuthorizationWave, verifyCurrentMatrixAuthorizationWave } from "./broad-organization-current-matrix-authorization-wave.mjs";
@@ -21,6 +23,11 @@ async function sourceProjection() {
   const manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes.toString("utf8"));
   const artifactBytes = await readFile(path.join(directory, "gap-projection.json"));
   return { projection: verified.projection, manifest, manifestBytes, artifactSha: digest(artifactBytes) };
+}
+async function buildThroughWave(outputRoot, waveNumber) {
+  let current;
+  for (let number = 1; number <= waveNumber; number += 1) current = await buildCurrentMatrixAuthorizationWave({ waveNumber: number, outputRoot });
+  return current;
 }
 
 test("selects exactly the ten highest historical priorities still in the current gap set", async () => {
@@ -44,7 +51,9 @@ test("selects exactly the ten highest historical priorities still in the current
 test("publishes wave two as the next exact ten with 10 + 10 + 20 gap conservation", async (t) => {
   await rm(temp, { recursive: true, force: true });
   t.after(() => rm(temp, { recursive: true, force: true }));
-  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot: path.join(temp, "wave-two-root") });
+  const outputRoot = path.join(temp, "wave-two-root");
+  await buildCurrentMatrixAuthorizationWave({ waveNumber: 1, outputRoot });
+  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot });
   const expected = ["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"];
   assert.deepEqual(built.wave.wave_state_abbreviations, expected);
   assert.equal(built.wave.scope.wave_number, 2);
@@ -97,7 +106,9 @@ test("publishes immutable packet, rejects rehashed authority widening, cancellat
 test("wave-two verifier rejects a rehashed overlap with wave one and authority widening", async (t) => {
   await rm(temp, { recursive: true, force: true });
   t.after(() => rm(temp, { recursive: true, force: true }));
-  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot: path.join(temp, "overlap-root") });
+  const outputRoot = path.join(temp, "overlap-root");
+  await buildCurrentMatrixAuthorizationWave({ waveNumber: 1, outputRoot });
+  const built = await buildCurrentMatrixAuthorizationWave({ waveNumber: 2, outputRoot });
   const manifestPath = path.join(built.releaseDirectory, "manifest.json"), artifactPath = path.join(built.releaseDirectory, "authorization-wave.json");
   const altered = JSON.parse(await readFile(artifactPath, "utf8"));
   const priorDirectory = path.join(DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT, "releases", built.wave.prior_wave.release_id);
@@ -111,4 +122,66 @@ test("wave-two verifier rejects a rehashed overlap with wave one and authority w
   await writeFile(artifactPath, bytes);
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await assert.rejects(verifyCurrentMatrixAuthorizationWave(manifestPath), /differs from exact current projection|widens authority/);
+});
+
+test("publishes waves three and four as exact chained priority slices with cumulative conservation", async (t) => {
+  await rm(temp, { recursive: true, force: true });
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const outputRoot = path.join(temp, "four-wave-chain");
+  const missingRoot = path.join(temp, "missing-prior-chain");
+  await assert.rejects(buildCurrentMatrixAuthorizationWave({ waveNumber: 3, outputRoot: missingRoot }));
+  const wave3 = await buildThroughWave(outputRoot, 3);
+  assert.deepEqual(wave3.wave.wave_state_abbreviations, ["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"]);
+  assert.equal(wave3.wave.scope.prior_wave_jurisdictions, 20);
+  assert.equal(wave3.wave.scope.selected_jurisdictions, 10);
+  assert.equal(wave3.wave.scope.remaining_current_gaps, 10);
+  assert.equal(wave3.wave.scope.conservation_total, 40);
+  assert.equal(wave3.wave.prior_wave.wave_state_abbreviations.join(","), "AL,AZ,CA,GA,ID,IN,LA,MA,MD,ME");
+  const wave4 = await buildCurrentMatrixAuthorizationWave({ waveNumber: 4, outputRoot });
+  assert.deepEqual(wave4.wave.wave_state_abbreviations, ["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]);
+  assert.equal(wave4.wave.scope.prior_wave_jurisdictions, 30);
+  assert.equal(wave4.wave.scope.selected_jurisdictions, 10);
+  assert.equal(wave4.wave.scope.remaining_current_gaps, 0);
+  assert.equal(wave4.wave.scope.conservation_total, 40);
+  assert.equal(wave3.wave.scope.acquisition_authorized, false);
+  assert.equal(wave3.wave.scope.source_actions_performed, 0);
+  assert.equal(wave3.wave.scope.network_requests, 0);
+  assert.equal(wave3.wave.scope.current_pointer_changed, false);
+  assert.equal(wave4.wave.scope.acquisition_authorized, false);
+  assert.equal(wave4.wave.scope.source_actions_performed, 0);
+  assert.equal(wave4.wave.scope.network_requests, 0);
+  assert.equal(wave4.wave.scope.current_pointer_changed, false);
+  assert.equal(wave4.wave.prior_wave.wave_state_abbreviations.join(","), "MI,MN,MO,MT,NC,ND,NH,NJ,NM,OH");
+  assert.equal((await verifyCurrentMatrixAuthorizationWave(path.join(wave3.releaseDirectory, "manifest.json"))).wave.scope.wave_number, 3);
+  assert.equal((await verifyCurrentMatrixAuthorizationWave(path.join(wave4.releaseDirectory, "manifest.json"))).wave.scope.wave_number, 4);
+  const all = ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK", "AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME", ...wave3.wave.wave_state_abbreviations, ...wave4.wave.wave_state_abbreviations];
+  assert.equal(new Set(all).size, 40);
+  assert.ok([...wave3.wave.states, ...wave4.wave.states].every((row) => row.item_kind === "approval-only" && row.approval_status === "HOLD" && row.acquisition_authorized === false && row.gate_items.every((item) => item.status === "HOLD" && item.acquisition_authorized === false)));
+});
+
+test("a tampered prior published wave blocks the next wave", async (t) => {
+  await rm(temp, { recursive: true, force: true });
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const outputRoot = path.join(temp, "tampered-prior-chain");
+  await buildThroughWave(outputRoot, 2);
+  const releases = path.join(outputRoot, "releases"), entries = await readdir(releases, { withFileTypes: true });
+  let wave2Directory = null;
+  for (const entry of entries.filter((row) => row.isDirectory())) {
+    const artifactPath = path.join(releases, entry.name, "authorization-wave.json");
+    const artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+    if (artifact.scope.wave_number === 2) wave2Directory = path.join(releases, entry.name);
+  }
+  assert.ok(wave2Directory);
+  const artifactPath = path.join(wave2Directory, "authorization-wave.json"), artifact = JSON.parse(await readFile(artifactPath, "utf8"));
+  artifact.states[0].acquisition_authorized = true;
+  await writeFile(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
+  await assert.rejects(buildCurrentMatrixAuthorizationWave({ waveNumber: 3, outputRoot }), /checksum mismatch/);
+});
+
+test("wave build CLI rejects invalid, repeated, and unknown flags without publication", () => {
+  const script = fileURLToPath(new URL("../scripts/build-broad-organization-current-matrix-authorization-wave.mjs", import.meta.url));
+  for (const args of [["--wave", "5"], ["--wave", "3", "--wave", "4"], ["--unknown", "value"], ["--wave"]]) {
+    const result = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
+    assert.notEqual(result.status, 0, `expected CLI arguments to fail: ${args.join(" ")}`);
+  }
 });
