@@ -7,6 +7,15 @@ const RELEASE_ID = /^national-goal-completion-\d{14}-[a-f0-9]{8}$/;
 const CATEGORY = /^[a-z][a-z0-9-]{1,79}$/;
 const STATE = /^[A-Z]{2}$/;
 
+function statusCounts(datasets, field, property) {
+  const counts = new Map();
+  for (const dataset of datasets) {
+    const status = dataset?.[field]?.[property];
+    if (typeof status === "string" && status.length > 0) counts.set(status, (counts.get(status) ?? 0) + 1);
+  }
+  return Object.fromEntries([...counts].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
+}
+
 function unavailable(status) {
   return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], selected: null };
 }
@@ -38,9 +47,13 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
   if (!categoryIds.includes(category)) throw Object.assign(new Error("Category is not in the matrix denominator."), { statusCode: 400 });
   const jurisdictions = report.jurisdictions.map((jurisdiction) => {
     const cell = jurisdiction.categories.find((row) => row.category_id === category);
+    const datasets = cell.datasets ?? [];
     return { code: jurisdiction.code, name: jurisdiction.name, available: cell.dataset_availability.available, denominator: cell.dataset_availability.denominator,
       measured: cell.dataset_availability.measured, unmeasured: cell.dataset_availability.unmeasured, measurement_status: cell.dataset_availability.measurement_status,
-      percent: cell.dataset_availability.percent, broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
+      percent: cell.dataset_availability.percent,
+      temporal_status_counts: statusCounts(datasets, "temporal_status", "status"),
+      authorization_state_counts: statusCounts(datasets, "authorization", "state"),
+      broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
   });
   const selectedJurisdiction = state ? report.jurisdictions.find((row) => row.code === state) : null;
   if (state && !selectedJurisdiction) throw Object.assign(new Error("State is not in the 50-state and D.C. matrix."), { statusCode: 400 });

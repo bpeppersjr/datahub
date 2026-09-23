@@ -27,6 +27,14 @@ Audit schema 1.3 also verifies the optional registry ZIP5 reconciliation artifac
 
 The ZIP-quality summary endpoint exposes a live, freshly verified projection as `national_zip_coverage` under response schema 2.0. It is not the immutable published summary artifact and identifies its projection mode accordingly. ZIP lookups remain schema 1.0 and expose a USPS status only when the audited row carries governed USPS evidence; the top-level USPS status becomes exact only when the complete assignment denominator passes exact reconciliation, and neither surface infers delivery eligibility.
 
+## ZIP/business evidence alignment
+
+`npm run zip-business-alignment:build` publishes and immediately verifies a standalone `national-zip-business-evidence-alignment@1.0.0` release. It reads only the explicitly enrolled immutable ZIP summary, selected coverage pointer/manifest/ZIP view, and retained Census ZBP/geography evidence. The aggregate-only artifact proves exact ZIP member-set equality and conserves record-contribution, denominator-only, employer-baseline, outside-union, and ZCTA cross-classes using counts and SHA-256 member-set digests. It contains no ZIP lists, keeps both all-business and active-business completion percentages null, and preserves the fully unverified USPS state.
+
+The alignment also requires exactly one coverage-manifest dependency on the national business registry and matches its dataset ID, release ID, manifest SHA-256, and publisher version to the immutable ZIP-summary bindings. Identical ZIP rows cannot bridge different registry releases.
+
+The artifact remains standalone. The ZIP-quality API is a live verified registry projection and has no enrollment for one immutable alignment release; exposing an arbitrary latest alignment there would mix evidence epochs. Alignment publication is local-review-only, performs no downloads or pointer changes, and fails separately for semantic tampering versus enrolled-evidence drift.
+
 ## Run it
 
 Inspect both the production registry and the isolated normalized-postal candidate:

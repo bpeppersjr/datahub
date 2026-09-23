@@ -1,0 +1,15 @@
+{
+  "schema_version": "national-zip-business-evidence-alignment-enrollment@1.0.0",
+  "zip_summary_manifest_path": "data/national-zip-coverage-summary/releases/national-zip-coverage-20260923121929-ffe55c41/manifest.json",
+  "zip_summary_manifest_sha256": "68a798db3acc507d7634bdfe97b11fab61d4bff21585d19518828e96502d8e3b",
+  "zip_summary_artifact_sha256": "772e48a2261f89e8e401de467fc8cd2e60734fa3542dfc7071320c5bf901893a",
+  "coverage_pointer_path": "data/business-coverage-views/current.json",
+  "coverage_pointer_sha256": "dbe15c414452409c6f3ef6ee11263476138d02f2fec9e3b4c19e307ecc58220b",
+  "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+  "zbp_pointer_path": "data/business-baselines/census-zbp/current.json",
+  "zbp_pointer_sha256": "526fdd2b2aef067286c3a5c1cdad1139d81724fefec847d197b9b7e1f968a496",
+  "zbp_manifest_sha256": "db6ec348a46b4b3ad9692aafc1d47fd388308031e397fb5de8e0193df19bf271",
+  "geography_pointer_path": "data/geography/current.json",
+  "geography_pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+  "geography_manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"
+}

@@ -24,6 +24,10 @@ test("goal-completion API is read-only, closed to unknown options, and behind sh
   assert.equal(server.includes("publishNationalGoalCompletionMatrix"), false);
 });
 
+test("all-state category scan separates temporal and authorization counts from availability", () => {
+  for (const text of ["Temporal status counts", "Authorization state counts", "statusBreakdown(row.temporal_status_counts)", "statusBreakdown(row.authorization_state_counts)", "they are separate from dataset availability", "do not indicate business completeness"]) assert.ok(ui.includes(text), text);
+});
+
 test("schema-4 state access is first in the entity panel and distinguishes ZCTA polygons from ZIP5",()=>{
   assert.ok(ui.indexOf('<StateAccessSummary')<ui.indexOf('<GoalCompletionSummary'));
   for(const text of ['Worst temporal status','Exact temporal bindings','Annual aggregate context','All-business completion</dt><dd>Unknown','Census ZCTA polygon','source-reported ZIP5 values are address fields, not polygon boundaries'])assert.ok(ui.includes(text),text);

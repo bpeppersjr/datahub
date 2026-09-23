@@ -125,7 +125,7 @@ type GoalCompletion = {
   denominator?: { version: string; datasets: number; categories: number; meaning: string };
   category?: string; categories?: string[]; all_business_completion_percent: null;
   broad_layer_gaps?: number;
-  jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null; broad_layer_gap: boolean }>;
+  jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null; temporal_status_counts: Record<string, number>; authorization_state_counts: Record<string, number>; broad_layer_gap: boolean }>;
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null }; gap_reason: string | null }> } };
 };
 type ZipQualitySummary = {
@@ -212,7 +212,7 @@ function GoalCompletionSummary({ state, categoryId }: { state?: string; category
     <div><span>National goal matrix</span><strong>{view.selected ? `${view.selected.code} · ${selected?.category_id.replaceAll('-', ' ')}` : view.category?.replaceAll('-', ' ')}</strong></div>
     <dl><div><dt>Governed datasets available</dt><dd>{selected ? `${selected.dataset_availability.available} / ${selected.dataset_availability.measured} measured` : 'Select a state'}</dd></div><div><dt>Unmeasured datasets</dt><dd>{selected ? `${selected.dataset_availability.unmeasured} / ${selected.dataset_availability.denominator}` : 'Select a state'}</dd></div><div><dt>Dataset availability</dt><dd>{selected ? selected.dataset_availability.measurement_status==='unmeasured'?'Unmeasured':percent(selected.dataset_availability.percent) : '—'}</dd></div><div><dt>Broad state-layer gaps</dt><dd>{count(view.broad_layer_gaps)}</dd></div><div><dt>All-business completion</dt><dd>Unknown</dd></div></dl>
     {selected && <div className="goal-source-list">{selected.datasets.map((dataset) => <div key={dataset.dataset_id}><strong>{dataset.label}</strong><span>{dataset.availability_status.replaceAll('-', ' ')} · {dataset.state_record_count === null ? 'state count unmeasured' : `${count(dataset.state_record_count)} state records`}</span><small>Freshness: {dataset.temporal_status.status.replaceAll('-', ' ')} · authorization: {dataset.authorization.state.replaceAll('-', ' ')} · geocoded: {percent(dataset.geocode_rate.percent)}</small>{dataset.gap_reason && <small>Gap: {dataset.gap_reason}</small>}</div>)}</div>}
-    <details><summary>All 50 states and D.C. for this category</summary><div className="representation-table"><table><thead><tr><th>State</th><th>Available / measured</th><th>Unmeasured</th><th>Share of measured</th><th>Broad layer</th></tr></thead><tbody>{view.jurisdictions.map((row) => <tr key={row.code}><th>{row.code}</th><td>{row.available}/{row.measured}</td><td>{row.unmeasured}/{row.denominator}</td><td>{row.measurement_status==='unmeasured'?'Unmeasured':percent(row.percent)}</td><td>{row.broad_layer_gap ? 'Gap' : 'Available'}</td></tr>)}</tbody></table></div></details>
+    <details><summary>All 50 states and D.C. for this category</summary><div className="representation-table"><table><thead><tr><th>State</th><th>Available / measured</th><th>Unmeasured</th><th>Share of measured</th><th>Temporal status counts</th><th>Authorization state counts</th><th>Broad layer</th></tr></thead><tbody>{view.jurisdictions.map((row) => <tr key={row.code}><th>{row.code}</th><td>{row.available}/{row.measured}</td><td>{row.unmeasured}/{row.denominator}</td><td>{row.measurement_status==='unmeasured'?'Unmeasured':percent(row.percent)}</td><td>{statusBreakdown(row.temporal_status_counts)}</td><td>{statusBreakdown(row.authorization_state_counts)}</td><td>{row.broad_layer_gap ? 'Gap' : 'Available'}</td></tr>)}</tbody></table></div><p className="entity-method-note">Temporal and authorization columns count source-dataset status values in the selected category; they are separate from dataset availability and do not indicate business completeness.</p></details>
     <p className="entity-method-note">Denominator: {view.denominator?.version}. Availability share is available governed datasets among measured members; unmeasured members are shown separately, and an all-unmeasured category has no percentage. Observed-zero datasets are measured evidence and contribute zero available. These percentages are not the share of U.S. businesses collected. All-business completion has no authoritative denominator and remains null. Release {view.release_id}.</p>
   </section>;
 }
@@ -230,6 +230,11 @@ async function request<T>(path: string): Promise<T> {
 
 function count(value?: number | null) {
   return value === null || value === undefined ? '—' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+function statusBreakdown(values: Record<string, number>) {
+  const entries = Object.entries(values);
+  return entries.length ? entries.map(([status, value]) => `${status.replaceAll('-', ' ')}: ${count(value)}`).join(' · ') : 'No status recorded';
 }
 
 function percent(value?: number | null) {

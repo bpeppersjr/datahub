@@ -11,11 +11,11 @@ const nodes = tree => !tree || typeof tree !== 'object' ? [] : Array.isArray(tre
 const text = tree => tree == null || typeof tree === 'boolean' ? '' : typeof tree !== 'object' ? String(tree) : Array.isArray(tree) ? tree.map(text).join('') : text(tree.props?.children);
 function harness(values) {
   let index = 0; const exports = {};
-  runInNewContext(`${code}\nexports.Map = FeatureMap; exports.BusinessPage = BusinessEvidenceMap;`, { exports, URLSearchParams, require: id => id === 'react' ? {
+  runInNewContext(`${code}\nexports.Map = FeatureMap; exports.BusinessPage = BusinessEvidenceMap; exports.Goal = GoalCompletionSummary;`, { exports, URLSearchParams, require: id => id === 'react' ? {
     useState: initial => { const i = index++; return [i in values ? values[i] : initial, next => { values[i] = next; }]; },
     useMemo: factory => factory(), useEffect: () => {},
   } : id.startsWith('./') ? { default: () => null } : require(id) });
-  return { map: props => { index = 0; return exports.Map(props); }, page: () => { index = 0; return exports.BusinessPage(); }, wrapper:()=>{index=0;return exports.default();} };
+  return { map: props => { index = 0; return exports.Map(props); }, page: () => { index = 0; return exports.BusinessPage(); }, goal: (state, categoryId) => { index = 0; return exports.Goal({ state, categoryId }); }, wrapper:()=>{index=0;return exports.default();} };
 }
 
 test('credential mode replaces business subtree so incompatible selections reset on switching',()=>{
@@ -74,6 +74,21 @@ test('Heatmap ZIP summary keeps registry ZIP5, Census ZCTA, USPS assignments, an
   const rendered = text(note);
   for (const phrase of ['Registry ZIP5 total: 42,000', 'same-code Census ZCTA members: 33,120', 'source-contributed ZIP5: 31,000', 'denominator-only ZIP5: 11,000', 'USPS governed assignment denominator: not verified', 'Active-business completion remains unknown (null)', 'a ZCTA is not a USPS boundary', 'ZIP totals do not measure business coverage']) assert.ok(rendered.includes(phrase), phrase);
   assert.doesNotMatch(rendered, /business completion[^.]*100%/i);
+});
+
+test('all-state goal matrix renders freshness and authorization counts without implying completeness', () => {
+  const view = { available: true, status: 'verified-immutable-release', release_id: 'matrix', category: 'retail-consumer', all_business_completion_percent: null,
+    broad_layer_gaps: 1, denominator: { version: 'fixture' }, selected: null,
+    jurisdictions: [{ code: 'AL', name: 'Alabama', available: 1, denominator: 1, measured: 1, unmeasured: 0, measurement_status: 'measured', percent: 100,
+      temporal_status_counts: { 'review-due': 1 }, authorization_state_counts: { blocked: 1 }, broad_layer_gap: true }] };
+  const tree = harness([view, false]).goal(undefined, 'retail-consumer');
+  const rendered = text(tree);
+  assert.match(rendered, /Temporal status counts/);
+  assert.match(rendered, /Authorization state counts/);
+  assert.match(rendered, /review due: 1/);
+  assert.match(rendered, /blocked: 1/);
+  assert.match(rendered, /separate from dataset availability/);
+  assert.match(rendered, /All-business completion has no authoritative denominator and remains null/);
 });
 
 test('exact ZIP inspector requests the selected category and aborts stale ZIP/category responses', async () => {
