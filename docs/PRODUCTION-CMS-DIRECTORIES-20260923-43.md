@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded without execution by `production-cms-directories-20260923-44` after commit `06b7eac` added exact, read-only catalog pinning and drift verification. This plan is retained as immutable planning history and must not be approved or executed.
+
 Fresh governed planning completed after commit `4dec466` published a separate immutable pre-production coverage catalog for the already-retained CMS hospital and nursing-home directory cohorts. The catalog is evidence about retained row coverage only; it is not a production input, registry dependency, output, national reporting denominator, or approval.
 
 - Run ID: `production-cms-directories-20260923-43`
