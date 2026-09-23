@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+**Superseded:** implementation commit `fc0e7c2` changed the repository after this plan was created. Do not approve or execute run 39; use the separately documented run 40 only if its exact current ID and SHA-256 are later approved.
+
 Fresh governed planning completed after Co*Tive added an authenticated, strictly read-only management view for the immutable broad-organization authorization packet. Release `broad-organization-authorization-packet-2026-09-22-99e3b9c24e75` contains 74 non-row-bearing evidence specifications for AK, DC, IL, MS, AR, KY, HI, KS, NV, and UT. The view independently re-verifies the retained release, exposes only bounded gate and lineage evidence, and includes no approval, contact, download, payment, record-request, acquisition, scheduling, or production control. The packet remains non-authorizing, performed zero source actions, and changed no pointer.
 
 - Run ID: `production-cms-directories-20260923-39`
