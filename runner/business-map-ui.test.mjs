@@ -54,7 +54,7 @@ test('selection change withholds previous map response before effects run', () =
   assert.equal(nodes(h.page()).some(node => node.type?.name === 'FeatureMap'), true);
 });
 
-test('exact ZIP inspector aborts stale fetches and withholds an older ZIP detail', async () => {
+test('exact ZIP inspector requests the selected category and aborts stale ZIP/category responses', async () => {
   const values = [{ available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} }, null, '10001'];
   const effects = [], pending = [], componentExports = {}; let index = 0, effectIndex = 0;
   runInNewContext(`${code}\nexports.Page = BusinessEvidenceMap;`, {
@@ -67,15 +67,37 @@ test('exact ZIP inspector aborts stale fetches and withholds an older ZIP detail
       } : name.startsWith('./') ? { default: function Stub() { return null; } } : require(name),
   });
   const render = () => { index = 0; effectIndex = 0; const tree = componentExports.Page(); for (const slot of effects) if (slot?.cleanup === null) slot.cleanup = slot.effect(); return tree; };
+  const detail = (zip, categoryId) => ({ zip5: zip, evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: zip }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' }, category_evidence: { category_id: categoryId, category_label: categoryId === 'all' ? 'All source categories' : categoryId, status: 'no-selected-positive-evidence', positive_source_contributions: [], completeness_percent: null, bindings: { coverage_release_id: 'c', registry_release_id: 'r', registry_manifest_sha256: 'm', zip_quality_audit_id: 'audit' }, semantics: 'No selected positive evidence, not a measured zero or completeness result.' } });
   let tree = render();
   const input = () => nodes(tree).find(node => node.props?.['aria-label'] === 'Inspect exact ZIP5');
   assert.equal(pending.length, 1);
   input().props.onChange({ target: { value: '20002' } });
   tree = render();
   assert.equal(pending.length, 2);
+  assert.match(pending[1].url, /category=all/);
   assert.equal(pending[0].options.signal.aborted, true);
-  pending[1].resolve({ zip5: '20002', evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: '20002' }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' } });
+  pending[1].resolve(detail('20002', 'all'));
   await new Promise(resolve => setImmediate(resolve)); assert.equal(values[2], '20002'); assert.equal(values[3]?.zip5, '20002');
-  pending[0].resolve({ zip5: '10001', evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: '10001' }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' } });
-  await new Promise(resolve => setImmediate(resolve)); tree = render(); assert.equal(values[3]?.zip5, '20002'); assert.doesNotMatch(text(tree), /governed Census ZCTA 10001/);
+  values[13] = 'health-care';
+  tree = render();
+  assert.equal(pending.length, 3);
+  assert.match(pending[2].url, /category=health-care/);
+  assert.equal(pending[1].options.signal.aborted, true);
+  assert.doesNotMatch(text(tree), /category evidence for ZIP/);
+  values[13] = 'retail-consumer';
+  tree = render();
+  assert.equal(pending.length, 4);
+  assert.match(pending[3].url, /category=retail-consumer/);
+  assert.equal(pending[2].options.signal.aborted, true);
+  pending[2].resolve(detail('20002', 'health-care'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.notEqual(values[3]?.category_evidence?.category_id, 'health-care');
+  pending[3].resolve(detail('20002', 'retail-consumer'));
+  await new Promise(resolve => setImmediate(resolve)); tree = render();
+  assert.equal(values[3]?.category_evidence?.category_id, 'retail-consumer');
+  assert.match(text(tree), /No selected positive evidence is available for this category and ZIP/);
+  assert.match(text(tree), /not a measured zero/);
+  pending[0].resolve(detail('10001', 'all'));
+  await new Promise(resolve => setImmediate(resolve)); tree = render();
+  assert.equal(values[3]?.zip5, '20002'); assert.doesNotMatch(text(tree), /governed Census ZCTA 10001/);
 });

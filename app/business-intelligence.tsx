@@ -138,13 +138,21 @@ type ZipQualitySummary = {
   usps_operational_status: null;
   usps_evidence_status: 'unverified';
 };
+type ZipContribution = { source_id: string; source_release_id: string | null; source_through_date?: string; source_date?: string; source_month?: string; reference_year?: number; positive_counts: Record<string, number> };
 type ZipInspection = {
   zip5: string; evidence_status: string; coverage_status: string | null;
   classification: { class: string; ordinary_zip5_eligible: boolean } | null;
   bindings: Record<string, string | null>;
   governed_zcta: { status: string; geoid: string | null };
   counts: null | { physical_sites: number; establishments: number; organization_primary_locations: number; employer_establishments: number | null; employer_baseline_status: string };
-  contributions: Array<{ source_id: string; source_release_id: string | null; source_through_date?: string; source_date?: string; source_month?: string; reference_year?: number; positive_counts: Record<string, number> }>;
+  contributions: ZipContribution[];
+  category_evidence: {
+    category_id: string; category_label: string;
+    status: 'positive-source-contribution' | 'no-selected-positive-evidence';
+    positive_source_contributions: ZipContribution[]; completeness_percent: null;
+    bindings: { coverage_release_id: string; registry_release_id: string; registry_manifest_sha256: string; zip_quality_audit_id: string };
+    semantics: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -573,12 +581,12 @@ function BusinessEvidenceMap() {
   useEffect(() => {
     if (!/^\d{5}$/.test(inspectionZip)) return;
     const controller = new AbortController();
-    void runnerJson<ZipInspection>(`/api/business-map/zip-inspector?zip=${encodeURIComponent(inspectionZip)}`, { signal: controller.signal })
-      .then((detail) => { if (!controller.signal.aborted) setZipInspection(detail); })
+    void runnerJson<ZipInspection>(`/api/business-map/zip-inspector?zip=${encodeURIComponent(inspectionZip)}&category=${encodeURIComponent(categoryId)}`, { signal: controller.signal })
+      .then((detail) => { if (!controller.signal.aborted && detail.zip5 === inspectionZip && detail.category_evidence?.category_id === categoryId) setZipInspection(detail); })
       .catch((reason) => { if (!controller.signal.aborted && reason?.name !== 'AbortError') setZipInspectionError(reason instanceof Error ? reason.message : 'Exact ZIP evidence is unavailable.'); })
       .finally(() => { if (!controller.signal.aborted) setZipInspectionLoading(false); });
     return () => controller.abort();
-  }, [inspectionZip]);
+  }, [categoryId, inspectionZip]);
 
   useEffect(() => {
     if (!catalog?.available) return;
@@ -637,7 +645,7 @@ function BusinessEvidenceMap() {
       {catalog?.available === false && <div className="map-error">No compatible coverage and geography release is available.</div>}
       {catalog?.available && <div className="heatmap-layout">
         <aside className="map-selectors">
-          <label><span>Business category hierarchy</span><select value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setStateFeature(null); setCountyFeature(null); setZipFeature(null); }}><option value="all">All source categories</option>{catalog.category_groups.map((group) => <optgroup label={group.label} key={group.id}>{group.categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</optgroup>)}</select></label>
+          <label><span>Business category hierarchy</span><select value={categoryId} onChange={(event) => { setCategoryId(event.target.value); setStateFeature(null); setCountyFeature(null); setZipFeature(null); setZipInspection(null); setZipInspectionError(''); setZipInspectionLoading(/^\d{5}$/.test(inspectionZip)); }}><option value="all">All source categories</option>{catalog.category_groups.map((group) => <optgroup label={group.label} key={group.id}>{group.categories.map((category) => <option value={category.id} key={category.id}>{category.label}</option>)}</optgroup>)}</select></label>
           <label><span>Heat-map data / enhancer</span><select value={enhancerId} onChange={(event) => setEnhancerId(event.target.value)}>{catalog.enhancers.map((enhancer) => <option value={enhancer.id} key={enhancer.id}>{enhancer.label}</option>)}</select></label>
           <fieldset className="demographic-filters">
             <legend>Population / demographic filters</legend>
@@ -659,7 +667,7 @@ function BusinessEvidenceMap() {
             {inspectionZip.length > 0 && inspectionZip.length !== 5 && <p>Enter exactly five digits.</p>}
             {zipInspectionLoading && <p>Verifying selected ZIP evidence…</p>}
             {zipInspectionError && <p role="alert">{zipInspectionError}</p>}
-            {zipInspection?.zip5 === inspectionZip && <>
+            {zipInspection?.zip5 === inspectionZip && zipInspection.category_evidence.category_id === categoryId && <>
               <div><span>ZIP {zipInspection.zip5}</span><strong>{zipInspection.evidence_status.replaceAll('-', ' ')}</strong></div>
               <p>{zipInspection.classification?.class.replaceAll('-', ' ') ?? 'No selected registry evidence'} · {zipInspection.governed_zcta.status === 'included' ? `governed Census ZCTA ${zipInspection.governed_zcta.geoid}` : 'outside the governed ZCTA denominator'}.</p>
               {zipInspection.counts && <dl><div><dt>Physical-site evidence</dt><dd>{count(zipInspection.counts.physical_sites)}</dd></div><div><dt>Organization primary locations</dt><dd>{count(zipInspection.counts.organization_primary_locations)}</dd></div><div><dt>Employer baseline</dt><dd>{count(zipInspection.counts.employer_establishments)}</dd></div><div><dt>Physical sites / employer baseline</dt><dd>{percent(zipInspection.employer_alignment.percent)}</dd></div></dl>}
@@ -670,6 +678,16 @@ function BusinessEvidenceMap() {
                 <p>Coverage {zipInspection.bindings.coverage_release_id}; registry {zipInspection.bindings.registry_release_id}; Census geography {zipInspection.bindings.geography_release_id}.</p>
                 <p>ZIP5 {String(zipInspection.zip_quality.postal_fields?.zip_code ?? 'not present')}; ZIP+4 {String(zipInspection.zip_quality.postal_fields?.zip4 ?? 'null / not supplied')}. USPS status is not asserted.</p>
               </details>
+              <section className="category-zip-evidence" aria-label={`${zipInspection.category_evidence.category_label} exact ZIP source evidence`}>
+                <h3>{zipInspection.category_evidence.category_label} category evidence for ZIP {zipInspection.zip5}</h3>
+                {zipInspection.category_evidence.positive_source_contributions.length > 0
+                  ? <details open><summary>Positive contributions in this category ({zipInspection.category_evidence.positive_source_contributions.length})</summary>
+                    {zipInspection.category_evidence.positive_source_contributions.map((item) => <p key={item.source_id}><strong>{item.source_id}</strong> · source release {item.source_release_id ?? 'not supplied'}{item.source_through_date ? ` · through ${item.source_through_date}` : ''}{item.source_date ? ` · source date ${item.source_date}` : ''}{item.source_month ? ` · month ${item.source_month}` : ''}{item.reference_year ? ` · reference year ${item.reference_year}` : ''} · {Object.entries(item.positive_counts).map(([name, value]) => `${name}: ${count(value)}`).join(', ')}</p>)}
+                    <p>Coverage {zipInspection.category_evidence.bindings.coverage_release_id}; registry {zipInspection.category_evidence.bindings.registry_release_id}; manifest {zipInspection.category_evidence.bindings.registry_manifest_sha256}; ZIP-quality audit {zipInspection.category_evidence.bindings.zip_quality_audit_id}.</p>
+                  </details>
+                  : <p>No selected positive evidence is available for this category and ZIP. This is not a measured zero, does not establish absence of organizations, and does not measure category completeness.</p>}
+                <p>{zipInspection.category_evidence.semantics}</p>
+              </section>
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}
             </>}

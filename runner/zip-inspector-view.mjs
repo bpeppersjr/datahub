@@ -1,12 +1,21 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
 export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView }) {
-  return async function zipInspectorView({ zip } = {}) {
+  return async function zipInspectorView({ zip, categoryId = "all" } = {}) {
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
-    const [catalog, quality, coverage] = await Promise.all([
-      businessMap.getCatalog(), zipQualityView({ zip }),
+    const catalog = await businessMap.getCatalog();
+    if (!catalog?.available) throw new Error("Selected ZIP evidence is unavailable.");
+    if (!/^[a-z][a-z0-9-]{1,79}$/.test(categoryId)) throw Object.assign(new Error("Invalid business category."), { statusCode: 400 });
+    const categories = catalog.categories ?? [];
+    const category = categories.find((item) => item.id === categoryId);
+    if (!category) throw Object.assign(new Error("Unsupported business category."), { statusCode: 400 });
+    const categorySourceIds = categoryId === "all"
+      ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
+      : new Set(category.source_ids ?? []);
+    const [quality, coverage] = await Promise.all([
+      zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
     ]);
-    if (!catalog?.available || !coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
+    if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
     if (!catalog.registry_release_id || quality.bindings.release_id !== catalog.registry_release_id
       || quality.bindings.manifest_sha256 !== catalog.registry_manifest_sha256 || quality.found && quality.zip5 !== zip) {
@@ -16,6 +25,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     if (rows.length > 1) throw new Error("Selected coverage contains duplicate ZIP5 rows.");
     const selected = rows[0] ?? null;
     const qualityRow = quality.found ? quality : null;
+    const categoryContributions = (qualityRow?.positive_source_contributions ?? []).filter((item) => categorySourceIds.has(item.source_id));
     if (selected && qualityRow && selected.coverage_status !== quality.registry_coverage_status) {
       throw new Error("ZIP registry coverage semantics differ between selected releases.");
     }
@@ -59,6 +69,20 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
         employer_baseline_status: selected.employer_baseline_status,
       } : null,
       contributions: qualityRow?.positive_source_contributions ?? [],
+      category_evidence: {
+        category_id: categoryId,
+        category_label: category.label,
+        status: categoryContributions.length ? "positive-source-contribution" : "no-selected-positive-evidence",
+        positive_source_contributions: categoryContributions,
+        completeness_percent: null,
+        bindings: {
+          coverage_release_id: catalog.coverage_release_id,
+          registry_release_id: catalog.registry_release_id,
+          registry_manifest_sha256: catalog.registry_manifest_sha256,
+          zip_quality_audit_id: quality.bindings.audit_id,
+        },
+        semantics: "Positive source contributions for the selected map category only. No matching contribution means no selected positive evidence, not a measured zero, missing business, or completeness result.",
+      },
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

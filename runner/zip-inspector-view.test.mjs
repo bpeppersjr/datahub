@@ -3,7 +3,7 @@ import test from "node:test";
 import { createZipInspectorView } from "./zip-inspector-view.mjs";
 
 const bindings = { audit_id: "audit-1", release_id: "registry-1", pointer_sha256: "p", manifest_sha256: "m", zip_artifact_sha256: "z" };
-function quality(zip, { classification = "valid-format-same-code-governed-zcta", status = "record-level-source-contribution", included = true, contributions = [{ source_id: "source-a", source_release_id: "source-r1", positive_counts: { record_count: 3 } }] } = {}) {
+function quality(zip, { classification = "valid-format-same-code-governed-zcta", status = "record-level-source-contribution", included = true, contributions = [{ source_id: "source-health", source_release_id: "source-r1", positive_counts: { record_count: 3 } }] } = {}) {
   if (!zip) return { schema_version: "1.0.0", bindings, zip5: "12345", found: false };
   return { schema_version: "1.0.0", bindings, zip5: zip, found: true,
     classification: { class: classification, ordinary_zip5_eligible: classification !== "explicit-placeholder" },
@@ -13,7 +13,11 @@ function quality(zip, { classification = "valid-format-same-code-governed-zcta",
 }
 function fixture({ rows = [], getQuality = (zip) => quality(zip), registryRelease = "registry-1", manifest = "m" } = {}) {
   return createZipInspectorView({
-    businessMap: { getCatalog: async () => ({ available: true, coverage_release_id: "coverage-1", registry_release_id: registryRelease, registry_manifest_sha256: manifest, geography_release_id: "geo-1" }) },
+    businessMap: { getCatalog: async () => ({ available: true, coverage_release_id: "coverage-1", registry_release_id: registryRelease, registry_manifest_sha256: manifest, geography_release_id: "geo-1", categories: [
+      { id: "all", label: "All source categories" },
+      { id: "health-care", label: "Health care", source_ids: ["source-health"] },
+      { id: "retail-consumer", label: "Retail and consumer", source_ids: ["source-retail"] },
+    ] }) },
     businessCoverageViews: { listDimension: async (_dimension, { query }) => ({ available: true, release_id: "coverage-1", records: rows.filter((row) => row.zip_code.startsWith(query)) }) },
     zipQualityView: async ({ zip }) => getQuality(zip),
   });
@@ -28,6 +32,39 @@ test("governed positive exact ZIP returns joined release bindings, contributions
   assert.equal(detail.contributions[0].source_release_id, "source-r1");
   assert.equal(detail.bindings.registry_release_id, "registry-1");
   assert.equal(detail.selected_coverage_geography.county_assignment, "one-material-intersection");
+  assert.equal(detail.category_evidence.category_id, "all");
+});
+
+test("category evidence is separately filtered, provenance-bound, and absence is not zero or completeness", async () => {
+  const detail = await fixture({ rows: [row("12345")], getQuality: zip => quality(zip, { contributions: [
+    { source_id: "source-health", source_release_id: "health-release", positive_counts: { record_count: 3 } },
+    { source_id: "source-retail", source_release_id: "retail-release", source_through_date: "2026-01-31", positive_counts: { record_count: 2 } },
+  ] }) })({ zip: "12345", categoryId: "retail-consumer" });
+  assert.deepEqual(detail.category_evidence.positive_source_contributions.map(item => item.source_id), ["source-retail"]);
+  assert.equal(detail.category_evidence.positive_source_contributions[0].source_release_id, "retail-release");
+  assert.equal(detail.category_evidence.positive_source_contributions[0].source_through_date, "2026-01-31");
+  assert.equal(detail.category_evidence.bindings.registry_manifest_sha256, "m");
+  assert.equal(detail.category_evidence.completeness_percent, null);
+  assert.equal(detail.contributions.length, 2, "ZIP-wide contributions remain unchanged");
+
+  const absent = await fixture({ rows: [row("12345")], getQuality: zip => quality(zip, { contributions: [
+    { source_id: "source-health", source_release_id: "health-release", positive_counts: { record_count: 3 } },
+  ] }) })({ zip: "12345", categoryId: "retail-consumer" });
+  assert.equal(absent.category_evidence.status, "no-selected-positive-evidence");
+  assert.deepEqual(absent.category_evidence.positive_source_contributions, []);
+  assert.equal(absent.category_evidence.completeness_percent, null);
+  assert.match(absent.category_evidence.semantics, /not a measured zero/);
+});
+
+test("category evidence rejects categories outside the current governed catalog", async () => {
+  let evidenceReads = 0;
+  const view = createZipInspectorView({
+    businessMap: { getCatalog: async () => ({ available: true, categories: [{ id: "all", label: "All source categories", source_ids: [] }] }) },
+    businessCoverageViews: { listDimension: async () => { evidenceReads += 1; return { available: true, records: [] }; } },
+    zipQualityView: async () => { evidenceReads += 1; return quality("12345"); },
+  });
+  await assert.rejects(view({ zip: "12345", categoryId: "not-governed" }), { statusCode: 400 });
+  assert.equal(evidenceReads, 0, "unrecognized category is rejected before ZIP evidence reads");
 });
 
 test("measured zero remains zero and a zero or missing baseline yields null percent", async () => {
