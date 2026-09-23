@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `9d8a1f0` added the verified national geography goal-status release, protected API, and in-app view after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-56` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-57` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-57.md`.
+
 Fresh governed planning completed after implementation commit `5c476bd`. That commit adds a protected, read-only Co*Tive management view for the exact four document-only inquiry proposals. The view independently verifies every proposal document hash, binds the 40 proposed jurisdictions to the verified current authorization-chain gap roster, derives coverage counts from that chain, fails closed on drift, and exposes no approval or execution control.
 
 - Run ID: `production-cms-directories-20260923-56`
