@@ -31,6 +31,7 @@ export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "health-care": ["cms-nppes-monthly-v2"],
   childcare: ["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE],
   "financial-services": ["fdic-bankfind-current-structure", "ncua-final-quarterly-call-report"],
+  "tax-exempt-organizations": ["irs-eo-bmf-organizations"],
   "food-production": ["usda-fsis-active-mpi-directory"],
   "environmental-facilities": ["epa-echo-exporter-active-facility"],
   transportation: ["fmcsa-company-census-active-us-principal-office"],

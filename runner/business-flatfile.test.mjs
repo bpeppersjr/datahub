@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { gzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
 import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport, parseArguments } from "../scripts/compose-flat-business-export.mjs";
@@ -36,6 +36,33 @@ test("flat-file categories use the map-store source identifiers", () => {
   assert.ok(BUSINESS_FLATFILE_CATEGORIES["financial-services"].includes("ncua-final-quarterly-call-report"));
   assert.ok(BUSINESS_FLATFILE_CATEGORIES.transportation.includes("fmcsa-company-census-active-us-principal-office"));
   assert.ok(BUSINESS_FLATFILE_CATEGORIES["licensed-businesses"].includes("texas-comptroller-active-sales-tax-permits"));
+  assert.deepEqual(BUSINESS_FLATFILE_CATEGORIES["tax-exempt-organizations"], ["irs-eo-bmf-organizations"]);
+});
+
+test("tax-exempt category selects only IRS EO profiles and preserves local-review provenance", async t => {
+  const item = await fixture(t), release = path.join(item.root, "release"), artifactPath = path.join(release, "resolution/location-profiles/zip2=00.jsonl.gz");
+  const manifestPath = path.join(release, "manifest.json"), manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const existing = gunzipSync(await readFile(artifactPath)).toString("utf8").trim().split(/\r?\n/).map(JSON.parse);
+  const irs = { names: [{ raw: "Fixture Tax-Exempt Organization" }], address: { street: "9 Main St", city: "Austin", state: "TX", zip_code: "78702", zip4: "0042" }, location: null,
+    source: { source_id: "irs-eo-bmf-organizations", source_release_id: "irs-fixture-release", source_record_id: "12-3456789", ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "1.0.0" },
+    export_policy: "local-review-only", observed_at: "2026-08-11T00:00:00Z", evidence: { source_release_id: "irs-fixture-release", verification: "fixture-only" } };
+  const bytes = gzipSync(`${[...existing, irs].map(JSON.stringify).join("\n")}\n`);
+  await writeFile(artifactPath, bytes);
+  manifest.artifacts[0].bytes = bytes.length; manifest.artifacts[0].sha256 = digest(bytes);
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--category", "tax-exempt-organizations", "--format", "jsonl", "--field", "business_name,state,zip_code,zip4,source_id,source_release_id,source_record_id,export_policy,source_evidence"];
+  const denied = await composeFlatBusinessExport([...common, "--output-prefix", "irs-tax-exempt-public"]);
+  assert.equal(denied.summary.counts.rows_written, 0);
+  assert.equal(denied.summary.counts.policy_rejected, 1);
+  const allowed = await composeFlatBusinessExport([...common, "--output-prefix", "irs-tax-exempt-review", "--policy-mode", "local-review"]);
+  assert.equal(allowed.summary.counts.rows_written, 1);
+  const rows = (await readFile(path.join(allowed.outputDirectory, "records.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0], { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
+    source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: irs.evidence,
+    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "1.0.0", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });
+  assert.equal(allowed.manifest.filters.categories[0], "tax-exempt-organizations");
+  assert.equal(allowed.manifest.export_policy, "local-review-only");
 });
 
 test("reporting-only childcare is exported only in local-review mode with split ZIP and source evidence", async (t) => {
