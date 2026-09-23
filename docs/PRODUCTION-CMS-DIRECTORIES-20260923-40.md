@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded by `production-cms-directories-20260923-41` after the authenticated nationwide authorization-program management view was committed. This plan must not be executed.
+
 Fresh governed planning completed after Co*Tive added the immutable nationwide broad-organization authorization program. Release `broad-organization-authorization-program-2026-09-22-b3af1531c834` covers all 43 jurisdictions that lack production-ready broad organization layers, preserving backlog order as five bounded waves of 10, 10, 10, 10, and 3 jurisdictions. It contains 371 gate items across 28 exact gate keys. Its manifest SHA-256 is `46980eff42e8e0ffbef0b8ddfc56232f7e86441e8b29cc28ea4fdc155bd87878`; its artifact SHA-256 is `b3af1531c8342f086efc18d3a331df26b53e29660d2bf9dc3c9d480c5f50992f`.
 
 The program performs zero source actions, creates no pointer, and grants no contact, download, payment, record-request, acquisition, scheduling, or production authority. Ordinary items can establish only contract-evidence sufficiency. AK/DC large-acquisition authorization remains a separately authenticated, proposal-specific user decision that no document, upload, or program artifact can close. The existing ten-jurisdiction authorization packet remains unchanged and independently verifies.
