@@ -28,12 +28,15 @@ test("pins the exact 50-state and District of Columbia peer set", () => {
 
 test("separates broad, scoped, local, and national-sector-only state evidence", () => {
   const broad = assessStateBusinessSourceReadiness(state("CO"));
+  const dcBroad = assessStateBusinessSourceReadiness(state("DC"));
   const scoped = assessStateBusinessSourceReadiness(state("TX"));
   const local = assessStateBusinessSourceReadiness(state("IL"));
   const national = assessStateBusinessSourceReadiness(state("AL"));
   const territory = assessStateBusinessSourceReadiness(state("PR", 20, 2, false));
   assert.equal(broad.source_scope_status, "broad-jurisdiction-organization-layer");
   assert.equal(broad.broad_jurisdiction_organization_layer.source_key, "co_business_registry_good_standing_or_delinquent_organizations");
+  assert.equal(dcBroad.source_scope_status, "broad-jurisdiction-organization-layer");
+  assert.equal(dcBroad.broad_jurisdiction_organization_layer.source_key, "dc_basic_business_license_sites");
   assert.deepEqual(scoped.statewide_scoped_source_keys, ["tx_active_sales_tax_permit_outlets"]);
   assert.equal(local.source_scope_status, "local-and-national-sector-layers-only");
   assert.deepEqual(local.local_source_keys, ["chicago_active_business_license_sites"]);
@@ -47,11 +50,11 @@ test("summarizes the production source-scope model without converting profiles i
   const rows = FIFTY_STATES_AND_DC.map((abbreviation) => state(abbreviation, 100, 10));
   const result = summarizeStateBusinessSourceReadiness(rows);
   assert.deepEqual(result, {
-    policy_version: "1.2.0",
+    policy_version: "1.3.0",
     jurisdictions_in_scope: 51,
-    broad_jurisdiction_organization_layers: 8,
-    missing_broad_jurisdiction_organization_layers: 43,
-    statewide_scoped_layers_without_broad_layer: 5,
+    broad_jurisdiction_organization_layers: 9,
+    missing_broad_jurisdiction_organization_layers: 42,
+    statewide_scoped_layers_without_broad_layer: 4,
     local_layers_without_broad_or_statewide_layer: 1,
     national_sector_layers_only: 37,
     jurisdictions_with_national_sector_evidence: 51,

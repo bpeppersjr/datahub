@@ -512,7 +512,7 @@ async function governedStates(root, pointer) {
   const sourceBytes = await readFile(sourceArtifactPath);
   if (sourceBytes.length !== sourceArtifact.bytes || digest(sourceBytes) !== sourceArtifact.sha256) throw new Error("Source coverage artifact integrity failed.");
   const sources = sourceBytes.toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
-  return { pointer: pp.value, retainedChildcare: mp.value.retained_childcare_reporting, rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), sources: new Map(sources.map((row) => [row.source_key, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
+  return { pointer: pp.value, retainedChildcare: mp.value.retained_childcare_reporting, registryCoverage: structuredClone(mp.value.coverage), rows: new Map(rows.map((row) => [row.postal_abbreviation, row])), sources: new Map(sources.map((row) => [row.source_key, row])), releaseId: mp.value.release_id, manifestSha256: mp.sha256, artifactPath: path.relative(root, artifactPath).replaceAll("\\", "/"), artifactSha256: artifact.sha256, artifactBytes: artifact.bytes };
 }
 
 function validateWorkstreams(config) {
@@ -599,7 +599,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   }
   if (coverageReassessment && coverageReassessment.historicalRelease !== catalogCoverageReleaseId) throw new Error("Coverage reassessment does not originate at the assessment coverage release.");
   const reassessedStates = new Set(coverageReassessment?.states?.map((item) => item.state) ?? []);
-  const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, { sourceKey }]) => [state, await buildBroadOrganizationEvidence({ state, source: coverage.sources.get(sourceKey), root, asOf: new Date() })])));
+  const broadEvidence = new Map(await Promise.all(Object.entries(BROAD_ORGANIZATION_SOURCES).map(async ([state, { sourceKey }]) => [state, await buildBroadOrganizationEvidence({ state, source: coverage.sources.get(sourceKey), registryCoverage: coverage.registryCoverage, root, asOf: new Date() })])));
   const assessmentFreshnessCounts = { current: 0, stale: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   const assessmentCoverageApplicabilityCounts = { exactPin: 0, reviewedCompatible: 0, notReviewed: 0, missingCoverageReleaseId: 0, unassessed: 0 };
   for (const state of workstreams.jurisdictions) {

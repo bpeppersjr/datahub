@@ -167,7 +167,7 @@ test('cleanupIfOwned does not remove replaced file', async () => {
   await rm(target, { force: true });
   await rename(replacement, target);
 
-  await cleanupIfOwned(target, { ino: first.ino, dev: first.dev });
+  await cleanupIfOwned(target, { ino: first.ino, dev: first.dev, birthtimeMs: first.birthtimeMs });
   assert.equal((await readFile(target, 'utf8')), 'second');
   await rm(runtime, { recursive: true, force: true });
 });

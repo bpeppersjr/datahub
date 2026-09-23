@@ -91,6 +91,20 @@ test('all-state goal matrix renders freshness and authorization counts without i
   assert.match(rendered, /All-business completion has no authoritative denominator and remains null/);
 });
 
+test('selected goal evidence labels D.C. geocoding at source-profile scope', () => {
+  const view = { available: true, status: 'verified-immutable-release', release_id: 'matrix', category: 'general-business', all_business_completion_percent: null,
+    broad_layer_gaps: 0, denominator: { version: 'fixture' },
+    selected: { code: 'DC', name: 'District of Columbia', category: { category_id: 'general-business',
+      dataset_availability: { available: 1, denominator: 1, measured: 1, unmeasured: 0, measurement_status: 'measured', percent: 100 },
+      datasets: [{ dataset_id: 'dc-basic-business-license-sites', label: 'D.C. Basic Business Licenses', availability_status: 'available', state_record_count: 54_890,
+        authorization: { state: 'retained-governed-source' }, temporal_status: { status: 'current-source-snapshot' },
+        geocode_rate: { percent: 77.88, scope: 'source-profile level; not a D.C.-address-state rate' }, gap_reason: null }] } }, jurisdictions: [] };
+  const rendered = text(harness([view, false]).goal('DC', 'all'));
+  assert.match(rendered, /source geocoded: 77\.88%/);
+  assert.match(rendered, /not a D\.C\.-address-state rate/);
+  assert.doesNotMatch(rendered, /D\.C\. geocoding: 77\.88%/);
+});
+
 test('exact ZIP inspector requests the selected category and aborts stale ZIP/category responses', async () => {
   const values = [{ available: true, coverage_release_id: 'coverage', categories: [], enhancers: [], category_groups: [], semantics: {} }, null, '10001'];
   const effects = [], pending = [], componentExports = {}; let index = 0, effectIndex = 0;

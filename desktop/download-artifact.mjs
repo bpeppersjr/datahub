@@ -65,11 +65,11 @@ async function ensureDownloadDirectory(directory) {
 }
 
 export async function cleanupIfOwned(filePath, targetIdentity) {
-  if (!targetIdentity) return;
+  if (!targetIdentity || !Number.isFinite(targetIdentity.birthtimeMs)) return;
   try {
     const latest = await lstat(filePath);
     if (!latest.isFile() || latest.nlink !== 1) return;
-    if (latest.ino !== targetIdentity.ino || latest.dev !== targetIdentity.dev) return;
+    if (latest.ino !== targetIdentity.ino || latest.dev !== targetIdentity.dev || latest.birthtimeMs !== targetIdentity.birthtimeMs) return;
     await rm(filePath, { force: true });
   } catch {}
 }
@@ -150,7 +150,7 @@ export async function saveRunnerArtifact({ route, runnerUrl, controlToken, direc
         await once(targetStream, 'open');
         const opened = await fstatAsync(targetStream.fd);
         if (!opened.isFile() || opened.nlink !== 1) throw new Error('Artifact target is not a single-link file.');
-        targetIdentity = { ino: opened.ino, dev: opened.dev };
+        targetIdentity = { ino: opened.ino, dev: opened.dev, birthtimeMs: opened.birthtimeMs };
 
         await pipeline(Readable.fromWeb(response.body), targetStream);
         await verifyDirectoryIdentity();

@@ -2,7 +2,7 @@
 
 The state coverage view now distinguishes broad jurisdiction organization coverage from statewide license/permit coverage, local sources, and national sector sources. A state having NPPES, FMCSA, EPA, SNAP, FDIC, NCUA, or FSIS records does not mean Datahub has a broad state organization register or every active business in that state.
 
-`runner/business-state-source-readiness.mjs` pins policy version `1.0.0` for the 50 states and District of Columbia. It classifies each current state row as one of:
+`runner/business-state-source-readiness.mjs` pins policy version `1.3.0` for the 50 states and District of Columbia. It classifies each current state row as one of:
 
 - `broad-jurisdiction-organization-layer`;
 - `statewide-scoped-layer-only`;
@@ -10,12 +10,14 @@ The state coverage view now distinguishes broad jurisdiction organization covera
 - `national-sector-layers-only`; or
 - `outside-50-states-and-dc-peer-scope`.
 
-The current broad production organization layers are Colorado, Connecticut, Delaware, Florida, Iowa, New York, Oregon, and Pennsylvania. Alaska, California, District of Columbia, Texas, and Washington have statewide but license/permit-scoped layers without a broad layer. Illinois has Chicago evidence but no published statewide release. The remaining 37 jurisdictions have only national sector layers in the current production registry.
+For the national goal matrix's broad-evidence threshold, retained layers are Alaska, Colorado, Connecticut, Delaware, District of Columbia, Florida, Iowa, New York, Oregon, and Pennsylvania. The separate state-source-readiness classifier treats Alaska as statewide license-scoped; it now classifies D.C. as broad-jurisdiction organization evidence. California, Texas, and Washington remain statewide but license/permit-scoped in that classifier. Illinois has Chicago evidence but no published statewide release. The remaining 37 jurisdictions have only national sector layers in the current production registry. These are evidence-presence classifications, not production enrollment or complete business coverage.
 
-Against coverage release `national-business-coverage-views-20260902-115337634Z-ba689784`:
+D.C. admission uses `dc-basic-business-license-organization-evidence@1.0.0` over the exact retained `dc-basic-business-licenses-2026-09-07-70f09a6a032c9408` release. It represents source-defined Active Basic Business License Customer Number groups only: exempt businesses and other licensing regimes are outside scope, and a source `Active` status does not prove continuous operation. A Customer Number is a provisional organization/premise grouping; multiple activity rows remain assertions. Record-level outputs are local-review-only. Geocoding is reported only at source-profile level, not as a D.C.-premise or address-state rate, and quarantined counts are disclosed. D.C. all-business and active-business completeness remain null.
+
+Against coverage release `national-business-coverage-views-20260902-115337634Z-ba689784` (the retained production coverage view remains unchanged):
 
 - all 51 jurisdictions have some national-sector location evidence;
-- 8 have a broad production organization layer and 43 do not;
+- 8 have a broad production organization layer and 43 do not (this cited release predates the D.C. evidence admission below);
 - 7,981,531 source-preserving location profiles are reported in the 51-jurisdiction scope;
 - 994,523 have a source coordinate assigned to one governed county; and
 - the resulting coordinate-assignment ratio is 12.46%.
@@ -46,6 +48,6 @@ The [2026-09-03 five-state source revalidation](STATE-BUSINESS-SOURCE-REVALIDATI
 
 [Queue 8](STATE-BUSINESS-SOURCE-DISCOVERY-QUEUE-8.md) assessed Louisiana, Minnesota, Alabama, and Wisconsin concurrently. All four remain `HOLD` for their reviewed broad-registry products: the published material does not close the required product-scope, schema, identifier-lifecycle, address-role, change, automation, rights, and privacy gates.
 
-The current machine-validated catalog now covers all 50 states plus D.C. with exact per-state provenance. It reports 41 holds, two bounded-connector decisions (Alaska and D.C.), and eight production-ready retained broad layers (Colorado, Connecticut, Delaware, Florida, Iowa, New York, Oregon, and Pennsylvania). Production-ready here means the exact retained governed source is available to the current registry; it does not authorize autonomous acquisition or establish complete active-business coverage. All 51 catalog rows continue to authorize zero autonomous acquisitions.
+The current machine-validated catalog now covers all 50 states plus D.C. with exact per-state provenance. It reports 41 holds, two bounded-connector decisions (Alaska and D.C.), and eight production-ready retained broad layers (Colorado, Connecticut, Delaware, Florida, Iowa, New York, Oregon, and Pennsylvania). This separate catalog's `production_ready` count is not the same measure as the national goal matrix's broader retained-evidence admission: D.C. now qualifies there under the bounded licensing evidence contract, without becoming a production-ready broad registry. Neither status authorizes autonomous acquisition or establishes complete active-business coverage. All 51 catalog rows continue to authorize zero autonomous acquisitions.
 
 This readiness assessment changes no source release, registry release, coverage release, or production pointer.

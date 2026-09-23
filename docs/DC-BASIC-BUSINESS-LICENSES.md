@@ -14,6 +14,10 @@ Multiple rows can describe different licensed activities for the same `CUSTOMERN
 
 Premise addresses are parsed conservatively from the source's comma-delimited U.S. address. ZIP values remain source-reported and are joined to the governed Census ZBP/ZCTA union without being promoted to current USPS assignments. The source's `X_COORDINATE` and `Y_COORDINATE` fields are official DC Master Address Repository Maryland State Plane NAD83 meters. The connector converts them deterministically from EPSG:26985 to WGS84, retains both observations and the transformation version, and never fabricates coordinates for out-of-District or ungeocoded premises. DC's [coordinate-system standard](https://octo.dc.gov/am/page/coordinate-system-standards) and [MAR data dictionary](https://octo.dc.gov/sites/default/files/dc/sites/octo/publication/attachments/DCGIS_MarDataDictionary_0.pdf) document that projection.
 
+## National goal evidence boundary
+
+The exact retained source release `dc-basic-business-licenses-2026-09-07-70f09a6a032c9408` is admitted as `dc-basic-business-license-organization-evidence@1.0.0` for the matrix's broad-jurisdiction dataset-presence measure. This is intentionally narrower than a general business register: exempt businesses and other regimes are not represented, and source `Active` is not proof of continuous operation. `Customer Number` denotes a provisional organization/premise grouping, not a verified unique business or operating site. Multiple license activity records remain assertions. Record-level output stays local-review-only; source-level geocoding is not a D.C.-address-state geocode rate. The evidence contract exposes quarantine totals and conservation, while all-business and active-business completeness remain null. Admission does not enroll this source in a production plan or alter production pointers.
+
 ## Commands
 
 ```powershell
