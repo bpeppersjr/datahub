@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-32` after the governed organization ZIP evidence consumer was committed. Do not approve or execute this plan.
+
 Fresh governed planning completed after Co*Tive added and locally published the separate broad-organization ZIP evidence derivative. That immutable derivative replays eight already integrated state sources into source-native administrative-address evidence: 14,340,575 input records, 14,340,583 address rows, 9,940,777 eligible reported ZIP5 rows, and 4,399,806 explicitly retained missing/ineligible rows. It is not selected as a registry input, moves no current pointer, and asserts no unique business, physical site, current operation, USPS validity, or nationwide completeness. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-31`
