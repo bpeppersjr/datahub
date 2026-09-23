@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `5c476bd` added the verified in-app document-only inquiry proposal registry after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-55` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-56` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-56.md`.
+
 Fresh governed planning completed after implementation commit `f78629a`. That commit exposes the independently verified four-wave current-gap authorization chain inside Co*Tive Collector through a protected, read-only endpoint and management panel. It adds no approval or execution control and keeps actual data coverage distinct from packet coverage.
 
 - Run ID: `production-cms-directories-20260923-55`
