@@ -21,7 +21,7 @@ Immutable local-review alignment release `national-zip-business-alignment-202609
 
 All USPS assignment statuses remain unverified because this plan has no governed USPS assignment denominator. ZIP+4 remains a separate non-geometric field. All-business and active-business completion remain null rather than being inferred from employer establishments, source contribution, temporal status, or authorization state.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and SHA-256. Plan 47 and every earlier CMS directory plan or approval are superseded. No production execution occurred while preparing this plan.
+This document and plan do not constitute approval. Plan 48 was never executed and is superseded by Plan 49 after implementation commit `c2dc225` versioned the retained D.C. licensing-evidence admission and hardened download cleanup ownership checks. Plan 47 and every earlier CMS directory plan or approval remain superseded.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20260923-48 --expected-plan-sha256 6e34488a34a72ccdd1c52f161a4a43e0bbb396c61f53c3de60ffca979aef749f
