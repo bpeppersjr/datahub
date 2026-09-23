@@ -10,7 +10,7 @@ Status: **PROPOSED — NOT APPROVED — NO ACTION AUTHORIZED**
 - Current broad-layer evidence: 11 of 51 jurisdictions admitted; 40 unresolved data gaps
 - Packet status: all ten Wave 1 jurisdictions remain `approval-only` and `HOLD`
 
-This proposal does not approve or perform source contact, browsing, acquisition, payment, enrollment, account creation, terms acceptance, download, record search, enumeration, scraping, automation, connector work, production execution, publication, or pointer changes. It defines the exact next action that may be taken only after explicit approval naming this proposal ID and the committed document SHA-256.
+This proposal does not approve or perform source contact, browsing, acquisition, payment, enrollment, account creation, terms acceptance, row-bearing or business-data downloads, record search, enumeration, scraping, automation, connector work, production execution, publication, or pointer changes. It defines the exact next action that may be taken only after explicit approval naming this proposal ID and the committed document SHA-256.
 
 ## Proposed authorized action
 
@@ -22,7 +22,7 @@ If explicitly approved, Co*Tive's governed source-review workstream may:
 4. Retain the received documents and correspondence with source URL or sender, observation time, content hash, proposal ID, and state assessment linkage.
 5. Update the applicable source assessment to record evidence and unresolved gates. Every state remains `HOLD` unless a later, separately approved authorization clears the relevant gates.
 
-No row-bearing sample may be requested or retained under this proposal, even if offered. No purchase, enrollment, account creation, click-through acceptance, portal interaction requiring authentication, or automated retrieval is authorized.
+Bounded retrieval and retention of only the enumerated non-row-bearing documents and official response attachments is permitted after approval. No row-bearing sample or business-data product may be requested, opened, downloaded, or retained, even if offered. No purchase, enrollment, account creation, click-through acceptance, portal interaction requiring authentication, or automated retrieval is authorized.
 
 ## Required answers for every jurisdiction
 
@@ -121,4 +121,4 @@ Approval must name both the proposal ID and the committed SHA-256 of this docume
 
 `Approve wave-1-document-only-inquiry-20260923-01 with document SHA-256 <exact-sha256>.`
 
-Any approval that omits either value, names a different value, or adds broader authority is not executable. Approval authorizes only the document-only actions above. Row-bearing requests, downloads, payment, enrollment, account creation, terms acceptance, portal automation, connector development, acquisition, production, publication, and pointer changes require later, separate approvals.
+Any approval that omits either value, names a different value, or adds broader authority is not executable. Approval authorizes only the document-only actions above. Row-bearing requests, row-bearing or business-data downloads, payment, enrollment, account creation, terms acceptance, portal automation, connector development, acquisition, production, publication, and pointer changes require later, separate approvals.
