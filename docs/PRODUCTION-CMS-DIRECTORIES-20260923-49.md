@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded without execution by Plan 50 after implementation commit `61313fd` admitted retained Texas sales-tax permit outlet evidence. This plan is no longer eligible for approval or execution.
+
 Fresh governed planning completed after implementation commit `c2dc225`. Co*Tive now admits the already-retained District of Columbia Basic Business License cohort as broad jurisdiction licensing/organization evidence under a new versioned contract. It does not treat that cohort as an all-business denominator, verified unique-business master, or proof of continuous operation.
 
 - Run ID: `production-cms-directories-20260923-49`
