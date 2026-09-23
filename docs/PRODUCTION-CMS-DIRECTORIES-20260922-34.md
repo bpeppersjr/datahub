@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-35` after the national goal-completion geocode precision implementation changed. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive integrated an authenticated local-review consumer for the retained CMS nursing-home chain assertions. The panel verifies the fixed retained cohort on each request, preserves all 14,690 publisher assertion rows (including 4,574 rows with missing chain IDs), supports bounded opaque chain-ID and exact-CCN review, and exposes only minimized stable identifiers, hashes, dates, flags, and reconciliation evidence. It has no export or download. Publisher-reported shared ownership, officers, or operational/managerial control is not proof of legal parenthood, network identity, a unique business, a physical site, or current operation.
 
 - Run ID: `production-cms-directories-20260922-34`
