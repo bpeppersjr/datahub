@@ -11,7 +11,7 @@ function unavailable(status) {
   return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], selected: null };
 }
 
-export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT } = {}) {
+export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT, verifier = verifyNationalGoalCompletionMatrix, verifierOptions = {} } = {}) {
   const canonicalRoot = await realpath(path.resolve(root));
   const releases = path.join(canonicalRoot, "data", "national-goal-completion-matrix", "releases");
   let entries;
@@ -22,16 +22,16 @@ export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT }
   const directory = path.join(releases, candidates[0]);
   if (await realpath(directory) !== directory || !(await lstat(directory)).isDirectory()) throw new Error("Newest goal-completion matrix path is not canonical.");
   const manifestPath = path.join(directory, "manifest.json");
-  const verified = await verifyNationalGoalCompletionMatrix(manifestPath);
+  const verified = await verifier(manifestPath, { root: canonicalRoot, ...verifierOptions });
   const report=verified.schema_version==='national-goal-completion-matrix@1.0.0'?{...verified.report,jurisdictions:verified.report.jurisdictions.map(jurisdiction=>({...jurisdiction,categories:jurisdiction.categories.map(category=>({...category,dataset_availability:datasetAvailability(category.datasets)}))}))}:verified.report;
   return { report, manifestPath };
 }
 
-export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business" } = {}) {
+export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business", verifier = verifyNationalGoalCompletionMatrix, verifierOptions = {} } = {}) {
   if (state !== null && !STATE.test(state)) throw Object.assign(new Error("Invalid state selection."), { statusCode: 400 });
   if (!CATEGORY.test(category)) throw Object.assign(new Error("Invalid category selection."), { statusCode: 400 });
   let loaded;
-  try { loaded = await readNewestNationalGoalCompletionMatrix({ root }); } catch { return unavailable("newest-release-verification-failed"); }
+  try { loaded = await readNewestNationalGoalCompletionMatrix({ root, verifier, verifierOptions }); } catch { return unavailable("newest-release-verification-failed"); }
   if (!loaded) return unavailable("no-immutable-release");
   const { report } = loaded;
   const categoryIds = report.jurisdictions[0]?.categories.map((row) => row.category_id) ?? [];
