@@ -5,6 +5,7 @@ import CensusZbpIndustryHeatmap from './census-zbp-industry-heatmap';
 import CensusNonemployerCountyHeatmap from './census-nonemployer-county-heatmap';
 import OvertureHeatmapReadiness from './overture-heatmap-readiness';
 import NppesPharmacyHeatmap from './nppes-pharmacy-heatmap';
+import OrganizationZipEvidencePanel from './organization-zip-evidence-panel';
 
 import { useEffect, useMemo, useState, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
@@ -673,6 +674,7 @@ function BusinessEvidenceMap() {
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}
             </>}
           </section>
+          <OrganizationZipEvidencePanel zip5={inspectionZip} />
         </div>
         <EntitySummary feature={selectedFeature} category={activeCategory} stateSummary={stateSummary} stateFips={stateFips} selectedZip={selectedZip} geographyHash={data?.geography_manifest_sha256} mapRevision={data} />
       </div>}

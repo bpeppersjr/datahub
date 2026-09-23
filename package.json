@@ -26,6 +26,8 @@
     "business:export:verify": "node scripts/verify-flat-business-export.mjs",
     "broad-org-zip:build": "node scripts/build-broad-organization-zip-evidence.mjs",
     "broad-org-zip:verify": "node scripts/verify-broad-organization-zip-evidence.mjs",
+    "broad-org-zip:export": "node scripts/export-organization-zip-evidence.mjs",
+    "broad-org-zip:export:verify": "node scripts/verify-organization-zip-evidence-export.mjs",
     "connectors:check": "node scripts/check-connector-registry.mjs",
     "state-source-discovery:check": "node scripts/check-state-business-source-discovery.mjs",
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",

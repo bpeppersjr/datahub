@@ -29,6 +29,8 @@ import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
+import { organizationZipEvidenceReader } from './organization-zip-evidence-reader.mjs';
+import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
 import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
@@ -531,6 +533,15 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/zip-inspector') {
       await zipInspectorHttp(request, response, url, zipInspectorView, json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/organization-zip-evidence') {
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      request.once('aborted', abort);
+      response.once('close', () => { if (!response.writableEnded) abort(); });
+      try { await organizationZipEvidenceHttp(request, response, url, organizationZipEvidenceReader, json, controller.signal); }
+      finally { request.removeListener('aborted', abort); }
       return;
     }
 
