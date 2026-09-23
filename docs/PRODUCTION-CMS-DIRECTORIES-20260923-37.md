@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+**Superseded:** implementation commit `35c57e5` changed the repository after this plan was created. Do not approve or execute run 37; use the separately documented run 38 only if its exact current ID and SHA-256 are later approved.
+
 Fresh governed planning completed after Co*Tive added the immutable broad-organization acquisition backlog. Release `broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff` contains the exact 43 jurisdictions without production-ready broad layers and preserves their validated assessment evidence and authorization flags. Its first ten are AK, DC, IL, MS, AR, KY, HI, KS, NV, and UT. It records zero source actions, grants no acquisition authority, changes no pointer, and is not a source dataset or completeness claim.
 
 - Run ID: `production-cms-directories-20260923-37`
