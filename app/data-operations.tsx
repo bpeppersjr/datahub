@@ -16,6 +16,7 @@ import RetainedBusinessRefreshStatusCard, {type RetainedBusinessRefreshStatus} f
 import BroadOrganizationAuthorizationPacket from './broad-organization-authorization-packet';
 import BroadOrganizationAuthorizationProgram from './broad-organization-authorization-program';
 import BroadOrganizationCurrentAuthorizationChain from './broad-organization-current-authorization-chain';
+import DocumentOnlyInquiryProposalRegistry from './document-only-inquiry-proposal-registry';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -147,6 +148,7 @@ export default function DataOperations() {
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />
     <BroadOrganizationCurrentAuthorizationChain />
+    <DocumentOnlyInquiryProposalRegistry />
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}

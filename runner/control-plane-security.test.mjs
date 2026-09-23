@@ -168,6 +168,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/broad-organization-authorization-packet"],
     ["GET", "/api/data-operations/broad-organization-authorization-program"],
     ["GET", "/api/data-operations/broad-organization-current-authorization-chain"],
+    ["GET", "/api/data-operations/document-only-inquiry-proposals"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -271,6 +272,11 @@ test("protects every live management endpoint while leaving only narrow liveness
   const chainBodyRequest=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(chainBodyRequest.status,400);
   const chainOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/broad-organization-current-authorization-chain'});assert.equal(chainOptions.status,401);
   const chainPut=await rawRequest({port,hostHeader,method:'PUT',pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(chainPut.status,405);
+  const proposals=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposals.status,503);assert.equal(proposals.headers['cache-control'],'no-store');assert.match(proposals.body,/unavailable/);assert.equal(proposals.body.includes('WAVE-1'),false);
+  const proposalsQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals?wave=1',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposalsQuery.status,400);
+  const proposalsBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(proposalsBody.status,400);
+  const proposalsOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/document-only-inquiry-proposals'});assert.equal(proposalsOptions.status,401);
+  const proposalsPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposalsPost.status,405);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],
