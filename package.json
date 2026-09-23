@@ -35,6 +35,8 @@
     "broad-org-acquisition-backlog:verify": "node scripts/verify-broad-organization-acquisition-backlog.mjs",
     "broad-org-authorization-packet:build": "node scripts/build-broad-organization-authorization-packet.mjs",
     "broad-org-authorization-packet:verify": "node scripts/verify-broad-organization-authorization-packet.mjs",
+    "broad-org-authorization-program:build": "node scripts/build-broad-organization-authorization-program.mjs",
+    "broad-org-authorization-program:verify": "node scripts/verify-broad-organization-authorization-program.mjs",
     "state-source-validation-wave:check": "node scripts/check-state-business-source-validation-wave.mjs",
     "state-source-wave:check": "node scripts/check-state-business-source-assessment-wave.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
