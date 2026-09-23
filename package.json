@@ -33,6 +33,8 @@
     "state-source-assessments:check": "node scripts/check-state-business-source-assessments.mjs",
     "broad-org-acquisition-backlog:build": "node scripts/build-broad-organization-acquisition-backlog.mjs",
     "broad-org-acquisition-backlog:verify": "node scripts/verify-broad-organization-acquisition-backlog.mjs",
+    "broad-org-authorization-packet:build": "node scripts/build-broad-organization-authorization-packet.mjs",
+    "broad-org-authorization-packet:verify": "node scripts/verify-broad-organization-authorization-packet.mjs",
     "state-source-validation-wave:check": "node scripts/check-state-business-source-validation-wave.mjs",
     "state-source-wave:check": "node scripts/check-state-business-source-assessment-wave.mjs",
     "ma-childcare:preflight": "node scripts/preflight-ma-childcare.mjs",
