@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `48f76e3` added the protected, governed reported-organization ZIP evidence view after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-57` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-58` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-58.md`.
+
 Fresh governed planning completed after implementation commit `9d8a1f02cad8f46ea0acab6f50b91aa7320a14eb`. That commit adds an immutable, aggregate-only national geography goal-status release, a protected read-only API, and a Co*Tive management panel. The evidence independently replays the exact Census geography, ZCTA jurisdiction crosswalk, and ZIP summary inputs while keeping Census polygon completeness separate from the unverified USPS operational ZIP denominator.
 
 - Run ID: `production-cms-directories-20260923-57`
