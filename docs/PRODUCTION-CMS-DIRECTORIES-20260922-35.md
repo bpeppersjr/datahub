@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-36` after the goal-completion matrix schema and UI began distinguishing unmeasured cells from measured zero. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive corrected the national goal-completion matrix's geocode completion arithmetic. Dataset-presence percentages remain one-decimal measures, while geocode completion now uses exact integer counts and twelve-decimal half-up rounding. Incomplete cohorts cannot be serialized as 100%. The governed matrix release `national-goal-completion-20260923032141-ad887b33` reports FDIC at 99.983179142136% (77,272 of 77,285) and SNAP at 99.993652808632% (252,064 of 252,080). This status-only change does not alter registry, map, business, site, or source counts.
 
 - Run ID: `production-cms-directories-20260922-35`
