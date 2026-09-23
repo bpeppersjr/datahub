@@ -34,6 +34,12 @@ These are fixed-cohort observations, not permanent source invariants. No raw nam
 
 Remaining integration: a separately governed consumer may expose these source assertions or admit a versioned artifact with its own immutable manifest. That requires explicit integration and policy tests; this loader alone changes no application or registry behavior.
 
+## Authenticated local-review consumer
+
+`GET /api/local-review/cms-nursing-home-chains` is the distinct authenticated, loopback control-plane consumer. It accepts only an optional 1–64 digit opaque `chain_id`, exact six-character `ccn`, canonical bounded `offset` (0–25,000), and canonical `limit` (1–100); repeated or unknown parameters, leading-zero page values, and request bodies fail closed. Disconnects cancel the retained replay. Every request reuses the fixed retained verification above and returns at most the requested page—never a raw source row, filesystem path, public export, or download.
+
+The response exposes source-native chain name/ID/count values and their explicit missing/unresolved states, exact CCN, stable source IDs/hashes/row identifiers, observation dates, row flags, and group-count reconciliation. Page totals are assertion-row counts, not facility, site, network, or business totals. Conservation states all 14,690 retained rows, including 4,574 missing chain IDs and any unresolved IDs. The Co*Tive panel aborts stale requests and repeats the claim boundary: shared ownership, officers, or operational/managerial control is not legal parenthood, network identity, unique-business, physical-site, or current-operation proof. It has no export/download control and does not modify the registry, map, business totals, production plan, source acquisition, or network.
+
 ## Versioned local assertion view
 
 `cms-nursing-home-chain-assertions@1.0.0` is a separate in-memory consumer of this retained view. `loadCmsNursingHomeChainAssertions({signal?})` first runs the fixed retained-input verification above, then emits one immutable assertion row for every retained source row. It does not write files, call a network source, mutate the nursing projection, update national totals, change production pointers, or expose a public endpoint. `pageCmsNursingHomeChainAssertions(view, {chainId?, ccn?, offset?, limit?})` supports bounded local review; publisher chain IDs remain opaque strings.

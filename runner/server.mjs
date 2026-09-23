@@ -31,6 +31,8 @@ import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { organizationZipEvidenceReader } from './organization-zip-evidence-reader.mjs';
 import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
+import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
+import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
 import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
@@ -543,6 +545,13 @@ const server = http.createServer(async (request, response) => {
       response.once('close', () => { if (!response.writableEnded) abort(); });
       try { await organizationZipEvidenceHttp(request, response, url, organizationZipEvidenceReader, json, controller.signal); }
       finally { request.removeListener('aborted', abort); }
+      return;
+    }
+    if (url.pathname === '/api/local-review/cms-nursing-home-chains') {
+      const controller=new AbortController(),abort=()=>controller.abort();
+      request.once('aborted',abort);response.once('close',()=>{if(!response.writableEnded)abort();});
+      try{await cmsNursingHomeChainReviewHttp(request,response,url,cmsNursingHomeChainReview,json,controller.signal);}
+      finally{request.removeListener('aborted',abort);}
       return;
     }
 

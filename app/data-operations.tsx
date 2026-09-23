@@ -7,6 +7,7 @@ import ProductionRuns from './production-runs';
 import OvertureNormalization from './overture-normalization';
 import OvertureReadiness from './overture-readiness';
 import CmsHospitalAdoption from './cms-hospital-adoption';
+import CmsNursingHomeChainReview from './cms-nursing-home-chain-review';
 import CmsSnfPecosStatusCard, {type CmsSnfPecosStatus} from './cms-snf-pecos-status';
 import IaBusinessRegistryRefreshStatusCard, {type IaBusinessRegistryRefreshStatus} from './ia-business-registry-refresh-status';
 import OrBusinessRegistryRefreshStatusCard, {type OrBusinessRegistryRefreshStatus} from './or-business-registry-refresh-status';
@@ -143,6 +144,7 @@ export default function DataOperations() {
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
+    <CmsNursingHomeChainReview />
     <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find((source):source is CmsSnfPecosStatus=>source.sourceId==='cms-snf-pecos')}/>
     <IaBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is IaBusinessRegistryRefreshStatus=>source.sourceId==='ia-business-registry')}/>
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')}/>
