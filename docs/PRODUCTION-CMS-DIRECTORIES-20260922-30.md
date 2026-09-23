@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+Superseded by `production-cms-directories-20260922-31` after the broad-organization ZIP evidence derivative implementation changed the repository state. Do not execute this plan.
+
 Fresh governed planning completed after Co*Tive added an authenticated exact-ZIP evidence inspector to the Heatmap. The inspector joins coverage, registry ZIP-quality, and Census geography only when their selected release bindings agree. It distinguishes governed ZCTAs, ZIP evidence outside the polygon denominator, denominator-only rows, the explicit `00000` placeholder, and absence from selected evidence. It does not assert USPS operation or change registry inputs. Collector stop/restart restoration passed with one healthy listener.
 
 - Run ID: `production-cms-directories-20260922-30`
