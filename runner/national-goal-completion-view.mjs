@@ -1,7 +1,7 @@
 import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
+import { datasetAvailability, verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
 
 const RELEASE_ID = /^national-goal-completion-\d{14}-[a-f0-9]{8}$/;
 const CATEGORY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -23,7 +23,8 @@ export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT }
   if (await realpath(directory) !== directory || !(await lstat(directory)).isDirectory()) throw new Error("Newest goal-completion matrix path is not canonical.");
   const manifestPath = path.join(directory, "manifest.json");
   const verified = await verifyNationalGoalCompletionMatrix(manifestPath);
-  return { report: verified.report, manifestPath };
+  const report=verified.schema_version==='national-goal-completion-matrix@1.0.0'?{...verified.report,jurisdictions:verified.report.jurisdictions.map(jurisdiction=>({...jurisdiction,categories:jurisdiction.categories.map(category=>({...category,dataset_availability:datasetAvailability(category.datasets)}))}))}:verified.report;
+  return { report, manifestPath };
 }
 
 export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business" } = {}) {
@@ -37,7 +38,9 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
   if (!categoryIds.includes(category)) throw Object.assign(new Error("Category is not in the matrix denominator."), { statusCode: 400 });
   const jurisdictions = report.jurisdictions.map((jurisdiction) => {
     const cell = jurisdiction.categories.find((row) => row.category_id === category);
-    return { code: jurisdiction.code, name: jurisdiction.name, available: cell.dataset_availability.available, denominator: cell.dataset_availability.denominator, percent: cell.dataset_availability.percent, broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
+    return { code: jurisdiction.code, name: jurisdiction.name, available: cell.dataset_availability.available, denominator: cell.dataset_availability.denominator,
+      measured: cell.dataset_availability.measured, unmeasured: cell.dataset_availability.unmeasured, measurement_status: cell.dataset_availability.measurement_status,
+      percent: cell.dataset_availability.percent, broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
   });
   const selectedJurisdiction = state ? report.jurisdictions.find((row) => row.code === state) : null;
   if (state && !selectedJurisdiction) throw Object.assign(new Error("State is not in the 50-state and D.C. matrix."), { statusCode: 400 });

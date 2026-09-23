@@ -9,7 +9,9 @@ test("business-intelligence right summary exposes qualified matrix evidence and 
   assert.match(ui, /National business goal completion/);
   assert.match(ui, /All 50 states and D\.C\. for this category/);
   assert.match(ui, /All-business completion<\/dt><dd>Unknown/);
-  assert.match(ui, /measure governed dataset presence, not the share of U\.S\. businesses collected/);
+  assert.match(ui, /measured members; unmeasured members are shown separately/);
+  assert.match(ui, /all-unmeasured category has no percentage/);
+  assert.match(ui, /Available \/ measured/);
   assert.ok(ui.indexOf("<GoalCompletionSummary") < ui.indexOf("<DatasetRepresentation"));
   for (const context of ["Freshness:", "authorization:", "geocoded:", "Broad state-layer gaps"]) assert.ok(ui.includes(context), context);
 });
