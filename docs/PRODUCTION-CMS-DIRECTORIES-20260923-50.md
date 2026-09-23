@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> Superseded without execution by Plan 51 after implementation commit `d8e2a95` added the current-matrix broad-organization gap projection. This plan is no longer eligible for approval or execution.
+
 Fresh governed planning completed after implementation commit `61313fd`. Co*Tive now admits the already-retained Texas Active Sales Tax Permit Holders outlet cohort as broad jurisdiction licensing/organization evidence under a new versioned contract. It does not treat that cohort as an all-business denominator, a Secretary of State master, or proof of continuous operation.
 
 - Run ID: `production-cms-directories-20260923-50`
