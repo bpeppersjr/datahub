@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
 import { once } from "node:events";
 import { APP_ROOT } from "./paths.mjs";
-import { BROAD_ORGANIZATION_ZIP_DATASET as DATASET, BROAD_ORGANIZATION_ZIP_SCHEMA as SCHEMA, BROAD_ORGANIZATION_ZIP_SOURCES as SOURCES, BROAD_ORGANIZATION_ZIP_TRANSFORMATION as TRANSFORMATION, BROAD_ORGANIZATION_REGISTRY_RELEASE as REGISTRY_RELEASE } from "./broad-organization-zip-descriptors.mjs";
+import { BROAD_ORGANIZATION_ZIP_DATASET as DATASET, BROAD_ORGANIZATION_ZIP_SCHEMA as SCHEMA, BROAD_ORGANIZATION_ZIP_LEGACY_SCHEMA as LEGACY_SCHEMA, BROAD_ORGANIZATION_ZIP_SOURCES as SOURCES, BROAD_ORGANIZATION_ZIP_LEGACY_SOURCES as LEGACY_SOURCES, BROAD_ORGANIZATION_ZIP_TRANSFORMATION as TRANSFORMATION, BROAD_ORGANIZATION_ZIP_LEGACY_TRANSFORMATION as LEGACY_TRANSFORMATION, BROAD_ORGANIZATION_REGISTRY_RELEASE as REGISTRY_RELEASE } from "./broad-organization-zip-descriptors.mjs";
 
 const ARTIFACT_TYPE = "broad-organization-zip-jsonl-gzip";
 const missingShardPath = (state) => `derived/organizations/zip-prefix=missing/state=${state}.jsonl.gz`;
@@ -16,6 +16,7 @@ const MAX_RECORD_BYTES = 2_000_000;
 const MAX_SOURCE_RECORDS = 20_000_000;
 const MAX_DERIVED_ADDRESS_ROWS = 50_000_000;
 const ZIP5 = /^\d{5}$/;
+const US_STATE_AND_TERRITORY_CODES = new Set(["AL", "AK", "AS", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "GU", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "MP", "OH", "OK", "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "VI", "WA", "WV", "WI", "WY"]);
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const line = (value) => `${JSON.stringify(value)}\n`;
 const fail = (message) => { throw new Error(`Broad organization ZIP evidence rejected: ${message}`); };
@@ -50,7 +51,8 @@ async function readDataset(root, pointerRel, dataset, expectedRelease, publicati
   if (publicationContract) {
     publicationMatches = publicationContract.status_field_absent === true
       ? publicationContract.status === null && !Object.hasOwn(manifest, "status") && manifest.complete_source_snapshot === publicationContract.complete_source_snapshot
-      : manifest.status === publicationContract.status;
+      : manifest.status === publicationContract.status
+        && (publicationContract.complete_active_license_snapshot === undefined || manifest.complete_active_license_snapshot === publicationContract.complete_active_license_snapshot);
   }
   if (manifest.dataset_id !== dataset || manifest.release_id !== expectedRelease || !publicationMatches) fail(`${dataset} manifest identity or publication status drifted`);
   return { dataset, pointerRel, pointerPath, pointerBytes, pointer, manifestPath, manifestBytes, manifest, releaseDirectory: path.dirname(manifestPath) };
@@ -77,28 +79,32 @@ function descriptorAddress(spec, record) {
   if (!addresses.length) return [{ index: 0, address: null }];
   return addresses.map((address, index) => ({ index, address }));
 }
-function outputRows(state, spec, record) {
+function outputRows(state, spec, record, schema = SCHEMA) {
   if (record?.schema_version !== "1.0.0" || record.provenance?.source_id !== spec.normalizedSourceId || record.provenance?.source_release_id !== spec.sourceReleaseId || record.provenance?.transformation_version !== spec.transformation || !String(record.normalized_record_id ?? "").trim()) fail(`${state} normalized record source or transformation identity drifted`);
   if (typeof record[spec.nameField] !== "string" || !record[spec.nameField].trim()) fail(`${state} normalized record name is missing`);
   const kind = state === "OR" && record.registration_kind === "assumed-business-name-registration" ? "brand" : spec.recordKind;
   return descriptorAddress(spec, record).map(({ index, address }) => {
-    const eligible = address?.eligible_for_us_zip_coverage === true;
+    const eligible = spec.zipEligibilityMode === "reported-us-license-address"
+      ? address?.country === "US" && US_STATE_AND_TERRITORY_CODES.has(address?.state ?? "") && Boolean(address?.street?.trim()) && Boolean(address?.city?.trim()) && ZIP5.test(address?.zip_code ?? "")
+      : address?.eligible_for_us_zip_coverage === true;
     const zip5 = address?.zip_code ?? null;
     const partition = eligible && ZIP5.test(zip5 ?? "") ? zip5.slice(0, 2) : "missing";
     const reason = partition === "missing" ? !address ? "address-not-supplied" : !eligible ? "source-address-ineligible-for-ZIP-coverage" : !ZIP5.test(zip5 ?? "") ? "source-ZIP5-missing-or-invalid" : "source-address-not-eligible" : null;
     return {
-      schema_version: SCHEMA, row_id: `${record.normalized_record_id}:address:${index}`, state, record_kind: kind,
+      schema_version: schema, row_id: `${record.normalized_record_id}:address:${index}`, state, record_kind: kind,
       display_name: record[spec.nameField], address_field: spec.addressField, address_index: index,
       source_record: record, zip_partition: partition === "missing" ? "missing-or-ineligible" : "eligible-zip5-prefix",
-      zip_partition_reason: reason,
+      zip_partition_reason: partition === "missing" && spec.zipEligibilityMode === "reported-us-license-address" ? "source-reported-license-address-not-eligible-for-us-zip" : reason,
       zip_fields: { source_value: zip5, zip5: eligible && ZIP5.test(zip5 ?? "") ? zip5 : null, zip4: address?.zip4 ?? null, eligible_for_zip_partition: partition !== "missing" },
-      claims: { source_reported_administrative_address: true, physical_site: false, current_operation: false, unique_business: false, usps_validity: false, contributes_to_general_business_or_site_totals: false },
+      claims: state === "AK"
+        ? { source_reported_administrative_address: false, source_reported_license_physical_address: true, physical_site: false, provisional_site_asserted: false, current_operation: false, unique_business: false, usps_validity: false, contributes_to_general_business_or_site_totals: false }
+        : { source_reported_administrative_address: true, physical_site: false, current_operation: false, unique_business: false, usps_validity: false, contributes_to_general_business_or_site_totals: false },
       export_policy: spec.localReviewOnly ? "local-review-only" : record.export_policy ?? "source-policy-controlled",
     };
   });
 }
 
-async function loadInputs(root, signal) {
+async function loadInputs(root, signal, sourceSet = SOURCES, schema = SCHEMA) {
   cancelled(signal);
   const registry = await readDataset(root, "data/business-registry/current.json", "national-business-registry", REGISTRY_RELEASE);
   const summaryArtifacts = (registry.manifest.artifacts ?? []).filter((artifact) => artifact.path === "derived/source-contributions.json" && artifact.artifact_type === "registry-source-contribution-summary");
@@ -108,7 +114,7 @@ async function loadInputs(root, signal) {
   if (contributionProof.bytes !== summaryArtifacts[0].bytes || contributionProof.sha256 !== summaryArtifacts[0].sha256) fail("registry source-contribution summary failed integrity verification");
   const contributions = JSON.parse(await readFile(contributionPath, "utf8"));
   const specs = {};
-  for (const [state, spec] of Object.entries(SOURCES)) {
+  for (const [state, spec] of Object.entries(sourceSet)) {
     const source = await readDataset(root, spec.sourcePointer, spec.datasetId, spec.releaseId, spec.publicationContract);
     const dependency = (registry.manifest.dependencies ?? []).filter((item) => item.dataset_id === spec.datasetId);
     if (dependency.length !== 1 || dependency[0].release_id !== spec.releaseId || dependency[0].manifest_sha256 !== sha(source.manifestBytes)) fail(`${state} source does not match the pinned registry dependency`);
@@ -122,7 +128,7 @@ async function loadInputs(root, signal) {
     for (const artifact of artifacts) { cancelled(signal); await verifyArtifact(root, source.releaseDirectory, artifact, `${state}/${artifact.path}`, signal); }
     specs[state] = { state, spec, source, artifacts, contribution, policy, policyPath, policyBytes };
   }
-  return { registry, specs, summaryProof: { path: contributionPath, artifact: summaryArtifacts[0] } };
+  return { registry, specs, schema, summaryProof: { path: contributionPath, artifact: summaryArtifacts[0] } };
 }
 async function assertStableInputs(root, inputs, signal) {
   const datasets = [inputs.registry, ...Object.values(inputs.specs).map((entry) => entry.source)];
@@ -148,7 +154,7 @@ async function* expectedRows(inputs, signal, counters = {}) {
       let artifactRows = 0;
       for await (const record of gzipJsonl(path.join(entry.source.releaseDirectory, artifact.path), signal)) {
         cancelled(signal); artifactRows += 1; counters[state].input_records += 1;
-        for (const output of outputRows(state, entry.spec, record)) {
+        for (const output of outputRows(state, entry.spec, record, inputs.schema)) {
           counters[state].address_rows += 1; counters[state].record_kinds[output.record_kind] = (counters[state].record_kinds[output.record_kind] ?? 0) + 1;
           globalAddressRows += 1;
           if (globalAddressRows > MAX_DERIVED_ADDRESS_ROWS) fail(`derived address rows exceed the global ${MAX_DERIVED_ADDRESS_ROWS} row limit`);
@@ -165,7 +171,8 @@ function sourceContract(inputs) {
     dataset_id: e.spec.datasetId, normalized_source_id: e.spec.normalizedSourceId, registry_contribution_source_id: e.spec.registryContributionSourceId, source_release_id: e.spec.sourceReleaseId,
     publication_contract: e.spec.publicationContract,
     policy_id: e.policy.policy_id, policy_version: e.policy.version, address_field: e.spec.addressField,
-    name_field: e.spec.nameField, record_kind: e.spec.recordKind, identity_and_record_unit_semantics: e.contribution.identity_resolution,
+    name_field: e.spec.nameField, record_kind: e.spec.recordKind, identity_and_record_unit_semantics: e.spec.recordUnitSemantics ?? e.contribution.identity_resolution,
+    ...(e.spec.profileSourceId ? { profile_source_id: e.spec.profileSourceId } : {}),
     redistribution: e.policy.redistribution, field_export_policy: e.policy.field_export_policy ?? null,
   }]));
 }
@@ -216,12 +223,12 @@ export async function buildBroadOrganizationZipEvidence({ root = APP_ROOT, outpu
     await assertStableInputs(root, inputs, signal);
     const manifest = {
       schema_version: SCHEMA, dataset_id: DATASET, release_id: releaseId, status: "published", created_at: asOf.toISOString(),
-      connector: { id: DATASET, version: "1.0.0", transformation: TRANSFORMATION },
+      connector: { id: DATASET, version: "1.1.0", transformation: TRANSFORMATION },
       dependencies: { registry: { dataset_id: inputs.registry.manifest.dataset_id, release_id: inputs.registry.manifest.release_id, pointer_sha256: sha(inputs.registry.pointerBytes), manifest_sha256: sha(inputs.registry.manifestBytes) }, sources: pins },
       source_contract: sourceContract(inputs),
       conservation: { counts, input_record_total: Object.values(counts).reduce((n, c) => n + c.input_records, 0), address_row_total: Object.values(counts).reduce((n, c) => n + c.address_rows, 0), eligible_zip_row_total: Object.values(counts).reduce((n, c) => n + c.eligible_zip_rows, 0), missing_or_ineligible_row_total: Object.values(counts).reduce((n, c) => n + c.missing_or_ineligible_rows, 0) },
-      claims: { source_reported_administrative_address_only: true, physical_sites_asserted: false, current_operations_asserted: false, unique_businesses_asserted: false, usps_validity_asserted: false, contributes_to_general_business_or_site_totals: false, network_requests_performed: 0 },
-      limitations: ["Records preserve administrative source status and address semantics; no record is asserted to be a physical site, current operation, unique business, or USPS-valid ZIP.", "Oregon assumed business names remain separate brand records; ZIP5 and ZIP4 are preserved separately.", "Delaware record-level use remains subject to its local-review-only restriction.", "This derivative is additive neither to national totals nor the general business/site layers."],
+      claims: { source_reported_organization_or_registration_address_only: true, source_reported_license_physical_address_for_ak: true, physical_sites_asserted: false, current_operations_asserted: false, unique_businesses_asserted: false, usps_validity_asserted: false, contributes_to_general_business_or_site_totals: false, network_requests_performed: 0 },
+      limitations: ["Records preserve source-reported organization/registration addresses and Alaska license physical-address evidence; none is asserted to be a physical site, current operation, unique business, or USPS-valid ZIP.", "Alaska address contributions and its distinct provisional physical-site assertions are separate; this derivative emits organization-address evidence only.", "Oregon assumed business names remain separate brand records; ZIP5 and ZIP4 are preserved separately.", "Delaware and Alaska record-level use remains subject to local-review-only restrictions.", "This derivative is additive neither to national totals nor the general business/site layers."],
       artifacts,
     };
     cancelled(signal); await writeFileExclusive(path.join(staging, "manifest.json"), line(manifest));
@@ -239,8 +246,12 @@ async function* readGzipLines(file, signal) { yield* gzipJsonl(file, signal); }
 export async function verifyBroadOrganizationZipEvidence(releasePath, { root = APP_ROOT, signal } = {}) {
   const directory = path.resolve(root, releasePath); inside(root, directory, "release"); await noLink(root, directory, "release");
   const manifestPath = path.join(directory, "manifest.json"); await noLink(root, manifestPath, "manifest"); const manifestBytes = await readFile(manifestPath); const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  if (manifest.schema_version !== SCHEMA || manifest.dataset_id !== DATASET || manifest.status !== "published" || manifest.connector?.transformation !== TRANSFORMATION || manifest.claims?.physical_sites_asserted !== false || manifest.claims?.current_operations_asserted !== false || manifest.claims?.unique_businesses_asserted !== false || manifest.claims?.usps_validity_asserted !== false || manifest.claims?.contributes_to_general_business_or_site_totals !== false || manifest.claims?.network_requests_performed !== 0) fail("manifest contract or claim boundary drifted");
-  const inputs = await loadInputs(root, signal);
+  const legacy = manifest.schema_version === LEGACY_SCHEMA;
+  const schema = legacy ? LEGACY_SCHEMA : SCHEMA;
+  const transformation = legacy ? LEGACY_TRANSFORMATION : TRANSFORMATION;
+  if (manifest.schema_version !== schema || manifest.dataset_id !== DATASET || manifest.status !== "published" || manifest.connector?.transformation !== transformation || manifest.connector?.version !== (legacy ? "1.0.0" : "1.1.0") || manifest.claims?.physical_sites_asserted !== false || manifest.claims?.current_operations_asserted !== false || manifest.claims?.unique_businesses_asserted !== false || manifest.claims?.usps_validity_asserted !== false || manifest.claims?.contributes_to_general_business_or_site_totals !== false || manifest.claims?.network_requests_performed !== 0 || manifest.claims?.[legacy ? "source_reported_administrative_address_only" : "source_reported_organization_or_registration_address_only"] !== true) fail("manifest contract or claim boundary drifted");
+  const sourceSet = legacy ? LEGACY_SOURCES : SOURCES;
+  const inputs = await loadInputs(root, signal, sourceSet, schema);
   if (inputs.registry.manifest.release_id !== manifest.dependencies?.registry?.release_id || sha(inputs.registry.pointerBytes) !== manifest.dependencies?.registry?.pointer_sha256 || sha(inputs.registry.manifestBytes) !== manifest.dependencies?.registry?.manifest_sha256) fail("registry pin drifted");
   for (const [state, entry] of Object.entries(inputs.specs)) {
     const pin = manifest.dependencies?.sources?.[state];
@@ -250,7 +261,8 @@ export async function verifyBroadOrganizationZipEvidence(releasePath, { root = A
   const artifacts = manifest.artifacts;
   const missingStates = new Set(Object.keys(inputs.specs));
   const artifactPaths = new Set(Array.isArray(artifacts) ? artifacts.map((a) => a.path) : []);
-  if (!Array.isArray(artifacts) || artifacts.length > 108 || artifactPaths.size !== artifacts.length || artifacts.some((a) => a.artifact_type !== ARTIFACT_TYPE || !/^derived\/organizations\/zip-prefix=(?:\d{2}|missing\/state=(?:CO|CT|DE|FL|IA|NY|OR|PA))\.jsonl\.gz$/.test(a.path))) fail("output artifact set malformed");
+  const statePattern = [...missingStates].join("|");
+  if (!Array.isArray(artifacts) || artifacts.length > 109 || artifactPaths.size !== artifacts.length || artifacts.some((a) => a.artifact_type !== ARTIFACT_TYPE || !new RegExp(`^derived/organizations/zip-prefix=(?:\\d{2}|missing/state=(?:${statePattern}))\\.jsonl\\.gz$`).test(a.path))) fail("output artifact set malformed");
   for (const state of missingStates) if (!artifactPaths.has(missingShardPath(state))) fail(`missing/ineligible shard for ${state} is absent`);
   for (const artifact of artifacts) { cancelled(signal); const file = path.join(directory, artifact.path); await noLink(root, file, artifact.path); const actual = await hashFile(file, signal); if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) fail(`${artifact.path} output bytes/hash mismatch`); }
   const readers = new Map();

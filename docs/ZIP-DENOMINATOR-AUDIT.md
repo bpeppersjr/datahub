@@ -45,13 +45,13 @@ Immutable publisher-2.9 releases are not rewritten retroactively. Their split-fi
 
 ## Current read-only result
 
-Against the unchanged pointers on September 3, 2026, audit schema 1.1.0 produces deterministic audit ID `zip-denominator-audit-d48230b5f34ec2e88b360a25`.
+Against the current pointers on September 23, 2026, audit schema 1.2.0 produces deterministic audit ID `zip-denominator-audit-5d4eb9cf1e530323b2d8f22f` and passes both applicable registry contracts.
 
 | Cohort | Publisher | ZIP5 rows | Governed ZCTA members | Source ZIP5 outside ZCTA | Unverified USPS | Missing reason | Missing alias | Missing `zip4` | Contract |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| Production current | 2.9.0 | 48,217 | 33,791 | 14,385 | 48,217 | 4,607 | Not evaluated | Not evaluated | Passed under legacy contract; gaps retained |
-| Isolated postal candidate | 2.10.0 | 48,190 | 33,791 | 14,358 | 48,190 | 4,604 | 48,190 | 48,190 | Failed; rebuild required |
+| Production current | 2.15.0 | 48,194 | 33,791 | 14,361 | 48,194 | 0 | 0 | 0 | Passed with unresolved USPS proof gap |
+| Retained postal candidate | 2.11.0 | 48,190 | 33,791 | 14,357 | 48,190 | 0 | 0 | 0 | Passed with unresolved USPS proof gap |
 
-Both cohorts have the same governed ZCTA member-set SHA-256, `dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f`, pinned to geography release `us-census-geography-20260830-132803990Z-3629abc0`. Production contains 29 ZIP5 rows absent from the candidate, while the candidate contains two absent from production; the report preserves their exact set hashes and values when not run in summary-only mode.
+Both cohorts have the same governed ZCTA member-set SHA-256, `dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f`, pinned to geography release `us-census-geography-20260830-132803990Z-3629abc0`. Production contains four ZIP5 rows absent from the candidate (`01065`, `01385`, `02363`, and `45730`); the candidate contains none absent from production. The report preserves the exact set hashes and values when not run in summary-only mode.
 
 All registry ZIP rows remain operationally `unverified` because neither release integrates a governed authoritative current USPS operational ZIP dependency. Census ZCTA membership is official statistical-polygon evidence, not a USPS delivery-boundary or current routing assertion. Source-reported ZIP5 values outside the ZCTA set remain source evidence only, and no ZIP+4 geometry is created.
