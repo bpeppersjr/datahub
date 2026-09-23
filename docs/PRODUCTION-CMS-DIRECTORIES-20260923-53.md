@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `eceaf21` completed the four-wave current-gap authorization chain after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-53` was never executed and must not be approved or used. It is replaced by run `production-cms-directories-20260923-54` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-54.md`.
+
 Fresh governed planning completed after implementation commit `c161ef7`. That commit extends the separately versioned authorization-wave publisher to a second ten-state current-gap wave, chained to the verified first wave and granting no collection, network, or publication authority.
 
 - Run ID: `production-cms-directories-20260923-53`
