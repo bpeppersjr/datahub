@@ -171,6 +171,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/document-only-inquiry-proposals"],
     ["GET", "/api/data-operations/national-geography-goal-status"],
     ["GET", "/api/data-operations/reported-organization-zip-evidence-status"],
+    ["GET", "/api/data-operations/zip-denominator-delta-review"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -289,6 +290,11 @@ test("protects every live management endpoint while leaving only narrow liveness
   const organizationZipStatusBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/reported-organization-zip-evidence-status',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(organizationZipStatusBody.status,400);
   const organizationZipStatusOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/reported-organization-zip-evidence-status'});assert.equal(organizationZipStatusOptions.status,401);
   const organizationZipStatusPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/reported-organization-zip-evidence-status',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(organizationZipStatusPost.status,405);
+  const zipDelta=await rawRequest({port,hostHeader,pathname:'/api/data-operations/zip-denominator-delta-review',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(zipDelta.status,503);assert.equal(zipDelta.headers['cache-control'],'no-store');assert.match(zipDelta.body,/unavailable/);assert.equal(zipDelta.body.includes('manifest.json'),false);assert.equal(zipDelta.body.includes(root),false);
+  const zipDeltaQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/zip-denominator-delta-review?zip=01065',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(zipDeltaQuery.status,400);assert.equal(zipDeltaQuery.headers['cache-control'],'no-store');
+  const zipDeltaBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/zip-denominator-delta-review',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(zipDeltaBody.status,400);
+  const zipDeltaOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/zip-denominator-delta-review'});assert.equal(zipDeltaOptions.status,401);
+  const zipDeltaPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/zip-denominator-delta-review',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(zipDeltaPost.status,405);
 
   for (const [suffix, state, category, limit] of [
     ["?state=47", "47", "childcare", 25],

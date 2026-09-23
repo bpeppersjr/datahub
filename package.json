@@ -156,6 +156,8 @@
     "fmcsa:verify": "node scripts/verify-fmcsa-company-census.mjs",
     "postal-migration:status": "node scripts/check-normalized-us-postal-migration.mjs --allow-pending",
     "zip-denominator:audit": "node scripts/audit-zip-denominator.mjs",
+    "zip-denominator:delta:build": "node scripts/build-zip-denominator-delta-review.mjs",
+    "zip-denominator:delta:verify": "node scripts/verify-zip-denominator-delta-review.mjs",
     "source-temporal:audit": "node scripts/audit-business-source-temporal-status.mjs",
     "source-temporal:conservation": "node scripts/audit-business-temporal-conservation.mjs",
     "postal-migration:candidates": "node scripts/check-normalized-us-postal-migration.mjs --candidates --allow-pending",

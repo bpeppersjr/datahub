@@ -43,6 +43,8 @@ import { nationalGeographyGoalStatusHttp } from './national-geography-goal-statu
 import { loadNationalGeographyGoalStatusView } from './national-geography-goal-status-view.mjs';
 import { reportedOrganizationZipEvidenceStatusHttp } from './reported-organization-zip-evidence-status-http.mjs';
 import { loadReportedOrganizationZipEvidenceStatusView } from './reported-organization-zip-evidence-status.mjs';
+import { zipDenominatorDeltaReviewHttp } from './zip-denominator-delta-review-http.mjs';
+import { loadZipDenominatorDeltaReviewView } from './zip-denominator-delta-review-view.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -271,7 +273,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review') {
       response.writeHead(204);
       response.end();
       return;
@@ -309,6 +311,7 @@ const server = http.createServer(async (request, response) => {
         await reportedOrganizationZipEvidenceStatusHttp(request, response, url, loadReportedOrganizationZipEvidenceStatusView, json);
         return;
       }
+      if (url.pathname === '/api/data-operations/zip-denominator-delta-review') { await zipDenominatorDeltaReviewHttp(request,response,url,loadZipDenominatorDeltaReviewView,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

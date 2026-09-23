@@ -19,6 +19,7 @@ import BroadOrganizationCurrentAuthorizationChain from './broad-organization-cur
 import DocumentOnlyInquiryProposalRegistry from './document-only-inquiry-proposal-registry';
 import NationalGeographyGoalStatus from './national-geography-goal-status';
 import ReportedOrganizationZipEvidenceStatus from './reported-organization-zip-evidence-status';
+import ZipDenominatorDeltaReview from './zip-denominator-delta-review';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -153,6 +154,7 @@ export default function DataOperations() {
     <DocumentOnlyInquiryProposalRegistry />
     <NationalGeographyGoalStatus />
     <ReportedOrganizationZipEvidenceStatus />
+    <ZipDenominatorDeltaReview />
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}

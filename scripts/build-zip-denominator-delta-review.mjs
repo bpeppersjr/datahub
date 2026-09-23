@@ -1,0 +1,2 @@
+import { buildZipDenominatorDeltaReview,verifyZipDenominatorDeltaReview } from '../runner/zip-denominator-delta-review.mjs';
+try{if(process.argv.length!==2)throw Error();const built=await buildZipDenominatorDeltaReview();const verified=await verifyZipDenominatorDeltaReview(`${built.releaseDirectory}/manifest.json`);process.stdout.write(`${JSON.stringify(verified)}\n`)}catch{process.stderr.write('ZIP denominator delta review build failed.\n');process.exitCode=1}
