@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 22, 2026
 
+> Superseded by `production-cms-directories-20260922-34` after the governed CMS nursing-home chain local-review consumer was integrated. Do not approve or execute this plan.
+
 Fresh governed planning completed after Co*Tive integrated the fixed-release organization ZIP evidence export into its managed-operation interface. Users can now select one exact ZIP5, an optional publisher jurisdiction, explicit public-only or local-review policy, and CSV, JSONL, or both. The operation shares Co*Tive's global operation slot, is cancellation- and restart-safe, independently replays the pinned source before success and again before every download, and exposes no artifact unless verification succeeds. These administrative address rows remain separate from business profiles, physical sites, current-operation claims, map totals, and the Minnesota credential exporter.
 
 - Run ID: `production-cms-directories-20260922-33`
