@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `6ea4262` added the current ten-state authorization wave after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-51` was never executed and must not be approved or used. It is replaced by run `production-cms-directories-20260923-52` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-52.md`.
+
 Fresh governed planning completed after implementation commit `d8e2a95`. That commit adds a separately versioned, immutable projection of the 40 current broad-organization matrix gaps while preserving the historical 43-jurisdiction acquisition backlog and authorization program unchanged.
 
 - Run ID: `production-cms-directories-20260923-51`
