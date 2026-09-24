@@ -1,0 +1,7 @@
+{
+  "dataset_id": "national-snap-retailer-industry-coverage",
+  "release_id": "national-snap-retailer-industry-coverage-515f0b15bc44ec5f",
+  "status": "published-governed-aggregate",
+  "manifest": "releases/national-snap-retailer-industry-coverage-515f0b15bc44ec5f/manifest.json",
+  "manifest_sha256": "19b2019fc67dffc6176ad2a5638ae81fea92140a80c82aa06a4103a66707e428"
+}

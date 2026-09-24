@@ -1,0 +1,75 @@
+{
+  "schema_version": "national-snap-retailer-industry-coverage@1.0.0",
+  "dataset_id": "national-snap-retailer-industry-coverage",
+  "contracts": {
+    "config/connectors/national-snap-retailer-industry-coverage.json": "b2d31db71dab21e191ad3639554e2ab8c7b31e88a80ea404990a6d47c5f15380",
+    "config/datasets/national-snap-retailer-industry-coverage.json": "baf2d198c0012ef8014143d1780ea50414f61722896fd19aee0f8fdb8fa5d01c",
+    "config/schemas/national-snap-retailer-industry-coverage.schema.json": "bf045ae9aa5fbadd43cabcdf890e4eaf64e52a77f4e51c5e3f5326b8fe0d9d9f",
+    "config/source-policies/national-snap-retailer-industry-coverage.json": "f2b4f98326c5c527f37bd21c20f832a9ddf735954618cb40eb74e4b42b403686"
+  },
+  "industry": {
+    "label": "SNAP-authorized retailer locations",
+    "classification_system": "USDA SNAP Store Type",
+    "store_types": [
+      "Convenience Store",
+      "Farmers and Markets",
+      "Grocery Store",
+      "Other",
+      "Restaurant Meals Program",
+      "Specialty Store",
+      "Super Store",
+      "Supermarket"
+    ]
+  },
+  "source": {
+    "dataset_id": "usda-snap-retailers",
+    "release_id": "usda-snap-retailers-20260903-004744483Z-17748dbd",
+    "source_release_id": "usda-snap-20260819T174009953Z",
+    "source_updated_at": "2026-08-19T17:40:09.953Z",
+    "pointer_sha256": "141f81a4fb471fba61bb5ff37fd4920b58870272827b3c436d2b59ab72a67442",
+    "manifest_sha256": "64d427ac5eaad16b31d85b99f21662465f30d9a1a6af68ee3a9e7595bf04842b",
+    "zip_union_artifact_sha256": "c1636f85be3914ffd54d9e502d04c996a5362863056c51ba8c8b1b97ee7f8e43"
+  },
+  "geography": {
+    "dataset_id": "us-census-geography",
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "zcta_count": 33791
+  },
+  "coverage": {
+    "authorized_retailer_location_count": 252080,
+    "reported_zip4_count": 224257,
+    "retained_coordinate_count": 252080,
+    "source_positive_zip5_count": 23957,
+    "zip5_union_rows": 37872,
+    "positive_zip5_rows": 23957,
+    "denominator_only_zip5_rows": 13915,
+    "jurisdiction_rows": 53,
+    "state_dc_location_count": 251752,
+    "territory_location_count": 328,
+    "zero_location_jurisdictions": 0,
+    "store_type_counts": {
+      "Convenience Store": 111247,
+      "Farmers and Markets": 7158,
+      "Grocery Store": 21809,
+      "Other": 57713,
+      "Restaurant Meals Program": 8418,
+      "Specialty Store": 5484,
+      "Super Store": 20637,
+      "Supermarket": 19614
+    }
+  },
+  "claims": {
+    "snap_authorized_as_of_source_update": true,
+    "current_operation": null,
+    "all_grocery_retailers": false,
+    "unique_business": null,
+    "nationwide_completeness": false,
+    "additive_to_generic_totals": false,
+    "store_type_system": "USDA SNAP Store Type",
+    "zip4_separate_from_zip5": true,
+    "new_business_geometry_created": false
+  },
+  "export_policy": "governed-aggregate-only"
+}

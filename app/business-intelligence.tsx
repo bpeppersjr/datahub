@@ -182,6 +182,13 @@ type ZipInspection = {
     claims?: { current_operation?: null; physical_site?: boolean; unique_business?: null; licensed_pharmacy?: null; nationwide_completeness?: boolean };
     limitations?: string[];
   };
+  snap_retailer_evidence: null | {
+    zip_code: string; evidence_scope: string;
+    authorized_retailer_location_count: number; reported_zip4_count: number; retained_coordinate_count: number;
+    store_type_counts: Record<string, number>;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null };
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -737,6 +744,14 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.pharmacy_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.pharmacy_evidence.source?.release_id ?? zipInspection.pharmacy_evidence.source?.source_release_id ?? 'not supplied'}{zipInspection.pharmacy_evidence.source?.source_through_date ? ` · through ${zipInspection.pharmacy_evidence.source.source_through_date}` : ''}.</p>
                 <p>These are source-reported aggregate address and NPI facts, not generic business totals, verified physical sites, unique businesses, licensed pharmacies, current operations, or nationwide completeness.</p>
                 {zipInspection.pharmacy_evidence.limitations?.map((item) => <p key={item}>{item}</p>)}
+              </section>}
+              {zipInspection.snap_retailer_evidence && <section className="category-zip-evidence" aria-label={`SNAP retailer evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>SNAP-authorized retailer evidence</h4>
+                <p>{zipInspection.snap_retailer_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Authorized retailer-location records</dt><dd>{count(zipInspection.snap_retailer_evidence.authorized_retailer_location_count)}</dd></div><div><dt>Rows with separate ZIP+4</dt><dd>{count(zipInspection.snap_retailer_evidence.reported_zip4_count)}</dd></div><div><dt>Rows with retained coordinates</dt><dd>{count(zipInspection.snap_retailer_evidence.retained_coordinate_count)}</dd></div></dl>
+                <p>{Object.entries(zipInspection.snap_retailer_evidence.store_type_counts).filter(([,value])=>value>0).map(([label,value])=>`${label}: ${count(value)}`).join(' · ') || 'No retailer in the retained source snapshot.'}</p>
+                <p>Source {zipInspection.snap_retailer_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.snap_retailer_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>Separate, non-additive USDA SNAP authorization evidence; not all grocery retail, unique businesses, proof of current operation, or completeness.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

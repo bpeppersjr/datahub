@@ -1,0 +1,2 @@
+import { buildNationalSnapRetailerIndustryCoverage } from '../runner/national-snap-retailer-industry-coverage.mjs';
+try{const r=await buildNationalSnapRetailerIndustryCoverage();process.stdout.write(`${JSON.stringify({release_id:r.manifest.release_id,manifest_sha256:r.manifestSha256,coverage:r.coverage})}\n`)}catch(error){process.stderr.write(`National SNAP retailer industry coverage build failed: ${error.message}\n`);process.exitCode=1}

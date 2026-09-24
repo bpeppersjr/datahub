@@ -1,0 +1,13 @@
+{
+  "dataset_id": "national-snap-retailer-industry-coverage",
+  "description": "Immutable governed coverage projection of retained USDA SNAP-authorized retailer locations by jurisdiction and ZIP5.",
+  "runtime_pointer": "data/national-snap-retailer-industry-coverage/current.json",
+  "required_datasets": ["usda-snap-retailers", "us-census-geography"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "additive_to_generic_business_totals": false,
+  "completeness_claim": false,
+  "current_operation_claim": false,
+  "unique_business_claim": false,
+  "documentation": "docs/NATIONAL-SNAP-RETAILER-INDUSTRY-COVERAGE.md",
+  "source_policy": "config/source-policies/national-snap-retailer-industry-coverage.json"
+}

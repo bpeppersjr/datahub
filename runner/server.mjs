@@ -48,6 +48,9 @@ import { loadZipDenominatorDeltaReviewView } from './zip-denominator-delta-revie
 import { lookupNationalPharmacyIndustryZip5 } from './national-pharmacy-industry-coverage.mjs';
 import { nationalPharmacyIndustryCoverageStatusHttp } from './national-pharmacy-industry-coverage-status-http.mjs';
 import { loadNationalPharmacyIndustryCoverageStatus } from './national-pharmacy-industry-coverage-status.mjs';
+import { lookupNationalSnapRetailerIndustryZip5 } from './national-snap-retailer-industry-coverage.mjs';
+import { nationalSnapRetailerIndustryCoverageStatusHttp } from './national-snap-retailer-industry-coverage-status-http.mjs';
+import { loadNationalSnapRetailerIndustryCoverageStatus } from './national-snap-retailer-industry-coverage-status.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -168,6 +171,9 @@ const businessMap = createBusinessMapStore();
 const zipInspectorView = createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage: async ({ zip }) => {
   const result = await lookupNationalPharmacyIndustryZip5(zip);
   return result.row ? { ...result.row, source: { dataset_id: 'national-pharmacy-industry-coverage', release_id: result.verified.release_id } } : null;
+}, snapRetailerCoverage: async ({ zip }) => {
+  const result = await lookupNationalSnapRetailerIndustryZip5(zip);
+  return result.row ? { ...result.row, source: { dataset_id: 'national-snap-retailer-industry-coverage', release_id: result.verified.release_id } } : null;
 } });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
@@ -279,7 +285,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -319,6 +325,7 @@ const server = http.createServer(async (request, response) => {
       }
       if (url.pathname === '/api/data-operations/zip-denominator-delta-review') { await zipDenominatorDeltaReviewHttp(request,response,url,loadZipDenominatorDeltaReviewView,json); return; }
       if (url.pathname === '/api/data-operations/national-pharmacy-industry-coverage-status') { await nationalPharmacyIndustryCoverageStatusHttp(request,response,url,loadNationalPharmacyIndustryCoverageStatus,json); return; }
+      if (url.pathname === '/api/data-operations/national-snap-retailer-industry-coverage-status') { await nationalSnapRetailerIndustryCoverageStatusHttp(request,response,url,loadNationalSnapRetailerIndustryCoverageStatus,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

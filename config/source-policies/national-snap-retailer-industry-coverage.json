@@ -1,0 +1,13 @@
+{
+  "policy_id": "national-snap-retailer-industry-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained USDA SNAP authorized-retailer evidence",
+  "ownership": "USDA FNS owns the source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local coverage review", "SNAP retailer access analysis", "ZIP5 evidence inspection", "redistribution with USDA attribution and claim limits"],
+  "prohibited_use": ["adding records to generic business, entity, site, category, or export totals", "claiming all grocery retailers", "claiming unique businesses", "claiming current operation", "claiming nationwide completeness", "relabeling USDA store types as NAICS"],
+  "attribution": "Source: USDA Food and Nutrition Service SNAP retailer locator; retain source release, update timestamp, and checksums.",
+  "retention": "Retain immutable aggregate releases with dependency pins.",
+  "redistribution": "Allowed only with source-bounded SNAP authorization semantics, provenance, and limitations.",
+  "personal_data_handling": "Aggregate counts only; no retailer names or street addresses are copied.",
+  "export_policy": "governed-aggregate-only"
+}
