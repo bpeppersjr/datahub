@@ -1,0 +1,20 @@
+{
+  "policy_id": "national-fsis-active-establishment-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained USDA FSIS active MPI directory evidence",
+  "ownership": "USDA FSIS publishes source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay", "aggregate jurisdiction and ZIP5 coverage", "bounded source activity and active-grant counts"],
+  "prohibited_use": [
+    "network acquisition",
+    "generic business total addition",
+    "publishing names, other names, addresses, phones, coordinates, geometry, establishment identifiers, record identifiers, or raw records",
+    "claiming all food businesses, all inspected businesses, current operations beyond source directory membership, physical public access, current hours, ownership, or nationwide completeness",
+    "joining ZIP5 and ZIP4 or treating Census ZCTA membership as USPS validity"
+  ],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins.",
+  "redistribution": "Governed aggregates only with USDA FSIS attribution, source date, provenance, and limitations.",
+  "personal_data_handling": "Aggregate counts only; all record-level names, addresses, phones, identifiers, and coordinates are prohibited.",
+  "privacy_warning": "No names, contact details, addresses, coordinates, geometry, identifiers, or individual records may be exported.",
+  "attribution": "Source: USDA Food Safety and Inspection Service Meat, Poultry and Egg Product Inspection Directory and Establishment Demographic Data."
+}

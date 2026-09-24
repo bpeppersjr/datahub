@@ -217,6 +217,14 @@ type ZipInspection = {
     zcta_membership: { status: string; geoid: string | null };
     source?: { dataset_id?: string | null; release_id?: string | null; cycle_date?: string | null; retrieved_at?: string | null }; attribution?: string;
   };
+  fsis_active_establishment_evidence: null | {
+    zip_code: string; evidence_scope: string; active_establishment_count: number;
+    reported_zip4_count: number; retained_coordinate_count: number; missing_coordinate_count: number;
+    record_zcta_count: number; record_nonpolygon_count: number;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
+    attribution?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -811,6 +819,14 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.ncua_credit_union_location_evidence.source?.dataset_id ?? 'not supplied'} · cycle {zipInspection.ncua_credit_union_location_evidence.source?.cycle_date ?? 'not supplied'} · retrieved {zipInspection.ncua_credit_union_location_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.ncua_credit_union_location_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.ncua_credit_union_location_evidence.attribution ?? 'Source: National Credit Union Administration quarterly data.'}</p>
                 <p>Separate, non-additive evidence; not all credit unions, unique businesses, current operations, public access, verified physical sites, service availability, USPS validity, or nationwide completeness.</p>
+              </section>}
+              {zipInspection.fsis_active_establishment_evidence && <section className="category-zip-evidence" aria-label={`USDA FSIS active-establishment evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>USDA FSIS source-defined active establishment evidence</h4>
+                <p>{zipInspection.fsis_active_establishment_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Active-directory establishment records</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.active_establishment_count)}</dd></div><div><dt>Records with separate ZIP+4</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.reported_zip4_count)}</dd></div><div><dt>Records with source coordinates</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.retained_coordinate_count)}</dd></div><div><dt>Records missing source coordinates</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.missing_coordinate_count)}</dd></div><div><dt>Same-code ZCTA records</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.record_zcta_count)}</dd></div><div><dt>Nonpolygon records</dt><dd>{count(zipInspection.fsis_active_establishment_evidence.record_nonpolygon_count)}</dd></div></dl>
+                <p>Source {zipInspection.fsis_active_establishment_evidence.source?.dataset_id ?? 'not supplied'} · source date {zipInspection.fsis_active_establishment_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.fsis_active_establishment_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.fsis_active_establishment_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.fsis_active_establishment_evidence.attribution ?? 'Source: USDA Food Safety and Inspection Service.'}</p>
+                <p>Separate, non-additive evidence; not all food businesses, unique businesses, current operation beyond source directory membership, physical public access, current hours, ownership, USPS validity, or nationwide completeness. Coordinates and geometry are not exposed.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

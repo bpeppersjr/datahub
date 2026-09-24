@@ -25,6 +25,7 @@ import NationalSnapRetailerIndustryCoverageStatus from './national-snap-retailer
 import NationalFmcsaRegistrantPrincipalOfficeCoverageStatus from './national-fmcsa-registrant-principal-office-coverage-status';
 import NationalFdicBankfindCoverageStatus from './national-fdic-bankfind-coverage-status';
 import NationalNcuaCreditUnionCoverageStatus from './national-ncua-credit-union-coverage-status';
+import NationalFsisActiveEstablishmentCoverageStatus from './national-fsis-active-establishment-coverage-status';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -165,6 +166,7 @@ export default function DataOperations() {
     <NationalFmcsaRegistrantPrincipalOfficeCoverageStatus />
     <NationalFdicBankfindCoverageStatus />
     <NationalNcuaCreditUnionCoverageStatus />
+    <NationalFsisActiveEstablishmentCoverageStatus />
     <RefreshSchedules catalog={catalog} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}

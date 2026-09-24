@@ -1,0 +1,16 @@
+{
+  "dataset_id": "national-fsis-active-establishment-coverage",
+  "schema_version": "1.0.0",
+  "title": "USDA FSIS source-defined active establishment coverage",
+  "status": "implemented-release-only",
+  "description": "Governed retained-only aggregate of one complete current FSIS active MPI directory release.",
+  "runtime_pointer": "data/national-fsis-active-establishment-coverage/current.json",
+  "connector": "config/connectors/national-fsis-active-establishment-coverage.json",
+  "required_datasets": ["fsis-active-mpi-establishments", "us-census-geography"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "establishment_record_measure_additive_across_geographies": true,
+  "additive_to_generic_business_totals": false,
+  "completeness_claim": false,
+  "documentation": "docs/NATIONAL-FSIS-ACTIVE-ESTABLISHMENT-COVERAGE.md",
+  "source_policy": "config/source-policies/national-fsis-active-establishment-coverage.json"
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-fsis-active-establishment-coverage.schema.json",
+  "title": "USDA FSIS governed active-establishment coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "active_establishment_count", "reported_zip4_count", "retained_coordinate_count", "missing_coordinate_count", "record_zcta_count", "record_nonpolygon_count", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-fsis-active-establishment-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "active_establishment_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_count": {"type": "integer", "minimum": 0},
+    "retained_coordinate_count": {"type": "integer", "minimum": 0},
+    "missing_coordinate_count": {"type": "integer", "minimum": 0},
+    "record_zcta_count": {"type": "integer", "minimum": 0},
+    "record_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "claims": {"$ref": "#/$defs/claims"},
+    "evidence_scope": {"enum": ["positive-fsis-active-establishment-evidence", "denominator-only"]},
+    "zcta_membership": {"type": "object", "additionalProperties": false, "required": ["status", "geoid"], "properties": {"status": {"enum": ["2020-zcta-polygon-available", "no-2020-zcta-polygon"]}, "geoid": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"}}},
+    "dataset_id": {"const": "national-fsis-active-establishment-coverage"},
+    "contracts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "source_date": {"const": "2026-08-24"},
+    "source": {"$ref": "#/$defs/source"},
+    "geography": {"$ref": "#/$defs/geography"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "reported_activity_counts": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "integer", "minimum": 0}},
+    "active_grant_counts": {"type": "object", "additionalProperties": false, "required": ["egg", "meat", "poultry", "voluntary"], "properties": {"egg": {"const": 102}, "meat": {"const": 5688}, "poultry": {"const": 4546}, "voluntary": {"const": 2105}}},
+    "export_policy": {"const": "governed-aggregate-only"},
+    "privacy_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"scope": {"const": "national"}}}, "then": {"properties": {"code": {"type": "null"}}, "required": ["dataset_id", "contracts", "source_date", "source", "geography", "coverage", "reported_activity_counts", "active_grant_counts", "export_policy", "privacy_warning"], "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}]}}},
+    {"if": {"properties": {"scope": {"const": "jurisdiction"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[A-Z]{2}$"}}, "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}, {"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}, {"required": ["reported_activity_counts"]}]}}},
+    {"if": {"properties": {"scope": {"const": "zip5"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[0-9]{5}$"}}, "required": ["evidence_scope", "zcta_membership"], "not": {"anyOf": [{"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}, {"required": ["reported_activity_counts"]}]}}}
+  ],
+  "$defs": {
+    "claims": {"type": "object", "additionalProperties": false, "required": ["source_defined_active_directory_cohort", "establishment_records_additive_across_geographies", "unique_business", "current_operation_beyond_source", "physical_public_access", "all_food_businesses", "all_businesses", "nationwide_business_completeness", "current_usps_validity", "coordinates_exported", "additive_to_generic_totals"], "properties": {"source_defined_active_directory_cohort": {"const": true}, "establishment_records_additive_across_geographies": {"const": true}, "unique_business": {"const": false}, "current_operation_beyond_source": {"const": false}, "physical_public_access": {"const": false}, "all_food_businesses": {"const": false}, "all_businesses": {"const": false}, "nationwide_business_completeness": {"const": false}, "current_usps_validity": {"type": "null"}, "coordinates_exported": {"const": false}, "additive_to_generic_totals": {"const": false}}},
+    "source": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "source_release_id", "source_date", "retrieved_at", "pointer_sha256", "manifest_sha256"], "properties": {"dataset_id": {"const": "fsis-active-mpi-establishments"}, "release_id": {"const": "fsis-mpi-20260903-002210046Z-c0d4d058"}, "source_release_id": {"const": "fsis-mpi-2026-08-24-e7be6d8dfc46f68e"}, "source_date": {"const": "2026-08-24"}, "retrieved_at": {"const": "2026-09-03T00:22:10.046Z"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}},
+    "geography": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "pointer_sha256", "manifest_sha256", "zcta_count"], "properties": {"dataset_id": {"const": "us-census-geography"}, "release_id": {"const": "us-census-geography-20260830-132803990Z-3629abc0"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "zcta_count": {"const": 33791}}},
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["source_directory_records", "source_demographic_records", "accepted_active_establishments", "quarantined_records", "jurisdiction_rows", "state_dc_rows", "territory_rows", "positive_zip5_rows", "zip5_union_rows", "denominator_only_zip5_rows", "positive_source_zip_without_zcta", "active_establishment_records_without_zcta", "positive_source_zip_without_published_zbp"], "properties": {"source_directory_records": {"const": 7237}, "source_demographic_records": {"const": 7237}, "accepted_active_establishments": {"const": 7237}, "quarantined_records": {"const": 0}, "jurisdiction_rows": {"const": 56}, "state_dc_rows": {"const": 51}, "territory_rows": {"const": 5}, "positive_zip5_rows": {"const": 4367}, "zip5_union_rows": {"const": 37859}, "denominator_only_zip5_rows": {"const": 33492}, "positive_source_zip_without_zcta": {"const": 72}, "active_establishment_records_without_zcta": {"const": 85}, "positive_source_zip_without_published_zbp": {"const": 100}}}
+  }
+}
