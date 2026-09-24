@@ -26,7 +26,7 @@ Portal-generated coordinates are preserved as source assertions, not independent
 
 ## Duplicate handling
 
-The source's so-called distinct view currently has one filing number represented by two rows because a portal geocode is present on one row and absent on the other. Filing number is the organization identity. Duplicate filing-number groups are collapsed deterministically by preferring a row with a source geocode and then the more complete row. Source rows, distinct filing numbers, duplicate groups, and collapsed rows must all reconcile in the manifest and external verifier.
+Filing number is the organization identity. If the source's so-called distinct view contains more than one row for a filing number, duplicate filing-number groups are collapsed deterministically by preferring a row with a source geocode and then the more complete row. Source rows, distinct filing numbers, duplicate groups, and collapsed rows must all reconcile in the manifest and external verifier. The current retained release contains no duplicate filing-number groups, while the preceding retained release contained one group and one collapsed row.
 
 ## Build and verify
 
@@ -54,7 +54,7 @@ node scripts/build-pa-business-registry.mjs --resume-staging-run <UUID>
 
 ## Validated live release
 
-The independently verified release `pa-business-registry-20260831-153419013Z-b52dec9e` pins the source refresh at `2026-08-04T14:12:34Z`. It preserves 2,347,230 selected-field source rows, publishes 2,347,229 distinct organizations after deterministically collapsing one duplicated filing-number row, and records 2,088,998 eligible reported U.S. business addresses. Of 2,227,747 source-geocoded addresses, 2,320 reported as Pennsylvania addresses fall outside the deliberately broad state bounds and remain flagged. The 20 verified artifacts total 431,363,581 bytes. No physical site or establishment is inferred.
+The independently verified release `pa-business-registry-20260903-011928723Z-b4cbfaf4` is bound to source release `pa-business-registry-2026-09-02-5aea113d98c4bfb7` and pins the source refresh at `2026-09-02T13:36:39.000Z`. It preserves and publishes 2,360,829 selected-field source rows as distinct organizations, with no duplicate filing-number groups or collapsed rows, and records 2,102,830 eligible reported U.S. business addresses. Of 2,241,410 source-geocoded addresses, 2,319 reported as Pennsylvania addresses fall outside the deliberately broad state bounds and remain flagged. The 20 verified artifacts total 433,431,904 bytes. No physical site or establishment is inferred. ZIP5 remains separate from ZIP+4, current USPS validity remains unverified, and portal coordinates remain source assertions rather than independently validated premise geocodes.
 
 ## Official references
 

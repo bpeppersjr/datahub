@@ -7,18 +7,18 @@ import { APP_ROOT } from "./paths.mjs";
 import { getRetainedBusinessRefreshReadiness, RETAINED_BUSINESS_REFRESH_DESCRIPTORS, RETAINED_BUSINESS_REFRESH_SOURCE_IDS } from "./retained-business-refresh-readiness.mjs";
 
 const expected={
-  "co-business-registry":{release:"co-business-registry-20260903-002916547Z-ed08beca",metrics:[2164812,2164811,1],artifacts:21},
-  "ct-business-registry":{release:"ct-business-registry-20260903-003855102Z-e8cabffc",metrics:[458892,458892,13],artifacts:20},
-  "de-business-licenses":{release:"de-business-licenses-20260903-002309163Z-f955c045",metrics:[67829,66667,27],artifacts:21},
-  "fl-business-registry":{release:"fl-business-registry-20260903-020111292Z-fbdce156",metrics:[12808196,4109230,8698964],artifacts:23},
-  "pa-business-registry":{release:"pa-business-registry-20260903-011928723Z-b4cbfaf4",metrics:[2360829,2360829,0],artifacts:20},
+  "co-business-registry":{release:"co-business-registry-20260903-002916547Z-ed08beca",metrics:[2164812,2164811,1],artifacts:21,catalogMatches:false},
+  "ct-business-registry":{release:"ct-business-registry-20260903-003855102Z-e8cabffc",metrics:[458892,458892,13],artifacts:20,catalogMatches:false},
+  "de-business-licenses":{release:"de-business-licenses-20260903-002309163Z-f955c045",metrics:[67829,66667,27],artifacts:21,catalogMatches:false},
+  "fl-business-registry":{release:"fl-business-registry-20260903-020111292Z-fbdce156",metrics:[12808196,4109230,8698964],artifacts:23,catalogMatches:false},
+  "pa-business-registry":{release:"pa-business-registry-20260903-011928723Z-b4cbfaf4",metrics:[2360829,2360829,0],artifacts:20,catalogMatches:true},
 };
 
 test("five retained business refresh contracts are deterministic, pointer-bound and held",async()=>{
   for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){
     const first=await getRetainedBusinessRefreshReadiness(sourceId),second=await getRetainedBusinessRefreshReadiness(sourceId),want=expected[sourceId];
     assert.deepEqual(first,second);assert.equal(first.readinessStatus,"HOLD");assert.equal(first.dispatchAvailable,false);assert.equal(first.freshAcquisitionAuthorized,false);assert.equal(first.plan.networkRequestCount,0);assert.equal(first.plan.allocationCount,0);assert.equal(first.plan.operationCreated,false);assert.equal(first.plan.evidence.length,6);assert.ok(first.plan.evidence.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)));
-    assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment,false);assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,true);assert.equal(first.retainedRelease.releaseId,want.release);assert.equal(first.retainedRelease.artifactCount,want.artifacts);assert.deepEqual(first.retainedRelease.metrics.map(item=>item.value),want.metrics);
+    assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment,want.catalogMatches);assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,true);assert.equal(first.retainedRelease.releaseId,want.release);assert.equal(first.retainedRelease.artifactCount,want.artifacts);assert.deepEqual(first.retainedRelease.metrics.map(item=>item.value),want.metrics);
   }
 });
 

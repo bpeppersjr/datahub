@@ -104,6 +104,42 @@ test("pins the 11 selected non-personal Pennsylvania fields", () => {
   for (const excluded of ["party_type", "last_name", "middle_name", "first_name"]) assert.equal(PA_BUSINESS_REGISTRY_FIELDS.includes(excluded), false);
 });
 
+test("binds the catalog and documentation to the current verified retained Pennsylvania release", async () => {
+  const datasetPath = "config/datasets/pa-business-registry-active-registrations.json";
+  const pointerPath = "data/business-sources/pa-business-registry-active-registrations/current.json";
+  const documentationPath = "docs/PA-BUSINESS-REGISTRY.md";
+  const pointerBytes = await readFile(pointerPath);
+  const pointer = JSON.parse(pointerBytes);
+  const manifestBytes = await readFile(path.join(path.dirname(pointerPath), pointer.manifest));
+  const manifest = JSON.parse(manifestBytes);
+  const dataset = JSON.parse(await readFile(datasetPath));
+  const documentation = await readFile(documentationPath, "utf8");
+  const verified = dataset.current_verified_release;
+
+  assert.equal(sha256(pointerBytes), "e6eda6ad2add784dc3315cfdce91dd35c004ccd40f2143247aca805b1b1c3190");
+  assert.equal(sha256(manifestBytes), "de137a19922ce44504189c6dc8a04837537522da92bc67c7a51093edd8fd154f");
+  assert.equal(verified.release_id, pointer.release_id);
+  assert.equal(verified.source_release_id, manifest.source_release_id);
+  assert.equal(verified.source_rows_updated_at, manifest.source_rows_updated_at);
+  for (const [key, value] of Object.entries(manifest.coverage)) assert.equal(verified[key], value, key);
+  assert.equal(verified.verified_artifact_count, manifest.artifacts.length);
+  assert.equal(verified.verified_bytes, manifest.artifacts.reduce((sum, artifact) => sum + artifact.bytes, 0));
+  for (const expected of [
+    manifest.release_id,
+    manifest.source_release_id,
+    manifest.source_rows_updated_at,
+    "2,360,829 selected-field source rows",
+    "no duplicate filing-number groups or collapsed rows",
+    "2,102,830 eligible reported U.S. business addresses",
+    "2,241,410 source-geocoded addresses",
+    "2,319 reported as Pennsylvania addresses",
+    "433,431,904 bytes",
+    "ZIP5 remains separate from ZIP+4",
+    "portal coordinates remain source assertions",
+  ]) assert.match(documentation, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(documentation, /pa-business-registry-20260831-153419013Z-b52dec9e/);
+});
+
 test("normalizes registration evidence, ZIP+4, malformed extensions, and suspect geocodes without inferring a site", () => {
   const normalized = normalizePaBusinessOrganization(organization({ first_name: "PRIVATE" }), context());
   assert.equal(normalized.entity_candidates.organization_id, "organization:pa_dos_filing_0000000001");
