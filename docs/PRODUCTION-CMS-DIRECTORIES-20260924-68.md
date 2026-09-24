@@ -1,11 +1,11 @@
 # Proposed additive CMS directory production — September 24, 2026
 
-Fresh governed planning completed after implementation commit `a0e7f73667f30d28c4726b0f510db0453654c10c`. That commit publishes a separate national CMS NPPES active Entity Type 2 organization practice-location aggregate coverage dataset derived entirely from the retained, verified August 2026 V2 NPPES release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, pharmacy totals, exports, site totals, or completeness measures.
+Fresh governed planning completed after implementation commit `a0e7f73719a87173bfac59a5bd5b4cd92ebd8085`. That commit publishes a separate national CMS NPPES active Entity Type 2 organization practice-location aggregate coverage dataset derived entirely from the retained, verified August 2026 V2 NPPES release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, pharmacy totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260924-68`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20260924-68.json`
 - Exact confirmation SHA-256: `f8700a7f84f48529bb1aff4a9ec6f11e1d249517528186d0f2ce9541a47aeb73`
-- Planning implementation commit: `a0e7f73667f30d28c4726b0f510db0453654c10c`
+- Planning implementation commit: `a0e7f73719a87173bfac59a5bd5b4cd92ebd8085`
 
 The retained-only plan includes the governed 25-source production roster, baseline and geographic inputs, existing MA/NJ/recovered-TN/OH childcare inputs, retained childcare, Minnesota credential reporting, 5,419 CMS hospital directory rows, and 14,690 CMS nursing-home directory rows. The CMS rows remain local-review-only publisher directory records, not verified unique businesses, physical sites, or current operations.
 
