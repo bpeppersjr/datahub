@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 70 (`production-cms-directories-20260924-70`, SHA-256 `4178b1d8541b915987899da75947ff91065bb33b872af340196a7e8ee1f197a4`). Plan 69 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `80785bdebc5b4fef7406839236fd9f07360b188e`. That commit reconciles the California ABC dataset catalog and documentation to the already-retained, independently verified September 7 release. It changes no source pointer, source bytes, governed coverage artifact, national completion denominator, generic business total, entity resolution, category total, export, site total, or completeness measure. California ABC remains source-specific alcohol-license evidence, not a broad California business denominator.
 
 - Run ID: `production-cms-directories-20260924-69`
