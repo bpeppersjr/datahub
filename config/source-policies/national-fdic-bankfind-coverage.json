@@ -1,0 +1,14 @@
+{
+  "policy_id": "national-fdic-bankfind-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over a retained FDIC BankFind institution and current-location snapshot",
+  "ownership": "The Federal Deposit Insurance Corporation publishes the source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay of exact pinned retained releases", "aggregate institution and office coverage review", "jurisdiction and ZIP5 coverage analysis", "bounded FDIC service-type code counts"],
+  "prohibited_use": ["network acquisition", "production enrollment", "adding institution or office counts to generic business, entity, site, category, or export totals", "summing distinct institution counts across geography rows", "publishing institution names, office names, street addresses, coordinates, certificate numbers, location numbers, or other record identifiers", "using service-type descriptions as unbounded aggregate labels", "claiming unique businesses, current operation, public access, current hours, every service offered, all banks, all credit unions, all financial businesses, or nationwide business completeness"],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins until approved removal.",
+  "redistribution": "Allowed only as governed aggregates with FDIC attribution, source timestamps, bounded code labels, provenance, and claim limitations.",
+  "personal_data_handling": "Aggregate counts only; names, addresses, coordinates, certificate and location identifiers, and source record identifiers are prohibited from this projection.",
+  "privacy_warning": "Bank offices are generally public-facing records, but this coverage layer deliberately publishes only aggregates and must not be used to infer customer, employee, account, transaction, or individual-level information.",
+  "attribution": "Source: Federal Deposit Insurance Corporation BankFind Suite retained release."
+}

@@ -54,6 +54,9 @@ import { loadNationalSnapRetailerIndustryCoverageStatus } from './national-snap-
 import { lookupNationalFmcsaRegistrantPrincipalOfficeZip5 } from './national-fmcsa-registrant-principal-office-coverage.mjs';
 import { nationalFmcsaRegistrantPrincipalOfficeCoverageStatusHttp } from './national-fmcsa-registrant-principal-office-coverage-status-http.mjs';
 import { loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus } from './national-fmcsa-registrant-principal-office-coverage-status.mjs';
+import { lookupNationalFdicBankfindZip5 } from './national-fdic-bankfind-coverage.mjs';
+import { nationalFdicBankfindCoverageStatusHttp } from './national-fdic-bankfind-coverage-status-http.mjs';
+import { loadNationalFdicBankfindCoverageStatus } from './national-fdic-bankfind-coverage-status.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -193,6 +196,22 @@ const zipInspectorView = createZipInspectorView({ businessCoverageViews, busines
     source: { dataset_id: 'national-fmcsa-registrant-principal-office-coverage', release_id: result.verified.release_id },
     privacy_warning: 'Aggregates exclude names, addresses, USDOT/docket numbers, and record identifiers; principal offices may be home-based and registrants may be individual proprietors.',
   } : null;
+}, fdicBankfindCoverage: async ({ zip }) => {
+  const result = await lookupNationalFdicBankfindZip5(zip);
+  return result.row ? {
+    zip_code: result.row.code,
+    evidence_scope: result.row.evidence_scope,
+    current_indexed_office_count: result.row.current_indexed_office_count,
+    main_office_count: result.row.main_office_count,
+    reported_zip4_count: result.row.reported_zip4_count,
+    retained_coordinate_count: result.row.retained_coordinate_count,
+    missing_coordinate_count: result.row.missing_coordinate_count,
+    service_type_code_counts: result.row.service_type_code_counts,
+    institution_class_counts: result.row.institution_class_counts,
+    zcta_membership: result.row.zcta_membership,
+    source: { dataset_id: 'national-fdic-bankfind-coverage', release_id: result.verified.release_id },
+    attribution: 'Source: Federal Deposit Insurance Corporation BankFind Suite.',
+  } : null;
 } });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
@@ -304,7 +323,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -346,6 +365,7 @@ const server = http.createServer(async (request, response) => {
       if (url.pathname === '/api/data-operations/national-pharmacy-industry-coverage-status') { await nationalPharmacyIndustryCoverageStatusHttp(request,response,url,loadNationalPharmacyIndustryCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-snap-retailer-industry-coverage-status') { await nationalSnapRetailerIndustryCoverageStatusHttp(request,response,url,loadNationalSnapRetailerIndustryCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status') { await nationalFmcsaRegistrantPrincipalOfficeCoverageStatusHttp(request,response,url,loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus,json); return; }
+      if (url.pathname === '/api/data-operations/national-fdic-bankfind-coverage-status') { await nationalFdicBankfindCoverageStatusHttp(request,response,url,loadNationalFdicBankfindCoverageStatus,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

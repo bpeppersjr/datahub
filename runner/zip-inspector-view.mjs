@@ -1,5 +1,5 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all" } = {}) {
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
     const catalog = await businessMap.getCatalog();
@@ -11,12 +11,13 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence] = await Promise.all([
       zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
       pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
       snapRetailerCoverage ? snapRetailerCoverage({ zip }) : null,
       fmcsaRegistrantCoverage ? fmcsaRegistrantCoverage({ zip }) : null,
+      fdicBankfindCoverage ? fdicBankfindCoverage({ zip }) : null,
     ]);
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
@@ -51,6 +52,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     }
     if (fmcsaRegistrantEvidence !== null && fmcsaRegistrantEvidence.zip_code !== zip) {
       throw new Error("FMCSA registrant ZIP evidence does not match the requested ZIP5.");
+    }
+    if (fdicBankfindEvidence !== null && (typeof fdicBankfindEvidence !== "object" || Array.isArray(fdicBankfindEvidence))) {
+      throw new Error("FDIC BankFind ZIP evidence loader returned an invalid aggregate.");
+    }
+    if (fdicBankfindEvidence !== null && fdicBankfindEvidence.zip_code !== zip) {
+      throw new Error("FDIC BankFind ZIP evidence does not match the requested ZIP5.");
     }
     return {
       schema_version: "1.0.0",
@@ -107,6 +114,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       pharmacy_evidence: pharmacyEvidence,
       snap_retailer_evidence: snapRetailerEvidence,
       fmcsa_registrant_principal_office_evidence: fmcsaRegistrantEvidence,
+      fdic_bankfind_office_evidence: fdicBankfindEvidence,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

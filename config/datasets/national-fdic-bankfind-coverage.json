@@ -1,0 +1,20 @@
+{
+  "dataset_id": "national-fdic-bankfind-coverage",
+  "schema_version": "1.0.0",
+  "title": "National FDIC BankFind Coverage",
+  "description": "Governed retained-only aggregate projection of FDIC BankFind active institutions and accepted current U.S. offices by jurisdiction and ZIP5.",
+  "runtime_pointer": "data/national-fdic-bankfind-coverage/current.json",
+  "connector": "config/connectors/national-fdic-bankfind-coverage.json",
+  "required_datasets": ["fdic-bankfind", "us-census-geography"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "pinned_source_expectations": {"active_institutions": 4238, "accepted_current_us_offices": 77285, "jurisdictions": 58},
+  "institution_measure_additive_across_geographies": false,
+  "additive_to_generic_business_totals": false,
+  "completeness_claim": false,
+  "current_operation_claim": false,
+  "unique_business_claim": false,
+  "public_access_claim": false,
+  "service_availability_claim": false,
+  "documentation": "docs/NATIONAL-FDIC-BANKFIND-COVERAGE.md",
+  "source_policy": "config/source-policies/national-fdic-bankfind-coverage.json"
+}

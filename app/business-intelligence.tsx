@@ -200,6 +200,15 @@ type ZipInspection = {
     source?: { dataset_id?: string | null; release_id?: string | null };
     privacy_warning?: string;
   };
+  fdic_bankfind_office_evidence: null | {
+    zip_code: string; evidence_scope: string; current_indexed_office_count: number; main_office_count: number;
+    reported_zip4_count: number; retained_coordinate_count: number; missing_coordinate_count: number;
+    service_type_code_counts: Array<{ code: string; count: number }>;
+    institution_class_counts: Array<{ code: string; count: number }>;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null };
+    attribution?: string; privacy_warning?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -775,6 +784,16 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.fmcsa_registrant_principal_office_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.fmcsa_registrant_principal_office_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.fmcsa_registrant_principal_office_evidence.privacy_warning ?? 'Principal-office addresses can be residences or home offices; this aggregate does not expose names, addresses, or identifiers.'}</p>
                 <p>Separate, non-additive FMCSA evidence; not unique companies, current operations, verified physical sites, storefronts, vehicle bases, ownership, legal organization, USPS validity, or nationwide completeness.</p>
+              </section>}
+              {zipInspection.fdic_bankfind_office_evidence && <section className="category-zip-evidence" aria-label={`FDIC BankFind office evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>FDIC-insured institution office evidence</h4>
+                <p>{zipInspection.fdic_bankfind_office_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Current indexed offices</dt><dd>{count(zipInspection.fdic_bankfind_office_evidence.current_indexed_office_count)}</dd></div><div><dt>Main offices</dt><dd>{count(zipInspection.fdic_bankfind_office_evidence.main_office_count)}</dd></div><div><dt>Rows with separate ZIP+4</dt><dd>{count(zipInspection.fdic_bankfind_office_evidence.reported_zip4_count)}</dd></div><div><dt>Retained coordinates</dt><dd>{count(zipInspection.fdic_bankfind_office_evidence.retained_coordinate_count)}</dd></div><div><dt>Missing coordinates</dt><dd>{count(zipInspection.fdic_bankfind_office_evidence.missing_coordinate_count)}</dd></div></dl>
+                <p>Bounded service-type codes: {zipInspection.fdic_bankfind_office_evidence.service_type_code_counts.map(({code,count:valueCount})=>`${code}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Separate institution classifications: {zipInspection.fdic_bankfind_office_evidence.institution_class_counts.map(({code,count:valueCount})=>`${code}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Source {zipInspection.fdic_bankfind_office_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.fdic_bankfind_office_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.fdic_bankfind_office_evidence.attribution ?? 'Source: Federal Deposit Insurance Corporation BankFind Suite.'} No website endorsement is implied.</p>
+                <p>Separate, non-additive evidence; not all banks, credit unions, financial businesses, unique businesses, proof of current operation, public access, hours, services, verified physical sites, USPS validity, or nationwide completeness.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}
