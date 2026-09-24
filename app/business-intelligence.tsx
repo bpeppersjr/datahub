@@ -209,6 +209,14 @@ type ZipInspection = {
     source?: { dataset_id?: string | null; release_id?: string | null };
     attribution?: string; privacy_warning?: string;
   };
+  ncua_credit_union_location_evidence: null | {
+    zip_code: string; evidence_scope: string; represented_institution_count: number; scoped_location_count: number;
+    source_main_office_flag_count: number; reported_zip4_count: number; retained_coordinate_count: number; missing_coordinate_count: number;
+    site_type_counts: { CORPORATE_OFFICE: number; BRANCH_OFFICE: number };
+    reported_service_counts: { member_services: number; atm: number; drive_through: number; shared_service_center_network: number };
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null; cycle_date?: string | null; retrieved_at?: string | null }; attribution?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -794,6 +802,15 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.fdic_bankfind_office_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.fdic_bankfind_office_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.fdic_bankfind_office_evidence.attribution ?? 'Source: Federal Deposit Insurance Corporation BankFind Suite.'} No website endorsement is implied.</p>
                 <p>Separate, non-additive evidence; not all banks, credit unions, financial businesses, unique businesses, proof of current operation, public access, hours, services, verified physical sites, USPS validity, or nationwide completeness.</p>
+              </section>}
+              {zipInspection.ncua_credit_union_location_evidence && <section className="category-zip-evidence" aria-label={`NCUA credit-union location evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>NCUA quarterly federally insured credit-union evidence</h4>
+                <p>{zipInspection.ncua_credit_union_location_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Scoped location rows</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.scoped_location_count)}</dd></div><div><dt>Represented institutions</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.represented_institution_count)}</dd></div><div><dt>Corporate Office site-type rows</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.site_type_counts.CORPORATE_OFFICE)}</dd></div><div><dt>Source main-office flags</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.source_main_office_flag_count)}</dd></div><div><dt>Branch Office site-type rows</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.site_type_counts.BRANCH_OFFICE)}</dd></div><div><dt>Rows with separate ZIP+4</dt><dd>{count(zipInspection.ncua_credit_union_location_evidence.reported_zip4_count)}</dd></div></dl>
+                <p>Source-reported nonexclusive service evidence: member services {count(zipInspection.ncua_credit_union_location_evidence.reported_service_counts.member_services)} · ATM {count(zipInspection.ncua_credit_union_location_evidence.reported_service_counts.atm)} · drive-through {count(zipInspection.ncua_credit_union_location_evidence.reported_service_counts.drive_through)} · shared-service-center network {count(zipInspection.ncua_credit_union_location_evidence.reported_service_counts.shared_service_center_network)}.</p>
+                <p>Source {zipInspection.ncua_credit_union_location_evidence.source?.dataset_id ?? 'not supplied'} · cycle {zipInspection.ncua_credit_union_location_evidence.source?.cycle_date ?? 'not supplied'} · retrieved {zipInspection.ncua_credit_union_location_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.ncua_credit_union_location_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.ncua_credit_union_location_evidence.attribution ?? 'Source: National Credit Union Administration quarterly data.'}</p>
+                <p>Separate, non-additive evidence; not all credit unions, unique businesses, current operations, public access, verified physical sites, service availability, USPS validity, or nationwide completeness.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

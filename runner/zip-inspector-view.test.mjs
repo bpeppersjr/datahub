@@ -11,7 +11,7 @@ function quality(zip, { classification = "valid-format-same-code-governed-zcta",
     governed_zcta_membership: included ? { status: "included", geo_id: `zcta:${zip}`, geoid: zip, source_release_id: "geo-1" } : { status: "not-in-denominator", geo_id: null, geoid: null, source_release_id: null },
     positive_source_contributions: contributions, usps_operational_evidence: { status: "unverified", reason: "No USPS assertion", source_release_id: null, source_month: null }, limitations: ["current-usps-operational-status-unverified"] };
 }
-function fixture({ rows = [], getQuality = (zip) => quality(zip), registryRelease = "registry-1", manifest = "m", pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null } = {}) {
+function fixture({ rows = [], getQuality = (zip) => quality(zip), registryRelease = "registry-1", manifest = "m", pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null } = {}) {
   return createZipInspectorView({
     businessMap: { getCatalog: async () => ({ available: true, coverage_release_id: "coverage-1", registry_release_id: registryRelease, registry_manifest_sha256: manifest, geography_release_id: "geo-1", categories: [
       { id: "all", label: "All source categories" },
@@ -24,6 +24,7 @@ function fixture({ rows = [], getQuality = (zip) => quality(zip), registryReleas
     snapRetailerCoverage,
     fmcsaRegistrantCoverage,
     fdicBankfindCoverage,
+    ncuaCreditUnionCoverage,
   });
 }
 const row = (zip, fields = {}) => ({ zip_code: zip, coverage_status: "record-level-source-contribution", physical_site_count: 12, establishment_count: 12, organization_primary_location_count: 7, employer_baseline_status: "published", employer_establishments: 4, zcta_geoid: zip, zcta_status: "2020-zcta-polygon-available", spatial_zip_polygon_membership_status: "included", material_county_count: 1, current_usps_validity_status: "unverified", coverage_gap_codes: ["gap-a"], ...fields });
@@ -159,4 +160,13 @@ test("keeps FDIC BankFind office evidence separate and fails closed on malformed
   assert.equal(detail.counts.physical_sites,12,"FDIC aggregate does not change generic totals");
   await assert.rejects(fixture({fdicBankfindCoverage:async()=>[]})({zip:"12345"}),/invalid aggregate/);
   await assert.rejects(fixture({fdicBankfindCoverage:async()=>({zip_code:"54321"})})({zip:"12345"}),/does not match/);
+});
+
+test("keeps NCUA credit-union location evidence separate and fails closed on malformed or mismatched ZIP evidence", async () => {
+  const ncua={zip_code:"12345",evidence_scope:"positive-ncua-scoped-location-evidence",scoped_location_count:6};
+  const detail=await fixture({rows:[row("12345")],ncuaCreditUnionCoverage:async()=>ncua})({zip:"12345"});
+  assert.deepEqual(detail.ncua_credit_union_location_evidence,ncua);
+  assert.equal(detail.counts.physical_sites,12,"NCUA aggregate does not change generic totals");
+  await assert.rejects(fixture({ncuaCreditUnionCoverage:async()=>[]})({zip:"12345"}),/invalid aggregate/);
+  await assert.rejects(fixture({ncuaCreditUnionCoverage:async()=>({zip_code:"54321"})})({zip:"12345"}),/does not match/);
 });

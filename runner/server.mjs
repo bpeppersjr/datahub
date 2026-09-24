@@ -57,6 +57,9 @@ import { loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus } from './nati
 import { lookupNationalFdicBankfindZip5 } from './national-fdic-bankfind-coverage.mjs';
 import { nationalFdicBankfindCoverageStatusHttp } from './national-fdic-bankfind-coverage-status-http.mjs';
 import { loadNationalFdicBankfindCoverageStatus } from './national-fdic-bankfind-coverage-status.mjs';
+import { lookupNationalNcuaCreditUnionZip5 } from './national-ncua-credit-union-coverage.mjs';
+import { nationalNcuaCreditUnionCoverageStatusHttp } from './national-ncua-credit-union-coverage-status-http.mjs';
+import { loadNationalNcuaCreditUnionCoverageStatus } from './national-ncua-credit-union-coverage-status.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -212,6 +215,23 @@ const zipInspectorView = createZipInspectorView({ businessCoverageViews, busines
     source: { dataset_id: 'national-fdic-bankfind-coverage', release_id: result.verified.release_id },
     attribution: 'Source: Federal Deposit Insurance Corporation BankFind Suite.',
   } : null;
+}, ncuaCreditUnionCoverage: async ({ zip }) => {
+  const result = await lookupNationalNcuaCreditUnionZip5(zip);
+  return result.row ? {
+    zip_code: result.row.code,
+    evidence_scope: result.row.evidence_scope,
+    represented_institution_count: result.row.represented_institution_count,
+    scoped_location_count: result.row.scoped_location_count,
+    source_main_office_flag_count: result.row.source_main_office_flag_count,
+    reported_zip4_count: result.row.reported_zip4_count,
+    retained_coordinate_count: result.row.retained_coordinate_count,
+    missing_coordinate_count: result.row.missing_coordinate_count,
+    site_type_counts: result.row.site_type_counts,
+    reported_service_counts: result.row.reported_service_counts,
+    zcta_membership: result.row.zcta_membership,
+    source: { dataset_id: 'national-ncua-credit-union-coverage', release_id: result.verified.release_id, cycle_date: result.verified.cycle_date, retrieved_at: result.verified.retrieved_at },
+    attribution: 'Source: National Credit Union Administration quarterly data.',
+  } : null;
 } });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
@@ -323,7 +343,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status' && url.pathname !== '/api/data-operations/national-ncua-credit-union-coverage-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -366,6 +386,7 @@ const server = http.createServer(async (request, response) => {
       if (url.pathname === '/api/data-operations/national-snap-retailer-industry-coverage-status') { await nationalSnapRetailerIndustryCoverageStatusHttp(request,response,url,loadNationalSnapRetailerIndustryCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status') { await nationalFmcsaRegistrantPrincipalOfficeCoverageStatusHttp(request,response,url,loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-fdic-bankfind-coverage-status') { await nationalFdicBankfindCoverageStatusHttp(request,response,url,loadNationalFdicBankfindCoverageStatus,json); return; }
+      if (url.pathname === '/api/data-operations/national-ncua-credit-union-coverage-status') { await nationalNcuaCreditUnionCoverageStatusHttp(request,response,url,loadNationalNcuaCreditUnionCoverageStatus,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

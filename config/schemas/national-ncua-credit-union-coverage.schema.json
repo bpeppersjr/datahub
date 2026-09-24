@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-ncua-credit-union-coverage.schema.json",
+  "title": "NCUA governed coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "represented_institution_count", "scoped_location_count", "source_main_office_flag_count", "reported_zip4_count", "retained_coordinate_count", "missing_coordinate_count", "record_zcta_count", "record_nonpolygon_count", "site_type_counts", "reported_service_counts", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-ncua-credit-union-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "represented_institution_count": {"type": "integer", "minimum": 0},
+    "scoped_location_count": {"type": "integer", "minimum": 0},
+    "source_main_office_flag_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_count": {"type": "integer", "minimum": 0},
+    "retained_coordinate_count": {"const": 0},
+    "missing_coordinate_count": {"type": "integer", "minimum": 0},
+    "record_zcta_count": {"type": "integer", "minimum": 0},
+    "record_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "site_type_counts": {"type": "object", "additionalProperties": false, "required": ["CORPORATE_OFFICE", "BRANCH_OFFICE"], "properties": {"CORPORATE_OFFICE": {"type": "integer", "minimum": 0}, "BRANCH_OFFICE": {"type": "integer", "minimum": 0}}},
+    "reported_service_counts": {"type": "object", "additionalProperties": false, "required": ["member_services", "atm", "drive_through", "shared_service_center_network"], "properties": {"member_services": {"type": "integer", "minimum": 0}, "atm": {"type": "integer", "minimum": 0}, "drive_through": {"type": "integer", "minimum": 0}, "shared_service_center_network": {"type": "integer", "minimum": 0}}},
+    "claims": {"$ref": "#/$defs/claims"},
+    "evidence_scope": {"enum": ["positive-ncua-scoped-location-evidence", "denominator-only"]},
+    "zcta_membership": {"type": "object", "additionalProperties": false, "required": ["status", "geoid"], "properties": {"status": {"enum": ["2020-zcta-polygon-available", "no-2020-zcta-polygon"]}, "geoid": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"}}},
+    "dataset_id": {"const": "national-ncua-credit-union-coverage"},
+    "contracts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "federally_insured_institution_count": {"const": 4250},
+    "credit_union_type_counts": {"type": "object", "additionalProperties": false, "required": ["1", "2"], "properties": {"1": {"const": 2672}, "2": {"const": 1578}}},
+    "cycle_date": {"const": "2026-03-31"},
+    "source": {"$ref": "#/$defs/source"},
+    "geography": {"$ref": "#/$defs/geography"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "export_policy": {"const": "governed-aggregate-only"},
+    "privacy_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"scope": {"const": "national"}}}, "then": {"properties": {"code": {"type": "null"}}, "required": ["dataset_id", "contracts", "federally_insured_institution_count", "credit_union_type_counts", "cycle_date", "source", "geography", "coverage", "export_policy", "privacy_warning"], "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}]}}},
+    {"if": {"properties": {"scope": {"const": "jurisdiction"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[A-Z]{2}$"}}, "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}, {"required": ["dataset_id"]}, {"required": ["contracts"]}, {"required": ["federally_insured_institution_count"]}, {"required": ["credit_union_type_counts"]}, {"required": ["cycle_date"]}, {"required": ["source"]}, {"required": ["geography"]}, {"required": ["coverage"]}, {"required": ["export_policy"]}, {"required": ["privacy_warning"]}]}}},
+    {"if": {"properties": {"scope": {"const": "zip5"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[0-9]{5}$"}}, "required": ["evidence_scope", "zcta_membership"], "not": {"anyOf": [{"required": ["dataset_id"]}, {"required": ["contracts"]}, {"required": ["federally_insured_institution_count"]}, {"required": ["credit_union_type_counts"]}, {"required": ["cycle_date"]}, {"required": ["source"]}, {"required": ["geography"]}, {"required": ["coverage"]}, {"required": ["export_policy"]}, {"required": ["privacy_warning"]}]}}}
+  ],
+  "$defs": {
+    "claims": {"type": "object", "additionalProperties": false, "required": ["federally_insured_quarterly_snapshot", "institution_measure_additive_across_geographies", "unique_business", "current_operation", "physical_site", "public_access", "membership_eligibility", "current_hours", "service_availability", "all_credit_unions", "all_financial_businesses", "nationwide_business_completeness", "current_usps_validity", "corporate_site_type_equals_main_office_flag", "service_flags_exclusive", "additive_to_generic_totals"], "properties": {"federally_insured_quarterly_snapshot": {"const": true}, "institution_measure_additive_across_geographies": {"const": false}, "unique_business": {"const": false}, "current_operation": {"const": false}, "physical_site": {"const": false}, "public_access": {"const": false}, "membership_eligibility": {"const": false}, "current_hours": {"const": false}, "service_availability": {"const": false}, "all_credit_unions": {"const": false}, "all_financial_businesses": {"const": false}, "nationwide_business_completeness": {"const": false}, "current_usps_validity": {"type": "null"}, "corporate_site_type_equals_main_office_flag": {"const": false}, "service_flags_exclusive": {"const": false}, "additive_to_generic_totals": {"const": false}}},
+    "source": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "source_release_id", "retrieved_at", "cycle_date", "pointer_sha256", "manifest_sha256"], "properties": {"dataset_id": {"const": "ncua-quarterly-credit-unions"}, "release_id": {"const": "ncua-quarterly-20260903-004426083Z-bb29b2c2"}, "source_release_id": {"const": "ncua-2026-03-31-6d7fdf1e7eaf9078"}, "retrieved_at": {"const": "2026-09-03T00:44:26.083Z"}, "cycle_date": {"const": "2026-03-31"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}},
+    "geography": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "pointer_sha256", "manifest_sha256", "zcta_count"], "properties": {"dataset_id": {"const": "us-census-geography"}, "release_id": {"const": "us-census-geography-20260830-132803990Z-3629abc0"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "zcta_count": {"type": "integer", "minimum": 1}}},
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["source_institutions", "federally_insured_institutions", "excluded_non_federally_insured_institutions", "source_branch_records", "accepted_scoped_us_locations", "excluded_non_federally_insured_locations", "excluded_locations_outside_us", "quarantined_records", "institutions_without_accepted_us_location", "jurisdiction_rows", "positive_zip5_rows", "zip5_union_rows", "denominator_only_zip5_rows", "positive_source_zip_outside_zbp_zcta"], "properties": {"source_institutions": {"const": 4336}, "federally_insured_institutions": {"const": 4250}, "excluded_non_federally_insured_institutions": {"const": 86}, "source_branch_records": {"const": 22829}, "accepted_scoped_us_locations": {"const": 22445}, "excluded_non_federally_insured_locations": {"const": 332}, "excluded_locations_outside_us": {"const": 49}, "quarantined_records": {"const": 5}, "institutions_without_accepted_us_location": {"const": 5}, "jurisdiction_rows": {"const": 54}, "positive_zip5_rows": {"const": 9401}, "zip5_union_rows": {"const": 37855}, "denominator_only_zip5_rows": {"const": 28454}, "positive_source_zip_outside_zbp_zcta": {"const": 27}}}
+  }
+}
