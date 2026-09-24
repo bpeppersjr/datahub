@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `aca500b` published the separate governed national pharmacy-industry coverage layer after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-59` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-60` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-60.md`.
+
 Fresh governed planning completed after implementation commit `702e00c3fec80d1a0f2c6d199cdb0d30db16ece1`. That commit adds an immutable, pointer-free registry ZIP evidence-key delta review and a protected read-only Co*Tive management view. The review holds and rechecks both registry generations' pointer, manifest, and ZIP-artifact identities across replay and does not treat source-reported ZIP5 values as operational USPS assignments.
 
 - Run ID: `production-cms-directories-20260923-59`
