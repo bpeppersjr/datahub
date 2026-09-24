@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `b87c0716d2cb3ca26f7e518faf3caae0bb342b9f` published the separate governed national SNAP-retailer industry coverage layer after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-60` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260923-61` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260923-61.md`.
+
 Fresh governed planning completed after implementation commit `aca500b8d8d7f601e18e06291c425974554145c6`. That commit publishes a separate national pharmacy-industry coverage dataset derived entirely from retained, verified CMS NPPES community/retail-pharmacy evidence and adds non-additive management and exact-ZIP visibility. It does not change the generic business registry, healthcare category, entity resolution, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260923-60`
