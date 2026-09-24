@@ -235,6 +235,14 @@ type ZipInspection = {
     source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
     attribution?: string;
   };
+  irs_eo_bmf_organization_evidence: null | {
+    zip_code: string; evidence_scope: string; organization_count: number; reported_zip4_count: number;
+    record_zcta_count: number; record_nonpolygon_count: number;
+    exempt_status_01_count: number; exempt_status_02_count: number; exempt_status_12_count: number; exempt_status_25_count: number;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
+    attribution?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -845,6 +853,14 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.epa_echo_active_facility_evidence.source?.dataset_id ?? 'not supplied'} · source date {zipInspection.epa_echo_active_facility_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.epa_echo_active_facility_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.epa_echo_active_facility_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.epa_echo_active_facility_evidence.attribution ?? 'Source: U.S. Environmental Protection Agency ECHO Exporter.'}</p>
                 <p>Program flags overlap and must not be summed. This is as-of regulatory-program evidence, not all businesses, all regulated facilities, present-day operation, every program active, public access, ownership, premise-level geocoding, USPS validity, or completeness. Coordinates and geometry are not exposed.</p>
+              </section>}
+              {zipInspection.irs_eo_bmf_organization_evidence && <section className="category-zip-evidence" aria-label={`IRS EO BMF organization filing-address evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>IRS EO BMF current-extract organization filing-address evidence</h4>
+                <p>{zipInspection.irs_eo_bmf_organization_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Organization filing-address records</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.organization_count)}</dd></div><div><dt>Records with separate ZIP+4</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.reported_zip4_count)}</dd></div><div><dt>Same-code ZCTA records</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.record_zcta_count)}</dd></div><div><dt>Nonpolygon records</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.record_nonpolygon_count)}</dd></div><div><dt>Exempt status code 01</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.exempt_status_01_count)}</dd></div><div><dt>Exempt status code 02</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.exempt_status_02_count)}</dd></div><div><dt>Exempt status code 12</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.exempt_status_12_count)}</dd></div><div><dt>Exempt status code 25</dt><dd>{count(zipInspection.irs_eo_bmf_organization_evidence.exempt_status_25_count)}</dd></div></dl>
+                <p>Source {zipInspection.irs_eo_bmf_organization_evidence.source?.dataset_id ?? 'not supplied'} · source posting date {zipInspection.irs_eo_bmf_organization_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.irs_eo_bmf_organization_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.irs_eo_bmf_organization_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.irs_eo_bmf_organization_evidence.attribution ?? 'Source: U.S. Internal Revenue Service EO BMF Extract.'}</p>
+                <p>Status-code counts are mutually exclusive. This is current-extract filing-address and federal tax-status evidence, not every nonprofit or tax-exempt organization, present-day operation, a verified physical site, public access, unique businesses across sources, ownership, USPS validity, or completeness. Names, filing addresses, EINs, and tax-profile details are not exposed.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

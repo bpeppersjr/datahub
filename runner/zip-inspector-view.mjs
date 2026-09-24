@@ -1,5 +1,5 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -12,7 +12,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence] = await Promise.all([
       zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
       pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
@@ -22,6 +22,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       ncuaCreditUnionCoverage ? ncuaCreditUnionCoverage({ zip }) : null,
       fsisActiveEstablishmentCoverage ? fsisActiveEstablishmentCoverage({ zip }) : null,
       epaEchoActiveFacilityCoverage ? epaEchoActiveFacilityCoverage({ zip, signal }) : null,
+      irsEoBmfOrganizationCoverage ? irsEoBmfOrganizationCoverage({ zip, signal }) : null,
     ]);
     signal?.throwIfAborted();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
@@ -82,6 +83,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     if (epaEchoActiveFacilityEvidence !== null && epaEchoActiveFacilityEvidence.zip_code !== zip) {
       throw new Error("EPA ECHO active-facility ZIP evidence does not match the requested ZIP5.");
     }
+    if (irsEoBmfOrganizationEvidence !== null && (typeof irsEoBmfOrganizationEvidence !== "object" || Array.isArray(irsEoBmfOrganizationEvidence))) {
+      throw new Error("IRS EO BMF organization ZIP evidence loader returned an invalid aggregate.");
+    }
+    if (irsEoBmfOrganizationEvidence !== null && irsEoBmfOrganizationEvidence.zip_code !== zip) {
+      throw new Error("IRS EO BMF organization ZIP evidence does not match the requested ZIP5.");
+    }
     return {
       schema_version: "1.0.0",
       zip5: zip,
@@ -141,6 +148,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       ncua_credit_union_location_evidence: ncuaCreditUnionEvidence,
       fsis_active_establishment_evidence: fsisActiveEstablishmentEvidence,
       epa_echo_active_facility_evidence: epaEchoActiveFacilityEvidence,
+      irs_eo_bmf_organization_evidence: irsEoBmfOrganizationEvidence,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

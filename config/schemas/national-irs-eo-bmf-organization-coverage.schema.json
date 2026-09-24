@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-irs-eo-bmf-organization-coverage.schema.json",
+  "title": "IRS EO BMF governed organization filing-address coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "organization_count", "reported_zip4_count", "record_zcta_count", "record_nonpolygon_count", "exempt_status_01_count", "exempt_status_02_count", "exempt_status_12_count", "exempt_status_25_count", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-irs-eo-bmf-organization-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "organization_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_count": {"type": "integer", "minimum": 0},
+    "record_zcta_count": {"type": "integer", "minimum": 0},
+    "record_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "exempt_status_01_count": {"type": "integer", "minimum": 0},
+    "exempt_status_02_count": {"type": "integer", "minimum": 0},
+    "exempt_status_12_count": {"type": "integer", "minimum": 0},
+    "exempt_status_25_count": {"type": "integer", "minimum": 0},
+    "claims": {"$ref": "#/$defs/claims"},
+    "evidence_scope": {"enum": ["positive-irs-eo-bmf-organization-filing-address-evidence", "denominator-only"]},
+    "zcta_membership": {"type": "object", "additionalProperties": false, "required": ["status", "geoid"], "properties": {"status": {"enum": ["2020-zcta-polygon-available", "no-2020-zcta-polygon"]}, "geoid": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"}}},
+    "dataset_id": {"const": "national-irs-eo-bmf-organization-coverage"},
+    "contracts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "source_date": {"const": "2026-08-11"},
+    "source": {"$ref": "#/$defs/source"},
+    "geography": {"$ref": "#/$defs/geography"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "quarantine_reasons": {"type": "object", "additionalProperties": false, "required": ["invalid-year-month"], "properties": {"invalid-year-month": {"const": 1}}},
+    "export_policy": {"const": "governed-aggregate-only"},
+    "privacy_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"scope": {"const": "national"}}}, "then": {"properties": {"code": {"type": "null"}}, "required": ["dataset_id", "contracts", "source_date", "source", "geography", "coverage", "quarantine_reasons", "export_policy", "privacy_warning"], "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}]}}},
+    {"if": {"properties": {"scope": {"const": "jurisdiction"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[A-Z]{2}$"}}, "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}, {"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}},
+    {"if": {"properties": {"scope": {"const": "zip5"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[0-9]{5}$"}}, "required": ["evidence_scope", "zcta_membership"], "not": {"anyOf": [{"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}}
+  ],
+  "$defs": {
+    "claims": {"type": "object", "additionalProperties": false, "required": ["source_current_extract_organization_cohort", "organization_records_additive_across_geographies", "exempt_status_counts_mutually_exclusive", "unique_business", "current_operation_beyond_source", "verified_physical_site", "all_tax_exempt_organizations", "all_nonprofits", "all_businesses", "usable_premise_geocodes", "nationwide_business_completeness", "current_usps_validity", "filing_addresses_exported", "eins_exported", "additive_to_generic_totals"], "properties": {"source_current_extract_organization_cohort": {"const": true}, "organization_records_additive_across_geographies": {"const": true}, "exempt_status_counts_mutually_exclusive": {"const": true}, "unique_business": {"const": false}, "current_operation_beyond_source": {"const": false}, "verified_physical_site": {"const": false}, "all_tax_exempt_organizations": {"const": false}, "all_nonprofits": {"const": false}, "all_businesses": {"const": false}, "usable_premise_geocodes": {"const": false}, "nationwide_business_completeness": {"const": false}, "current_usps_validity": {"type": "null"}, "filing_addresses_exported": {"const": false}, "eins_exported": {"const": false}, "additive_to_generic_totals": {"const": false}}},
+    "source": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "source_release_id", "source_date", "retrieved_at", "pointer_sha256", "manifest_sha256"], "properties": {"dataset_id": {"const": "irs-eo-bmf-organizations"}, "release_id": {"const": "irs-eo-bmf-20260903-003447217Z-565da6cd"}, "source_release_id": {"const": "irs-eo-bmf-2026-08-11-d272cdb9c6c4afef"}, "source_date": {"const": "2026-08-11"}, "retrieved_at": {"const": "2026-09-03T00:34:47.217Z"}, "pointer_sha256": {"const": "799f3dab2080f40225f2f41c830b433d721eea647e8981e65eca387e23c85148"}, "manifest_sha256": {"const": "999233d73e42eac72a094d1248d6790680d39d276c3a9e849a496d01ed5288f8"}}},
+    "geography": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "pointer_sha256", "manifest_sha256", "zcta_count"], "properties": {"dataset_id": {"const": "us-census-geography"}, "release_id": {"const": "us-census-geography-20260830-132803990Z-3629abc0"}, "pointer_sha256": {"const": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403"}, "manifest_sha256": {"const": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"}, "zcta_count": {"const": 33791}}},
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["source_records", "source_page_claimed_records", "accepted_current_exempt_organizations", "excluded_outside_supported_us_scope", "quarantined_records", "jurisdiction_rows", "state_dc_rows", "territory_rows", "positive_zip5_rows", "zip5_union_rows", "denominator_only_zip5_rows", "positive_source_zip_without_zcta", "organization_records_without_zcta", "positive_source_zip_without_published_zbp"], "properties": {"source_records": {"const": 1957340}, "source_page_claimed_records": {"const": 1957340}, "accepted_current_exempt_organizations": {"const": 1955841}, "excluded_outside_supported_us_scope": {"const": 1498}, "quarantined_records": {"const": 1}, "jurisdiction_rows": {"const": 56}, "state_dc_rows": {"const": 51}, "territory_rows": {"const": 5}, "positive_zip5_rows": {"const": 36950}, "zip5_union_rows": {"const": 39217}, "denominator_only_zip5_rows": {"const": 2267}, "positive_source_zip_without_zcta": {"const": 5103}, "organization_records_without_zcta": {"const": 143102}, "positive_source_zip_without_published_zbp": {"const": 3139}}}
+  }
+}

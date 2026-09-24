@@ -1,0 +1,17 @@
+{
+  "dataset_id": "national-irs-eo-bmf-organization-coverage",
+  "schema_version": "1.0.0",
+  "title": "IRS EO BMF current-extract organization filing-address coverage",
+  "status": "implemented-release-only",
+  "description": "Governed retained-only as-of aggregate of one complete IRS EO BMF current cumulative extract.",
+  "runtime_pointer": "data/national-irs-eo-bmf-organization-coverage/current.json",
+  "connector": "config/connectors/national-irs-eo-bmf-organization-coverage.json",
+  "required_datasets": ["irs-eo-bmf-organizations", "us-census-geography"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "organization_record_measure_additive_across_geographies": true,
+  "exempt_status_measures_mutually_exclusive": true,
+  "additive_to_generic_business_totals": false,
+  "completeness_claim": false,
+  "documentation": "docs/NATIONAL-IRS-EO-BMF-ORGANIZATION-COVERAGE.md",
+  "source_policy": "config/source-policies/national-irs-eo-bmf-organization-coverage.json"
+}

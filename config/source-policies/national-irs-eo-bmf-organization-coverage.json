@@ -1,0 +1,21 @@
+{
+  "policy_id": "national-irs-eo-bmf-organization-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained IRS EO BMF current-extract organization filing-address evidence",
+  "ownership": "The IRS publishes the retained source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay", "aggregate jurisdiction and reported-ZIP5 coverage", "bounded exempt-status code counts", "aggregate exclusion and quarantine accounting"],
+  "prohibited_use": [
+    "network acquisition",
+    "generic business total addition or double counting the existing IRS EO BMF registry contribution",
+    "publishing organization names, filing addresses, EINs, source record identifiers, tax-profile details, quarantine records, or raw records",
+    "claiming every nonprofit or tax-exempt organization, present-day operation, a verified physical site, public access, unique businesses across sources, contribution deductibility beyond the source code, or nationwide completeness",
+    "inferring parent, subordinate, chapter, ownership, or control relationships",
+    "joining ZIP5 and ZIP4 or treating Census ZCTA membership as USPS validity"
+  ],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins.",
+  "redistribution": "Governed aggregates only with IRS attribution, source posting date, provenance, and limitations.",
+  "personal_data_handling": "Aggregate counts only; all record-level names, addresses, EINs, source identifiers, and tax-profile details are prohibited.",
+  "privacy_warning": "No names, filing addresses, EINs, source identifiers, tax-profile details, quarantine records, or raw records may be exported.",
+  "attribution": "Source: U.S. Internal Revenue Service Exempt Organizations Business Master File Extract."
+}
