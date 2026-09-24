@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 65 (`production-cms-directories-20260924-65`, SHA-256 `be444ea1807628464a24ae53783a956625d02755b173f9164d9a5e8c8e6f5b22`). Plan 64 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `3da77042d9a38e08ceddc16b9409d9c08491f7f2`. That commit publishes a separate national NCUA credit-union coverage dataset derived entirely from the retained, verified NCUA quarterly release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260924-64`
