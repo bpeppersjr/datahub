@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 23, 2026
 
+> **Superseded without execution.** Implementation commit `3da77042d9a38e08ceddc16b9409d9c08491f7f2` published the separate governed national NCUA credit-union coverage layer after this plan was prepared, invalidating this plan's code fingerprint. Run `production-cms-directories-20260923-63` was never approved or executed and must not be used. It is replaced by `production-cms-directories-20260924-64` and the exact confirmation SHA recorded in `docs/PRODUCTION-CMS-DIRECTORIES-20260924-64.md`.
+
 Fresh governed planning completed after implementation commit `241dd6d140ce158afcf6c9f1ca13038fdc5fce83`. That commit publishes a separate national FDIC BankFind coverage dataset derived entirely from the retained, verified FDIC institution/location release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260923-63`
