@@ -131,7 +131,7 @@ test('exact ZIP inspector requests the selected category and aborts stale ZIP/ca
       } : name.startsWith('./') ? { default: function Stub() { return null; } } : require(name),
   });
   const render = () => { index = 0; effectIndex = 0; const tree = componentExports.Page(); for (const slot of effects) if (slot?.cleanup === null) slot.cleanup = slot.effect(); return tree; };
-  const detail = (zip, categoryId) => ({ zip5: zip, evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: zip }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' }, category_evidence: { category_id: categoryId, category_label: categoryId === 'all' ? 'All source categories' : categoryId, status: 'no-selected-positive-evidence', positive_source_contributions: [], completeness_percent: null, bindings: { coverage_release_id: 'c', registry_release_id: 'r', registry_manifest_sha256: 'm', zip_quality_audit_id: 'audit' }, semantics: 'No selected positive evidence, not a measured zero or completeness result.' } });
+  const detail = (zip, categoryId, pharmacy_evidence = null) => ({ zip5: zip, evidence_status: 'selected-evidence-present', governed_zcta: { status: 'included', geoid: zip }, contributions: [], coverage_gap_codes: [], limitations: [], denominator_semantics: '', employer_alignment: { percent: null }, zip_quality: {}, bindings: { coverage_release_id: 'c', registry_release_id: 'r', geography_release_id: 'g' }, pharmacy_evidence, category_evidence: { category_id: categoryId, category_label: categoryId === 'all' ? 'All source categories' : categoryId, status: 'no-selected-positive-evidence', positive_source_contributions: [], completeness_percent: null, bindings: { coverage_release_id: 'c', registry_release_id: 'r', registry_manifest_sha256: 'm', zip_quality_audit_id: 'audit' }, semantics: 'No selected positive evidence, not a measured zero or completeness result.' } });
   let tree = render();
   const input = () => nodes(tree).find(node => node.props?.['aria-label'] === 'Inspect exact ZIP5');
   assert.equal(pending.length, 1);
@@ -156,11 +156,16 @@ test('exact ZIP inspector requests the selected category and aborts stale ZIP/ca
   pending[2].resolve(detail('20002', 'health-care'));
   await new Promise(resolve => setImmediate(resolve));
   assert.notEqual(values[3]?.category_evidence?.category_id, 'health-care');
-  pending[3].resolve(detail('20002', 'retail-consumer'));
+  pending[3].resolve(detail('20002', 'retail-consumer', { zip_code: '20002', evidence_scope: 'positive-source-reported-primary-address-evidence', reported_address_count: 7, unique_npi_count: 6, reported_zip4_count: 4, mail_order_taxonomy_assertion_count: 1, source: { dataset_id: 'national-pharmacy-industry-coverage', release_id: 'pharmacy-r1' }, limitations: ['Not a current-operation assertion.'] }));
   await new Promise(resolve => setImmediate(resolve)); tree = render();
   assert.equal(values[3]?.category_evidence?.category_id, 'retail-consumer');
   assert.match(text(tree), /No selected positive evidence is available for this category and ZIP/);
   assert.match(text(tree), /not a measured zero/);
+  assert.match(text(tree), /Pharmacy evidence for exact ZIP 20002/);
+  assert.match(text(tree), /Reported primary addresses7/);
+  assert.match(text(tree), /Unique organization NPIs6/);
+  assert.match(text(tree), /national-pharmacy-industry-coverage/);
+  assert.match(text(tree), /Not a current-operation assertion/);
   pending[0].resolve(detail('10001', 'all'));
   await new Promise(resolve => setImmediate(resolve)); tree = render();
   assert.equal(values[3]?.zip5, '20002'); assert.doesNotMatch(text(tree), /governed Census ZCTA 10001/);

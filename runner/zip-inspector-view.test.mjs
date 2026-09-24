@@ -11,7 +11,7 @@ function quality(zip, { classification = "valid-format-same-code-governed-zcta",
     governed_zcta_membership: included ? { status: "included", geo_id: `zcta:${zip}`, geoid: zip, source_release_id: "geo-1" } : { status: "not-in-denominator", geo_id: null, geoid: null, source_release_id: null },
     positive_source_contributions: contributions, usps_operational_evidence: { status: "unverified", reason: "No USPS assertion", source_release_id: null, source_month: null }, limitations: ["current-usps-operational-status-unverified"] };
 }
-function fixture({ rows = [], getQuality = (zip) => quality(zip), registryRelease = "registry-1", manifest = "m" } = {}) {
+function fixture({ rows = [], getQuality = (zip) => quality(zip), registryRelease = "registry-1", manifest = "m", pharmacyCoverage = null } = {}) {
   return createZipInspectorView({
     businessMap: { getCatalog: async () => ({ available: true, coverage_release_id: "coverage-1", registry_release_id: registryRelease, registry_manifest_sha256: manifest, geography_release_id: "geo-1", categories: [
       { id: "all", label: "All source categories" },
@@ -20,6 +20,7 @@ function fixture({ rows = [], getQuality = (zip) => quality(zip), registryReleas
     ] }) },
     businessCoverageViews: { listDimension: async (_dimension, { query }) => ({ available: true, release_id: "coverage-1", records: rows.filter((row) => row.zip_code.startsWith(query)) }) },
     zipQualityView: async ({ zip }) => getQuality(zip),
+    pharmacyCoverage,
   });
 }
 const row = (zip, fields = {}) => ({ zip_code: zip, coverage_status: "record-level-source-contribution", physical_site_count: 12, establishment_count: 12, organization_primary_location_count: 7, employer_baseline_status: "published", employer_establishments: 4, zcta_geoid: zip, zcta_status: "2020-zcta-polygon-available", spatial_zip_polygon_membership_status: "included", material_county_count: 1, current_usps_validity_status: "unverified", coverage_gap_codes: ["gap-a"], ...fields });
@@ -101,4 +102,29 @@ test("rejects invalid exact input and mixed release bindings; reports cross-boun
   await assert.rejects(fixture({ registryRelease: "other" })({ zip: "12345" }), /does not match/);
   const cross = await fixture({ rows: [row("12345", { material_county_count: 2, spatial_zip_polygon_membership_status: "cross-boundary" })] })({ zip: "12345" });
   assert.equal(cross.selected_coverage_geography.county_assignment, "not-uniquely-assigned");
+});
+
+test("keeps optional aggregate pharmacy evidence in its own exact-ZIP block", async () => {
+  const calls = [];
+  const pharmacy = {
+    zip_code: "12345",
+    evidence_scope: "positive-source-reported-primary-address-evidence",
+    reported_address_count: 6,
+    unique_npi_count: 5,
+    limitations: ["aggregate evidence is not a current-operation assertion"],
+  };
+  const detail = await fixture({
+    rows: [row("12345")],
+    pharmacyCoverage: async (selection) => { calls.push(selection); return pharmacy; },
+  })({ zip: "12345", categoryId: "health-care" });
+  assert.deepEqual(calls, [{ zip: "12345" }]);
+  assert.deepEqual(detail.pharmacy_evidence, pharmacy);
+  assert.equal(detail.counts.physical_sites, 12, "pharmacy aggregate does not change generic counts");
+  assert.deepEqual(detail.category_evidence.positive_source_contributions.map(item => item.source_id), ["source-health"], "pharmacy aggregate does not change category evidence");
+});
+
+test("returns null when no pharmacy loader is bound and rejects mismatched or non-object evidence", async () => {
+  assert.equal((await fixture({ rows: [row("12345")] })({ zip: "12345" })).pharmacy_evidence, null);
+  await assert.rejects(fixture({ pharmacyCoverage: async () => ({ zip_code: "54321" }) })({ zip: "12345" }), /does not match/);
+  await assert.rejects(fixture({ pharmacyCoverage: async () => 4 })({ zip: "12345" }), /invalid aggregate/);
 });

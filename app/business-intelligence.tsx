@@ -173,6 +173,15 @@ type ZipInspection = {
     bindings: { coverage_release_id: string; registry_release_id: string; registry_manifest_sha256: string; zip_quality_audit_id: string };
     semantics: string;
   };
+  pharmacy_evidence: null | {
+    zip_code?: string; evidence_scope: string;
+    reported_address_count: number; unique_npi_count: number; reported_zip4_count: number;
+    mail_order_taxonomy_assertion_count: number;
+    zcta_membership?: { status?: string } | string | null;
+    source?: { dataset_id?: string | null; release_id?: string | null; source_release_id?: string | null; source_through_date?: string | null };
+    claims?: { current_operation?: null; physical_site?: boolean; unique_business?: null; licensed_pharmacy?: null; nationwide_completeness?: boolean };
+    limitations?: string[];
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -716,6 +725,19 @@ function BusinessEvidenceMap() {
                   : <p>No selected positive evidence is available for this category and ZIP. This is not a measured zero, does not establish absence of organizations, and does not measure category completeness.</p>}
                 <p>{zipInspection.category_evidence.semantics}</p>
               </section>
+              {zipInspection.pharmacy_evidence && <section className="category-zip-evidence" aria-label={`Pharmacy evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h3>Pharmacy evidence for exact ZIP {zipInspection.zip5}</h3>
+                <p>{zipInspection.pharmacy_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl>
+                  <div><dt>Reported primary addresses</dt><dd>{count(zipInspection.pharmacy_evidence.reported_address_count)}</dd></div>
+                  <div><dt>Unique organization NPIs</dt><dd>{count(zipInspection.pharmacy_evidence.unique_npi_count)}</dd></div>
+                  <div><dt>Rows with ZIP+4</dt><dd>{count(zipInspection.pharmacy_evidence.reported_zip4_count)}</dd></div>
+                  <div><dt>Mail-order taxonomy assertions</dt><dd>{count(zipInspection.pharmacy_evidence.mail_order_taxonomy_assertion_count)}</dd></div>
+                </dl>
+                <p>Source {zipInspection.pharmacy_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.pharmacy_evidence.source?.release_id ?? zipInspection.pharmacy_evidence.source?.source_release_id ?? 'not supplied'}{zipInspection.pharmacy_evidence.source?.source_through_date ? ` · through ${zipInspection.pharmacy_evidence.source.source_through_date}` : ''}.</p>
+                <p>These are source-reported aggregate address and NPI facts, not generic business totals, verified physical sites, unique businesses, licensed pharmacies, current operations, or nationwide completeness.</p>
+                {zipInspection.pharmacy_evidence.limitations?.map((item) => <p key={item}>{item}</p>)}
+              </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}
             </>}

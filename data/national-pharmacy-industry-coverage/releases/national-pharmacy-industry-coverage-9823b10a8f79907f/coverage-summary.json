@@ -1,0 +1,82 @@
+{
+  "schema_version": "national-pharmacy-industry-coverage@1.0.0",
+  "dataset_id": "national-pharmacy-industry-coverage",
+  "industry": {
+    "taxonomy_code": "3336C0003X",
+    "taxonomy_system": "NUCC",
+    "label": "Community / retail pharmacy"
+  },
+  "source": {
+    "dataset_id": "cms-nppes-community-retail-pharmacies",
+    "release_id": "cms-nppes-community-retail-pharmacies-20260922-173220059Z-a8d8f5a8",
+    "pointer_sha256": "4840a1ecf8185d02f92dab62c3769982cd93e7fbde41f7226b0c61b604c72be1",
+    "manifest_sha256": "627aaa4b32fa6e589d9da7f85eccdeab1825bd36a8e24b57bb51bbd8f42d4933",
+    "zip5_artifact_sha256": "8e3e115b249c2aee4fe9479e8769f8fb74eac47a41cc0f6a2043157fabcae9d9",
+    "state_artifact_sha256": "cc919f74109ae4635c148020477f609ba52fd5918bc8309c050321e2d85de2bc"
+  },
+  "geography": {
+    "dataset_id": "us-census-geography",
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "zcta_count": 33791,
+    "county_assignment": "not-performed"
+  },
+  "supplementary_secondary_addresses": {
+    "dataset_id": "cms-nppes-pharmacy-nonprimary-addresses",
+    "release_id": "cms-nppes-pharmacy-nonprimary-addresses-20260922-225434542Z-59f8001a",
+    "pointer_sha256": "0d61b892e84fe79efc8cd56a2ac573c151af1045e1501b3f26a7f26ebe7993c8",
+    "manifest_sha256": "1fe86278102ff9dd29cf072208598ca6a7c52956ef6310890ab74af6e97ffab8",
+    "rows": 420,
+    "distinct_npis": 332,
+    "distinct_zip5": 377,
+    "secondary_only_zip5": 4,
+    "additive_to_primary_counts": false,
+    "row_publication": false
+  },
+  "coverage": {
+    "accepted_organization_rows": 89077,
+    "retail_taxonomy_occurrences": 90074,
+    "repeated_retail_taxonomy_excess": 997,
+    "retail_primary_taxonomy_rows": 63468,
+    "rows_with_reported_primary_address": 89074,
+    "rows_without_reported_primary_address": 3,
+    "reported_zip4_rows": 78524,
+    "exact_zcta_membership_rows": 88899,
+    "nonpolygon_zip_rows": 175,
+    "unmatched_geography_rows": 3,
+    "mail_order_taxonomy_assertion_rows": 867,
+    "mail_order_taxonomy_assertion_organization_rows": 852,
+    "zip_union_rows": 38686,
+    "positive_reported_zip5_count": 15376,
+    "exact_zcta_positive_zip5_count": 15256,
+    "nonpolygon_positive_zip5_count": 120,
+    "state_aggregate_rows": 56,
+    "zip5_rows": 38686,
+    "jurisdiction_rows": 56,
+    "state_dc_rows": 87659,
+    "territory_rows": 1415,
+    "unassigned_rows": 3,
+    "positive_zip5_rows": 15376,
+    "zero_count_denominator_rows": 23310,
+    "reported_address_count": 89074
+  },
+  "claims": {
+    "current_operation": null,
+    "physical_site": false,
+    "unique_business": null,
+    "licensed_pharmacy": null,
+    "nationwide_completeness": false,
+    "governed_geocode": false,
+    "county_assignment_performed": false,
+    "public_export_authorized": false,
+    "nabp_number": null,
+    "ncpdp_number": null,
+    "drive_through": null,
+    "network_affiliation": null,
+    "parent_company": null,
+    "mail_order_service": null,
+    "mail_order_taxonomy_only": true
+  },
+  "export_policy": "local-aggregate-review-required"
+}

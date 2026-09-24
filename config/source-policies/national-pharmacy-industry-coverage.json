@@ -1,0 +1,9 @@
+{
+  "policy_id": "national-pharmacy-industry-coverage", "version": "1.0.0", "source_kind": "derived aggregate over CMS NPPES normalized organization evidence",
+  "ownership": "CMS owns NPPES source fields; this publisher owns only the aggregate transformation.",
+  "allowed_use": ["local aggregate coverage review", "industry evidence planning", "ZIP5 source-evidence inspection"],
+  "prohibited_use": ["claiming a complete pharmacy directory", "claiming current operation or licensure", "treating an address as a confirmed physical pharmacy", "treating NPI counts as deduplicated businesses", "public export without separate authorization"],
+  "attribution": "Source: CMS National Plan and Provider Enumeration System Data Dissemination V2; retain release and checksum lineage.",
+  "retention": "Retain immutable aggregate releases with dependency pins.", "redistribution": "Local aggregate review required.",
+  "personal_data_handling": "Aggregate ZIP5 counts only; no names, street addresses, or NPIs are copied.", "export_policy": "local-aggregate-review-required"
+}

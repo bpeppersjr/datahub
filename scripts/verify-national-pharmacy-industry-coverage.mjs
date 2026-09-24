@@ -1,0 +1,3 @@
+import { verifyNationalPharmacyIndustryCoverage, verifyNationalPharmacyIndustryCoverageCurrent } from '../runner/national-pharmacy-industry-coverage.mjs';
+try { const result = process.argv[2] ? await verifyNationalPharmacyIndustryCoverage(process.argv[2]) : await verifyNationalPharmacyIndustryCoverageCurrent(); process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, manifest_sha256: result.manifestSha256, coverage: result.coverage })}\n`); }
+catch (error) { process.stderr.write(`National pharmacy industry coverage verification failed: ${error.message}\n`); process.exitCode = 1; }

@@ -1,0 +1,13 @@
+{
+  "dataset_id": "national-pharmacy-industry-coverage",
+  "description": "Immutable local-review coverage projection for CMS NPPES community/retail pharmacy source evidence.",
+  "runtime_pointer": "data/national-pharmacy-industry-coverage/current.json",
+  "required_datasets": ["cms-nppes-community-retail-pharmacies"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "completeness_claim": false,
+  "current_operation_claim": false,
+  "physical_site_claim": false,
+  "export_policy": "local-aggregate-review-required",
+  "documentation": "docs/NATIONAL-PHARMACY-INDUSTRY-COVERAGE.md",
+  "source_policy": "config/source-policies/national-pharmacy-industry-coverage.json"
+}

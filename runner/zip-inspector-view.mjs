@@ -1,5 +1,5 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all" } = {}) {
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
     const catalog = await businessMap.getCatalog();
@@ -11,9 +11,10 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence] = await Promise.all([
       zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
+      pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
     ]);
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
@@ -31,6 +32,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     }
     const employer = selected?.employer_establishments ?? null;
     const numerator = selected?.physical_site_count ?? null;
+    if (pharmacyEvidence !== null && (typeof pharmacyEvidence !== "object" || Array.isArray(pharmacyEvidence))) {
+      throw new Error("Pharmacy ZIP evidence loader returned an invalid aggregate.");
+    }
+    if (pharmacyEvidence?.zip_code !== undefined && pharmacyEvidence.zip_code !== zip) {
+      throw new Error("Pharmacy ZIP evidence does not match the requested ZIP5.");
+    }
     return {
       schema_version: "1.0.0",
       zip5: zip,
@@ -83,6 +90,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
         },
         semantics: "Positive source contributions for the selected map category only. No matching contribution means no selected positive evidence, not a measured zero, missing business, or completeness result.",
       },
+      pharmacy_evidence: pharmacyEvidence,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

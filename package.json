@@ -181,6 +181,8 @@
     "pharmacy:nppes:verify": "node scripts/verify-cms-nppes-community-retail-pharmacies.mjs",
     "pharmacy:nppes:secondary:build": "node scripts/build-cms-nppes-pharmacy-nonprimary-addresses.mjs",
     "pharmacy:nppes:secondary:verify": "node scripts/verify-cms-nppes-pharmacy-nonprimary-addresses.mjs",
+    "pharmacy:coverage:build": "node scripts/build-national-pharmacy-industry-coverage.mjs",
+    "pharmacy:coverage:verify": "node scripts/verify-national-pharmacy-industry-coverage.mjs",
     "desktop:build": "vite build --config vite.desktop.config.ts",
     "test:desktop": "node scripts/verify-desktop-control-plane.mjs",
     "desktop": "npm run desktop:build && electron desktop/main.mjs",

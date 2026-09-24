@@ -1,0 +1,17 @@
+{
+  "connector_id": "national-pharmacy-industry-coverage",
+  "version": "1.0.0",
+  "implementation_status": "implemented-release-only",
+  "description": "Builds an immutable, aggregate-only national and ZIP5 coverage projection from retained CMS NPPES community/retail pharmacy evidence.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "validate dependency", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{"source":{"type":"string","default":"data/business-sources/cms-nppes-community-retail-pharmacies/current.json"},"output":{"type":"string","default":"data/national-pharmacy-industry-coverage"}}},
+  "named_secret_references": [],
+  "input_artifact_types": ["nppes-community-retail-pharmacy-zip5-aggregate-jsonl", "nppes-community-retail-pharmacy-state-aggregate-json", "cms-nppes-pharmacy-nonprimary-addresses-jsonl-gzip", "normalized-geography-index-jsonl"],
+  "output_artifact_types": ["national-pharmacy-industry-coverage-summary-json", "national-pharmacy-industry-jurisdiction-coverage-jsonl", "national-pharmacy-industry-zip5-coverage-jsonl", "dataset-manifest-json"],
+  "allowed_hosts": [], "redirect_policy": "deny", "provider_budget_key": "local-pharmacy-coverage", "resource_class": "cpu-disk",
+  "execution_limits": {"network_requests":0,"maximum_input_bytes":80000000},
+  "retry": "Rebuild from the same verified immutable dependency.", "checkpoint": "Run-scoped staging is atomically renamed only after verification.",
+  "idempotency": "Content-addressed release identity with exclusive publication lock.", "cancellation": "Abort before publication and remove owned staging.",
+  "source_policy": "config/source-policies/national-pharmacy-industry-coverage.json", "retention_profile": "Retain immutable local-review releases until approved removal.",
+  "produced_entities": ["pharmacy-industry-coverage-summary", "pharmacy-industry-zip5-coverage"], "produced_identifiers": ["release-id", "zip5"]
+}
