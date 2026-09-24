@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-epa-echo-active-facility-coverage.schema.json",
+  "title": "EPA ECHO governed active-program-facility coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "active_facility_count", "reported_zip4_count", "retained_coordinate_count", "centroid_warning_count", "coordinate_accuracy_missing_count", "record_zcta_count", "record_nonpolygon_count", "air_association_count", "npdes_association_count", "rcra_association_count", "safe_drinking_water_association_count", "toxics_release_inventory_association_count", "greenhouse_gas_reporting_association_count", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-epa-echo-active-facility-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "active_facility_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_count": {"type": "integer", "minimum": 0},
+    "retained_coordinate_count": {"type": "integer", "minimum": 0},
+    "centroid_warning_count": {"type": "integer", "minimum": 0},
+    "coordinate_accuracy_missing_count": {"type": "integer", "minimum": 0},
+    "record_zcta_count": {"type": "integer", "minimum": 0},
+    "record_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "air_association_count": {"type": "integer", "minimum": 0},
+    "npdes_association_count": {"type": "integer", "minimum": 0},
+    "rcra_association_count": {"type": "integer", "minimum": 0},
+    "safe_drinking_water_association_count": {"type": "integer", "minimum": 0},
+    "toxics_release_inventory_association_count": {"type": "integer", "minimum": 0},
+    "greenhouse_gas_reporting_association_count": {"type": "integer", "minimum": 0},
+    "claims": {"$ref": "#/$defs/claims"},
+    "evidence_scope": {"enum": ["positive-epa-echo-active-facility-evidence", "denominator-only"]},
+    "zcta_membership": {"type": "object", "additionalProperties": false, "required": ["status", "geoid"], "properties": {"status": {"enum": ["2020-zcta-polygon-available", "no-2020-zcta-polygon"]}, "geoid": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"}}},
+    "dataset_id": {"const": "national-epa-echo-active-facility-coverage"},
+    "contracts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "source_date": {"const": "2026-08-30"},
+    "source": {"$ref": "#/$defs/source"},
+    "geography": {"$ref": "#/$defs/geography"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "quarantine_reasons": {"type": "object", "additionalProperties": false, "required": ["missing-physical-address", "invalid-us-state-or-territory", "missing-registry-id", "missing-facility-identity"], "properties": {"missing-physical-address": {"const": 92746}, "invalid-us-state-or-territory": {"const": 33423}, "missing-registry-id": {"const": 15417}, "missing-facility-identity": {"const": 14}}},
+    "export_policy": {"const": "governed-aggregate-only"},
+    "privacy_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"scope": {"const": "national"}}}, "then": {"properties": {"code": {"type": "null"}}, "required": ["dataset_id", "contracts", "source_date", "source", "geography", "coverage", "quarantine_reasons", "export_policy", "privacy_warning"], "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}]}}},
+    {"if": {"properties": {"scope": {"const": "jurisdiction"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[A-Z]{2}$"}}, "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}, {"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}},
+    {"if": {"properties": {"scope": {"const": "zip5"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[0-9]{5}$"}}, "required": ["evidence_scope", "zcta_membership"], "not": {"anyOf": [{"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}}
+  ],
+  "$defs": {
+    "claims": {"type": "object", "additionalProperties": false, "required": ["source_defined_active_program_facility_cohort", "facility_records_additive_across_geographies", "program_association_counts_nonadditive", "unique_business", "current_operation_beyond_source", "physical_public_access", "all_environmentally_regulated_facilities", "all_businesses", "usable_premise_geocodes", "nationwide_business_completeness", "current_usps_validity", "coordinates_exported", "additive_to_generic_totals"], "properties": {"source_defined_active_program_facility_cohort": {"const": true}, "facility_records_additive_across_geographies": {"const": true}, "program_association_counts_nonadditive": {"const": true}, "unique_business": {"const": false}, "current_operation_beyond_source": {"const": false}, "physical_public_access": {"const": false}, "all_environmentally_regulated_facilities": {"const": false}, "all_businesses": {"const": false}, "usable_premise_geocodes": {"const": false}, "nationwide_business_completeness": {"const": false}, "current_usps_validity": {"type": "null"}, "coordinates_exported": {"const": false}, "additive_to_generic_totals": {"const": false}}},
+    "source": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "source_release_id", "source_date", "source_updated_at", "retrieved_at", "pointer_sha256", "manifest_sha256"], "properties": {"dataset_id": {"const": "epa-echo-active-facilities"}, "release_id": {"const": "epa-echo-20260903-002418917Z-3c1270e9"}, "source_release_id": {"const": "epa-echo-2026-08-30-382d612a42041dc0"}, "source_date": {"const": "2026-08-30"}, "source_updated_at": {"const": "2026-08-30T06:36:03.000Z"}, "retrieved_at": {"const": "2026-09-03T00:24:18.917Z"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}},
+    "geography": {"type": "object", "additionalProperties": false, "required": ["dataset_id", "release_id", "pointer_sha256", "manifest_sha256", "zcta_count"], "properties": {"dataset_id": {"const": "us-census-geography"}, "release_id": {"const": "us-census-geography-20260830-132803990Z-3629abc0"}, "pointer_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "manifest_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "zcta_count": {"const": 33791}}},
+    "coverage": {"type": "object", "additionalProperties": false, "required": ["source_records", "source_active_y_records", "source_unknown_blank_active_flag_records_excluded", "accepted_active_facilities", "quarantined_active_or_unexpected_records", "jurisdiction_rows", "state_dc_rows", "territory_rows", "positive_zip5_rows", "zip5_union_rows", "denominator_only_zip5_rows", "positive_source_zip_without_zcta", "active_facility_records_without_zcta", "positive_source_zip_without_published_zbp"], "properties": {"source_records": {"const": 3175741}, "source_active_y_records": {"const": 1659426}, "source_unknown_blank_active_flag_records_excluded": {"const": 1516315}, "accepted_active_facilities": {"const": 1517826}, "quarantined_active_or_unexpected_records": {"const": 141600}, "jurisdiction_rows": {"const": 56}, "state_dc_rows": {"const": 51}, "territory_rows": {"const": 5}, "positive_zip5_rows": {"const": 38401}, "zip5_union_rows": {"const": 41584}, "denominator_only_zip5_rows": {"const": 3183}, "positive_source_zip_without_zcta": {"const": 6594}, "active_facility_records_without_zcta": {"const": 27537}, "positive_source_zip_without_published_zbp": {"const": 5668}}}
+  }
+}

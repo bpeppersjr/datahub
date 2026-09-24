@@ -63,6 +63,9 @@ import { loadNationalNcuaCreditUnionCoverageStatus } from './national-ncua-credi
 import { lookupNationalFsisActiveEstablishmentZip5 } from './national-fsis-active-establishment-coverage.mjs';
 import { nationalFsisActiveEstablishmentCoverageStatusHttp } from './national-fsis-active-establishment-coverage-status-http.mjs';
 import { loadNationalFsisActiveEstablishmentCoverageStatus } from './national-fsis-active-establishment-coverage-status.mjs';
+import { lookupNationalEpaEchoActiveFacilityZip5 } from './national-epa-echo-active-facility-coverage.mjs';
+import { nationalEpaEchoActiveFacilityCoverageStatusHttp } from './national-epa-echo-active-facility-coverage-status-http.mjs';
+import { loadNationalEpaEchoActiveFacilityCoverageStatus } from './national-epa-echo-active-facility-coverage-status.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -250,6 +253,28 @@ const zipInspectorView = createZipInspectorView({ businessCoverageViews, busines
     source: { dataset_id: 'national-fsis-active-establishment-coverage', release_id: result.verified.manifest.release_id, source_date: result.verified.source_date, retrieved_at: result.verified.retrieved_at },
     attribution: 'Source: USDA Food Safety and Inspection Service Meat, Poultry and Egg Product Inspection Directory and Establishment Demographic Data.',
   } : null;
+}, epaEchoActiveFacilityCoverage: async ({ zip, signal }) => {
+  const result = await lookupNationalEpaEchoActiveFacilityZip5(zip, { signal });
+  return result.row ? {
+    zip_code: result.row.code,
+    evidence_scope: result.row.evidence_scope,
+    active_facility_count: result.row.active_facility_count,
+    reported_zip4_count: result.row.reported_zip4_count,
+    retained_coordinate_count: result.row.retained_coordinate_count,
+    centroid_warning_count: result.row.centroid_warning_count,
+    coordinate_accuracy_missing_count: result.row.coordinate_accuracy_missing_count,
+    record_zcta_count: result.row.record_zcta_count,
+    record_nonpolygon_count: result.row.record_nonpolygon_count,
+    air_association_count: result.row.air_association_count,
+    npdes_association_count: result.row.npdes_association_count,
+    rcra_association_count: result.row.rcra_association_count,
+    safe_drinking_water_association_count: result.row.safe_drinking_water_association_count,
+    toxics_release_inventory_association_count: result.row.toxics_release_inventory_association_count,
+    greenhouse_gas_reporting_association_count: result.row.greenhouse_gas_reporting_association_count,
+    zcta_membership: result.row.zcta_membership,
+    source: { dataset_id: 'national-epa-echo-active-facility-coverage', release_id: result.verified.manifest.release_id, source_date: result.verified.source_date, retrieved_at: result.verified.retrieved_at },
+    attribution: 'Source: U.S. Environmental Protection Agency Enforcement and Compliance History Online Exporter.',
+  } : null;
 } });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
@@ -361,7 +386,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status' && url.pathname !== '/api/data-operations/national-ncua-credit-union-coverage-status' && url.pathname !== '/api/data-operations/national-fsis-active-establishment-coverage-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status' && url.pathname !== '/api/data-operations/national-ncua-credit-union-coverage-status' && url.pathname !== '/api/data-operations/national-fsis-active-establishment-coverage-status' && url.pathname !== '/api/data-operations/national-epa-echo-active-facility-coverage-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -406,6 +431,7 @@ const server = http.createServer(async (request, response) => {
       if (url.pathname === '/api/data-operations/national-fdic-bankfind-coverage-status') { await nationalFdicBankfindCoverageStatusHttp(request,response,url,loadNationalFdicBankfindCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-ncua-credit-union-coverage-status') { await nationalNcuaCreditUnionCoverageStatusHttp(request,response,url,loadNationalNcuaCreditUnionCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-fsis-active-establishment-coverage-status') { await nationalFsisActiveEstablishmentCoverageStatusHttp(request,response,url,loadNationalFsisActiveEstablishmentCoverageStatus,json); return; }
+      if (url.pathname === '/api/data-operations/national-epa-echo-active-facility-coverage-status') { await nationalEpaEchoActiveFacilityCoverageStatusHttp(request,response,url,loadNationalEpaEchoActiveFacilityCoverageStatus,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

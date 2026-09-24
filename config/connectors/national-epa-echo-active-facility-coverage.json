@@ -1,0 +1,32 @@
+{
+  "connector_id": "national-epa-echo-active-facility-coverage",
+  "version": "1.0.0",
+  "implementation_status": "implemented-release-only",
+  "description": "Builds immutable retained-only EPA ECHO active-program-facility aggregate coverage.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "source": {"type": "string", "default": "data/business-sources/epa-echo-active-facilities/current.json"},
+      "geography": {"type": "string", "default": "data/geography/current.json"},
+      "output": {"type": "string", "default": "data/national-epa-echo-active-facility-coverage"}
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["normalized-epa-echo-facility-jsonl-gzip", "epa-echo-zip-coverage-jsonl", "epa-echo-source-summary"],
+  "output_artifact_types": ["national-epa-echo-coverage-summary-json", "national-epa-echo-jurisdiction-coverage-jsonl", "national-epa-echo-zip5-coverage-jsonl", "dataset-manifest-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-epa-echo-coverage",
+  "resource_class": "cpu-disk",
+  "execution_limits": {"network_requests": 0, "maximum_input_artifact_bytes": 500000000},
+  "retry": "Replay only exact verified immutable dependencies.",
+  "checkpoint": "Verify run-owned staging before atomic release and manifest-pinned pointer publication.",
+  "idempotency": "Content-addressed release with exclusive release and pointer locks.",
+  "cancellation": "Cooperative checkpoints clean only owned staging before publication.",
+  "source_policy": "config/source-policies/national-epa-echo-active-facility-coverage.json",
+  "retention_profile": "Retain immutable aggregates and exact dependency pins until approved removal.",
+  "produced_entities": ["epa-echo-active-facility-coverage-summary", "epa-echo-active-facility-coverage"],
+  "produced_identifiers": ["release-id", "jurisdiction-code", "zip5"]
+}

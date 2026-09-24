@@ -225,6 +225,16 @@ type ZipInspection = {
     source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
     attribution?: string;
   };
+  epa_echo_active_facility_evidence: null | {
+    zip_code: string; evidence_scope: string; active_facility_count: number;
+    reported_zip4_count: number; retained_coordinate_count: number; centroid_warning_count: number; coordinate_accuracy_missing_count: number;
+    record_zcta_count: number; record_nonpolygon_count: number;
+    air_association_count: number; npdes_association_count: number; rcra_association_count: number; safe_drinking_water_association_count: number;
+    toxics_release_inventory_association_count: number; greenhouse_gas_reporting_association_count: number;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
+    attribution?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -827,6 +837,14 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.fsis_active_establishment_evidence.source?.dataset_id ?? 'not supplied'} · source date {zipInspection.fsis_active_establishment_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.fsis_active_establishment_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.fsis_active_establishment_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.fsis_active_establishment_evidence.attribution ?? 'Source: USDA Food Safety and Inspection Service.'}</p>
                 <p>Separate, non-additive evidence; not all food businesses, unique businesses, current operation beyond source directory membership, physical public access, current hours, ownership, USPS validity, or nationwide completeness. Coordinates and geometry are not exposed.</p>
+              </section>}
+              {zipInspection.epa_echo_active_facility_evidence && <section className="category-zip-evidence" aria-label={`EPA ECHO active-program-facility evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>EPA ECHO source-defined active-program-facility evidence</h4>
+                <p>{zipInspection.epa_echo_active_facility_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Active-program facility records</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.active_facility_count)}</dd></div><div><dt>Records with separate ZIP+4</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.reported_zip4_count)}</dd></div><div><dt>Records with source coordinates</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.retained_coordinate_count)}</dd></div><div><dt>Centroid warnings</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.centroid_warning_count)}</dd></div><div><dt>Missing accuracy meters</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.coordinate_accuracy_missing_count)}</dd></div><div><dt>Same-code ZCTA records</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.record_zcta_count)}</dd></div><div><dt>Nonpolygon records</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.record_nonpolygon_count)}</dd></div><div><dt>Air associations</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.air_association_count)}</dd></div><div><dt>NPDES associations</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.npdes_association_count)}</dd></div><div><dt>RCRA associations</dt><dd>{count(zipInspection.epa_echo_active_facility_evidence.rcra_association_count)}</dd></div></dl>
+                <p>Source {zipInspection.epa_echo_active_facility_evidence.source?.dataset_id ?? 'not supplied'} · source date {zipInspection.epa_echo_active_facility_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.epa_echo_active_facility_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.epa_echo_active_facility_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.epa_echo_active_facility_evidence.attribution ?? 'Source: U.S. Environmental Protection Agency ECHO Exporter.'}</p>
+                <p>Program flags overlap and must not be summed. This is as-of regulatory-program evidence, not all businesses, all regulated facilities, present-day operation, every program active, public access, ownership, premise-level geocoding, USPS validity, or completeness. Coordinates and geometry are not exposed.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

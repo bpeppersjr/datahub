@@ -8,9 +8,16 @@ export async function zipInspectorHttp(request, response, url, view, json) {
     json(response, 400, { error: "ZIP inspector requires one exact ZIP option and at most one valid category." });
     return;
   }
+  const controller = new AbortController();
+  const disconnected = () => { if (!response.writableEnded) controller.abort(); };
+  request.once?.("aborted", disconnected);
+  response.once?.("close", disconnected);
   try {
-    json(response, 200, await view({ zip: url.searchParams.get("zip"), categoryId: category }));
+    json(response, 200, await view({ zip: url.searchParams.get("zip"), categoryId: category, signal: controller.signal }));
   } catch (error) {
-    json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : "Selected ZIP evidence is unavailable or mismatched." });
+    if (!controller.signal.aborted && !response.writableEnded) json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : "Selected ZIP evidence is unavailable or mismatched." });
+  } finally {
+    request.removeListener?.("aborted", disconnected);
+    response.removeListener?.("close", disconnected);
   }
 }

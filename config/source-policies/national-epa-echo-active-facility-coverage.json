@@ -1,0 +1,21 @@
+{
+  "policy_id": "national-epa-echo-active-facility-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained EPA ECHO active-program-facility evidence",
+  "ownership": "EPA publishes the retained source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay", "aggregate jurisdiction and reported-ZIP5 coverage", "bounded environmental-program association counts", "aggregate quarantine accounting"],
+  "prohibited_use": [
+    "network acquisition",
+    "generic business total addition or double counting the existing EPA ECHO registry contribution",
+    "publishing names, physical addresses, coordinates, geometry, FRS or program identifiers, report URLs, quarantine records, or raw records",
+    "claiming all businesses, all environmentally regulated facilities, present-day operation, every associated program active, physical public access, premise-level geocodes, unique legal enterprises, ownership, or nationwide completeness",
+    "summing nonexclusive program-association counts",
+    "substituting coordinate-derived ZIP for reported physical ZIP, joining ZIP5 and ZIP4, or treating Census ZCTA membership as USPS validity"
+  ],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins.",
+  "redistribution": "Governed aggregates only with EPA attribution, source as-of date, provenance, and limitations.",
+  "personal_data_handling": "Aggregate counts only; all record-level names, addresses, identifiers, URLs, and coordinates are prohibited.",
+  "privacy_warning": "No names, addresses, coordinates, geometry, identifiers, URLs, quarantine records, or raw records may be exported.",
+  "attribution": "Source: U.S. Environmental Protection Agency Enforcement and Compliance History Online Exporter and Facility Registry Service identifiers."
+}

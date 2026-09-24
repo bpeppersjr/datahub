@@ -1,6 +1,7 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null }) {
-  return async function zipInspectorView({ zip, categoryId = "all" } = {}) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null }) {
+  return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
+    signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
     const catalog = await businessMap.getCatalog();
     if (!catalog?.available) throw new Error("Selected ZIP evidence is unavailable.");
@@ -11,7 +12,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence] = await Promise.all([
       zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
       pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
@@ -20,7 +21,9 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       fdicBankfindCoverage ? fdicBankfindCoverage({ zip }) : null,
       ncuaCreditUnionCoverage ? ncuaCreditUnionCoverage({ zip }) : null,
       fsisActiveEstablishmentCoverage ? fsisActiveEstablishmentCoverage({ zip }) : null,
+      epaEchoActiveFacilityCoverage ? epaEchoActiveFacilityCoverage({ zip, signal }) : null,
     ]);
+    signal?.throwIfAborted();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
     if (!catalog.registry_release_id || quality.bindings.release_id !== catalog.registry_release_id
@@ -72,6 +75,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     }
     if (fsisActiveEstablishmentEvidence !== null && fsisActiveEstablishmentEvidence.zip_code !== zip) {
       throw new Error("FSIS active-establishment ZIP evidence does not match the requested ZIP5.");
+    }
+    if (epaEchoActiveFacilityEvidence !== null && (typeof epaEchoActiveFacilityEvidence !== "object" || Array.isArray(epaEchoActiveFacilityEvidence))) {
+      throw new Error("EPA ECHO active-facility ZIP evidence loader returned an invalid aggregate.");
+    }
+    if (epaEchoActiveFacilityEvidence !== null && epaEchoActiveFacilityEvidence.zip_code !== zip) {
+      throw new Error("EPA ECHO active-facility ZIP evidence does not match the requested ZIP5.");
     }
     return {
       schema_version: "1.0.0",
@@ -131,6 +140,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       fdic_bankfind_office_evidence: fdicBankfindEvidence,
       ncua_credit_union_location_evidence: ncuaCreditUnionEvidence,
       fsis_active_establishment_evidence: fsisActiveEstablishmentEvidence,
+      epa_echo_active_facility_evidence: epaEchoActiveFacilityEvidence,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

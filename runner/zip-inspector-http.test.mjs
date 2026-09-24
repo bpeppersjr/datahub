@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
+import { EventEmitter } from "node:events";
 import { zipInspectorHttp } from "./zip-inspector-http.mjs";
 
 async function call(method, query) {
@@ -35,4 +36,21 @@ test("the runner authorizes protected API routes before dispatching exact ZIP de
   const authorize = server.indexOf("controlPlane.authorize(request)");
   const inspector = server.indexOf("url.pathname === '/api/business-map/zip-inspector'");
   assert.ok(authorize >= 0 && inspector > authorize);
+});
+
+test("client disconnect aborts the exact ZIP reader without writing a response", async () => {
+  const request = Object.assign(new EventEmitter(), { method: "GET" });
+  const response = Object.assign(new EventEmitter(), { writableEnded: false });
+  let observed;
+  let writes = 0;
+  const pending = zipInspectorHttp(request, response, new URL("http://local/api/business-map/zip-inspector?zip=00501"), async ({ signal }) => {
+    observed = signal;
+    await new Promise((resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+    return null;
+  }, () => { writes += 1; });
+  await new Promise((resolve) => setImmediate(resolve));
+  request.emit("aborted");
+  await pending;
+  assert.equal(observed.aborted, true);
+  assert.equal(writes, 0);
 });

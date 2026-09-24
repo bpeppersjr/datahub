@@ -178,6 +178,7 @@ test("protects every live management endpoint while leaving only narrow liveness
       ["GET", "/api/data-operations/national-fdic-bankfind-coverage-status"],
       ["GET", "/api/data-operations/national-ncua-credit-union-coverage-status"],
       ["GET", "/api/data-operations/national-fsis-active-establishment-coverage-status"],
+      ["GET", "/api/data-operations/national-epa-echo-active-facility-coverage-status"],
     ["GET", "/api/data-operations/schedules"],
     ["POST", "/api/data-operations/schedules", "{}"],
     ["POST", "/api/data-operations/schedules/fixture/enabled", "{\"enabled\":true}"],
@@ -329,8 +330,8 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(connectorCatalog.status, 200);
   const connectorCatalogBody = JSON.parse(connectorCatalog.body);
-    assert.equal(connectorCatalogBody.connector_count, 88);
-    assert.equal(connectorCatalogBody.policy_profile_count, 69);
+    assert.equal(connectorCatalogBody.connector_count, 89);
+    assert.equal(connectorCatalogBody.policy_profile_count, 70);
   assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
 
   const connectorDetail = await rawRequest({
