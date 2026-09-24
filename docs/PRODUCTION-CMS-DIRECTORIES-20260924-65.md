@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 66 (`production-cms-directories-20260924-66`, SHA-256 `1b404088f223f66765eb0f52fdb153c6790ba6b870191a497ee0c1d30f0fa154`). Plan 65 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `9ac08e851670b5e3ea1b43449a3de84f416d9c34`. That commit publishes a separate national USDA FSIS active-establishment aggregate coverage dataset derived entirely from the retained, verified FSIS Meat, Poultry and Egg Product Inspection Directory release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260924-65`
