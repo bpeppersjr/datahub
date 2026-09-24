@@ -1,5 +1,5 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -12,7 +12,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence, cmsNppesOrganizationPracticeLocationEvidence] = await Promise.all([
       zipQualityView({ zip }),
       businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
       pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
@@ -23,6 +23,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       fsisActiveEstablishmentCoverage ? fsisActiveEstablishmentCoverage({ zip }) : null,
       epaEchoActiveFacilityCoverage ? epaEchoActiveFacilityCoverage({ zip, signal }) : null,
       irsEoBmfOrganizationCoverage ? irsEoBmfOrganizationCoverage({ zip, signal }) : null,
+      cmsNppesOrganizationPracticeLocationCoverage ? cmsNppesOrganizationPracticeLocationCoverage({ zip, signal }) : null,
     ]);
     signal?.throwIfAborted();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
@@ -89,6 +90,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     if (irsEoBmfOrganizationEvidence !== null && irsEoBmfOrganizationEvidence.zip_code !== zip) {
       throw new Error("IRS EO BMF organization ZIP evidence does not match the requested ZIP5.");
     }
+    if (cmsNppesOrganizationPracticeLocationEvidence !== null && (typeof cmsNppesOrganizationPracticeLocationEvidence !== "object" || Array.isArray(cmsNppesOrganizationPracticeLocationEvidence))) {
+      throw new Error("CMS NPPES organization practice-location ZIP evidence loader returned an invalid aggregate.");
+    }
+    if (cmsNppesOrganizationPracticeLocationEvidence !== null && cmsNppesOrganizationPracticeLocationEvidence.zip_code !== zip) {
+      throw new Error("CMS NPPES organization practice-location ZIP evidence does not match the requested ZIP5.");
+    }
     return {
       schema_version: "1.0.0",
       zip5: zip,
@@ -149,6 +156,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       fsis_active_establishment_evidence: fsisActiveEstablishmentEvidence,
       epa_echo_active_facility_evidence: epaEchoActiveFacilityEvidence,
       irs_eo_bmf_organization_evidence: irsEoBmfOrganizationEvidence,
+      cms_nppes_organization_practice_location_evidence: cmsNppesOrganizationPracticeLocationEvidence,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

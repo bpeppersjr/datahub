@@ -113,6 +113,8 @@
     "epa-echo:coverage:verify": "node scripts/verify-national-epa-echo-active-facility-coverage.mjs",
     "irs-eo:coverage:build": "node scripts/build-national-irs-eo-bmf-organization-coverage.mjs",
     "irs-eo:coverage:verify": "node scripts/verify-national-irs-eo-bmf-organization-coverage.mjs",
+    "nppes-org:coverage:build": "node scripts/build-national-cms-nppes-organization-practice-location-coverage.mjs",
+    "nppes-org:coverage:verify": "node scripts/verify-national-cms-nppes-organization-practice-location-coverage.mjs",
     "fsis:build": "node scripts/build-fsis-mpi.mjs",
     "fsis:verify": "node scripts/verify-fsis-mpi.mjs",
     "echo:build": "node scripts/build-epa-echo.mjs",

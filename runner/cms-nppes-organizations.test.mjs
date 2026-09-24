@@ -197,6 +197,7 @@ test('builds and verifies the full organization-provider fixture with denominato
   assert.equal(result.manifest.coverage.organization_primary_locations_with_us_zip, 1);
   assert.equal(result.manifest.coverage.organizations_without_valid_us_primary_zip, 1);
   assert.equal(result.manifest.coverage.accepted_non_primary_practice_locations, 1);
+  assert.equal(result.manifest.coverage.deduplicated_practice_location_rows, 0);
   assert.equal(result.manifest.coverage.accepted_other_names, 2);
   assert(result.manifest.artifacts.filter((artifact) => artifact.path.startsWith('source/')).every((artifact) => artifact.export_policy === 'internal-source-snapshot'));
   const verification = await verifyCmsNppesOrganizations(path.join(result.releaseDirectory, 'manifest.json'));

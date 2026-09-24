@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-cms-nppes-organization-practice-location-coverage.schema.json",
+  "title": "CMS NPPES governed organization practice-location coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "practice_location_count", "primary_practice_location_count", "non_primary_practice_location_count", "reported_zip4_location_count", "location_zcta_count", "location_nonpolygon_count", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-cms-nppes-organization-practice-location-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "practice_location_count": {"type": "integer", "minimum": 0},
+    "primary_practice_location_count": {"type": "integer", "minimum": 0},
+    "non_primary_practice_location_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_location_count": {"type": "integer", "minimum": 0},
+    "location_zcta_count": {"type": "integer", "minimum": 0},
+    "location_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "claims": {"$ref": "#/$defs/claims"},
+    "evidence_scope": {"enum": ["positive-cms-nppes-organization-practice-location-evidence", "denominator-only"]},
+    "zcta_membership": {"type": "object", "additionalProperties": false, "required": ["status", "geoid"], "properties": {"status": {"enum": ["2020-zcta-polygon-available", "no-2020-zcta-polygon"]}, "geoid": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"}}},
+    "dataset_id": {"const": "national-cms-nppes-organization-practice-location-coverage"},
+    "contracts": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}},
+    "source_date": {"const": "2026-08-09"},
+    "source": {"$ref": "#/$defs/source"},
+    "geography": {"$ref": "#/$defs/geography"},
+    "coverage": {"$ref": "#/$defs/coverage"},
+    "export_policy": {"const": "governed-aggregate-only"},
+    "privacy_warning": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {"if": {"properties": {"scope": {"const": "national"}}}, "then": {"properties": {"code": {"type": "null"}}, "required": ["dataset_id", "contracts", "source_date", "source", "geography", "coverage", "export_policy", "privacy_warning"], "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}]}}},
+    {"if": {"properties": {"scope": {"const": "jurisdiction"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[A-Z]{2}$"}}, "not": {"anyOf": [{"required": ["evidence_scope"]}, {"required": ["zcta_membership"]}, {"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}},
+    {"if": {"properties": {"scope": {"const": "zip5"}}}, "then": {"properties": {"code": {"type": "string", "pattern": "^[0-9]{5}$"}}, "required": ["evidence_scope", "zcta_membership"], "not": {"anyOf": [{"required": ["dataset_id"]}, {"required": ["source"]}, {"required": ["coverage"]}]}}}
+  ],
+  "$defs": {
+    "claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_active_organization_npi_cohort", "practice_location_records_additive_across_geographies", "primary_and_non_primary_counts_mutually_exclusive", "individual_npi_records_excluded", "unique_business", "current_operation_beyond_source", "verified_physical_site", "licensure_or_credentials_verified", "all_healthcare_organizations", "all_businesses", "usable_premise_geocodes", "nationwide_business_completeness", "current_usps_validity", "organization_names_exported", "practice_addresses_exported", "npis_exported", "additive_to_generic_totals"],
+      "properties": {
+        "source_active_organization_npi_cohort": {"const": true},
+        "practice_location_records_additive_across_geographies": {"const": true},
+        "primary_and_non_primary_counts_mutually_exclusive": {"const": true},
+        "individual_npi_records_excluded": {"const": true},
+        "unique_business": {"const": false},
+        "current_operation_beyond_source": {"const": false},
+        "verified_physical_site": {"const": false},
+        "licensure_or_credentials_verified": {"const": false},
+        "all_healthcare_organizations": {"const": false},
+        "all_businesses": {"const": false},
+        "usable_premise_geocodes": {"const": false},
+        "nationwide_business_completeness": {"const": false},
+        "current_usps_validity": {"type": "null"},
+        "organization_names_exported": {"const": false},
+        "practice_addresses_exported": {"const": false},
+        "npis_exported": {"const": false},
+        "additive_to_generic_totals": {"const": false}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "release_id", "source_release_id", "source_date", "retrieved_at", "observed_at", "pointer_sha256", "manifest_sha256"],
+      "properties": {
+        "dataset_id": {"const": "cms-nppes-organizations"},
+        "release_id": {"const": "cms-nppes-organizations-20260903-013253062Z-7ee97568"},
+        "source_release_id": {"const": "NPPES_Data_Dissemination_August_2026_V2"},
+        "source_date": {"const": "2026-08-09"},
+        "retrieved_at": {"const": "2026-08-30T14:13:17.460Z"},
+        "observed_at": {"const": "2026-09-03T01:32:53.062Z"},
+        "pointer_sha256": {"const": "117140134ece328e29a134440e0c12b68e0217417675da03f844f1de5cca52d9"},
+        "manifest_sha256": {"const": "00e645a99a5f8b6b793b5fa250dd40bacec3850fdc83bb872845e86750585778"}
+      }
+    },
+    "geography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "release_id", "pointer_sha256", "manifest_sha256", "zcta_count"],
+      "properties": {
+        "dataset_id": {"const": "us-census-geography"},
+        "release_id": {"const": "us-census-geography-20260830-132803990Z-3629abc0"},
+        "pointer_sha256": {"const": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403"},
+        "manifest_sha256": {"const": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"},
+        "zcta_count": {"const": 33791}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_main_rows", "active_organization_npis", "active_individual_npis_excluded", "deactivated_npis_limited", "organization_primary_locations_with_us_zip", "organizations_without_valid_us_primary_zip", "source_practice_location_rows", "accepted_non_primary_practice_locations", "deduplicated_practice_location_rows", "excluded_practice_locations", "rejected_practice_locations", "source_other_name_rows", "accepted_other_names", "excluded_other_names", "quarantined_main_rows", "source_zip_codes", "zip_union_records", "states_and_territories", "unique_taxonomy_codes", "jurisdiction_rows", "state_dc_rows", "territory_rows", "military_rows", "associated_state_rows", "positive_zip5_rows", "zip5_union_rows", "denominator_only_zip5_rows", "positive_source_zip_without_zcta", "practice_location_records_without_zcta", "positive_source_zip_without_published_zbp"],
+      "properties": {
+        "source_main_rows": {"const": 9726865},
+        "active_organization_npis": {"const": 1959633},
+        "active_individual_npis_excluded": {"const": 7415294},
+        "deactivated_npis_limited": {"const": 351911},
+        "organization_primary_locations_with_us_zip": {"const": 1958089},
+        "organizations_without_valid_us_primary_zip": {"const": 1544},
+        "source_practice_location_rows": {"const": 1241921},
+        "accepted_non_primary_practice_locations": {"const": 130691},
+        "deduplicated_practice_location_rows": {"const": 1606},
+        "excluded_practice_locations": {"const": 1109593},
+        "rejected_practice_locations": {"const": 31},
+        "source_other_name_rows": {"const": 859461},
+        "accepted_other_names": {"const": 808030},
+        "excluded_other_names": {"const": 51431},
+        "quarantined_main_rows": {"const": 27},
+        "source_zip_codes": {"const": 28056},
+        "zip_union_records": {"const": 38686},
+        "states_and_territories": {"const": 61},
+        "unique_taxonomy_codes": {"const": 869},
+        "jurisdiction_rows": {"const": 61},
+        "state_dc_rows": {"const": 51},
+        "territory_rows": {"const": 5},
+        "military_rows": {"const": 3},
+        "associated_state_rows": {"const": 2},
+        "positive_zip5_rows": {"const": 28056},
+        "zip5_union_rows": {"const": 38686},
+        "denominator_only_zip5_rows": {"const": 10630},
+        "positive_source_zip_without_zcta": {"const": 2177},
+        "practice_location_records_without_zcta": {"const": 7054},
+        "positive_source_zip_without_published_zbp": {"const": 1465}
+      }
+    }
+  }
+}

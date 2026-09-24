@@ -518,6 +518,7 @@ export async function buildCmsNppesOrganizations({
     organizations_without_valid_us_primary_zip: 0,
     source_practice_location_rows: 0,
     accepted_non_primary_practice_locations: 0,
+    deduplicated_practice_location_rows: 0,
     excluded_practice_locations: 0,
     rejected_practice_locations: 0,
     source_other_name_rows: 0,
@@ -589,7 +590,7 @@ export async function buildCmsNppesOrganizations({
           await writeGzipRecord(locationWriters.get(zipCode[0]), normalized.record);
           increment(secondaryCounts, zipCode);
           counts.accepted_non_primary_practice_locations += 1;
-        }
+        } else counts.deduplicated_practice_location_rows += 1;
       }
       if (rowNumber % 250_000 === 0) logger(`Scanned ${rowNumber.toLocaleString('en-US')} NPPES non-primary practice locations.`);
     },
@@ -771,6 +772,12 @@ export async function verifyCmsNppesOrganizations(manifestPath) {
     }
   }
   if (practiceLocations !== manifest.coverage?.accepted_non_primary_practice_locations) failures.push({ path: 'manifest.json', reason: 'practice-location count mismatch' });
+  const deduplicatedPracticeLocations = manifest.coverage?.deduplicated_practice_location_rows
+    ?? manifest.coverage?.source_practice_location_rows - manifest.coverage?.accepted_non_primary_practice_locations - manifest.coverage?.excluded_practice_locations - manifest.coverage?.rejected_practice_locations;
+  if (!Number.isSafeInteger(deduplicatedPracticeLocations) || deduplicatedPracticeLocations < 0
+    || manifest.coverage?.source_practice_location_rows !== manifest.coverage?.accepted_non_primary_practice_locations + manifest.coverage?.excluded_practice_locations + manifest.coverage?.rejected_practice_locations + deduplicatedPracticeLocations) {
+    failures.push({ path: 'manifest.json', reason: 'practice-location source accounting mismatch' });
+  }
 
   let otherNames = 0;
   const nameIds = new Set();

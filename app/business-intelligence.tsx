@@ -243,6 +243,14 @@ type ZipInspection = {
     source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
     attribution?: string;
   };
+  cms_nppes_organization_practice_location_evidence: null | {
+    zip_code: string; evidence_scope: string; practice_location_count: number;
+    primary_practice_location_count: number; non_primary_practice_location_count: number;
+    reported_zip4_location_count: number; location_zcta_count: number; location_nonpolygon_count: number;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null; source_date?: string | null; retrieved_at?: string | null };
+    attribution?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -861,6 +869,14 @@ function BusinessEvidenceMap() {
                 <p>Source {zipInspection.irs_eo_bmf_organization_evidence.source?.dataset_id ?? 'not supplied'} · source posting date {zipInspection.irs_eo_bmf_organization_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.irs_eo_bmf_organization_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.irs_eo_bmf_organization_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>{zipInspection.irs_eo_bmf_organization_evidence.attribution ?? 'Source: U.S. Internal Revenue Service EO BMF Extract.'}</p>
                 <p>Status-code counts are mutually exclusive. This is current-extract filing-address and federal tax-status evidence, not every nonprofit or tax-exempt organization, present-day operation, a verified physical site, public access, unique businesses across sources, ownership, USPS validity, or completeness. Names, filing addresses, EINs, and tax-profile details are not exposed.</p>
+              </section>}
+              {zipInspection.cms_nppes_organization_practice_location_evidence && <section className="category-zip-evidence" aria-label={`CMS NPPES organization practice-location evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>CMS NPPES active organization practice-location evidence</h4>
+                <p>{zipInspection.cms_nppes_organization_practice_location_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Reported practice-location records</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.practice_location_count)}</dd></div><div><dt>Primary practice locations</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.primary_practice_location_count)}</dd></div><div><dt>Non-primary practice locations</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.non_primary_practice_location_count)}</dd></div><div><dt>Locations with separate ZIP+4</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.reported_zip4_location_count)}</dd></div><div><dt>Same-code ZCTA locations</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.location_zcta_count)}</dd></div><div><dt>Nonpolygon locations</dt><dd>{count(zipInspection.cms_nppes_organization_practice_location_evidence.location_nonpolygon_count)}</dd></div></dl>
+                <p>Source {zipInspection.cms_nppes_organization_practice_location_evidence.source?.dataset_id ?? 'not supplied'} · source through {zipInspection.cms_nppes_organization_practice_location_evidence.source?.source_date ?? 'not supplied'} · retrieved {zipInspection.cms_nppes_organization_practice_location_evidence.source?.retrieved_at ?? 'not supplied'} · release {zipInspection.cms_nppes_organization_practice_location_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.cms_nppes_organization_practice_location_evidence.attribution ?? 'Source: U.S. Centers for Medicare & Medicaid Services NPPES.'}</p>
+                <p>Primary and non-primary counts are mutually exclusive. This is provider-reported practice-location evidence for active organization NPIs, not proof of licensure, credentials, current operation, public access, ownership, unique businesses, USPS validity, or completeness. Names, NPIs, addresses, telephone numbers, and taxonomies are not exposed.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

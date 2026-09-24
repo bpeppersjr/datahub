@@ -1,0 +1,20 @@
+{
+  "policy_id": "national-cms-nppes-organization-practice-location-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained CMS NPPES active organization practice-location evidence",
+  "ownership": "CMS publishes the retained source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay", "aggregate jurisdiction and reported-ZIP5 coverage", "separate primary and non-primary practice-location counts", "aggregate exclusion and quarantine accounting"],
+  "prohibited_use": [
+    "network acquisition",
+    "generic business total addition or double counting existing NPPES registry or pharmacy contributions",
+    "publishing organization names, NPIs, addresses, telephone numbers, taxonomies, source record identifiers, quarantine records, or raw records",
+    "claiming licensure, credentials, currently open premises, public access, unique businesses across sources, ownership, all healthcare organizations, or nationwide completeness",
+    "joining ZIP5 and ZIP4 or treating Census ZCTA membership as USPS validity"
+  ],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins.",
+  "redistribution": "Governed aggregates only with CMS attribution, source-through date, provenance, and limitations.",
+  "personal_data_handling": "Aggregate counts only; all record-level names, NPIs, addresses, telephone numbers, taxonomies, and source identifiers are prohibited.",
+  "privacy_warning": "No names, NPIs, addresses, telephone numbers, taxonomies, source identifiers, quarantine records, or raw records may be exported.",
+  "attribution": "Source: U.S. Centers for Medicare & Medicaid Services National Plan and Provider Enumeration System."
+}
