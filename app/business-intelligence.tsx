@@ -189,6 +189,17 @@ type ZipInspection = {
     zcta_membership: { status: string; geoid: string | null };
     source?: { dataset_id?: string | null; release_id?: string | null };
   };
+  fmcsa_registrant_principal_office_evidence: null | {
+    zip_code: string; evidence_scope: string;
+    source_active_registrant_principal_office_count: number; reported_zip4_count: number; retained_coordinate_count: number;
+    carrier_operation_counts: Array<{ value: string; count: number }>;
+    entity_role_counts: Array<{ value: string; count: number }>;
+    source_class_counts: Array<{ value: string; count: number }>;
+    hazardous_materials_counts: Array<{ value: string; count: number }>;
+    zcta_membership: { status: string; geoid: string | null };
+    source?: { dataset_id?: string | null; release_id?: string | null };
+    privacy_warning?: string;
+  };
   coverage_gap_codes: string[];
   employer_alignment: { numerator: number | null; denominator: number | null; percent: number | null; basis: string };
   zip_quality: { postal_fields?: Record<string, unknown>; split_postal_contract?: Record<string, unknown>; usps_operational_evidence?: { status: string; reason: string | null }; unresolved_proof_gap_codes?: string[]; status?: string; usps_operational_status?: string };
@@ -752,6 +763,18 @@ function BusinessEvidenceMap() {
                 <p>{Object.entries(zipInspection.snap_retailer_evidence.store_type_counts).filter(([,value])=>value>0).map(([label,value])=>`${label}: ${count(value)}`).join(' · ') || 'No retailer in the retained source snapshot.'}</p>
                 <p>Source {zipInspection.snap_retailer_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.snap_retailer_evidence.source?.release_id ?? 'not supplied'}.</p>
                 <p>Separate, non-additive USDA SNAP authorization evidence; not all grocery retail, unique businesses, proof of current operation, or completeness.</p>
+              </section>}
+              {zipInspection.fmcsa_registrant_principal_office_evidence && <section className="category-zip-evidence" aria-label={`FMCSA registrant principal-office evidence for exact ZIP ${zipInspection.zip5}`}>
+                <h4>FMCSA source-active registrant principal-office evidence</h4>
+                <p>{zipInspection.fmcsa_registrant_principal_office_evidence.evidence_scope.replaceAll('-', ' ')}</p>
+                <dl><div><dt>Principal-office records</dt><dd>{count(zipInspection.fmcsa_registrant_principal_office_evidence.source_active_registrant_principal_office_count)}</dd></div><div><dt>Rows with separate ZIP+4</dt><dd>{count(zipInspection.fmcsa_registrant_principal_office_evidence.reported_zip4_count)}</dd></div><div><dt>Rows with retained coordinates</dt><dd>{count(zipInspection.fmcsa_registrant_principal_office_evidence.retained_coordinate_count)}</dd></div></dl>
+                <p>Carrier operation: {zipInspection.fmcsa_registrant_principal_office_evidence.carrier_operation_counts.map(({value,count:valueCount})=>`${value}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Roles: {zipInspection.fmcsa_registrant_principal_office_evidence.entity_role_counts.map(({value,count:valueCount})=>`${value}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Governed classes: {zipInspection.fmcsa_registrant_principal_office_evidence.source_class_counts.map(({value,count:valueCount})=>`${value}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Hazardous-materials evidence: {zipInspection.fmcsa_registrant_principal_office_evidence.hazardous_materials_counts.map(({value,count:valueCount})=>`${value}: ${count(valueCount)}`).join(' · ') || 'none reported'}.</p>
+                <p>Source {zipInspection.fmcsa_registrant_principal_office_evidence.source?.dataset_id ?? 'not supplied'} · release {zipInspection.fmcsa_registrant_principal_office_evidence.source?.release_id ?? 'not supplied'}.</p>
+                <p>{zipInspection.fmcsa_registrant_principal_office_evidence.privacy_warning ?? 'Principal-office addresses can be residences or home offices; this aggregate does not expose names, addresses, or identifiers.'}</p>
+                <p>Separate, non-additive FMCSA evidence; not unique companies, current operations, verified physical sites, storefronts, vehicle bases, ownership, legal organization, USPS validity, or nationwide completeness.</p>
               </section>}
               {zipInspection.coverage_gap_codes.length > 0 && <p>Evidence gaps: {zipInspection.coverage_gap_codes.join(', ')}.</p>}
               {zipInspection.limitations.map((item) => <p key={item}>{item}</p>)}

@@ -1,0 +1,84 @@
+{
+  "schema_version": "national-fmcsa-registrant-principal-office-coverage@1.0.0",
+  "dataset_id": "national-fmcsa-registrant-principal-office-coverage",
+  "release_id": "national-fmcsa-registrant-principal-office-coverage-0cac1512bd3c5f30",
+  "status": "published-governed-aggregate",
+  "current_pointer_written": true,
+  "production_enrollment": false,
+  "source_actions_performed": 0,
+  "network_requests_performed": 0,
+  "additive_to_generic_totals": false,
+  "export_policy": "governed-aggregate-only",
+  "contracts": {
+    "config/connectors/national-fmcsa-registrant-principal-office-coverage.json": "ee75d168b9e4bc97d4906b71d899aad88ab91f32dee31570ef947ce6d2fed80d",
+    "config/datasets/national-fmcsa-registrant-principal-office-coverage.json": "e5c6527790e6b9aa86b002ab81d008e253509ecb2374c48e03b681d59b95bc67",
+    "config/schemas/national-fmcsa-registrant-principal-office-coverage.schema.json": "8fe61b80cde7ac4a3c9bbe9f050a013f2b72e828c619abd033a399049293c2ea",
+    "config/source-policies/national-fmcsa-registrant-principal-office-coverage.json": "fccfda78c2269165b6b03f6cc346653da28f612e2fe55c2d9fea01e993c5056b"
+  },
+  "source": {
+    "dataset_id": "fmcsa-active-us-company-census",
+    "release_id": "fmcsa-company-census-20260903-002625766Z-4429b92f",
+    "source_release_id": "fmcsa-company-census-2026-08-30-55fd24985d97e66e",
+    "retrieved_at": "2026-09-03T00:26:25.766Z",
+    "source_updated_at": "2026-08-30T11:55:17.000Z",
+    "source_filter": "status_code='A' AND phy_country='US'",
+    "source_order": "dot_number",
+    "pointer_sha256": "de7cb1ddca918c9db0e167c431d03baaa67455635aa9cccbd2f28dae5760e894",
+    "manifest_sha256": "89c3502096add320634a15e5338b6486ea0bc2c6f62e8466892a710f978807f0"
+  },
+  "geography": {
+    "dataset_id": "us-census-geography",
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "zcta_count": 33791
+  },
+  "coverage": {
+    "selected_source_records": 2211982,
+    "accepted_records": 2195563,
+    "quarantined_records": 16419,
+    "jurisdiction_rows": 56,
+    "state_dc_records": 2189579,
+    "territory_records": 5984,
+    "positive_zip5_rows": 35648,
+    "zip5_union_rows": 39151,
+    "denominator_only_zip5_rows": 3503,
+    "reported_zip4_count": 550920,
+    "retained_coordinate_count": 0,
+    "record_zcta_count": 2185555,
+    "record_nonpolygon_count": 10008,
+    "positive_source_zip_outside_zbp_zcta": 1323
+  },
+  "claims": {
+    "unique_business": false,
+    "current_operation": false,
+    "nationwide_completeness": false,
+    "physical_site": false,
+    "additive_to_generic_totals": false,
+    "roles_and_classes_exclusive": false
+  },
+  "privacy_warning": "Aggregates exclude names, addresses, USDOT/docket numbers, and record identifiers; principal offices may be home-based and registrants may be individual proprietors.",
+  "artifacts": [
+    {
+      "path": "coverage-summary.json",
+      "artifact_type": "national-fmcsa-coverage-summary-json",
+      "record_count": 1,
+      "bytes": 4582,
+      "sha256": "847ddf037680ca0f39dd309c1b7d0bf5161722478d9263f2ecb865a490aadcfb"
+    },
+    {
+      "path": "jurisdictions.jsonl",
+      "artifact_type": "national-fmcsa-jurisdiction-coverage-jsonl",
+      "record_count": 56,
+      "bytes": 68770,
+      "sha256": "21a16ba71b23c706db8f2f6ac4f9654c05915ac9da32cc4383635c4593fe97a9"
+    },
+    {
+      "path": "zip5-coverage.jsonl",
+      "artifact_type": "national-fmcsa-zip5-coverage-jsonl",
+      "record_count": 39151,
+      "bytes": 36877258,
+      "sha256": "32aa382f5ca0eabd6bf24025ddcafea2494184aba4aed7c32a6b70d62b79226d"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "dataset_id": "national-fmcsa-registrant-principal-office-coverage",
+  "description": "Immutable governed aggregate projection of retained FMCSA active registrant principal-office evidence by jurisdiction and ZIP5.",
+  "runtime_pointer": "data/national-fmcsa-registrant-principal-office-coverage/current.json",
+  "required_datasets": ["fmcsa-active-us-company-census", "us-census-geography"],
+  "artifacts": ["coverage-summary.json", "jurisdictions.jsonl", "zip5-coverage.jsonl"],
+  "additive_to_generic_business_totals": false,
+  "completeness_claim": false,
+  "unique_business_claim": false,
+  "current_operation_claim": false,
+  "physical_site_claim": false,
+  "coordinates_retained": false,
+  "documentation": "docs/NATIONAL-FMCSA-REGISTRANT-PRINCIPAL-OFFICE-COVERAGE.md",
+  "source_policy": "config/source-policies/national-fmcsa-registrant-principal-office-coverage.json"
+}

@@ -51,6 +51,9 @@ import { loadNationalPharmacyIndustryCoverageStatus } from './national-pharmacy-
 import { lookupNationalSnapRetailerIndustryZip5 } from './national-snap-retailer-industry-coverage.mjs';
 import { nationalSnapRetailerIndustryCoverageStatusHttp } from './national-snap-retailer-industry-coverage-status-http.mjs';
 import { loadNationalSnapRetailerIndustryCoverageStatus } from './national-snap-retailer-industry-coverage-status.mjs';
+import { lookupNationalFmcsaRegistrantPrincipalOfficeZip5 } from './national-fmcsa-registrant-principal-office-coverage.mjs';
+import { nationalFmcsaRegistrantPrincipalOfficeCoverageStatusHttp } from './national-fmcsa-registrant-principal-office-coverage-status-http.mjs';
+import { loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus } from './national-fmcsa-registrant-principal-office-coverage-status.mjs';
 import { cmsNursingHomeChainReview } from './cms-nursing-home-chain-review.mjs';
 import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-http.mjs';
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
@@ -174,6 +177,22 @@ const zipInspectorView = createZipInspectorView({ businessCoverageViews, busines
 }, snapRetailerCoverage: async ({ zip }) => {
   const result = await lookupNationalSnapRetailerIndustryZip5(zip);
   return result.row ? { ...result.row, source: { dataset_id: 'national-snap-retailer-industry-coverage', release_id: result.verified.release_id } } : null;
+}, fmcsaRegistrantCoverage: async ({ zip }) => {
+  const result = await lookupNationalFmcsaRegistrantPrincipalOfficeZip5(zip);
+  return result.row ? {
+    zip_code: result.row.code,
+    evidence_scope: result.row.evidence_scope,
+    source_active_registrant_principal_office_count: result.row.accepted_principal_office_count,
+    reported_zip4_count: result.row.reported_zip4_count,
+    retained_coordinate_count: result.row.retained_coordinate_count,
+    carrier_operation_counts: result.row.carrier_operation_counts,
+    entity_role_counts: result.row.entity_role_counts,
+    source_class_counts: result.row.source_class_counts,
+    hazardous_materials_counts: result.row.hazardous_materials_counts,
+    zcta_membership: result.row.zcta_membership,
+    source: { dataset_id: 'national-fmcsa-registrant-principal-office-coverage', release_id: result.verified.release_id },
+    privacy_warning: 'Aggregates exclude names, addresses, USDOT/docket numbers, and record identifiers; principal offices may be home-based and registrants may be individual proprietors.',
+  } : null;
 } });
 const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
@@ -285,7 +304,7 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
-    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status') {
+    if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status') {
       response.writeHead(204);
       response.end();
       return;
@@ -326,6 +345,7 @@ const server = http.createServer(async (request, response) => {
       if (url.pathname === '/api/data-operations/zip-denominator-delta-review') { await zipDenominatorDeltaReviewHttp(request,response,url,loadZipDenominatorDeltaReviewView,json); return; }
       if (url.pathname === '/api/data-operations/national-pharmacy-industry-coverage-status') { await nationalPharmacyIndustryCoverageStatusHttp(request,response,url,loadNationalPharmacyIndustryCoverageStatus,json); return; }
       if (url.pathname === '/api/data-operations/national-snap-retailer-industry-coverage-status') { await nationalSnapRetailerIndustryCoverageStatusHttp(request,response,url,loadNationalSnapRetailerIndustryCoverageStatus,json); return; }
+      if (url.pathname === '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status') { await nationalFmcsaRegistrantPrincipalOfficeCoverageStatusHttp(request,response,url,loadNationalFmcsaRegistrantPrincipalOfficeCoverageStatus,json); return; }
       if (endpoint === 'overture-readiness' && segments.length === 3 && request.method === 'GET') {
         try { const { inspectOvertureReadiness } = await import('./overture-readiness.mjs'); json(response, 200, await inspectOvertureReadiness()); }
         catch { json(response, 503, { error: 'Overture readiness could not be safely inspected. No operation was started.' }); }

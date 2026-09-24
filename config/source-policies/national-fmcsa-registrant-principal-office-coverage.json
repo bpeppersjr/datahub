@@ -1,0 +1,14 @@
+{
+  "policy_id": "national-fmcsa-registrant-principal-office-coverage",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained FMCSA Company Census evidence",
+  "ownership": "FMCSA owns the source fields; this publisher owns only the governed aggregate transformation.",
+  "allowed_use": ["local replay of the pinned retained FMCSA release", "aggregate jurisdiction and ZIP5 coverage", "source-specific classification counts"],
+  "prohibited_use": ["network acquisition", "production enrollment", "adding records to generic business, entity, site, category, or export totals", "publishing names, addresses, USDOT numbers, docket numbers, or other record identifiers", "treating nonexclusive roles or classes as an exclusive partition", "claiming current operation, unique businesses, storefronts, address deliverability, or nationwide completeness"],
+  "export_policy": "governed-aggregate-only",
+  "retention": "Retain immutable aggregate releases with exact dependency pins until approved removal.",
+  "redistribution": "Allowed only as governed aggregates with FMCSA attribution, source timestamps, privacy warnings, and claim limitations.",
+  "personal_data_handling": "Aggregate counts only; names, addresses, USDOT/docket numbers, and record identifiers are prohibited.",
+  "privacy_warning": "FMCSA principal offices may be home-based and registrant names may identify individual proprietors; only aggregates may be exported.",
+  "attribution": "Source: U.S. DOT Federal Motor Carrier Safety Administration Company Census retained release."
+}

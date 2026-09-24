@@ -1,0 +1,7 @@
+{
+  "dataset_id": "national-fmcsa-registrant-principal-office-coverage",
+  "release_id": "national-fmcsa-registrant-principal-office-coverage-0cac1512bd3c5f30",
+  "status": "published-governed-aggregate",
+  "manifest": "releases/national-fmcsa-registrant-principal-office-coverage-0cac1512bd3c5f30/manifest.json",
+  "manifest_sha256": "136638f9a93dc64c3fdcebef367c84359e743e5524c27c0b27e49b474aa01945"
+}

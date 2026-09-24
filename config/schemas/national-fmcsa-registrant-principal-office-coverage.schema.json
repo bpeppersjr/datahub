@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-fmcsa-registrant-principal-office-coverage.schema.json",
+  "title": "National FMCSA Registrant Principal-Office Coverage row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scope", "code", "accepted_principal_office_count", "reported_zip4_count", "retained_coordinate_count", "record_zcta_count", "record_nonpolygon_count", "carrier_operation_counts", "entity_role_counts", "source_class_counts", "hazardous_materials_counts", "claims"],
+  "properties": {
+    "schema_version": {"const": "national-fmcsa-registrant-principal-office-coverage@1.0.0"},
+    "scope": {"enum": ["national", "jurisdiction", "zip5"]},
+    "code": {"type": ["string", "null"]},
+    "accepted_principal_office_count": {"type": "integer", "minimum": 0},
+    "reported_zip4_count": {"type": "integer", "minimum": 0},
+    "retained_coordinate_count": {"const": 0},
+    "record_zcta_count": {"type": "integer", "minimum": 0},
+    "record_nonpolygon_count": {"type": "integer", "minimum": 0},
+    "carrier_operation_counts": {"$ref": "#/$defs/counts"},
+    "entity_role_counts": {"$ref": "#/$defs/counts"},
+    "source_class_counts": {"$ref": "#/$defs/counts"},
+    "hazardous_materials_counts": {"$ref": "#/$defs/counts"},
+    "claims": {"type": "object", "additionalProperties": false, "required": ["unique_business", "current_operation", "nationwide_completeness", "physical_site", "additive_to_generic_totals", "roles_and_classes_exclusive"], "properties": {"unique_business":{"const":false},"current_operation":{"const":false},"nationwide_completeness":{"const":false},"physical_site":{"const":false},"additive_to_generic_totals":{"const":false},"roles_and_classes_exclusive":{"const":false}}}
+  },
+  "$defs": {"counts": {"type":"array","items":{"type":"object","additionalProperties":false,"required":["value","count"],"properties":{"value":{"type":"string","minLength":1},"count":{"type":"integer","minimum":0}}}}}
+}
