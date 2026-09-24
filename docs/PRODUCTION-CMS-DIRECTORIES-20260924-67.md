@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 68 (`production-cms-directories-20260924-68`, SHA-256 `f8700a7f84f48529bb1aff4a9ec6f11e1d249517528186d0f2ce9541a47aeb73`). Plan 67 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `dfc028f609ed4f524a16a045835755733605081e`. That commit publishes a separate national IRS EO BMF current-extract organization filing-address aggregate coverage dataset derived entirely from the retained, verified IRS release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260924-67`
