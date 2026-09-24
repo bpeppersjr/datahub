@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 67 (`production-cms-directories-20260924-67`, SHA-256 `b1a16e64a91b1da635273b2836f8ced72ca12f0079f92bee82f40f26a5d73b64`). Plan 66 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `9bce105c119b09092d6a494250be93715fd71f28`. That commit publishes a separate national EPA ECHO active-program-facility aggregate coverage dataset derived entirely from the retained, verified EPA ECHO release and pinned Census ZIP/ZCTA geography. It adds non-additive management and exact-ZIP visibility but does not change the generic business registry, entity resolution, category totals, exports, site totals, or completeness measures.
 
 - Run ID: `production-cms-directories-20260924-66`
