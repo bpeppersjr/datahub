@@ -101,6 +101,59 @@ test("pins the official California ABC layout while excluding mailing and contac
   assert.notEqual(rawHeaderFingerprint([...CA_ABC_RAW_HEADERS, "Owner Name"]), CA_ABC_RAW_SCHEMA_FINGERPRINT);
 });
 
+test("binds the catalog and documentation to the current verified retained release", async () => {
+  const datasetPath = "config/datasets/ca-abc-active-license-sites.json";
+  const pointerPath = "data/business-sources/ca-abc-active-license-sites/current.json";
+  const documentationPath = "docs/CA-ABC-ACTIVE-LICENSE-SITES.md";
+  const pointerBytes = await readFile(pointerPath);
+  const pointer = JSON.parse(pointerBytes);
+  const manifestBytes = await readFile(path.join(path.dirname(pointerPath), pointer.manifest));
+  const manifest = JSON.parse(manifestBytes);
+  const dataset = JSON.parse(await readFile(datasetPath));
+  const documentation = await readFile(documentationPath, "utf8");
+  const verified = dataset.current_verified_release;
+
+  assert.equal(sha256(pointerBytes), "42a3bc1cec40b5ec6aeedd1d7e2d3ee0341cba30835c6ce9638559540ecd9861");
+  assert.equal(sha256(manifestBytes), "aa5c35c1784c5d937210078a9c70799061bd3368aa455a1bd1c35353a0945d0c");
+  assert.equal(verified.release_id, pointer.release_id);
+  assert.equal(verified.source_release_id, manifest.source_release_id);
+  assert.equal(verified.source_modified_at, manifest.source_modified_at);
+  assert.equal(verified.source_archive_sha256, manifest.source_archive_sha256);
+  for (const key of [
+    "source_records",
+    "selected_active_issued_license_rows",
+    "excluded_source_rows",
+    "normalized_sites",
+    "organizations",
+    "establishments",
+    "license_activities",
+    "quarantined_source_rows",
+    "quarantined_file_groups",
+    "source_active_rows_with_expiration_before_observation",
+    "zip_union_records",
+  ]) assert.equal(verified[key], manifest.coverage[key], key);
+  assert.equal(verified.physical_sites, manifest.coverage.normalized_sites);
+  assert.equal(verified.source_zip_codes, manifest.coverage.source_zip_count);
+  assert.equal(verified.verified_artifact_count, manifest.artifacts.length);
+  assert.equal(verified.verified_bytes, manifest.artifacts.reduce((sum, artifact) => sum + artifact.bytes, 0));
+  assert.equal(verified.complete_all_businesses, false);
+  for (const expected of [
+    manifest.release_id,
+    manifest.source_release_id,
+    manifest.source_archive_sha256,
+    "129,142 source rows",
+    "105,672 rows",
+    "84,497 organization/premise/establishment groups",
+    "105,435 retained license activities",
+    "2,920 source ZIP codes",
+    "3,155 selected activities",
+    "63,604,514 bytes",
+    "does not supply point coordinates or geometry",
+    "does not qualify as a broad California business denominator",
+  ]) assert.match(documentation, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(documentation, /ca-abc-active-licenses-20260901-171940775Z-5e1347a9/);
+});
+
 test("groups active issued license types into one source-preserving premise", () => {
   const normalized = normalizeCaAbcActiveLicenseSite([
     license(),
