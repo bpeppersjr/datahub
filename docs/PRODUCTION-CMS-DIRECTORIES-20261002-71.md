@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+> Superseded by Plan 72 (`production-cms-directories-20261002-72`, SHA-256 `723fe64675d80918b646afcaa2025825733a3cd25da2fdfa42a1cbd6066590d3`). Plan 71 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `a13abe65b2829860a6c58e7999a387df79bb3808`. That commit replaces the long-scroll Collector dashboard with focused Coverage, Industries, ZIP Economy, Jobs, Collection, Evidence, and Connectors workspaces; adds a state dataset-availability choropleth and selected-state summary; preserves the existing operational panels; explicitly withholds unsupported ZIP, industry-segment, and demographic GDP allocations; and updates Next.js to 16.3.8 to resolve the audited `next/og` advisory.
 
 - Run ID: `production-cms-directories-20261002-71`
