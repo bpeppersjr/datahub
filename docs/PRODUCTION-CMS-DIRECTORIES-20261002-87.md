@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 87 is the current clean-repository successor after committing the governed one-ZIP evidence envelope.
+Plan 87 is superseded by Plan 88 after the governed Census ZBP ZIP-industry profile implementation was committed. It must not be approved or executed.
 
 - Run ID: `production-cms-directories-20261002-87`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-87.json`
@@ -19,7 +19,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Independent review found no introduced correctness or security issue. Focused envelope tests passed 52/52, and installed bounded registry/coverage and qualification checks passed. The full repository gate ran 2,961 tests: 2,887 passed, 74 skipped and zero failed. Lint completed with four pre-existing warnings and no errors; web and desktop builds, desktop control-plane smoke, 100%/200% keyboard UI acceptance, production dependency audit, shutdown, relaunch, health, and single-listener checks passed.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and confirmation SHA-256. Plan 86 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 87.
+This document and plan do not constitute approval. Plan 88 supersedes this run ID and confirmation SHA-256. Plan 87, Plan 86, and every earlier CMS directory plan or approval must not be executed. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing or superseding Plan 87.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-87 --expected-plan-sha256 e5eac33ea8adf490fc10a6b5fc4cd2c8123570906e84af3b485eefa576a7beda
