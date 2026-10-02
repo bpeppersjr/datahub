@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+> **Superseded:** Plan 83 replaces this plan after ZIP temporal qualification, retained CMS metadata registration, and simplified county-evidence visibility were added and verified. Plan 82 must not be executed.
+
 Plan 82 is the current clean-repository successor after adding a source-bound, non-publishing county coverage adapter for the retained Pennsylvania and Maryland childcare cohort.
 
 - Run ID: `production-cms-directories-20261002-82`
