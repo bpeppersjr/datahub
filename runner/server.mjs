@@ -29,6 +29,8 @@ import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
+import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
+import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
 import { organizationZipEvidenceReader } from './organization-zip-evidence-reader.mjs';
 import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
 import { broadOrganizationAuthorizationPacketHttp } from './broad-organization-authorization-packet-http.mjs';
@@ -424,6 +426,10 @@ const server = http.createServer(async (request, response) => {
   try {
     controlPlane.prepare(request, response);
     const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`);
+    if (request.method === 'OPTIONS' && url.pathname === '/api/business-map/zip-evidence-qualification') {
+      zipEvidenceQualificationPreflight(request,response,json);
+      return;
+    }
     if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status' && url.pathname !== '/api/data-operations/national-ncua-credit-union-coverage-status' && url.pathname !== '/api/data-operations/national-fsis-active-establishment-coverage-status' && url.pathname !== '/api/data-operations/national-epa-echo-active-facility-coverage-status' && url.pathname !== '/api/data-operations/national-irs-eo-bmf-organization-coverage-status' && url.pathname !== '/api/data-operations/national-cms-nppes-organization-practice-location-coverage-status') {
       response.writeHead(204);
       response.end();
@@ -735,6 +741,12 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/zip-inspector') {
       await zipInspectorHttp(request, response, url, zipInspectorView, json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/zip-evidence-qualification') {
+      await zipEvidenceQualificationHttp(request,response,url,{reader:readZipEvidenceQualification,authorize:incoming=>{
+        controlPlane.prepare(incoming,response);controlPlane.authorize(incoming);return true;
+      }},json);
       return;
     }
     if (url.pathname === '/api/business-map/organization-zip-evidence') {

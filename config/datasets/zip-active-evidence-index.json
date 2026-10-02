@@ -1,0 +1,60 @@
+{
+  "dataset_id": "zip-active-evidence-index",
+  "schema_version": "1.0.0",
+  "title": "Retained ZIP qualification lookup index",
+  "status": "registered-local-lookup-index",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "local-review-only",
+  "required_datasets": [
+    "zip-active-evidence-qualification",
+    "zip-evidence-category-map"
+  ],
+  "retained_release": {
+    "release_id": "zip-active-evidence-index-9eec9bff35e6abbad453fcfdac14aba3fcebb4f578bbbfcf9abc6faf136bb27b",
+    "manifest": "data/zip-active-evidence-index/releases/zip-active-evidence-index-9eec9bff35e6abbad453fcfdac14aba3fcebb4f578bbbfcf9abc6faf136bb27b/manifest.json",
+    "manifest_sha256": "046780ab2f0fb3532360c631d06300a8153469dd58d48f5dbae556be65b7d040",
+    "manifest_bytes": 14333,
+    "manifest_schema_version": "zip-active-evidence-index@1.0.0",
+    "status": "immutable-local-lookup-index",
+    "created_at": "2026-10-02T17:45:00.000Z",
+    "source_zip_rows": 1397626,
+    "indexed_zip_count": 48194,
+    "bindings": {
+      "registration_sha256": "c54054aaf04e42a4da3028c6cb17fd8615d6b37fc99f2faa7cc9e1541ca2ffe0",
+      "source_release_id": "zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9",
+      "source_manifest_sha256": "9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493",
+      "source_inventory_sha256": "9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5",
+      "projection_sha256": "bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8",
+      "map_registration_sha256": "ef8cec675fa11f5fdfe863ba33ead1a2782963ad797d4a4675b0b87f4a196ef7",
+      "map_file_sha256": "9ba62042ad786dd48e6190788297a483d168748d0da97266fae95eb33db533ef",
+      "mapping_sha256": "af9eeac347d77cb999944f4e9072d40a421cea1bc6201fa75a8b84f87f58db3a",
+      "mapping_version": "zip-evidence-category-map@1.0.0",
+      "taxonomy_version": "zip-economy-source-categories@1.0.0"
+    },
+    "artifact_count": 100,
+    "artifact_bytes": 4861616,
+    "artifact_inventory_sha256": "05552cae2254ac224adbc779b3e48dfd01e421958fcca9e49bdafd9b415e18cc",
+    "artifact_inventory_hash_encoding": "SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order"
+  },
+  "claims": {
+    "export_policy": "local-review-only",
+    "current_operations_verified": false,
+    "active_business_count": null,
+    "all_business_denominator": null,
+    "all_business_completion_percent": null,
+    "source_record_status_replayed": false,
+    "network_requests": 0,
+    "production_pointers_changed": false
+  },
+  "limitations": [
+    "This positional index does not duplicate or refresh source evidence.",
+    "Indexed ZIP membership is source-reported, not authoritative USPS validity or geographic membership. ZIP4 remains separate.",
+    "Category assignments bind a separately versioned authored map; they do not establish industry or business completeness.",
+    "Metadata registration is not full index verification, source replay, runtime pointer selection, or production enrollment."
+  ],
+  "documentation": "docs/ZIP-ACTIVE-EVIDENCE-INDEX-REGISTRATION.md"
+}

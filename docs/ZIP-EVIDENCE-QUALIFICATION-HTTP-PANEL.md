@@ -1,0 +1,37 @@
+# ZIP qualification HTTP and mounted panel contract
+
+The ZIP Economy workspace mounts the qualification component only in Business segments. The server routes requests to the authenticated adapter and `readZipEvidenceQualification`, which uses the registered immutable positional index. The UI performs no index scan, build, acquisition or publication. Ordinary ZIP evidence remains independently displayed if qualification is unavailable.
+
+## Integration boundary
+
+`zipEvidenceQualificationHttp(request, response, url, {reader, authorize}, json)` serves `/api/business-map/zip-evidence-qualification`. It accepts only an empty GET with one exact five-digit `zip` and at most one supported `category` (default `all`). Unknown/repeated query fields, invalid ZIPs, unknown categories and request bodies are rejected before the reader. The server applies its existing security boundary; the adapter callback invokes the full Host/Origin/bearer guard and explicitly returns true on success. Authentication defaults closed. The separate browser preflight checks trusted Host/Origin, GET and the requested Authorization header; it does not return qualification data or invoke the reader. The subsequent GET still requires its bearer token.
+
+The injected reader receives `{zip, categoryId, signal}`. The installed reader selects the exact registered immutable index and validates its metadata, qualification registration, authored mapping identity and effective policy. Current coverage/registry pointers and manifests must match the qualification bindings before and after the bounded lookup. Metadata is rechecked after the requested source-shard reads. The HTTP adapter then validates and limits the projected envelope; it does not replace the reader's artifact checks. There is no newest-release discovery, older-release fallback, on-demand build or full-index scan. A fixed 30-second deadline aborts the reader and returns a redacted 503 to a connected client. Disconnect aborts without writing a late response. See `docs/ZIP-EVIDENCE-QUALIFICATION-READER.md` for the installed read boundary.
+
+## Whitelisted response
+
+Schema: `zip-evidence-qualification-view@1.0.0`. Required envelope fields are `available`, `status`, `zip5`, `category_id`, `selection_status`, `release`, `bindings`, `export_policy`, `rows`, and `claims`. The exact representative fixture is in `runner/zip-evidence-qualification-test-fixtures.mjs`.
+
+An available response has `status: verified-immutable-projection`; selection is `matched`, `absent`, or `unsupported`. Matched means at least one bound source row; absent and unsupported require empty rows and remain distinct. Known taxonomy categories can be unsupported by a particular release. Unsupported query category names are validation errors, not measured gaps.
+
+Release metadata contains ID, manifest digest, assessment instant, build instant and temporal-policy version. Bindings contain coverage and registry release IDs/digests plus mapping version/digest and taxonomy version. Effective policy must be internal or local-review-only. The reader must preserve the most restrictive upstream restriction.
+
+Each row contains source key/release, source kind, evidence type, qualification, a bounded temporal reference summary, and observed/eligible counts in separately named source units. Within-window counts equal observed counts; review-due counts have zero eligibility under this rule; unmeasured counts have null eligibility. Source-level review status must agree with qualification. At most 30 source rows, 32 units per row and 256 KiB serialized response are permitted. Duplicate source rows, numeric overclaims, negative counts, invalid identities and policy escalation fail closed. Unknown response properties, raw metadata and local paths are not copied.
+
+Unavailable statuses are not-enrolled, unavailable, incompatible-bindings or corrupt-release. Their response withholds release/bindings/policy, returns no rows, and preserves null active-business count, denominator and completeness. No fresh measurements or zero evidence are invented.
+
+## Component behavior
+
+The native Business segment selector includes the reviewed `childcare`, `licensed-businesses` and `registrations-nonprofits` categories, with labels distinguishing childcare from license evidence and organization registrations. These are source-evidence categories, not mutually exclusive industries or proof of operating sites. `aggregate-baseline-context` is not an option; Census baseline context stays in Overview. The immutable authored selector flags are historical metadata and are unchanged. Ordinary ZIP contributions and qualification retain independent source mappings: an ordinary response with no positive contributions still supplies its bound identities for qualification, which may independently report matched, absent or unsupported. No source mapping, index or denominator changes are implied.
+
+`app/zip-evidence-qualification-panel.tsx` accepts exact ZIP, category, navigation-state context and expected coverage/registry release IDs from the matching ordinary ZIP response. It waits without requesting qualification until ZIP and release identities are present. It rejects responses outside that selection or those releases. State/ZIP/category/binding changes immediately hide old results, abort old requests and prevent late callbacks from restoring them. A state change does not infer a new ZIP or change ordinary ZIP evidence. Its retry affects only qualification. Ordinary ZIP evidence is owned elsewhere and cannot be erased by this component. Leaving Business segments unmounts the panel and aborts its lookup.
+
+The heading is Source evidence review qualification. It displays as-of separately from build time, policy, source dates, review-due dates, bound identities and source units. It labels review-due as not meaning closed, unmeasured eligibility as Unknown and absent pairs as not a measured zero. Current operations and all-business completeness remain unverified/unknown; overlapping units are never summed. There is no public export control.
+
+The component uses relative inherited typography, wrapping content, a captioned table with row/column headers and a keyboard-focusable bounded scroll region. Loading and errors use status/alert semantics. Focus stays with the operator; retry is a native button. Unit tests verify these structural accessibility properties; actual 200% desktop rendering remains a later runtime integration check, not a claim of this delivery.
+
+## Verification and remaining work
+
+Run `node --test runner/zip-evidence-qualification-http.test.mjs runner/zip-evidence-qualification-reader.test.mjs runner/zip-evidence-qualification-panel.test.mjs runner/workspace-views-ui.test.mjs`. Tests cover authentication and route wiring, exact query shape, whitelist/redaction, null/stale rules, policy and binding failures, response limits, disconnect cancellation, selection races, retry, absent/unsupported states and Business segments placement. Targeted ESLint covers the adapter, component and tests.
+
+The authenticated route, bounded registered reader and mounted panel are implemented. The remaining UI verification is the full native desktop visual check, including 200% text, keyboard flow, selection changes and independent error recovery; structural unit tests do not establish that visual result. Neither the projection builder nor release replay verifier is called by this endpoint. No existing national matrix or completion denominator changes are part of this feature.
