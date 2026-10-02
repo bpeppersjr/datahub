@@ -11,20 +11,20 @@
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "Organizations whose source status is Good Standing or Delinquent in the official Business Entities in Colorado snapshot; this is source-specific registration evidence, not a census of every operating business or physical site.",
   "current_verified_release": {
-    "release_id": "co-business-registry-20260831-011711242Z-0c64c71c",
-    "source_release_id": "co-business-registry-2026-08-30-4b31a3417508bffe",
-    "source_rows_updated_at": "2026-08-30T11:20:54.000Z",
-    "source_records": 2169063,
-    "organizations": 2169062,
+    "release_id": "co-business-registry-20260903-002916547Z-ed08beca",
+    "source_release_id": "co-business-registry-2026-09-02-42884e178198747a",
+    "source_rows_updated_at": "2026-09-02T11:28:49.000Z",
+    "source_records": 2164812,
+    "organizations": 2164811,
     "quarantined_source_records": 1,
-    "good_standing_organizations": 1037452,
-    "delinquent_organizations": 1131610,
-    "eligible_reported_us_business_addresses": 2154593,
-    "organizations_without_eligible_us_zip_address": 14469,
-    "source_zip_codes": 18130,
+    "good_standing_organizations": 1019372,
+    "delinquent_organizations": 1145439,
+    "eligible_reported_us_business_addresses": 2150360,
+    "organizations_without_eligible_us_zip_address": 14451,
+    "source_zip_codes": 18133,
     "physical_sites": null,
     "verified_artifact_count": 21,
-    "verified_bytes": 323170400
+    "verified_bytes": 322620230
   },
   "documentation": "docs/CO-BUSINESS-REGISTRY.md"
 }

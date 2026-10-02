@@ -7,7 +7,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { getRetainedBusinessRefreshReadiness, RETAINED_BUSINESS_REFRESH_DESCRIPTORS, RETAINED_BUSINESS_REFRESH_SOURCE_IDS } from "./retained-business-refresh-readiness.mjs";
 
 const expected={
-  "co-business-registry":{release:"co-business-registry-20260903-002916547Z-ed08beca",metrics:[2164812,2164811,1],artifacts:21,catalogMatches:false},
+  "co-business-registry":{release:"co-business-registry-20260903-002916547Z-ed08beca",metrics:[2164812,2164811,1],artifacts:21,catalogMatches:true},
   "ct-business-registry":{release:"ct-business-registry-20260903-003855102Z-e8cabffc",metrics:[458892,458892,13],artifacts:20,catalogMatches:false},
   "de-business-licenses":{release:"de-business-licenses-20260903-002309163Z-f955c045",metrics:[67829,66667,27],artifacts:21,catalogMatches:false},
   "fl-business-registry":{release:"fl-business-registry-20260903-020111292Z-fbdce156",metrics:[12808196,4109230,8698964],artifacts:23,catalogMatches:false},

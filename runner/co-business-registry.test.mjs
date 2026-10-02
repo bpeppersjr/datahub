@@ -105,6 +105,55 @@ test("pins the 12 selected non-agent Colorado Business Entities fields", () => {
   }
 });
 
+test("binds the catalog and documentation to the current verified retained Colorado release", async () => {
+  const datasetPath = "config/datasets/co-business-registry-good-standing-or-delinquent-organizations.json";
+  const pointerPath = "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json";
+  const documentationPath = "docs/CO-BUSINESS-REGISTRY.md";
+  const pointerBytes = await readFile(pointerPath);
+  const pointer = JSON.parse(pointerBytes);
+  const manifestBytes = await readFile(path.join(path.dirname(pointerPath), pointer.manifest));
+  const manifest = JSON.parse(manifestBytes);
+  const dataset = JSON.parse(await readFile(datasetPath));
+  const documentation = await readFile(documentationPath, "utf8");
+  const verified = dataset.current_verified_release;
+
+  assert.equal(sha256(pointerBytes), "d6100098eb40af1a81933a61797fc195fcc10843c5151fc0435beb77f459cbcd");
+  assert.equal(sha256(manifestBytes), "861cc6199e5222ae672bdcf6df3ee0daf2f6060882d36faa3ae398b13d24db36");
+  assert.equal(verified.release_id, pointer.release_id);
+  assert.equal(verified.source_release_id, manifest.source_release_id);
+  assert.equal(verified.source_rows_updated_at, manifest.source_rows_updated_at);
+  assert.equal(verified.source_records, manifest.coverage.source_good_standing_or_delinquent_records);
+  assert.equal(verified.organizations, manifest.coverage.organizations_published);
+  for (const key of ["quarantined_source_records", "good_standing_organizations", "delinquent_organizations", "eligible_reported_us_business_addresses", "organizations_without_eligible_us_zip_address", "source_zip_codes", "physical_sites"]) {
+    assert.equal(verified[key], manifest.coverage[key], key);
+  }
+  assert.equal(verified.verified_artifact_count, manifest.artifacts.length);
+  assert.equal(verified.verified_bytes, manifest.artifacts.reduce((sum, artifact) => sum + artifact.bytes, 0));
+  const quarantineArtifact = manifest.artifacts.find((artifact) => artifact.artifact_type === "co-business-registry-quarantine-jsonl-gzip");
+  const quarantined = await gunzipRecords(path.join(path.dirname(pointerPath), path.dirname(pointer.manifest), quarantineArtifact.path));
+  assert.deepEqual(quarantined.map((record) => record.source_status), ["Delinquent"]);
+  assert.deepEqual({
+    goodStanding: manifest.coverage.good_standing_organizations + quarantined.filter((record) => record.source_status === "Good Standing").length,
+    delinquent: manifest.coverage.delinquent_organizations + quarantined.filter((record) => record.source_status === "Delinquent").length,
+  }, { goodStanding: 1019372, delinquent: 1145440 });
+  for (const expected of [
+    manifest.release_id,
+    manifest.source_release_id,
+    manifest.source_rows_updated_at,
+    "2,164,812 rows",
+    "2,164,811 organizations",
+    "1,019,372 Good Standing and 1,145,440 Delinquent",
+    "One Delinquent row",
+    "1,019,372 Good Standing and 1,145,439 Delinquent",
+    "2,150,360 published organizations",
+    "18,133 source ZIPs",
+    "322,620,230 bytes",
+    "ZIP5 remains separate from ZIP+4",
+    "every normalized reported-address coordinate remains `null`",
+  ]) assert.match(documentation, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(documentation, /co-business-registry-20260831-011711242Z-0c64c71c/);
+});
+
 test("normalizes registration evidence without inferring a physical site", () => {
   const normalized = normalizeCoBusinessOrganization(organization({
     agentfirstname: "Private",

@@ -42,11 +42,11 @@ Current USPS operational validity remains `unverified` until an authorized USPS 
 
 ## Current verified release
 
-Release `co-business-registry-20260831-011711242Z-0c64c71c` is bound to source refresh `2026-08-30T11:20:54.000Z` and source release `co-business-registry-2026-08-30-4b31a3417508bffe`. Independent verification rehashed and parsed all 21 artifacts totaling 323,170,400 bytes.
+Release `co-business-registry-20260903-002916547Z-ed08beca` is bound to source refresh `2026-09-02T11:28:49.000Z` and source release `co-business-registry-2026-09-02-42884e178198747a`. Independent verification rehashed and parsed all 21 artifacts totaling 322,620,230 bytes.
 
-The selected source snapshot contains 2,169,063 rows: 1,037,452 Good Standing and 1,131,611 Delinquent. One Delinquent row has a valid entity ID but no entity name, so it is preserved in an internal quarantine artifact with reason `missing-or-invalid-organization-identity`. The release publishes 2,169,062 organizations: 1,037,452 Good Standing and 1,131,610 Delinquent.
+The selected source snapshot contains 2,164,812 rows: 1,019,372 Good Standing and 1,145,440 Delinquent. One Delinquent row has a valid entity ID but no entity name, so it is preserved in an internal quarantine artifact with reason `missing-or-invalid-organization-identity`. The release publishes 2,164,811 organizations: 1,019,372 Good Standing and 1,145,439 Delinquent.
 
-Exactly 2,154,593 published organizations have an eligible reported U.S. principal-office address across 18,130 ZIPs; 14,469 have no eligible U.S. ZIP allocation. Physical-site and establishment counts remain `null` because neither is inferred.
+Exactly 2,150,360 published organizations have an eligible reported U.S. principal-office address across 18,133 source ZIPs; 14,451 have no eligible U.S. ZIP allocation. ZIP5 remains separate from ZIP+4. The source supplies no coordinates, every normalized reported-address coordinate remains `null`, and no geocode, physical site, or establishment is inferred.
 
 ## Operations
 
