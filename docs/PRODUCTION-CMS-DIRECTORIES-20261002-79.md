@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 80 after the downstream national release-chain catalogs were reconciled. Do not execute or approve Plan 79.**
+
 Plan 79 is the current clean-repository successor after source-bound replay verification was added for the retained entity-resolution benchmark.
 
 - Run ID: `production-cms-directories-20261002-79`
