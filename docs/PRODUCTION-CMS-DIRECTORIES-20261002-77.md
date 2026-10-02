@@ -6,8 +6,8 @@ Plan 77 is the current clean-repository successor after the completion, industry
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-77.json`
 - Exact confirmation SHA-256: `f98325abce675e9e57bad06370c6be8ee0967bbdd6324efea9b57b2b5eff326a`
 - Plan file SHA-256: `8cdad369be6209fd17310b7d78a273442d266bd977de82f36060b17fc4d555d0`
-- Planning repository commit: `72972ad6dd91a0a104840a0a238472a06ca3ce8f`
-- Workspace redesign commit: `72972ad6dd91a0a104840a0a238472a06ca3ce8f`
+- Planning repository commit: `72972ad21b51ad3ae69c1b126dc4c1f9f051a284`
+- Workspace redesign commit: `72972ad21b51ad3ae69c1b126dc4c1f9f051a284`
 - Created: `2026-10-02T11:04:51.326Z`
 
 The retained-only plan contains the governed 25-source roster, four baseline/geographic inputs, four previously selected childcare inputs, retained childcare, Minnesota credential reporting, and the retained CMS hospital and nursing-home directory cohorts. It has eight sequential build/verify stages, zero acquisition stages, and zero network stages.
