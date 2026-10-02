@@ -5,12 +5,34 @@ import {mkdir,mkdtemp,rm,writeFile,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {APP_ROOT} from './paths.mjs';
 import {mnSelectionReadLines} from './mn-construction-retained-selection.mjs';
-import {createZipActiveEvidenceProjection,buildZipActiveEvidenceQualification,verifyZipActiveEvidenceQualification} from './zip-active-evidence-qualification.mjs';
+import {createZipActiveEvidenceProjection,buildZipActiveEvidenceQualification,verifyZipActiveEvidenceQualification,ZIP_ACTIVE_EVIDENCE_LIMITS,assertZipActiveEvidencePairCount} from './zip-active-evidence-qualification.mjs';
 const asOf='2026-10-02T12:00:00.000Z',createdAt='2026-10-03T12:00:00.000Z';
 const sha=value=>createHash('sha256').update(value).digest('hex');
 function source(key='usda_snap_retailers',metadata={source_updated_at:'2026-09-20'},counts={retailer_count:2}){return {source_key:key,source_kind:'record-level-evidence',complete_source_for_all_businesses:false,release_metadata:{source_release_id:`release-${key}`,...metadata},zip_level_counts:counts,zip_rows_with_contribution:1};}
 const zip=(sources,code='00501')=>({zip_code:code,complete_all_businesses:false,source_contributions:Object.fromEntries(sources.map(row=>[row.source_key,{...row.release_metadata,...row.zip_level_counts}]))});
 function project(sources,options={}){const p=createZipActiveEvidenceProjection({sources,asOf,createdAt,...options});p.add(zip(sources));return p.finish();}
+
+test('shared pair admission accepts exact supported bound and rejects over-bound without huge allocation',()=>{
+ assert.equal(ZIP_ACTIVE_EVIDENCE_LIMITS.sourceZipPairs,1_500_000);
+ assert.equal(ZIP_ACTIVE_EVIDENCE_LIMITS.sourceZipPairs,ZIP_ACTIVE_EVIDENCE_LIMITS.rowsPerPartition*ZIP_ACTIVE_EVIDENCE_LIMITS.maxPartitions);
+ for(const value of [0,1_397_626,1_500_000])assert.doesNotThrow(()=>assertZipActiveEvidencePairCount(value));
+ for(const value of [1_500_001,-1,0.5,NaN,Infinity])assert.throws(()=>assertZipActiveEvidencePairCount(value),/pair limit/);
+ assert.equal(Object.isFrozen(ZIP_ACTIVE_EVIDENCE_LIMITS),true);
+});
+
+test('per-source temporal and provenance objects share immutable storage without changing serialized rows',()=>{
+ const s=source();s.zip_rows_with_contribution=2;s.zip_level_counts.retailer_count=4;s.release_metadata.nested={basis:['source-native']};
+ const p=createZipActiveEvidenceProjection({sources:[s],asOf,createdAt});
+ const first=zip([s]);first.source_contributions[s.source_key].retailer_count=2;p.add(first);
+ const second=structuredClone(first);second.zip_code='00502';p.add(second);
+ s.release_metadata.nested.basis[0]='caller-mutated';
+ const rows=p.finish().rows;
+ assert.equal(rows[0].source_reference_metadata,rows[1].source_reference_metadata);assert.equal(rows[0].temporal_status,rows[1].temporal_status);
+ assert.deepEqual(rows[0].source_reference_metadata.nested,{basis:['source-native']});
+ assert.throws(()=>{rows[0].source_reference_metadata.nested.basis[0]='mutated';},TypeError);
+ assert.throws(()=>{rows[0].temporal_status.status='fake';},TypeError);
+ assert.deepEqual(JSON.parse(JSON.stringify(rows[0])),{...JSON.parse(JSON.stringify(rows[1])),zip5:'00501'});
+});
 
 test('temporal source qualification preserves mixed units, overlaps and unknown operation',()=>{
  const sources=[source(),source('fdic_bankfind',{source_updated_at:'2025-01-01'},{branch_count:3,head_office_count:1}),source('oh_childcare_centers',{observed_at:'2026-10-02'},{reported_center_count:4}),source('unknown_source',{source_updated_at:'2026-10-01'},{record_count:5})];

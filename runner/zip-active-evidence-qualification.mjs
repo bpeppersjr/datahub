@@ -6,8 +6,11 @@ import {mnSelectionReadJson, mnSelectionReadLines} from './mn-construction-retai
 import {assessBusinessSourceTemporalStatus, BUSINESS_SOURCE_TEMPORAL_POLICY_VERSION} from './business-source-temporal-status.mjs';
 
 export const ZIP_ACTIVE_EVIDENCE_SCHEMA='zip-active-evidence-qualification@1.0.0';
+export const ZIP_ACTIVE_EVIDENCE_LIMITS=Object.freeze({sourceZipPairs:1_500_000,rowsPerPartition:1000,maxPartitions:1500});
 const check=(value,message='ZIP evidence qualification rejected.')=>{if(!value)throw Error(message);};
 const count=value=>Number.isSafeInteger(value)&&value>=0;
+export function assertZipActiveEvidencePairCount(value){check(count(value)&&value<=ZIP_ACTIVE_EVIDENCE_LIMITS.sourceZipPairs,'ZIP/source pair limit exceeded.');}
+const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
 const iso=value=>typeof value==='string'&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value;
 const plain=value=>value&&typeof value==='object'&&!Array.isArray(value);
 const sorted=value=>Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)));
@@ -25,8 +28,9 @@ export function createZipActiveEvidenceProjection({sources,asOf,createdAt,bindin
  check(Object.values(policies).every(value=>['internal','local-review-only'].includes(value)),'Unsupported upstream export policy.');
  const exportPolicy=Object.values(policies).includes('internal')?'internal':'local-review-only';
  const policyBinding={rule:'most-restrictive-upstream-with-local-review-only-ceiling',upstream:sorted(policies),effective:exportPolicy};
- const bySource=new Map(),totals=new Map(),members=new Map(),zips=new Set(),rows=[];
- for(const source of sources){
+ const bySource=new Map(),contexts=new Map(),totals=new Map(),members=new Map(),zips=new Set(),rows=[];
+ for(const input of sources){
+  const source=structuredClone(input);
   check(typeof source.source_key==='string'&&source.source_key&&!bySource.has(source.source_key)&&source.complete_source_for_all_businesses===false);
   bySource.set(source.source_key,source);
   if(source.zip_level_counts!==undefined){
@@ -55,12 +59,17 @@ export function createZipActiveEvidenceProjection({sources,asOf,createdAt,bindin
     }
     check(Object.keys(counts).length>0&&contribution.source_release_id===metadata.source_release_id,'Source count/release absent.');
     if(Object.values(counts).some(value=>value>0))members.set(key,members.get(key)+1);
-    const temporal=assessBusinessSourceTemporalStatus(source,{asOf});
-    const qualification=temporal.status==='within-review-window'?'measured-within-review-window':temporal.status==='review-due'?'measured-stale-review-due':'unmeasured';
-    check(rows.length<750000,'ZIP/source pair limit exceeded.');
+    let context=contexts.get(key);
+    if(!context){
+     const temporal=freeze(assessBusinessSourceTemporalStatus(source,{asOf}));
+     context={temporal,metadata:freeze(metadata),qualification:temporal.status==='within-review-window'?'measured-within-review-window':temporal.status==='review-due'?'measured-stale-review-due':'unmeasured'};
+     contexts.set(key,context);
+    }
+    const {temporal,qualification}=context;
+    assertZipActiveEvidencePairCount(rows.length+1);
     rows.push({zip5:zip.zip_code,source_key:key,source_release_id:metadata.source_release_id,
      source_kind:source.source_kind??'unmeasured',evidence_type:temporal.evidence_scope,
-     qualification,temporal_status:temporal,source_reference_metadata:{...metadata},
+     qualification,temporal_status:temporal,source_reference_metadata:context.metadata,
      evidence_counts_by_unit:sorted(counts),eligible_evidence_counts_by_unit:sorted(Object.fromEntries(Object.entries(counts).map(([unit,value])=>[unit,qualification==='unmeasured'?null:qualification==='measured-stale-review-due'?0:value]))),
      eligibility_basis:'internal-source-temporal-review-window-only-not-verified-operation',
      current_operations_verified:false,current_operating_business_count:null,all_business_denominator:null,all_business_completion_percent:null});

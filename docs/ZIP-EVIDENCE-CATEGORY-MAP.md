@@ -1,0 +1,17 @@
+# ZIP qualification source category mapping
+
+`config/zip-evidence-category-map.json` is the authored `zip-evidence-category-map@1.0.0` contract for all 30 conservation sources of the installed immutable ZIP qualification release. Its taxonomy is `zip-economy-source-categories@1.0.0`. The companion dataset contract is `config/datasets/zip-evidence-category-map.json`; neither file enables an API, changes a pointer or enrolls national reporting.
+
+Every source has one exact source key, source-kind value, profile source ID (including explicit null where coverage supplies none), retained release ID and category. No label matching, guessed alias, substring rule, operating-status inference or multicategory assignment is used. The validator requires exactly the same 30 keys in coverage, qualification conservation and mapping, and checks typed counts and positive ZIP memberships independently of category assignment.
+
+The taxonomy preserves the existing ZIP Economy category IDs for retail, health care, finance, tax-exempt organizations, food production, environmental facilities and transportation. Childcare, licensed businesses and registrations/nonprofits use existing map category IDs but are explicitly flagged as not currently exposed by the ZIP Economy selector. Census nonemployer statistics are separately classified as aggregate-baseline-context, never as named business evidence. The `all` selector is a union, not an industry category or permission to add overlapping units.
+
+Deliberate differences are recorded in the mapping: EPA belongs to environmental-facilities, whereas national reporting calls its group cross-industry-regulated-facilities; FSIS belongs to food-production, whereas national reporting uses regulated-meat-poultry-egg-establishments. These names do not broaden source scope. Ohio childcare is explicitly mapped despite its omission from the legacy map source-ID list. Washington contractor mailing addresses and Delaware license organization addresses remain registrations/nonprofits evidence rather than inferred retail or construction operating sites.
+
+The installed reader pins the immutable qualification manifest and projection plus coverage manifest and source artifact. It reads only bounded metadata and the approximately 56 KB source table, rechecking bytes after validation. It does not scan the approximately 2.29 GB qualification row partitions, replay source records, assess new temporal eligibility, acquire, publish or change production state. Its result explicitly says qualification rows were not verified by this check. It is not a replacement for the qualification release verifier.
+
+Mapping identity uses SHA-256 of UTF-8 `JSON.stringify(parsed mapping)` with authored property order, so checkout line-ending conversions do not change the contract identity. The validator pins this digest as well as both schema versions. Reclassification or a changed release/source universe requires a reviewed version and updated bindings; it cannot silently inherit a newer map or catalog.
+
+Validation: `node --test runner/zip-evidence-category-map.test.mjs`. Set `DATAHUB_TEST_ZIP_CATEGORY_MAPPING=1` to include the installed metadata comparison. All five tests passed with this check enabled; targeted ESLint passed. Policies remain local-review-only with no runtime pointer, public export or national denominator enrollment.
+
+Rollback removes these five new mapping/configuration/validator/test/documentation files only; no retained evidence or data migration is involved.

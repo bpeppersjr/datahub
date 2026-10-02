@@ -1,0 +1,18 @@
+{
+  "dataset_id": "zip-evidence-category-map",
+  "schema_version": "1.0.0",
+  "status": "authored-local-mapping-contract",
+  "mapping": "config/zip-evidence-category-map.json",
+  "mapping_version": "zip-evidence-category-map@1.0.0",
+  "taxonomy_version": "zip-economy-source-categories@1.0.0",
+  "mapping_sha256": "af9eeac347d77cb999944f4e9072d40a421cea1bc6201fa75a8b84f87f58db3a",
+  "hash_encoding": "SHA-256 of UTF-8 JSON.stringify(parsed mapping), retaining authored property order",
+  "source_count": 30,
+  "export_policy": "local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "api_or_ui_enabled": false,
+  "validator": "runner/zip-evidence-category-map.mjs",
+  "validation_scope": "Pinned metadata, complete source universe, source identity and typed conservation; no qualification-row or source replay"
+}

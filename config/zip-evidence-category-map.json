@@ -1,0 +1,353 @@
+{
+  "schema_version": "zip-evidence-category-map@1.0.0",
+  "taxonomy_version": "zip-economy-source-categories@1.0.0",
+  "scope": "Installed qualification conservation sources; categories describe source evidence, not all businesses",
+  "export_policy": "local-review-only",
+  "national_denominator_changed": false,
+  "multi_category_allowed": false,
+  "all_selector_semantics": "Union of bound sources including separately identified aggregate context; never additive businesses",
+  "categories": [
+    {
+      "id": "retail-consumer",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "health-care",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "financial-services",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "tax-exempt-organizations",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "food-production",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "environmental-facilities",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "transportation",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": true
+    },
+    {
+      "id": "childcare",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": false
+    },
+    {
+      "id": "licensed-businesses",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": false
+    },
+    {
+      "id": "registrations-nonprofits",
+      "kind": "source-evidence",
+      "currently_in_zip_selector": false
+    },
+    {
+      "id": "aggregate-baseline-context",
+      "kind": "aggregate-context",
+      "currently_in_zip_selector": false
+    }
+  ],
+  "bindings": {
+    "qualification_release_id": "zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9",
+    "qualification_manifest_sha256": "9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493",
+    "projection_sha256": "bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8",
+    "coverage_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
+    "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+    "sources_sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e"
+  },
+  "sources": [
+    {
+      "source_key": "ak_active_business_licenses",
+      "profile_source_id": "alaska-dcced-active-business-licenses",
+      "source_release_id": "ak-active-business-licenses-2026-09-03-d77a60ab0d6e75dc",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "california_abc_active_issued_license_sites",
+      "profile_source_id": "california-abc-daily-active-licenses",
+      "source_release_id": "ca-abc-active-licenses-2026-09-07-4adb619cd534904b",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "retail-consumer"
+      ]
+    },
+    {
+      "source_key": "census_nonemployer_statistics",
+      "profile_source_id": null,
+      "source_release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+      "source_kind": "aggregate-baseline",
+      "category_ids": [
+        "aggregate-baseline-context"
+      ]
+    },
+    {
+      "source_key": "chicago_active_business_license_sites",
+      "profile_source_id": "city-of-chicago-bacp-current-active-business-licenses",
+      "source_release_id": "chicago-active-business-licenses-2026-09-02-5509fc257e382b49",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "cms_nppes_organizations",
+      "profile_source_id": "cms-nppes-monthly-v2",
+      "source_release_id": "NPPES_Data_Dissemination_August_2026_V2",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "health-care"
+      ]
+    },
+    {
+      "source_key": "co_business_registry_good_standing_or_delinquent_organizations",
+      "profile_source_id": null,
+      "source_release_id": "co-business-registry-2026-09-02-42884e178198747a",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "ct_business_registry_active_organizations",
+      "profile_source_id": null,
+      "source_release_id": "ct-business-registry-2026-09-02-30857c9921e9e791",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "dc_basic_business_license_sites",
+      "profile_source_id": "dc-dlcp-active-basic-business-licenses",
+      "source_release_id": "dc-basic-business-licenses-2026-09-07-70f09a6a032c9408",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "de_business_licenses_current",
+      "profile_source_id": null,
+      "source_release_id": "de-business-licenses-2026-09-02-5c2d3a7c86c77c8e",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "epa_echo_active_facilities",
+      "profile_source_id": "epa-echo-exporter-active-facility",
+      "source_release_id": "epa-echo-2026-08-30-382d612a42041dc0",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "environmental-facilities"
+      ]
+    },
+    {
+      "source_key": "fdic_bankfind",
+      "profile_source_id": "fdic-bankfind-current-structure",
+      "source_release_id": "fdic-bankfind-5710a083e3b49f87",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "financial-services"
+      ]
+    },
+    {
+      "source_key": "fl_business_registry_quarterly_active_entities",
+      "profile_source_id": null,
+      "source_release_id": "fl-business-registry-2026-07-10-392c89e9e5b94cb6",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "fmcsa_active_us_company_census",
+      "profile_source_id": "fmcsa-company-census-active-us-principal-office",
+      "source_release_id": "fmcsa-company-census-2026-08-30-55fd24985d97e66e",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "transportation"
+      ]
+    },
+    {
+      "source_key": "fsis_active_mpi_establishments",
+      "profile_source_id": "usda-fsis-active-mpi-directory",
+      "source_release_id": "fsis-mpi-2026-08-24-e7be6d8dfc46f68e",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "food-production"
+      ]
+    },
+    {
+      "source_key": "ia_business_registry_active_entities",
+      "profile_source_id": null,
+      "source_release_id": "ia-business-registry-2026-08-10-9654242df778d3bb",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "irs_eo_bmf_organizations",
+      "profile_source_id": "irs-eo-bmf-organizations",
+      "source_release_id": "irs-eo-bmf-2026-08-11-d272cdb9c6c4afef",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "tax-exempt-organizations"
+      ]
+    },
+    {
+      "source_key": "la_active_business_location_accounts",
+      "profile_source_id": "los-angeles-office-of-finance-active-businesses",
+      "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "ma_childcare_centers",
+      "profile_source_id": "ma-licensed-center-based-childcare",
+      "source_release_id": "ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "childcare"
+      ]
+    },
+    {
+      "source_key": "ncua_quarterly_credit_unions",
+      "profile_source_id": "ncua-final-quarterly-call-report",
+      "source_release_id": "ncua-2026-03-31-6d7fdf1e7eaf9078",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "financial-services"
+      ]
+    },
+    {
+      "source_key": "nj_childcare_centers",
+      "profile_source_id": "nj-licensed-childcare-centers",
+      "source_release_id": "nj-childcare-a9ed3d970922f919cee26a93310677b81a8319ae6ce960d83b34f607fec34f69",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "childcare"
+      ]
+    },
+    {
+      "source_key": "ny_business_registry_active_entities",
+      "profile_source_id": null,
+      "source_release_id": "ny-business-registry-2026-09-02-9d8490fb18678e54",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "ny_retail_food_store_license_sites",
+      "profile_source_id": "new-york-agriculture-markets-retail-food-stores",
+      "source_release_id": "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "retail-consumer"
+      ]
+    },
+    {
+      "source_key": "nyc_dcwp_active_license_sites",
+      "profile_source_id": "nyc-dcwp-issued-licenses-active-premises",
+      "source_release_id": "nyc-dcwp-active-premises-2026-08-20-6c47b96b3ab94aec",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "oh_childcare_centers",
+      "profile_source_id": "oh-dcy-publisher-open-childcare-centers",
+      "source_release_id": "oh-childcare-2c38df58d6d977c7e93a26d6b1e730e7850ec893b6f5a947b76d5060e1cc6e4b",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "childcare"
+      ]
+    },
+    {
+      "source_key": "or_business_registry_active_registrations",
+      "profile_source_id": null,
+      "source_release_id": "or-business-registry-2026-09-01-c58ca37fef13c0e9",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "pa_business_registry_active_registrations",
+      "profile_source_id": null,
+      "source_release_id": "pa-business-registry-2026-09-02-5aea113d98c4bfb7",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    },
+    {
+      "source_key": "tn_childcare_centers",
+      "profile_source_id": "tn-dhs-active-childcare-centers",
+      "source_release_id": "tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "childcare"
+      ]
+    },
+    {
+      "source_key": "tx_active_sales_tax_permit_outlets",
+      "profile_source_id": "texas-comptroller-active-sales-tax-permits",
+      "source_release_id": "tx-active-sales-tax-2026-08-29-98b90d177d81493e",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "licensed-businesses"
+      ]
+    },
+    {
+      "source_key": "usda_snap_retailers",
+      "profile_source_id": "usda-snap-current-retailers",
+      "source_release_id": "usda-snap-20260819T174009953Z",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "retail-consumer"
+      ]
+    },
+    {
+      "source_key": "wa_lni_active_contractor_organizations",
+      "profile_source_id": null,
+      "source_release_id": "wa-lni-active-contractor-licenses-2026-09-07-24c7059d65e4d084",
+      "source_kind": "record-level-evidence",
+      "category_ids": [
+        "registrations-nonprofits"
+      ]
+    }
+  ],
+  "explicit_scope_decisions": {
+    "environmental-facilities": "EPA ECHO cross-industry regulated facilities; deliberately differs from national reporting group cross-industry-regulated-facilities.",
+    "food-production": "FSIS regulated meat, poultry and egg establishments; deliberately differs from national reporting group regulated-meat-poultry-egg-establishments.",
+    "registrations-nonprofits": "Organization/address registration evidence, including WA contractor mailing addresses and DE license organization addresses; not inferred retail or construction operating sites.",
+    "childcare": "MA NJ OH TN source-defined childcare evidence; OH is explicitly included although legacy map drilldown source_ids omitted it.",
+    "aggregate-baseline-context": "Census nonemployer statistics are aggregate context, not named source businesses. Absence of positive ZIP contributions is not a zero business claim."
+  }
+}
