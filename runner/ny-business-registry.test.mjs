@@ -111,6 +111,30 @@ test("pins 11 business and reported-location fields while excluding process, CEO
   }
 });
 
+test("dataset catalog is reconciled to the retained current release", async () => {
+  const dataset = JSON.parse(await readFile(new URL("../config/datasets/ny-business-registry-active-entities.json", import.meta.url), "utf8"));
+  const pointer = JSON.parse(await readFile(new URL("../data/business-sources/ny-business-registry-active-entities/current.json", import.meta.url), "utf8"));
+  const manifestUrl = new URL(`../data/business-sources/ny-business-registry-active-entities/${pointer.manifest}`, import.meta.url);
+  const manifest = JSON.parse(await readFile(manifestUrl, "utf8"));
+  const verified = dataset.current_verified_release;
+
+  assert.equal(verified.release_id, pointer.release_id);
+  assert.equal(verified.release_id, manifest.release_id);
+  assert.equal(verified.source_release_id, manifest.source_release_id);
+  assert.equal(verified.source_rows_updated_at, manifest.source_rows_updated_at);
+  assert.equal(verified.source_active_extract_records, manifest.coverage.source_active_extract_records);
+  assert.equal(verified.organizations_published, manifest.coverage.organizations_published);
+  assert.equal(verified.quarantined_source_records, manifest.coverage.quarantined_source_records);
+  assert.equal(verified.eligible_reported_us_location_addresses, manifest.coverage.eligible_reported_us_location_addresses);
+  assert.equal(verified.organizations_without_eligible_us_zip_address, manifest.coverage.organizations_without_eligible_us_zip_address);
+  assert.equal(verified.source_zip_codes, manifest.coverage.source_zip_codes);
+  assert.equal(verified.zip_union_records, manifest.coverage.zip_union_records);
+  assert.equal(verified.physical_sites, manifest.coverage.physical_sites);
+  assert.equal(verified.establishments, manifest.coverage.establishments);
+  assert.equal(verified.verified_artifact_count, manifest.artifacts.length);
+  assert.equal(verified.verified_bytes, manifest.artifacts.reduce((total, artifact) => total + artifact.bytes, 0));
+});
+
 test("normalizes active-extract evidence without inferring a physical site, legal status, owner, or relationship", () => {
   const normalized = normalizeNyBusinessOrganization(organization({
     dos_process_name: "Private Process Recipient",

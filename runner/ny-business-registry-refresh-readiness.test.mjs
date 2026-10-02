@@ -22,7 +22,7 @@ test("New York refresh readiness is deterministic, evidence-bound, complete, and
   assert.equal(first.plan.evidence.length, 6);
   assert.ok(first.plan.evidence.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));
   assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment, true);
-  assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment, false);
+  assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment, true);
   assert.equal(first.retainedRelease.releaseId, "ny-business-registry-20260903-005209518Z-d9e3551f");
   assert.equal(first.retainedRelease.sourceActiveExtractRecords, 4273072);
   assert.equal(first.retainedRelease.organizationsPublished, 4273072);

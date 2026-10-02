@@ -12,20 +12,20 @@
   "coverage_claim": "Entities included in the official monthly New York Active Corporations extract; this is source-specific extract membership for general public knowledge, not proof of current legal status, a census of every operating business, or a physical-site directory.",
   "identity_rule": "Each unique one-to-eight-digit New York DOS ID becomes one provisional organization candidate. Reported location addresses remain organization assertions and never create physical sites or establishments.",
   "current_verified_release": {
-    "release_id": "ny-business-registry-20260831-073558948Z-56408686",
-    "source_release_id": "ny-business-registry-2026-08-30-8e153afc36235e65",
-    "source_rows_updated_at": "2026-08-30T12:29:07.000Z",
-    "source_active_extract_records": 4275497,
-    "organizations_published": 4275497,
+    "release_id": "ny-business-registry-20260903-005209518Z-d9e3551f",
+    "source_release_id": "ny-business-registry-2026-09-02-9d8490fb18678e54",
+    "source_rows_updated_at": "2026-09-02T13:39:39.000Z",
+    "source_active_extract_records": 4273072,
+    "organizations_published": 4273072,
     "quarantined_source_records": 0,
-    "eligible_reported_us_location_addresses": 352234,
-    "organizations_without_eligible_us_zip_address": 3923263,
-    "source_zip_codes": 8653,
-    "zip_union_records": 38514,
+    "eligible_reported_us_location_addresses": 350933,
+    "organizations_without_eligible_us_zip_address": 3922139,
+    "source_zip_codes": 8646,
+    "zip_union_records": 38513,
     "physical_sites": null,
     "establishments": null,
     "verified_artifact_count": 22,
-    "verified_bytes": 346827382
+    "verified_bytes": 346483030
   },
   "documentation": "docs/NY-BUSINESS-REGISTRY.md"
 }
