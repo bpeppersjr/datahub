@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 75 after the source-bound entity-resolution verifier commit. Do not execute or approve Plan 74.**
+
 Plan 74 is the current clean-repository successor after the category-scoped Coverage workspace implementation and the retained-source reconciliation history were committed and pushed.
 
 - Run ID: `production-cms-directories-20261002-74`
