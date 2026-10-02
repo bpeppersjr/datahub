@@ -102,6 +102,9 @@ function formatCount(value: number) {
 
 export default function Home() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('Coverage');
+  const [workspaceState, setWorkspaceState] = useState('');
+  const [workspaceCategory, setWorkspaceCategory] = useState('general-business');
+  function navigateWorkspace(tab:WorkspaceTab){setWorkspaceTab(tab);window.requestAnimationFrame(()=>document.getElementById(`workspace-tab-${workspaceTabs.indexOf(tab)}`)?.focus());}
   const [jobs, setJobs] = useState<Job[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
@@ -344,9 +347,9 @@ export default function Home() {
 
         <WorkspaceTabs value={workspaceTab} onChange={setWorkspaceTab}/>
         <div id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
-        {workspaceTab==='Coverage'&&<CoverageWorkspace/>}
-        {workspaceTab==='Industries'&&<CoverageWorkspace key="industries" industries/>}
-        {workspaceTab==='ZIP Economy'&&<ZipEconomyWorkspace/>}
+        {workspaceTab==='Coverage'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
+        {workspaceTab==='Industries'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
+        {workspaceTab==='ZIP Economy'&&<ZipEconomyWorkspace stateCode={workspaceState}/>}
         {workspaceTab==='Collection'&&<DataOperations/>}
         {workspaceTab==='Connectors'&&<ConnectorCatalog/>}
         {workspaceTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}

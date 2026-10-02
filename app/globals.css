@@ -697,4 +697,13 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 .coverage-selected li { margin-bottom:.8rem; }
 .economy-evidence-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap:1rem; margin:1rem 0; }
 .economy-evidence-grid article { padding:1rem; border:1px solid #42516a; border-radius:.6rem; }
+.coverage-national-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:.75rem; margin:1rem 0; }
+.coverage-national-metrics article { display:flex; flex-direction:column; gap:.45rem; padding:1rem; border:1px solid #42516a; border-radius:.6rem; }
+.coverage-national-metrics strong { font-size:1.35em; }
+.coverage-national-metrics small { line-height:1.5; color:var(--muted); }
+.workspace-path { display:flex; align-items:center; flex-wrap:wrap; gap:.75rem; padding:.75rem 0; }
+.workspace-path button { font:inherit; padding:.5rem .75rem; }
+.economy-context { padding:.75rem; border-left:3px solid #65d5e3; background:#182331; }
+#economy-panel { min-height:12rem; }
+.focused-workspace table th small { display:block; overflow-wrap:anywhere; font-weight:normal; }
 @media(max-width:1000px) { .coverage-focus-layout { grid-template-columns:1fr; } }
