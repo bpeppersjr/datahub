@@ -84,10 +84,12 @@ The build publishes an immutable `awaiting-independent-labels` sample and a null
 
 ## Validated live sample
 
-The independently verified sample `business-entity-resolution-benchmark-sample-20260902-075956925Z-c5f3d239` is tied to resolution release `business-entity-resolution-20260902-075624674Z-881e778c` and registry release `national-business-registry-20260902-043657439Z-c1eab4dd`. It sampled 425 candidates from each of these enumerated universes:
+The retained sample `business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3` is tied by exact manifest hashes to resolution release `business-entity-resolution-20260911-040411512Z-e6812503` and registry release `national-business-registry-20260911-022652067Z-1ec656c3`. It sampled 425 candidates from each enumerated universe:
 
-- 1,449,139 automatic physical-site membership pairs;
-- 74,733 automatic establishment membership pairs; and
-- 106,011 unapplied review candidates.
+- 1,449,108 automatic physical-site membership pairs;
+- 74,738 automatic establishment membership pairs; and
+- 106,063 unapplied review candidates.
 
-The 1,275-row packet contains 2,545 unique source-preserving profiles across three verified artifacts totaling 944,460 bytes. Its label template has 0 submitted labels, so both the precision gate and export authorization are correctly false. New York retail-food premises expand all three candidate universes; Washington L&I remains organization-only evidence and does not create candidates.
+The 1,275-row packet contains 2,545 unique source-preserving profiles across three artifacts totaling 941,342 manifest-declared bytes. Its label template has zero submitted labels; the precision gate and export authorization remain false. Reporting-only locations, separately retained childcare candidates, and Minnesota credential rows are not identity-matching benchmark populations.
+
+The dataset catalog binds the current pointer, manifest hash, publisher, timestamp, status, dependencies and headline sample counts. The read-only release-chain catalog test checks those bindings against retained manifests; it is not a new artifact-content replay, independent labeling, acquisition or publication.

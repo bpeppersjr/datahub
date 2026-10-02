@@ -6,8 +6,35 @@
   "description": "Reversible physical-site and establishment aliases plus scored review candidates derived from source-preserving national registry location profiles.",
   "producer_connector": "national-business-entity-resolution",
   "runtime_pointer": "data/business-entity-resolution/current.json",
-  "required_datasets": ["national-business-registry"],
-  "compatible_registry_publisher_versions": ["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0", "2.8.0", "2.9.0", "2.10.0", "2.11.0", "2.12.0", "2.13.0", "2.14.0", "2.15.0"],
+  "required_datasets": [
+    "national-business-registry"
+  ],
+  "compatible_registry_publisher_versions": [
+    "1.2.0",
+    "1.3.0",
+    "1.4.0",
+    "1.5.0",
+    "1.6.0",
+    "1.7.0",
+    "1.8.0",
+    "1.9.0",
+    "2.0.0",
+    "2.1.0",
+    "2.2.0",
+    "2.3.0",
+    "2.4.0",
+    "2.5.0",
+    "2.6.0",
+    "2.7.0",
+    "2.8.0",
+    "2.9.0",
+    "2.10.0",
+    "2.11.0",
+    "2.12.0",
+    "2.13.0",
+    "2.14.0",
+    "2.15.0"
+  ],
   "ohio_reporting_boundary": "Registry 2.15.0 binds Ohio reporting to its retained app source, preserves separate Ohio/Tennessee missing ZIP counts and excludes all Ohio site/establishment endpoints and source IDs from matching. Source membership is not independently verified identity or business completeness.",
   "tennessee_reporting_boundary": "Registry 2.13.0 recovered/schema1.0 and 2.14.0 fresh/schema1.1 Tennessee rows, including unavailable-ZIP records, are verified reporting-only inputs and never matching profiles or benchmark candidates. Cross-version rows are rejected. Compatibility is not production publication or independent identity-accuracy approval.",
   "schemas": {
@@ -23,19 +50,43 @@
     "exact eligible address plus exact non-generic name with one member per source release creates reversible establishment aliases"
   ],
   "review_rule": "Exact eligible address plus name evidence not eligible for an automatic establishment link creates an unapplied review candidate when its similarity score is at least 0.78; this includes similar non-exact names and exact names blocked as generic or source-ambiguous.",
-  "prohibited_inferences": ["co-location as establishment identity", "name-only identity", "PO Box as physical-site identity", "ownership or parent company", "general operating status"],
+  "prohibited_inferences": [
+    "co-location as establishment identity",
+    "name-only identity",
+    "PO Box as physical-site identity",
+    "ownership or parent company",
+    "general operating status"
+  ],
   "current_verified_release": {
-    "release_id": "business-entity-resolution-20260902-075624674Z-881e778c",
-    "registry_dependency_release_id": "national-business-registry-20260902-043657439Z-c1eab4dd",
-    "profiles": 8011827,
-    "site_alias_decisions": 2325234,
-    "establishment_alias_decisions": 146889,
-    "review_candidate_decisions": 106011,
-    "review_groups_skipped_for_size": 2,
+    "output": "data/business-entity-resolution/current.json",
+    "manifest": "data/business-entity-resolution/releases/business-entity-resolution-20260911-040411512Z-e6812503/manifest.json",
+    "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff",
+    "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+    "publisher": {
+      "id": "national-business-entity-resolution",
+      "version": "1.0.0"
+    },
+    "created_at": "2026-09-11T04:04:11.512Z",
+    "status": "published-reviewable-partial",
+    "scope_authority": "The immutable release manifest is authoritative for complete source-specific coverage and limitations; this catalog stores exact headline totals only.",
+    "dependencies": {
+      "registry": {
+        "dataset_id": "national-business-registry",
+        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+      }
+    },
     "verified_artifact_count": 101,
-    "verified_bytes": 412835032,
+    "verified_bytes": 412594557,
+    "profiles": 8011835,
+    "address_groups": 6505544,
+    "multi_member_street_address_groups": 876086,
+    "site_alias_decisions": 2325194,
+    "establishment_alias_decisions": 146896,
+    "review_candidate_decisions": 106063,
+    "review_groups_skipped_for_size": 2,
     "complete_entity_resolution": false,
-    "export_policy": "local-review-only"
+    "export_policy": "Local review only until benchmarked precision and contributing-source policy checks authorize an export."
   },
   "documentation": "docs/BUSINESS-ENTITY-RESOLUTION.md",
   "source_policy": "config/source-policies/national-business-entity-resolution.json"

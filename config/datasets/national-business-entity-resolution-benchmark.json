@@ -6,12 +6,19 @@
   "description": "Deterministic, independently labeled precision benchmark and review calibration sample for governed national business entity resolution.",
   "producer_connector": "national-business-entity-resolution-benchmark",
   "runtime_pointer": "data/business-entity-resolution-benchmark/current.json",
-  "required_datasets": ["national-business-entity-resolution", "national-business-registry"],
+  "required_datasets": [
+    "national-business-entity-resolution",
+    "national-business-registry"
+  ],
   "schemas": {
     "candidate": "config/schemas/business-entity-resolution-benchmark-candidate.schema.json",
     "label": "config/schemas/business-entity-resolution-benchmark-label.schema.json"
   },
-  "strata": ["automatic-physical-site", "automatic-establishment", "review-candidate"],
+  "strata": [
+    "automatic-physical-site",
+    "automatic-establishment",
+    "review-candidate"
+  ],
   "sample_size_per_stratum": 425,
   "automatic_precision_gate": {
     "confidence": 0.95,
@@ -21,24 +28,64 @@
     "maximum_exclusion_rate": 0.1,
     "requires_complete_sample_review": true
   },
-  "label_values": ["match", "non-match", "uncertain", "not-reviewable"],
+  "label_values": [
+    "match",
+    "non-match",
+    "uncertain",
+    "not-reviewable"
+  ],
   "current_verified_sample": {
-    "release_id": "business-entity-resolution-benchmark-sample-20260902-075956925Z-c5f3d239",
-    "resolution_release_id": "business-entity-resolution-20260902-075624674Z-881e778c",
-    "registry_release_id": "national-business-registry-20260902-043657439Z-c1eab4dd",
-    "automatic_physical_site_universe": 1449139,
-    "automatic_establishment_universe": 74733,
-    "review_candidate_universe": 106011,
-    "sampled_per_stratum": 425,
-    "total_sampled_candidates": 1275,
-    "unique_profiles": 2545,
+    "output": "data/business-entity-resolution-benchmark/current.json",
+    "manifest": "data/business-entity-resolution-benchmark/releases/business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3/manifest.json",
+    "manifest_sha256": "d036a38d3808e59f1a35762dc980855fd3676d8ec75ab379c2e0c7968c2f484e",
+    "release_id": "business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3",
+    "publisher": {
+      "id": "national-business-entity-resolution-benchmark",
+      "version": "1.0.0"
+    },
+    "created_at": "2026-09-11T04:07:24.863Z",
+    "status": "awaiting-independent-labels",
+    "scope_authority": "The immutable release manifest is authoritative for complete source-specific coverage and limitations; this catalog stores exact headline totals only.",
+    "dependencies": {
+      "resolution": {
+        "dataset_id": "national-business-entity-resolution",
+        "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+        "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff"
+      },
+      "registry": {
+        "dataset_id": "national-business-registry",
+        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+      }
+    },
     "verified_artifact_count": 3,
-    "verified_bytes": 944460,
-    "submitted_labels": 0,
+    "verified_bytes": 941342,
+    "coverage": {
+      "candidate_universe": {
+        "automatic-physical-site": 1449108,
+        "automatic-establishment": 74738,
+        "review-candidate": 106063
+      },
+      "sampled_candidates": {
+        "automatic-physical-site": 425,
+        "automatic-establishment": 425,
+        "review-candidate": 425
+      },
+      "total_sampled_candidates": 1275,
+      "unique_profiles_in_review_packet": 2545,
+      "submitted_labels": 0,
+      "benchmark_gate_passed": false
+    },
+    "complete_labeled_benchmark": false,
     "automatic_precision_gate_passed": false,
     "export_authorized": false
   },
-  "limitations": ["estimates precision, not recall", "does not prove all-source-pair performance", "does not authorize export", "requires independent human labels"],
+  "limitations": [
+    "estimates precision, not recall",
+    "does not prove all-source-pair performance",
+    "does not authorize export",
+    "requires independent human labels"
+  ],
   "downstream_label_dataset": "national-business-entity-resolution-benchmark-labels",
   "documentation": "docs/ENTITY-RESOLUTION-BENCHMARK.md",
   "source_policy": "config/source-policies/national-business-entity-resolution-benchmark.json"
