@@ -1,9 +1,11 @@
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
-    const catalog = await businessMap.getCatalog();
+    const indexed = indexedEvidence ? await indexedEvidence({zip,categoryId,signal}) : null;
+    if (indexedEvidence && (!indexed || typeof indexed.recheck !== 'function')) throw new Error('Indexed ZIP evidence is unavailable.');
+    const catalog = indexed ? indexed.catalog : await businessMap.getCatalog();
     if (!catalog?.available) throw new Error("Selected ZIP evidence is unavailable.");
     if (!/^[a-z][a-z0-9-]{1,79}$/.test(categoryId)) throw Object.assign(new Error("Invalid business category."), { statusCode: 400 });
     const categories = catalog.categories ?? [];
@@ -13,19 +15,20 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
     const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence, cmsNppesOrganizationPracticeLocationEvidence] = await Promise.all([
-      zipQualityView({ zip }),
-      businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
-      pharmacyCoverage ? pharmacyCoverage({ zip }) : null,
-      snapRetailerCoverage ? snapRetailerCoverage({ zip }) : null,
-      fmcsaRegistrantCoverage ? fmcsaRegistrantCoverage({ zip }) : null,
-      fdicBankfindCoverage ? fdicBankfindCoverage({ zip }) : null,
-      ncuaCreditUnionCoverage ? ncuaCreditUnionCoverage({ zip }) : null,
-      fsisActiveEstablishmentCoverage ? fsisActiveEstablishmentCoverage({ zip }) : null,
+      indexed ? indexed.quality : zipQualityView({ zip, signal }),
+      indexed ? indexed.coverage : businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
+      pharmacyCoverage ? pharmacyCoverage({ zip, signal }) : null,
+      snapRetailerCoverage ? snapRetailerCoverage({ zip, signal }) : null,
+      fmcsaRegistrantCoverage ? fmcsaRegistrantCoverage({ zip, signal }) : null,
+      fdicBankfindCoverage ? fdicBankfindCoverage({ zip, signal }) : null,
+      ncuaCreditUnionCoverage ? ncuaCreditUnionCoverage({ zip, signal }) : null,
+      fsisActiveEstablishmentCoverage ? fsisActiveEstablishmentCoverage({ zip, signal }) : null,
       epaEchoActiveFacilityCoverage ? epaEchoActiveFacilityCoverage({ zip, signal }) : null,
       irsEoBmfOrganizationCoverage ? irsEoBmfOrganizationCoverage({ zip, signal }) : null,
       cmsNppesOrganizationPracticeLocationCoverage ? cmsNppesOrganizationPracticeLocationCoverage({ zip, signal }) : null,
     ]);
     signal?.throwIfAborted();
+    if (indexed) await indexed.recheck();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
     if (!catalog.registry_release_id || quality.bindings.release_id !== catalog.registry_release_id

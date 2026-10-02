@@ -125,7 +125,7 @@ test("keeps optional aggregate pharmacy evidence in its own exact-ZIP block", as
     rows: [row("12345")],
     pharmacyCoverage: async (selection) => { calls.push(selection); return pharmacy; },
   })({ zip: "12345", categoryId: "health-care" });
-  assert.deepEqual(calls, [{ zip: "12345" }]);
+  assert.deepEqual(calls, [{ zip: "12345", signal: undefined }]);
   assert.deepEqual(detail.pharmacy_evidence, pharmacy);
   assert.equal(detail.counts.physical_sites, 12, "pharmacy aggregate does not change generic counts");
   assert.deepEqual(detail.category_evidence.positive_source_contributions.map(item => item.source_id), ["source-health"], "pharmacy aggregate does not change category evidence");

@@ -153,6 +153,11 @@ const ENHANCERS = Object.freeze([
   { id: "gdp_current_dollars", label: "BEA current-dollar GDP", kind: "economic" },
 ]);
 
+// Authoritative map taxonomy without triggering geometry/coverage index loading.
+export function businessMapCategoryMetadata() {
+  return Object.freeze([{ id: "all", label: "All source categories", business_name_drilldown: true }, ...CATEGORY_DEFINITIONS.map(({ id, label, group_id, group_label, fields, source_ids }) => Object.freeze({ id, label, group_id, group_label, business_name_drilldown: source_ids.length > 0, evidence_fields: Object.freeze([...fields]), source_ids: Object.freeze([...source_ids]) }))].map(Object.freeze));
+}
+
 const CATEGORY_BY_ID = new Map(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
 const ENHANCER_IDS = new Set(ENHANCERS.map((enhancer) => enhancer.id));
 
@@ -762,7 +767,7 @@ export function createBusinessMapStore({
       export_policy: index.coverage.manifest.export_policy,
       complete_all_businesses: false,
       entity_resolution_applied: false,
-      categories: [{ id: "all", label: "All source categories", business_name_drilldown: true }, ...CATEGORY_DEFINITIONS.map(({ id, label, group_id, group_label, fields, source_ids }) => ({ id, label, group_id, group_label, business_name_drilldown: source_ids.length > 0, evidence_fields: fields, source_ids }))],
+      categories: businessMapCategoryMetadata(),
       category_groups: groups,
       enhancers: ENHANCERS,
       interaction: { levels: ["states", "counties", "zips"], zoom_gesture: "Ctrl+wheel", business_names_available_at: "selected-five-digit-ZIP", zip_unavailable_business_names_available_at: "selected-state-reporting-only" },

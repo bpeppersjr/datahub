@@ -54,3 +54,22 @@ test("client disconnect aborts the exact ZIP reader without writing a response",
   assert.equal(observed.aborted, true);
   assert.equal(writes, 0);
 });
+
+test('inspector rejects framed bodies before invoking a reader',async()=>{
+ for(const headers of [{'content-length':'1'},{'transfer-encoding':'chunked'}]){let calls=0,status;await zipInspectorHttp({method:'GET',headers},{},new URL('http://local/?zip=00501'),async()=>{calls++;},(_r,s)=>{status=s;});assert.equal(status,400);assert.equal(calls,0);}
+});
+
+test('120-second deadline returns503 even if aborted reader resolves; listeners are cleaned',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const request=Object.assign(new EventEmitter(),{method:'GET'}),response=Object.assign(new EventEmitter(),{writableEnded:false});let selected,status;
+ const pending=zipInspectorHttp(request,response,new URL('http://local/?zip=00501'),({signal})=>{selected=signal;return new Promise(resolve=>signal.addEventListener('abort',()=>resolve({available:false}),{once:true}));},(_r,s)=>{status=s;});
+ await Promise.resolve();t.mock.timers.tick(120000);await pending;assert.equal(status,503);assert.equal(selected.aborted,true);assert.equal(request.listenerCount('aborted'),0);assert.equal(response.listenerCount('close'),0);
+});
+
+test('pre-aborted and destroyed requests write nothing and never start a reader',async()=>{
+ for(const mode of ['aborted','destroyed']){let calls=0,writes=0;const request=Object.assign(new EventEmitter(),{method:'GET',aborted:mode==='aborted'}),response=Object.assign(new EventEmitter(),{destroyed:mode==='destroyed'});await zipInspectorHttp(request,response,new URL('http://local/?zip=00501'),async()=>{calls++;},()=>{writes++;});await new Promise(r=>setImmediate(r));assert.equal(calls,0);assert.equal(writes,0);}
+});
+
+test('server inspector wiring selects the bounded reader without changing standalone ZIP-quality route',async()=>{
+ const server=await readFile(new URL('./server.mjs',import.meta.url),'utf8');assert.match(server,/createZipInspectorView\(\{ indexedEvidence: readIndexedZipInspectorEvidence/);assert.match(server,/await zipQualityView\(\{ zip: url.searchParams.get\('zip'\)/);
+});

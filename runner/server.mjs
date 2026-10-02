@@ -28,6 +28,7 @@ import { nationalGoalCompletionView } from './national-goal-completion-view.mjs'
 import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
+import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
@@ -191,7 +192,7 @@ const store = await createStore();
 const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
-const zipInspectorView = createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, pharmacyCoverage: async ({ zip }) => {
+const zipInspectorView = createZipInspectorView({ indexedEvidence: readIndexedZipInspectorEvidence, pharmacyCoverage: async ({ zip }) => {
   const result = await lookupNationalPharmacyIndustryZip5(zip);
   return result.row ? { ...result.row, source: { dataset_id: 'national-pharmacy-industry-coverage', release_id: result.verified.release_id } } : null;
 }, snapRetailerCoverage: async ({ zip }) => {
@@ -246,8 +247,8 @@ const zipInspectorView = createZipInspectorView({ businessCoverageViews, busines
     source: { dataset_id: 'national-ncua-credit-union-coverage', release_id: result.verified.release_id, cycle_date: result.verified.cycle_date, retrieved_at: result.verified.retrieved_at },
     attribution: 'Source: National Credit Union Administration quarterly data.',
   } : null;
-}, fsisActiveEstablishmentCoverage: async ({ zip }) => {
-  const result = await lookupNationalFsisActiveEstablishmentZip5(zip);
+}, fsisActiveEstablishmentCoverage: async ({ zip, signal }) => {
+  const result = await lookupNationalFsisActiveEstablishmentZip5(zip, { signal });
   return result.row ? {
     zip_code: result.row.code,
     evidence_scope: result.row.evidence_scope,

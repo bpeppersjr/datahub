@@ -1,0 +1,127 @@
+{
+  "dataset_id": "coverage-zip-view-index",
+  "schema_version": "1.0.0",
+  "status": "registered-local-lookup-index",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "local-review-only",
+  "retained_release": {
+    "release_id": "coverage-zip-view-index-84ab1aff4d30eb285f59f21f20a8c06f6cef7b529a88b1a7ac4672c2adc09dce",
+    "manifest": "data/coverage-zip-view-index/releases/coverage-zip-view-index-84ab1aff4d30eb285f59f21f20a8c06f6cef7b529a88b1a7ac4672c2adc09dce/manifest.json",
+    "manifest_sha256": "a10a0ae018d76b3923e7f2a788cfb7611e2c5a8616cf49fc93ea26bcae217b6e",
+    "manifest_bytes": 17267,
+    "manifest_schema_version": "coverage-zip-view-index@1.0.0",
+    "status": "immutable-local-lookup-index",
+    "created_at": "2026-10-02T20:00:00.000Z",
+    "indexed_zip_count": 48194,
+    "source_zip_rows": 48194,
+    "bindings": {
+      "coverage_catalog_sha256": "83e9bbb84e5478cfe8b50a45460a9b2e76216234a772519ce5e6433021545b28",
+      "coverage": {
+        "pointer_path": "data/business-coverage-views/current.json",
+        "pointer_sha256": "dbe15c414452409c6f3ef6ee11263476138d02f2fec9e3b4c19e307ecc58220b",
+        "manifest_path": "data/business-coverage-views/releases/national-business-coverage-views-20260911-040908332Z-f01c882a/manifest.json",
+        "manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+        "release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a"
+      },
+      "registry": {
+        "pointer_path": "data/business-registry/current.json",
+        "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
+        "manifest_path": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
+        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3"
+      },
+      "geography": {
+        "pointer_path": "data/geography/current.json",
+        "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+        "manifest_path": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+        "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+        "release_id": "us-census-geography-20260830-132803990Z-3629abc0"
+      },
+      "dependencies": [
+        {
+          "dataset_id": "national-business-registry",
+          "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+          "publisher_version": "2.15.0",
+          "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+        },
+        {
+          "dataset_id": "us-census-geography",
+          "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+          "publisher_version": null,
+          "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"
+        },
+        {
+          "dataset_id": "us-census-zcta-jurisdiction-crosswalk",
+          "release_id": "us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8",
+          "publisher_version": null,
+          "manifest_sha256": "02e19bd98ad587426628cd50013942acc0cc3e9c9a48ac653eaf96cf534b8fe2"
+        },
+        {
+          "dataset_id": "national-business-entity-resolution",
+          "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+          "publisher_version": "1.0.0",
+          "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff"
+        },
+        {
+          "dataset_id": "national-business-entity-resolution-benchmark",
+          "release_id": "business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3",
+          "publisher_version": "1.0.0",
+          "manifest_sha256": "d036a38d3808e59f1a35762dc980855fd3676d8ec75ab379c2e0c7968c2f484e"
+        },
+        {
+          "dataset_id": "census-nonemployer-baseline",
+          "release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+          "publisher_version": null,
+          "manifest_sha256": "7ebdba43630506d1c6bf859fdc91fe57566c0d0b95c4b8f872c40c2c71670f06"
+        }
+      ],
+      "spatial_zip_polygon_denominator": {
+        "count": 33791,
+        "geography_type": "census-zcta5",
+        "evidence_scope": "complete-selected-census-zcta5-polygon-release",
+        "dataset_id": "us-census-geography",
+        "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+        "geography_manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+        "zcta_index_artifact_path": "derived/index/zctas.jsonl",
+        "zcta_index_artifact_sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6",
+        "zcta_member_set_sha256": "dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f",
+        "source_id": "us-census-tigerweb-zcta-2020",
+        "source_vintage": "2020 Census",
+        "match_key": "exact-five-digit-zcta-code",
+        "zip4_polygon_applicability": "not-applicable"
+      },
+      "zip_artifact": {
+        "path": "views/zips.jsonl",
+        "bytes": 712218883,
+        "sha256": "b24a6dc7026a3bec96cea4cd4cb227aa58d11be9beebd633d8229ca5ee37a6dd",
+        "artifact_type": "zip-coverage-view-jsonl",
+        "record_count": 48194,
+        "export_policy": "local-review-only"
+      }
+    },
+    "artifact_count": 100,
+    "artifact_bytes": 6065062,
+    "artifact_inventory_sha256": "f937819a60e78a8c8923acfea92dab8efa1bc06ca478cee7c972eb2ba2889ce6",
+    "artifact_inventory_hash_encoding": "SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order"
+  },
+  "claims": {
+    "export_policy": "local-review-only",
+    "current_operations_verified": false,
+    "active_business_count": null,
+    "all_business_denominator": null,
+    "all_business_completion_percent": null,
+    "source_record_status_replayed": false,
+    "network_requests": 0,
+    "production_pointers_changed": false
+  },
+  "limitations": [
+    "Metadata-only registration does not select a runtime pointer or enroll production.",
+    "Source-reported ZIP membership is not authoritative current USPS validity or proof of business operation. ZIP4 remains separate and nongeometric.",
+    "Metadata reconciliation does not repeat full source/index replay or hash bucket contents."
+  ],
+  "documentation": "docs/ZIP-POSTAL-COVERAGE-INDEX-REGISTRATIONS.md"
+}
