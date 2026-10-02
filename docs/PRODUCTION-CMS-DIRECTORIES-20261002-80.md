@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 81 after configured industries outside national reporting were exposed in the app. Do not execute or approve Plan 80.**
+
 Plan 80 is the current clean-repository successor after the national resolution, benchmark, and coverage catalogs were reconciled to the exact retained September 11 release chain.
 
 - Run ID: `production-cms-directories-20261002-80`
