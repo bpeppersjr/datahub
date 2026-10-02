@@ -677,3 +677,24 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
   .operations-builder + .operations-builder { border-left: 0; border-top: 1px solid var(--border); }
   .operations-options { grid-template-columns: 1fr; }
 }
+/* Focused workspaces retain the global text scale and keyboard navigation. */
+[hidden] { display: none !important; }
+.workspace-tabs { display:flex; flex-wrap:wrap; gap:.4rem; padding:1rem 0; }
+.workspace-tabs button { padding:.7rem 1rem; font:inherit; color:inherit; border:1px solid #42516a; border-radius:.5rem; background:#182331; }
+.workspace-tabs button[aria-selected="true"] { background:#214b5a; border-color:#65d5e3; }
+.workspace-tabs button:focus-visible, .coverage-state-tiles button:focus-visible { outline:3px solid #a8efff; outline-offset:3px; }
+.focused-workspace { padding:1.25rem; min-width:0; }
+.focused-workspace p { max-width:95ch; line-height:1.6; }
+.focused-workspace select, .focused-workspace input, .focused-workspace button { font:inherit; }
+.focused-workspace select, .focused-workspace input { max-width:100%; padding:.55rem; }
+.focused-workspace form { display:flex; flex-wrap:wrap; align-items:end; gap:.7rem; }
+.coverage-focus-layout { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(16rem,1fr); gap:1.25rem; align-items:start; }
+.coverage-state-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(7rem,1fr)); gap:.55rem; }
+.coverage-state-tiles button { display:flex; flex-direction:column; gap:.25rem; color:#fff; border:2px solid transparent; padding:.75rem; border-radius:.5rem; text-align:left; }
+.coverage-state-tiles button[aria-pressed="true"] { border-color:#fff; }
+.coverage-state-tiles small { font-size:.8em; }
+.coverage-selected { border:1px solid #42516a; padding:1rem; border-radius:.6rem; overflow-wrap:anywhere; }
+.coverage-selected li { margin-bottom:.8rem; }
+.economy-evidence-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap:1rem; margin:1rem 0; }
+.economy-evidence-grid article { padding:1rem; border:1px solid #42516a; border-radius:.6rem; }
+@media(max-width:1000px) { .coverage-focus-layout { grid-template-columns:1fr; } }

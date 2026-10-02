@@ -7,6 +7,7 @@ import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
 import DataOperations from './data-operations';
+import {CoverageWorkspace, WorkspaceTabs, ZipEconomyWorkspace, workspaceTabs, type WorkspaceTab} from './workspace-views';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
@@ -100,6 +101,7 @@ function formatCount(value: number) {
 }
 
 export default function Home() {
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('Coverage');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
@@ -316,14 +318,7 @@ export default function Home() {
       <aside className="rail">
         <div className="brand-mark">C*</div>
         <nav aria-label="Primary navigation">
-          <a className="rail-link active" href="#queue" aria-label="Operations">⌁</a>
-          <a className="rail-link" href="#queue" aria-label="Jobs">▦</a>
-          <a className="rail-link" href="#activity" aria-label="Activity">↺</a>
-          <a className="rail-link" href="#coverage" aria-label="National business coverage">◎</a>
-          <a className="rail-link" href="#business-intelligence" aria-label="Heatmap Builder business and Census comparisons">◉</a>
-          <a className="rail-link" href="#connectors" aria-label="Governed connector registry">◇</a>
-          <a className="rail-link" href="#data-operations" aria-label="Industry collection and flat-file builder">⇅</a>
-          <a className="rail-link" href="#benchmark" aria-label="Entity-resolution benchmark">≋</a>
+          {workspaceTabs.map((name,index)=><button key={name} className={`rail-link ${workspaceTab===name?'active':''}`} aria-label={name} aria-current={workspaceTab===name?'page':undefined} onClick={()=>setWorkspaceTab(name)}>{['◎','▦','$','⌁','⇅','◉','◇'][index]}</button>)}
         </nav>
         <div className="rail-spacer" />
         <span className={`system-dot ${health ? '' : 'offline'}`} title={health ? 'Runner online' : 'Runner offline'} />
@@ -347,7 +342,15 @@ export default function Home() {
 
         {!health && <div className="offline-banner"><strong>Runner unavailable.</strong> Start the local runner to create and execute jobs.</div>}
 
-        <div className="content-grid">
+        <WorkspaceTabs value={workspaceTab} onChange={setWorkspaceTab}/>
+        <div id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
+        {workspaceTab==='Coverage'&&<CoverageWorkspace/>}
+        {workspaceTab==='Industries'&&<CoverageWorkspace key="industries" industries/>}
+        {workspaceTab==='ZIP Economy'&&<ZipEconomyWorkspace/>}
+        {workspaceTab==='Collection'&&<DataOperations/>}
+        {workspaceTab==='Connectors'&&<ConnectorCatalog/>}
+        {workspaceTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}
+        <div className="content-grid" hidden={workspaceTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">
               <article className="metric-card">
@@ -415,11 +418,6 @@ export default function Home() {
               </div>
             </section>
 
-            <CoverageExplorer />
-            <BusinessIntelligence />
-            <DataOperations />
-            <ConnectorCatalog />
-            <BenchmarkReview />
           </section>
 
           <aside className="side-column">
@@ -466,6 +464,7 @@ export default function Home() {
               <div className="type-grid">{(Object.keys(jobMeta) as JobType[]).map((type) => <button key={type} onClick={() => openNew(type)}><i className={jobMeta[type].tone}>{jobMeta[type].short}</i><span>{jobMeta[type].label}</span></button>)}</div>
             </section>
           </aside>
+        </div>
         </div>
       </section>
 
