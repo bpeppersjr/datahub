@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 73 after the New York retained-catalog reconciliation commit. Do not execute or approve Plan 72.**
+
 Plan 72 is the current clean-repository successor after the focused-workspace implementation, Colorado retained-release reconciliation, and Plan 71 governance history were committed and pushed.
 
 - Run ID: `production-cms-directories-20261002-72`
