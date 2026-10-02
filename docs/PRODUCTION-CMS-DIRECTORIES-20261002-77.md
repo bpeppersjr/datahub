@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 78 after the national registry catalog was bound to its current retained manifest. Do not execute or approve Plan 77.**
+
 Plan 77 is the current clean-repository successor after the completion, industry, and ZIP-economy workspaces were simplified and verified.
 
 - Run ID: `production-cms-directories-20261002-77`
