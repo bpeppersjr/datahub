@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+> **Superseded:** Plan 85 replaces this plan after the immutable ZIP lookup index, authenticated bounded reader, and ZIP Economy qualification panel were added and verified. Plan 84 must not be executed.
+
 Plan 84 is the current clean-repository successor after creating and independently verifying the first governed ZIP temporal-evidence release, registering it without a runtime pointer, adding a national ZIP-goal acceptance contract, and versioning the complete 30-source category mapping.
 
 - Run ID: `production-cms-directories-20261002-84`
