@@ -1,5 +1,6 @@
+import {compatibleZipQualification} from './zip-inspector-governance.mjs';
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, operationalAdmission = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -28,7 +29,15 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       cmsNppesOrganizationPracticeLocationCoverage ? cmsNppesOrganizationPracticeLocationCoverage({ zip, signal }) : null,
     ]);
     signal?.throwIfAborted();
+    let qualification;
+    if(qualificationReader){
+      let raw;try{raw=await qualificationReader({zip,categoryId,signal});}catch{signal?.throwIfAborted();}
+      qualification=compatibleZipQualification(raw,{zip,categoryId,catalog});
+    }
+    const admission=operationalAdmission?await operationalAdmission({signal}):null;
     if (indexed) await indexed.recheck();
+    if(admission)await admission.recheck();
+    signal?.throwIfAborted();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
     if (!catalog.registry_release_id || quality.bindings.release_id !== catalog.registry_release_id
@@ -101,6 +110,8 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     }
     return {
       schema_version: "1.0.0",
+      ...(qualificationReader?{qualification}:{}),
+      ...(admission?{operational_admission:admission.value}:{}),
       zip5: zip,
       evidence_status: selected || qualityRow ? "selected-evidence-present" : "absent-from-selected-evidence",
       coverage_status: selected?.coverage_status ?? null,

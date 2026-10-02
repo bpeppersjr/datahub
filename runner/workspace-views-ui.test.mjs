@@ -37,6 +37,7 @@ test('reviewed segment options retain exact childcare selection through keyboard
  nodes(tree).find(n=>n.type==='form').props.onSubmit({preventDefault(){}});tree=h.render('ZipEconomyWorkspace');await flush();
  nodes(tree).find(n=>n.props?.id==='economy-tab-0').props.onKeyDown({key:'ArrowRight',preventDefault(){}});tree=h.render('ZipEconomyWorkspace');assert.equal(h.focused.at(-1),'economy-tab-1');assert.equal(nodes(tree).find(n=>n.props?.id==='economy-tab-1').props.tabIndex,0);
  assert.deepEqual(requests,['/api/business-map/zip-inspector?zip=00501&category=childcare']);assert.match(text(tree),/Childcare · ZIP 00501/);assert.match(text(tree),/not a measured zero/);assert.match(text(tree),/missing contributions do not mean qualification is unsupported or zero/);
+ assert.ok(nodes(tree).find(n=>typeof n.type==='function'&&n.type.name==='ZipEvidenceQualificationPanel').props.supplied,'mounted panel always uses the inspector envelope, including unknown responses');
  const panel=nodes(tree).find(n=>typeof n.type==='function'&&n.type.name==='ZipEvidenceQualificationPanel');assert.equal(panel.props.categoryId,'childcare');assert.equal(panel.props.coverageReleaseId,'coverage-fixture');assert.equal(panel.props.registryReleaseId,'registry-fixture');
  nodes(tree).find(n=>n.props?.id==='economy-tab-1').props.onKeyDown({key:'ArrowLeft',preventDefault(){}});tree=h.render('ZipEconomyWorkspace');assert.equal(nodes(tree).find(n=>n.props?.['aria-label']==='Economy business segment').props.value,'childcare');h.close();
 });

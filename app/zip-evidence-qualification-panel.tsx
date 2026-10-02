@@ -7,13 +7,13 @@ export type QualificationView={schema_version:string;available:boolean;status:st
 type Request=(path:string,options:{signal:AbortSignal})=>Promise<QualificationView>;
 const qualificationLabel=(value:string)=>value==='measured-within-review-window'?'Within internal review window':value==='measured-stale-review-due'?'Review overdue — does not mean closed':'Unmeasured — reference does not support qualification';
 
-/** Qualification owns its requests; ordinary ZIP evidence remains in the workspace. */
-export default function ZipEvidenceQualificationPanel({zip,categoryId,coverageReleaseId,registryReleaseId,navigationState='',request=runnerJson}:{zip:string;categoryId:string;coverageReleaseId:string;registryReleaseId:string;navigationState?:string;request?:Request}){
+/** Supplied mode renders the server-composed envelope without a second request. */
+export default function ZipEvidenceQualificationPanel({zip,categoryId,coverageReleaseId,registryReleaseId,navigationState='',request=runnerJson,supplied,onRetry}:{zip:string;categoryId:string;coverageReleaseId:string;registryReleaseId:string;navigationState?:string;request?:Request;supplied?:{view:QualificationView|null;error:boolean};onRetry?:()=>void}){
  const [attempt,setAttempt]=useState(0),[result,setResult]=useState<{scope:string;view:QualificationView|null;error:boolean}|null>(null);
  const scope=JSON.stringify([zip,categoryId,coverageReleaseId,registryReleaseId,navigationState,attempt]);
- const current=result?.scope===scope?result:null;
+ const current=supplied??(result?.scope===scope?result:null);
  useEffect(()=>{
-  if(!/^\d{5}$/.test(zip)||!coverageReleaseId||!registryReleaseId)return;
+  if(supplied!==undefined||!/^\d{5}$/.test(zip)||!coverageReleaseId||!registryReleaseId)return;
   const controller=new AbortController(),query=new URLSearchParams({zip,category:categoryId});
   void request(`/api/business-map/zip-evidence-qualification?${query}`,{signal:controller.signal}).then(view=>{
    if(controller.signal.aborted)return;
@@ -21,17 +21,17 @@ export default function ZipEvidenceQualificationPanel({zip,categoryId,coverageRe
    setResult({scope,view:mismatch?null:view,error:!!mismatch});
   }).catch(()=>{if(!controller.signal.aborted)setResult({scope,view:null,error:true});});
   return()=>controller.abort();
- },[zip,categoryId,coverageReleaseId,registryReleaseId,navigationState,attempt,scope,request]);
+ },[zip,categoryId,coverageReleaseId,registryReleaseId,navigationState,attempt,scope,request,supplied]);
  const view=current?.view;
  return <section aria-label="Source evidence review qualification" style={{fontSize:'1rem',lineHeight:1.5,minWidth:0,overflowWrap:'anywhere'}}>
   <h3>Source evidence review qualification</h3>
   <p>Internal temporal review only. Current operations are not verified; active-business counts and all-business completeness remain unknown. Source units overlap and must not be added.</p>
   {!/^\d{5}$/.test(zip)?<p>Enter an exact ZIP5 to inspect qualification.</p>:!coverageReleaseId||!registryReleaseId?<p role="status">Qualification waits for compatible ordinary ZIP evidence release identities. No assessment is inferred.</p>:<>
    <p>ZIP {zip} · {categoryId.replaceAll('-',' ')}</p>
-   {!current&&<p role="status">Loading qualification evidence…</p>}
+   {(!current||!current.view&&!current.error)&&<p role="status">Loading qualification evidence…</p>}
    {current?.error&&<p role="alert">Qualification evidence is unavailable or does not match the selected ZIP, category or evidence releases. Ordinary ZIP evidence is unchanged.</p>}
    {view&&!view.available&&<p role="status">Qualification release unavailable: {view.status.replaceAll('-',' ')}. No assessment was rebuilt; this is not zero evidence.</p>}
-   {(current?.error||view&&!view.available)&&<button onClick={()=>setAttempt(attempt+1)}>Retry qualification</button>}
+   {(current?.error||view&&!view.available)&&<button onClick={()=>onRetry?onRetry():setAttempt(attempt+1)}>Retry qualification</button>}
    {view?.available&&<>
     <p>Use restriction: <strong>{view.export_policy}</strong>. No public export is offered.</p>
     <p>Assessment as of {view.release?.as_of}. Built {view.release?.created_at}; build time does not refresh source reference dates. Review policy {view.release?.temporal_policy_version}.</p>

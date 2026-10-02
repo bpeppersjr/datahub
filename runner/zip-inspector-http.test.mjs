@@ -3,6 +3,13 @@ import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { EventEmitter } from "node:events";
 import { zipInspectorHttp } from "./zip-inspector-http.mjs";
+import {qualificationFixture} from './zip-evidence-qualification-test-fixtures.mjs';
+
+test('inspector HTTP preserves nested qualification policy and null/zero without adding units',async()=>{
+ const qualification=qualificationFixture({qualification:'measured-stale-review-due'}),envelope={zip5:'00501',counts:{physical_sites:0,employer_establishments:null},qualification};let result;
+ await zipInspectorHttp({method:'GET'},{},new URL('http://local/?zip=00501'),async()=>envelope,(_r,status,body)=>{result={status,body:JSON.parse(JSON.stringify(body))};});
+ assert.equal(result.status,200);assert.deepEqual(result.body,envelope);assert.equal(result.body.qualification.export_policy,'internal');assert.equal(result.body.qualification.rows[0].eligible_evidence_counts_by_unit.retailer_count,0);
+});
 
 async function call(method, query) {
   let result;
