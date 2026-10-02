@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 85 is the current clean-repository successor after publishing and independently verifying the pointer-free ZIP lookup index, registering it, and connecting its bounded authenticated reader to ZIP Economy.
+Plan 85 is superseded by Plan 86 after the bounded ordinary ZIP-inspector indexes and runtime integration were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261002-85`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-85.json`
@@ -21,7 +21,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Repository verification includes 2,916 tests: 2,845 passed, 71 skipped, and zero failed. Lint, builds, desktop smoke, dependency audit, shutdown, relaunch, health, and single-listener checks passed. Live acceptance verified browser preflight and bearer GET, mounted native category selection, stale-request cancellation, ordinary ZIP evidence independence, keyboard access and 200% text size, with zero page errors and no unexpected writes. Production pointers remained unchanged.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and SHA-256. Plan 84 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 85.
+This document and plan do not constitute approval. Plan 86 supersedes this plan; Plan 85 and every earlier CMS directory plan or approval must not be executed. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 85.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-85 --expected-plan-sha256 aa1b1bf868fa56b65f776f8e886666cdbe543dc683b73b97a2d9c633413f8084
