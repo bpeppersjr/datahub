@@ -21,7 +21,32 @@ test('county panel shows assigned cohort denominator separately from business co
   assert.match(render({geoid:'42003'}),/>0<\/dd>/);assert.doesNotMatch(render({geoid:'39001'}),/Assigned source-point rows/);
   const maryland=render({level:'state',geoid:'24'});assert.match(maryland,/1,772/);assert.match(maryland,/100.0%/);
   assert.match(maryland,/Share of assigned Maryland source rows/);assert.match(maryland,/Share of assigned Pennsylvania source rows/);
-  assert.doesNotMatch(maryland,/6,702/);
+  assert.doesNotMatch(maryland.split('<details>')[0],/6,702/);
+  assert.match(maryland,/Source observation dates: not included/);assert.match(maryland,/Derivative created:/);assert.match(maryland,/not a source observation date/);assert.match(maryland,/missing source point: <!-- -->4,028|missing source point: 4,028/);
+});
+
+test('county selector supports supported zero and resets when parent state changes',()=>{
+ let selection={state:'42',geoid:''},slot=0;const exports={};
+ new Function('require','exports',compiled)(id=>id==='react'?{useState:()=>slot++===0?[{revision:'r',data,error:false},()=>{}]:[selection,value=>{selection=value;}],useEffect:()=>{}}:id==='./runner-client'?{}:require(id),exports);
+ const renderTree=(geoid='42')=>{slot=0;return exports.default({level:'state',geoid,geographyHash:'a',mapRevision:'r',allowCountySelection:true});};
+ const nodes=tree=>!tree||typeof tree!=='object'?[]:Array.isArray(tree)?tree.flatMap(nodes):[tree,...nodes(tree.props.children)];
+ let tree=renderTree(),select=nodes(tree).find(node=>node.props?.['aria-label']==='Retained childcare county');
+ assert.deepEqual(nodes(select).filter(node=>node.type==='option').map(node=>node.props.value),['','42001','42003']);
+ select.props.onChange({target:{value:'42003'}});tree=renderTree();assert.match(renderToStaticMarkup(tree),/Assigned source-point rows in selected geography<\/dt><dd>0<\/dd>/);
+ assert.equal(nodes(tree).find(node=>node.type==='select').props.value,'42003');
+ tree=renderTree('24');assert.equal(nodes(tree).find(node=>node.type==='select').props.value,'');assert.match(renderToStaticMarkup(tree),/Assigned source-point rows in selected geography<\/dt><dd>1,772<\/dd>/);
+ assert.doesNotMatch(render({geographyHash:undefined}),/Assigned source-point rows in selected geography/);
+});
+
+test('standalone workspace gates unsupported states and absent or incompatible geography',()=>{
+ function workspace(stateCode,catalog,error=false){let slot=0;const exports={};new Function('require','exports',compiled)(id=>id==='react'?{useState:()=>[slot++===0?catalog:error,()=>{}],useEffect:()=>{}}:id==='./runner-client'?{}:require(id),exports);return exports.RetainedCountyWorkspace({stateCode});}
+ const text=tree=>tree==null||typeof tree==='boolean'?'':typeof tree!=='object'?String(tree):Array.isArray(tree)?tree.map(text).join(''):text(tree.props.children);
+ assert.match(text(workspace('OH',{available:true})),/unavailable.*not zero/);
+ assert.match(text(workspace('',null)),/Select a state/);
+ assert.match(text(workspace('PA',null,true)),/counts are withheld/);
+ assert.match(text(workspace('MD',{available:false})),/counts are withheld/);
+ assert.match(text(workspace('MD',null)),/Checking current geography/);
+ for(const[stateCode,geoid]of [['PA','42'],['MD','24']]){const tree=workspace(stateCode,{available:true,geography_manifest_sha256:'a'}),child=tree.props.children.at(-1);assert.equal(child.props.geoid,geoid);assert.equal(child.props.allowCountySelection,true);assert.equal(child.props.geographyHash,'a');}
 });
 test('county panel keeps cross-state source contributions distinct from geography totals',()=>{
   const mixed=structuredClone(data);mixed.source_cohorts[1].by_county=[{county_geoid:'42001',candidate_rows:886},{county_geoid:'24001',candidate_rows:886}];

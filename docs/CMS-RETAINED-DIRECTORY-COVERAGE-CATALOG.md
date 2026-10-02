@@ -19,6 +19,8 @@ When a production plan selects both retained CMS inputs, planning re-verifies an
 
 ## Canonical release
 
+`config/datasets/cms-retained-directory-coverage-catalog.json` registers this existing release as metadata-only, pre-production evidence with no runtime pointer. It pins the manifest and both aggregate artifacts, their bytes/counts, source-specific denominators, and unchanged null/false business, site, operation, completeness and export claims. The registration does not rebuild the release, enroll production or the national reporting denominator, or approve a production plan. The focused read-only test `runner/cms-retained-directory-dataset-registration.test.mjs` verifies these exact retained bindings, reconciles jurisdiction/source counts and selection lineage, and rejects inflated counts, changed bytes and upgraded claims; it does not replay raw source rows.
+
 - Release: `cms-retained-directory-coverage-catalog-379f82bdf30a2834`
 - Manifest SHA-256: `2eef0a317cb190968763fad2a2f90069f6b7a3fb86291ec6fde59a4f5671363c`
 - Artifacts: `jurisdictions.jsonl`, `sources.json`, and manifest-last `manifest.json`
