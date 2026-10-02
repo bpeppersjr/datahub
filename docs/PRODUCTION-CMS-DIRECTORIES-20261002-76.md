@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 77 after the completion and ZIP-economy workspace redesign. Do not execute or approve Plan 76.**
+
 Plan 76 is the current clean-repository successor after the retained Connecticut, Delaware, Florida, and Oregon business catalogs were reconciled to their exact current verified manifests.
 
 - Run ID: `production-cms-directories-20261002-76`
