@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+**Superseded without execution by Plan 79 after source-bound benchmark replay verification was added. Do not execute or approve Plan 78.**
+
 Plan 78 is the current clean-repository successor after the national registry catalog and documentation were reconciled to the retained publisher-2.15 release.
 
 - Run ID: `production-cms-directories-20261002-78`
