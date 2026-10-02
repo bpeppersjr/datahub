@@ -2,6 +2,10 @@ import { lstat, readdir, realpath } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 import { datasetAvailability, verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
+import { validateIndustryConfig } from './industry-segments.mjs';
+import { validateNationalReportingCatalog } from './national-reporting-catalog.mjs';
+import { createNationalReportingTenCatalog, TEN_VERSION } from './national-reporting-ten-catalog.mjs';
+import { mnSelectionReadJson } from './mn-construction-retained-selection.mjs';
 
 const RELEASE_ID = /^national-goal-completion-\d{14}-[a-f0-9]{8}$/;
 const CATEGORY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -17,7 +21,41 @@ function statusCounts(datasets, field, property) {
 }
 
 function unavailable(status) {
-  return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], selected: null };
+  return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], selected: null, scope_comparison: scopeUnavailable() };
+}
+
+function scopeUnavailable(version = null) {
+  return { available: false, status: 'scope-comparison-unavailable', denominator_version: version, configuration: null, catalog: null, industries: null };
+}
+
+export async function configuredIndustryScopeComparison(report, { root = APP_ROOT } = {}) {
+  const version = report?.denominator?.version ?? null;
+  try {
+    const configPath = path.join(root, 'config/industry-segments.json'), catalogPath = path.join(root, 'config/national-reporting-sources.json');
+    const configMeter = {}, catalogMeter = {};
+    const config = await mnSelectionReadJson(configPath, 256000, undefined, configMeter);
+    validateIndustryConfig(config);
+    const predecessor = validateNationalReportingCatalog(await mnSelectionReadJson(catalogPath, 32000, undefined, catalogMeter));
+    const catalog = version?.startsWith(`${TEN_VERSION}+`) ? createNationalReportingTenCatalog(predecessor) : predecessor;
+    if (!version?.startsWith(`${catalog.denominatorVersion}+`) || report.evidence?.catalog_sha256 !== catalogMeter.sha256) throw Error('Scope identity mismatch.');
+    const groups = new Set(catalog.sources.map(source => source.group));
+    const expectedCategories = ['general-business', ...groups].sort();
+    if (!report.jurisdictions?.length || report.jurisdictions.some(row => JSON.stringify(row.categories.map(cell => cell.category_id).sort()) !== JSON.stringify(expectedCategories))) throw Error('Scope category mismatch.');
+    const industries = Object.entries(config.industries).filter(([id]) => !groups.has(id)).map(([id, ids]) => ({
+      id, sources: [...new Set(ids)].sort().map(sourceId => {
+        const source = config.sources[sourceId];
+        return { id: sourceId, scope: source.scope, publisher_states: source.states === 'all' ? 'all' : [...source.states], manual_selection_required: source.manual_selection_required === true };
+      }),
+    })).sort((a, b) => a.id.localeCompare(b.id));
+    const configAfter = {}, catalogAfter = {};
+    await mnSelectionReadJson(configPath, 256000, undefined, configAfter);
+    await mnSelectionReadJson(catalogPath, 32000, undefined, catalogAfter);
+    if (configAfter.sha256 !== configMeter.sha256 || catalogAfter.sha256 !== catalogMeter.sha256) throw Error('Scope inputs changed.');
+    return { available: true, status: 'validated-configuration-comparison', denominator_version: version,
+      configuration: { path: 'config/industry-segments.json', version: config.version, sha256: configMeter.sha256 },
+      catalog: { path: 'config/national-reporting-sources.json', schema_version: catalog.schemaVersion, denominator_version: catalog.denominatorVersion, predecessor_sha256: catalogMeter.sha256 },
+      industries };
+  } catch { return scopeUnavailable(version); }
 }
 
 export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT, verifier = verifyNationalGoalCompletionMatrix, verifierOptions = {} } = {}) {
@@ -66,5 +104,6 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
     broad_layer_gaps: jurisdictions.filter((row) => row.broad_layer_gap).length,
     selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, category: selected } : null,
     limitations: report.limitations,
+    scope_comparison: await configuredIndustryScopeComparison(report, { root }),
   };
 }

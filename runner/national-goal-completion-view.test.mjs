@@ -1,13 +1,58 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createHash } from "node:crypto";
 import { verifyNationalGoalCompletionMatrix } from './national-goal-completion-matrix.mjs';
-import { nationalGoalCompletionView } from "./national-goal-completion-view.mjs";
+import { nationalGoalCompletionView, configuredIndustryScopeComparison } from "./national-goal-completion-view.mjs";
+import { APP_ROOT } from './paths.mjs';
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
+async function scopeFixture(t) {
+  await mkdir(path.join(APP_ROOT,'data/tmp'),{recursive:true});
+  const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/goal-scope-'));
+  t.after(()=>rm(root,{recursive:true,force:true}));
+  await mkdir(path.join(root,'config'));
+  const configBytes=await readFile(path.join(APP_ROOT,'config/industry-segments.json'));
+  const catalogBytes=await readFile(path.join(APP_ROOT,'config/national-reporting-sources.json'));
+  await writeFile(path.join(root,'config/industry-segments.json'),configBytes);
+  await writeFile(path.join(root,'config/national-reporting-sources.json'),catalogBytes);
+  const catalog=JSON.parse(catalogBytes),groups=[...new Set(catalog.sources.map(row=>row.group))];
+  const value={denominator:{version:`${catalog.denominatorVersion}+fixture-broad@1`},evidence:{catalog_sha256:hash(catalogBytes)},jurisdictions:[{categories:['general-business',...groups].map(category_id=>({category_id}))}]};
+  return {root,value,configBytes,catalogBytes};
+}
+
+test('scope comparison derives four excluded configuration groups without changing matrix cells',async t=>{
+  const {root,value,configBytes,catalogBytes}=await scopeFixture(t),before=JSON.stringify(value);
+  const result=await configuredIndustryScopeComparison(value,{root});
+  assert.equal(result.available,true);assert.equal(JSON.stringify(value),before);
+  assert.deepEqual(result.industries.map(row=>row.id),['childcare','construction','local-business-licenses','sales-tax-outlets']);
+  assert.equal(result.configuration.sha256,hash(configBytes));assert.equal(result.catalog.predecessor_sha256,hash(catalogBytes));
+  assert.deepEqual(result.industries.find(row=>row.id==='sales-tax-outlets').sources,[{id:'state-tx-sales-tax',scope:'state',publisher_states:['TX'],manual_selection_required:false}]);
+  assert.equal(result.industries.find(row=>row.id==='childcare').sources.find(row=>row.id==='state-ok-childcare-spatial-batch').manual_selection_required,true);
+  value.denominator.version='national-reporting-ten@1.0.0+fixture-broad@1';
+  assert.equal((await configuredIndustryScopeComparison(value,{root})).catalog.schema_version,'national-reporting-catalog@2.0.0');
+});
+test('scope comparison is unavailable for missing, invalid, drifted or mismatched inputs',async t=>{
+  const {root,value,configBytes}=await scopeFixture(t);
+  for(const body of ['{',JSON.stringify({version:99})]){
+    await writeFile(path.join(root,'config/industry-segments.json'),body);
+    const result=await configuredIndustryScopeComparison(value,{root});assert.equal(result.available,false);assert.equal(result.industries,null);
+  }
+  await writeFile(path.join(root,'config/industry-segments.json'),configBytes);
+  assert.equal((await configuredIndustryScopeComparison({...value,evidence:{catalog_sha256:'0'.repeat(64)}},{root})).available,false);
+  assert.equal((await configuredIndustryScopeComparison({...value,jurisdictions:[{categories:[]}]},{root})).available,false);
+  await rm(path.join(root,'config/national-reporting-sources.json'));
+  assert.equal((await configuredIndustryScopeComparison(value,{root})).industries,null);
+});
+test('view exposes comparison failure without altering measured/unmeasured totals',async t=>{
+  const {root}=await scopeFixture(t),id='national-goal-completion-20260922120000-eeeeeeee';
+  await publish(root,id);
+  const view=await nationalGoalCompletionView({root});
+  assert.equal(view.available,true);assert.equal(view.scope_comparison.available,false);assert.equal(view.scope_comparison.industries,null);
+  assert.equal(view.jurisdictions[0].available,1);assert.equal(view.jurisdictions[1].unmeasured,1);assert.equal(view.jurisdictions[1].percent,null);
+});
 const LEGACY_SCHEMA="national-goal-completion-matrix@1.0.0";
 const categories = ["general-business", "retail-consumer"];
 const stateCodes='AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' ');
