@@ -64,6 +64,6 @@ The snapshot contains 559,882 principal-place rows for 559,874 registrations. It
 
 ## Refresh readiness in Co*Tive Collector
 
-The Data Operations page provides a deterministic, read-only Oregon refresh preview. It revalidates the policy, connector, dataset assessment, actual `current.json` pointer, and retained manifest. The manifest is authoritative for retained counts; the dataset catalog still describes the older August 31 release and is reported as not matching rather than silently treated as current.
+The Data Operations page provides a deterministic, read-only Oregon refresh preview. It revalidates the policy, connector, dataset assessment, actual `current.json` pointer, and retained manifest. The dataset catalog is reconciled to that retained release, while the manifest remains authoritative for retained counts.
 
 The assessment records a metadata-date conflict, so portal observations are not treated as proof of a newer record release. A future refresh requires a governed transport and metadata preflight, full-snapshot comparison that does not reinterpret row loss as closure, preserved legal-entity versus assumed-name semantics, and separate authorization for acquisition and any production-pointer change. Until then, Start remains disabled and a direct start request returns `ACQUISITION_NOT_AUTHORIZED` before an operation, executor, receipt writer, or network request can be created.

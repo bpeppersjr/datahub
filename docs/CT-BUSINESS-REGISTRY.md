@@ -54,9 +54,9 @@ Current USPS operational validity remains `unverified` until an authorized USPS 
 
 ## Current verified release
 
-Release `ct-business-registry-20260831-000956860Z-cec0beff` is bound to source refresh `2026-08-30T08:47:47Z` and source release `ct-business-registry-2026-08-30-e1ddd7fbb848de21`. Independent verification rehashed and parsed all 20 artifacts totaling 140,998,571 bytes.
+Release `ct-business-registry-20260903-003855102Z-e8cabffc` is bound to source refresh `2026-09-02T09:25:09.000Z` and source release `ct-business-registry-2026-09-02-30857c9921e9e791`. Independent verification rehashed and parsed all 20 artifacts totaling 140,917,813 bytes.
 
-The release publishes all 458,536 source-active organizations. Exactly 447,807 have an eligible reported U.S. business address across 9,228 ZIPs; 10,729 remain organization-only records without an eligible ZIP allocation. The source includes 47,657 geocoded reported addresses, 13 repeated placeholder-ALEI records, and 1,383 active rows that also report a dissolution or withdrawal date. Those facts are preserved explicitly. Physical-site and establishment counts remain `null` because neither is inferred.
+The release publishes all 458,892 source-active organizations. Exactly 448,166 have an eligible reported U.S. business address across 9,230 source ZIPs; 10,726 remain organization-only records without an eligible ZIP allocation. The source includes 47,644 geocoded reported addresses, 13 repeated placeholder-ALEI records, and 1,360 active rows that also report a dissolution or withdrawal date. Those facts are preserved explicitly. Physical-site and establishment counts remain `null` because neither is inferred.
 
 ## Operations
 

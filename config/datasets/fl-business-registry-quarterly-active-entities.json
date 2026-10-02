@@ -12,7 +12,7 @@
   "coverage_claim": "Entities marked A in the official Florida quarterly corporate archive as of the archive generation time; source membership is not proof of current operation, legality, licensure, public access, or a physical business site.",
   "identity_rule": "Each unique Florida corporate document number becomes one provisional organization candidate. Reported principal addresses remain organization assertions and never create physical sites or establishments.",
   "current_verified_release": {
-    "release_id": "fl-business-registry-20260831-113438057Z-1c650938",
+    "release_id": "fl-business-registry-20260903-020111292Z-fbdce156",
     "source_release_id": "fl-business-registry-2026-07-10-392c89e9e5b94cb6",
     "source_modified_at": "2026-07-10T17:41:15.000Z",
     "source_archive_bytes": 1819049954,
@@ -29,7 +29,7 @@
     "physical_sites": null,
     "establishments": null,
     "verified_artifact_count": 23,
-    "verified_bytes": 1396232386
+    "verified_bytes": 1396105647
   },
   "documentation": "docs/FL-BUSINESS-REGISTRY.md"
 }

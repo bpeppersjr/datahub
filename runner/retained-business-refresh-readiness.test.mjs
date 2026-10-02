@@ -8,11 +8,28 @@ import { getRetainedBusinessRefreshReadiness, RETAINED_BUSINESS_REFRESH_DESCRIPT
 
 const expected={
   "co-business-registry":{release:"co-business-registry-20260903-002916547Z-ed08beca",metrics:[2164812,2164811,1],artifacts:21,catalogMatches:true},
-  "ct-business-registry":{release:"ct-business-registry-20260903-003855102Z-e8cabffc",metrics:[458892,458892,13],artifacts:20,catalogMatches:false},
-  "de-business-licenses":{release:"de-business-licenses-20260903-002309163Z-f955c045",metrics:[67829,66667,27],artifacts:21,catalogMatches:false},
-  "fl-business-registry":{release:"fl-business-registry-20260903-020111292Z-fbdce156",metrics:[12808196,4109230,8698964],artifacts:23,catalogMatches:false},
+  "ct-business-registry":{release:"ct-business-registry-20260903-003855102Z-e8cabffc",metrics:[458892,458892,13],artifacts:20,catalogMatches:true},
+  "de-business-licenses":{release:"de-business-licenses-20260903-002309163Z-f955c045",metrics:[67829,66667,27],artifacts:21,catalogMatches:true},
+  "fl-business-registry":{release:"fl-business-registry-20260903-020111292Z-fbdce156",metrics:[12808196,4109230,8698964],artifacts:23,catalogMatches:true},
   "pa-business-registry":{release:"pa-business-registry-20260903-011928723Z-b4cbfaf4",metrics:[2360829,2360829,0],artifacts:20,catalogMatches:true},
 };
+
+const reconciledCatalogs={
+  "ct-business-registry-active-organizations":{temporal:"source_rows_updated_at",fields:{active_organizations:"active_organizations_published",eligible_reported_us_business_addresses:"eligible_reported_us_business_addresses",organizations_without_eligible_us_zip_address:"organizations_without_eligible_us_zip_address",source_geocoded_reported_business_addresses:"source_geocoded_reported_business_addresses",source_zip_codes:"source_zip_codes",zip_union_records:"zip_union_records",placeholder_alei_0000000_records:"placeholder_alei_0000000_records",active_records_with_dissolution_or_withdrawal_date:"active_records_with_dissolution_or_withdrawal_date",physical_sites:"physical_sites",establishments:"establishments"}},
+  "de-business-licenses-current":{temporal:"source_rows_updated_at",fields:{source_current_license_rows:"source_current_license_rows",accepted_current_license_rows:"accepted_current_license_rows",distinct_source_license_numbers:"distinct_source_license_numbers",distinct_licenses_published:"distinct_licenses_published",repeated_license_groups:"repeated_license_groups",quarantined_source_records:"quarantined_source_records",quarantined_license_groups:"quarantined_license_groups",eligible_reported_us_business_addresses:"eligible_reported_us_business_addresses",organizations_without_eligible_us_zip_address:"organizations_without_eligible_us_zip_address",source_geocoded_reported_business_addresses:"source_geocoded_reported_business_addresses",reported_de_address_geocodes_outside_broad_de_bounds:"reported_de_address_geocodes_outside_broad_de_bounds",source_zip_codes:"source_zip_codes",zip_union_records:"zip_union_records",physical_sites:"physical_sites",establishments:"establishments"}},
+  "fl-business-registry-quarterly-active-entities":{temporal:"source_modified_at",fields:{source_records:"source_records",active_source_records:"active_source_records",inactive_source_records_excluded:"inactive_source_records_excluded",organizations_published:"organizations_published",quarantined_source_records:"quarantined_source_records",eligible_reported_us_principal_addresses:"eligible_reported_us_principal_addresses",organizations_without_eligible_us_zip_address:"organizations_without_eligible_us_zip_address",source_zip_codes:"source_zip_codes",zip_union_records:"zip_union_records",physical_sites:"physical_sites",establishments:"establishments"}},
+  "or-business-registry-active-registrations":{temporal:"source_rows_updated_at",fields:{source_principal_place_rows:"source_principal_place_rows",active_registrations:"active_registrations_published",legal_entity_registrations:"legal_entity_registrations",assumed_business_name_registrations:"assumed_business_name_registrations",registrations_with_multiple_principal_place_rows:"registrations_with_multiple_principal_place_rows",registrations_with_eligible_us_principal_place_address:"registrations_with_eligible_us_principal_place_address",registrations_without_eligible_us_zip_address:"registrations_without_eligible_us_zip_address",eligible_registration_zip_contributions:"eligible_us_registration_zip_contributions",source_zip_codes:"source_zip_codes",zip_union_records:"zip_union_records",quarantined_registration_groups:"quarantined_registration_groups",physical_sites:"physical_sites",establishments:"establishments"}},
+};
+
+test("reconciled state catalogs exactly summarize their retained current manifests",async()=>{
+  for(const [datasetId,contract] of Object.entries(reconciledCatalogs)){
+    const dataset=JSON.parse(await readFile(path.join(APP_ROOT,"config/datasets",`${datasetId}.json`),"utf8")),pointer=JSON.parse(await readFile(path.join(APP_ROOT,dataset.output),"utf8"));
+    const manifest=JSON.parse(await readFile(path.join(APP_ROOT,path.dirname(dataset.output),...pointer.manifest.split("/")),"utf8")),catalog=dataset.current_verified_release;
+    assert.equal(catalog.release_id,pointer.release_id,datasetId);assert.equal(catalog.release_id,manifest.release_id,datasetId);assert.equal(catalog.source_release_id,manifest.source_release_id,datasetId);assert.equal(catalog[contract.temporal],manifest[contract.temporal],datasetId);
+    assert.equal(catalog.verified_artifact_count,manifest.artifacts.length,datasetId);assert.equal(catalog.verified_bytes,manifest.artifacts.reduce((sum,item)=>sum+item.bytes,0),datasetId);
+    for(const [catalogKey,coverageKey] of Object.entries(contract.fields))assert.equal(catalog[catalogKey],manifest.coverage[coverageKey],`${datasetId}:${catalogKey}`);
+  }
+});
 
 test("five retained business refresh contracts are deterministic, pointer-bound and held",async()=>{
   for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){

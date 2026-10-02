@@ -11,17 +11,21 @@
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "Organizations whose source status is exactly Active in the official Connecticut Business Registry Business Master snapshot; this is source-specific registration evidence, not a census of every operating business or physical site.",
   "current_verified_release": {
-    "release_id": "ct-business-registry-20260831-000956860Z-cec0beff",
-    "source_release_id": "ct-business-registry-2026-08-30-e1ddd7fbb848de21",
-    "source_rows_updated_at": "2026-08-30T08:47:47.000Z",
-    "active_organizations": 458536,
-    "eligible_reported_us_business_addresses": 447807,
-    "organizations_without_eligible_us_zip_address": 10729,
-    "source_geocoded_reported_business_addresses": 47657,
-    "source_zip_codes": 9228,
+    "release_id": "ct-business-registry-20260903-003855102Z-e8cabffc",
+    "source_release_id": "ct-business-registry-2026-09-02-30857c9921e9e791",
+    "source_rows_updated_at": "2026-09-02T09:25:09.000Z",
+    "active_organizations": 458892,
+    "eligible_reported_us_business_addresses": 448166,
+    "organizations_without_eligible_us_zip_address": 10726,
+    "source_geocoded_reported_business_addresses": 47644,
+    "source_zip_codes": 9230,
+    "zip_union_records": 38162,
+    "placeholder_alei_0000000_records": 13,
+    "active_records_with_dissolution_or_withdrawal_date": 1360,
     "physical_sites": null,
+    "establishments": null,
     "verified_artifact_count": 20,
-    "verified_bytes": 140998571
+    "verified_bytes": 140917813
   },
   "documentation": "docs/CT-BUSINESS-REGISTRY.md"
 }

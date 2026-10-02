@@ -10,7 +10,7 @@ test("Oregon refresh readiness is deterministic, retained-release-bound, and hel
   const first = await getOrBusinessRegistryRefreshReadiness(), second = await getOrBusinessRegistryRefreshReadiness();
   assert.deepEqual(first, second); assert.equal(first.readinessStatus, "HOLD"); assert.equal(first.dispatchAvailable, false); assert.equal(first.freshAcquisitionAuthorized, false);
   assert.equal(first.plan.networkRequestCount, 0); assert.equal(first.plan.allocationCount, 0); assert.equal(first.plan.operationCreated, false); assert.equal(first.plan.evidence.length, 6);
-  assert.ok(first.plan.evidence.every(item => /^[a-f0-9]{64}$/.test(item.sha256))); assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment, false); assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment, true);
+  assert.ok(first.plan.evidence.every(item => /^[a-f0-9]{64}$/.test(item.sha256))); assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment, true); assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment, true);
   assert.equal(first.retainedRelease.releaseId, "or-business-registry-20260903-004514399Z-1d3068a7"); assert.equal(first.retainedRelease.sourcePrincipalPlaceRows, 559882); assert.equal(first.retainedRelease.activeRegistrationsPublished, 559874);
   assert.equal(first.retainedRelease.legalEntityRegistrations, 443445); assert.equal(first.retainedRelease.assumedBusinessNameRegistrations, 116429);
 });
