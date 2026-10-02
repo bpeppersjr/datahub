@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import { gunzipSync, gzipSync } from "node:zlib";
@@ -14,6 +14,7 @@ import {
   resolveLocationProfiles,
   scoreBusinessNames,
   verifyBusinessEntityResolution,
+  verifyBusinessEntityResolutionSourceReplay,
 } from "./business-entity-resolution.mjs";
 
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
@@ -415,6 +416,85 @@ test("builds and independently verifies an immutable reviewable resolution relea
   await writeFile(decisionPath, tampered);
   decisionArtifact.bytes = tampered.length;
   decisionArtifact.sha256 = sha256(tampered);
+  await writeFile(path.join(result.releaseDirectory, "manifest.json"), `${JSON.stringify(result.manifest)}\n`);
+  await assert.rejects(verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json")), /verification failed/);
+});
+
+test("source-bound replay proves every retained decision against the exact registry manifest", async (t) => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/business-entity-resolution-source-replay-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), [
+    profile({ sourceId: "source-a", recordId: "1", name: "Acme Health LLC" }),
+    profile({ sourceId: "source-b", recordId: "2", name: "ACME HEALTH LLC", street: "10 N Main St" }),
+  ]);
+  const registryCurrent = JSON.parse(await readFile(registryPointer, "utf8"));
+  const registryManifestPath = path.resolve(path.dirname(registryPointer), registryCurrent.manifest);
+  const result = await buildBusinessEntityResolution({
+    outputRoot: path.join(root, "resolution"), registryPointer,
+    now: () => new Date("2026-08-30T22:00:00.000Z"), logger() {},
+  });
+  const resolutionManifestPath = path.join(result.releaseDirectory, "manifest.json");
+  const replayed = await verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath);
+  assert.equal(replayed.source_replay_verified, true);
+  assert.equal(replayed.replayed_profile_count, 2);
+  assert.equal(replayed.replayed_decision_count, 4);
+  assert.equal(replayed.registry_dependency.release_id, registryCurrent.release_id);
+
+  const cleanManifest = structuredClone(result.manifest);
+  result.manifest.dependency.manifest_sha256 = "0".repeat(64);
+  await writeFile(resolutionManifestPath, `${JSON.stringify(result.manifest)}\n`);
+  await assert.rejects(
+    verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath),
+    /dependency does not exactly match/,
+  );
+  Object.assign(result.manifest, structuredClone(cleanManifest));
+  await writeFile(resolutionManifestPath, `${JSON.stringify(result.manifest)}\n`);
+
+  const decisionArtifact = result.manifest.artifacts.find(item => item.artifact_type === "entity-resolution-decision-jsonl-gzip" && item.record_count > 0);
+  const decisionPath = path.join(result.releaseDirectory, decisionArtifact.path);
+  const decisions = gunzipSync(await readFile(decisionPath)).toString("utf8").trim().split("\n").map(JSON.parse);
+  const removed = decisions.shift();
+  const alteredDecisions = gzipSync(`${decisions.map(JSON.stringify).join("\n")}\n`);
+  await writeFile(decisionPath, alteredDecisions);
+  Object.assign(decisionArtifact, { bytes: alteredDecisions.length, sha256: sha256(alteredDecisions), record_count: decisions.length });
+  const coverageKey = removed.entity_type === "physical_site" ? "site_alias_decisions" : "establishment_alias_decisions";
+  result.manifest.coverage[coverageKey] -= 1;
+  const summaryArtifact = result.manifest.artifacts.find(item => item.artifact_type === "entity-resolution-summary-json");
+  const summaryPath = path.join(result.releaseDirectory, summaryArtifact.path);
+  const summary = JSON.parse(await readFile(summaryPath, "utf8"));
+  summary[coverageKey] -= 1;
+  const summaryBytes = Buffer.from(`${JSON.stringify(summary)}\n`);
+  await writeFile(summaryPath, summaryBytes);
+  Object.assign(summaryArtifact, { bytes: summaryBytes.length, sha256: sha256(summaryBytes) });
+  await writeFile(resolutionManifestPath, `${JSON.stringify(result.manifest)}\n`);
+  await verifyBusinessEntityResolution(resolutionManifestPath);
+  await assert.rejects(
+    verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath),
+    /decisions differ from retained registry profiles/,
+  );
+
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(
+    verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath, { signal: controller.signal }),
+    { name: "AbortError" },
+  );
+});
+
+test("verification rejects artifact paths that escape through a directory link", async (t) => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/business-entity-resolution-linked-path-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const registryPointer = await writeFixtureRegistry(path.join(root, "registry"), [profile({ sourceId: "source-a", recordId: "1", name: "Synthetic Business" })]);
+  const result = await buildBusinessEntityResolution({ outputRoot: path.join(root, "resolution"), registryPointer, logger() {} });
+  const outside = path.join(root, "outside"); await mkdir(outside);
+  const summaryArtifact = result.manifest.artifacts.find(item => item.artifact_type === "entity-resolution-summary-json");
+  const outsideSummary = path.join(outside, "summary.json");
+  await writeFile(outsideSummary, await readFile(path.join(result.releaseDirectory, summaryArtifact.path)));
+  const linked = path.join(result.releaseDirectory, "linked");
+  try { await symlink(outside, linked, process.platform === "win32" ? "junction" : "dir"); }
+  catch (error) { if (["EPERM", "EACCES", "ENOSYS"].includes(error.code)) return t.skip(`directory links unavailable: ${error.code}`); throw error; }
+  summaryArtifact.path = "linked/summary.json";
   await writeFile(path.join(result.releaseDirectory, "manifest.json"), `${JSON.stringify(result.manifest)}\n`);
   await assert.rejects(verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json")), /verification failed/);
 });

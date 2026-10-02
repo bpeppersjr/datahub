@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createGunzip, gzipSync, gunzipSync } from "node:zlib";
 import { createInterface } from "node:readline";
@@ -431,6 +431,17 @@ function assertContained(parent, child, label) {
   if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error(`${label} escapes its release directory.`);
 }
 
+async function assertRegularContained(parent, child, label) {
+  const [parentReal, childReal, metadata] = await Promise.all([realpath(parent), realpath(child), lstat(child)]);
+  assertContained(parentReal, childReal, label);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error(`${label} must be a regular non-linked file.`);
+}
+
+async function assertRegularFile(filePath, label) {
+  const metadata = await lstat(filePath);
+  if (!metadata.isFile() || metadata.isSymbolicLink()) throw new Error(`${label} must be a regular non-linked file.`);
+}
+
 async function hashFile(filePath) {
   const hash = createHash("sha256");
   let bytes = 0;
@@ -441,12 +452,27 @@ async function hashFile(filePath) {
   return { bytes, sha256: hash.digest("hex") };
 }
 
-async function readGzipRecords(filePath) {
+async function readVerifiedFile(filePath, expected) {
+  const buffer = await readFile(filePath);
+  if (buffer.length !== expected.bytes || sha256(buffer) !== expected.sha256) {
+    throw new Error(`Consumed bytes do not match the retained descriptor for ${expected.path ?? filePath}.`);
+  }
+  return buffer;
+}
+
+async function readGzipRecords(filePath, expected = null) {
   const records = [];
-  const input = createReadStream(filePath).pipe(createGunzip());
+  const compressed = createReadStream(filePath);
+  const hash = createHash("sha256");
+  let bytes = 0;
+  compressed.on("data", chunk => { bytes += chunk.length; hash.update(chunk); });
+  const input = compressed.pipe(createGunzip());
   const lines = createInterface({ input, crlfDelay: Infinity });
   for await (const line of lines) {
     if (line) records.push(JSON.parse(line));
+  }
+  if (expected && (bytes !== expected.bytes || hash.digest("hex") !== expected.sha256)) {
+    throw new Error(`Consumed gzip bytes do not match the retained descriptor for ${expected.path ?? filePath}.`);
   }
   return records;
 }
@@ -461,18 +487,16 @@ async function writeArtifact(directory, relativePath, content, metadata = {}) {
   return { path: relativePath.replaceAll("\\", "/"), bytes: buffer.length, sha256: sha256(buffer), ...metadata };
 }
 
-async function loadRegistryProfiles(pointerPath) {
-  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
-  const pointerDirectory = path.dirname(pointerPath);
-  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
-  assertContained(pointerDirectory, manifestPath, "Registry manifest path");
-  const manifestBuffer = await readFile(manifestPath);
+async function loadRegistryProfilesFromManifest(manifestPath) {
+  const absoluteManifestPath = path.resolve(manifestPath);
+  await assertRegularFile(absoluteManifestPath, "Registry manifest");
+  const manifestBuffer = await readFile(absoluteManifestPath);
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "national-business-registry" || manifest.status !== "published-partial"
     || !COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes(manifest.publisher?.version) || manifest.complete_national_business_registry !== false) {
     throw new Error(`A compatible national business registry ${COMPATIBLE_REGISTRY_PUBLISHER_RANGE} partial release with match profiles is required.`);
   }
-  const releaseDirectory = path.dirname(manifestPath);
+  const releaseDirectory = path.dirname(absoluteManifestPath);
   const artifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip")
     .sort((a, b) => a.path.localeCompare(b.path)) ?? [];
   if (artifacts.length !== 100) throw new Error(`Expected 100 registry location-profile partitions; found ${artifacts.length}.`);
@@ -483,6 +507,7 @@ async function loadRegistryProfiles(pointerPath) {
     profilePaths.add(artifact.path);
     const filename = path.resolve(releaseDirectory, artifact.path);
     assertContained(releaseDirectory, filename, `Registry profile artifact ${artifact.path}`);
+    await assertRegularContained(releaseDirectory, filename, `Registry profile artifact ${artifact.path}`);
     const actual = await hashFile(filename);
     if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Registry profile artifact ${artifact.path} failed checksum validation.`);
   }
@@ -513,7 +538,7 @@ async function loadRegistryProfiles(pointerPath) {
       if (zip2 === "unassigned" && !supportsTn && !supportsOh) throw new Error("Unassigned reporting requires an exact supported registry version.");
       if (!zip2 || paths.has(artifact.path) || artifact.export_policy !== "local-review-only" || !Number.isSafeInteger(artifact.record_count)
         || artifact.record_count < 1) throw new Error("Invalid reporting-only registry partition.");
-      paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path), actual = await hashFile(filename);
+      paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path); await assertRegularContained(releaseDirectory, filename, `Reporting-only registry partition ${artifact.path}`); const actual = await hashFile(filename);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("Reporting-only registry partition failed checksum validation.");
       let rows;
       if (supportsOh) {
@@ -522,7 +547,7 @@ async function loadRegistryProfiles(pointerPath) {
         if(raw.length!==artifact.bytes||sha256(raw)!==artifact.sha256)throw new Error('Ohio reporting consumed bytes changed.');
         const text = new TextDecoder('utf-8',{fatal:true}).decode(gunzipSync(raw,{maxOutputLength:100_000_000}));
         rows = text.split('\n').filter(Boolean).map(line=>JSON.parse(line));
-      } else rows = await readGzipRecords(filename);
+      } else rows = await readGzipRecords(filename, artifact);
       if (rows.length !== artifact.record_count) throw new Error("Reporting-only registry partition count mismatch.");
       for (const row of rows) {
         if (row.source?.source_id === OH_REPORTING_SOURCE) { if (!supportsOh) throw new Error('Ohio version mismatch'); ohio.validateOhChildcareGeographicEvidence(row,ohContext.input.verificationContext); ohRows.push(row); }
@@ -553,6 +578,14 @@ async function loadRegistryProfiles(pointerPath) {
     throw new Error("Registry location-profile counts do not reconcile with physical sites.");
   }
   return { manifest, manifestSha256: sha256(manifestBuffer), releaseDirectory, artifacts, reportingSites, reportingEstablishments };
+}
+
+async function loadRegistryProfiles(pointerPath) {
+  const pointer = JSON.parse(await readFile(pointerPath, "utf8"));
+  const pointerDirectory = path.dirname(pointerPath);
+  const manifestPath = path.resolve(pointerDirectory, pointer.manifest ?? "");
+  assertContained(pointerDirectory, manifestPath, "Registry manifest path");
+  return loadRegistryProfilesFromManifest(manifestPath);
 }
 
 function releaseTimestamp(instant) {
@@ -586,7 +619,7 @@ export async function buildBusinessEntityResolution({
   for (const artifact of registry.artifacts) {
     const zip2 = artifact.path.match(/zip2=(\d{2})/)?.[1];
     if (!zip2) throw new Error(`Cannot determine ZIP2 partition for ${artifact.path}.`);
-    const profiles = await readGzipRecords(path.join(registry.releaseDirectory, artifact.path));
+    const profiles = await readGzipRecords(path.join(registry.releaseDirectory, artifact.path), artifact);
     if (profiles.length !== artifact.record_count || profiles.some((profile) => profile.zip_code.slice(0, 2) !== zip2 || registry.reportingSites.has(profile.site_entity_id) || registry.reportingEstablishments.has(profile.establishment_entity_id))) {
       throw new Error(`Registry profile partition ${artifact.path} failed record validation.`);
     }
@@ -662,6 +695,7 @@ export async function buildBusinessEntityResolution({
 export async function verifyBusinessEntityResolution(manifestPath) {
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
+  await assertRegularFile(absoluteManifestPath, "Resolution manifest");
   const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
   const failures = [];
   if (manifest.dataset_id !== "national-business-entity-resolution" || manifest.publisher?.version !== "1.0.0"
@@ -671,6 +705,7 @@ export async function verifyBusinessEntityResolution(manifestPath) {
     failures.push({ path: "manifest.json", reason: "unexpected dataset, status, completeness, or ruleset" });
   }
   const artifactPaths = new Set();
+  const verifiedArtifactPaths = new Set();
   for (const artifact of manifest.artifacts ?? []) {
     const filename = path.resolve(releaseDirectory, artifact.path);
     try {
@@ -679,20 +714,23 @@ export async function verifyBusinessEntityResolution(manifestPath) {
       }
       artifactPaths.add(artifact.path);
       assertContained(releaseDirectory, filename, `Resolution artifact ${artifact.path}`);
+      await assertRegularContained(releaseDirectory, filename, `Resolution artifact ${artifact.path}`);
       const actual = await hashFile(filename);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) failures.push({ path: artifact.path, reason: "size or SHA-256 mismatch" });
+      else verifiedArtifactPaths.add(artifact.path);
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.code === "ENOENT" ? "missing" : error.message });
     }
   }
-  const decisionArtifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-decision-jsonl-gzip") ?? [];
+  const decisionArtifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-decision-jsonl-gzip" && verifiedArtifactPaths.has(artifact.path)) ?? [];
   if (decisionArtifacts.length !== 100) failures.push({ path: "decisions", reason: `expected 100 partitions; found ${decisionArtifacts.length}` });
-  const summaryArtifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-summary-json") ?? [];
+  const summaryArtifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-summary-json" && verifiedArtifactPaths.has(artifact.path)) ?? [];
   if (summaryArtifacts.length !== 1) {
     failures.push({ path: "derived/resolution-summary.json", reason: `expected one summary artifact; found ${summaryArtifacts.length}` });
   } else {
     try {
-      const summary = JSON.parse(await readFile(path.join(releaseDirectory, summaryArtifacts[0].path), "utf8"));
+      await assertRegularContained(releaseDirectory, path.join(releaseDirectory, summaryArtifacts[0].path), `Resolution artifact ${summaryArtifacts[0].path}`);
+      const summary = JSON.parse((await readVerifiedFile(path.join(releaseDirectory, summaryArtifacts[0].path), summaryArtifacts[0])).toString("utf8"));
       const summaryEntries = Object.entries(summary).sort(([left], [right]) => left.localeCompare(right));
       const coverageEntries = Object.entries(manifest.coverage ?? {}).sort(([left], [right]) => left.localeCompare(right));
       if (JSON.stringify(summaryEntries) !== JSON.stringify(coverageEntries)
@@ -718,7 +756,8 @@ export async function verifyBusinessEntityResolution(manifestPath) {
       if (zip2Partitions.has(zip2)) throw new Error(`duplicate ZIP2 partition ${zip2}`);
       zip2Partitions.add(zip2);
       sourceProfileCount += artifact.source_profile_count;
-      const records = await readGzipRecords(path.join(releaseDirectory, artifact.path));
+      await assertRegularContained(releaseDirectory, path.join(releaseDirectory, artifact.path), `Resolution artifact ${artifact.path}`);
+      const records = await readGzipRecords(path.join(releaseDirectory, artifact.path), artifact);
       if (records.length !== artifact.record_count) throw new Error("record count mismatch");
       for (const decision of records) {
         if (!/^resolution-decision:[a-f0-9]{32}$/.test(decision.decision_id ?? "") || decisionIds.has(decision.decision_id)
@@ -799,5 +838,82 @@ export async function verifyBusinessEntityResolution(manifestPath) {
     ruleset_version: manifest.ruleset_version,
     artifact_count: manifest.artifacts.length,
     coverage: manifest.coverage,
+  };
+}
+
+export async function verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath, { signal } = {}) {
+  signal?.throwIfAborted();
+  const resolutionPath = path.resolve(resolutionManifestPath);
+  await assertRegularFile(resolutionPath, "Resolution manifest");
+  const resolutionBytesBefore = await readFile(resolutionPath);
+  const structural = await verifyBusinessEntityResolution(resolutionManifestPath);
+  signal?.throwIfAborted();
+  const resolutionBytes = await readFile(resolutionPath);
+  if (!resolutionBytes.equals(resolutionBytesBefore)) throw new Error("Business entity-resolution source replay failed: resolution manifest changed during verification.");
+  const resolutionDirectory = path.dirname(resolutionPath);
+  const resolution = JSON.parse(resolutionBytes.toString("utf8"));
+  const registry = await loadRegistryProfilesFromManifest(registryManifestPath);
+  const dependency = resolution.dependency ?? {};
+  if (dependency.dataset_id !== registry.manifest.dataset_id
+    || dependency.release_id !== registry.manifest.release_id
+    || dependency.manifest_sha256 !== registry.manifestSha256) {
+    throw new Error("Business entity-resolution source replay failed: retained registry dependency does not exactly match the resolution manifest.");
+  }
+  const decisionByZip2 = new Map();
+  for (const artifact of resolution.artifacts.filter(item => item.artifact_type === "entity-resolution-decision-jsonl-gzip")) {
+    const zip2 = artifact.path.match(/^decisions\/zip2=(\d{2})\.jsonl\.gz$/)?.[1];
+    if (!zip2 || decisionByZip2.has(zip2)) throw new Error("Business entity-resolution source replay failed: decision partitions are not unique and complete.");
+    decisionByZip2.set(zip2, artifact);
+  }
+  const totals = {
+    profiles: 0,
+    address_groups: 0,
+    multi_member_street_address_groups: 0,
+    site_alias_decisions: 0,
+    establishment_alias_decisions: 0,
+    review_candidate_decisions: 0,
+    review_groups_skipped_for_size: 0,
+  };
+  let replayedDecisions = 0;
+  for (const profileArtifact of registry.artifacts) {
+    signal?.throwIfAborted();
+    const zip2 = profileArtifact.path.match(/zip2=(\d{2})/)?.[1];
+    const decisionArtifact = decisionByZip2.get(zip2);
+    if (!zip2 || !decisionArtifact) throw new Error(`Business entity-resolution source replay failed: missing decision partition for ZIP2 ${zip2 ?? "unknown"}.`);
+    const profilePath = path.join(registry.releaseDirectory, profileArtifact.path);
+    await assertRegularContained(registry.releaseDirectory, profilePath, `Registry profile artifact ${profileArtifact.path}`);
+    const profiles = await readGzipRecords(profilePath, profileArtifact);
+    if (profiles.length !== profileArtifact.record_count
+      || profiles.some(profile => profile.zip_code?.slice(0, 2) !== zip2
+        || registry.reportingSites.has(profile.site_entity_id)
+        || registry.reportingEstablishments.has(profile.establishment_entity_id))) {
+      throw new Error(`Business entity-resolution source replay failed: registry profile partition ${profileArtifact.path} is invalid.`);
+    }
+    const replay = resolveLocationProfiles(profiles, { createdAt: resolution.created_at });
+    const decisionPath = path.join(resolutionDirectory, decisionArtifact.path);
+    await assertRegularContained(resolutionDirectory, decisionPath, `Resolution artifact ${decisionArtifact.path}`);
+    const retained = await readGzipRecords(decisionPath, decisionArtifact);
+    if (decisionArtifact.source_profile_count !== profiles.length
+      || JSON.stringify(retained) !== JSON.stringify(replay.decisions)) {
+      throw new Error(`Business entity-resolution source replay failed: decisions differ from retained registry profiles for ZIP2 ${zip2}.`);
+    }
+    for (const [key, value] of Object.entries(replay.summary)) totals[key] += value;
+    replayedDecisions += replay.decisions.length;
+  }
+  signal?.throwIfAborted();
+  if (decisionByZip2.size !== registry.artifacts.length
+    || JSON.stringify(totals) !== JSON.stringify(resolution.coverage)) {
+    throw new Error("Business entity-resolution source replay failed: replayed coverage does not equal the retained resolution coverage.");
+  }
+  return {
+    ...structural,
+    source_replay_verified: true,
+    replayed_profile_count: totals.profiles,
+    replayed_decision_count: replayedDecisions,
+    registry_dependency: {
+      dataset_id: registry.manifest.dataset_id,
+      release_id: registry.manifest.release_id,
+      manifest_sha256: registry.manifestSha256,
+    },
   };
 }
