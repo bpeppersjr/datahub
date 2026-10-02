@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — September 24, 2026
 
+> Superseded by Plan 71 (`production-cms-directories-20261002-71`, SHA-256 `a892e303ba643c45a450ccb3f2885e2fd792e9e3ed062114213d060bb06105cf`). Plan 70 is retained only as immutable planning history and is not approved for execution.
+
 Fresh governed planning completed after implementation commit `7736f2181c1b1e2af2b3e05c2eac6fac7cf88852`. That commit reconciles the Pennsylvania business-registry dataset catalog, documentation, and readiness regression to the already-retained, independently verified September 3 release. It changes no source pointer, source bytes, governed coverage artifact, national completion denominator, generic business total, entity resolution, category total, export, site total, or completeness measure.
 
 - Run ID: `production-cms-directories-20260924-70`
