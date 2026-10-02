@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 86 is the current clean-repository successor after committing the two pointer-free ordinary ZIP-inspector indexes, their exact metadata registrations, bounded runtime selection, ZIP geography presentation, and associated tests.
+Plan 86 is superseded by Plan 87 after the governed one-ZIP evidence envelope was committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261002-86`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-86.json`
@@ -25,7 +25,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Focused verification passed 49 checks with one optional native check skipped, and the installed native bounded check then passed independently. The full four-way repository run executed 2,955 tests: 2,880 passed, 74 skipped, and one unrelated EPA symlink-race assertion failed under load; that exact test passed when rerun alone. Lint completed with four pre-existing warnings and no errors; web and desktop builds, desktop control-plane smoke, 100%/200% keyboard UI acceptance, production dependency audit, shutdown, relaunch, health, and single-listener checks passed. The broader development dependency audit reports seven high-severity transitive advisories in build tooling; no forced dependency-range upgrade was folded into this feature commit.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and confirmation SHA-256. Plan 85 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 86.
+This document and plan do not constitute approval. Plan 87 supersedes this plan; Plan 86 and every earlier CMS directory plan or approval must not be executed. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 86.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-86 --expected-plan-sha256 121cb0b3a39fcd7435bfa6d1e6243bc13e823c41c95817502b0ee3e94aa29f14
