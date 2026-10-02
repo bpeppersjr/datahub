@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+> **Superseded:** Plan 84 replaces this plan after the governed ZIP temporal-evidence release, acceptance contract, dataset registration, and complete source-category mapping were added and verified. Plan 83 must not be executed.
+
 Plan 83 is the current clean-repository successor after adding source-bound ZIP temporal qualification, metadata-only registration of retained CMS directory evidence, and retained childcare county visibility in the simplified workspace.
 
 - Run ID: `production-cms-directories-20261002-83`
