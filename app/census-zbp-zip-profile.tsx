@@ -1,0 +1,17 @@
+'use client';
+type IndustryRow={zip_code:string;naics_code:string;establishments:number|null;publisher_place_labels:{preferred_city:string|null;preferred_state:string|null;county_name:string|null}}&Record<string,unknown>;
+export type CensusZbpZipProfileView={schema_version:string;available:boolean;zip5:string;status:string;reference_year:number;scope:string;index:{release_id:string;manifest_sha256:string}|null;profile:null|{status:string;industry_rows:IndustryRow[]};};
+const sizes=['size_1_4','size_5_9','size_10_19','size_20_49','size_50_99','size_100_249','size_250_499','size_500_999','size_1000_plus'];
+const count=(value:unknown)=>typeof value==='number'?value.toLocaleString():'Unpublished / unknown';
+export default function CensusZbpZipProfile({view,onRetry}:{view?:CensusZbpZipProfileView;onRetry:()=>void}){
+ const rows=view?.profile?.industry_rows??[],total=rows.find(row=>row.naics_code==='------');
+ return <section aria-label="Census ZIP employer industry profile" style={{fontSize:'1rem',lineHeight:1.5,minWidth:0,overflowWrap:'anywhere'}}><h3>Census ZIP employer industry profile</h3>
+ <p>ZIP-wide annual employer establishments, reference year 2023. Not filtered or mapped to the selected app category. Paid-employee establishments that operated during at least part of that year—not named or currently operating businesses.</p>
+ <p>Exact publication codes overlap through the NAICS hierarchy and must not be added. Unpublished and suppressed values are not zero. These counts are not GDP or GDP allocation weights.</p>
+ {!view?.available?<><p role="status">Registered ZIP industry profile unavailable; no source scan or estimate was substituted.</p><button onClick={onRetry}>Retry ZIP industry profile</button></>:view.status==='absent-from-selected-zbp-zip-union'?<p>No profile in the selected ZIP union. This does not establish an invalid ZIP or zero economic activity.</p>:<>
+ <p>Published total code ------: <strong>{total?count(total.establishments):'Not published in this ZIP industry profile'}</strong>. No total is calculated from hierarchical rows.</p>
+ {rows.length===0?<p>No published ZIP × industry rows. Denominator-only context is not a measured zero.</p>:<details><summary>Exact Census publication codes ({rows.length})</summary><div role="region" aria-label="Census ZIP industry publication rows" tabIndex={0} style={{overflowX:'auto',maxWidth:'100%'}}><table style={{fontSize:'inherit'}}><caption>ZIP {view.zip5} · 2023 annual employer-establishment aggregates</caption><thead><tr><th scope="col">Exact code</th><th scope="col">Establishments</th><th scope="col">Size counts / suppression</th><th scope="col">Publisher place labels—not governed assignment</th></tr></thead><tbody>{rows.map(row=><tr key={row.naics_code}><th scope="row">{row.naics_code}</th><td>{count(row.establishments)}</td><td><details><summary>All nine establishment-size classes</summary><dl>{sizes.map(size=><div key={size}><dt>{size.replaceAll('_',' ')}</dt><dd>{count(row[size])}{row[`${size}_suppression_code`]!=null?` · source flag ${String(row[`${size}_suppression_code`])}`:''}</dd></div>)}</dl></details></td><td>{Object.values(row.publisher_place_labels).map(v=>v??'Unknown').join(' · ')}</td></tr>)}</tbody></table></div></details>}
+ <details><summary>Profile release</summary><p>{view.index?.release_id} · manifest {view.index?.manifest_sha256}</p></details>
+ </>}
+ </section>;
+}

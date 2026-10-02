@@ -1,0 +1,298 @@
+{
+  "dataset_id": "census-zbp-zip-profile-index",
+  "schema_version": "1.0.0",
+  "status": "registered-local-lookup-index",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "local-review-only",
+  "retained_release": {
+    "release_id": "census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58",
+    "manifest": "data/census-zbp-zip-profile-index/releases/census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58/manifest.json",
+    "manifest_sha256": "485f19b9715eb3807ef4d6dfa5a98c353645690f47c3b55a52b16487933e316d",
+    "manifest_bytes": 7236,
+    "manifest_schema_version": "census-zbp-zip-profile-index@1.0.0",
+    "status": "immutable-local-lookup-index",
+    "created_at": "2026-10-02T21:30:00.000Z",
+    "source_rows": 2974116,
+    "indexed_zip_count": 37828,
+    "bindings": {
+      "pointer_path": "data/business-baselines/census-zbp/current.json",
+      "pointer_sha256": "526fdd2b2aef067286c3a5c1cdad1139d81724fefec847d197b9b7e1f968a496",
+      "manifest_path": "data/business-baselines/census-zbp/releases/census-zbp-2023-20260830-134622645Z-4da1edc0/manifest.json",
+      "manifest_sha256": "db6ec348a46b4b3ad9692aafc1d47fd388308031e397fb5de8e0193df19bf271",
+      "release_id": "census-zbp-2023-20260830-134622645Z-4da1edc0",
+      "reference_year": 2023,
+      "artifacts": [
+        {
+          "path": "derived/zip-coverage.jsonl",
+          "bytes": 88395583,
+          "sha256": "97268cd4c1f256f972bc455e7a80b31fc7b5a819cdc56514a2888344a34b0473",
+          "record_count": 37828,
+          "artifact_type": "zip-coverage-union-jsonl"
+        },
+        {
+          "path": "derived/naics-coverage.jsonl",
+          "bytes": 152886,
+          "sha256": "ad4ce347b696849df46af93febf2a0dadffd7095b35d6f7daa2499d61e9379db",
+          "record_count": 1908,
+          "artifact_type": "naics-coverage-jsonl"
+        },
+        {
+          "path": "derived/zip-naics/prefix=0.csv.gz",
+          "bytes": 1332520,
+          "sha256": "d9bce022c2bb8d1503b273e3087b248afacc15bb52f4fb2a9ee4add833d6f7ba",
+          "record_count": 247055,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "0"
+        },
+        {
+          "path": "derived/zip-naics/prefix=1.csv.gz",
+          "bytes": 1640302,
+          "sha256": "e9c5e59e8d0a4dc95894ad16a8967a60a192ce063708f84260e9247e916ae7ff",
+          "record_count": 304260,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "1"
+        },
+        {
+          "path": "derived/zip-naics/prefix=2.csv.gz",
+          "bytes": 1549467,
+          "sha256": "b7b8e28398ca1bfe94ea5db0a7d951afeefc20045fd2cfd1c8d3ba5f33be832d",
+          "record_count": 283249,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "2"
+        },
+        {
+          "path": "derived/zip-naics/prefix=3.csv.gz",
+          "bytes": 2258963,
+          "sha256": "ccfc6e0db3f7131ee42e1b7253ba94852ca3bf345573508ab71b7f2deeb70898",
+          "record_count": 422884,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "3"
+        },
+        {
+          "path": "derived/zip-naics/prefix=4.csv.gz",
+          "bytes": 1557185,
+          "sha256": "fd3e9f7c029078951bf48bb3e2deeabb8bb84afc4eaeeb2bcdadd1ea8a624970",
+          "record_count": 290088,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "4"
+        },
+        {
+          "path": "derived/zip-naics/prefix=5.csv.gz",
+          "bytes": 1043660,
+          "sha256": "567ae8ef1419330a44eece1cc31d32f0650a70774de3e9d817fe981ba3d43f8a",
+          "record_count": 192796,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "5"
+        },
+        {
+          "path": "derived/zip-naics/prefix=6.csv.gz",
+          "bytes": 1210245,
+          "sha256": "18cceb5fa4be1a47d6b0de55aab2eda76e52dfa60cde5f525896b6c68aa3bfe3",
+          "record_count": 224466,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "6"
+        },
+        {
+          "path": "derived/zip-naics/prefix=7.csv.gz",
+          "bytes": 1821817,
+          "sha256": "40595db3f4414b2c89cbba4527e50b6cefb2fab303ba04455f4c92cfc78891db",
+          "record_count": 339980,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "7"
+        },
+        {
+          "path": "derived/zip-naics/prefix=8.csv.gz",
+          "bytes": 1176166,
+          "sha256": "10f3815492e929907817daa108dc1a23ed718c5f5b73c67da160d1c744a3d6ec",
+          "record_count": 218363,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "8"
+        },
+        {
+          "path": "derived/zip-naics/prefix=9.csv.gz",
+          "bytes": 2444757,
+          "sha256": "8f9bb5246552fd4705d0d1d11ebde665c36bcdefed7183ae5ed857503bfb70c7",
+          "record_count": 450975,
+          "artifact_type": "normalized-zbp-naics-csv-gzip",
+          "partition": "9"
+        }
+      ],
+      "geography": {
+        "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+        "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+        "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+        "dependency": {
+          "dataset_id": "us-census-geography",
+          "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+          "schema_version": "1.0.0",
+          "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"
+        }
+      },
+      "policy": {
+        "id": "us-census-zbp",
+        "version": "1.0.0",
+        "sha256": "07a7411d7c94bac2cad72221b3fd2886b7bf896a19d7459acf299439df2bcfcb"
+      }
+    },
+    "artifact_count": 20,
+    "artifact_bytes": 2015507248,
+    "artifact_inventory_sha256": "5b5561ad3064c4da28b8dcb4dbe72aa746ea47178752cd95cd05963d0d262c2c",
+    "artifact_inventory_hash_encoding": "SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order",
+    "artifacts": [
+      {
+        "path": "profiles-0.jsonl",
+        "bytes": 167103445,
+        "sha256": "2433349b13fbbd7105fea4dc9057eb346de60c8722bb0e045df62cc9de00d0c7",
+        "profiles": 2905,
+        "industry_rows": 247055
+      },
+      {
+        "path": "index-0.json",
+        "bytes": 418073,
+        "sha256": "19d53989907d8a5067638d7b837fc1e2bbf497fa11f03b4d4126f5a9478774ab",
+        "profiles": 2905
+      },
+      {
+        "path": "profiles-1.jsonl",
+        "bytes": 206015479,
+        "sha256": "83e4575e6aa507f954fdfccb9f1de9178b65876d53a99150876f7e2a64ade670",
+        "profiles": 4027,
+        "industry_rows": 304260
+      },
+      {
+        "path": "index-1.json",
+        "bytes": 580588,
+        "sha256": "93f81a6d848e1a6bff6ef786f5064e0755eef11f174acd899ef04749bebf41e0",
+        "profiles": 4027
+      },
+      {
+        "path": "profiles-2.jsonl",
+        "bytes": 192762249,
+        "sha256": "a7d7aa576048d15d15a6b968225f6885b1723f2584b812e85a2574da06f5679e",
+        "profiles": 3967,
+        "industry_rows": 283249
+      },
+      {
+        "path": "index-2.json",
+        "bytes": 570486,
+        "sha256": "cfe524dc85bf630db07d5bca7dada51edb0fafe1d2582d1af5ec2b5bec14fb2b",
+        "profiles": 3967
+      },
+      {
+        "path": "profiles-3.jsonl",
+        "bytes": 282734124,
+        "sha256": "b1440c1c020aa0205047d021b6bb5a7e326b016017c1239bb929a2f01e7e1565",
+        "profiles": 4228,
+        "industry_rows": 422884
+      },
+      {
+        "path": "index-3.json",
+        "bytes": 610816,
+        "sha256": "422c3ce0da250197bd0268aae03ffe84129f758caf79e306dde8903415512cd0",
+        "profiles": 4228
+      },
+      {
+        "path": "profiles-4.jsonl",
+        "bytes": 196836680,
+        "sha256": "5930481892f70969904db4e4c175e6d8c430eae0bf00812f455e24d6f2a7118d",
+        "profiles": 4113,
+        "industry_rows": 290088
+      },
+      {
+        "path": "index-4.json",
+        "bytes": 592015,
+        "sha256": "0aba2ccd3e310734f028c875f626ae432fc16865f0e5e3d546995f4db7b6cf0c",
+        "profiles": 4113
+      },
+      {
+        "path": "profiles-5.jsonl",
+        "bytes": 133822190,
+        "sha256": "b5d0be51407213c3581ec6b003b64f81aff60b118df6aab1d1b24542094af0ad",
+        "profiles": 3913,
+        "industry_rows": 192796
+      },
+      {
+        "path": "index-5.json",
+        "bytes": 561561,
+        "sha256": "8acd8137bcac4f51c04b7cb8dc6deacf2d0710b1b290ffd22f832b0e4298535e",
+        "profiles": 3913
+      },
+      {
+        "path": "profiles-6.jsonl",
+        "bytes": 153967310,
+        "sha256": "449d80904ca497dee403848214c241dd38b5c78d1265964fc3f63018f2035ed6",
+        "profiles": 3899,
+        "industry_rows": 224466
+      },
+      {
+        "path": "index-6.json",
+        "bytes": 560503,
+        "sha256": "6c4106e4108daa0ee0879d6319b889b9764311bc3eab4daf64a51cff45e59803",
+        "profiles": 3899
+      },
+      {
+        "path": "profiles-7.jsonl",
+        "bytes": 229727302,
+        "sha256": "9215530deb62bd93d53579406ecce9332bc903243ebbcbdbfef65c9eaf6940f2",
+        "profiles": 4405,
+        "industry_rows": 339980
+      },
+      {
+        "path": "index-7.json",
+        "bytes": 634192,
+        "sha256": "41752870a1765e3a667dbdcec444f399e3a34a74ec71efccbe8897cc1ab8baaf",
+        "profiles": 4405
+      },
+      {
+        "path": "profiles-8.jsonl",
+        "bytes": 146653775,
+        "sha256": "9c00459b3a0daa889361fd7430dc7990ef9c883c4d10212cdad5ae9d219f3153",
+        "profiles": 2556,
+        "industry_rows": 218363
+      },
+      {
+        "path": "index-8.json",
+        "bytes": 367673,
+        "sha256": "3b8df3f6e8ce33dd677669eb63ae7e214370370d08ee72fadcd44f82342b32de",
+        "profiles": 2556
+      },
+      {
+        "path": "profiles-9.jsonl",
+        "bytes": 300437093,
+        "sha256": "1a22ab38f7028e8964ee26a2a9428d3ed3410cf8a44b539d48d04a709274c12a",
+        "profiles": 3815,
+        "industry_rows": 450975
+      },
+      {
+        "path": "index-9.json",
+        "bytes": 551694,
+        "sha256": "8c426d445244ab0614e86f1a05fbbd3432a911932b74d33b49e34a5f6c779930",
+        "profiles": 3815
+      }
+    ]
+  },
+  "claims": {
+    "export_policy": "local-review-only",
+    "reference_year": 2023,
+    "hierarchical_aggregation_permitted": false,
+    "zip4": null,
+    "current_operations_verified": false,
+    "current_operating_business_count": null,
+    "gdp": null,
+    "all_business_completion_percent": null,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "limitations": [
+    "Reference-year 2023 Census employer-establishment aggregates, not named or currently operating businesses.",
+    "NAICS hierarchy rows are nonadditive. Missing/suppressed values are not zero; build time does not refresh source data.",
+    "ZIP5 and ZIP4 remain separate; Census ZIP/ZCTA membership does not establish current USPS operational validity.",
+    "Metadata registration does not repeat native profile reconstruction or enroll production, runtime pointers or national denominators."
+  ],
+  "documentation": "docs/CENSUS-ZBP-ZIP-PROFILE-REGISTRATION.md"
+}

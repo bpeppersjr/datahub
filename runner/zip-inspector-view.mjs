@@ -1,6 +1,7 @@
 import {compatibleZipQualification} from './zip-inspector-governance.mjs';
+import {unavailableCensusZbpZipProfile} from './census-zbp-zip-profile-reader.mjs';
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, operationalAdmission = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, operationalAdmission = null, censusZbpProfile = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -12,6 +13,12 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categories = catalog.categories ?? [];
     const category = categories.find((item) => item.id === categoryId);
     if (!category) throw Object.assign(new Error("Unsupported business category."), { statusCode: 400 });
+    let zbpRead=null,zbpValue=unavailableCensusZbpZipProfile(zip);
+    if(censusZbpProfile)try{
+      zbpRead=await censusZbpProfile({zip,signal,catalog});const v=zbpRead.value;
+      if(typeof zbpRead.recheck!=='function'||v.schema_version!=='census-zbp-zip-industry-view@1.0.0'||v.zip5!==zip||v.reference_year!==2023||v.scope!=='zip-wide-not-filtered-by-app-category'||v.claims?.gdp!==null||v.claims?.current_operations_verified!==false||v.claims?.all_business_completion_percent!==null)throw Error('ZBP scope mismatch.');
+      zbpValue=v;
+    }catch{signal?.throwIfAborted();zbpRead=null;}
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
@@ -37,6 +44,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const admission=operationalAdmission?await operationalAdmission({signal}):null;
     if (indexed) await indexed.recheck();
     if(admission)await admission.recheck();
+    if(zbpRead)try{await zbpRead.recheck();}catch{signal?.throwIfAborted();zbpValue=unavailableCensusZbpZipProfile(zip);}
     signal?.throwIfAborted();
     if (!coverage?.available || !quality?.bindings) throw new Error("Selected ZIP evidence is unavailable.");
     if (coverage.release_id !== catalog.coverage_release_id) throw new Error("ZIP coverage release changed during inspection.");
@@ -110,6 +118,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     }
     return {
       schema_version: "1.0.0",
+      ...(censusZbpProfile?{census_zbp_industry_profile:zbpValue}:{}),
       ...(qualificationReader?{qualification}:{}),
       ...(admission?{operational_admission:admission.value}:{}),
       zip5: zip,
