@@ -1,12 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, stat, writeFile, lstat, realpath } from "node:fs/promises";
+import { Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { createGunzip, gzipSync } from "node:zlib";
 import {
   COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS,
   verifyBusinessEntityResolution,
+  verifyBusinessEntityResolutionSourceReplay,
 } from "./business-entity-resolution.mjs";
 
 export const BENCHMARK_SCHEMA_VERSION = "1.0.0";
@@ -30,6 +33,126 @@ const COMPATIBLE_REGISTRY_PUBLISHER_RANGE = `${COMPATIBLE_REGISTRY_PUBLISHER_VER
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+async function replaySafeFile(filename, root = path.dirname(filename)) {
+  assertContained(root, filename, "Benchmark replay input");
+  let cursor = path.parse(filename).root;
+  for (const part of filename.slice(cursor.length).split(path.sep).filter(Boolean)) {
+    cursor = path.join(cursor, part);
+    const info = await lstat(cursor);
+    if (info.isSymbolicLink() || (cursor === filename ? !info.isFile() : !info.isDirectory())) throw new Error("Benchmark replay input must be a regular file without linked ancestors.");
+  }
+  const actual = await realpath(filename);
+  assertContained(await realpath(root), actual, "Benchmark replay input");
+}
+
+async function replaySnapshot(filename, signal, expected, root) {
+  signal?.throwIfAborted();
+  const absolute = path.resolve(filename);
+  await replaySafeFile(absolute, root);
+  if ((await stat(absolute)).size > 32_000_000) throw new Error("Benchmark replay JSON exceeds its byte budget.");
+  const chunks = []; let length = 0;
+  for await (const chunk of createReadStream(absolute, { signal })) {
+    length += chunk.length;
+    if (length > 32_000_000) throw new Error("Benchmark replay JSON exceeds its byte budget.");
+    chunks.push(chunk);
+  }
+  const bytes = Buffer.concat(chunks, length);
+  if (bytes.length > 32_000_000 || (expected && (bytes.length !== expected.bytes || sha256(bytes) !== expected.sha256))) throw new Error("Benchmark replay consumed JSON failed integrity verification.");
+  return { bytes, value: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), hash: sha256(bytes), path: absolute };
+}
+
+async function replayRows(directory, artifact, signal, consume, compressed = true) {
+  const filename = path.resolve(directory, artifact.path);
+  await replaySafeFile(filename, directory);
+  if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes < 0 || artifact.bytes > 512_000_000 || !/^[a-f0-9]{64}$/.test(artifact.sha256 ?? "")) throw new Error("Invalid benchmark replay artifact budget or hash.");
+  let bytes = 0, decoded = 0, records = 0;
+  const hash = createHash("sha256");
+  const meter = new Transform({ transform(chunk, encoding, callback) {
+    bytes += chunk.length; hash.update(chunk);
+    callback(bytes > 512_000_000 ? new Error("Benchmark replay compressed byte budget exceeded.") : null, chunk);
+  } });
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  const destination = async (source) => {
+    let pending = "";
+    const accept = (line) => { signal?.throwIfAborted(); if (!line) return; if (++records > 2_000_000) throw new Error("Benchmark replay row budget exceeded."); consume(JSON.parse(line)); };
+    for await (const chunk of source) {
+      signal?.throwIfAborted(); decoded += chunk.length;
+      if (decoded > 1_500_000_000) throw new Error("Benchmark replay decoded byte budget exceeded.");
+      pending += decoder.decode(chunk, { stream: true });
+      let end;
+      while ((end = pending.indexOf("\n")) >= 0) { const line = pending.slice(0, end); pending = pending.slice(end + 1); if (line.length > 8_000_000) throw new Error("Benchmark replay row too large."); accept(line); }
+      if (pending.length > 8_000_000) throw new Error("Benchmark replay row too large.");
+    }
+    pending += decoder.decode(); if (pending) accept(pending);
+  };
+  await pipeline(createReadStream(filename), meter, ...(compressed ? [createGunzip()] : []), destination, { signal });
+  if (bytes !== artifact.bytes || hash.digest("hex") !== artifact.sha256 || records !== artifact.record_count) throw new Error("Benchmark replay consumed rows failed checksum or count verification.");
+  return records;
+}
+
+// Separate from structural verification: no publication, pointer fallback, or label approval.
+export async function verifyEntityResolutionBenchmarkSourceReplay(benchmarkManifestPath, resolutionManifestPath, registryManifestPath, { signal } = {}) {
+  if (![benchmarkManifestPath, resolutionManifestPath, registryManifestPath].every(value => typeof value === "string" && path.isAbsolute(value))) throw new Error("Benchmark replay requires three explicit absolute manifest paths.");
+  const [sample, resolution, registry] = await Promise.all([benchmarkManifestPath, resolutionManifestPath, registryManifestPath].map(filename => replaySnapshot(filename, signal)));
+  const manifest = sample.value;
+  const fail = (message) => { throw new Error(`Benchmark source replay failed: ${message}`); };
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const [name, snapshot, dataset] of [["resolution", resolution, "national-business-entity-resolution"], ["registry", registry, "national-business-registry"]]) {
+    const dependency = manifest.dependencies?.[name];
+    if (snapshot.value.dataset_id !== dataset || dependency?.dataset_id !== dataset || dependency.release_id !== snapshot.value.release_id || dependency.manifest_sha256 !== snapshot.hash) fail(`${name} dependency mismatch`);
+  }
+  if (resolution.value.dependency?.dataset_id !== registry.value.dataset_id || resolution.value.dependency.release_id !== registry.value.release_id || resolution.value.dependency.manifest_sha256 !== registry.hash) fail("resolution-to-registry dependency mismatch");
+  if (manifest.dataset_id !== "national-business-entity-resolution-benchmark" || manifest.schema_version !== BENCHMARK_SCHEMA_VERSION || manifest.publisher?.version !== "1.0.0" || manifest.status !== "awaiting-independent-labels" || manifest.complete_labeled_benchmark !== false || manifest.sampling_version !== BENCHMARK_SAMPLING_VERSION
+    || manifest.sampling?.method !== "deterministic-min-sha256-within-rule-stratum" || !same(manifest.sampling.strata, STRATA) || typeof manifest.sampling.seed !== "string" || manifest.sampling.seed.length < 16 || manifest.sampling.seed.length > 1024
+    || !Number.isSafeInteger(manifest.sampling.target_per_stratum) || manifest.sampling.target_per_stratum < 384 || manifest.sampling.target_per_stratum > 10_000 || !same(manifest.proposed_precision_gate, DEFAULT_PRECISION_GATE)) fail("unsupported sampling contract");
+  // Validate paths before the legacy source verifier can open any artifacts.
+  for (const snapshot of [resolution, registry]) for (const artifact of snapshot.value.artifacts ?? []) await replaySafeFile(path.resolve(path.dirname(snapshot.path), artifact.path), path.dirname(snapshot.path));
+  const dependencyReplay=await verifyBusinessEntityResolutionSourceReplay(resolution.path, registry.path, { signal, expectedResolutionManifestSha256:resolution.hash, expectedRegistryManifestSha256:registry.hash });
+  if(dependencyReplay.resolution_manifest_sha256!==resolution.hash||dependencyReplay.registry_manifest_sha256!==registry.hash)fail("dependency replay consumed different manifest snapshots");
+  signal?.throwIfAborted();
+  const buckets = new Map(STRATA.map(stratum => [stratum, new FixedMinHashSample(manifest.sampling.target_per_stratum)]));
+  const universe = Object.fromEntries(STRATA.map(stratum => [stratum, 0]));
+  const decisions = resolution.value.artifacts.filter(item => item.artifact_type === "entity-resolution-decision-jsonl-gzip").sort((a,b) => a.path.localeCompare(b.path));
+  for (const artifact of decisions) {
+    const rows = [];
+    await replayRows(path.dirname(resolution.path), artifact, signal, row => rows.push(row));
+    automaticCandidates(rows, resolution.value.release_id, manifest.sampling.seed, buckets, universe);
+    reviewCandidates(rows, resolution.value.release_id, manifest.sampling.seed, buckets, universe);
+  }
+  const selected = STRATA.flatMap(stratum => buckets.get(stratum).values());
+  const wanted = new Set(selected.flatMap(row => [row.left_profile_id, row.right_profile_id]));
+  const profiles = new Map();
+  for (const artifact of registry.value.artifacts.filter(item => item.artifact_type === "entity-resolution-location-profile-jsonl-gzip")) {
+    const seen = new Set();
+    await replayRows(path.dirname(registry.path), artifact, signal, row => {
+      if (seen.has(row.profile_id)) fail("duplicate registry profile identity"); seen.add(row.profile_id);
+      if (wanted.has(row.profile_id)) { if (profiles.has(row.profile_id)) fail("duplicate selected registry profile identity"); profiles.set(row.profile_id, row); }
+    });
+  }
+  if (profiles.size !== wanted.size) fail("selected registry profiles are missing");
+  const dependencies = { resolution: { manifest: resolution.value }, registry: { manifest: registry.value } };
+  const candidates = selected.map(row => enrichCandidate(row, profiles, dependencies)).sort((a,b) => a.stratum.localeCompare(b.stratum) || comparePriority(a,b));
+  const templates = candidates.map(labelTemplate);
+  const summary = { candidate_universe: universe, sampled_candidates: Object.fromEntries(STRATA.map(stratum => [stratum, candidates.filter(row => row.stratum === stratum).length])), total_sampled_candidates: candidates.length, unique_profiles_in_review_packet: wanted.size, submitted_labels: 0, benchmark_gate_passed: false };
+  const expectedPaths = ["review/benchmark-candidates.jsonl.gz", "review/label-template.jsonl", "derived/sample-summary.json"];
+  if (manifest.artifacts?.length !== 3 || new Set(manifest.artifacts.map(a => a.path)).size !== 3 || manifest.artifacts.some(a => !expectedPaths.includes(a.path))) fail("unexpected benchmark artifact roster");
+  const byPath = new Map(manifest.artifacts.map(a => [a.path,a]));
+  for (const [name, expected, compressed, type, policy] of [[expectedPaths[0], candidates, true, "entity-resolution-benchmark-candidate-jsonl-gzip", "local-review-only"], [expectedPaths[1], templates, false, "entity-resolution-benchmark-label-template-jsonl", "local-review-only"]]) {
+    const artifact = byPath.get(name); let index = 0;
+    if (artifact.artifact_type !== type || artifact.distribution_policy !== policy) fail("benchmark artifact semantics differ");
+    await replayRows(path.dirname(sample.path), artifact, signal, row => { if (!same(row,expected[index++])) fail("sample or embedded source evidence differs from deterministic replay"); }, compressed);
+    if (index !== expected.length) fail("sample count differs from replay");
+  }
+  const summaryArtifact = byPath.get(expectedPaths[2]);
+  if (summaryArtifact.artifact_type !== "entity-resolution-benchmark-sample-summary-json") fail("invalid summary artifact type");
+  if (summaryArtifact.distribution_policy !== "aggregate") fail("invalid summary distribution policy");
+  const retainedSummary = await replaySnapshot(path.join(path.dirname(sample.path), summaryArtifact.path), signal, summaryArtifact, path.dirname(sample.path));
+  if (!same(retainedSummary.value,summary) || !same(manifest.coverage,summary)) fail("sample universe or summary differs from replay");
+  for (const snapshot of [sample,resolution,registry]) if ((await replaySnapshot(snapshot.path,signal)).hash !== snapshot.hash) fail("manifest changed during replay");
+  signal?.throwIfAborted();
+  return { dataset_id: manifest.dataset_id, release_id: manifest.release_id, source_replay_verified: true, benchmark_manifest_sha256: sample.hash, resolution_manifest_sha256: resolution.hash, registry_manifest_sha256: registry.hash, coverage: summary, automatic_precision_gate_passed: false, export_authorized: false };
 }
 
 function stableId(prefix, values) {

@@ -24,7 +24,7 @@ import { loadFreshTnChildcareReportingInput } from "./tn-childcare-fresh-reporti
 import { gatedTransport } from './fixtures/oh-childcare-gated-transport.mjs';
 import { runOhChildcareAppJobWithTransport } from './oh-childcare-app.mjs';
 import { loadOhChildcareGeographicInput } from './oh-childcare-geographic-evidence.mjs';
-import { buildEntityResolutionBenchmarkSample, verifyEntityResolutionBenchmarkSample } from './entity-resolution-benchmark.mjs';
+import { buildEntityResolutionBenchmarkSample, verifyEntityResolutionBenchmarkSample, verifyEntityResolutionBenchmarkSourceReplay } from './entity-resolution-benchmark.mjs';
 
 
 function profile({
@@ -164,6 +164,8 @@ for(const mode of ['mixed','all-missing','fresh','recovered'])test(`Ohio registr
   assert.equal(result.manifest.coverage.profiles,1);await verifyBusinessEntityResolution(path.join(result.releaseDirectory,'manifest.json'));
   const sample=await buildEntityResolutionBenchmarkSample({registryPointer,resolutionPointer:result.pointerPath,outputRoot:path.join(root,'benchmark'),logger(){}});
   assert.equal(sample.manifest.status,'awaiting-independent-labels');await verifyEntityResolutionBenchmarkSample(path.join(sample.releaseDirectory,'manifest.json'));
+  const replay=await verifyEntityResolutionBenchmarkSourceReplay(path.join(sample.releaseDirectory,'manifest.json'),path.join(result.releaseDirectory,'manifest.json'),file);
+  assert.equal(replay.source_replay_verified,true);assert.equal(replay.automatic_precision_gate_passed,false);
   for(const mutate of [m=>{m.oh_childcare_source.receiptSha256='0'.repeat(64);},m=>{m.publisher.version='2.14.0';},m=>{m.publisher.version='2.15.1';},m=>{m.coverage.reporting_location_evidence_without_zip++;}]){
     const candidate=structuredClone(manifest);mutate(candidate);await writeFile(file,JSON.stringify(candidate));
     await assert.rejects(buildBusinessEntityResolution({registryPointer,outputRoot:path.join(root,'bad'),logger(){}}));
@@ -418,6 +420,61 @@ test("builds and independently verifies an immutable reviewable resolution relea
   decisionArtifact.sha256 = sha256(tampered);
   await writeFile(path.join(result.releaseDirectory, "manifest.json"), `${JSON.stringify(result.manifest)}\n`);
   await assert.rejects(verifyBusinessEntityResolution(path.join(result.releaseDirectory, "manifest.json")), /verification failed/);
+});
+
+test("source replay rejects semantically invalid identities even when canonical replay reproduces every row", async (t) => {
+  await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
+  const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/resolution-replay-identities-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const mode of ["malformed-profile", "numeric-profile", "duplicate-decision", "duplicate-subject"]) {
+    const base = [profile({ sourceId: "source-a", recordId: "1", name: "Example Business" }), profile({ sourceId: "source-b", recordId: "2", name: "Example Business" })];
+    const registryRoot = path.join(root, mode, "registry");
+    const registryPointer = await writeFixtureRegistry(registryRoot, base);
+    const result = await buildBusinessEntityResolution({ registryPointer, outputRoot: path.join(root, mode, "resolution"), logger() {} });
+    let altered = structuredClone(base);
+    if (mode === "malformed-profile") altered[0].profile_id = "not-a-profile-id";
+    if (mode === "numeric-profile") altered = [{ ...altered[0], profile_id: 123 }];
+    if (mode.startsWith("duplicate-")) {
+      const extra = mode === "duplicate-decision" ? structuredClone(base) : [
+        profile({ sourceId: "source-a", recordId: "1", name: "Example Business", street: "20 Other Street" }),
+        profile({ sourceId: "source-b", recordId: "2", name: "Example Business", street: "20 Other Street" }),
+      ];
+      extra.forEach((item, index) => {
+        item.profile_id = `location-profile:${sha256(`${mode}-${index}`).slice(0, 32)}`;
+        if (mode === "duplicate-decision") { item.zip_code = "61601"; item.normalized_address.zip_code = "61601"; }
+      });
+      altered.push(...extra);
+    }
+    await writeFixtureRegistry(registryRoot, altered);
+    const registryManifestPath = path.join(registryRoot, JSON.parse(await readFile(registryPointer)).manifest);
+    result.manifest.dependency.manifest_sha256 = sha256(await readFile(registryManifestPath));
+    const totals = Object.fromEntries(Object.keys(result.manifest.coverage).map(key => [key, 0]));
+    const allDecisions = [];
+    for (const artifact of result.manifest.artifacts.filter(item => item.artifact_type === "entity-resolution-decision-jsonl-gzip")) {
+      const zip2 = artifact.path.match(/zip2=(\d{2})/)[1];
+      const profiles = altered.filter(item => item.zip_code.startsWith(zip2));
+      const replay = resolveLocationProfiles(profiles, { createdAt: result.manifest.created_at });
+      allDecisions.push(...replay.decisions);
+      for (const [key, value] of Object.entries(replay.summary)) totals[key] += value;
+      const bytes = gzipSync(replay.decisions.map(JSON.stringify).join("\n") + (replay.decisions.length ? "\n" : ""));
+      await writeFile(path.join(result.releaseDirectory, artifact.path), bytes);
+      Object.assign(artifact, { bytes: bytes.length, sha256: sha256(bytes), record_count: replay.decisions.length, source_profile_count: profiles.length });
+    }
+    if (mode === "duplicate-decision") assert.ok(new Set(allDecisions.map(item => item.decision_id)).size < allDecisions.length);
+    if (mode === "duplicate-subject") {
+      assert.equal(new Set(allDecisions.map(item => item.decision_id)).size, allDecisions.length);
+      assert.ok(new Set(allDecisions.map(item => `${item.entity_type}|${item.subject_entity_id}`)).size < allDecisions.length);
+    }
+    result.manifest.coverage = totals;
+    const summary = result.manifest.artifacts.find(item => item.artifact_type === "entity-resolution-summary-json");
+    const bytes = Buffer.from(`${JSON.stringify(totals)}\n`);
+    await writeFile(path.join(result.releaseDirectory, summary.path), bytes);
+    Object.assign(summary, { bytes: bytes.length, sha256: sha256(bytes) });
+    const resolutionPath = path.join(result.releaseDirectory, "manifest.json");
+    await writeFile(resolutionPath, JSON.stringify(result.manifest));
+    await assert.rejects(verifyBusinessEntityResolutionSourceReplay(resolutionPath, registryManifestPath),
+      mode.includes("profile") ? /invalid or duplicate registry profile identity/ : mode === "duplicate-decision" ? /invalid or duplicate decision/ : /invalid automatic decision/);
+  }
 });
 
 test("source-bound replay proves every retained decision against the exact registry manifest", async (t) => {

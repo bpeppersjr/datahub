@@ -186,6 +186,7 @@
     "entity-resolution:verify-source-replay": "node scripts/verify-business-entity-resolution-source-replay.mjs",
     "entity-resolution:benchmark:build": "node scripts/build-entity-resolution-benchmark.mjs",
     "entity-resolution:benchmark:verify": "node scripts/verify-entity-resolution-benchmark.mjs",
+    "entity-resolution:benchmark:verify-source-replay": "node scripts/verify-entity-resolution-benchmark-source-replay.mjs",
     "entity-resolution:benchmark:evaluate": "node scripts/evaluate-entity-resolution-benchmark.mjs",
     "entity-resolution:benchmark:labels:publish": "node scripts/publish-entity-resolution-benchmark-labels.mjs",
     "entity-resolution:benchmark:labels:verify": "node scripts/verify-entity-resolution-benchmark-labels.mjs",

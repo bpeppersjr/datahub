@@ -30,12 +30,13 @@ export function sumOhioReporting(totals) {
   return result;
 }
 function check(ok, label) { if (!ok) throw new Error(`Ohio coverage rejected: ${label}.`); }
-export async function loadOhioCoverageContext(declared) {
+export async function loadOhioCoverageContext(declared, { signal } = {}) {
+  signal?.throwIfAborted();
   check(declared?.publisher?.id === "national-business-registry" && declared.publisher.version === "2.15.0" && [null, "fresh", "recovered"].includes(declared.tn_childcare_origin), "registry version or Tennessee origin");
   const tn = declared.dependencies?.filter(d => d.dataset_id === "tn-dhs-active-childcare-centers") ?? [];
   check(tn.length === (declared.tn_childcare_origin === null ? 0 : 1), "Tennessee dependency roster");
   if (tn.length) check((declared.tn_childcare_origin === "fresh" ? /^tn-childcare-[a-f0-9-]{36}$/ : /^tn-childcare-recovered-[a-f0-9-]{36}$/).test(tn[0].release_id ?? ""), "Tennessee dependency origin");
-  const input = await loadOhChildcareGeographicInput(declared.oh_childcare_source?.receiptPath);
+  const input = await loadOhChildcareGeographicInput(declared.oh_childcare_source?.receiptPath, { signal });
   const dependencies = declared.dependencies?.filter(d => d.dataset_id === OH_SOURCE) ?? [];
   check(dependencies.length === 1 && dependencies[0].release_id === input.source.releaseId && dependencies[0].manifest_sha256 === input.source.manifestSha256
     && isDeepStrictEqual(declared.oh_childcare_source, input.source), "retained app dependency");

@@ -4,6 +4,8 @@ import { lstat, mkdir, readFile, realpath, rename, stat, writeFile } from "node:
 import path from "node:path";
 import { createGunzip, gzipSync, gunzipSync } from "node:zlib";
 import { createInterface } from "node:readline";
+import { Transform } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE, validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 
@@ -487,16 +489,45 @@ async function writeArtifact(directory, relativePath, content, metadata = {}) {
   return { path: relativePath.replaceAll("\\", "/"), bytes: buffer.length, sha256: sha256(buffer), ...metadata };
 }
 
-async function loadRegistryProfilesFromManifest(manifestPath) {
+export async function readBoundedEntityResolutionReplayInput(filename, expected, options = {}, compressed = false) {
+  const { signal } = options;
+  signal?.throwIfAborted();
+  const absolute = path.resolve(filename);
+  let cursor = path.parse(absolute).root;
+  for (const part of absolute.slice(cursor.length).split(path.sep).filter(Boolean)) {
+    signal?.throwIfAborted(); cursor = path.join(cursor,part); const info = await lstat(cursor);
+    if (info.isSymbolicLink() || (cursor===absolute ? !info.isFile() : !info.isDirectory())) throw new Error("Source replay requires regular files without linked ancestors.");
+  }
+  const maxBytes = compressed ? 512_000_000 : 32_000_000;
+  let bytes=0,decoded=0, pending=""; const chunks=[],rows=[],hash=createHash("sha256"), decoder=new TextDecoder("utf-8",{fatal:true});
+  const meter=new Transform({transform(chunk,encoding,callback){bytes+=chunk.length;hash.update(chunk);callback(bytes>maxBytes?new Error("Source replay input byte limit exceeded."):null,chunk);}});
+  const accept=line=>{signal?.throwIfAborted();if(!line)return;if(line.length>8_000_000||rows.length>=2_000_000)throw new Error("Source replay row limit exceeded.");rows.push(JSON.parse(line));};
+  await pipeline(createReadStream(absolute),meter,...(compressed?[createGunzip()]:[]),async source=>{
+    for await(const chunk of source){signal?.throwIfAborted();decoded+=chunk.length;if(decoded>(compressed?1_500_000_000:32_000_000))throw new Error("Source replay decoded byte limit exceeded.");
+      if(!compressed){chunks.push(chunk);continue;}pending+=decoder.decode(chunk,{stream:true});let index;
+      while((index=pending.indexOf("\n"))>=0){accept(pending.slice(0,index));pending=pending.slice(index+1);}if(pending.length>8_000_000)throw new Error("Source replay row limit exceeded.");
+    }
+  },{signal});
+  if(compressed){pending+=decoder.decode();if(pending)accept(pending);}
+  const digest=hash.digest("hex");
+  if(expected&&(bytes!==expected.bytes||digest!==expected.sha256||(compressed&&rows.length!==expected.record_count)))throw new Error("Source replay consumed bytes/count do not match retained descriptor.");
+  return compressed?rows:Buffer.concat(chunks,decoded);
+}
+
+const boundedReplayRead = readBoundedEntityResolutionReplayInput;
+
+async function loadRegistryProfilesFromManifest(manifestPath, replayOptions = null) {
   const absoluteManifestPath = path.resolve(manifestPath);
   await assertRegularFile(absoluteManifestPath, "Registry manifest");
-  const manifestBuffer = await readFile(absoluteManifestPath);
+  const manifestBuffer = replayOptions ? await boundedReplayRead(absoluteManifestPath,null,replayOptions) : await readFile(absoluteManifestPath);
+  if(replayOptions?.expectedRegistryManifestSha256 && sha256(manifestBuffer)!==replayOptions.expectedRegistryManifestSha256)throw new Error("Registry manifest snapshot mismatch.");
   const manifest = JSON.parse(manifestBuffer.toString("utf8"));
   if (manifest.dataset_id !== "national-business-registry" || manifest.status !== "published-partial"
     || !COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS.includes(manifest.publisher?.version) || manifest.complete_national_business_registry !== false) {
     throw new Error(`A compatible national business registry ${COMPATIBLE_REGISTRY_PUBLISHER_RANGE} partial release with match profiles is required.`);
   }
   const releaseDirectory = path.dirname(absoluteManifestPath);
+  if(replayOptions && (!Array.isArray(manifest.artifacts)||manifest.artifacts.length>5000))throw new Error("Source replay registry artifact limit exceeded.");
   const artifacts = manifest.artifacts?.filter((artifact) => artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip")
     .sort((a, b) => a.path.localeCompare(b.path)) ?? [];
   if (artifacts.length !== 100) throw new Error(`Expected 100 registry location-profile partitions; found ${artifacts.length}.`);
@@ -508,19 +539,21 @@ async function loadRegistryProfilesFromManifest(manifestPath) {
     const filename = path.resolve(releaseDirectory, artifact.path);
     assertContained(releaseDirectory, filename, `Registry profile artifact ${artifact.path}`);
     await assertRegularContained(releaseDirectory, filename, `Registry profile artifact ${artifact.path}`);
-    const actual = await hashFile(filename);
-    if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Registry profile artifact ${artifact.path} failed checksum validation.`);
+    if(replayOptions) { replayOptions.signal?.throwIfAborted(); }
+    else { const actual = await hashFile(filename);
+      if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Registry profile artifact ${artifact.path} failed checksum validation.`); }
   }
   const reportingSites = new Set(), reportingEstablishments = new Set(), reportingSources = new Map([...REPORTING_ONLY_CHILDCARE_SOURCES].map(id => [id, 0]));
   const supportsOh = manifest.publisher.version === "2.15.0";
   let ohio = null, ohContext = null;
   const ohRows = [];
-  if (supportsOh) { ohio = await import('./oh-childcare-coverage-evidence.mjs'); ohContext = await ohio.loadOhioCoverageContext(manifest); }
+  if (supportsOh) { ohio = await import('./oh-childcare-coverage-evidence.mjs'); ohContext = await ohio.loadOhioCoverageContext(manifest, { signal: replayOptions?.signal }); }
   else if (Object.hasOwn(manifest,'oh_childcare_source') || Object.hasOwn(manifest,'tn_childcare_origin') || Object.keys(manifest.coverage??{}).some(k=>k.startsWith('oh_childcare_')) || manifest.dependencies?.some(d=>d.dataset_id===OH_REPORTING_SOURCE)) throw new Error('Ohio reporting requires exact registry 2.15.');
   const freshTn = manifest.publisher.version === "2.14.0" || (supportsOh && manifest.tn_childcare_origin === 'fresh');
   const supportsTn = manifest.publisher.version === "2.13.0" || freshTn || (supportsOh && manifest.tn_childcare_origin === 'recovered'), missingReasons = { "missing-source-zip": 0, "invalid-source-zip-placeholder": 0 };
   let missingZip = 0;
   const reportingArtifacts = manifest.artifacts.filter(artifact => artifact.artifact_type === CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE);
+  if(replayOptions&&(reportingArtifacts.length>101||reportingArtifacts.reduce((sum,a)=>sum+(Number.isSafeInteger(a.record_count)?a.record_count:Infinity),0)>1_000_000))throw new Error("Source replay reporting row/partition limit exceeded.");
   const supportsReporting = manifest.publisher.version === "2.12.0" || supportsTn || supportsOh;
   const tnFields = ["tn_childcare_center_sites", "tn_childcare_center_sites_with_zip", "tn_childcare_center_sites_without_zip", "reporting_location_evidence_without_zip", "tn_childcare_missing_zip_reasons"];
   if (!supportsTn && (tnFields.filter(key=>!supportsOh||key!=='reporting_location_evidence_without_zip').some(key => Object.hasOwn(manifest.coverage ?? {}, key)) || manifest.dependencies?.some(d => d.dataset_id === TN_REPORTING_SOURCE))) throw new Error("TN reporting requires an exact supported registry origin.");
@@ -538,18 +571,20 @@ async function loadRegistryProfilesFromManifest(manifestPath) {
       if (zip2 === "unassigned" && !supportsTn && !supportsOh) throw new Error("Unassigned reporting requires an exact supported registry version.");
       if (!zip2 || paths.has(artifact.path) || artifact.export_policy !== "local-review-only" || !Number.isSafeInteger(artifact.record_count)
         || artifact.record_count < 1) throw new Error("Invalid reporting-only registry partition.");
-      paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path); await assertRegularContained(releaseDirectory, filename, `Reporting-only registry partition ${artifact.path}`); const actual = await hashFile(filename);
-      if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("Reporting-only registry partition failed checksum validation.");
+      paths.add(artifact.path); const filename = path.join(releaseDirectory, artifact.path); await assertRegularContained(releaseDirectory, filename, `Reporting-only registry partition ${artifact.path}`);
+      if(!replayOptions){const actual = await hashFile(filename);if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("Reporting-only registry partition failed checksum validation.");}
       let rows;
-      if (supportsOh) {
+      if (replayOptions) rows = await boundedReplayRead(filename,artifact,replayOptions,true);
+      else if (supportsOh) {
         const { ohioBoundedRead } = await import('./oh-childcare-release.mjs');
         const raw = await ohioBoundedRead(filename,100_000_000);
         if(raw.length!==artifact.bytes||sha256(raw)!==artifact.sha256)throw new Error('Ohio reporting consumed bytes changed.');
         const text = new TextDecoder('utf-8',{fatal:true}).decode(gunzipSync(raw,{maxOutputLength:100_000_000}));
         rows = text.split('\n').filter(Boolean).map(line=>JSON.parse(line));
-      } else rows = await readGzipRecords(filename, artifact);
+      } else rows = replayOptions ? await boundedReplayRead(filename,artifact,replayOptions,true) : await readGzipRecords(filename, artifact);
       if (rows.length !== artifact.record_count) throw new Error("Reporting-only registry partition count mismatch.");
       for (const row of rows) {
+        replayOptions?.signal?.throwIfAborted();
         if (row.source?.source_id === OH_REPORTING_SOURCE) { if (!supportsOh) throw new Error('Ohio version mismatch'); ohio.validateOhChildcareGeographicEvidence(row,ohContext.input.verificationContext); ohRows.push(row); }
         else if (row.source?.source_id === TN_REPORTING_SOURCE) { if (!supportsTn) throw new Error("TN version mismatch"); (freshTn ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(row); }
         else validateChildcareGeographicEvidence(row);
@@ -571,7 +606,7 @@ async function loadRegistryProfilesFromManifest(manifestPath) {
   }
   if (supportsOh) {
     if (manifest.coverage.reporting_location_evidence_without_zip !== missingZip + ohContext.total.without_zip) throw new Error('Ohio combined missing ZIP count differs.');
-    await ohio.verifyOhChildcareGeographicMembership(ohRows,ohContext.input.verificationContext);
+    await ohio.verifyOhChildcareGeographicMembership(ohRows,ohContext.input.verificationContext,{signal:replayOptions?.signal});
   }
   if (artifacts.reduce((sum, artifact) => sum + artifact.record_count, 0) !== manifest.coverage?.resolution_location_profiles
     || manifest.coverage?.resolution_location_profiles + reportingSites.size !== manifest.coverage?.physical_sites) {
@@ -760,62 +795,7 @@ export async function verifyBusinessEntityResolution(manifestPath) {
       const records = await readGzipRecords(path.join(releaseDirectory, artifact.path), artifact);
       if (records.length !== artifact.record_count) throw new Error("record count mismatch");
       for (const decision of records) {
-        if (!/^resolution-decision:[a-f0-9]{32}$/.test(decision.decision_id ?? "") || decisionIds.has(decision.decision_id)
-          || decision.ruleset_version !== ENTITY_RESOLUTION_RULESET_VERSION
-          || decision.schema_version !== ENTITY_RESOLUTION_SCHEMA_VERSION || decision.reversible !== true
-          || decision.export_policy !== "local-review-only" || !Number.isFinite(decision.score) || decision.score < 0 || decision.score > 1
-          || typeof decision.decided_at !== "string" || Number.isNaN(Date.parse(decision.decided_at))) {
-          throw new Error(`invalid or duplicate decision ${decision.decision_id ?? "<unknown>"}`);
-        }
-        decisionIds.add(decision.decision_id);
-        if (decision.decision_type === "automatic-link") {
-          const subjectKey = `${decision.entity_type}|${decision.subject_entity_id}`;
-          const resolvedPattern = decision.entity_type === "physical_site"
-            ? /^site:resolved_[a-f0-9]{32}$/
-            : /^establishment:resolved_[a-f0-9]{32}$/;
-          const expectedRule = decision.entity_type === "physical_site"
-            ? "site-exact-complete-street-address@1.0.0"
-            : "establishment-exact-address-and-non-generic-name@1.0.0";
-          const expectedDecisionId = stableId("resolution-decision", [decision.entity_type, decision.subject_entity_id, decision.resolved_entity_id, expectedRule]);
-          const evidence = decision.evidence ?? {};
-          const commonEvidenceValid = evidence.address_exact === true && Number.isInteger(evidence.member_count) && evidence.member_count >= 2;
-          const ruleEvidenceValid = decision.entity_type === "physical_site"
-            ? evidence.normalized_address?.kind === "street" && evidence.normalized_address?.complete === true
-              && sha256(evidence.normalized_address.match_key ?? "") === evidence.address_match_key_sha256
-            : evidence.name_exact === true && typeof evidence.normalized_name === "string" && evidence.normalized_name.length > 0
-              && normalizeBusinessName(evidence.normalized_name).generic === false && Array.isArray(evidence.source_ids)
-              && evidence.source_ids.length >= 2;
-          if (automaticSubjects.has(subjectKey) || decision.decision_status !== "active" || decision.score !== 1
-            || !["physical_site", "establishment"].includes(decision.entity_type)
-            || !resolvedPattern.test(decision.resolved_entity_id ?? "") || decision.rule_id !== expectedRule
-            || decision.decision_id !== expectedDecisionId || !commonEvidenceValid || !ruleEvidenceValid
-            || !/^location-profile:[a-f0-9]{32}$/.test(decision.source_profile_id ?? "")
-            || typeof decision.source?.source_id !== "string" || typeof decision.source?.source_release_id !== "string"
-            || typeof decision.source?.source_record_id !== "string" || !decision.observed_at) {
-            throw new Error(`invalid automatic decision ${decision.decision_id}`);
-          }
-          automaticSubjects.add(subjectKey);
-          counts[decision.entity_type === "physical_site" ? "site_alias_decisions" : "establishment_alias_decisions"] += 1;
-        } else if (decision.decision_type === "review-candidate") {
-          const expectedDecisionId = stableId("resolution-decision", ["establishment", decision.left_entity_id, decision.right_entity_id, "review-exact-address-name-similarity@1.0.0"]);
-          const similarity = scoreBusinessNames(normalizeBusinessName(decision.evidence?.left_name), normalizeBusinessName(decision.evidence?.right_name));
-          const expectedScore = Number((0.55 + (0.45 * similarity.score)).toFixed(6));
-          if (decision.decision_status !== "pending-review" || decision.entity_type !== "establishment"
-            || !/^establishment:/.test(decision.left_entity_id ?? "") || !/^establishment:/.test(decision.right_entity_id ?? "")
-            || decision.left_entity_id >= decision.right_entity_id || decision.rule_id !== "review-exact-address-name-similarity@1.0.0"
-            || decision.decision_id !== expectedDecisionId || decision.score < 0.78 || decision.score !== expectedScore
-            || decision.evidence?.address_exact !== true || !/^[a-f0-9]{64}$/.test(decision.evidence?.address_match_key_sha256 ?? "")
-            || JSON.stringify(decision.evidence?.name_similarity) !== JSON.stringify(similarity)
-            || !Array.isArray(decision.evidence?.source_ids) || decision.evidence.source_ids.length !== 2
-            || !/^location-profile:[a-f0-9]{32}$/.test(decision.left_profile_id ?? "")
-            || !/^location-profile:[a-f0-9]{32}$/.test(decision.right_profile_id ?? "")
-            || decision.left_profile_id === decision.right_profile_id) {
-            throw new Error(`invalid review decision ${decision.decision_id}`);
-          }
-          counts.review_candidate_decisions += 1;
-        } else {
-          throw new Error(`unsupported decision type ${decision.decision_type}`);
-        }
+        validateResolutionDecision(decision, decisionIds, automaticSubjects, counts);
       }
     } catch (error) {
       failures.push({ path: artifact.path, reason: error.message });
@@ -841,18 +821,78 @@ export async function verifyBusinessEntityResolution(manifestPath) {
   };
 }
 
-export async function verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath, { signal } = {}) {
+function validateResolutionDecision(decision, decisionIds, automaticSubjects, counts) {
+  if (!/^resolution-decision:[a-f0-9]{32}$/.test(decision.decision_id ?? "") || decisionIds.has(decision.decision_id)
+    || decision.ruleset_version !== ENTITY_RESOLUTION_RULESET_VERSION
+    || decision.schema_version !== ENTITY_RESOLUTION_SCHEMA_VERSION || decision.reversible !== true
+    || decision.export_policy !== "local-review-only" || !Number.isFinite(decision.score) || decision.score < 0 || decision.score > 1
+    || typeof decision.decided_at !== "string" || Number.isNaN(Date.parse(decision.decided_at))) {
+    throw new Error(`invalid or duplicate decision ${decision.decision_id ?? "<unknown>"}`);
+  }
+  decisionIds.add(decision.decision_id);
+  if (decision.decision_type === "automatic-link") {
+    const subjectKey = `${decision.entity_type}|${decision.subject_entity_id}`;
+    const resolvedPattern = decision.entity_type === "physical_site"
+      ? /^site:resolved_[a-f0-9]{32}$/
+      : /^establishment:resolved_[a-f0-9]{32}$/;
+    const expectedRule = decision.entity_type === "physical_site"
+      ? "site-exact-complete-street-address@1.0.0"
+      : "establishment-exact-address-and-non-generic-name@1.0.0";
+    const expectedDecisionId = stableId("resolution-decision", [decision.entity_type, decision.subject_entity_id, decision.resolved_entity_id, expectedRule]);
+    const evidence = decision.evidence ?? {};
+    const commonEvidenceValid = evidence.address_exact === true && Number.isInteger(evidence.member_count) && evidence.member_count >= 2;
+    const ruleEvidenceValid = decision.entity_type === "physical_site"
+      ? evidence.normalized_address?.kind === "street" && evidence.normalized_address?.complete === true
+        && sha256(evidence.normalized_address.match_key ?? "") === evidence.address_match_key_sha256
+      : evidence.name_exact === true && typeof evidence.normalized_name === "string" && evidence.normalized_name.length > 0
+        && normalizeBusinessName(evidence.normalized_name).generic === false && Array.isArray(evidence.source_ids)
+        && evidence.source_ids.length >= 2;
+    if (automaticSubjects.has(subjectKey) || decision.decision_status !== "active" || decision.score !== 1
+      || !["physical_site", "establishment"].includes(decision.entity_type)
+      || !resolvedPattern.test(decision.resolved_entity_id ?? "") || decision.rule_id !== expectedRule
+      || decision.decision_id !== expectedDecisionId || !commonEvidenceValid || !ruleEvidenceValid
+      || !/^location-profile:[a-f0-9]{32}$/.test(decision.source_profile_id ?? "")
+      || typeof decision.source?.source_id !== "string" || typeof decision.source?.source_release_id !== "string"
+      || typeof decision.source?.source_record_id !== "string" || !decision.observed_at) {
+      throw new Error(`invalid automatic decision ${decision.decision_id}`);
+    }
+    automaticSubjects.add(subjectKey);
+    counts[decision.entity_type === "physical_site" ? "site_alias_decisions" : "establishment_alias_decisions"] += 1;
+  } else if (decision.decision_type === "review-candidate") {
+    const expectedDecisionId = stableId("resolution-decision", ["establishment", decision.left_entity_id, decision.right_entity_id, "review-exact-address-name-similarity@1.0.0"]);
+    const similarity = scoreBusinessNames(normalizeBusinessName(decision.evidence?.left_name), normalizeBusinessName(decision.evidence?.right_name));
+    const expectedScore = Number((0.55 + (0.45 * similarity.score)).toFixed(6));
+    if (decision.decision_status !== "pending-review" || decision.entity_type !== "establishment"
+      || !/^establishment:/.test(decision.left_entity_id ?? "") || !/^establishment:/.test(decision.right_entity_id ?? "")
+      || decision.left_entity_id >= decision.right_entity_id || decision.rule_id !== "review-exact-address-name-similarity@1.0.0"
+      || decision.decision_id !== expectedDecisionId || decision.score < 0.78 || decision.score !== expectedScore
+      || decision.evidence?.address_exact !== true || !/^[a-f0-9]{64}$/.test(decision.evidence?.address_match_key_sha256 ?? "")
+      || JSON.stringify(decision.evidence?.name_similarity) !== JSON.stringify(similarity)
+      || !Array.isArray(decision.evidence?.source_ids) || decision.evidence.source_ids.length !== 2
+      || !/^location-profile:[a-f0-9]{32}$/.test(decision.left_profile_id ?? "")
+      || !/^location-profile:[a-f0-9]{32}$/.test(decision.right_profile_id ?? "")
+      || decision.left_profile_id === decision.right_profile_id) {
+      throw new Error(`invalid review decision ${decision.decision_id}`);
+    }
+    counts.review_candidate_decisions += 1;
+  } else {
+    throw new Error(`unsupported decision type ${decision.decision_type}`);
+  }
+}
+
+
+export async function verifyBusinessEntityResolutionSourceReplay(resolutionManifestPath, registryManifestPath, { signal, expectedResolutionManifestSha256, expectedRegistryManifestSha256 } = {}) {
   signal?.throwIfAborted();
   const resolutionPath = path.resolve(resolutionManifestPath);
   await assertRegularFile(resolutionPath, "Resolution manifest");
-  const resolutionBytesBefore = await readFile(resolutionPath);
-  const structural = await verifyBusinessEntityResolution(resolutionManifestPath);
-  signal?.throwIfAborted();
-  const resolutionBytes = await readFile(resolutionPath);
-  if (!resolutionBytes.equals(resolutionBytesBefore)) throw new Error("Business entity-resolution source replay failed: resolution manifest changed during verification.");
+  const options={signal,expectedRegistryManifestSha256};
+  const resolutionBytes = await boundedReplayRead(resolutionPath,null,options);
+  const resolutionHash=sha256(resolutionBytes);
+  if(expectedResolutionManifestSha256&&resolutionHash!==expectedResolutionManifestSha256)throw new Error("Resolution manifest snapshot mismatch.");
   const resolutionDirectory = path.dirname(resolutionPath);
   const resolution = JSON.parse(resolutionBytes.toString("utf8"));
-  const registry = await loadRegistryProfilesFromManifest(registryManifestPath);
+  if(resolution.dataset_id!=="national-business-entity-resolution"||resolution.publisher?.version!=="1.0.0"||resolution.schema_version!==ENTITY_RESOLUTION_SCHEMA_VERSION||resolution.status!=="published-reviewable-partial"||resolution.complete_entity_resolution!==false||resolution.ruleset_version!==ENTITY_RESOLUTION_RULESET_VERSION||!Array.isArray(resolution.artifacts)||resolution.artifacts.length!==101||typeof resolution.created_at!=="string"||Number.isNaN(Date.parse(resolution.created_at)))throw new Error("Unsupported resolution source replay contract.");
+  const registry = await loadRegistryProfilesFromManifest(registryManifestPath,options);
   const dependency = resolution.dependency ?? {};
   if (dependency.dataset_id !== registry.manifest.dataset_id
     || dependency.release_id !== registry.manifest.release_id
@@ -865,6 +905,11 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
     if (!zip2 || decisionByZip2.has(zip2)) throw new Error("Business entity-resolution source replay failed: decision partitions are not unique and complete.");
     decisionByZip2.set(zip2, artifact);
   }
+  if(decisionByZip2.size!==100)throw new Error("Source replay requires exactly 100 decision partitions.");
+  const summaryArtifacts=resolution.artifacts.filter(a=>a.artifact_type==="entity-resolution-summary-json");
+  if(summaryArtifacts.length!==1||summaryArtifacts[0].path!=="derived/resolution-summary.json"||summaryArtifacts[0].distribution_policy!=="aggregate")throw new Error("Invalid source replay summary descriptor.");
+  const summaryBytes=await boundedReplayRead(path.join(resolutionDirectory,summaryArtifacts[0].path),summaryArtifacts[0],options);
+  const retainedSummary=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(summaryBytes));
   const totals = {
     profiles: 0,
     address_groups: 0,
@@ -875,6 +920,10 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
     review_groups_skipped_for_size: 0,
   };
   let replayedDecisions = 0;
+  const profileIds = new Set();
+  const decisionIds = new Set();
+  const automaticSubjects = new Set();
+  const validatedCounts = { site_alias_decisions: 0, establishment_alias_decisions: 0, review_candidate_decisions: 0 };
   for (const profileArtifact of registry.artifacts) {
     signal?.throwIfAborted();
     const zip2 = profileArtifact.path.match(/zip2=(\d{2})/)?.[1];
@@ -882,7 +931,13 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
     if (!zip2 || !decisionArtifact) throw new Error(`Business entity-resolution source replay failed: missing decision partition for ZIP2 ${zip2 ?? "unknown"}.`);
     const profilePath = path.join(registry.releaseDirectory, profileArtifact.path);
     await assertRegularContained(registry.releaseDirectory, profilePath, `Registry profile artifact ${profileArtifact.path}`);
-    const profiles = await readGzipRecords(profilePath, profileArtifact);
+    const profiles = await boundedReplayRead(profilePath, profileArtifact,options,true);
+    for (const profile of profiles) {
+      signal?.throwIfAborted();
+      if (typeof profile.profile_id !== "string" || !/^location-profile:[a-f0-9]{32}$/.test(profile.profile_id)
+        || profileIds.has(profile.profile_id)) throw new Error("Source replay invalid or duplicate registry profile identity.");
+      profileIds.add(profile.profile_id);
+    }
     if (profiles.length !== profileArtifact.record_count
       || profiles.some(profile => profile.zip_code?.slice(0, 2) !== zip2
         || registry.reportingSites.has(profile.site_entity_id)
@@ -892,8 +947,13 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
     const replay = resolveLocationProfiles(profiles, { createdAt: resolution.created_at });
     const decisionPath = path.join(resolutionDirectory, decisionArtifact.path);
     await assertRegularContained(resolutionDirectory, decisionPath, `Resolution artifact ${decisionArtifact.path}`);
-    const retained = await readGzipRecords(decisionPath, decisionArtifact);
+    const retained = await boundedReplayRead(decisionPath, decisionArtifact,options,true);
+    for (const decision of retained) {
+      signal?.throwIfAborted();
+      validateResolutionDecision(decision, decisionIds, automaticSubjects, validatedCounts);
+    }
     if (decisionArtifact.source_profile_count !== profiles.length
+      || decisionArtifact.distribution_policy!=="local-review-only"
       || JSON.stringify(retained) !== JSON.stringify(replay.decisions)) {
       throw new Error(`Business entity-resolution source replay failed: decisions differ from retained registry profiles for ZIP2 ${zip2}.`);
     }
@@ -902,11 +962,14 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
   }
   signal?.throwIfAborted();
   if (decisionByZip2.size !== registry.artifacts.length
-    || JSON.stringify(totals) !== JSON.stringify(resolution.coverage)) {
+    || JSON.stringify(totals) !== JSON.stringify(resolution.coverage)||JSON.stringify(totals)!==JSON.stringify(retainedSummary)) {
     throw new Error("Business entity-resolution source replay failed: replayed coverage does not equal the retained resolution coverage.");
   }
+  if(sha256(await boundedReplayRead(resolutionPath,null,options))!==resolutionHash||sha256(await boundedReplayRead(path.resolve(registryManifestPath),null,options))!==registry.manifestSha256)throw new Error("Source replay manifest snapshot changed during verification.");
+  signal?.throwIfAborted();
   return {
-    ...structural,
+    dataset_id:resolution.dataset_id,release_id:resolution.release_id,status:resolution.status,ruleset_version:resolution.ruleset_version,artifact_count:resolution.artifacts.length,coverage:resolution.coverage,
+    resolution_manifest_sha256:resolutionHash,registry_manifest_sha256:registry.manifestSha256,
     source_replay_verified: true,
     replayed_profile_count: totals.profiles,
     replayed_decision_count: replayedDecisions,

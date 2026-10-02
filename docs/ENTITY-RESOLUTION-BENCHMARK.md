@@ -14,7 +14,13 @@ Within each stratum, the publisher retains the 425 lowest SHA-256 priorities und
 
 Review packets can include home-based addresses and linkage evidence. They remain `local-review-only`.
 
-## Labels
+## Offline source-bound replay
+
+`npm run entity-resolution:benchmark:verify-source-replay -- <benchmark-manifest.json> <resolution-manifest.json> <registry-manifest.json>` independently checks the explicit retained dependency hashes, source-bound resolution replay, complete candidate universes, deterministic min-hash selection, enriched profile evidence, null label template and summary. It reads only local files and never publishes, acquires, changes pointers or supplies review judgments. Structural verification alone does not establish this stronger proof.
+
+The replay reader rejects linked paths and consumes the same bytes for checksumming and parsing. Its mandatory resolution replay binds the exact expected resolution and registry manifest hashes before parsing dependent artifacts and returns consumed hashes for comparison. It does not call the unbounded structural-verification path. JSON inputs are capped at 32 MB; each gzip partition is capped at 512 MB compressed, 1.5 GB decoded, two million rows and 8 MB per row. Reporting-only partitions retain a one-million-row aggregate cap. Ohio 2.15 retained membership uses its existing bounded dependency readers with the cancellation signal propagated through context loading and final membership verification. Selected profiles plus global profile, decision, and automatic-subject identity sets are retained in memory; decision record arrays are bounded to one ZIP2 partition. Manifest snapshots must remain unchanged through completion. The accepted sample size is 384 through 10,000 per stratum. Exceeding a bound fails rather than reporting partial success. Cancellation is cooperative during input reads and between partitions; synchronous rule evaluation completes before the next signal check. Source replay proves reproducibility, not real-world matching accuracy: independent human labels and separate export-policy review remain required.
+
+## Independent labels
 
 Reviewers edit a copy of `review/label-template.jsonl` using exactly one of:
 
