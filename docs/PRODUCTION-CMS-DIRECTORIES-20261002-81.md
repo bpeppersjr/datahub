@@ -1,5 +1,7 @@
 # Proposed additive CMS directory production — October 2, 2026
 
+> **Superseded:** Plan 82 replaces this plan after the retained childcare county coverage adapter was added and verified. Plan 81 must not be executed.
+
 Plan 81 is the current clean-repository successor after Co*Tive began exposing configured industries that remain outside the national reporting denominator.
 
 - Run ID: `production-cms-directories-20261002-81`
