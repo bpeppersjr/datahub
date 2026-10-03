@@ -24,7 +24,7 @@ test("loads a non-overlapping governed catalog with the current Kansas correctio
     assert.equal(stateAssessment(catalog, stateAbbreviation).authorized_next_action_type, "bounded-connector-implementation");
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
-    schema_version: "1.1.0",
+    schema_version: "1.2.0",
     assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-10-03",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-10-03",
@@ -44,6 +44,7 @@ test("loads a non-overlapping governed catalog with the current Kansas correctio
       "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22",
       "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
       "ks-business-source-reassessment-2026-10-03",
+      "ar-business-source-reassessment-2026-10-03",
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 5,
@@ -57,7 +58,7 @@ test("loads a non-overlapping governed catalog with the current Kansas correctio
     production_ready_jurisdictions: 8,
   });
   assert.deepEqual(summarizeLegacyStateBusinessSourceRevalidation(catalog, catalog.coverage_release_id), {
-    schema_version: "1.1.0",
+    schema_version: "1.2.0",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-03",
     coverage_release_id: catalog.coverage_release_id,
@@ -79,6 +80,17 @@ test("loads a non-overlapping governed catalog with the current Kansas correctio
   assert.doesNotMatch(kansas.candidate.price, /1,500/);
   assert.equal(kansas.decision, "hold");
   assert.equal(kansas.autonomous_acquisition_authorized, false);
+  const arkansas = stateAssessment(catalog, "AR");
+  assert.equal(arkansas.assessment_id, "ar-business-source-reassessment-2026-10-03");
+  assert.equal(arkansas.assessment_kind, "official-source-reassessment");
+  assert.equal(arkansas.observed_at, "2026-10-03");
+  assert.equal(arkansas.candidate.availability, "paid-subscriber-bulk-or-list-builder");
+  assert.match(arkansas.candidate.price, /\$2,000\/month/);
+  assert.equal(arkansas.decision, "hold");
+  assert.equal(arkansas.autonomous_acquisition_authorized, false);
+  assert.equal(arkansas.paid_acquisition_authorized, false);
+  assert.equal(arkansas.offline_fixture_connector_authorized, false);
+  assert.equal(arkansas.production_ready, false);
 });
 
 test("rejects overlapping provenance, decision escalation, and source-artifact drift", async () => {
@@ -141,6 +153,13 @@ test("rejects every aggregate authority escalation", async () => {
     const catalog = await loadStateBusinessSourceAssessmentCatalog();
     stateAssessment(catalog, "MI")[field] = true;
     assert.throws(() => validateStateBusinessSourceAssessmentCatalog(catalog), /MI authorization boundary drifted/);
+  }
+});
+
+test("rejects every Arkansas reassessment authority escalation", async () => {
+  for (const field of ["bounded_connector_implementation_authorized","autonomous_acquisition_authorized","paid_acquisition_authorized","complete_source_acquisition_authorized","row_bearing_preflight_authorized","offline_fixture_connector_authorized","production_ready","broad_layer_production_ready"]) {
+    const catalog = await loadStateBusinessSourceAssessmentCatalog(); stateAssessment(catalog,"AR")[field]=true;
+    assert.throws(()=>validateStateBusinessSourceAssessmentCatalog(catalog),/AR authorization boundary drifted/);
   }
 });
 

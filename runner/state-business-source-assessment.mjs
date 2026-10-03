@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { validateStateBusinessSourceDiscoveryQueue } from "../scripts/check-state-business-source-discovery.mjs";
 import { loadStateBusinessSourceAssessmentWave } from "./state-business-source-assessment-wave.mjs";
+import { ARKANSAS_REASSESSMENT_ID, loadArkansasBusinessSourceReassessment } from "./arkansas-business-source-reassessment.mjs";
 import { KANSAS_REASSESSMENT_ID, loadKansasBusinessSourceReassessment } from "./state-business-source-reassessment.mjs";
 import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
 import { EXISTING_SOURCE_STATES, loadExistingGovernedSourceAssessmentWave } from "./state-business-source-existing-wave.mjs";
@@ -15,9 +16,9 @@ import {
   validateStateBusinessSourceRevalidation,
 } from "./state-business-source-revalidation.mjs";
 
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.1.0";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.2.0";
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-10-03";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "26b0eda85a8431db0256dd5d86ce8105afd3fd9a42bc28d50cf125bbf97c2734";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "06aba39bd5a05fef55318afdfeb617cff7ec64e17efd78ff2648700362d4e4f5";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -119,7 +120,13 @@ const KANSAS_CORRECTION_ARTIFACT = Object.freeze({
   observed_at: "2026-10-03",
   coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
 });
-const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT]);
+const ARKANSAS_REASSESSMENT_ARTIFACT = Object.freeze({
+  artifact_id: ARKANSAS_REASSESSMENT_ID,
+  artifact_kind: "official-source-reassessment",
+  observed_at: "2026-10-03",
+  coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+});
+const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT, ARKANSAS_REASSESSMENT_ARTIFACT]);
 const EXPECTED_STATE_SCOPE = Object.freeze(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations));
 const HISTORICAL_STATE_PROVENANCE = Object.fromEntries(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations.map((stateAbbreviation) => [
   stateAbbreviation,
@@ -130,7 +137,7 @@ const HISTORICAL_STATE_PROVENANCE = Object.fromEntries(SOURCE_ARTIFACT_SPECS.fla
     coverage_release_id: artifact.coverage_release_id,
   }),
 ])));
-const EXPECTED_STATE_PROVENANCE = Object.freeze({ ...HISTORICAL_STATE_PROVENANCE, KS: Object.freeze({ assessment_id: KANSAS_REASSESSMENT_ID, assessment_kind: "official-source-correction", observed_at: "2026-10-03", coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID }) });
+const EXPECTED_STATE_PROVENANCE = Object.freeze({ ...HISTORICAL_STATE_PROVENANCE, KS: Object.freeze({ assessment_id: KANSAS_REASSESSMENT_ID, assessment_kind: "official-source-correction", observed_at: "2026-10-03", coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID }), AR: Object.freeze({ assessment_id: ARKANSAS_REASSESSMENT_ID, assessment_kind: "official-source-reassessment", observed_at: "2026-10-03", coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID }) });
 const BOUNDED_CONNECTOR_STATES = new Set(["DC", "AK"]);
 const EXISTING_GOVERNED_SOURCE_STATES = new Set(EXISTING_SOURCE_STATES);
 const EXPECTED_AUTHORITY_BY_STATE = Object.freeze(Object.fromEntries(EXPECTED_STATE_SCOPE.map((stateAbbreviation) => {
@@ -279,6 +286,28 @@ function normalizeKansasReassessment(state) {
   };
 }
 
+function normalizeArkansasReassessment(state) {
+  return {
+    state_abbreviation: state.state.abbreviation,
+    state_name: state.state.name,
+    assessment_id: state.assessment_id,
+    assessment_kind: "official-source-reassessment",
+    observed_at: state.observed_at,
+    coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+    decision: "hold",
+    ...holdAuthority(),
+    candidate: { publisher: "Arkansas Secretary of State / Tyler Arkansas", product: "subscriber Business Entity/Corporation Database Bulk Download or Special Request List Builder", availability: state.access.classification, price: "$2,000/month bulk; $0.10/record ($10 minimum) list builder; $150/year subscriber account before activation" },
+    official_urls: state.citations.map((citation) => citation.url),
+    observed_evidence: [state.reassessment_reason, state.fields.summary, state.active_status_semantics, state.statewide_completeness, state.address_zip, state.temporal_refresh],
+    unresolved_gates: structuredClone(state.unresolved_gates),
+    required_exclusions: ["natural-person and registered-agent data", "direct contact and sensitive identifiers", "filing documents and free text"],
+    strongest_bounded_next_action: `${state.strongest_next_action} Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.`,
+    prior_decision: "hold",
+    changed_since_prior_review: false,
+    supersedes_assessment_id: state.supersedes_assessment_id,
+  };
+}
+
 function normalizeExistingSource(state) {
   return {
     state_abbreviation: state.state.abbreviation,
@@ -343,11 +372,12 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
-  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment] = await Promise.all([
+  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment] = await Promise.all([
     loadStateBusinessSourceAssessmentWave(),
     Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
     loadExistingGovernedSourceAssessmentWave(),
     loadKansasBusinessSourceReassessment(),
+    loadArkansasBusinessSourceReassessment(),
   ]);
   const sourceArtifacts = [
     {
@@ -366,6 +396,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     { artifact_id: "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22", artifact_kind: "official-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
     { artifact_id: "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22", artifact_kind: "existing-governed-source-validation", observed_at: "2026-09-22", coverage_release_id: revalidation.coverage_release_id },
     { ...KANSAS_CORRECTION_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
+    { ...ARKANSAS_REASSESSMENT_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
   ];
   const catalog = {
     schema_version: STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION,
@@ -387,6 +418,9 @@ export async function loadStateBusinessSourceAssessmentCatalog(
         if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} wave overlaps prior assessment`);
         seen.add(state.state_abbreviation); states.push(state);
       }
+      const historicalArkansasIndex = states.findIndex((state) => state.state_abbreviation === "AR");
+      if (historicalArkansasIndex < 0) fail("Arkansas historical assessment is missing");
+      states[historicalArkansasIndex] = normalizeArkansasReassessment(arkansasReassessment);
       for (const state of assessmentWave.states.map(normalizeAssessmentWave)) {
         if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} wave overlaps prior assessment`);
         seen.add(state.state_abbreviation); states.push(state);
@@ -423,7 +457,7 @@ export function summarizeStateBusinessSourceAssessments(catalog, currentCoverage
     jurisdictions_assessed: validated.states.length,
     jurisdictions_revalidated: validated.states.filter((state) => state.assessment_kind === "revalidation").length,
     jurisdictions_discovered: validated.states.filter((state) => state.assessment_kind === "source-discovery").length,
-    jurisdictions_official_source_validated: validated.states.filter((state) => ["official-source-validation", "official-source-correction"].includes(state.assessment_kind)).length,
+    jurisdictions_official_source_validated: validated.states.filter((state) => ["official-source-validation", "official-source-correction", "official-source-reassessment"].includes(state.assessment_kind)).length,
     jurisdictions_existing_governed_source_validated: validated.states.filter((state) => state.assessment_kind === "existing-governed-source-validation").length,
     hold_decisions: validated.states.filter((state) => state.decision === "hold").length,
     bounded_connector_decisions: validated.states.filter((state) => state.decision === "proceed-to-bounded-connector").length,

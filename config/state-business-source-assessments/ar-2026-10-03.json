@@ -1,0 +1,35 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "ar-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": { "abbreviation": "AR", "name": "Arkansas" },
+  "supersedes_assessment_id": "state-business-source-ar-20260922-v1",
+  "reassessment_reason": "Current official Tyler portal evidence establishes named subscriber bulk products, cadences, list-builder pricing, and subscriber-account pricing that were not captured precisely in the September 22 assessment. It still does not establish a usable schema, automation contract, or reuse rights.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": { "official_primary_sources_only": true, "record_requests": 0, "downloads": 0, "accounts_created": 0, "terms_accepted": 0, "fees_paid": 0, "contacts_made": 0, "portal_automation": false, "production_changes": 0 },
+  "access": {
+    "classification": "paid-subscriber-bulk-or-list-builder",
+    "bulk": "The official Tyler portal advertises Business Entity/Corporation Database Bulk Download for subscribers at $2,000 per month with daily, weekly, bi-weekly, and monthly downloads.",
+    "list_builder": "The official Special Request List Builder is advertised at $0.10 per record with a $10 minimum.",
+    "subscriber_account": "The official Arkansas subscriber-account page states $150 per year for the first 10 users and requires pre-activation.",
+    "api": "No official business-entity API, unattended retrieval contract, or corporate-specific automation permission was established.",
+    "search": "The separate official corporation search exposes Filing #, but search visibility does not establish the bulk schema, identifier lifecycle, or automation authority."
+  },
+  "fields": { "published": false, "summary": "The SOS guide says listings of existing entities can be prepared by corporate type and include entity and registered-agent names and addresses. No public bulk schema, sample, exact headers, layout, row counts, byte counts, checksums, status codebook, address-role dictionary, or Filing # lifecycle is published. Registered-agent and natural-person fields must be excluded." },
+  "active_status_semantics": "Registry existence, good standing, and any future bulk status values are administrative filing assertions, not proof of current business operation; no complete source status codebook is published.",
+  "statewide_completeness": "The portal advertises database bulk downloads and list construction, but no exact population, included entity classes, complete-snapshot control total, or full-versus-delta semantics are published. Statewide completeness is not established.",
+  "address_zip": "The guide mentions entity and registered-agent addresses, but it does not define a principal, mailing, or physical-site role or guarantee ZIP fields in the bulk product. Registered-agent and natural-person fields must be excluded; no retained address may be represented as a verified physical site.",
+  "automation_terms_fees": "Published prices and cadences do not authorize enrollment, payment, automated retrieval, or recurring use. The FAQ and generic agreement do not establish corporate-product-specific automation, retention, transformation, geocoding, derived-publication, or redistribution rights.",
+  "redistribution": "No reviewed official source grants retention, transformation, geocoding, derived-publication, or redistribution rights for the corporate bulk product or list-builder output.",
+  "temporal_refresh": "Daily, weekly, bi-weekly, and monthly download options are advertised, but no full-versus-delta definitions, deletion/tombstone handling, correction or replay window, archive policy, record controls, checksums, or as-of semantics are published.",
+  "citations": [
+    { "url": "https://cdb-manager.ark.org/login", "evidence": "Official Tyler portal product names, $2,000 monthly bulk subscription, advertised download cadences, and $0.10-per-record list builder with $10 minimum." },
+    { "url": "https://portal.arkansas.gov/tyler-arkansas-subscriber-account/", "evidence": "Official subscriber-account price and pre-activation requirement." },
+    { "url": "https://www.sos.arkansas.gov/uploads/bcs/DoingBusinessInArkansas2025.pdf", "evidence": "Official SOS guide describing existing-entity listings by corporate type and entity plus registered-agent names and addresses." },
+    { "url": "https://sos-corp-search.ark.org/index.php/corps", "evidence": "Official corporation search exposes Filing # but does not establish the bulk schema or identifier lifecycle." },
+    { "url": "https://www.ark.org/ina/sublegal_liab.html", "evidence": "Generic Arkansas agreement reviewed; it does not establish corporate-product-specific automation or downstream rights." }
+  ],
+  "unresolved_gates": ["unsigned-product-specific-terms", "zero-row-schema-layout", "exact-population-and-entity-scope", "stable-filing-number-lifecycle", "status-codebook", "address-role-and-zip-contract", "full-delta-deletion-replay-contract", "record-count-and-checksum-controls", "supported-automation", "retention-transformation-geocoding-derived-publication-redistribution-rights", "privacy-exclusions"],
+  "strongest_next_action": "Obtain unsigned product-specific terms and a zero-row person-free schema or layout covering population, entity classes, Filing # lifecycle, status and address dictionaries, full/delta/deletion/replay controls, counts, checksums, supported unattended delivery, and retention, transformation, geocoding, derived-publication and redistribution rights before any payment or enrollment."
+}
