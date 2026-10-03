@@ -1,0 +1,15 @@
+{
+  "policy_id": "kentucky-business-entity-bulk-offline",
+  "version": "1.0.0",
+  "publisher": "Kentucky Secretary of State",
+  "ownership": "Official published Business Entity Data File Formats company-family layout; no source data is bundled.",
+  "source_home": "https://www.sos.ky.gov/bus/Pages/Bulk-Data-Service.aspx",
+  "allowed_use": ["synthetic fixture validation", "offline inspection of an explicitly operator-supplied authorized package", "local person-minimized organization-registration review"],
+  "prohibited_use": ["network acquisition", "account creation", "payment", "terms acceptance", "publisher contact", "officer-file ingestion", "emitting registered-agent, applicant, parent-company, or other person-bearing fields", "inferring a blank profit field", "representing a principal office as a physical operating site", "representing registry status as verified current operation", "source authenticity or statewide completeness claims", "redistribution", "national admission", "production enrollment", "current-pointer changes"],
+  "attribution": "Source layout: Kentucky Secretary of State Business Entity Data File Formats.",
+  "retention": "Raw company-family files are person-bearing and internal. Normalized projections remain local-review-only pending an executed rights and retention review.",
+  "redistribution": "Not authorized by this profile.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Immediately discard registered-agent/address and applicant/title fields. Obsolete finance/share fields are also discarded, and officer files are not accepted. Principal-office fields are retained only as administrative evidence and may be residential or outside Kentucky.",
+  "contains_secrets": false
+}
