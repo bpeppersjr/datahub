@@ -127,6 +127,7 @@ export default function Home() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('Overview');
   const [operationsTab, setOperationsTab] = useState<OperationsTab>('Jobs');
   const [workspaceState, setWorkspaceState] = useState('');
+  const [workspaceZip, setWorkspaceZip] = useState('');
   const [workspaceCategory, setWorkspaceCategory] = useState('general-business');
   function navigateWorkspace(tab:WorkspaceTab){setWorkspaceTab(tab);window.requestAnimationFrame(()=>document.getElementById(`workspace-tab-${workspaceTabs.indexOf(tab)}`)?.focus());}
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -367,8 +368,8 @@ export default function Home() {
         <div className="workspace-stage" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
         {workspaceTab==='Overview'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
-        {workspaceTab==='ZIP & GDP'&&<ZipEconomyWorkspace stateCode={workspaceState}/>}
-        {workspaceTab==='Demographics'&&<DemographicEconomyWorkspace stateCode={workspaceState}/>}
+        {workspaceTab==='ZIP & GDP'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
+        {workspaceTab==='Demographics'&&<DemographicEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
         {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">

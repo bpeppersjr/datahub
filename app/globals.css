@@ -747,6 +747,17 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 .coverage-national-metrics small { line-height:1.5; color:var(--muted); }
 .workspace-path { display:flex; align-items:center; flex-wrap:wrap; gap:.75rem; padding:.75rem 0; }
 .workspace-path button { font:inherit; padding:.5rem .75rem; }
+.workspace-filters { display:flex; flex-wrap:wrap; align-items:end; gap:.75rem; margin:1rem 0; }
+.workspace-filters label, .focused-workspace form label { display:grid; gap:.35rem; }
+.state-completion-value { display:flex; flex-direction:column; margin:.75rem 0; }
+.state-completion-value strong { color:var(--cyan); font-size:2.4rem; line-height:1.15; }
+.state-completion-value span { color:var(--muted); }
+.state-industry-progress { display:grid; gap:.6rem; margin-bottom:1rem; }
+.state-industry-progress > div { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.2rem .75rem; padding:.6rem; border:1px solid var(--border); border-radius:.4rem; }
+.state-industry-progress strong { color:var(--cyan); }
+.state-industry-progress small { grid-column:1/-1; color:var(--muted); }
+.app-header { position:sticky; top:0; z-index:30; background:var(--bg); }
+.coverage-national-metrics article { padding:.75rem; }
 .economy-context { padding:.75rem; border-left:3px solid #65d5e3; background:#182331; }
 #economy-panel { min-height:12rem; }
 .focused-workspace table th small { display:block; overflow-wrap:anywhere; font-weight:normal; }

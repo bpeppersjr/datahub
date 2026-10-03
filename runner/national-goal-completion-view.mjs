@@ -39,6 +39,22 @@ function comparableAvailability(availability) {
   };
 }
 
+function aggregateCategoryAvailability(categories) {
+  const totals = categories.reduce((result, category) => ({
+    available: result.available + category.dataset_availability.available,
+    measured: result.measured + category.dataset_availability.measured,
+    unmeasured: result.unmeasured + category.dataset_availability.unmeasured,
+    denominator: result.denominator + category.dataset_availability.denominator,
+  }), { available: 0, measured: 0, unmeasured: 0, denominator: 0 });
+  const measurementStatus = totals.measured === 0 ? "unmeasured" : totals.unmeasured > 0 ? "partially-measured" : "measured";
+  const availability = { ...totals, measurement_status: measurementStatus };
+  return {
+    ...availability,
+    percent: percent(totals.available, totals.denominator),
+    comparable_availability: comparableAvailability(availability),
+  };
+}
+
 function unavailable(status) {
   return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], category_summaries: [], selected: null, scope_comparison: scopeUnavailable() };
 }
@@ -113,6 +129,12 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
       authorization_state_counts: statusCounts(datasets, "authorization", "state"),
       broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
   });
+  const overallJurisdictions = report.jurisdictions.map((jurisdiction) => ({
+    code: jurisdiction.code,
+    name: jurisdiction.name,
+    ...aggregateCategoryAvailability(jurisdiction.categories),
+    broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available",
+  }));
   const selectedJurisdiction = state ? report.jurisdictions.find((row) => row.code === state) : null;
   if (state && !selectedJurisdiction) throw Object.assign(new Error("State is not in the 50-state and D.C. matrix."), { statusCode: 400 });
   const selected = selectedJurisdiction ? selectedJurisdiction.categories.find((row) => row.category_id === category) : null;
@@ -151,9 +173,10 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
     available: true, status: "verified-immutable-release", release_id: report.release_id, created_at: report.created_at,
     denominator: report.denominator, category, categories: categoryIds,
     all_business_completion_percent: null,
-    jurisdictions, category_summaries: categorySummaries,
+    jurisdictions, overall_jurisdictions: overallJurisdictions, category_summaries: categorySummaries,
     broad_layer_gaps: jurisdictions.filter((row) => row.broad_layer_gap).length,
     selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, category: selected, adjacent_evidence: adjacentEvidence ? [adjacentEvidence] : [] } : null,
+    overall_selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, ...aggregateCategoryAvailability(selectedJurisdiction.categories) } : null,
     limitations: report.limitations,
     scope_comparison: await configuredIndustryScopeComparison(report, { root }),
   };
