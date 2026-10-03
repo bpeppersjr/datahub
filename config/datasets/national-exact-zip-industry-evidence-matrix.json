@@ -1,16 +1,16 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "dataset_id": "national-exact-zip-industry-evidence-matrix",
   "status": "registered-pointer-free-local-review-evidence",
   "runtime_pointer": null,
   "production_enrollment": false,
   "retained_release": {
-    "release_id": "national-exact-zip-industry-evidence-matrix-d6e4044f0743429b8e974cfe3a9b7604b7216fdf538354071a9c79b28f8f4b5f",
-    "manifest": "data/national-exact-zip-industry-evidence-matrix/releases/national-exact-zip-industry-evidence-matrix-d6e4044f0743429b8e974cfe3a9b7604b7216fdf538354071a9c79b28f8f4b5f/manifest.json",
-    "manifest_sha256": "809116fc1786c79759ffc5a6a41abbf2bad44d03a13ce7f7d3837a8eef2a3da1",
+    "release_id": "national-exact-zip-industry-evidence-matrix-142c8241a88743edbd536e925e4e4eb5de1810f095aa6ada13848295898e6c21",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix/releases/national-exact-zip-industry-evidence-matrix-142c8241a88743edbd536e925e4e4eb5de1810f095aa6ada13848295898e6c21/manifest.json",
+    "manifest_sha256": "54d6039595ea386f4359c1a8dbb1c020cd63e97175d45904842f403d5a99f391",
     "zip5_rows": 48194,
     "industry_cells": 433746,
-    "artifact_bytes": 94354127,
+    "artifact_bytes": 146066289,
     "artifact_count": 100
   },
   "claims": {
