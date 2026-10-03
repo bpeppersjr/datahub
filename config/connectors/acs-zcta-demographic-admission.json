@@ -1,0 +1,46 @@
+{
+  "connector_id": "acs-zcta-demographic-admission",
+  "version": "1.0.0",
+  "description": "Offline-only prerequisite inspection and closed-schema candidate-row validation for ACS 5-year Census ZCTA demographics; acquisition, durable admission, publication, pointers, and production enrollment are disabled.",
+  "implementation_status": "implemented-offline-prerequisite-inspection-only",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "lifecycle_status": {"preflight":"implemented-local-contract-and-pin-validation","plan":"not-implemented","acquire":"disabled-no-network-or-source-ingestion","validate":"implemented-governed-zcta-replay-and-candidate-row-contract-only","normalize":"not-implemented","reconcile":"not-implemented","quality_gate":"prerequisite-blockers-reported-fail-closed","publish":"disabled-no-release-or-current-pointer","finalize":"inspection-result-only-no-persisted-artifact"},
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "config_path": { "type": "string", "const": "config/acs-zcta-demographic-admission.json", "default": "config/acs-zcta-demographic-admission.json" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["acs-zcta-demographic-admission-config-json", "us-census-acs-zcta-demographics-source-policy-json", "acs-zcta-demographic-official-metadata-registry-json", "acs-zcta-demographic-authorization-registry-json", "verified-us-census-geography-manifest-json", "governed-us-census-zcta-index-jsonl"],
+  "output_artifact_types": ["acs-zcta-demographic-prerequisite-inspection-json"],
+  "allowed_hosts": [],
+  "redirect_policy": "No network transport exists. URLs, hosts, redirects, acquisition, and download are outside this validator.",
+  "provider_budget_key": "offline-acs-zcta-demographic-validation",
+  "resource_class": "local-read-only-cpu-disk",
+  "execution_limits": {
+    "network_requests": 0,
+    "maximum_config_bytes": 200000,
+    "maximum_source_policy_bytes": 200000,
+    "maximum_official_metadata_registry_bytes": 500000,
+    "maximum_authorization_registry_bytes": 500000,
+    "maximum_geography_manifest_bytes": 500000,
+    "maximum_zcta_artifact_bytes": 20000000,
+    "maximum_zcta_line_bytes": 65536,
+    "expected_zcta_rows": 33791,
+    "maximum_candidate_rows_per_call": 1,
+    "expected_demographic_base_variables": 189,
+    "maximum_annotation_characters": 64,
+    "production_admission_enabled": false,
+    "publication_enabled": false
+  },
+  "retry": "No retry or acquisition path exists. Invalid or incomplete candidate rows fail closed and remain unadmitted.",
+  "checkpoint": "No checkpoint or durable receipt is created. Descriptor-bound reads produce one nonpersistent inspection result; candidate-row validation is in-memory only.",
+  "idempotency": "Pinned prerequisite SHA-256 values and exact governed ZCTA replay yield the same inspection; identical candidate rows yield the same validation decision. No state is written.",
+  "cancellation": "The surrounding prerequisite inspection accepts AbortSignal and creates no output. Candidate-row validation is synchronous, bounded to one row, and writes nothing.",
+  "source_policy": "config/source-policies/us-census-acs-zcta-demographics.json",
+  "retention_profile": "The validator retains nothing. Future retained ACS inputs require exact metadata and authorization receipts plus a separately reviewed immutable publication lifecycle.",
+  "produced_entities": ["acs-zcta-demographic-admission-prerequisite-assessment"],
+  "produced_identifiers": ["zcta", "acs-detailed-table-variable"]
+}

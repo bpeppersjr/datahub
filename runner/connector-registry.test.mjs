@@ -97,7 +97,7 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 91);
+  assert.equal(registry.connectorCount, 92);
   assert.equal(registry.get("ia-childcare-centers-acquisition").resource_class, "bounded-center-directory");
   assert.equal(registry.get("ia-childcare-schema-probe").resource_class, "bounded-schema-assessment");
   assert.deepEqual(registry.get("ut-childcare-centers-app").allowed_hosts, []);
@@ -126,7 +126,7 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("ak-active-business-licenses-app").version, "1.0.0");
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
-  assert.equal(registry.policyProfileCount, 72);
+  assert.equal(registry.policyProfileCount, 73);
   assert.equal(registry.get("national-irs-eo-bmf-organization-coverage").implementation_status, "implemented-release-only");
   assert.equal(registry.get("national-cms-nppes-organization-practice-location-coverage").implementation_status, "implemented-release-only");
   assert.equal(registry.get("usps-city-state-admission").implementation_status, "offline-governed-prerequisite-only");
@@ -134,6 +134,16 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("usps-city-state-operational-denominator-candidate").implementation_status, "offline-local-candidate-only");
   assert.deepEqual(registry.get("usps-city-state-operational-denominator-candidate").allowed_hosts, []);
   assert.equal(registry.get("usps-city-state-operational-denominator-candidate").resource_class, "local-cpu-disk");
+  assert.equal(registry.get("acs-zcta-demographic-admission").implementation_status, "implemented-offline-prerequisite-inspection-only");
+  assert.deepEqual(registry.get("acs-zcta-demographic-admission").allowed_hosts, []);
+  assert.equal(registry.get("acs-zcta-demographic-admission").resource_class, "local-read-only-cpu-disk");
+  assert.deepEqual(registry.get("acs-zcta-demographic-admission").configuration_defaults, {config_path: "config/acs-zcta-demographic-admission.json"});
+  const acsManifest = JSON.parse(await readFile(new URL("../config/connectors/acs-zcta-demographic-admission.json", import.meta.url), "utf8"));
+  assert.equal(acsManifest.execution_limits.network_requests, 0);
+  assert.equal(acsManifest.execution_limits.production_admission_enabled, false);
+  assert.equal(acsManifest.execution_limits.publication_enabled, false);
+  assert.equal(acsManifest.lifecycle_status.acquire, "disabled-no-network-or-source-ingestion");
+  assert.equal(acsManifest.lifecycle_status.publish, "disabled-no-release-or-current-pointer");
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
   }
