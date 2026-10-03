@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 90 is the current clean-repository successor after committing the governed USPS acceptance path and retained IRS state-adjacent evidence for the broad-business completion view.
+Plan 90 was superseded by Plan 91 after committing the simplified tab workspace and governed ZCTA economic-model readiness release. It is no longer eligible for approval or execution.
 
 - Run ID: `production-cms-directories-20261002-90`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-90.json`
@@ -19,7 +19,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Independent cross-review closed all findings. The focused suite ran 39 tests with zero failures. The full repository gate ran 3,009 tests: 2,934 passed, 75 skipped, and zero failed. Lint completed with four pre-existing warnings and no errors; web and desktop builds, desktop control-plane smoke, 200% keyboard UI acceptance, and production dependency audit passed.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and confirmation SHA-256. Plan 89 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 90.
+This document and plan do not constitute approval. Plan 91 supersedes Plan 90, Plan 89, and every earlier CMS directory plan or approval. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 90.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-90 --expected-plan-sha256 ea2b3dc41c6f3e0b3e59368b59c3b9dda9443f7ca01b359c4829117e3825aad3
