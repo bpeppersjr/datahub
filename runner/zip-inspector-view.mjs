@@ -1,7 +1,7 @@
 import {compatibleZipQualification} from './zip-inspector-governance.mjs';
 import {unavailableCensusZbpZipProfile} from './census-zbp-zip-profile-reader.mjs';
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, operationalAdmission = null, censusZbpProfile = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, sourceNativeStatusReader = null, operationalAdmission = null, censusZbpProfile = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -41,6 +41,8 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       let raw;try{raw=await qualificationReader({zip,categoryId,signal});}catch{signal?.throwIfAborted();}
       qualification=compatibleZipQualification(raw,{zip,categoryId,catalog});
     }
+    let sourceNativeStatusDistribution=null;
+    if(sourceNativeStatusReader)try{sourceNativeStatusDistribution=await sourceNativeStatusReader({zip5:zip,signal});}catch{signal?.throwIfAborted();}
     const admission=operationalAdmission?await operationalAdmission({signal}):null;
     if (indexed) await indexed.recheck();
     if(admission)await admission.recheck();
@@ -120,6 +122,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       schema_version: "1.0.0",
       ...(censusZbpProfile?{census_zbp_industry_profile:zbpValue}:{}),
       ...(qualificationReader?{qualification}:{}),
+      ...(sourceNativeStatusReader?{source_native_status_distribution:sourceNativeStatusDistribution}:{}),
       ...(admission?{operational_admission:admission.value}:{}),
       zip5: zip,
       evidence_status: selected || qualityRow ? "selected-evidence-present" : "absent-from-selected-evidence",

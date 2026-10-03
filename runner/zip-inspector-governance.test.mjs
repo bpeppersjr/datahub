@@ -34,6 +34,6 @@ test('tracked USPS candidate is explicitly not admitted; missing metadata is unk
 
 test('authenticated inspector route supplies both bounded readers; standalone route remains compatible',async()=>{
  const server=await readFile(new URL('./server.mjs',import.meta.url),'utf8');
- assert.match(server,/createZipInspectorView\(\{ indexedEvidence: readIndexedZipInspectorEvidence, qualificationReader: readZipEvidenceQualification, operationalAdmission: readZipOperationalAdmission/);
+ assert.match(server,/createZipInspectorView\(\{ indexedEvidence: readIndexedZipInspectorEvidence, qualificationReader: readZipEvidenceQualification, sourceNativeStatusReader: readZipSourceStatusEnvelope, operationalAdmission: readZipOperationalAdmission/);
  assert.match(server,/zipEvidenceQualificationHttp\(request,response,url/);
 });

@@ -34,6 +34,7 @@ import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from 
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
 import { readZipOperationalAdmission } from './zip-inspector-governance.mjs';
 import { readRegisteredCensusZbpZipProfile } from './census-zbp-zip-profile-reader.mjs';
+import { readZipSourceStatusEnvelope } from './zip-source-status-index.mjs';
 import { organizationZipEvidenceReader } from './organization-zip-evidence-reader.mjs';
 import { organizationZipEvidenceHttp } from './organization-zip-evidence-http.mjs';
 import { broadOrganizationAuthorizationPacketHttp } from './broad-organization-authorization-packet-http.mjs';
@@ -194,7 +195,7 @@ const store = await createStore();
 const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
-const zipInspectorView = createZipInspectorView({ indexedEvidence: readIndexedZipInspectorEvidence, qualificationReader: readZipEvidenceQualification, operationalAdmission: readZipOperationalAdmission, censusZbpProfile: readRegisteredCensusZbpZipProfile, pharmacyCoverage: async ({ zip }) => {
+const zipInspectorView = createZipInspectorView({ indexedEvidence: readIndexedZipInspectorEvidence, qualificationReader: readZipEvidenceQualification, sourceNativeStatusReader: readZipSourceStatusEnvelope, operationalAdmission: readZipOperationalAdmission, censusZbpProfile: readRegisteredCensusZbpZipProfile, pharmacyCoverage: async ({ zip }) => {
   const result = await lookupNationalPharmacyIndustryZip5(zip);
   return result.row ? { ...result.row, source: { dataset_id: 'national-pharmacy-industry-coverage', release_id: result.verified.release_id } } : null;
 }, snapRetailerCoverage: async ({ zip }) => {

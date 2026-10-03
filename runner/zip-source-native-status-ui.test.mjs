@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
+const require=createRequire(import.meta.url),source=await readFile(new URL('../app/zip-source-native-status.tsx',import.meta.url),'utf8'),exports={};runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,require});
+const text=t=>t==null||typeof t==='boolean'?'':typeof t!=='object'?String(t):Array.isArray(t)?t.map(text).join(''):text(t.props?.children);
+test('source-native status UI preserves the narrow claim boundary',()=>{const tree=exports.default({view:{available:true,status:'present',zip5:'10001',count_unit:'registry-location-profile',rows:[{source_id:'source-a',source_release_id:'release-a',status_kind:'null',status_sha256:'a'.repeat(64),count:0}]}}),value=text(tree);assert.match(value,/source-specific/);assert.match(value,/not a universal active-business flag/);assert.match(value,/0 registry location profiles/);assert.match(value,/Not current operation/);assert.match(value,/USPS validity/);assert.match(value,/ZCTA assignment/);assert.match(value,/Denominator-only ZIPs remain separate/);assert.doesNotMatch(value,/a{64}/);});
+test('unavailable states remain distinct and do not invent zero',()=>{for(const [status,phrase] of [['not-enrolled','Not enrolled'],['incompatible-lineage','lineage differs'],['corrupt-release','integrity checks']]){const value=text(exports.default({view:{available:false,status,rows:[]}}));assert.match(value,new RegExp(phrase));assert.match(value,/No zero or status claim was substituted/);}});
