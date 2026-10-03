@@ -9,10 +9,11 @@ import {
 } from "./broad-organization-acquisition-backlog.mjs";
 import { APP_ROOT } from "./paths.mjs";
 
-export const BROAD_ORGANIZATION_AUTHORIZATION_PACKET_SCHEMA_VERSION = "1.0.0";
+export const BROAD_ORGANIZATION_AUTHORIZATION_PACKET_SCHEMA_VERSION = "2.0.0";
 export const BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID = "broad-organization-authorization-packet";
 export const DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT = path.join(APP_ROOT, "data", BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID);
 export const DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases");
+const CURRENT_FIRST_WAVE = Object.freeze(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
 
 const NO_ACTION_BOUNDARY = Object.freeze({
   contact_authorized: false,
@@ -45,6 +46,8 @@ const GATE_CONTRACTS = Object.freeze({
   "automation-boundary": ["Written description of allowed and prohibited automation for the identified product, including rate and authentication requirements.", "Permitted operations are explicit and compatible with a reviewed bounded connector; prohibited scraping, browser automation, and access-control bypass remain excluded."],
   "bulk-route": ["Official product page or written product specification identifying a current complete organization-level bulk route, exact population scope, exclusions, delivery mode, and control totals; metadata only.", "A current complete organization-level extract and its bounded delivery route are documented without accessing records; search/login access, filing access, statutory availability, or an unbounded portal is not accepted as bulk-delivery evidence."],
   "change-contract": ["Schema-only documentation describing full snapshots, deltas, deletions, corrections, replay, cadence, timestamps, and checksums.", "A repeatable reconciliation contract identifies inserts, updates, deletions, replay behavior, observation time, and integrity controls; unresolved semantics remain explicit."],
+  "complete-snapshot-route": ["Official non-row-bearing documentation identifying a complete statewide snapshot route, population scope, exclusions, cadence, delivery method, and control totals.", "A current repeatable full-snapshot route and its exact organization population are documented without accessing record rows; search-only, capped, sampled, or historical access is not accepted."],
+  "csv-schema": ["Official versioned CSV header, schema, or data dictionary without record values.", "CSV fields, types, nullability, keys, quoting/encoding rules, address roles, status semantics, and version-change behavior are documented sufficiently for a privacy-reviewed parser."],
   "current-bulk-scope": ["Current official documentation defining bulk-export population, included entity classes, exclusions, and control counts.", "The intended complete legal-entity population and material exclusions are documented with a publisher control total or an explicit statement that no control total exists."],
   "eligible-address-role": ["Official schema-only field dictionary distinguishing organization addresses from agent, officer, owner, and residential addresses.", "A deterministic allowlist identifies organization-level administrative address roles; personal, agent, residential, and ambiguous roles are excluded."],
   "entity-type-scope": ["Official product scope statement enumerating domestic, foreign, active, inactive, and entity-type coverage.", "Included entity types and statuses are enumerated and reconcile to the intended organization scope; unsupported classes are not implied covered."],
@@ -130,14 +133,19 @@ function makeRequestItem(stateAbbreviation, gate) {
 }
 
 export function deriveBroadOrganizationAuthorizationPacket(backlog, backlogManifestBytes, backlogManifest) {
+  const historical = backlogManifest?.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0";
+  const current = backlogManifest?.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0";
   if (backlog?.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID
-      || backlog?.states?.length !== 43
+      || (!historical && !current)
+      || backlog?.schema_version !== (historical ? "1.0.0" : "2.0.0")
+      || backlog?.states?.length !== (historical ? 43 : 40)
       || backlog?.scope?.first_wave_size !== 10
       || backlog?.scope?.acquisition_authorized !== false) fail("verified backlog identity or authority boundary is invalid");
   const firstWave = backlog.states.filter((row) => row.first_wave === true);
   const stateCodes = firstWave.map((row) => row.assessment?.state_abbreviation);
   if (firstWave.length !== 10 || JSON.stringify(stateCodes) !== JSON.stringify(backlog.scope.first_wave_state_abbreviations)
       || JSON.stringify(stateCodes) !== JSON.stringify(backlogManifest.first_wave_state_abbreviations)) fail("backlog first-wave selection does not match its manifest");
+  if (current && JSON.stringify(stateCodes) !== JSON.stringify(CURRENT_FIRST_WAVE)) fail("current backlog first wave is not the exact audited ten-jurisdiction roster");
   const states = firstWave.map(({ assessment }) => {
     if (!Array.isArray(assessment.unresolved_gates) || !Array.isArray(assessment.required_exclusions)) fail(`${assessment.state_abbreviation} lacks gates or privacy exclusions`);
     return {
@@ -178,7 +186,7 @@ export function deriveBroadOrganizationAuthorizationPacket(backlog, backlogManif
     };
   });
   return {
-    schema_version: BROAD_ORGANIZATION_AUTHORIZATION_PACKET_SCHEMA_VERSION,
+    schema_version: historical ? "1.0.0" : BROAD_ORGANIZATION_AUTHORIZATION_PACKET_SCHEMA_VERSION,
     dataset_id: BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,
     observed_at: backlog.observed_at,
     purpose: "Offline authorization-packet specification for future review; not an authorization, source request, acquisition, or production instruction.",
@@ -200,6 +208,7 @@ export function deriveBroadOrganizationAuthorizationPacket(backlog, backlogManif
       contact_authorized: false,
       row_bearing_evidence_authorized: false,
       source_actions_performed: 0,
+      ...(current ? { network_requests: 0 } : {}),
       current_pointer_changed: false,
       no_contact_no_download_no_payment_no_record_request: true,
       action_boundary: {
@@ -214,14 +223,17 @@ export function deriveBroadOrganizationAuthorizationPacket(backlog, backlogManif
 export function buildBroadOrganizationAuthorizationPacketManifest(packet) {
   const bytes = jsonBytes(packet);
   const packetHash = sha256(bytes);
-  const releaseId = `${BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID}-${packet.observed_at}-${packetHash.slice(0, 12)}`;
+  const observedToken = packet.observed_at.replace(/[^A-Za-z0-9._-]/g, "-");
+  const releaseId = `${BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID}-${observedToken}-${packetHash.slice(0, 12)}`;
+  const historical = packet.schema_version === "1.0.0";
   return {
-    schema_version: "broad-organization-authorization-packet-manifest@1.0.0",
+    schema_version: `broad-organization-authorization-packet-manifest@${packet.schema_version}`,
     dataset_id: BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,
     release_id: releaseId,
     status: "published",
     derived_only: true,
     source_actions_performed: 0,
+    ...(!historical ? { network_requests: 0 } : {}),
     current_pointer_changed: false,
     source_backlog_release_id: packet.source_backlog.release_id,
     source_backlog_manifest_sha256: packet.source_backlog.manifest_sha256,
@@ -240,6 +252,7 @@ export async function buildBroadOrganizationAuthorizationPacket({
 } = {}) {
   if (!backlogManifestPath) fail("an exact verified backlog manifest path is required");
   const source = await verifyBroadOrganizationAcquisitionBacklog(backlogManifestPath);
+  if (source.manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0") fail("new packet builds require the current v2 backlog release");
   const expectedSourcePath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, source.manifest.release_id, "manifest.json");
   if (path.resolve(backlogManifestPath) !== path.resolve(expectedSourcePath)) fail("source backlog manifest must be selected from its canonical immutable release directory");
   const backlogManifestBytes = await readFile(backlogManifestPath);
@@ -302,12 +315,13 @@ export async function verifyBroadOrganizationAuthorizationPacket(manifestPath, {
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink()) fail("manifest must be a regular file");
   const manifestBytes = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  const expectedKeys = ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "current_pointer_changed", "source_backlog_release_id", "source_backlog_manifest_sha256", "source_backlog_artifact_sha256", "state_count", "request_item_count", "first_wave_state_abbreviations", "artifacts"];
+  const historical = manifest.schema_version === "broad-organization-authorization-packet-manifest@1.0.0";
+  const expectedKeys = ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", ...(!historical ? ["network_requests"] : []), "current_pointer_changed", "source_backlog_release_id", "source_backlog_manifest_sha256", "source_backlog_artifact_sha256", "state_count", "request_item_count", "first_wave_state_abbreviations", "artifacts"];
   if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify([...expectedKeys].sort())) fail("manifest schema drifted");
-  if (manifest.schema_version !== "broad-organization-authorization-packet-manifest@1.0.0"
+  if ((!historical && manifest.schema_version !== "broad-organization-authorization-packet-manifest@2.0.0")
       || manifest.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID
       || manifest.status !== "published" || manifest.derived_only !== true
-      || manifest.source_actions_performed !== 0 || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary is invalid");
+      || manifest.source_actions_performed !== 0 || (!historical && manifest.network_requests !== 0) || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary is invalid");
   const releaseDirectory = path.dirname(manifestPath);
   const releaseStat = await lstat(releaseDirectory);
   if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) fail("release directory must be real");
@@ -321,13 +335,14 @@ export async function verifyBroadOrganizationAuthorizationPacket(manifestPath, {
   if (packetBytes.length !== manifest.artifacts[0].bytes || sha256(packetBytes) !== manifest.artifacts[0].sha256) fail("packet artifact checksum mismatch");
   const packet = JSON.parse(packetBytes.toString("utf8"));
   if (packet.source_backlog.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID
-      || !/^broad-organization-acquisition-backlog-20\d{2}-\d{2}-\d{2}-[0-9a-f]{12}$/.test(packet.source_backlog.release_id ?? "")) fail("packet references an unsupported backlog release");
+      || !/^broad-organization-acquisition-backlog-20\d{2}-\d{2}-\d{2}(?:T\d{2}-\d{2}-\d{2}\.\d{3}Z)?-[0-9a-f]{12}$/.test(packet.source_backlog.release_id ?? "")) fail("packet references an unsupported backlog release");
   const sourceManifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, packet.source_backlog.release_id, "manifest.json");
   const sourceManifestStat = await lstat(sourceManifestPath);
   if (!sourceManifestStat.isFile() || sourceManifestStat.isSymbolicLink()) fail("source backlog manifest must be a regular file");
   const sourceManifestBytes = await readFile(sourceManifestPath);
   if (sha256(sourceManifestBytes) !== packet.source_backlog.manifest_sha256) fail("source backlog manifest lineage checksum mismatch");
   const source = await verifyBroadOrganizationAcquisitionBacklog(sourceManifestPath);
+  if (source.manifest.schema_version !== (historical ? "broad-organization-acquisition-backlog-manifest@1.0.0" : "broad-organization-acquisition-backlog-manifest@2.0.0")) fail("packet and backlog lineage versions do not match");
   if (source.manifest.artifacts[0].sha256 !== packet.source_backlog.artifact_sha256) fail("source backlog artifact lineage checksum mismatch");
   const expectedPacket = deriveBroadOrganizationAuthorizationPacket(source.backlog, sourceManifestBytes, source.manifest);
   const expectedManifest = buildBroadOrganizationAuthorizationPacketManifest(expectedPacket);

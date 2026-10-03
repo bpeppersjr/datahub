@@ -29,6 +29,8 @@ test("packet derives exactly ten verified first-wave jurisdictions and one bound
     const manifestBytes = await readFile(source.manifestPath);
     const packet = deriveBroadOrganizationAuthorizationPacket(source.backlog.backlog, manifestBytes, source.backlog.manifest);
     assert.equal(packet.states.length, 10);
+    assert.equal(packet.schema_version, "2.0.0");
+    assert.deepEqual(packet.states.map((state) => state.state_abbreviation), ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
     assert.deepEqual(packet.states.map((state) => state.state_abbreviation), source.backlog.manifest.first_wave_state_abbreviations);
     assert.equal(packet.scope.jurisdictions, 10);
     assert.equal(packet.states.reduce((count, state) => count + state.request_items.length, 0), packet.scope.request_items);
@@ -55,6 +57,7 @@ test("packet derives exactly ten verified first-wave jurisdictions and one bound
     }
     assert.equal(packet.scope.acquisition_authorized, false);
     assert.equal(packet.scope.source_actions_performed, 0);
+    assert.equal(packet.scope.network_requests, 0);
     assert.equal(packet.source_backlog.manifest_sha256, hash(manifestBytes));
     assert.equal(packet.source_backlog.artifact_sha256, source.backlog.manifest.artifacts[0].sha256);
   } finally {
@@ -73,6 +76,7 @@ test("publishes a content-derived packet release and verifies backlog and assess
     assert.equal(verified.packet.source_backlog.manifest_sha256, hash(await readFile(source.manifestPath)));
     assert.equal(verified.packet.scope.current_pointer_changed, false);
     assert.equal(result.manifest.source_actions_performed, 0);
+    assert.equal(result.manifest.network_requests, 0);
     const repeated = await buildBroadOrganizationAuthorizationPacket({ backlogManifestPath: source.manifestPath, outputRoot: path.join(root, "packet") });
     assert.equal(repeated.reused_existing_release, true);
   } finally {
@@ -95,7 +99,7 @@ test("rejects a rehashed packet whose gate boundary widens authority", async () 
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.artifacts[0].bytes = packetBytes.length;
     manifest.artifacts[0].sha256 = hash(packetBytes);
-    manifest.release_id = `${manifest.dataset_id}-${packet.observed_at}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
+    manifest.release_id = `${manifest.dataset_id}-${packet.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const newDirectory = path.join(path.dirname(oldDirectory), manifest.release_id);
     await rename(oldDirectory, newDirectory);
@@ -119,7 +123,7 @@ test("rejects changed source backlog lineage and unexpected packet files", async
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.artifacts[0].bytes = packetBytes.length;
     manifest.artifacts[0].sha256 = hash(packetBytes);
-    manifest.release_id = `${manifest.dataset_id}-${packet.observed_at}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
+    manifest.release_id = `${manifest.dataset_id}-${packet.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const tamperedDirectory = path.join(path.dirname(built.releaseDirectory), manifest.release_id);
     await rename(built.releaseDirectory, tamperedDirectory);
@@ -132,6 +136,19 @@ test("rejects changed source backlog lineage and unexpected packet files", async
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("continues to verify the immutable historical v1 packet and backlog lineage", async () => {
+  const manifestPath = path.join(DATA_DIR, "broad-organization-authorization-packet", "releases", "broad-organization-authorization-packet-2026-09-22-99e3b9c24e75", "manifest.json");
+  const verified = await verifyBroadOrganizationAuthorizationPacket(manifestPath);
+  assert.equal(verified.manifest.schema_version, "broad-organization-authorization-packet-manifest@1.0.0");
+  assert.equal(verified.packet.schema_version, "1.0.0");
+  assert.deepEqual(verified.packet.states.map((state) => state.state_abbreviation).slice(0, 2), ["AK", "DC"]);
+});
+
+test("new builds reject the historical v1 backlog as a current packet source", async () => {
+  const historicalBacklog = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
+  await assert.rejects(buildBroadOrganizationAuthorizationPacket({ backlogManifestPath: historicalBacklog }), /current v2 backlog/);
 });
 
 test("cancelled build cleans only its owned staging directory", async () => {

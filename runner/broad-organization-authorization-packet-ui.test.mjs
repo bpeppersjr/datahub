@@ -7,12 +7,14 @@ import ts from "typescript";
 const source = await readFile(new URL("../app/broad-organization-authorization-packet.tsx", import.meta.url), "utf8");
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 const requestItem = (state) => ({ request_item_id: `${state}-schema`, unresolved_gate: "schema", request_item_type: "non-row-bearing-evidence-specification", row_bearing: false, request_item: "Review schema documentation only.", required_evidence_type: "Header-only schema", acceptance_criterion: "No source rows and fields are classified.", action_boundary: { contact_authorized: false, contact_performed: false, download_authorized: false, download_performed: false, payment_authorized: false, payment_performed: false, record_request_authorized: false, records_requested: 0, row_bearing_evidence_authorized: false, production_change_authorized: false, no_contact: true, no_download: true, no_payment: true, no_record_request: true, no_contact_no_download_no_payment_no_record_request: true } });
-const view = (states = ["AK", "DC"]) => ({
-  schema_version: "broad-organization-authorization-packet-management-view@1.0.0", available: true,
-  metadata: { release_id: "packet-fixture", observed_at: "2026-09-22", jurisdiction_count: 10, request_item_count: 2, first_wave_state_abbreviations: states },
-  source_lineage: { backlog_release_id: "backlog-fixture", backlog_manifest_sha256: "a".repeat(64), backlog_artifact_sha256: "b".repeat(64), assessment_catalog_id: "catalog-fixture", assessment_catalog_sha256: "c".repeat(64) },
-  authority: { approval_granted: false, acquisition_authorized: false, contact_authorized: false, download_authorized: false, payment_authorized: false, record_request_authorized: false, row_bearing_evidence_authorized: false, production_change_authorized: false, source_actions_performed: 0, contact_performed: false, download_performed: false, payment_performed: false, records_requested: 0, current_pointer_changed: false, evidence_specification_is_approval: false },
-  states: states.map((code) => ({ state_abbreviation: code, state_name: code === "AK" ? "Alaska" : "District of Columbia", assessment_provenance: { assessment_id: `${code}-assessment`, assessment_kind: "source-discovery", observed_at: "2026-09-03" }, unresolved_gates: ["schema"], privacy_exclusions: ["Person-linked fields"], legal_status_limitations: ["Statuses are not proof of operation."], address_limitations: ["Reported address is not a physical site."], request_items: [requestItem(code)] })),
+const names = { IL: "Illinois", MS: "Mississippi", AR: "Arkansas", KY: "Kentucky", HI: "Hawaii", KS: "Kansas", NV: "Nevada", UT: "Utah", WA: "Washington", OK: "Oklahoma" };
+const currentStates = Object.keys(names);
+const view = (states = currentStates) => ({
+  schema_version: "broad-organization-authorization-packet-management-view@2.0.0", available: true,
+  metadata: { release_id: "packet-fixture", observed_at: "2026-09-23T15:28:41.546Z", jurisdiction_count: 10, request_item_count: 80, first_wave_state_abbreviations: states },
+  source_lineage: { backlog_release_id: "backlog-fixture", backlog_manifest_sha256: "a".repeat(64), backlog_artifact_sha256: "b".repeat(64), assessment_catalog_id: "catalog-fixture", assessment_catalog_sha256: "c".repeat(64), source_matrix_release_id: "matrix-fixture", source_matrix_manifest_sha256: "d".repeat(64), source_matrix_artifact_sha256: "e".repeat(64) },
+  authority: { approval_granted: false, acquisition_authorized: false, contact_authorized: false, download_authorized: false, payment_authorized: false, record_request_authorized: false, row_bearing_evidence_authorized: false, production_change_authorized: false, source_actions_performed: 0, network_requests: 0, contact_performed: false, download_performed: false, payment_performed: false, records_requested: 0, current_pointer_changed: false, evidence_specification_is_approval: false },
+  states: states.map((code) => ({ state_abbreviation: code, state_name: names[code], assessment_provenance: { assessment_id: `${code}-assessment`, assessment_kind: "source-discovery", observed_at: "2026-09-03" }, unresolved_gates: ["schema"], privacy_exclusions: ["Person-linked fields"], legal_status_limitations: ["Statuses are not proof of operation."], address_limitations: ["Reported address is not a physical site."], request_items: [requestItem(code)] })),
 });
 
 function fixture(runnerJson) {
@@ -53,15 +55,18 @@ test("read-only packet panel loads verified view, filters jurisdictions, and exp
   f.mount(); await settle();
   let tree = f.render();
   assert.match(textOf(tree), /Evidence specification only/);
+  assert.match(textOf(tree), /10 jurisdictions · 80 evidence specifications/);
+  assert.match(textOf(tree), /network requests 0 · source actions 0/);
+  assert.match(textOf(tree), /matrix-fixture/);
   assert.match(textOf(tree), /No contact · no download · no payment · no record request/);
   assert.match(textOf(tree), /Acceptance criterion/);
   const select = nodes(tree).find((node) => node.type === "select" && node.props["aria-label"] === "Filter authorization packet jurisdiction");
-  assert.deepEqual(nodes(select).filter((node) => node.type === "option").map((item) => item.props.value), ["", "AK", "DC"]);
+  assert.deepEqual(nodes(select).filter((node) => node.type === "option").map((item) => item.props.value), ["", ...currentStates]);
   const buttons = nodes(tree).filter((node) => node.type === "button");
   assert.deepEqual(buttons.map((button) => textOf(button)), ["Recheck verified packet"]);
-  select.props.onChange({ target: { value: "DC" } }); tree = f.render();
-  assert.match(textOf(tree), /District of Columbia/);
-  assert.doesNotMatch(textOf(tree), /Alaska/);
+  select.props.onChange({ target: { value: "WA" } }); tree = f.render();
+  assert.match(textOf(tree), /Washington/);
+  assert.doesNotMatch(textOf(tree), /Illinois/);
   assert.equal(f.calls.length, 1);
 });
 
@@ -70,7 +75,7 @@ test("packet panel fails closed when the management API cannot verify the releas
   f.mount(); await settle();
   const tree = f.render();
   assert.match(textOf(tree), /canonical authorization packet is unavailable or failed verification/);
-  assert.doesNotMatch(textOf(tree), /packet-fixture|AK-assessment|Review schema documentation/);
+  assert.doesNotMatch(textOf(tree), /packet-fixture|IL-assessment|Review schema documentation/);
 });
 
 test("packet panel ignores stale responses after a later recheck", async () => {
@@ -80,8 +85,8 @@ test("packet panel ignores stale responses after a later recheck", async () => {
   await settle();
   let tree = f.render();
   nodes(tree).find((node) => node.type === "button" && textOf(node) === "Recheck verified packet").props.onClick();
-  pending[1](view(["DC"])); await settle(); tree = f.render();
-  pending[0](view(["AK"])); await settle(); tree = f.render();
-  assert.match(textOf(tree), /District of Columbia/);
-  assert.doesNotMatch(textOf(tree), /Alaska/);
+  pending[1](view(["WA"])); await settle(); tree = f.render();
+  pending[0](view(["IL"])); await settle(); tree = f.render();
+  assert.match(textOf(tree), /Washington/);
+  assert.doesNotMatch(textOf(tree), /Illinois/);
 });

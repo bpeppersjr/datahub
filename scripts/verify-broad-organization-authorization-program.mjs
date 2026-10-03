@@ -1,5 +1,5 @@
 import path from "node:path";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -13,9 +13,15 @@ if (args.length > 1 || (args.length === 1 && args[0].startsWith("--"))) throw ne
 let manifestPath = args[0] ? path.resolve(ROOT, args[0]) : null;
 if (!manifestPath) {
   const releases = await readdir(path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT, "releases"), { withFileTypes: true });
-  const candidates = releases.filter((entry) => entry.isDirectory() && entry.name.startsWith("broad-organization-authorization-program-"));
-  if (candidates.length !== 1) throw new Error(`Specify a manifest; expected exactly one program release, found ${candidates.length}`);
-  manifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT, "releases", candidates[0].name, "manifest.json");
+  const candidates = [];
+  for (const entry of releases) {
+    if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith("broad-organization-authorization-program-")) continue;
+    const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT, "releases", entry.name, "manifest.json");
+    const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
+    if (candidate.schema_version === "broad-organization-authorization-program-manifest@2.0.0") candidates.push(candidatePath);
+  }
+  if (candidates.length !== 1) throw new Error(`Specify a manifest; expected exactly one current v2 program release, found ${candidates.length}`);
+  [manifestPath] = candidates;
 }
 const result = await verifyBroadOrganizationAuthorizationProgram(manifestPath);
 process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, jurisdictions: result.manifest.state_count, gate_items: result.manifest.gate_item_count, gate_keys: result.manifest.gate_key_count, source_backlog_release_id: result.manifest.source_backlog_release_id, source_actions_performed: 0, current_pointer_changed: false, valid: true }, null, 2)}\n`);

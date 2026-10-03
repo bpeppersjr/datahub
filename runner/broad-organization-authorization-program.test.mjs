@@ -14,7 +14,6 @@ import {
   deriveBroadOrganizationAuthorizationProgram,
   verifyBroadOrganizationAuthorizationProgram,
 } from "./broad-organization-authorization-program.mjs";
-import { DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT, verifyBroadOrganizationAuthorizationPacket } from "./broad-organization-authorization-packet.mjs";
 import { DATA_DIR } from "./paths.mjs";
 
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -25,17 +24,19 @@ async function sourceBacklog() {
   return { ...built, manifestPath, manifestBytes: await readFile(manifestPath) };
 }
 
-test("derives exact five contiguous waves, 43 jurisdictions, 371 items and 28 gate contracts", async () => {
+test("derives exact four contiguous current-gap waves, 40 jurisdictions, 351 items and 26 gate contracts", async () => {
   const source = await sourceBacklog();
   const program = deriveBroadOrganizationAuthorizationProgram(source.backlog, source.manifestBytes, source.manifest);
   assert.deepEqual(program.states.map((row) => row.state_abbreviation), AUTHORIZATION_PROGRAM_WAVES.flat());
   assert.deepEqual(program.wave_state_abbreviations, AUTHORIZATION_PROGRAM_WAVES.map((wave) => [...wave]));
-  assert.deepEqual(AUTHORIZATION_PROGRAM_WAVES.map((wave) => wave.length), [10, 10, 10, 10, 3]);
-  assert.equal(program.scope.jurisdictions, 43);
-  assert.equal(program.scope.gate_items, 371);
-  assert.equal(program.scope.gate_key_count, 28);
-  assert.equal(new Set(program.states.flatMap((row) => row.unresolved_gates)).size, 28);
-  assert.equal(program.states.reduce((n, row) => n + row.gate_items.length, 0), 371);
+  assert.deepEqual(AUTHORIZATION_PROGRAM_WAVES.map((wave) => wave.length), [10, 10, 10, 10]);
+  assert.deepEqual(program.states.slice(0, 10).map((row) => row.state_abbreviation), ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
+  assert.equal(program.states.some((row) => ["AK", "DC"].includes(row.state_abbreviation)), false);
+  assert.equal(program.scope.jurisdictions, 40);
+  assert.equal(program.scope.gate_items, 351);
+  assert.equal(program.scope.gate_key_count, 26);
+  assert.equal(new Set(program.states.flatMap((row) => row.unresolved_gates)).size, 26);
+  assert.equal(program.states.reduce((n, row) => n + row.gate_items.length, 0), 351);
   for (const state of program.states) {
     assert.deepEqual(state.unresolved_gates, state.gate_items.map((item) => item.gate_key));
     assert.deepEqual(state.required_exclusions, state.assessment_snapshot.required_exclusions);
@@ -47,54 +48,37 @@ test("derives exact five contiguous waves, 43 jurisdictions, 371 items and 28 ga
   assert.equal(program.scope.acquisition_authorized, false);
 });
 
-test("pins new gate boundaries and separates approval-only acquisition gates", async () => {
+test("pins current gate boundaries without obsolete AK/DC approval items", async () => {
   const source = await sourceBacklog();
   const program = deriveBroadOrganizationAuthorizationProgram(source.backlog, source.manifestBytes, source.manifest);
   const byGate = new Map(program.states.flatMap((state) => state.gate_items.map((item) => [item.gate_key, item])));
-  for (const key of ["complete-snapshot-route", "csv-schema", "current-product", "platform-migration"]) {
+  for (const key of ["complete-snapshot-route", "csv-schema", "current-bulk-scope", "platform-migration"]) {
     assert.ok(byGate.get(key)?.required_evidence_type);
     assert.ok(byGate.get(key)?.acceptance_criterion);
     assert.equal(byGate.get(key).row_bearing, false);
     assert.equal(byGate.get(key).grants_authority, false);
   }
   const approvalItems = program.states.flatMap((state) => state.gate_items).filter((item) => item.gate_key === "large-acquisition-authorization");
-  assert.deepEqual(approvalItems.map((item) => item.item_id), ["ak-large-acquisition-authorization", "dc-large-acquisition-authorization"]);
-  for (const item of approvalItems) {
-    assert.equal(item.gate_kind, "external-explicit-authorization");
-    assert.equal(item.document_closable, false);
-    assert.equal(item.automatic_closure_permitted, false);
-    assert.equal(item.no_document_or_evidence_upload_can_close, true);
-    assert.equal(item.publisher_document_is_user_approval, false);
-    assert.equal(item.program_can_grant_authority, false);
-    assert.match(item.closure_requires, /separate authenticated scope-specific user authorization/i);
-    assert.equal("required_evidence_type" in item, false);
-    assert.equal(item.action_boundary.contact_authorized, false);
-  }
+  assert.deepEqual(approvalItems, []);
   assert.ok(program.states.flatMap((state) => state.gate_items).filter((item) => item.gate_key !== "large-acquisition-authorization").every((item) => item.gate_kind === "non-row-bearing-contract-evidence" && item.document_review_can_establish === "contract-evidence-sufficiency-only" && item.grants_authority === false));
 });
 
-test("preserves the existing first-wave packet release and verifier byte-for-byte", async () => {
-  const releaseRoot = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT, "releases");
-  const releaseNames = (await readdir(releaseRoot)).filter((name) => name.startsWith("broad-organization-authorization-packet-"));
-  assert.equal(releaseNames.length, 1);
-  const manifestPath = path.join(releaseRoot, releaseNames[0], "manifest.json");
+test("preserves and verifies the historical v1 program byte-for-byte", async () => {
+  const releaseRoot = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT, "releases");
+  const releaseNames = (await readdir(releaseRoot)).filter((name) => name.startsWith("broad-organization-authorization-program-"));
+  const historicalName = releaseNames.find((name) => name === "broad-organization-authorization-program-2026-09-22-b3af1531c834");
+  assert.ok(historicalName);
+  const manifestPath = path.join(releaseRoot, historicalName, "manifest.json");
   const manifestBefore = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBefore.toString("utf8"));
-  const artifactPath = path.join(path.dirname(manifestPath), manifest.artifacts[0].path);
+  const artifactPath = path.join(path.dirname(manifestPath), "authorization-program.json");
   const artifactBefore = await readFile(artifactPath);
-  const verified = await verifyBroadOrganizationAuthorizationPacket(manifestPath);
-  assert.equal(verified.packet.states.length, 10);
-  assert.equal(verified.packet.scope.request_items, 74);
+  const verified = await verifyBroadOrganizationAuthorizationProgram(manifestPath);
+  assert.equal(verified.program.states.length, 43);
+  assert.equal(verified.program.scope.gate_items, 371);
   assert.equal(hash(artifactBefore), manifest.artifacts[0].sha256);
   assert.deepEqual(await readFile(manifestPath), manifestBefore);
   assert.deepEqual(await readFile(artifactPath), artifactBefore);
-  const source = await sourceBacklog();
-  const program = deriveBroadOrganizationAuthorizationProgram(source.backlog, source.manifestBytes, source.manifest);
-  assert.deepEqual(program.states.slice(0, 10).map((state) => state.state_abbreviation), verified.packet.states.map((state) => state.state_abbreviation));
-  for (let index = 0; index < 10; index += 1) {
-    assert.deepEqual(program.states[index].unresolved_gates, verified.packet.states[index].unresolved_gates);
-    assert.deepEqual(program.states[index].required_exclusions, verified.packet.states[index].privacy_exclusions);
-  }
 });
 
 test("publishes and independently verifies an immutable manifest-last release", async () => {
@@ -107,9 +91,9 @@ test("publishes and independently verifies an immutable manifest-last release", 
     assert.equal(verified.manifest.release_id, built.manifest.release_id);
     assert.equal(verified.manifest.source_backlog_manifest_sha256, hash(source.manifestBytes));
     assert.equal(verified.manifest.source_backlog_artifact_sha256, source.manifest.artifacts[0].sha256);
-    assert.equal(verified.manifest.state_count, 43);
-    assert.equal(verified.manifest.gate_item_count, 371);
-    assert.equal(verified.manifest.gate_key_count, 28);
+    assert.equal(verified.manifest.state_count, 40);
+    assert.equal(verified.manifest.gate_item_count, 351);
+    assert.equal(verified.manifest.gate_key_count, 26);
     assert.deepEqual((await readdir(built.releaseDirectory)).sort(), ["authorization-program.json", "manifest.json"]);
     assert.equal((await readdir(outputRoot)).includes("current.json"), false);
     assert.equal((await buildBroadOrganizationAuthorizationProgram({ backlogManifestPath: source.manifestPath, outputRoot })).reused_existing_release, true);
@@ -147,7 +131,7 @@ test("strict verifier rejects a rehashed authority widening and unexpected files
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.artifacts[0].bytes = bytes.length;
     manifest.artifacts[0].sha256 = hash(bytes);
-    manifest.release_id = `${manifest.dataset_id}-${program.observed_at}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
+    manifest.release_id = `${manifest.dataset_id}-${program.observed_at.replaceAll(":", "-")}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const tamperedDirectory = path.join(path.dirname(oldDirectory), manifest.release_id);
     await rename(oldDirectory, tamperedDirectory);

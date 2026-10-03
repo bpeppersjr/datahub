@@ -20,8 +20,8 @@ type StatePacket = {
 type PacketView = {
   schema_version: string; available: true;
   metadata: { release_id: string; observed_at: string; jurisdiction_count: 10; request_item_count: number; first_wave_state_abbreviations: string[] };
-  source_lineage: { backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string; assessment_catalog_id: string; assessment_catalog_sha256: string };
-  authority: { approval_granted: false; acquisition_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; row_bearing_evidence_authorized: false; production_change_authorized: false; source_actions_performed: 0; contact_performed: false; download_performed: false; payment_performed: false; records_requested: 0; current_pointer_changed: false; evidence_specification_is_approval: false };
+  source_lineage: { backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string; assessment_catalog_id: string; assessment_catalog_sha256: string; source_matrix_release_id: string; source_matrix_manifest_sha256: string; source_matrix_artifact_sha256: string };
+  authority: { approval_granted: false; acquisition_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; row_bearing_evidence_authorized: false; production_change_authorized: false; source_actions_performed: 0; network_requests: 0; contact_performed: false; download_performed: false; payment_performed: false; records_requested: 0; current_pointer_changed: false; evidence_specification_is_approval: false };
   states: StatePacket[];
 };
 
@@ -78,7 +78,7 @@ export default function BroadOrganizationAuthorizationPacket() {
     {loading && <p role="status">Verifying the retained packet…</p>}
     {error && <p role="alert">The canonical authorization packet is unavailable or failed verification. No packet details or actions are available.</p>}
     {view && <>
-      <p className="operations-note"><strong>Evidence specification only · approval granted: no</strong> · {view.metadata.jurisdiction_count} jurisdictions · {view.metadata.request_item_count} evidence specifications · assessed {view.metadata.observed_at}. No contact, download, payment, record request, or production change is authorized or performed.</p>
+      <p className="operations-note"><strong>Evidence specification only · approval granted: no</strong> · {`${view.metadata.jurisdiction_count} jurisdictions · ${view.metadata.request_item_count} evidence specifications`} · assessed {view.metadata.observed_at}. No contact, download, payment, record request, network request, source action, or production change is authorized or performed.</p>
       <dl>
         <dt>Packet release</dt><dd>{view.metadata.release_id}</dd>
         <dt>Source backlog release</dt><dd>{view.source_lineage.backlog_release_id}</dd>
@@ -86,8 +86,11 @@ export default function BroadOrganizationAuthorizationPacket() {
         <dt>Backlog artifact SHA-256</dt><dd><code>{view.source_lineage.backlog_artifact_sha256}</code></dd>
         <dt>Assessment catalog</dt><dd>{view.source_lineage.assessment_catalog_id}</dd>
         <dt>Assessment catalog SHA-256</dt><dd><code>{view.source_lineage.assessment_catalog_sha256}</code></dd>
+        <dt>Source matrix release</dt><dd>{view.source_lineage.source_matrix_release_id}</dd>
+        <dt>Source matrix manifest SHA-256</dt><dd><code>{view.source_lineage.source_matrix_manifest_sha256}</code></dd>
+        <dt>Source matrix artifact SHA-256</dt><dd><code>{view.source_lineage.source_matrix_artifact_sha256}</code></dd>
       </dl>
-      <p className="operations-note">Authority: acquisition no · contact no · download no · payment no · records requested 0 · row-bearing evidence no · production change no · pointer changed no.</p>
+      <p className="operations-note">Authority: acquisition no · contact no · download no · payment no · records requested 0 · network requests 0 · source actions 0 · row-bearing evidence no · production change no · pointer changed no.</p>
       {visibleStates.map((state) => <article key={state.state_abbreviation} className="operation-record">
         <h4>{state.state_name} ({state.state_abbreviation})</h4>
         <p className="operations-note">Assessment: {words(state.assessment_provenance.assessment_kind)} · {state.assessment_provenance.assessment_id} · {state.assessment_provenance.observed_at}. Unresolved gates: {state.unresolved_gates.map(words).join(', ')}.</p>

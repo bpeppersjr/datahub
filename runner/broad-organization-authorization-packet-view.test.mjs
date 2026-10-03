@@ -5,15 +5,21 @@ import test from "node:test";
 import { broadOrganizationAuthorizationPacketHttp } from "./broad-organization-authorization-packet-http.mjs";
 import { loadBroadOrganizationAuthorizationPacketManagementView } from "./broad-organization-authorization-packet-view.mjs";
 
-test("management view verifies and returns only the allowlisted ten-state evidence specification", async () => {
+test("management view selects current v2 amid verified historical v1 and returns only the allowlisted ten-state evidence specification", async () => {
   const view = await loadBroadOrganizationAuthorizationPacketManagementView();
   assert.equal(view.available, true);
+  assert.equal(view.schema_version, "broad-organization-authorization-packet-management-view@2.0.0");
   assert.equal(view.metadata.jurisdiction_count, 10);
+  assert.equal(view.metadata.request_item_count, 80);
   assert.equal(view.states.length, 10);
-  assert.deepEqual(view.metadata.first_wave_state_abbreviations, ["AK", "DC", "IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT"]);
+  assert.deepEqual(view.metadata.first_wave_state_abbreviations, ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
+  assert.equal(view.states.some((state) => ["AK", "DC"].includes(state.state_abbreviation)), false);
   assert.equal(view.authority.approval_granted, false);
   assert.equal(view.authority.acquisition_authorized, false);
   assert.equal(view.authority.records_requested, 0);
+  assert.equal(view.authority.network_requests, 0);
+  assert.equal(view.authority.source_actions_performed, 0);
+  for (const field of ["source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256"]) assert.ok(view.source_lineage[field]);
   assert.equal(view.states.reduce((count, state) => count + state.request_items.length, 0), view.metadata.request_item_count);
   for (const state of view.states) {
     assert.ok(state.privacy_exclusions.length > 0);
@@ -41,7 +47,7 @@ test("management HTTP handler is strict, read-only, and fails closed without lea
     return response;
   };
   assert.deepEqual(await call("GET"), { status: 200, body: { available: true } });
-  assert.equal((await call("GET", "?state=AK")).status, 400);
+  assert.equal((await call("GET", "?state=IL")).status, 400);
   assert.equal((await call("POST")).status, 405);
   assert.equal((await call("GET", "", { "content-length": "1" })).status, 400);
   assert.equal((await call("GET", "", { "transfer-encoding": "chunked" })).status, 400);

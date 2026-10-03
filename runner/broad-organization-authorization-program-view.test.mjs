@@ -6,19 +6,27 @@ import test from "node:test";
 import { broadOrganizationAuthorizationProgramHttp } from "./broad-organization-authorization-program-http.mjs";
 import { loadBroadOrganizationAuthorizationProgramManagementView } from "./broad-organization-authorization-program-view.mjs";
 
-test("read-only management view re-verifies the canonical all-wave release and projects only allowlisted fields", async () => {
+test("read-only management view selects the unique verified v2 release amid historical v1 and projects only allowlisted fields", async () => {
   const view = await loadBroadOrganizationAuthorizationProgramManagementView();
   assert.equal(view.available, true);
-  assert.deepEqual([view.metadata.jurisdiction_count, view.metadata.gate_item_count, view.metadata.gate_key_count], [43, 371, 28]);
-  assert.deepEqual(view.metadata.wave_state_abbreviations.map((wave) => wave.length), [10, 10, 10, 10, 3]);
-  assert.equal(view.states.length, 43);
+  assert.equal(view.schema_version, "broad-organization-authorization-program-management-view@2.0.0");
+  assert.deepEqual([view.metadata.jurisdiction_count, view.metadata.gate_item_count, view.metadata.gate_key_count], [40, 351, 26]);
+  assert.deepEqual(view.metadata.wave_state_abbreviations, [
+    ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"],
+    ["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"],
+    ["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"],
+    ["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"],
+  ]);
+  assert.equal(view.states.length, 40);
+  assert.equal(view.states.some((state) => ["AK", "DC"].includes(state.state_abbreviation)), false);
   assert.equal(view.authority.approval_granted, false);
   assert.equal(view.authority.source_actions_performed, 0);
+  assert.equal(view.authority.network_requests, 0);
   assert.equal(view.authority.acquisition_authorized, false);
-  assert.equal(view.states.reduce((count, state) => count + state.gate_items.length, 0), 371);
+  assert.equal(view.states.reduce((count, state) => count + state.gate_items.length, 0), 351);
+  for (const field of ["source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256"]) assert.ok(view.source_lineage[field]);
   const approval = view.states.flatMap((state) => state.gate_items).filter((item) => item.gate_kind === "external-explicit-authorization");
-  assert.deepEqual(approval.map((item) => item.gate_key), ["large-acquisition-authorization", "large-acquisition-authorization"]);
-  assert.ok(approval.every((item) => item.document_closable === false && item.automatic_closure_permitted === false && /separate authenticated/i.test(item.closure_requires)));
+  assert.deepEqual(approval, []);
   const ordinary = view.states.flatMap((state) => state.gate_items).filter((item) => item.gate_kind === "non-row-bearing-contract-evidence");
   assert.ok(ordinary.every((item) => item.row_bearing === false && item.grants_authority === false && item.required_evidence_type && item.acceptance_criterion));
   for (const state of view.states) {

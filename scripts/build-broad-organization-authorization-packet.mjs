@@ -1,5 +1,5 @@
 import path from "node:path";
-import { readdir } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -23,9 +23,17 @@ for (let index = 0; index < args.length; index += 1) {
 }
 if (!backlogManifestPath) {
   const releases = await readdir(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, { withFileTypes: true });
-  const candidates = releases.filter((entry) => entry.isDirectory() && entry.name.startsWith("broad-organization-acquisition-backlog-"));
-  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one backlog release, found ${candidates.length}`);
-  backlogManifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, candidates[0].name, "manifest.json");
+  const candidates = [];
+  for (const entry of releases) {
+    if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith("broad-organization-acquisition-backlog-")) continue;
+    const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, entry.name, "manifest.json");
+    try {
+      const manifest = JSON.parse(await readFile(candidatePath, "utf8"));
+      if (manifest.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0") candidates.push(candidatePath);
+    } catch { /* Exact verification in the builder remains authoritative. */ }
+  }
+  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one current v2 backlog release, found ${candidates.length}`);
+  [backlogManifestPath] = candidates;
 }
 const result = await buildBroadOrganizationAuthorizationPacket({ backlogManifestPath, outputRoot });
-process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, release_directory: result.releaseDirectory, manifest: path.join(result.releaseDirectory, "manifest.json"), jurisdictions: result.manifest.state_count, request_items: result.manifest.request_item_count, source_backlog_release_id: result.manifest.source_backlog_release_id, reused_existing_release: result.reused_existing_release, source_actions_performed: 0, current_pointer_changed: false }, null, 2)}\n`);
+process.stdout.write(`${JSON.stringify({ release_id: result.manifest.release_id, release_directory: result.releaseDirectory, manifest: path.join(result.releaseDirectory, "manifest.json"), jurisdictions: result.manifest.state_count, request_items: result.manifest.request_item_count, source_backlog_release_id: result.manifest.source_backlog_release_id, reused_existing_release: result.reused_existing_release, source_actions_performed: 0, network_requests: 0, current_pointer_changed: false }, null, 2)}\n`);

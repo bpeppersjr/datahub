@@ -43,18 +43,26 @@ function limitations(state) {
 export function projectBroadOrganizationAuthorizationProgram(program, manifest) {
   if (program?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
-      || program.states?.length !== 43 || manifest.state_count !== 43
-      || manifest.gate_item_count !== 371 || manifest.gate_key_count !== 28
-      || program.scope?.source_actions_performed !== 0 || program.scope?.acquisition_authorized !== false) fail("identity, counts, or authority boundary invalid");
+      || program.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-program-manifest@2.0.0"
+      || program.states?.length !== 40 || manifest.state_count !== 40
+      || manifest.gate_item_count !== 351 || manifest.gate_key_count !== 26
+      || program.scope?.jurisdictions !== manifest.state_count || program.scope?.gate_items !== manifest.gate_item_count
+      || program.scope?.gate_key_count !== manifest.gate_key_count
+      || program.wave_state_abbreviations?.length !== 4 || program.wave_state_abbreviations.some((wave) => !Array.isArray(wave) || wave.length !== 10)
+      || program.source_backlog?.source_matrix_release_id !== manifest.source_matrix_release_id
+      || program.source_backlog?.source_matrix_manifest_sha256 !== manifest.source_matrix_manifest_sha256
+      || program.source_backlog?.source_matrix_artifact_sha256 !== manifest.source_matrix_artifact_sha256
+      || program.scope?.source_actions_performed !== 0 || program.scope?.network_requests !== 0
+      || program.scope?.acquisition_authorized !== false || program.scope?.current_pointer_changed !== false) fail("identity, counts, lineage, or authority boundary invalid");
   return {
-    schema_version: "broad-organization-authorization-program-management-view@1.0.0",
+    schema_version: "broad-organization-authorization-program-management-view@2.0.0",
     available: true,
     metadata: {
       release_id: manifest.release_id,
       observed_at: program.observed_at,
-      jurisdiction_count: 43,
-      gate_item_count: 371,
-      gate_key_count: 28,
+      jurisdiction_count: manifest.state_count,
+      gate_item_count: manifest.gate_item_count,
+      gate_key_count: manifest.gate_key_count,
       wave_state_abbreviations: program.wave_state_abbreviations.map((wave) => [...wave]),
     },
     source_lineage: {
@@ -63,6 +71,9 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
       backlog_artifact_sha256: program.source_backlog.artifact_sha256,
       assessment_catalog_id: program.source_backlog.assessment_catalog_id,
       assessment_catalog_sha256: program.source_backlog.assessment_catalog_sha256,
+      source_matrix_release_id: program.source_backlog.source_matrix_release_id,
+      source_matrix_manifest_sha256: program.source_backlog.source_matrix_manifest_sha256,
+      source_matrix_artifact_sha256: program.source_backlog.source_matrix_artifact_sha256,
     },
     authority: {
       approval_granted: false,
@@ -75,6 +86,7 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
       row_bearing_evidence_authorized: false,
       production_change_authorized: false,
       source_actions_performed: 0,
+      network_requests: 0,
       current_pointer_changed: false,
       evidence_specification_is_approval: false,
     },
@@ -117,10 +129,15 @@ export async function loadBroadOrganizationAuthorizationProgramManagementView() 
   const releasesStat = await lstat(releasesDirectory);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink() || !releasesStat.isDirectory() || releasesStat.isSymbolicLink()) fail("canonical release ancestry is missing or linked");
   const entries = await readdir(releasesDirectory, { withFileTypes: true });
-  const identity = new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID}-20\\d{2}-\\d{2}-\\d{2}-[0-9a-f]{12}$`, "i");
-  if (entries.length !== 1 || !entries[0].isDirectory() || entries[0].isSymbolicLink() || !identity.test(entries[0].name)) fail("expected exactly one canonical program release");
-  const manifestPath = path.join(releasesDirectory, entries[0].name, "manifest.json");
-  const verified = await verifyBroadOrganizationAuthorizationProgram(manifestPath);
-  if (verified.manifest.release_id !== entries[0].name) fail("release directory and manifest identity differ");
-  return projectBroadOrganizationAuthorizationProgram(verified.program, verified.manifest);
+  const identity = new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID}-.+-[0-9a-f]{12}$`, "i");
+  if (!entries.length || entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink() || !identity.test(entry.name))) fail("canonical program releases are missing or invalid");
+  const current = [];
+  for (const entry of entries) {
+    const manifestPath = path.join(releasesDirectory, entry.name, "manifest.json");
+    const verified = await verifyBroadOrganizationAuthorizationProgram(manifestPath);
+    if (verified.manifest.release_id !== entry.name) fail("release directory and manifest identity differ");
+    if (verified.manifest.schema_version === "broad-organization-authorization-program-manifest@2.0.0") current.push(verified);
+  }
+  if (current.length !== 1) fail(`expected exactly one verified current v2 program release; found ${current.length}`);
+  return projectBroadOrganizationAuthorizationProgram(current[0].program, current[0].manifest);
 }

@@ -9,17 +9,24 @@ import {
 } from "./broad-organization-acquisition-backlog.mjs";
 import { APP_ROOT } from "./paths.mjs";
 
-export const BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_SCHEMA_VERSION = "1.0.0";
+export const BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_SCHEMA_VERSION = "2.0.0";
 export const BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID = "broad-organization-authorization-program";
 export const DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT = path.join(APP_ROOT, "data", BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID);
 export const DEFAULT_BROAD_ORGANIZATION_PROGRAM_BACKLOG_RELEASES_ROOT = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases");
 
-export const AUTHORIZATION_PROGRAM_WAVES = Object.freeze([
+export const HISTORICAL_AUTHORIZATION_PROGRAM_WAVES = Object.freeze([
   Object.freeze(["AK", "DC", "IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT"]),
   Object.freeze(["WA", "TX", "OK", "AL", "AZ", "CA", "GA", "ID", "IN", "LA"]),
   Object.freeze(["MA", "MD", "ME", "MI", "MN", "MO", "MT", "NC", "ND", "NH"]),
   Object.freeze(["NJ", "NM", "OH", "RI", "SC", "SD", "TN", "VA", "VT", "WI"]),
   Object.freeze(["WV", "WY", "NE"]),
+]);
+
+export const AUTHORIZATION_PROGRAM_WAVES = Object.freeze([
+  Object.freeze(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]),
+  Object.freeze(["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"]),
+  Object.freeze(["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"]),
+  Object.freeze(["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]),
 ]);
 
 const NO_ACTION_BOUNDARY = Object.freeze({
@@ -63,8 +70,9 @@ const CONTRACTS = Object.freeze({
   "platform-migration": ["Official legacy/replacement technical and rights transition package with cutover/dual-run dates, current and replacement layouts, identifier crosswalk, scope/status/address continuity, delivery and change controls, and post-cutover terms.", "An available edition and its authoritative route are identified; migration effects are explicitly reconciled or remain blocking. A future-system announcement or historic FTP agreement cannot establish post-cutover continuity. No subscription, credentials, transfer, or production change is authorized."],
 });
 
+const HISTORICAL_EXPECTED_STATES = HISTORICAL_AUTHORIZATION_PROGRAM_WAVES.flat();
 const EXPECTED_STATES = AUTHORIZATION_PROGRAM_WAVES.flat();
-const EXPECTED_GATES = Object.freeze(Object.keys(CONTRACTS).sort());
+const ALL_CONTRACT_KEYS = Object.freeze(Object.keys(CONTRACTS).sort());
 const PROHIBITED_ACTIONS = Object.freeze(["contact publisher or portal staff", "download or acquire source records or samples", "make payment, order, enroll, or accept terms", "request records or row-bearing preflight", "execute an acquisition connector or production change"]);
 
 function fail(message) { throw new Error(`Broad-organization authorization program is invalid: ${message}`); }
@@ -124,16 +132,27 @@ function gateItem(state, gate) {
 }
 
 export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogManifestBytes, backlogManifest) {
-  if (backlog?.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID || backlog.states?.length !== 43
+  const historical = backlog?.schema_version === "1.0.0";
+  const waves = historical ? HISTORICAL_AUTHORIZATION_PROGRAM_WAVES : AUTHORIZATION_PROGRAM_WAVES;
+  const expectedStates = historical ? HISTORICAL_EXPECTED_STATES : EXPECTED_STATES;
+  const expectedCount = historical ? 43 : 40;
+  const expectedGateCount = historical ? 371 : 351;
+  const expectedBacklogManifestSchema = historical
+    ? "broad-organization-acquisition-backlog-manifest@1.0.0"
+    : "broad-organization-acquisition-backlog-manifest@2.0.0";
+  if (backlogManifest?.schema_version !== expectedBacklogManifestSchema
+      || backlog?.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID || backlog.states?.length !== expectedCount
       || backlog.scope?.acquisition_authorized !== false || backlog.scope?.source_actions_performed !== 0) fail("backlog identity, scope, or authority boundary is invalid");
-  if (JSON.stringify(backlog.states.map((row) => row.assessment?.state_abbreviation)) !== JSON.stringify(EXPECTED_STATES)
+  if (sha256(jsonBytes(backlog)) !== backlogManifest?.artifacts?.[0]?.sha256) fail("backlog content differs from its immutable manifest artifact");
+  if (!historical && (backlog.scope?.network_requests !== 0 || backlog.scope?.current_broad_layer_gaps !== 40)) fail("current backlog network or gap-only boundary is invalid");
+  if (JSON.stringify(backlog.states.map((row) => row.assessment?.state_abbreviation)) !== JSON.stringify(expectedStates)
       || backlog.states.some((row, i) => row.priority !== i + 1 || row.first_wave !== (i < 10))) fail("backlog ordering or first-wave selection differs from the pinned contiguous waves");
   const gateKeys = [...new Set(backlog.states.flatMap((row) => row.assessment?.unresolved_gates ?? []))].sort();
-  if (JSON.stringify(gateKeys) !== JSON.stringify(EXPECTED_GATES)) fail("backlog gate inventory differs from the exact 28-key contract");
+  if (gateKeys.some((key) => !ALL_CONTRACT_KEYS.includes(key))) fail("backlog gate inventory contains an unknown contract");
   let gateCount = 0;
   const states = backlog.states.map(({ assessment }, index) => {
     if (!Array.isArray(assessment.unresolved_gates) || !Array.isArray(assessment.required_exclusions)) fail(`${assessment.state_abbreviation} lacks exact gates or privacy exclusions`);
-    const wave = AUTHORIZATION_PROGRAM_WAVES.findIndex((codes) => codes.includes(assessment.state_abbreviation)) + 1;
+    const wave = waves.findIndex((codes) => codes.includes(assessment.state_abbreviation)) + 1;
     const items = assessment.unresolved_gates.map((gate) => gateItem(assessment.state_abbreviation, gate));
     gateCount += items.length;
     return {
@@ -170,9 +189,9 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
       },
     };
   });
-  if (gateCount !== 371) fail(`expected 371 gate items, found ${gateCount}`);
+  if (gateCount !== expectedGateCount) fail(`expected ${expectedGateCount} gate items, found ${gateCount}`);
   return {
-    schema_version: BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_SCHEMA_VERSION,
+    schema_version: historical ? "1.0.0" : BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_SCHEMA_VERSION,
     dataset_id: BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,
     observed_at: backlog.observed_at,
     purpose: "Offline all-wave evidence and approval specification; not authorization or an instruction to acquire, contact, request, pay, or change production.",
@@ -186,15 +205,21 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
       assessment_catalog_id: backlogManifest.assessment_catalog_id,
       assessment_catalog_sha256: backlogManifest.assessment_catalog_sha256,
       first_wave_state_abbreviations: [...backlogManifest.first_wave_state_abbreviations],
+      ...(historical ? {} : {
+        source_matrix_release_id: backlogManifest.source_matrix_release_id,
+        source_matrix_manifest_sha256: backlogManifest.source_matrix_manifest_sha256,
+        source_matrix_artifact_sha256: backlogManifest.source_matrix_artifact_sha256,
+      }),
     },
-    wave_state_abbreviations: AUTHORIZATION_PROGRAM_WAVES.map((statesInWave) => [...statesInWave]),
+    wave_state_abbreviations: waves.map((statesInWave) => [...statesInWave]),
     scope: {
-      jurisdictions: 43,
+      jurisdictions: expectedCount,
       gate_items: gateCount,
-      gate_key_count: EXPECTED_GATES.length,
+      gate_key_count: gateKeys.length,
       acquisition_authorized: false,
       evidence_request_authorized: false,
       source_actions_performed: 0,
+      ...(historical ? {} : { network_requests: 0, current_gap_only: true }),
       current_pointer_changed: false,
       no_contact_no_download_no_payment_no_record_request: true,
       action_boundary: { ...NO_ACTION_BOUNDARY, prohibited_actions: [...PROHIBITED_ACTIONS] },
@@ -206,21 +231,28 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
 export function buildBroadOrganizationAuthorizationProgramManifest(program) {
   const bytes = jsonBytes(program);
   const hash = sha256(bytes);
-  const releaseId = `${BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID}-${program.observed_at}-${hash.slice(0, 12)}`;
+  const releaseTimestamp = program.observed_at.replaceAll(":", "-");
+  const releaseId = `${BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID}-${releaseTimestamp}-${hash.slice(0, 12)}`;
   return {
-    schema_version: "broad-organization-authorization-program-manifest@1.0.0",
+    schema_version: `broad-organization-authorization-program-manifest@${program.schema_version}`,
     dataset_id: BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,
     release_id: releaseId,
     status: "published",
     derived_only: true,
     source_actions_performed: 0,
+    ...(program.schema_version === "2.0.0" ? { network_requests: 0 } : {}),
     current_pointer_changed: false,
     source_backlog_release_id: program.source_backlog.release_id,
     source_backlog_manifest_sha256: program.source_backlog.manifest_sha256,
     source_backlog_artifact_sha256: program.source_backlog.artifact_sha256,
-    state_count: 43,
+    ...(program.schema_version === "2.0.0" ? {
+      source_matrix_release_id: program.source_backlog.source_matrix_release_id,
+      source_matrix_manifest_sha256: program.source_backlog.source_matrix_manifest_sha256,
+      source_matrix_artifact_sha256: program.source_backlog.source_matrix_artifact_sha256,
+    } : {}),
+    state_count: program.scope.jurisdictions,
     gate_item_count: program.scope.gate_items,
-    gate_key_count: 28,
+    gate_key_count: program.scope.gate_key_count,
     wave_state_abbreviations: program.wave_state_abbreviations.map((wave) => [...wave]),
     artifacts: [{ path: "authorization-program.json", bytes: bytes.length, sha256: hash }],
   };
@@ -274,10 +306,14 @@ export async function verifyBroadOrganizationAuthorizationProgram(manifestPath, 
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink() || manifestStat.nlink !== 1) fail("manifest must be a singly linked regular file");
   const manifestBytes = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  const keys = ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "current_pointer_changed", "source_backlog_release_id", "source_backlog_manifest_sha256", "source_backlog_artifact_sha256", "state_count", "gate_item_count", "gate_key_count", "wave_state_abbreviations", "artifacts"];
+  const historical = manifest.schema_version === "broad-organization-authorization-program-manifest@1.0.0";
+  const keys = historical
+    ? ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "current_pointer_changed", "source_backlog_release_id", "source_backlog_manifest_sha256", "source_backlog_artifact_sha256", "state_count", "gate_item_count", "gate_key_count", "wave_state_abbreviations", "artifacts"]
+    : ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "network_requests", "current_pointer_changed", "source_backlog_release_id", "source_backlog_manifest_sha256", "source_backlog_artifact_sha256", "source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256", "state_count", "gate_item_count", "gate_key_count", "wave_state_abbreviations", "artifacts"];
   if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify([...keys].sort())) fail("manifest schema drifted");
-  if (manifest.schema_version !== "broad-organization-authorization-program-manifest@1.0.0" || manifest.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
-      || manifest.status !== "published" || manifest.derived_only !== true || manifest.source_actions_performed !== 0 || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary invalid");
+  if ((!historical && manifest.schema_version !== "broad-organization-authorization-program-manifest@2.0.0") || manifest.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
+      || manifest.status !== "published" || manifest.derived_only !== true || manifest.source_actions_performed !== 0
+      || (!historical && manifest.network_requests !== 0) || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary invalid");
   const directory = path.dirname(manifestPath);
   const dirStat = await lstat(directory);
   if (!dirStat.isDirectory() || dirStat.isSymbolicLink()) fail("release directory must be a real directory");

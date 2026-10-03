@@ -1,18 +1,23 @@
-# Broad-organization all-wave authorization program
+# Broad-organization current-gap authorization program
 
-This is a separate dataset derived offline directly from the verified broad-organization acquisition backlog. It preserves the backlog order as five contiguous waves: AK/DC/IL/MS/AR/KY/HI/KS/NV/UT; WA/TX/OK/AL/AZ/CA/GA/ID/IN/LA; MA/MD/ME/MI/MN/MO/MT/NC/ND/NH; NJ/NM/OH/RI/SC/SD/TN/VA/VT/WI; and WV/WY/NE. The release contains 43 jurisdictions and 371 gate items covering 28 exact gate keys. The existing ten-jurisdiction authorization-packet release remains a separate unchanged artifact.
+Version 2 is an offline evidence-specification dataset derived exactly from the verified current-gap acquisition backlog v2. It contains the 40 jurisdictions that still lack a production-ready general-business broad layer. Alaska and D.C. are deliberately absent because the current national matrix no longer reports them as gaps.
 
-Each state retains its complete validated assessment snapshot, including exclusions, status and address evidence/limitations, publisher/product/access/price details, provenance, and official URLs. This is an evidence-specification program only. It is not source acquisition approval, a request to contact a publisher, or a production input. It performs no external action, changes no pointer, and carries no authority to contact, download, pay, request records, or publish production data.
+The four contiguous ten-state waves preserve backlog order:
 
-Ordinary gates are non-row-bearing contract-evidence specifications. Reviewing documentation can establish only contract-evidence sufficiency; it cannot grant action authority. AK and DC `large-acquisition-authorization` are different: they are approval-only gates, not documents or uploads. No document can close them. Closure requires a separate authenticated, scope-specific user authorization for an exact reviewed proposal. The program itself grants none.
+1. IL, MS, AR, KY, HI, KS, NV, UT, WA, OK
+2. AL, AZ, CA, GA, ID, IN, LA, MA, MD, ME
+3. MI, MN, MO, MT, NC, ND, NH, NJ, NM, OH
+4. RI, SC, SD, TN, VA, VT, WI, WV, WY, NE
 
-The immutable manifest-last release is content-derived beneath `data/broad-organization-authorization-program/releases/`. No current pointer is created. The verifier independently verifies the canonical backlog release and assessment catalog lineage, reconstructs exact waves, gates, exclusions, and authority boundaries, and rejects changes, extra files, linked/hard-linked artifacts, or changed lineage.
+The release contains 351 gate items across 26 exact gate keys. Each row retains its complete assessment snapshot, exclusions, limitations, official-source provenance, and explicit false authority fields. The manifest also pins the backlog and the backlog's independently verified national-matrix lineage. The builder and verifier perform zero network requests, source contacts, downloads, payments, record requests, pointer changes, or production actions.
+
+The historical v1 release remains immutable and independently verifiable. It continues to represent its original 43-jurisdiction, 371-item, five-wave snapshot; its bytes, release identity, and backlog lineage are not rewritten. The older ten-jurisdiction authorization-packet release is also unchanged.
 
 ```powershell
 npm run broad-org-authorization-program:build
 npm run broad-org-authorization-program:verify
 ```
 
-An exact backlog manifest can be selected with `--backlog-manifest <path>`; output can be directed only to a child of canonical `APP_ROOT/data`. Build and verify are offline and do not request, fetch, or inspect source records.
+With no arguments, the scripts select the sole canonical v2 backlog or v2 program release. An exact historical or current manifest can still be verified by passing its path. Output is restricted to a child of canonical `APP_ROOT/data`, publication is manifest-last and content-addressed, and no `current.json` pointer is created.
 
-The Data Operations page includes a separate read-only all-wave view backed by authenticated `GET /api/data-operations/broad-organization-authorization-program`. Every load and recheck independently verifies the sole canonical program release and its backlog/catalog lineage. The endpoint accepts no query string or request body and fails closed with redacted errors. The UI exposes only bounded state, gate, exclusion, limitation, count, authority, and hash-lineage fields; it omits file paths, URLs, assessment snapshots, product/access/price payloads, and acquisition controls. Jurisdiction filtering is constrained to the selected wave. AK/DC large-acquisition items are visibly approval-only and cannot be closed by uploading evidence; other items are non-row-bearing evidence specifications and grant no action authority.
+This program is not acquisition approval. Reviewing a document can establish contract-evidence sufficiency only; it cannot authorize contact, access, payment, record acquisition, or production use.

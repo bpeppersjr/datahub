@@ -21,9 +21,9 @@ type ProgramState = {
 };
 type ProgramView = {
   schema_version: string; available: true;
-  metadata: { release_id: string; observed_at: string; jurisdiction_count: 43; gate_item_count: 371; gate_key_count: 28; wave_state_abbreviations: string[][] };
-  source_lineage: { backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string; assessment_catalog_id: string; assessment_catalog_sha256: string };
-  authority: { approval_granted: false; acquisition_authorized: false; evidence_request_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; row_bearing_evidence_authorized: false; production_change_authorized: false; source_actions_performed: 0; current_pointer_changed: false; evidence_specification_is_approval: false };
+  metadata: { release_id: string; observed_at: string; jurisdiction_count: number; gate_item_count: number; gate_key_count: number; wave_state_abbreviations: string[][] };
+  source_lineage: { backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string; assessment_catalog_id: string; assessment_catalog_sha256: string; source_matrix_release_id: string; source_matrix_manifest_sha256: string; source_matrix_artifact_sha256: string };
+  authority: { approval_granted: false; acquisition_authorized: false; evidence_request_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; row_bearing_evidence_authorized: false; production_change_authorized: false; source_actions_performed: 0; network_requests: 0; current_pointer_changed: false; evidence_specification_is_approval: false };
   states: ProgramState[];
 };
 
@@ -71,7 +71,7 @@ export default function BroadOrganizationAuthorizationProgram() {
 
   return <section className="operations-builder" aria-labelledby="broad-org-program-title">
     <h3 id="broad-org-program-title">Broad-organization authorization program</h3>
-    <p className="operations-note">Read-only, verified specification of unresolved evidence gates across five backlog waves. It is not approval to contact a publisher, request or download records, pay fees, or change production. No source action was taken.</p>
+    <p className="operations-note">Read-only, verified specification of unresolved evidence gates across four current-gap waves. It is not approval to contact a publisher, request or download records, pay fees, or change production. No source or network action was taken.</p>
     <div className="operations-actions">
       <label>Wave<select aria-label="Filter authorization program wave" value={selectedWave} disabled={!view} onChange={(event) => { setSelectedWave(event.target.value); setSelectedState(''); }}>
         <option value="">Select a wave</option>{view?.metadata.wave_state_abbreviations.map((states, index) => <option key={index + 1} value={String(index + 1)}>Wave {index + 1} · {states.join(', ')}</option>)}
@@ -84,7 +84,7 @@ export default function BroadOrganizationAuthorizationProgram() {
     {loading && <p role="status">Verifying the retained all-wave program…</p>}
     {error && <p role="alert">The canonical authorization program is unavailable or failed verification. No program details or actions are available.</p>}
     {view && <>
-      <p className="operations-note"><strong>43 jurisdictions · 371 gate items · 28 gate keys</strong> · observed {view.metadata.observed_at}. Approval granted: no. Acquisition authorized: no. Source actions performed: 0. Evidence specifications grant no authority.</p>
+      <p className="operations-note"><strong>{`${view.metadata.jurisdiction_count} jurisdictions · ${view.metadata.gate_item_count} gate items · ${view.metadata.gate_key_count} gate keys`}</strong> · observed {view.metadata.observed_at}. Approval granted: no. Acquisition authorized: no. Source actions performed: 0. Network requests: 0. Evidence specifications grant no authority.</p>
       <details><summary>Verified lineage and authority boundaries</summary>
         <dl>
           <dt>Program release</dt><dd>{view.metadata.release_id}</dd>
@@ -93,6 +93,9 @@ export default function BroadOrganizationAuthorizationProgram() {
           <dt>Backlog artifact SHA-256</dt><dd><code>{view.source_lineage.backlog_artifact_sha256}</code></dd>
           <dt>Assessment catalog</dt><dd>{view.source_lineage.assessment_catalog_id}</dd>
           <dt>Assessment catalog SHA-256</dt><dd><code>{view.source_lineage.assessment_catalog_sha256}</code></dd>
+          <dt>Source matrix release</dt><dd>{view.source_lineage.source_matrix_release_id}</dd>
+          <dt>Source matrix manifest SHA-256</dt><dd><code>{view.source_lineage.source_matrix_manifest_sha256}</code></dd>
+          <dt>Source matrix artifact SHA-256</dt><dd><code>{view.source_lineage.source_matrix_artifact_sha256}</code></dd>
         </dl>
         <p className="operations-note">No contact, download, payment, record request, row-bearing evidence, or production change is authorized. Current pointer changed: no.</p>
       </details>

@@ -9,11 +9,11 @@ const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKi
 const ordinary = (key) => ({ gate_key: key, gate_kind: "non-row-bearing-contract-evidence", document_closable: true, automatic_closure_permitted: false, row_bearing: false, required_evidence_type: "Schema-only documentation", acceptance_criterion: "Fields are documented without row data.", grants_authority: false });
 const approval = { gate_key: "large-acquisition-authorization", gate_kind: "external-explicit-authorization", document_closable: false, automatic_closure_permitted: false, closure_requires: "Separate authenticated scope-specific user authorization for an exact reviewed proposal.", no_document_or_evidence_upload_can_close: true };
 const state = (abbr, name, priority, wave, gates = [ordinary("schema")]) => ({ priority, wave, state_abbreviation: abbr, state_name: name, unresolved_gates: gates.map((gate) => gate.gate_key), required_exclusions: ["Person-linked fields"], status_limitations: ["Status does not independently establish current operation."], address_limitations: ["Reported address is not a confirmed operating site."], gate_items: gates });
-const view = (states = [state("AK", "Alaska", 1, 1, [ordinary("schema"), approval]), state("DC", "District of Columbia", 2, 1), state("WA", "Washington", 11, 2)]) => ({
-  schema_version: "broad-organization-authorization-program-management-view@1.0.0", available: true,
-  metadata: { release_id: "program-fixture", observed_at: "2026-09-22", jurisdiction_count: 43, gate_item_count: 371, gate_key_count: 28, wave_state_abbreviations: [["AK", "DC", "IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT"], ["WA", "TX", "OK", "AL", "AZ", "CA", "GA", "ID", "IN", "LA"], ["MA", "MD", "ME", "MI", "MN", "MO", "MT", "NC", "ND", "NH"], ["NJ", "NM", "OH", "RI", "SC", "SD", "TN", "VA", "VT", "WI"], ["WV", "WY", "NE"]] },
-  source_lineage: { backlog_release_id: "backlog-fixture", backlog_manifest_sha256: "a".repeat(64), backlog_artifact_sha256: "b".repeat(64), assessment_catalog_id: "catalog-fixture", assessment_catalog_sha256: "c".repeat(64) },
-  authority: { approval_granted: false, acquisition_authorized: false, evidence_request_authorized: false, contact_authorized: false, download_authorized: false, payment_authorized: false, record_request_authorized: false, row_bearing_evidence_authorized: false, production_change_authorized: false, source_actions_performed: 0, current_pointer_changed: false, evidence_specification_is_approval: false },
+const view = (states = [state("IL", "Illinois", 1, 1, [ordinary("schema"), approval]), state("MS", "Mississippi", 2, 1), state("AL", "Alabama", 11, 2)]) => ({
+  schema_version: "broad-organization-authorization-program-management-view@2.0.0", available: true,
+  metadata: { release_id: "program-fixture", observed_at: "2026-09-23T15:28:41.546Z", jurisdiction_count: 40, gate_item_count: 351, gate_key_count: 26, wave_state_abbreviations: [["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"], ["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"], ["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"], ["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]] },
+  source_lineage: { backlog_release_id: "backlog-fixture", backlog_manifest_sha256: "a".repeat(64), backlog_artifact_sha256: "b".repeat(64), assessment_catalog_id: "catalog-fixture", assessment_catalog_sha256: "c".repeat(64), source_matrix_release_id: "matrix-fixture", source_matrix_manifest_sha256: "d".repeat(64), source_matrix_artifact_sha256: "e".repeat(64) },
+  authority: { approval_granted: false, acquisition_authorized: false, evidence_request_authorized: false, contact_authorized: false, download_authorized: false, payment_authorized: false, record_request_authorized: false, row_bearing_evidence_authorized: false, production_change_authorized: false, source_actions_performed: 0, network_requests: 0, current_pointer_changed: false, evidence_specification_is_approval: false },
   states,
 });
 
@@ -43,20 +43,22 @@ test("program panel loads bounded view, requires a wave before state filter, and
   const f = fixture(async (url, options) => { assert.equal(url, "/api/data-operations/broad-organization-authorization-program"); assert.ok(options.signal); return view(); });
   f.mount(); await settle();
   let tree = f.render();
-  assert.match(textOf(tree), /43 jurisdictions · 371 gate items · 28 gate keys/);
+  assert.match(textOf(tree), /40 jurisdictions · 351 gate items · 26 gate keys/);
   assert.match(textOf(tree), /Source actions performed: 0/);
+  assert.match(textOf(tree), /Network requests: 0/);
+  assert.match(textOf(tree), /matrix-fixture/);
   let selects = nodes(tree).filter((node) => node.type === "select");
   assert.equal(selects[1].props.disabled, true);
   selects[0].props.onChange({ target: { value: "1" } }); tree = f.render();
   assert.match(textOf(tree), /explicit authorization only, not an evidence item/);
   assert.match(textOf(tree), /non-row-bearing evidence specification, not approval/);
   selects = nodes(tree).filter((node) => node.type === "select");
-  assert.deepEqual(nodes(selects[1]).filter((node) => node.type === "option").map((item) => item.props.value), ["", "AK", "DC", "IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT"]);
+  assert.deepEqual(nodes(selects[1]).filter((node) => node.type === "option").map((item) => item.props.value), ["", "IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
   selects[0].props.onChange({ target: { value: "2" } }); tree = f.render();
   selects = nodes(tree).filter((node) => node.type === "select");
-  assert.deepEqual(nodes(selects[1]).filter((node) => node.type === "option").map((item) => item.props.value), ["", "WA", "TX", "OK", "AL", "AZ", "CA", "GA", "ID", "IN", "LA"]);
-  selects[1].props.onChange({ target: { value: "WA" } }); tree = f.render();
-  assert.match(textOf(tree), /Washington/);
+  assert.deepEqual(nodes(selects[1]).filter((node) => node.type === "option").map((item) => item.props.value), ["", "AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"]);
+  selects[1].props.onChange({ target: { value: "AL" } }); tree = f.render();
+  assert.match(textOf(tree), /Alabama/);
   assert.doesNotMatch(textOf(tree), /Alaska|District of Columbia/);
   assert.deepEqual(nodes(tree).filter((node) => node.type === "button").map((node) => textOf(node)), ["Recheck verified program"]);
   assert.equal(f.calls.length, 1);
@@ -76,11 +78,11 @@ test("program panel discards stale responses after recheck", async () => {
   f.mount(); await settle();
   let tree = f.render();
   nodes(tree).find((node) => node.type === "button" && textOf(node) === "Recheck verified program").props.onClick();
-  pending[1](view([state("WA", "Washington", 11, 2)])); await settle();
+  pending[1](view([state("AL", "Alabama", 11, 2)])); await settle();
   tree = f.render();
   nodes(tree).find((node) => node.type === "select" && node.props["aria-label"] === "Filter authorization program wave").props.onChange({ target: { value: "2" } });
-  pending[0](view([state("AK", "Alaska", 1, 1)])); await settle();
+  pending[0](view([state("IL", "Illinois", 1, 1)])); await settle();
   tree = f.render();
-  assert.match(textOf(tree), /Washington/);
-  assert.doesNotMatch(textOf(tree), /Wave 1 · AK/);
+  assert.match(textOf(tree), /Alabama/);
+  assert.doesNotMatch(textOf(tree), /Wave 1 · IL/);
 });

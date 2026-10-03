@@ -6,6 +6,10 @@ import {
   DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT,
   verifyBroadOrganizationAuthorizationPacket,
 } from "./broad-organization-authorization-packet.mjs";
+import {
+  DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT,
+  verifyBroadOrganizationAcquisitionBacklog,
+} from "./broad-organization-acquisition-backlog.mjs";
 
 function fail(message) {
   throw new Error(`Verified authorization packet view unavailable: ${message}`);
@@ -22,17 +26,26 @@ function projectBoundary(boundary) {
   return Object.fromEntries(boundaryFields.map((field) => [field, boundary[field]]));
 }
 
-export function projectBroadOrganizationAuthorizationPacket(packet, manifest) {
+export function projectBroadOrganizationAuthorizationPacket(packet, manifest, backlogManifest) {
   if (packet?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID
-      || packet.states?.length !== 10 || manifest.state_count !== 10 || manifest.request_item_count !== packet.scope?.request_items) fail("identity or bounded selection is invalid");
+      || packet.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-packet-manifest@2.0.0"
+      || packet.states?.length !== 10 || manifest.state_count !== 10 || manifest.request_item_count !== 80
+      || manifest.request_item_count !== packet.scope?.request_items || packet.scope?.jurisdictions !== manifest.state_count
+      || packet.scope?.source_actions_performed !== 0 || packet.scope?.network_requests !== 0
+      || packet.scope?.acquisition_authorized !== false || packet.scope?.contact_authorized !== false
+      || packet.scope?.row_bearing_evidence_authorized !== false || packet.scope?.current_pointer_changed !== false
+      || backlogManifest?.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0"
+      || backlogManifest.release_id !== manifest.source_backlog_release_id
+      || backlogManifest.source_matrix_release_id === undefined
+      || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");
   return {
-    schema_version: "broad-organization-authorization-packet-management-view@1.0.0",
+    schema_version: "broad-organization-authorization-packet-management-view@2.0.0",
     available: true,
     metadata: {
       release_id: manifest.release_id,
       observed_at: packet.observed_at,
-      jurisdiction_count: 10,
+      jurisdiction_count: manifest.state_count,
       request_item_count: manifest.request_item_count,
       first_wave_state_abbreviations: [...manifest.first_wave_state_abbreviations],
     },
@@ -42,6 +55,9 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest) {
       backlog_artifact_sha256: manifest.source_backlog_artifact_sha256,
       assessment_catalog_id: packet.source_backlog.assessment_catalog_id,
       assessment_catalog_sha256: packet.source_backlog.assessment_catalog_sha256,
+      source_matrix_release_id: backlogManifest.source_matrix_release_id,
+      source_matrix_manifest_sha256: backlogManifest.source_matrix_manifest_sha256,
+      source_matrix_artifact_sha256: backlogManifest.source_matrix_artifact_sha256,
     },
     authority: {
       approval_granted: false,
@@ -53,6 +69,7 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest) {
       row_bearing_evidence_authorized: false,
       production_change_authorized: false,
       source_actions_performed: 0,
+      network_requests: 0,
       contact_performed: false,
       download_performed: false,
       payment_performed: false,
@@ -92,10 +109,19 @@ export async function loadBroadOrganizationAuthorizationPacketManagementView() {
   const releasesStat = await lstat(releasesDirectory);
   if (!parentStat.isDirectory() || parentStat.isSymbolicLink() || !releasesStat.isDirectory() || releasesStat.isSymbolicLink()) fail("canonical release ancestry is missing or linked");
   const entries = await readdir(releasesDirectory, { withFileTypes: true });
-  if (entries.length !== 1 || !entries[0].isDirectory() || entries[0].isSymbolicLink()
-      || !new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID}-20\\d{2}-\\d{2}-\\d{2}-[0-9a-f]{12}$`, "i").test(entries[0].name)) fail("expected exactly one canonical packet release");
-  const manifestPath = path.join(releasesDirectory, entries[0].name, "manifest.json");
-  const verified = await verifyBroadOrganizationAuthorizationPacket(manifestPath);
-  if (verified.manifest.release_id !== entries[0].name) fail("release directory and manifest identity differ");
-  return projectBroadOrganizationAuthorizationPacket(verified.packet, verified.manifest);
+  const identity = new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID}-.+-[0-9a-f]{12}$`, "i");
+  if (!entries.length || entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink() || !identity.test(entry.name))) fail("canonical packet releases are missing or invalid");
+  const current = [];
+  for (const entry of entries) {
+    const manifestPath = path.join(releasesDirectory, entry.name, "manifest.json");
+    const verified = await verifyBroadOrganizationAuthorizationPacket(manifestPath);
+    if (verified.manifest.release_id !== entry.name) fail("release directory and manifest identity differ");
+    if (verified.manifest.schema_version === "broad-organization-authorization-packet-manifest@2.0.0") current.push(verified);
+  }
+  if (current.length !== 1) fail(`expected exactly one verified current v2 packet release; found ${current.length}`);
+  const verified = current[0];
+  const backlogManifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases", verified.manifest.source_backlog_release_id, "manifest.json");
+  const backlog = await verifyBroadOrganizationAcquisitionBacklog(backlogManifestPath);
+  if (backlog.manifest.source_matrix_release_id === undefined) fail("current packet backlog lacks matrix lineage");
+  return projectBroadOrganizationAuthorizationPacket(verified.packet, verified.manifest, backlog.manifest);
 }
