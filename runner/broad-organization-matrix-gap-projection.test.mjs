@@ -12,9 +12,15 @@ import { DATA_DIR } from "./paths.mjs";
 const temporaryRoot = path.join(DATA_DIR, `.tmp-broad-org-matrix-gap-${process.pid}`);
 async function currentBacklog() {
   const entries = await readdir(path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases"), { withFileTypes: true });
-  const latest = entries.filter((entry) => entry.isDirectory() && entry.name.startsWith("broad-organization-acquisition-backlog-")).map((entry) => entry.name).sort().reverse()[0];
-  assert.ok(latest, "expected an existing immutable backlog release");
-  const manifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases", latest, "manifest.json");
+  const candidates = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith("broad-organization-acquisition-backlog-")) continue;
+    const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases", entry.name, "manifest.json");
+    const manifest = JSON.parse(await readFile(candidatePath, "utf8"));
+    if (manifest.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0") candidates.push(candidatePath);
+  }
+  assert.equal(candidates.length, 1, "expected exactly one historical v1 backlog lineage");
+  const manifestPath = candidates[0];
   return { path: manifestPath, ...(await verifyBroadOrganizationAcquisitionBacklog(manifestPath)) };
 }
 

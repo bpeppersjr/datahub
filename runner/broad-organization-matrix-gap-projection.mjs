@@ -39,9 +39,20 @@ async function assertDataDirectory(directory, { create = false } = {}) {
 async function currentBacklog() {
   const releases = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases");
   const entries = await readdir(releases, { withFileTypes: true });
-  const candidates = entries.filter((entry) => entry.isDirectory() && !entry.isSymbolicLink() && entry.name.startsWith("broad-organization-acquisition-backlog-")).map((entry) => entry.name).sort().reverse();
-  if (!candidates.length || candidates.length > 256) fail("canonical backlog release inventory is absent or requires review");
-  const manifestPath = path.join(releases, candidates[0], "manifest.json");
+  const releaseNames = entries.filter((entry) => entry.isDirectory() && !entry.isSymbolicLink() && entry.name.startsWith("broad-organization-acquisition-backlog-")).map((entry) => entry.name);
+  if (!releaseNames.length || releaseNames.length > 256) fail("canonical backlog release inventory is absent or requires review");
+  const candidates = [];
+  for (const releaseName of releaseNames) {
+    const candidatePath = path.join(releases, releaseName, "manifest.json");
+    try {
+      const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
+      if (candidate.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0") candidates.push(candidatePath);
+    } catch (error) {
+      if (error.code !== "ENOENT" && !(error instanceof SyntaxError)) throw error;
+    }
+  }
+  if (candidates.length !== 1) fail(`expected exactly one historical v1 backlog lineage; found ${candidates.length}`);
+  const manifestPath = candidates[0];
   const verified = await verifyBroadOrganizationAcquisitionBacklog(manifestPath);
   const manifestBytes = await readFile(manifestPath);
   return { backlog: verified.backlog, manifest: verified.manifest, manifestBytes, manifestPath, artifactSha256: verified.manifest.artifacts[0].sha256 };

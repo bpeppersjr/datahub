@@ -10,6 +10,7 @@ import { DATA_DIR } from "./paths.mjs";
 import {
   buildBroadOrganizationAcquisitionBacklog,
   deriveBroadOrganizationAcquisitionBacklog,
+  loadCurrentBroadOrganizationGapEvidence,
   verifyBroadOrganizationAcquisitionBacklog,
 } from "./broad-organization-acquisition-backlog.mjs";
 
@@ -19,15 +20,16 @@ async function tempDirectory() {
   return mkdtemp(path.join(DATA_DIR, ".tmp-broad-org-acquisition-backlog-"));
 }
 
-test("derives exactly the 43 non-production-ready jurisdictions and a disclosed first wave", async () => {
-  const catalog = await loadStateBusinessSourceAssessmentCatalog();
-  const backlog = deriveBroadOrganizationAcquisitionBacklog(catalog);
-  assert.equal(backlog.states.length, 43);
+test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted Alaska, and discloses a first wave", async () => {
+  const [catalog, matrix] = await Promise.all([loadStateBusinessSourceAssessmentCatalog(), loadCurrentBroadOrganizationGapEvidence()]);
+  const backlog = deriveBroadOrganizationAcquisitionBacklog(catalog, matrix);
+  assert.equal(backlog.states.length, 40);
   assert.equal(backlog.scope.total_assessed_jurisdictions, 51);
-  assert.equal(backlog.scope.not_broad_layer_production_ready, 43);
+  assert.equal(backlog.scope.current_broad_layer_gaps, 40);
   assert.deepEqual(backlog.scope.first_wave_state_abbreviations, backlog.states.slice(0, 10).map(({ assessment }) => assessment.state_abbreviation));
-  assert.deepEqual(backlog.scope.first_wave_state_abbreviations.slice(0, 2), ["AK", "DC"]);
-  assert.equal(backlog.states.every(({ assessment }) => assessment.broad_layer_production_ready === false), true);
+  assert.equal(backlog.states.some(({ assessment }) => assessment.state_abbreviation === "AK"), false);
+  const matrixGaps = matrix.report.jurisdictions.filter((jurisdiction) => jurisdiction.categories.find((category) => category.category_id === "general-business").datasets[0].availability_status !== "available").map((jurisdiction) => jurisdiction.code).sort();
+  assert.deepEqual(backlog.states.map(({ assessment }) => assessment.state_abbreviation).sort(), matrixGaps);
   assert.equal(backlog.states.every(({ assessment }) => assessment.autonomous_acquisition_authorized === false
     && assessment.paid_acquisition_authorized === false
     && assessment.complete_source_acquisition_authorized === false
@@ -36,7 +38,15 @@ test("derives exactly the 43 non-production-ready jurisdictions and a disclosed 
     && assessment.candidate.availability && assessment.candidate.price
     && assessment.unresolved_gates.length > 0 && assessment.official_urls.length >= 2
     && assessment.strongest_bounded_next_action), true);
-  assert.deepEqual(deriveBroadOrganizationAcquisitionBacklog(catalog), backlog);
+  assert.deepEqual(deriveBroadOrganizationAcquisitionBacklog(catalog, matrix), backlog);
+});
+
+test("continues to verify the immutable historical v1 lineage without treating it as current", async () => {
+  const historical = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
+  const verified = await verifyBroadOrganizationAcquisitionBacklog(historical);
+  assert.equal(verified.manifest.schema_version, "broad-organization-acquisition-backlog-manifest@1.0.0");
+  assert.equal(verified.backlog.states.length, 43);
+  assert.equal(verified.backlog.states[0].assessment.state_abbreviation, "AK");
 });
 
 test("builds a manifest-last immutable release locally and verifies it without changing pointers", async () => {
@@ -44,6 +54,7 @@ test("builds a manifest-last immutable release locally and verifies it without c
   try {
     const built = await buildBroadOrganizationAcquisitionBacklog({ outputRoot: path.join(root, "output") });
     assert.equal(built.manifest.source_actions_performed, 0);
+    assert.equal(built.manifest.network_requests, 0);
     assert.equal(built.manifest.current_pointer_changed, false);
     assert.equal(built.reused_existing_release, false);
     assert.equal((await readFile(path.join(built.releaseDirectory, "manifest.json"), "utf8")).endsWith("\n"), true);
@@ -71,7 +82,7 @@ test("verifier rejects byte tampering even when artifact and manifest checksums 
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.artifacts[0].bytes = artifactBytes.length;
     manifest.artifacts[0].sha256 = hash(artifactBytes);
-    const forgedReleaseId = `${manifest.dataset_id}-${artifact.observed_at}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
+    const forgedReleaseId = `${manifest.dataset_id}-${artifact.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
     manifest.release_id = forgedReleaseId;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const newDirectory = path.join(path.dirname(oldDirectory), forgedReleaseId);
@@ -96,7 +107,7 @@ test("verifier rejects rehashed authority widening", async () => {
     const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
     manifest.artifacts[0].bytes = artifactBytes.length;
     manifest.artifacts[0].sha256 = hash(artifactBytes);
-    const forgedReleaseId = `${manifest.dataset_id}-${artifact.observed_at}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
+    const forgedReleaseId = `${manifest.dataset_id}-${artifact.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${manifest.artifacts[0].sha256.slice(0, 12)}`;
     manifest.release_id = forgedReleaseId;
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     const newDirectory = path.join(path.dirname(oldDirectory), forgedReleaseId);
@@ -109,8 +120,9 @@ test("verifier rejects rehashed authority widening", async () => {
 
 test("rejects source catalog drift and missing release artifacts", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
+  const matrix = await loadCurrentBroadOrganizationGapEvidence();
   catalog.states[0].autonomous_acquisition_authorized = true;
-  assert.throws(() => deriveBroadOrganizationAcquisitionBacklog(catalog), /authorization boundary drifted|content digest drifted/);
+  assert.throws(() => deriveBroadOrganizationAcquisitionBacklog(catalog, matrix), /authorization boundary drifted|content digest drifted/);
   const root = await tempDirectory();
   try {
     const releaseDirectory = path.join(root, "release");
@@ -120,6 +132,14 @@ test("rejects source catalog drift and missing release artifacts", async () => {
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("rejects matrix drift that reintroduces admitted Alaska or changes the 40-gap denominator", async () => {
+  const [catalog, matrix] = await Promise.all([loadStateBusinessSourceAssessmentCatalog(), loadCurrentBroadOrganizationGapEvidence()]);
+  const changed = structuredClone(matrix);
+  const alaska = changed.report.jurisdictions.find((row) => row.code === "AK");
+  alaska.categories.find((row) => row.category_id === "general-business").datasets[0].availability_status = "unmeasured";
+  assert.throws(() => deriveBroadOrganizationAcquisitionBacklog(catalog, changed), /matrix bytes|exact current 40-gap matrix with Alaska admitted/);
 });
 
 test("rejects manifest metadata tampering and mutable-pointer claims", async () => {
