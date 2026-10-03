@@ -81,7 +81,8 @@ export function normalizeMississippiBusinessReportRow(row, context) {
     formation_date: row["Formation Date"] || null,
     principal_administrative_address: { address_line: row["Principal Address"] || null, city: row.City || null, state: row.State || null, county: row.County || null, zip5: postal.zip5, zip4: postal.zip4 },
     provenance: { package_id: context.package_id, observed_at: context.observed_at, original_workbook_sha256: context.original_workbook_sha256, derived_records_sha256: context.derived_records_sha256, transformation_version: context.transformation_version, representation: "operator-derived-jsonl" },
-    claims: { organization_registration_evidence: true, principal_address_role: "administrative-registration-evidence", source_native: false, source_authenticity_verified: false, reproducible_extraction_verified: false, statewide_complete: false, current_operation_verified: false, physical_site_verified: false, redistribution_authorized: false, national_admission_performed: false, admission_eligible: false },
+    export_policy: "local-review-only",
+    claims: { organization_registration_evidence: true, principal_address_role: "administrative-registration-evidence", source_native: false, source_authenticity_verified: false, reproducible_extraction_verified: false, statewide_complete: false, current_operation_verified: false, physical_site_verified: false, redistribution_authorized: false, national_admission_performed: false, admission_eligible: false, production_enrollment: false, current_pointer_written: false },
   };
 }
 
@@ -104,7 +105,7 @@ export async function inspectMississippiBusinessReportPackage(packageDirectory, 
   const workbookName = `original.${selection.export.format}`, workbookDescriptor = selection.files.ORIGINAL_WORKBOOK, recordsDescriptor = selection.files.RECORDS;
   check(exact(workbookDescriptor, ["path", "bytes", "sha256"]) && workbookDescriptor.path === workbookName && Number.isSafeInteger(workbookDescriptor.bytes) && workbookDescriptor.bytes > 0 && SHA.test(workbookDescriptor.sha256), "workbook descriptor is invalid");
   check(exact(recordsDescriptor, ["path", "bytes", "sha256", "row_count"]) && recordsDescriptor.path === "records.jsonl" && Number.isSafeInteger(recordsDescriptor.bytes) && recordsDescriptor.bytes > 0 && SHA.test(recordsDescriptor.sha256) && Number.isSafeInteger(recordsDescriptor.row_count) && recordsDescriptor.row_count >= 0 && recordsDescriptor.row_count <= MS_BUSINESS_REPORT_MAX_ROWS, "records descriptor is invalid");
-  check(exact(selection.claims, ["network_requests", "acquisition_performed", "statewide_complete", "current_operation_verified", "physical_site_verified", "redistribution_authorized", "national_admission_performed", "production_enrollment", "source_pointer_changed"]), "claims roster drifted");
+  check(exact(selection.claims, ["network_requests", "acquisition_performed", "source_authenticity_verified", "statewide_complete", "current_operation_verified", "physical_site_verified", "redistribution_authorized", "national_admission_performed", "production_enrollment", "source_pointer_changed"]), "claims roster drifted");
   check(selection.claims.network_requests === 0 && Object.entries(selection.claims).filter(([key]) => key !== "network_requests").every(([, value]) => value === false), "selection exceeds offline authority");
   const workbook = await fixedFile(path.join(canonicalPackage, workbookName), canonicalPackage, maximumWorkbookBytes), recordsFile = await fixedFile(path.join(canonicalPackage, "records.jsonl"), canonicalPackage, maximumJsonlBytes);
   check(workbook.bytes_count === workbookDescriptor.bytes && workbook.sha256 === workbookDescriptor.sha256, "workbook hash or size mismatch");
