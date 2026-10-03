@@ -128,6 +128,15 @@ type GoalCompletion = {
   jurisdictions: Array<{ code: string; name: string; available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null; temporal_status_counts: Record<string, number>; authorization_state_counts: Record<string, number>; broad_layer_gap: boolean }>;
   selected: null | { code: string; name: string; category: { category_id: string; dataset_availability: { available: number; denominator: number; measured: number; unmeasured: number; measurement_status: 'measured'|'partially-measured'|'unmeasured'; percent: number | null }; datasets: Array<{ dataset_id: string; label: string; availability_status: string; state_record_count: number | null; authorization: { state: string; basis?: string }; temporal_status: { status: string }; geocode_rate: { percent: number | null; scope?: string; status?: string }; gap_reason: string | null }> } };
 };
+type AdjacentEvidenceView = {
+  schema_version: 'broad-organization-adjacent-evidence-view@1.0.0'; available: true; release_id: string; manifest_sha256: string;
+  selected: { code: string; name: string; broad_layer_gap: true; broad_layer_status: 'unmeasured'; adjacent_evidence_status: 'retained-adjacent-evidence'|'no-retained-adjacent-evidence'; evidence_count: number;
+    evidence: Array<{ evidence_id: string; label: string; evidence_kind: string; record_count: number; row_unit: string; provenance: { release_id: string; source_release_id: string; manifest_sha256: string };
+      source_reference: { status: 'reported'|'unknown'; field: string|null; value: string|number|null }; temporal_limitation: string; current_operation_verified: false; geography_scope: string;
+      authority: { retained_offline_use_authorized: true; acquisition_authorized: false; broad_layer_admission_authorized: false; production_pointer_change_authorized: false; export_policy: 'internal'|'local-review-only' };
+      coverage_limitations: string[] }>; limitations: string[] } | null;
+  claims: { broad_layer_gap_preserved: true; active_business_count: null; all_business_completeness_percent: null };
+};
 type ZipQualitySummary = {
   national_zip_coverage: {
     registry_zip5: {
@@ -286,13 +295,35 @@ function GoalCompletionSummary({ state, categoryId }: { state?: string; category
   if (!view) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Verifying local evidence…</strong></div></section>;
   if (!view.available) return <section className="state-alignment-card"><div><span>National goal matrix</span><strong>Not available</strong></div><p className="entity-method-note">{view.status.replaceAll('-', ' ')}. All-business completion remains unknown.</p></section>;
   const selected = view.selected?.category;
+  const broadLayerGap = matrixCategoryId === 'general-business' && view.selected?.category.datasets[0]?.availability_status === 'unmeasured';
   return <section className="state-alignment-card goal-completion-card" aria-label="National business goal completion">
     <div><span>National goal matrix</span><strong>{view.selected ? `${view.selected.code} · ${selected?.category_id.replaceAll('-', ' ')}` : view.category?.replaceAll('-', ' ')}</strong></div>
     <dl><div><dt>Governed datasets available</dt><dd>{selected ? `${selected.dataset_availability.available} / ${selected.dataset_availability.measured} measured` : 'Select a state'}</dd></div><div><dt>Unmeasured datasets</dt><dd>{selected ? `${selected.dataset_availability.unmeasured} / ${selected.dataset_availability.denominator}` : 'Select a state'}</dd></div><div><dt>Dataset availability</dt><dd>{selected ? selected.dataset_availability.measurement_status==='unmeasured'?'Unmeasured':percent(selected.dataset_availability.percent) : '—'}</dd></div><div><dt>Broad state-layer gaps</dt><dd>{count(view.broad_layer_gaps)}</dd></div><div><dt>All-business completion</dt><dd>Unknown</dd></div></dl>
     {selected && <div className="goal-source-list">{selected.datasets.map((dataset) => <div key={dataset.dataset_id}><strong>{dataset.label}</strong><span>{dataset.availability_status.replaceAll('-', ' ')} · {dataset.state_record_count === null ? 'state count unmeasured' : `${count(dataset.state_record_count)} state records`}</span><small>Freshness: {dataset.temporal_status.status.replaceAll('-', ' ')} · authorization: {dataset.authorization.state.replaceAll('-', ' ')} · source geocoded: {percent(dataset.geocode_rate.percent)}{dataset.geocode_rate.scope ? ` (${dataset.geocode_rate.scope})` : ''}</small>{dataset.gap_reason && <small>Gap: {dataset.gap_reason}</small>}</div>)}</div>}
+    {state && matrixCategoryId === 'general-business' && broadLayerGap && <AdjacentRetainedEvidence state={state} />}
     <details><summary>All 50 states and D.C. for this category</summary><div className="representation-table"><table><thead><tr><th>State</th><th>Available / measured</th><th>Unmeasured</th><th>Share of measured</th><th>Temporal status counts</th><th>Authorization state counts</th><th>Broad layer</th></tr></thead><tbody>{view.jurisdictions.map((row) => <tr key={row.code}><th>{row.code}</th><td>{row.available}/{row.measured}</td><td>{row.unmeasured}/{row.denominator}</td><td>{row.measurement_status==='unmeasured'?'Unmeasured':percent(row.percent)}</td><td>{statusBreakdown(row.temporal_status_counts)}</td><td>{statusBreakdown(row.authorization_state_counts)}</td><td>{row.broad_layer_gap ? 'Gap' : 'Available'}</td></tr>)}</tbody></table></div><p className="entity-method-note">Temporal and authorization columns count source-dataset status values in the selected category; they are separate from dataset availability and do not indicate business completeness.</p></details>
     <p className="entity-method-note">Denominator: {view.denominator?.version}. Availability share is available governed datasets among measured members; unmeasured members are shown separately, and an all-unmeasured category has no percentage. Observed-zero datasets are measured evidence and contribute zero available. These percentages are not the share of U.S. businesses collected. All-business completion has no authoritative denominator and remains null. Release {view.release_id}.</p>
   </section>;
+}
+
+function AdjacentRetainedEvidence({ state }: { state: string }) {
+  const [view, setView] = useState<AdjacentEvidenceView | null>(null);
+  const [error, setError] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void runnerJson<AdjacentEvidenceView>(`/api/business-map/broad-organization-adjacent-evidence?${new URLSearchParams({ state })}`, { signal: controller.signal })
+      .then((value) => { setView(value); setError(false); }).catch((reason) => { if (reason?.name !== 'AbortError') { setView(null); setError(true); } });
+    return () => controller.abort();
+  }, [state]);
+  if (error) return <div className="adjacent-evidence-panel"><strong>Adjacent retained evidence unavailable</strong><p>The pointer-free index could not be verified. The broad organization gap remains unchanged.</p></div>;
+  if (!view?.selected) return <div className="adjacent-evidence-panel"><strong>Verifying adjacent retained evidence…</strong></div>;
+  const selected = view.selected;
+  return <div className="adjacent-evidence-panel" aria-label={`${state} adjacent retained evidence`}>
+    <div><span>Adjacent retained evidence</span><strong>{selected.adjacent_evidence_status === 'no-retained-adjacent-evidence' ? 'None retained' : `${count(selected.evidence_count)} scoped source${selected.evidence_count === 1 ? '' : 's'}`}</strong></div>
+    <p><b>Broad organization layer: Gap preserved.</b> These cohorts add context only; they do not count as broad state coverage or establish all-business completion.</p>
+    {selected.evidence.length === 0 ? <p>No governed state-specific, municipal, credential, license, or childcare cohort is retained for this gap jurisdiction in this index.</p> : <div className="goal-source-list">{selected.evidence.map((item) => <details key={item.evidence_id}><summary>{item.label} · {count(item.record_count)} {item.row_unit} rows</summary><small>{item.evidence_kind.replaceAll('-', ' ')} · geography: {item.geography_scope}</small><small>Source reference: {item.source_reference.status === 'unknown' ? 'Unknown' : `${item.source_reference.field}: ${item.source_reference.value}`}</small><small>{item.temporal_limitation}</small><small>Authority: retained offline use only · {item.authority.export_policy.replaceAll('-', ' ')} · broad admission not authorized</small><small>Release {item.provenance.release_id} · source {item.provenance.source_release_id} · manifest {item.provenance.manifest_sha256}</small>{item.coverage_limitations.map((limitation) => <small key={limitation}>Limit: {limitation}</small>)}</details>)}</div>}
+    <small>Pointer-free index {view.release_id} · manifest {view.manifest_sha256}</small>
+  </div>;
 }
 
 function reconcileFeature(current: MapFeature | null, response: MapResponse) {

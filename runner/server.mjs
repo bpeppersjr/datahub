@@ -25,6 +25,7 @@ import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
 import { createCensusZbpIndustryView } from './census-zbp-industry-view.mjs';
 import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
+import { broadOrganizationAdjacentEvidenceHttp } from './broad-organization-adjacent-evidence-http.mjs';
 import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
@@ -40,6 +41,8 @@ import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
 import { readExactZipIndustryEvidence } from './national-exact-zip-industry-evidence-matrix.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
+import { readZipIndustryDemographicCrossView } from './zip-industry-demographic-cross-view.mjs';
+import { zipIndustryDemographicCrossViewHttp } from './zip-industry-demographic-cross-view-http.mjs';
 import { readBusinessIntelligenceReadiness } from './business-intelligence-readiness.mjs';
 import { businessIntelligenceReadinessHttp } from './business-intelligence-readiness-http.mjs';
 import { readNationalBusinessTemporalClaimMatrix } from './national-business-temporal-claim-matrix-reader.mjs';
@@ -738,6 +741,9 @@ const server = http.createServer(async (request, response) => {
       }
       return;
     }
+    if (url.pathname === '/api/business-map/broad-organization-adjacent-evidence') {
+      await broadOrganizationAdjacentEvidenceHttp(request, response, url, json); return;
+    }
     if (url.pathname === '/api/business-map/temporal-claim-matrix') {
       await nationalBusinessTemporalClaimMatrixHttp(request,response,url,readNationalBusinessTemporalClaimMatrix,json);return;
     }
@@ -784,6 +790,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/exact-zip-industry-evidence') {
       await exactZipIndustryEvidenceHttp(request,response,url,readExactZipIndustryEvidence,json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/zip-industry-demographic-cross-view') {
+      await zipIndustryDemographicCrossViewHttp(request,response,url,readZipIndustryDemographicCrossView,json);
       return;
     }
     if (url.pathname === '/api/business-map/business-intelligence-readiness') {

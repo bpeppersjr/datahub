@@ -1,0 +1,932 @@
+{
+  "schema_version": "broad-organization-adjacent-evidence-index@1.0.0",
+  "dataset_id": "broad-organization-adjacent-evidence-index",
+  "created_at": "2026-10-03T00:00:00.000Z",
+  "source": {
+    "gap_projection_release_id": "broad-organization-matrix-gap-projection-2026-09-23T15-28-41.546Z-fb0da2b14f4e",
+    "gap_projection_manifest_sha256": "cedc648f115c1df3a1854a3b87ba9f4e1a6175c28ea851491d83dab2b3006652",
+    "selection_sha256": "d1d688c0c19d6b51d29b912138a14efa996956ef1629f455d5ecc49c7cada00a"
+  },
+  "summary": {
+    "broad_layer_gap_jurisdictions": 40,
+    "jurisdictions_with_retained_adjacent_evidence": 11,
+    "jurisdictions_without_retained_adjacent_evidence": 29,
+    "retained_evidence_items": 12,
+    "broad_layer_gaps_closed": 0
+  },
+  "jurisdictions": [
+    {
+      "code": "AL",
+      "name": "Alabama",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "AR",
+      "name": "Arkansas",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "AZ",
+      "name": "Arizona",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "CA",
+      "name": "California",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 2,
+      "evidence": [
+        {
+          "evidence_id": "ca-abc-active-issued-license-sites",
+          "label": "California ABC active issued-license premises",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 84497,
+          "row_unit": "source-defined active issued-license file-number premise",
+          "provenance": {
+            "release_id": "ca-abc-active-licenses-20260907-134420041Z-1d86412e",
+            "source_release_id": "ca-abc-active-licenses-2026-09-07-4adb619cd534904b",
+            "manifest_sha256": "aa5c35c1784c5d937210078a9c70799061bd3368aa455a1bd1c35353a0945d0c"
+          },
+          "source_reference": {
+            "status": "unknown",
+            "field": null,
+            "value": null
+          },
+          "temporal_limitation": "The retained release identity is known; an independently governed source reference date is not exposed by this manifest, and active license status is not proof of current operation.",
+          "current_operation_verified": false,
+          "geography_scope": "California Alcoholic Beverage Control licensed-premise cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Alcoholic-beverage license cohort only.",
+            "Not the California Secretary of State entity master or all California businesses."
+          ]
+        },
+        {
+          "evidence_id": "ca-los-angeles-active-business-location-accounts",
+          "label": "City of Los Angeles active business location accounts",
+          "evidence_kind": "municipal-business-registration-cohort",
+          "record_count": 633232,
+          "row_unit": "source-defined active location account",
+          "provenance": {
+            "release_id": "la-active-businesses-20260903-004213132Z-082faa76",
+            "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac",
+            "manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "source_rows_updated_at",
+            "value": "2026-08-15T15:37:22.000Z"
+          },
+          "temporal_limitation": "Publisher active status and source inclusion do not independently verify current operation.",
+          "current_operation_verified": false,
+          "geography_scope": "City of Los Angeles publisher cohort; reported locations may be outside city boundaries",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Municipal cohort, not statewide California coverage.",
+            "Not unique businesses or a complete all-business denominator."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "GA",
+      "name": "Georgia",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "HI",
+      "name": "Hawaii",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "ID",
+      "name": "Idaho",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "IL",
+      "name": "Illinois",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "il-chicago-active-business-license-sites",
+          "label": "City of Chicago current active business-license sites",
+          "evidence_kind": "municipal-business-license-cohort",
+          "record_count": 42940,
+          "row_unit": "licensed account-site",
+          "provenance": {
+            "release_id": "chicago-active-business-licenses-20260903-003808582Z-a9b56939",
+            "source_release_id": "chicago-active-business-licenses-2026-09-02-5509fc257e382b49",
+            "manifest_sha256": "b0172e0ac7115da7278227d2a5926cc28503d16ed41eeb1f2247a8c787d06059"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "source_rows_updated_at",
+            "value": "2026-09-02T10:04:48.000Z"
+          },
+          "temporal_limitation": "Source current-active license membership does not independently verify current operation or occupancy.",
+          "current_operation_verified": false,
+          "geography_scope": "City of Chicago publisher cohort; reported sites may be outside or lack a Chicago ward",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Municipal cohort, not statewide Illinois coverage.",
+            "The implemented Illinois broad-registry connector has no retained official five-file input release."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "IN",
+      "name": "Indiana",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "KS",
+      "name": "Kansas",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "KY",
+      "name": "Kentucky",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "LA",
+      "name": "Louisiana",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MA",
+      "name": "Massachusetts",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "ma-licensed-center-based-childcare",
+          "label": "Massachusetts licensed center-based childcare programs",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 3007,
+          "row_unit": "accepted licensed center-based childcare program row",
+          "provenance": {
+            "release_id": "ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6",
+            "source_release_id": "ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5",
+            "manifest_sha256": "c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "observed_at",
+            "value": "2026-09-07T19:10:25.331Z"
+          },
+          "temporal_limitation": "The source observation is retained, but inclusion does not verify current operation and the current temporal ledger lacks a source-reference binding.",
+          "current_operation_verified": false,
+          "geography_scope": "Massachusetts licensed center-based childcare source cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not unique businesses, all childcare providers, or broad Massachusetts organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MD",
+      "name": "Maryland",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "md-msde-childcare-centers",
+          "label": "Maryland licensed-provider childcare centers",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 1772,
+          "row_unit": "accepted source-candidate row",
+          "provenance": {
+            "release_id": "md-childcare-acquisition-12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706",
+            "source_release_id": "md-childcare-acquisition-12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706",
+            "manifest_sha256": "15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "publisher_cohort_date",
+            "value": "2026-02-13"
+          },
+          "temporal_limitation": "The publisher cohort is dated 2026-02-13; current operation and source authenticity are not verified.",
+          "current_operation_verified": false,
+          "geography_scope": "Maryland licensed-provider center cohort with unverified reported-address roles",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "internal"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not physical-site proof, unique businesses, or broad Maryland organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "ME",
+      "name": "Maine",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MI",
+      "name": "Michigan",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MN",
+      "name": "Minnesota",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "mn-residential-construction-credentials",
+          "label": "Minnesota residential construction credential rows",
+          "evidence_kind": "statewide-industry-credential-cohort",
+          "record_count": 10899,
+          "row_unit": "publisher business credential row",
+          "provenance": {
+            "release_id": "30cd9c0e-0a8d-467c-b416-150453e1513f",
+            "source_release_id": "ebfad910-440e-46bb-b42b-2fc44b6d32f3-residential",
+            "manifest_sha256": "558182417940580140fbc4640e80ac177b6a9c1886a435f06ae8130b1f258b75"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "observed_at",
+            "value": "2026-09-08T13:11:41.678Z"
+          },
+          "temporal_limitation": "Credential issuance and retained observation do not establish unique business identity, current operation, or a physical site.",
+          "current_operation_verified": false,
+          "geography_scope": "Minnesota publisher cohort; count is limited to rows reporting Minnesota addresses",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Residential construction credential cohort only.",
+            "Not broad Minnesota organizations or an all-business denominator."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MO",
+      "name": "Missouri",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MS",
+      "name": "Mississippi",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "MT",
+      "name": "Montana",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NC",
+      "name": "North Carolina",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "ND",
+      "name": "North Dakota",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NE",
+      "name": "Nebraska",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NH",
+      "name": "New Hampshire",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NJ",
+      "name": "New Jersey",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "nj-licensed-childcare-centers",
+          "label": "New Jersey licensed childcare centers",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 4075,
+          "row_unit": "accepted licensed childcare center row",
+          "provenance": {
+            "release_id": "nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812",
+            "source_release_id": "nj-childcare-a9ed3d970922f919cee26a93310677b81a8319ae6ce960d83b34f607fec34f69",
+            "manifest_sha256": "b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "observed_at",
+            "value": "2026-09-07T20:05:27.313Z"
+          },
+          "temporal_limitation": "The original observation time is retained through offline reprocessing; inclusion does not verify current operation and the current temporal ledger lacks a source-reference binding.",
+          "current_operation_verified": false,
+          "geography_scope": "New Jersey licensed childcare-center source cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not unique businesses, all childcare providers, or broad New Jersey organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NM",
+      "name": "New Mexico",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "NV",
+      "name": "Nevada",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "OH",
+      "name": "Ohio",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "oh-publisher-open-childcare-centers",
+          "label": "Ohio publisher-open childcare centers",
+          "evidence_kind": "statewide-industry-directory-cohort",
+          "record_count": 4237,
+          "row_unit": "publisher-open childcare center row",
+          "provenance": {
+            "release_id": "oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee",
+            "source_release_id": "oh-childcare-2c38df58d6d977c7e93a26d6b1e730e7850ec893b6f5a947b76d5060e1cc6e4b",
+            "manifest_sha256": "e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "observed_at",
+            "value": "2026-09-08T08:31:19.971Z"
+          },
+          "temporal_limitation": "Publisher Open and observation time do not verify current operation, and the current temporal ledger lacks a source-reference binding.",
+          "current_operation_verified": false,
+          "geography_scope": "Ohio childcare-center directory cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not verified businesses, all childcare providers, or broad Ohio organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "OK",
+      "name": "Oklahoma",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "RI",
+      "name": "Rhode Island",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "SC",
+      "name": "South Carolina",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "SD",
+      "name": "South Dakota",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "TN",
+      "name": "Tennessee",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "tn-dhs-active-childcare-centers",
+          "label": "Tennessee DHS active childcare centers",
+          "evidence_kind": "statewide-industry-directory-cohort",
+          "record_count": 1863,
+          "row_unit": "publisher active-center row",
+          "provenance": {
+            "release_id": "tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801",
+            "source_release_id": "tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7",
+            "manifest_sha256": "98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d"
+          },
+          "source_reference": {
+            "status": "reported",
+            "field": "observed_at",
+            "value": "2026-09-08T00:36:36.628Z"
+          },
+          "temporal_limitation": "Publisher Active is not independently verified operation; the release is a verified offline recovery and the current temporal ledger lacks a source-reference binding.",
+          "current_operation_verified": false,
+          "geography_scope": "Tennessee DHS childcare-center cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Childcare centers only; other provider types are excluded.",
+            "Not unique businesses or broad Tennessee organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "UT",
+      "name": "Utah",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "ut-dlbc-childcare-centers",
+          "label": "Utah child care center candidates",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 422,
+          "row_unit": "accepted selected child care center candidate row",
+          "provenance": {
+            "release_id": "ut-childcare-pdf-85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa",
+            "source_release_id": "ut-childcare-pdf-85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa",
+            "manifest_sha256": "1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43"
+          },
+          "source_reference": {
+            "status": "unknown",
+            "field": null,
+            "value": null
+          },
+          "temporal_limitation": "Source reference date is unknown; source authenticity, membership, current operation, and physical sites are not verified.",
+          "current_operation_verified": false,
+          "geography_scope": "Utah retained childcare-center PDF cohort",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "internal"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not broad Utah organizations; historical app acquisition was not independently verified."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "VA",
+      "name": "Virginia",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "VT",
+      "name": "Vermont",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "vt-cdd-childcare-centers",
+          "label": "Vermont childcare center candidates",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 503,
+          "row_unit": "accepted source-candidate row",
+          "provenance": {
+            "release_id": "vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0",
+            "source_release_id": "vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0",
+            "manifest_sha256": "76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166"
+          },
+          "source_reference": {
+            "status": "unknown",
+            "field": null,
+            "value": null
+          },
+          "temporal_limitation": "Source reference date and reporting period are unknown; current operation and source authenticity are not verified.",
+          "current_operation_verified": false,
+          "geography_scope": "Vermont publisher childcare cohort; source state was not selected and is not inferred from record addresses",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "internal"
+          },
+          "coverage_limitations": [
+            "Childcare industry only.",
+            "Not physical-site proof, unique businesses, or broad Vermont organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "WA",
+      "name": "Washington",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "retained-adjacent-evidence",
+      "evidence_count": 1,
+      "evidence": [
+        {
+          "evidence_id": "wa-lni-active-contractor-organizations",
+          "label": "Washington L&I active contractor-license organizations",
+          "evidence_kind": "statewide-industry-license-cohort",
+          "record_count": 72819,
+          "row_unit": "UBI-grouped organization with one or more A/ACTIVE contractor-license rows",
+          "provenance": {
+            "release_id": "wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283",
+            "source_release_id": "wa-lni-active-contractor-licenses-2026-09-07-24c7059d65e4d084",
+            "manifest_sha256": "3b7097aa58fbb4f1987cd535f4f838cc4d99e69bd76f4a7edc403d37c4bc680d"
+          },
+          "source_reference": {
+            "status": "unknown",
+            "field": null,
+            "value": null
+          },
+          "temporal_limitation": "The retained release identity is known; an independently governed source reference date is not exposed by this manifest, and license activity is not proof of current operation.",
+          "current_operation_verified": false,
+          "geography_scope": "Washington L&I contractor-license publisher cohort; mailing addresses may be outside Washington",
+          "authority": {
+            "retained_offline_use_authorized": true,
+            "acquisition_authorized": false,
+            "broad_layer_admission_authorized": false,
+            "production_pointer_change_authorized": false,
+            "export_policy": "local-review-only"
+          },
+          "coverage_limitations": [
+            "Contractor-license cohort only.",
+            "No physical-site or establishment claim; not broad Washington organizations."
+          ]
+        }
+      ],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "WI",
+      "name": "Wisconsin",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "WV",
+      "name": "West Virginia",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    },
+    {
+      "code": "WY",
+      "name": "Wyoming",
+      "broad_layer_gap": true,
+      "broad_layer_status": "unmeasured",
+      "adjacent_evidence_status": "no-retained-adjacent-evidence",
+      "evidence_count": 0,
+      "evidence": [],
+      "limitations": [
+        "Adjacent evidence is not a broad organization layer and does not change this jurisdiction's gap.",
+        "Counts are source-cohort rows or source-defined entities, not an all-business completeness numerator."
+      ]
+    }
+  ],
+  "claims": {
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "broad_layer_gap_preserved": true,
+    "active_business_count": null,
+    "all_business_completeness_percent": null
+  },
+  "release_id": "broad-organization-adjacent-evidence-index-1b609cdc273a49212fe9fe12"
+}

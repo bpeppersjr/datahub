@@ -1,0 +1,25 @@
+{
+  "schema_version": "broad-organization-adjacent-evidence-index-manifest@1.0.0",
+  "dataset_id": "broad-organization-adjacent-evidence-index",
+  "release_id": "broad-organization-adjacent-evidence-index-1b609cdc273a49212fe9fe12",
+  "status": "published-local-derived-index",
+  "created_at": "2026-10-03T00:00:00.000Z",
+  "network_requests": 0,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "artifacts": [
+    {
+      "path": "index.json",
+      "bytes": 40400,
+      "sha256": "d2b7865ddfdac09f5a4877eb1db5e25f0b10952d60f74de15bd336e2a9155902",
+      "record_count": 40,
+      "artifact_type": "adjacent-retained-evidence-index-json",
+      "export_policy": "local-review-only"
+    }
+  ],
+  "source": {
+    "gap_projection_release_id": "broad-organization-matrix-gap-projection-2026-09-23T15-28-41.546Z-fb0da2b14f4e",
+    "gap_projection_manifest_sha256": "cedc648f115c1df3a1854a3b87ba9f4e1a6175c28ea851491d83dab2b3006652",
+    "selection_sha256": "d1d688c0c19d6b51d29b912138a14efa996956ef1629f455d5ecc49c7cada00a"
+  }
+}

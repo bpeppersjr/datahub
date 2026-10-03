@@ -1,0 +1,125 @@
+{
+  "schema_version": "broad-organization-adjacent-evidence-selection@1.0.0",
+  "observed_at": "2026-10-03T00:00:00.000Z",
+  "gap_projection": {
+    "manifest_path": "data/broad-organization-matrix-gap-projection/releases/broad-organization-matrix-gap-projection-2026-09-23T15-28-41.546Z-fb0da2b14f4e/manifest.json",
+    "manifest_sha256": "cedc648f115c1df3a1854a3b87ba9f4e1a6175c28ea851491d83dab2b3006652"
+  },
+  "evidence": [
+    {
+      "state": "CA", "evidence_id": "ca-los-angeles-active-business-location-accounts", "label": "City of Los Angeles active business location accounts", "evidence_kind": "municipal-business-registration-cohort",
+      "manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json", "manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "coverage.normalized_us_location_accounts", "source_reference_path": "source.rows_updated_at", "source_reference_field": "source_rows_updated_at",
+      "row_unit": "source-defined active location account", "geography_scope": "City of Los Angeles publisher cohort; reported locations may be outside city boundaries",
+      "temporal_limitation": "Publisher active status and source inclusion do not independently verify current operation.",
+      "coverage_limitations": ["Municipal cohort, not statewide California coverage.", "Not unique businesses or a complete all-business denominator."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "CA", "evidence_id": "ca-abc-active-issued-license-sites", "label": "California ABC active issued-license premises", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/business-sources/ca-abc-active-license-sites/releases/ca-abc-active-licenses-20260907-134420041Z-1d86412e/manifest.json", "manifest_sha256": "aa5c35c1784c5d937210078a9c70799061bd3368aa455a1bd1c35353a0945d0c",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "coverage.normalized_sites", "source_reference_path": null, "source_reference_field": null,
+      "row_unit": "source-defined active issued-license file-number premise", "geography_scope": "California Alcoholic Beverage Control licensed-premise cohort",
+      "temporal_limitation": "The retained release identity is known; an independently governed source reference date is not exposed by this manifest, and active license status is not proof of current operation.",
+      "coverage_limitations": ["Alcoholic-beverage license cohort only.", "Not the California Secretary of State entity master or all California businesses."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "IL", "evidence_id": "il-chicago-active-business-license-sites", "label": "City of Chicago current active business-license sites", "evidence_kind": "municipal-business-license-cohort",
+      "manifest_path": "data/business-sources/chicago-active-business-license-sites/releases/chicago-active-business-licenses-20260903-003808582Z-a9b56939/manifest.json", "manifest_sha256": "b0172e0ac7115da7278227d2a5926cc28503d16ed41eeb1f2247a8c787d06059",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "coverage.normalized_licensed_sites", "source_reference_path": "source.rows_updated_at", "source_reference_field": "source_rows_updated_at",
+      "row_unit": "licensed account-site", "geography_scope": "City of Chicago publisher cohort; reported sites may be outside or lack a Chicago ward",
+      "temporal_limitation": "Source current-active license membership does not independently verify current operation or occupancy.",
+      "coverage_limitations": ["Municipal cohort, not statewide Illinois coverage.", "The implemented Illinois broad-registry connector has no retained official five-file input release."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "MA", "evidence_id": "ma-licensed-center-based-childcare", "label": "Massachusetts licensed center-based childcare programs", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json", "manifest_sha256": "c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "counts.accepted", "source_reference_path": "observed_at", "source_reference_field": "observed_at",
+      "row_unit": "accepted licensed center-based childcare program row", "geography_scope": "Massachusetts licensed center-based childcare source cohort",
+      "temporal_limitation": "The source observation is retained, but inclusion does not verify current operation and the current temporal ledger lacks a source-reference binding.",
+      "coverage_limitations": ["Childcare industry only.", "Not unique businesses, all childcare providers, or broad Massachusetts organizations."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "MD", "evidence_id": "md-msde-childcare-centers", "label": "Maryland licensed-provider childcare centers", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/normalized/jobs/88d211f0-428f-4447-9b20-1fe3274f5e90/manifest.json", "manifest_sha256": "15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b",
+      "release_id_path": "source_release_id", "source_release_id_path": "source_release_id", "count_path": "summary.accepted_records", "source_reference_path": "claims.publisher_cohort_date", "source_reference_field": "publisher_cohort_date",
+      "row_unit": "accepted source-candidate row", "geography_scope": "Maryland licensed-provider center cohort with unverified reported-address roles",
+      "temporal_limitation": "The publisher cohort is dated 2026-02-13; current operation and source authenticity are not verified.",
+      "coverage_limitations": ["Childcare industry only.", "Not physical-site proof, unique businesses, or broad Maryland organizations."],
+      "export_policy": "internal"
+    },
+    {
+      "state": "MN", "evidence_id": "mn-residential-construction-credentials", "label": "Minnesota residential construction credential rows", "evidence_kind": "statewide-industry-credential-cohort",
+      "manifest_path": "data/credential-reporting/mn-construction/30cd9c0e-0a8d-467c-b416-150453e1513f/manifest.json", "manifest_sha256": "558182417940580140fbc4640e80ac177b6a9c1886a435f06ae8130b1f258b75",
+      "release_id_path": "release_id", "source_release_id_path": "summary.provenance.source_release_id", "count_path": "summary.by_reported_state", "count_match": { "field": "state", "value": "MN", "count_field": "credential_rows" }, "source_reference_path": "summary.provenance.observed_at", "source_reference_field": "observed_at",
+      "row_unit": "publisher business credential row", "geography_scope": "Minnesota publisher cohort; count is limited to rows reporting Minnesota addresses",
+      "temporal_limitation": "Credential issuance and retained observation do not establish unique business identity, current operation, or a physical site.",
+      "coverage_limitations": ["Residential construction credential cohort only.", "Not broad Minnesota organizations or an all-business denominator."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "NJ", "evidence_id": "nj-licensed-childcare-centers", "label": "New Jersey licensed childcare centers", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json", "manifest_sha256": "b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "counts.accepted", "source_reference_path": "observed_at", "source_reference_field": "observed_at",
+      "row_unit": "accepted licensed childcare center row", "geography_scope": "New Jersey licensed childcare-center source cohort",
+      "temporal_limitation": "The original observation time is retained through offline reprocessing; inclusion does not verify current operation and the current temporal ledger lacks a source-reference binding.",
+      "coverage_limitations": ["Childcare industry only.", "Not unique businesses, all childcare providers, or broad New Jersey organizations."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "OH", "evidence_id": "oh-publisher-open-childcare-centers", "label": "Ohio publisher-open childcare centers", "evidence_kind": "statewide-industry-directory-cohort",
+      "manifest_path": "data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json", "manifest_sha256": "e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "counts.accepted", "source_reference_path": "observed_at", "source_reference_field": "observed_at",
+      "row_unit": "publisher-open childcare center row", "geography_scope": "Ohio childcare-center directory cohort",
+      "temporal_limitation": "Publisher Open and observation time do not verify current operation, and the current temporal ledger lacks a source-reference binding.",
+      "coverage_limitations": ["Childcare industry only.", "Not verified businesses, all childcare providers, or broad Ohio organizations."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "TN", "evidence_id": "tn-dhs-active-childcare-centers", "label": "Tennessee DHS active childcare centers", "evidence_kind": "statewide-industry-directory-cohort",
+      "manifest_path": "data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json", "manifest_sha256": "98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "counts.accepted", "source_reference_path": "observed_at", "source_reference_field": "observed_at",
+      "row_unit": "publisher active-center row", "geography_scope": "Tennessee DHS childcare-center cohort",
+      "temporal_limitation": "Publisher Active is not independently verified operation; the release is a verified offline recovery and the current temporal ledger lacks a source-reference binding.",
+      "coverage_limitations": ["Childcare centers only; other provider types are excluded.", "Not unique businesses or broad Tennessee organizations."],
+      "export_policy": "local-review-only"
+    },
+    {
+      "state": "UT", "evidence_id": "ut-dlbc-childcare-centers", "label": "Utah child care center candidates", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/manifest.json", "manifest_sha256": "1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43",
+      "release_id_path": "source_release_id", "source_release_id_path": "source_release_id", "count_path": "summary.accepted_records", "source_reference_path": null, "source_reference_field": null,
+      "row_unit": "accepted selected child care center candidate row", "geography_scope": "Utah retained childcare-center PDF cohort",
+      "temporal_limitation": "Source reference date is unknown; source authenticity, membership, current operation, and physical sites are not verified.",
+      "coverage_limitations": ["Childcare industry only.", "Not broad Utah organizations; historical app acquisition was not independently verified."],
+      "export_policy": "internal"
+    },
+    {
+      "state": "VT", "evidence_id": "vt-cdd-childcare-centers", "label": "Vermont childcare center candidates", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/manifest.json", "manifest_sha256": "76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166",
+      "release_id_path": "source_release_id", "source_release_id_path": "source_release_id", "count_path": "summary.accepted_records", "source_reference_path": null, "source_reference_field": null,
+      "row_unit": "accepted source-candidate row", "geography_scope": "Vermont publisher childcare cohort; source state was not selected and is not inferred from record addresses",
+      "temporal_limitation": "Source reference date and reporting period are unknown; current operation and source authenticity are not verified.",
+      "coverage_limitations": ["Childcare industry only.", "Not physical-site proof, unique businesses, or broad Vermont organizations."],
+      "export_policy": "internal"
+    },
+    {
+      "state": "WA", "evidence_id": "wa-lni-active-contractor-organizations", "label": "Washington L&I active contractor-license organizations", "evidence_kind": "statewide-industry-license-cohort",
+      "manifest_path": "data/business-sources/wa-lni-active-contractor-organizations/releases/wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283/manifest.json", "manifest_sha256": "3b7097aa58fbb4f1987cd535f4f838cc4d99e69bd76f4a7edc403d37c4bc680d",
+      "release_id_path": "release_id", "source_release_id_path": "source_release_id", "count_path": "coverage.organizations_published", "source_reference_path": null, "source_reference_field": null,
+      "row_unit": "UBI-grouped organization with one or more A/ACTIVE contractor-license rows", "geography_scope": "Washington L&I contractor-license publisher cohort; mailing addresses may be outside Washington",
+      "temporal_limitation": "The retained release identity is known; an independently governed source reference date is not exposed by this manifest, and license activity is not proof of current operation.",
+      "coverage_limitations": ["Contractor-license cohort only.", "No physical-site or establishment claim; not broad Washington organizations."],
+      "export_policy": "local-review-only"
+    }
+  ],
+  "claims": {
+    "network_requests": 0,
+    "acquisition_authorized": false,
+    "production_pointer_change_authorized": false,
+    "broad_layer_admission_authorized": false,
+    "all_business_completeness_percent": null
+  }
+}
