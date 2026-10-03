@@ -52,7 +52,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -199,6 +199,14 @@ export class ManagedOperations {
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('USPS City State admission requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('usps-city-state-admission',{sourceId:'usps-city-state',packageDirectory:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
+  }
+  async startDcCorporateRegistration(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'selection')?.value!=='string')throw invalid('DC Corporate Registration requires only selection.');
+    const selected=path.resolve(APP_ROOT,input.selection),packages=path.join(APP_ROOT,'data','imports','dc-corporate-registration','packages'),relative=path.relative(packages,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.basename(selected)!=='selection.json'||path.dirname(path.dirname(selected))!==packages)throw invalid('DC Corporate Registration selection must be a package selection.json.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('DC Corporate Registration requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('dc-corporate-registration',{sourceId:'dc-corporate-registration',selection:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -475,6 +483,7 @@ export class ManagedOperations {
       else if(record.kind==='source-adoption') {script=record.details.sourceId===CMS_NURSING_HOME_RETAINED_ADOPTION.sourceId?'scripts/adopt-cms-nursing-homes.mjs':'scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
       else if(record.kind==='source-admission') {script='scripts/admit-acs-zcta-demographic-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
       else if(record.kind==='usps-city-state-admission') {script='scripts/admit-usps-city-state-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
+      else if(record.kind==='dc-corporate-registration') {script='scripts/run-dc-corporate-registration-app.mjs';args=['--selection',record.details.selection];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -532,6 +541,15 @@ export class ManagedOperations {
         const descriptor=JSON.parse(execution.stdout);if(!descriptor||descriptor.sourceId!=='usps-city-state'||descriptor.status!=='admitted-local-restricted-candidate-only'||descriptor.artifactIntegrityVerified!==true||descriptor.networkRequests!==0||descriptor.productionAdmission!==false||descriptor.currentPointerWritten!==false)throw Error('USPS City State admission descriptor rejected.');
         const {verifyOfflineCityStatePackageRelease}=await import('./usps-city-state-offline-admission.mjs');const proof=await verifyOfflineCityStatePackageRelease(descriptor.packageManifest,{admissionManifest:descriptor.admissionManifest,candidateManifest:descriptor.candidateManifest,signal:controller.signal});if(proof.release_id!==descriptor.packageReleaseId||proof.record_count!==descriptor.recordCount)throw Error('USPS City State admission replay disagreed.');
         record.result={sourceId:'usps-city-state',releaseId:proof.release_id,recordCount:proof.record_count,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,productionEnrollment:false,productionAdmission:false};record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='dc-corporate-registration'){
+        if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('DC Corporate Registration did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout);
+        if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||!isDeepStrictEqual(Reflect.ownKeys(descriptor).sort(),['operationDirectory','receipt','receiptPath'])||typeof descriptor.receiptPath!=='string'||typeof descriptor.operationDirectory!=='string')throw Error('DC Corporate Registration descriptor rejected.');
+        const {verifyDcCorporateRegistrationAppJob}=await import('./dc-corporate-registration-app.mjs');
+        const proof=await verifyDcCorporateRegistrationAppJob(descriptor.receiptPath,{signal:controller.signal});
+        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false)throw Error('DC Corporate Registration replay disagreed.');
+        record.result={sourceId:'dc-corporate-registration',releaseId:proof.receipt.source.release_id,sourceReleaseId:proof.receipt.source.source_release_id,coverage:proof.receipt.source.coverage,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,nationalAdmissionPerformed:false};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)

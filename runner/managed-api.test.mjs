@@ -11,6 +11,15 @@ import { pathToFileURL } from "node:url";
 import { APP_ROOT } from "./paths.mjs";
 import { RETAINED_BUSINESS_REFRESH_DESCRIPTORS } from "./retained-business-refresh-readiness.mjs";
 import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS } from "./governed-source-refresh-registry.mjs";
+import {
+  DC_CORPORATE_REGISTRATION_ACTIVE_STATUSES,
+  DC_CORPORATE_REGISTRATION_LAYER_URL,
+  DC_CORPORATE_REGISTRATION_MODEL_TYPES,
+  DC_CORPORATE_REGISTRATION_QUERY_URL,
+  DC_CORPORATE_REGISTRATION_SOURCE_SCHEMA,
+  DC_CORPORATE_REGISTRATION_STATUS_VOCABULARY,
+  preflightDcCorporateRegistration,
+} from "./dc-corporate-registration.mjs";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const token = "managed-api-fixture-token-that-is-long-enough-2026";
@@ -60,12 +69,13 @@ async function makeFixture(t) {
     await copyFile(path.join(sourceRoot, "current.json"), path.join(fixtureRoot, "current.json"));
     await copyFile(path.join(sourceRoot, ...pointer.manifest.split("/")), path.join(fixtureRoot, ...pointer.manifest.split("/")));
   }
-  for (const file of ["compose-flat-business-export.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
+  for (const file of ["compose-flat-business-export.mjs", "run-dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
     "business-flatfile-compatibility.mjs", "oh-childcare-coverage-evidence.mjs", "oh-childcare-geographic-evidence.mjs", "oh-childcare-registry-adapter.mjs",
     "oh-childcare-registry-input.mjs", "oh-childcare-app.mjs", "oh-childcare-source-use.mjs", "oh-childcare-preflight.mjs", "oh-childcare-acquired-release.mjs",
-    "oh-childcare-transport.mjs", "oh-childcare-acquisition.mjs", "oh-childcare-release.mjs", "oh-childcare-normalization.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+    "oh-childcare-transport.mjs", "oh-childcare-acquisition.mjs", "oh-childcare-release.mjs", "oh-childcare-normalization.mjs",
+    "dc-corporate-registration.mjs", "dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
   await mkdir(path.join(root, "docs/states"), { recursive: true });
   await copyFile(path.join(APP_ROOT, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"), path.join(root, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"));
   // Import the real isolated child before HTTP dispatch so missing fixture dependencies
@@ -137,6 +147,29 @@ async function waitForOperation(base, id) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   throw new Error("managed export did not finish");
+}
+
+async function makeDcPackage(root, packageId) {
+  const observedModifiedAt = Date.now() - 3_600_000;
+  const statuses = Object.fromEntries(DC_CORPORATE_REGISTRATION_STATUS_VOCABULARY.map(value => [value, value === DC_CORPORATE_REGISTRATION_ACTIVE_STATUSES[0] ? 1 : 0]));
+  const models = Object.fromEntries(DC_CORPORATE_REGISTRATION_MODEL_TYPES.map(value => [value, value === "Domestic Business Corporation" ? 1 : 0]));
+  const response = value => new Response(JSON.stringify(value), { status: 200, headers: { "content-type": "application/json" } });
+  const preflight = await preflightDcCorporateRegistration({ now: () => new Date(), fetchImpl: async (url, options = {}) => {
+    if (String(url) === `${DC_CORPORATE_REGISTRATION_LAYER_URL}?f=pjson`) return response({ name: "Corporate Registration", type: "Table", displayField: "BUSINESS_NAME", objectIdField: "OBJECTID", globalIdField: "GLOBALID", geometryType: null, capabilities: "Query,Extract", dateFieldsTimeReference: { timeZone: "Eastern Standard Time", timeZoneIANA: "America/New_York", respectsDaylightSaving: true }, fields: DC_CORPORATE_REGISTRATION_SOURCE_SCHEMA.map(([name, type, length]) => ({ name, type, length })) });
+    assert.equal(String(url), DC_CORPORATE_REGISTRATION_QUERY_URL);
+    const body = new URLSearchParams(options.body);
+    if (body.get("returnCountOnly") === "true") return response({ count: 1 });
+    if (body.get("groupByFieldsForStatistics") === "ENTITY_STATUS") return response({ features: Object.entries(statuses).map(([ENTITY_STATUS, ROW_COUNT]) => ({ attributes: { ENTITY_STATUS, ROW_COUNT } })) });
+    if (body.get("groupByFieldsForStatistics") === "MODELTYPE") return response({ features: Object.entries(models).map(([MODELTYPE, ROW_COUNT]) => ({ attributes: { MODELTYPE, ROW_COUNT } })) });
+    return response({ features: [{ attributes: { MAX_DCS_LAST_MOD_DTTM: observedModifiedAt } }] });
+  } });
+  const row = { FILE_NUMBER: "L00000001", ENTITY_STATUS: "Active - In Good Standing", LOCALE: "Domestic", MODELTYPE: "Domestic Business Corporation", BUSINESS_NAME: "FIXTURE HOLDINGS INC", BUSNIESS_ADDRESS_LINE1: "100 TEST AVE", BUSNIESS_ADDRESS_LINE2: null, BUSNIESS_ADDRESS_LINE3: null, BUSNIESS_ADDRESS_LINE4: null, BUSINESS_CITY: "WASHINGTON", BUSINESS_STATE: "DC", ZIPCODE: "20001-1234", BUSINESS_COUNTRY: "UNITED STATES", SUFFIX: "INC", EFFECTIVE_DATE: 1577923200000, FOREIGN_DATEOF_ORGANIZATION: null, NEXT_REPORTYEAR_DUE: "2028", DCS_LAST_MOD_DTTM: observedModifiedAt, DATE_LAST_REPORT_FILED: 1766275200000, NEXT_REPORTYEAR: null, LATESTFILED_REPORTDATE: null, LATESTREPORT_YEARFILED: null, OBJECTID: 1001, GLOBALID: "{11111111-1111-4111-8111-111111111111}" };
+  const directory = path.join(root, "data", "imports", "dc-corporate-registration", "packages", packageId);
+  await mkdir(directory, { recursive: true });
+  await writeFile(path.join(directory, "active.jsonl"), `${JSON.stringify(row)}\n`);
+  await writeFile(path.join(directory, "preflight.json"), `${JSON.stringify(preflight)}\n`);
+  await writeFile(path.join(directory, "selection.json"), `${JSON.stringify({ schema_version: "dc-corporate-registration-import-selection@1.0.0", package_id: packageId, files: { active_records: "active.jsonl", preflight_receipt: "preflight.json" } })}\n`);
+  return `data/imports/dc-corporate-registration/packages/${packageId}/selection.json`;
 }
 
 test('production status HTTP API is authenticated, projected and strictly read-only',{timeout:20000},async t=>{
@@ -277,6 +310,28 @@ test('CMS retained adoption API authenticates and rejects caller source/output o
   for(const body of [{},{sourceId:'other'},{sourceId:'cms-hospital-general-information',url:'https://example.com'},{sourceId:'cms-hospital-general-information',output:'data/elsewhere'},{sourceId:'cms-nursing-home-provider-information',manifestPath:'data/elsewhere'},{sourceId:'cms-nursing-home-provider-information',download:true}])assert.equal((await request(fixture.base,route,{method:'POST',body})).status,400);
   const catalog=await (await request(fixture.base,'/api/data-operations/catalog')).json();assert.ok(catalog.retainedSourceAdoptions.some(s=>s.sourceId==='cms-nursing-home-provider-information'&&s.historicalAcquisitionStatus==='FAILED'&&s.downloads===false));
   assert.deepEqual(await (await request(fixture.base,'/api/data-operations/operations')).json(),[]);
+});
+
+test('DC Corporate Registration API is authenticated, closed, app-owned, and independently replayed', { timeout: 20_000 }, async t => {
+  const fixture = await makeFixture(t), route = '/api/data-operations/dc-corporate-registration';
+  const selection = await makeDcPackage(fixture.root, 'managed-http-fixture');
+  assert.equal((await request(fixture.base, route, { method: 'POST', authenticated: false, body: { selection } })).status, 401);
+  for (const body of [{}, { selection, output: 'data/elsewhere' }, { selection, url: DC_CORPORATE_REGISTRATION_QUERY_URL }, { selection: 'config/connectors/dc-corporate-registration.json' }]) {
+    assert.equal((await request(fixture.base, route, { method: 'POST', body })).status, 400);
+  }
+  assert.deepEqual(await (await request(fixture.base, '/api/data-operations/operations')).json(), []);
+  const accepted = await request(fixture.base, route, { method: 'POST', body: { selection } });
+  assert.equal(accepted.status, 202);
+  const operation = await waitForOperation(fixture.base, (await accepted.json()).id);
+  assert.equal(operation.status, 'SUCCEEDED', operation.error);
+  assert.equal(operation.kind, 'dc-corporate-registration');
+  assert.deepEqual(operation.artifacts, []);
+  assert.equal(operation.result.sourceId, 'dc-corporate-registration');
+  assert.equal(operation.result.receiptIntegrityVerified, true);
+  assert.equal(operation.result.networkRequests, 0);
+  assert.equal(operation.result.currentPointerWritten, false);
+  assert.equal(operation.result.nationalAdmissionPerformed, false);
+  assert.equal((await request(fixture.base, `/api/data-operations/operations/${operation.id}/artifacts/receipt.json`)).status, 404);
 });
 
 test('ten-source API is authenticated read-only and absent enrollment is pending without substituted counts',async t=>{

@@ -74,6 +74,7 @@ export default function DataOperations() {
   const [organizationPolicy,setOrganizationPolicy]=useState<'public-only'|'local-review'>('public-only');
   const [organizationFormat,setOrganizationFormat]=useState('both');
   const [uspsPackageDirectory,setUspsPackageDirectory]=useState('');
+  const [dcCorporateSelection,setDcCorporateSelection]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -164,6 +165,13 @@ export default function DataOperations() {
       <label>Package directory under data/imports <input aria-label="USPS City State package directory" value={uspsPackageDirectory} disabled={busy} placeholder="data/imports/usps-city-state-package" onChange={event=>setUspsPackageDirectory(event.target.value)}/></label>
       <button type="button" className="primary-button" disabled={!catalog||!/^data[\\/]imports[\\/][^\\/]+(?:[\\/][^\\/]+)*$/.test(uspsPackageDirectory)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/usps-city-state-admissions',{packageDirectory:uspsPackageDirectory})))}>Start offline package inspection</button>
       <p className="operations-note">Success remains local-restricted, candidate-only, pointer-free, non-production, and makes no address-deliverability or ZIP/ZCTA claim.</p>
+    </section>
+    <section aria-labelledby="dc-corporate-registration-title" className="operations-builder">
+      <h3 id="dc-corporate-registration-title">Process a D.C. Corporate Registration package</h3>
+      <p className="operations-note">Zero-network, offline processing of one explicitly selected local package. The result remains local-review-only, creates no current pointer, and is not admitted to national coverage.</p>
+      <label>Package selection under data/imports <input aria-label="D.C. Corporate Registration package selection" value={dcCorporateSelection} disabled={busy} placeholder="data/imports/dc-corporate-registration/packages/package-id/selection.json" onChange={event=>setDcCorporateSelection(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/dc-corporate-registration\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(dcCorporateSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/dc-corporate-registration',{selection:dcCorporateSelection})))}>Start offline D.C. package operation</button>
+      <p className="operations-note">Status, errors, cancellation, receipts, and any declared artifacts appear in Operation history below.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />
