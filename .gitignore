@@ -47,6 +47,10 @@ next-env.d.ts
 /data/imports/illinois-business-registry/*
 !/data/imports/illinois-business-registry/README.md
 !/data/imports/illinois-business-registry/selection.example.json
+!/data/imports/dc-corporate-registration/
+/data/imports/dc-corporate-registration/*
+!/data/imports/dc-corporate-registration/README.md
+!/data/imports/dc-corporate-registration/selection.example.json
 /downloads/*
 !/downloads/.gitkeep
 /tmp/*

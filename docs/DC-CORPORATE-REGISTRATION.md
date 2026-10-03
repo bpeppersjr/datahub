@@ -23,6 +23,14 @@ Each accepted row creates one provisional organization record. The business addr
 
 ## Offline release controls
 
+### Standalone application handoff
+
+The app-owned offline worker accepts one explicit `data/imports/dc-corporate-registration/packages/<package-id>/selection.json`. The closed package names exactly two distinct, package-local regular files: the complete privacy-selected active-record JSONL/NDJSON fixture and its fresh validated metadata/count-only preflight receipt. Links, hardlinks, traversal, auto-discovery, and network access are rejected. The worker copies both inputs into a UUID operation snapshot, checks their hashes, invokes the existing bounded connector, independently replays release verification, then removes the transient snapshot.
+
+Every accepted operation writes `start.json` before processing and a terminal `receipt.json`. Failure or cooperative cancellation removes only that operation's unpublished snapshot and release while preserving the operator package. Success remains operation-scoped and local-review-only; it does not write `current.json`, enable coverage, or perform national admission.
+
+Run `node scripts/run-dc-corporate-registration-app.mjs --selection <selection-path>` and independently verify the receipt with `node scripts/verify-dc-corporate-registration-app.mjs --receipt <receipt-path>`. The import layout and example selection are in `data/imports/dc-corporate-registration/`.
+
 The exact acknowledgement is:
 
     I-APPROVE-DC-CORPORATE-REGISTRATION-OFFLINE-LOCAL-REVIEW-BUILD

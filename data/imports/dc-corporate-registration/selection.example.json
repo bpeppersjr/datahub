@@ -1,0 +1,8 @@
+{
+  "schema_version": "dc-corporate-registration-import-selection@1.0.0",
+  "package_id": "replace-with-package-directory-name",
+  "files": {
+    "active_records": "selected-active-records.jsonl.gz",
+    "preflight_receipt": "preflight-receipt.json"
+  }
+}

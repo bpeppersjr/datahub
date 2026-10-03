@@ -1,0 +1,42 @@
+{
+  "schema_version": "ak-broad-organization-admission-candidate@1.0.0",
+  "dataset_id": "ak-broad-organization-admission-candidate",
+  "state": "AK",
+  "decision": "eligible-retained-broad-organization-cohort-candidate",
+  "source": {
+    "dataset_id": "ak-active-business-licenses",
+    "release_id": "ak-active-business-licenses-20260903-003659626Z-9f5638ea",
+    "source_release_id": "ak-active-business-licenses-2026-09-03-d77a60ab0d6e75dc",
+    "manifest_path": "data/business-sources/ak-active-business-licenses/releases/ak-active-business-licenses-20260903-003659626Z-9f5638ea/manifest.json",
+    "manifest_sha256": "1c190b403359e2f9a447479e509555011dcd640943366c804f5612cd6e035930",
+    "selection_sha256": "dc380b731d326d9d6a90c27002d675351b9b050f573d3a2c0d2aabc57adf623e"
+  },
+  "verification": {
+    "artifact_count": 22,
+    "verified_bytes": 66915538,
+    "normalized_organization_rows": 94884,
+    "source_rows": 94886,
+    "quarantined_rows": 2,
+    "provisional_site_assertions_withheld_as_sites": 94550,
+    "conservation_status": "passed"
+  },
+  "semantics": {
+    "row_unit": "one provisional organization per source-defined active Alaska business license",
+    "active_operation_asserted": false,
+    "physical_sites_asserted": false,
+    "geocodes_asserted": false,
+    "complete_all_businesses": false,
+    "completeness_percent": null,
+    "note": "Reported physical addresses remain organization-address evidence; this candidate emits no site, establishment, coordinate, ownership, or current-operation assertion."
+  },
+  "authority": {
+    "retained_offline_replay": true,
+    "acquisition_authorized": false,
+    "network_requests": 0,
+    "production_enrollment": false,
+    "current_pointer_written": false,
+    "production_pointer_change_authorized": false,
+    "export_policy": "local-review-only"
+  },
+  "release_id": "ak-broad-organization-admission-candidate-b7a943c762ca45e5b6ab07cd"
+}
