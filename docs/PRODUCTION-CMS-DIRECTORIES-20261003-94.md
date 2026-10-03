@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 94 is the current clean-repository successor after committing the governed childcare ZIP evidence service, the source-bound ZCTA economic-model input cohort, and the retained CMS directory evidence panel in ZIP Economy.
+Plan 94 is superseded by Plan 95 after the childcare state-industry availability projection, exact-ZIP childcare interface, and ZCTA demographic-input readiness release were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-94`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-94.json`
