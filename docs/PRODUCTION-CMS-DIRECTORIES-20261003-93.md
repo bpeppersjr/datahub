@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 93 is the current clean-repository successor after committing the cross-category completion view and retained CMS hospital/nursing-home ZIP evidence service.
+Plan 93 is superseded by Plan 94 after the governed childcare ZIP evidence, ZCTA economic-model input cohort, and CMS ZIP interface integration were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-93`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-93.json`
