@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {runInNewContext} from 'node:vm';
+import ts from 'typescript';
+
+const require=createRequire(import.meta.url),source=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');
+const nodes=value=>!value||typeof value!=='object'?[]:Array.isArray(value)?value.flatMap(nodes):[value,...nodes(value.props?.children)];
+const text=value=>value==null||typeof value==='boolean'?'':typeof value!=='object'?String(value):Array.isArray(value)?value.map(text).join(''):text(value.props?.children);
+function harness(request){const values=[],effects=[],cleanups=[],dependencies=[];let cursor=0,effectCursor=0;const exports={};runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports,AbortController,URLSearchParams,document:{getElementById:()=>null},require:name=>name==='./runner-client'?{runnerJson:request}:name==='./business-intelligence'?{StateAvailabilityChoropleth:()=>null}:name.startsWith('./census-')?{default:()=>null}:name.startsWith('./')?{}:name==='react'?{useMemo:fn=>fn(),useState:initial=>{const index=cursor++;if(!(index in values))values[index]=initial;return[values[index],next=>values[index]=next];},useEffect:(effect,next)=>{const index=effectCursor++;if(!dependencies[index]||next.some((value,item)=>value!==dependencies[index][item])){dependencies[index]=next;effects.push(()=>{cleanups[index]?.();cleanups[index]=effect();});}}}:require(name)});return{render:(name,props={})=>{cursor=0;effectCursor=0;const tree=exports[name](props);effects.splice(0).forEach(run=>run());return tree;},close:()=>cleanups.forEach(cleanup=>cleanup?.())};}
+const flush=()=>new Promise(resolve=>setTimeout(resolve,0));
+
+test('Industries exposes a keyboard-readable cross-category matrix without business-completeness claims',async()=>{
+ const category_summaries=[{category_id:'general-business',national:{available:1,measured:1,unmeasured:50,expected:51},selected_state:{code:'MD',name:'Maryland',available:0,measured:0,unmeasured:1,expected:1,measurement_status:'unmeasured'}},{category_id:'health-care',national:{available:51,measured:51,unmeasured:0,expected:51},selected_state:{code:'MD',name:'Maryland',available:1,measured:1,unmeasured:0,expected:1,measurement_status:'measured'}}];
+ const h=harness(async url=>url.includes('state-summary')?{available:false,categories:[],national_category_counts:{},national_category_percent_of_collected_evidence:{},states:[]}:{available:true,release_id:'matrix',denominator:{version:'v1'},categories:['general-business','health-care'],category_summaries,jurisdictions:[{code:'MD',name:'Maryland',available:0,measured:0,unmeasured:1,denominator:1,percent:null,broad_layer_gap:true}],selected:{code:'MD',category:{datasets:[]}}});
+ h.render('CoverageWorkspace',{industries:true,stateCode:'MD'});await flush();const tree=h.render('CoverageWorkspace',{industries:true,stateCode:'MD'}),value=text(tree),region=nodes(tree).find(node=>node.props?.['aria-label']==='National and selected-state reporting-industry dataset availability');
+ assert.equal(region.props.role,'region');assert.equal(region.props.tabIndex,0);assert.equal(nodes(region).filter(node=>node.props?.scope==='row').length,2);assert.equal(nodes(region).filter(node=>node.props?.scope==='colgroup').length,2);assert.match(value,/Reporting-industry dataset availability/);assert.match(value,/dataset availability, not business or industry completeness/);assert.match(value,/availability among measured cells does not remove them/);h.close();
+});
+
+test('state changes clear prior completion counts and aborted late responses cannot restore them',async()=>{
+ const pending=[];
+ const h=harness((url,{signal})=>url.includes('state-summary')?Promise.resolve({available:false,categories:[],national_category_counts:{},national_category_percent_of_collected_evidence:{},states:[]}):new Promise(resolve=>pending.push({url,signal,resolve})));
+ const response=(state,status,available)=>({available:true,release_id:'matrix',denominator:{version:'v1'},categories:['general-business'],category_summaries:[{category_id:'general-business',national:{available:1,measured:1,unmeasured:50,expected:51},selected_state:state?{code:state,name:state,available,measured:1,unmeasured:0,expected:1,measurement_status:status}:null}],jurisdictions:[{code:'MD',name:'Maryland',available:1,measured:1,unmeasured:0,denominator:1,percent:100,broad_layer_gap:false},{code:'VA',name:'Virginia',available:1,measured:1,unmeasured:0,denominator:1,percent:100,broad_layer_gap:false}],selected:state?{code:state,category:{datasets:[]}}:null});
+ h.render('CoverageWorkspace',{industries:true});pending[0].resolve(response(null,'unused',0));await flush();let tree=h.render('CoverageWorkspace',{industries:true});const stateSelect=nodes(tree).find(node=>node.props?.['aria-label']==='Coverage state');
+ stateSelect.props.onChange({target:{value:'MD'}});tree=h.render('CoverageWorkspace',{industries:true});assert.doesNotMatch(text(tree),/unused|maryland-stale/);assert.equal(pending[1].url.includes('state=MD'),true);
+ stateSelect.props.onChange({target:{value:'VA'}});tree=h.render('CoverageWorkspace',{industries:true});assert.equal(pending[1].signal.aborted,true);assert.doesNotMatch(text(tree),/MD selected state|maryland-stale/);assert.equal(pending[2].url.includes('state=VA'),true);
+ pending[2].resolve(response('VA','virginia-current',1));await flush();tree=h.render('CoverageWorkspace',{industries:true});assert.match(text(tree),/VA selected state/);assert.match(text(tree),/virginia current/);
+ pending[1].resolve(response('MD','maryland-stale',7));await flush();tree=h.render('CoverageWorkspace',{industries:true});assert.match(text(tree),/virginia current/);assert.doesNotMatch(text(tree),/maryland stale|MD selected state/);h.close();
+});

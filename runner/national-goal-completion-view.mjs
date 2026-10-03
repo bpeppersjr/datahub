@@ -22,7 +22,7 @@ function statusCounts(datasets, field, property) {
 }
 
 function unavailable(status) {
-  return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], selected: null, scope_comparison: scopeUnavailable() };
+  return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], category_summaries: [], selected: null, scope_comparison: scopeUnavailable() };
 }
 
 function scopeUnavailable(version = null) {
@@ -97,13 +97,32 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
   const selectedJurisdiction = state ? report.jurisdictions.find((row) => row.code === state) : null;
   if (state && !selectedJurisdiction) throw Object.assign(new Error("State is not in the 50-state and D.C. matrix."), { statusCode: 400 });
   const selected = selectedJurisdiction ? selectedJurisdiction.categories.find((row) => row.category_id === category) : null;
+  const categorySummaries = categoryIds.map((categoryId) => {
+    const cells = report.jurisdictions.map((jurisdiction) => jurisdiction.categories.find((row) => row.category_id === categoryId));
+    const national = cells.reduce((totals, cell) => ({
+      available: totals.available + cell.dataset_availability.available,
+      measured: totals.measured + cell.dataset_availability.measured,
+      unmeasured: totals.unmeasured + cell.dataset_availability.unmeasured,
+      expected: totals.expected + cell.dataset_availability.denominator,
+    }), { available: 0, measured: 0, unmeasured: 0, expected: 0 });
+    const stateCell = selectedJurisdiction?.categories.find((row) => row.category_id === categoryId) ?? null;
+    return { category_id: categoryId, national, selected_state: stateCell ? {
+      code: selectedJurisdiction.code,
+      name: selectedJurisdiction.name,
+      available: stateCell.dataset_availability.available,
+      measured: stateCell.dataset_availability.measured,
+      unmeasured: stateCell.dataset_availability.unmeasured,
+      expected: stateCell.dataset_availability.denominator,
+      measurement_status: stateCell.dataset_availability.measurement_status,
+    } : null };
+  });
   let adjacentEvidence=null;
   if(selectedJurisdiction&&category==='general-business')adjacentEvidence=await adjacentReader({root,state:selectedJurisdiction.code,signal});
   return {
     available: true, status: "verified-immutable-release", release_id: report.release_id, created_at: report.created_at,
     denominator: report.denominator, category, categories: categoryIds,
     all_business_completion_percent: null,
-    jurisdictions,
+    jurisdictions, category_summaries: categorySummaries,
     broad_layer_gaps: jurisdictions.filter((row) => row.broad_layer_gap).length,
     selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, category: selected, adjacent_evidence: adjacentEvidence ? [adjacentEvidence] : [] } : null,
     limitations: report.limitations,

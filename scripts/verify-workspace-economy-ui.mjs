@@ -23,7 +23,7 @@ try{
   const request=route.request(),url=new URL(request.url());
   if(request.method()!=='GET'){writes.push({method:request.method(),path:url.pathname});return route.abort();}
   if(!url.pathname.startsWith('/api/business-map/'))return route.continue();
-  if(url.pathname.endsWith('/goal-completion'))return route.fulfill({json:{available:true,status:'available',release_id:'synthetic-ui-only',denominator:{version:'synthetic-v1'},categories:['general-business','health-care'],jurisdictions:rows,selected:url.searchParams.has('state')?{code:url.searchParams.get('state'),category:{datasets:[]}}:null}});
+  if(url.pathname.endsWith('/goal-completion')){const selectedState=url.searchParams.get('state');return route.fulfill({json:{available:true,status:'available',release_id:'synthetic-ui-only',denominator:{version:'synthetic-v1'},categories:['general-business','health-care'],category_summaries:[{category_id:'general-business',national:{available:1,measured:2,unmeasured:1,expected:3},selected_state:selectedState?{code:selectedState,name:'Minnesota',available:1,measured:2,unmeasured:1,expected:3,measurement_status:'partially-measured'}:null},{category_id:'health-care',national:{available:1,measured:2,unmeasured:1,expected:3},selected_state:selectedState?{code:selectedState,name:'Minnesota',available:1,measured:2,unmeasured:1,expected:3,measurement_status:'partially-measured'}:null}],jurisdictions:rows,selected:selectedState?{code:selectedState,category:{datasets:[]}}:null}});}
   if(url.pathname.endsWith('/features'))return route.fulfill({json:{available:true,features:rows.map((row,index)=>({geometry:{type:'Polygon',coordinates:[[[-94+index,44],[-93+index,44],[-93+index,45],[-94+index,44]]]},properties:{geoid:String(index),postal_abbreviation:row.code,name:row.name}}))}});
   if(url.pathname.endsWith('/state-summary'))return route.fulfill({json:{available:true,categories:[{id:'health-care',label:'Health care'}],national_category_counts:{'health-care':10},national_category_percent_of_collected_evidence:{'health-care':20},states:[{postal_abbreviation:'MN',state_name:'Minnesota',category_counts:{'health-care':3},percent_of_category_nationwide:{'health-care':30}}]}});
   if(url.pathname.endsWith('/zip-inspector'))return route.fulfill({json:{zip5:url.searchParams.get('zip'),evidence_status:'positive-source-evidence',governed_zcta:{status:'included',geoid:'00501'},counts:{physical_sites:2,establishments:2,employer_establishments:4},bindings:{coverage_release_id:'synthetic-ui-only'},category_evidence:{category_id:url.searchParams.get('category'),category_label:'Fixture',status:'positive-source-contribution',semantics:'Synthetic source evidence, not GDP.',positive_source_contributions:[{source_id:'fixture-health',source_release_id:'fixture-release',positive_counts:{practice_locations:3}}]}}});
@@ -38,6 +38,16 @@ try{
  assert.equal(await page.getByLabel('Reporting industry',{exact:true}).inputValue(),'health-care');
  await page.getByRole('cell',{name:'30.0%',exact:true}).waitFor();
  await page.screenshot({path:path.join(evidence,'industries-100.png'),fullPage:true});
+ await page.getByLabel('Text size',{exact:true}).selectOption('200');
+ await page.setViewportSize({width:700,height:900});
+ const completionTable=page.getByRole('region',{name:'National and selected-state reporting-industry dataset availability',exact:true});
+ await completionTable.focus();
+ assert.equal(await completionTable.getAttribute('tabindex'),'0');
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true,'Industries page must not overflow horizontally at 200% text size and narrow viewport');
+ assert.equal(await completionTable.evaluate(element=>element.scrollWidth>element.clientWidth),true,'Cross-category table must contain its own horizontal overflow');
+ await page.screenshot({path:path.join(evidence,'industries-200-narrow.png'),fullPage:true});
+ await page.setViewportSize({width:1440,height:1050});
+ await page.getByLabel('Text size',{exact:true}).selectOption('100');
  await page.getByRole('button',{name:'Explore ZIP economy',exact:true}).click();
  await page.getByText('Navigation context: MN.',{exact:false}).waitFor();
  await page.getByLabel('Economy ZIP5',{exact:true}).fill('00501');
