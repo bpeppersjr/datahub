@@ -1,0 +1,48 @@
+{
+  "dataset_id": "national-nppes-pharmacy-registry-overlay",
+  "schema_version": "1.0.0",
+  "title": "NPPES pharmacy registry classification and additivity overlay",
+  "status": "published-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-nppes-pharmacy-registry-overlay-e02e7cedab8284453e517b798b50023c9f8fd7ce51657e2a93fbf0ce0d891b40",
+    "manifest": "data/national-nppes-pharmacy-registry-overlay/releases/national-nppes-pharmacy-registry-overlay-e02e7cedab8284453e517b798b50023c9f8fd7ce51657e2a93fbf0ce0d891b40/manifest.json",
+    "manifest_sha256": "1da1a7febf400e72dfec49d1dfa814d898fab6a0d5e216de30ede3507d4c2de5",
+    "summary": {
+      "pharmacy_rows": 89077,
+      "exact_npi_membership_matches": 89077,
+      "already_present_same_source_identity": 89077,
+      "generic_business_additivity_delta": 0,
+      "organization_additions": 0,
+      "site_additions": 0,
+      "establishment_additions": 0,
+      "jurisdiction_rows": 56,
+      "zip5_denominator_rows": 48194,
+      "positive_zip5_rows": 15376,
+      "mail_order_taxonomy_organizations": 852,
+      "mail_order_taxonomy_assertions": 867
+    }
+  },
+  "claims": {
+    "active_npi_enumeration_as_of": "2026-08-09",
+    "current_operation": null,
+    "licensed_pharmacy": null,
+    "physical_site": false,
+    "unique_business": null,
+    "nationwide_completeness": false,
+    "authoritative_current_usps_zip_denominator": null,
+    "parent_company": null,
+    "nabp_number": null,
+    "ncpdp_number": null,
+    "drive_through": null,
+    "network_affiliation": null,
+    "mail_order_taxonomy_only": true,
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "production_execution": false
+  },
+  "documentation": "docs/NATIONAL-NPPES-PHARMACY-REGISTRY-OVERLAY.md"
+}

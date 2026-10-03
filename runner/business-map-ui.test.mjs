@@ -18,13 +18,18 @@ function harness(values) {
   return { map: props => { index = 0; return exports.Map(props); }, page: () => { index = 0; return exports.BusinessPage(); }, goal: (state, categoryId) => { index = 0; return exports.Goal({ state, categoryId }); }, wrapper:()=>{index=0;return exports.default();} };
 }
 
-test('credential mode replaces business subtree so incompatible selections reset on switching',()=>{
-  const values=['business'],h=harness(values);
+test('BI tabs replace incompatible subtrees and preserve governed evidence modes',()=>{
+  const values=['state','census-industry','race'],h=harness(values);
   assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),true);
-  nodes(h.wrapper()).find(node=>node.type==='select').props.onChange({target:{value:'credentials'}});
+  const tabs=nodes(h.wrapper()).filter(node=>node.props?.role==='tab');
+  assert.deepEqual(tabs.map(node=>text(node)),['1State completion','2Industry summaries','3ZIP GDP & demographics']);
+  tabs[1].props.onClick();
   assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),false);
-  nodes(h.wrapper()).find(node=>node.type==='select').props.onChange({target:{value:'business'}});
+  assert.equal(nodes(h.wrapper()).some(node=>node.props?.['aria-label']==='Industry evidence view'),true);
+  values[0]='zip';
   assert.equal(nodes(h.wrapper()).some(node=>node.type?.name==='BusinessEvidenceMap'),true);
+  assert.match(text(h.wrapper()),/Total extrapolated\/model GDP per ZIP · unavailable/);
+  assert.match(text(h.wrapper()),/Business-segment allocation · unavailable/);
 });
 function response(value = 20) {
   return { available: true, level: 'counties', category_id: 'childcare', enhancer_id: 'retained_childcare_county_points', meta: { heat_max: value },

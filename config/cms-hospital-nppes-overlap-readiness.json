@@ -1,0 +1,15 @@
+{
+  "schema_version": "cms-hospital-nppes-overlap-readiness-config@1.0.0",
+  "hospital": {
+    "manifest": "data/business-sources/cms-hospital-general-information/jobs/7140acea-6dfb-478e-8769-5dd991bc1875/manifest.json",
+    "manifest_sha256": "856992891a8ded15d0f924169991cd3c7d0bda6112de1a0702dd5600305e9239",
+    "selected_artifact": "selected.jsonl",
+    "selected_sha256": "30cb62fac6c3c9a52e9cdba31423a138b65945beb8321cb48f3825f8506bb979"
+  },
+  "nppes": {
+    "manifest": "data/business-sources/cms-nppes-organizations/releases/cms-nppes-organizations-20260903-013253062Z-7ee97568/manifest.json",
+    "manifest_sha256": "00e645a99a5f8b6b793b5fa250dd40bacec3850fdc83bb872845e86750585778",
+    "release_id": "cms-nppes-organizations-20260903-013253062Z-7ee97568",
+    "source_release_id": "NPPES_Data_Dissemination_August_2026_V2"
+  }
+}

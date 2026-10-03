@@ -1,0 +1,33 @@
+{
+  "schema_version": "national-nppes-pharmacy-registry-overlay-config@1.0.0",
+  "pharmacy": {
+    "manifest": "data/business-sources/cms-nppes-community-retail-pharmacies/releases/cms-nppes-community-retail-pharmacies-20260922-173220059Z-a8d8f5a8/manifest.json",
+    "manifest_sha256": "627aaa4b32fa6e589d9da7f85eccdeab1825bd36a8e24b57bb51bbd8f42d4933",
+    "release_id": "cms-nppes-community-retail-pharmacies-20260922-173220059Z-a8d8f5a8"
+  },
+  "nppes": {
+    "manifest": "data/business-sources/cms-nppes-organizations/releases/cms-nppes-organizations-20260903-013253062Z-7ee97568/manifest.json",
+    "manifest_sha256": "00e645a99a5f8b6b793b5fa250dd40bacec3850fdc83bb872845e86750585778",
+    "release_id": "cms-nppes-organizations-20260903-013253062Z-7ee97568",
+    "source_release_id": "NPPES_Data_Dissemination_August_2026_V2"
+  },
+  "registry": {
+    "manifest": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
+    "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+    "release_id": "national-business-registry-20260911-022652067Z-1ec656c3"
+  },
+  "zip_denominator": {
+    "manifest": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb/manifest.json",
+    "manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+    "artifact": "cohort.jsonl",
+    "artifact_sha256": "c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9",
+    "rows": 48194
+  },
+  "expected": {
+    "pharmacy_rows": 89077,
+    "jurisdiction_rows": 56,
+    "positive_zip5_rows": 15376,
+    "mail_order_organizations": 852,
+    "mail_order_assertions": 867
+  }
+}

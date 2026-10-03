@@ -133,6 +133,22 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .coverage-scope-strip span { padding: 5px 7px; border: 1px solid #29333c; border-radius: 5px; color: #77838d; font-size: 0.5rem; }
 
 .intelligence-panel { margin-top: 18px; overflow: hidden; }
+.bi-workspace { min-width: 0; }
+.bi-tabs { display: flex; gap: 6px; padding: 10px 12px 0; border-bottom: 1px solid var(--border); background: rgba(7,11,15,.4); overflow-x: auto; }
+.bi-tabs button { display: flex; align-items: center; gap: 7px; min-height: 42px; padding: 9px 13px; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; background: transparent; color: #7d8993; cursor: pointer; white-space: nowrap; }
+.bi-tabs button span { display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid #34404a; border-radius: 50%; font-size: .5rem; }
+.bi-tabs button[aria-selected='true'] { border-color: var(--border); background: #0d141a; color: var(--cyan); }
+.bi-tabs button:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; }
+.bi-tab-intro { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; border-bottom: 1px solid var(--border); background: rgba(82,216,218,.025); }
+.bi-tab-intro strong { color: #dce4e9; font-size: .75rem; }
+.bi-tab-intro p { margin: 4px 0 0; color: #71808a; font-size: .5625rem; line-height: 1.5; }
+.bi-tab-intro > span { flex: 0 0 auto; padding: 5px 7px; border: 1px solid rgba(82,216,218,.2); border-radius: 5px; color: var(--cyan); font-size: .5rem; text-transform: uppercase; letter-spacing: .06em; }
+.bi-model-controls { display: grid; grid-template-columns: minmax(180px,.8fr) repeat(3,minmax(0,1fr)); gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.bi-model-controls > * { min-width: 0; padding: 11px; border: 1px solid #28323b; border-radius: 8px; background: #0c1217; }
+.bi-model-controls label { display: grid; gap: 7px; color: #8d98a2; font-size: .5625rem; }
+.bi-model-controls select { width: 100%; height: 36px; padding: 0 8px; border: 1px solid #2d3741; border-radius: 6px; background: #0a1015; color: #dce3e9; }
+.bi-model-controls strong { color: #c9d5dd; font-size: .5625rem; line-height: 1.4; }
+.bi-model-controls p { margin: 6px 0 0; color: #68747e; font-size: .5rem; line-height: 1.45; }
 .intelligence-heading { gap: 18px; }
 .governed-chip { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid rgba(82,216,218,.2); border-radius: 6px; background: rgba(82,216,218,.055); color: var(--cyan); font-size: 0.5rem; text-transform: uppercase; letter-spacing: .08em; }
 .governed-chip i { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 3px rgba(82,216,218,.08); }
@@ -194,6 +210,7 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .pharmacy-map-canvas { min-height: 520px; }
 .pharmacy-map-canvas svg { min-height: 490px; }
 @media (max-width: 1050px) { .pharmacy-map-layout { grid-template-columns: 1fr; } }
+@media (max-width: 1050px) { .bi-model-controls { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 .map-zoom-controls { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; align-items: center; overflow: hidden; border: 1px solid #34404a; border-radius: 7px; background: rgba(9,14,18,.92); box-shadow: 0 7px 20px rgba(0,0,0,.25); }
 .map-zoom-controls button { min-width: 30px; height: 30px; padding: 0 7px; border: 0; border-right: 1px solid #303a44; background: transparent; color: #b9c3cb; font-size: 0.625rem; cursor: pointer; }
 .map-zoom-controls button:hover { color: var(--cyan); background: rgba(82,216,218,.06); }

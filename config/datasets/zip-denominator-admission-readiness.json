@@ -1,0 +1,28 @@
+{
+  "schema_version": "local-review-release-registration@1.0.0",
+  "dataset_id": "zip-denominator-admission-readiness",
+  "status": "registered-local-derived-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_denominator_enrollment": false,
+  "retained_release": {
+    "release_id": "zip-denominator-admission-readiness-fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb",
+    "manifest": "data/zip-denominator-admission-readiness/releases/zip-denominator-admission-readiness-fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb/manifest.json",
+    "manifest_sha256": "dc4d9e377d924ae400d7d7e96a5187ced4fec4d0331fd8a205eaa7655788e3fa",
+    "readiness_sha256": "fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb",
+    "rows": 48194
+  },
+  "claims": {
+    "authoritative_current_usps_zip_denominator": null,
+    "valid_usps_zip_count": null,
+    "business_count": null,
+    "current_operating_business_count": null,
+    "completeness_percent": null,
+    "zip_validity_classified": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_execution": false
+  },
+  "documentation": "docs/ZIP-DENOMINATOR-ADMISSION-READINESS.md"
+}

@@ -7,7 +7,7 @@ import OvertureHeatmapReadiness from './overture-heatmap-readiness';
 import NppesPharmacyHeatmap from './nppes-pharmacy-heatmap';
 import OrganizationZipEvidencePanel from './organization-zip-evidence-panel';
 
-import { useEffect, useMemo, useState, type WheelEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent, type WheelEvent } from 'react';
 import { runnerJson } from './runner-client';
 import RetainedChildcarePanel from './retained-childcare-panel';
 import RetainedCountyPanel from './retained-county-panel';
@@ -634,8 +634,31 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
 }
 
 export default function BusinessIntelligence() {
-  const [mode,setMode]=useState('business');
-  return <div><label className="heatmap-mode-selector">Heatmap record type <select aria-label="Heatmap record type" value={mode} onChange={event=>setMode(event.target.value)}><option value="business">Business evidence</option><option value="census-industry">Census employer industry · annual aggregate</option><option value="census-nonemployer-county">Census nonemployer county industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option><option value="pharmacy">CMS NPPES community / retail pharmacy · reported evidence</option></select></label>{mode==='credentials'?<CredentialHeatmap/>:mode==='census-industry'?<CensusZbpIndustryHeatmap/>:mode==='census-nonemployer-county'?<CensusNonemployerCountyHeatmap/>:mode==='pharmacy'?<NppesPharmacyHeatmap/>:<BusinessEvidenceMap/>}</div>;
+  const tabs = [
+    { id: 'state', label: 'State completion' },
+    { id: 'industry', label: 'Industry summaries' },
+    { id: 'zip', label: 'ZIP GDP & demographics' },
+  ] as const;
+  type IntelligenceTab = typeof tabs[number]['id'];
+  const [tab,setTab]=useState<IntelligenceTab>('state');
+  const [industryView,setIndustryView]=useState('census-industry');
+  const [demographicDimension,setDemographicDimension]=useState('race');
+  function chooseTab(next:IntelligenceTab){setTab(next);window.requestAnimationFrame(()=>document.getElementById(`business-intelligence-tab-${next}`)?.focus());}
+  function tabKey(event:KeyboardEvent<HTMLButtonElement>,index:number){if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight'&&event.key!=='Home'&&event.key!=='End')return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;chooseTab(tabs[next].id);}
+  return <div className="bi-workspace">
+    <nav className="bi-tabs" role="tablist" aria-label="Business intelligence views">
+      {tabs.map((item,index)=><button type="button" id={`business-intelligence-tab-${item.id}`} key={item.id} role="tab" aria-selected={tab===item.id} aria-controls={`business-intelligence-panel-${item.id}`} tabIndex={tab===item.id?0:-1} onClick={()=>setTab(item.id)} onKeyDown={event=>tabKey(event,index)}><span>{index+1}</span>{item.label}</button>)}
+    </nav>
+    <section id="business-intelligence-panel-state" role="tabpanel" aria-labelledby="business-intelligence-tab-state" hidden={tab!=='state'}>
+      {tab==='state'&&<><div className="bi-tab-intro"><div><strong>Nationwide dataset completion by state</strong><p>Select a state to review dataset availability and measured gaps. Completion describes enrolled datasets, never all U.S. businesses.</p></div><span>Summary stays beside the map</span></div><BusinessEvidenceMap/></>}
+    </section>
+    <section id="business-intelligence-panel-industry" role="tabpanel" aria-labelledby="business-intelligence-tab-industry" hidden={tab!=='industry'}>
+      {tab==='industry'&&<><div className="bi-tab-intro"><div><strong>Industry summaries & connectivity</strong><p>Compare governed employer, nonemployer, credential, and provider evidence without combining unlike record units.</p></div></div><label className="heatmap-mode-selector">Industry evidence view <select aria-label="Industry evidence view" value={industryView} onChange={event=>setIndustryView(event.target.value)}><option value="census-industry">Census employer industry · annual aggregate</option><option value="census-nonemployer-county">Census nonemployer county industry · annual aggregate</option><option value="credentials">MN credential rows · local review</option><option value="pharmacy">CMS NPPES community / retail pharmacy · reported evidence</option></select></label>{industryView==='credentials'?<CredentialHeatmap/>:industryView==='census-nonemployer-county'?<CensusNonemployerCountyHeatmap/>:industryView==='pharmacy'?<NppesPharmacyHeatmap/>:<CensusZbpIndustryHeatmap/>}</>}
+    </section>
+    <section id="business-intelligence-panel-zip" role="tabpanel" aria-labelledby="business-intelligence-tab-zip" hidden={tab!=='zip'}>
+      {tab==='zip'&&<><div className="bi-tab-intro"><div><strong>ZIP GDP & demographic modeling</strong><p>Drill to a Census ZCTA or inspect an exact ZIP5. Published GDP appears only when the governed map endpoint supplies it.</p></div><span>Model status · bounded</span></div><div className="bi-model-controls"><label>Demographic cross-view<select aria-label="Demographic cross-view" value={demographicDimension} onChange={event=>setDemographicDimension(event.target.value)}><option value="race">Race</option><option value="ancestry">Lineage / ancestry</option><option value="sex">Sex</option><option value="age">Age</option></select></label><div role="status"><strong>{demographicDimension==='ancestry'?'Lineage / ancestry':demographicDimension[0].toUpperCase()+demographicDimension.slice(1)} · planned model dimension</strong><p>No governed cross-view values are exposed by the current endpoints, so no demographic number is estimated or displayed.</p></div><div role="status"><strong>Total extrapolated/model GDP per ZIP · unavailable</strong><p>Current governed endpoints expose published geography GDP where available, not a total extrapolated ZIP GDP.</p></div><div role="status"><strong>Business-segment allocation · unavailable</strong><p>No governed endpoint currently publishes a ZIP GDP allocation by business segment.</p></div></div><BusinessEvidenceMap defaultEnhancer="gdp_current_dollars"/></>}
+    </section>
+  </div>;
 }
 
 function StateAccessSummary({state,industry}:{state?:string;industry?:string}){
@@ -652,7 +675,7 @@ function StateAccessSummary({state,industry}:{state?:string;industry?:string}){
   </section>;
 }
 
-function BusinessEvidenceMap() {
+function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer?:string}={}) {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [zipQuality, setZipQuality] = useState<ZipQualitySummary | null>(null);
   const [inspectionZip, setInspectionZip] = useState('');
@@ -667,7 +690,7 @@ function BusinessEvidenceMap() {
   const [zipFeature, setZipFeature] = useState<MapFeature | null>(null);
   const [level, setLevel] = useState<'states' | 'counties' | 'zips'>('states');
   const [categoryId, setCategoryId] = useState('all');
-  const [enhancerId, setEnhancerId] = useState('business_count');
+  const [enhancerId, setEnhancerId] = useState(defaultEnhancer);
   const [minPopulation, setMinPopulation] = useState('');
   const [minHousingUnits, setMinHousingUnits] = useState('');
   const [stateFips, setStateFips] = useState('');

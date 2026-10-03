@@ -1,0 +1,35 @@
+{
+  "schema_version": "zip-denominator-admission-readiness-config@1.0.0",
+  "dataset_id": "zip-denominator-admission-readiness",
+  "publication_mode": "immutable-local-review-only-pointer-free",
+  "registry_pointer": "data/business-registry/current.json",
+  "cohort_registration": "config/datasets/zip-denominator-gap-cohort.json",
+  "expected": {
+    "registry_release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+    "registry_pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
+    "registry_manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+    "registry_zip_artifact_sha256": "2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e",
+    "registry_zip_rows": 48194,
+    "cohort_release_id": "zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb",
+    "cohort_manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+    "cohort_sha256": "c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9",
+    "cohort_rows": 48194
+  },
+  "prerequisite_contracts": {
+    "postalpro_area_district": {
+      "current_pointer": "data/zip-validity/usps-operational-zips/current.json",
+      "dataset_contract": "config/datasets/usps-operational-zip-assignments.json",
+      "connector_contract": "config/connectors/usps-operational-zip-assignments.json",
+      "policy_contract": "config/source-policies/usps-operational-zip-assignments.json",
+      "production_adapter": "runner/usps-operational-zip-production-input.mjs"
+    },
+    "licensed_city_state": {
+      "admission_root": "data/zip-validity/usps-city-state/admissions",
+      "candidate_root": "data/zip-validity/usps-city-state-denominator/releases",
+      "admission_contract": "config/connectors/usps-city-state-admission.json",
+      "candidate_contract": "config/connectors/usps-city-state-operational-denominator-candidate.json",
+      "dataset_contract": "config/datasets/usps-city-state-operational-denominator-candidate.json",
+      "policy_contract": "config/source-policies/usps-city-state-operational-denominator-candidate.json"
+    }
+  }
+}
