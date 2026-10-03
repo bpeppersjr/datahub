@@ -32,6 +32,8 @@ import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
+import { readZctaEconomicReadiness } from './zcta-economic-readiness-reader.mjs';
+import { zctaEconomicReadinessHttp } from './zcta-economic-readiness-http.mjs';
 import { readZipOperationalAdmission } from './zip-inspector-governance.mjs';
 import { readRegisteredCensusZbpZipProfile } from './census-zbp-zip-profile-reader.mjs';
 import { readZipSourceStatusEnvelope } from './zip-source-status-index.mjs';
@@ -751,6 +753,10 @@ const server = http.createServer(async (request, response) => {
       await zipEvidenceQualificationHttp(request,response,url,{reader:readZipEvidenceQualification,authorize:incoming=>{
         controlPlane.prepare(incoming,response);controlPlane.authorize(incoming);return true;
       }},json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/zcta-economic-readiness') {
+      await zctaEconomicReadinessHttp(request,response,url,readZctaEconomicReadiness,json);
       return;
     }
     if (url.pathname === '/api/business-map/organization-zip-evidence') {

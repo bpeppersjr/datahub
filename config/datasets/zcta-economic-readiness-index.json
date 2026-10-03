@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-economic-readiness-index",
+  "status": "registered-local-lookup-index",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "aggregate-public-context",
+  "retained_release": {
+    "release_id": "zcta-economic-readiness-index-5aa107ac56514b6cd56a530e066ca13e58f1c8033fbf4fb0867dfcac7f860c5c",
+    "manifest": "data/zcta-economic-readiness-index/releases/zcta-economic-readiness-index-5aa107ac56514b6cd56a530e066ca13e58f1c8033fbf4fb0867dfcac7f860c5c/manifest.json",
+    "manifest_bytes": 15257,
+    "manifest_sha256": "c1e24845df34fdffb303920f9bba46ee41d9ac92e7d09bc0734c4cf824887c3a",
+    "source_release_id": "zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd",
+    "source_manifest": "data/zcta-economic-model-readiness/releases/zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd/manifest.json",
+    "source_manifest_sha256": "e7f46c55cd6b94b7af3ec19d73ea277c19c5653474ead7f5eb4145be67717720",
+    "source_artifact_sha256": "311950f9ea3af788456e164a2272293f2adb6a0fa81cf4af7815deca57471902"
+  }
+}

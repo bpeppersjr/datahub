@@ -99,6 +99,18 @@ The loopback runner exposes:
 - `GET /api/business-map/state-summary?include_territories=false`; and
 - `GET /api/business-map/names?zip=35022&category=retail-consumer&query=&limit=25`; and
 - `GET /api/business-map/zip-inspector?zip=10001` for strict exact-ZIP evidence detail; and
+- `GET /api/business-map/zcta-economic-readiness?zcta=10001` for one exact retained ZCTA readiness row; and
 - `GET /api/business-map/pharmacies/map?level=states` or `GET /api/business-map/pharmacies/map?level=zctas&state=TX&zip=75001&limit=25` for the governed pharmacy map and bounded ZIP names.
+
+The ZCTA economic-readiness lookup is GET-only, protected by the shared local control plane, and pinned to retained pointer-free release `zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd`. It uses a registered prefix-sharded byte-offset index and reads only one bounded index shard and, when present, one exact JSONL row. A valid absent ZCTA returns `available: false`, `status: "not-found"`; absence is not an official-ZIP validity statement or a measured zero. `population_2020` and `housing_units_2020` are 2020 Census aggregate context, not allocation weights or current estimates. The response exposes no GDP value and makes no official ZIP, active-business, or demographic-allocation claim. Registration, hash, identity, dependency-lineage, or release mismatches fail closed with a redacted unavailable response; no discovery, rebuild, current pointer, or production admission is performed.
+
+The ignored runtime index is delivered as local retained data rather than Git content. Bootstrap and independently verify it after the pinned readiness release and its four retained dependency manifests are present:
+
+```powershell
+npm run zcta-economic-readiness-index:build -- --source-manifest data/zcta-economic-model-readiness/releases/zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd/manifest.json --created-at 2026-10-03T02:17:32.755Z
+npm run zcta-economic-readiness-index:verify -- --source-manifest data/zcta-economic-model-readiness/releases/zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd/manifest.json --manifest data/zcta-economic-readiness-index/releases/zcta-economic-readiness-index-5aa107ac56514b6cd56a530e066ca13e58f1c8033fbf4fb0867dfcac7f860c5c/manifest.json
+```
+
+The builder authenticates and fully replays the source, rejects duplicate or malformed rows, writes bounded prefix shards before the manifest, verifies staging independently, then atomically renames one content-addressed release. It writes no current pointer. The verifier independently reconstructs every offset, row hash, shard, inventory, and release identity. Deployment must retain the exact verified index release named by `config/datasets/zcta-economic-readiness-index.json`; a missing or mismatched sidecar fails closed rather than rebuilding during a request.
 
 Identifiers and demographic thresholds are validated before constructing artifact paths or filtering results. Thresholds must be non-negative whole numbers. Geometry and indexes must be declared by compatible published manifests, and the business-name registry release must match the registry release pinned in the coverage view when that lineage field is present. Responses contain no secrets.
