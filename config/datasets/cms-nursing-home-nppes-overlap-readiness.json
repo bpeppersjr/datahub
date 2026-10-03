@@ -1,0 +1,51 @@
+{
+  "dataset_id": "cms-nursing-home-nppes-overlap-readiness",
+  "schema_version": "1.0.0",
+  "title": "CMS nursing-home / NPPES exact-overlap readiness",
+  "status": "published-pointer-free-readiness-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "identity_merge_performed": false,
+  "retained_release": {
+    "release_id": "cms-nursing-home-nppes-overlap-readiness-f57a299b2c0cccbcd038716b8dfe70adac8a7b43bdfaaab6b4f18ccf2634dfbe",
+    "manifest": "data/cms-nursing-home-nppes-overlap-readiness/releases/cms-nursing-home-nppes-overlap-readiness-f57a299b2c0cccbcd038716b8dfe70adac8a7b43bdfaaab6b4f18ccf2634dfbe/manifest.json",
+    "manifest_sha256": "af73ebf41f534a7c07404f4458bd7a663fdc7774046b71fa79f1abe3e5047233",
+    "artifact": {
+      "path": "overlap-readiness.jsonl",
+      "bytes": 7952796,
+      "sha256": "040f67906b3b6bec0bfda37ab25115a6c3fe1613f1d584ef5a4564b83c920895",
+      "record_count": 14690,
+      "export_policy": "local-review-only"
+    },
+    "summary": {
+      "nursing_home_rows": 14690,
+      "matched_one_distinct_npi_candidate": 285,
+      "unmatched": 14368,
+      "ambiguous_multiple_distinct_npi_candidates": 37,
+      "match_eligible_rows": 14689,
+      "match_ineligible_rows": 1,
+      "distinct_npi_candidate_links": 390,
+      "location_assertion_links": 391,
+      "unique_business_count": null,
+      "active_business_count": null,
+      "completeness_percentage": null
+    }
+  },
+  "claims": {
+    "unique_business_count": null,
+    "active_business_count": null,
+    "completeness_percentage": null,
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "identity_merge_performed": false,
+    "npi_inference_performed": false,
+    "physical_site_verified": false,
+    "current_operations_verified": false,
+    "geocode_approved": false,
+    "public_export_authorized": false,
+    "export_policy": "local-review-only"
+  },
+  "documentation": "docs/CMS-NURSING-HOME-NPPES-OVERLAP-READINESS.md"
+}

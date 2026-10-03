@@ -1,0 +1,15 @@
+{
+  "schema_version": "cms-nursing-home-nppes-overlap-readiness-config@1.0.0",
+  "nursing_home": {
+    "manifest": "data/business-sources/cms-nursing-home-provider-information/recoveries/9fe3aa54-dd38-42be-b28e-b1d363300a45/manifest.json",
+    "manifest_sha256": "89ee608067aa5b97833957b753be61003dc2efcfa22cfaedbb3b78f020396d7e",
+    "selected_artifact": "selected.jsonl",
+    "selected_sha256": "677b1dc7b294f72feb0d6a0803d27c9f0f074887e5b9c5a59a6837c87a2320d8"
+  },
+  "nppes": {
+    "manifest": "data/business-sources/cms-nppes-organizations/releases/cms-nppes-organizations-20260903-013253062Z-7ee97568/manifest.json",
+    "manifest_sha256": "00e645a99a5f8b6b793b5fa250dd40bacec3850fdc83bb872845e86750585778",
+    "release_id": "cms-nppes-organizations-20260903-013253062Z-7ee97568",
+    "source_release_id": "NPPES_Data_Dissemination_August_2026_V2"
+  }
+}

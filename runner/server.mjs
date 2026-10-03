@@ -34,6 +34,8 @@ import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from 
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
 import { readZctaEconomicReadiness } from './zcta-economic-readiness-reader.mjs';
 import { zctaEconomicReadinessHttp } from './zcta-economic-readiness-http.mjs';
+import { readNationalBusinessTemporalClaimMatrix } from './national-business-temporal-claim-matrix-reader.mjs';
+import { nationalBusinessTemporalClaimMatrixHttp } from './national-business-temporal-claim-matrix-http.mjs';
 import { cmsRetainedDirectoryZipHttp } from './cms-retained-directory-zip-http.mjs';
 import { retainedChildcareZipHttp } from './retained-childcare-zip-http.mjs';
 import { readZipOperationalAdmission } from './zip-inspector-governance.mjs';
@@ -727,6 +729,9 @@ const server = http.createServer(async (request, response) => {
         json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : 'Goal-completion matrix is unavailable.' });
       }
       return;
+    }
+    if (url.pathname === '/api/business-map/temporal-claim-matrix') {
+      await nationalBusinessTemporalClaimMatrixHttp(request,response,url,readNationalBusinessTemporalClaimMatrix,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/state-access'){
       if([...url.searchParams.keys()].some(key=>!['state','industry'].includes(key))||['state','industry'].some(key=>url.searchParams.getAll(key).length!==1)){json(response,400,{error:'Unsupported or repeated state-access option.'});return;}

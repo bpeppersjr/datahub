@@ -1,0 +1,30 @@
+{
+  "schema_version": "acs-zcta-demographic-admission-config@1.0.0",
+  "publication_mode": "immutable-local-review-only-pointer-free",
+  "expected_zcta_count": 33791,
+  "geography": {
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "manifest": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "artifact": "derived/index/zctas.jsonl",
+    "artifact_sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6"
+  },
+  "source_policy": {
+    "path": "config/source-policies/us-census-acs-zcta-demographics.json",
+    "sha256": "e87ce862382b222c433ebd46757fe60093bbf08d34e2375bd0c692e2e3360129"
+  },
+  "required_tables": {
+    "B01001": { "logical_group": "sex-by-age", "first_cell": 1, "last_cell": 49 },
+    "B02001": { "logical_group": "race", "first_cell": 1, "last_cell": 10 },
+    "B03002": { "logical_group": "race-hispanic-origin", "first_cell": 1, "last_cell": 21 },
+    "B04006": { "logical_group": "ancestry", "first_cell": 1, "last_cell": 109 }
+  },
+  "official_metadata_registry": {
+    "path": "config/acs-zcta-demographic-official-metadata-registry.json",
+    "sha256": "5d4fb52dd62e9e793f8813f59a43c73caa86fcaffee46e6df3b4d48c0d895a05"
+  },
+  "authorization_registry": {
+    "path": "config/acs-zcta-demographic-authorization-registry.json",
+    "sha256": "2c8d4657eab53cc3919460901c309cd207736d6663fad5a2891ed9576a198a59"
+  }
+}

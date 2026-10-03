@@ -122,10 +122,9 @@ test("restricts output roots to data and rejects the worktrees boundary", async 
 test("rejects drift in a pinned static config dependency", async (t) => {
   const fixture = await setup(t);
   const result = await buildCityStateDenominatorCandidate(fixture);
-  const datasetPath = path.join(APP_ROOT, "config/datasets/usps-city-state-operational-denominator-candidate.json");
-  const original = await readFile(datasetPath);
-  t.after(() => writeFile(datasetPath, original));
-  await writeFile(datasetPath, Buffer.from(original.toString().replace('"label": "USPS City State operational-denominator candidate"', '"label": "DRIFTED City State candidate"')));
+  const manifest = JSON.parse(await readFile(result.manifestPath, "utf8"));
+  manifest.config_dependencies.dataset.sha256 = "0".repeat(64);
+  await writeFile(result.manifestPath, JSON.stringify(manifest));
   await assert.rejects(verifyCityStateDenominatorCandidate(result.manifestPath, fixture), /config dependency dataset drifted/);
 });
 

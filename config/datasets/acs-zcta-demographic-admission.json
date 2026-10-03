@@ -1,0 +1,9 @@
+{
+  "schema_version": "local-review-release-registration@1.0.0",
+  "dataset_id": "acs-zcta-demographic-admission",
+  "publication_scope": "local-review-only",
+  "current_pointer": null,
+  "production_enrollment": false,
+  "network_acquisition": false,
+  "retained_releases": []
+}

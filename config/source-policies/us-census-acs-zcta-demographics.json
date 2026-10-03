@@ -1,0 +1,27 @@
+{
+  "policy_id": "us-census-acs-zcta-demographics",
+  "version": "1.0.0",
+  "publisher": "United States Census Bureau",
+  "ownership": "United States federal government public data",
+  "source_home": "https://www.census.gov/programs-surveys/acs/data.html",
+  "terms_url": "https://www.census.gov/about/policies/quality/standards.html",
+  "allowed_use": [
+    "offline admission of explicitly authorized caller-supplied ACS 5-year files",
+    "local processing and analysis",
+    "derived aggregate datasets with source vintage, table, variable, estimate, and margin-of-error provenance",
+    "redistribution with Census attribution and disclosed ACS sampling limitations"
+  ],
+  "prohibited_use": [
+    "network acquisition without a separately approved acquisition plan",
+    "representing ACS estimates as exact counts",
+    "inventing percentages, estimates, margins of error, or values for missing cells",
+    "representing ZCTAs as USPS ZIP delivery boundaries",
+    "combining ancestry, race, Hispanic origin, sex, or age into an undocumented lineage construct"
+  ],
+  "attribution": "Source: U.S. Census Bureau, American Community Survey 5-year estimates.",
+  "retention": "Retain admitted source files and immutable derived releases with their authorization declaration and checksums.",
+  "redistribution": "Allowed for aggregate public Census data with provenance, vintage, ACS estimate/MOE labels, and limitations.",
+  "contains_secrets": false,
+  "contains_personal_data": false,
+  "reviewed_at": "2026-10-03"
+}
