@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 91 is the current clean-repository successor after committing the simplified tab workspace and governed ZCTA economic-model readiness release.
+Plan 91 is superseded by Plan 92 after the exact-ZCTA economic-readiness lookup implementation was committed. It remains preserved as historical planning evidence and is not authorized for execution.
 
 - Run ID: `production-cms-directories-20261003-91`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-91.json`
