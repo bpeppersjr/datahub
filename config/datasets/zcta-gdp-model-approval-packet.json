@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-gdp-model-approval-packet",
+  "status": "published-approval-packet-hold",
+  "release_only": true,
+  "runtime_pointer": null,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "zcta-gdp-model-approval-packet-8f78c44da99943e32dbdc0ded5b1259477d6c7bedaa9d4326fada6fc912a2278",
+    "manifest": "data/zcta-gdp-model-approval-packet/releases/zcta-gdp-model-approval-packet-8f78c44da99943e32dbdc0ded5b1259477d6c7bedaa9d4326fada6fc912a2278/manifest.json",
+    "manifest_sha256": "8776d15a803bcca253ee841c4859c2559aa0b4044d9f42d3f12bf38f5d109487",
+    "manifest_bytes": 3011,
+    "created_at": "2026-10-03T16:14:14.781Z",
+    "artifact_sha256": "97e9c846bca379ad01026484abbd5176a4f3ef3e0f53376552a22552e4df9ced"
+  },
+  "claims": {
+    "model_approved": false,
+    "output_authorized": false,
+    "numeric_gdp_emitted": false,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  }
+}
