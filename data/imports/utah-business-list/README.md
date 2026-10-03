@@ -6,4 +6,10 @@ The package has exactly `selection.json`, the original delivered `original.xlsx`
 
 Inspection validates all three derived sheet contracts and Entity ID joins, but emits only a person-free projection of `BUSENTITY`. `Applicant Name`, all `BUSINFO` content, and every `PRINCIPAL` field are excluded. The original workbook is retained and hash-bound but is not parsed by this workflow, so neither source authenticity nor extraction reproducibility is verified. Output is explicitly operator-derived and is ineligible for admission until both are verified. Addresses are administrative registration evidence—not physical operating sites. ZIP5 and ZIP4 are separate. Registration status is not proof of current operation. Inspection writes no release or pointer and performs no national admission.
 
-Run `node scripts/inspect-utah-business-list-package.mjs data/imports/utah-business-list/packages/<package-id>`.
+Run a durable application-owned operation with:
+
+```powershell
+node scripts/run-utah-business-list-app.mjs --selection data/imports/utah-business-list/packages/<package-id>/selection.json
+```
+
+The app writes a UUID operation beneath `data/imports/utah-business-list/operations/`, including a durable start record, terminal receipt, and on success an operation-owned local-review release. Independently replay its receipt with `node scripts/verify-utah-business-list-app.mjs --receipt data/imports/utah-business-list/operations/<run-id>/receipt.json`. It still performs no purchase, account creation, download, pointer update, or national admission. The older inspection-only command remains available.

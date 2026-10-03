@@ -163,6 +163,8 @@
     "il-business:verify": "node scripts/verify-il-business-registry.mjs",
     "utah-business-list:inspect": "node scripts/inspect-utah-business-list-package.mjs",
     "ok-business-bulk:build": "node scripts/build-ok-business-bulk-offline.mjs",
+    "ok-business-bulk:app": "node scripts/run-ok-business-bulk-app.mjs",
+    "ok-business-bulk:verify-app": "node scripts/verify-ok-business-bulk-app.mjs",
     "overture-us-places:preflight": "node scripts/prepare-overture-us-places.mjs --preflight-only",
     "overture-us-places:prepare": "node scripts/prepare-overture-us-places.mjs",
     "overture-us-places:build": "node scripts/build-overture-us-places.mjs",

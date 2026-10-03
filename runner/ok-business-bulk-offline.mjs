@@ -46,9 +46,12 @@ function parseLine(line, number) {
   return fields;
 }
 
-export async function readOkBusinessBulkPackage(selectionPath, { maximumBytes = 1_000_000_000 } = {}) {
+export async function readOkBusinessBulkPackage(selectionPath, { maximumBytes = 1_000_000_000, packagesRoot = path.join(APP_ROOT, "data", "imports", "oklahoma-business-bulk", "packages") } = {}) {
   check(path.isAbsolute(selectionPath), "selection path must be absolute");
-  const canonical = await realpath(selectionPath), packagesRoot = path.join(APP_ROOT, "data", "imports", "oklahoma-business-bulk", "packages");
+  packagesRoot = await realpath(packagesRoot);
+  const rootRelative = path.relative(APP_ROOT, packagesRoot);
+  check(rootRelative && !rootRelative.startsWith("..") && !path.isAbsolute(rootRelative), "packages root must remain inside datahub");
+  const canonical = await realpath(selectionPath);
   const packageDirectory = path.dirname(canonical), packageId = path.basename(packageDirectory);
   check(canonical === path.resolve(selectionPath) && path.basename(canonical) === "selection.json" && path.dirname(packageDirectory) === packagesRoot && PACKAGE.test(packageId), "selection must be an exact package selection.json");
   const directoryBefore = await lstat(packageDirectory, { bigint: true });
@@ -104,16 +107,20 @@ export function projectOkBusinessOrganizations(pkg) {
   });
 }
 
-export async function buildOkBusinessBulkOffline({ selectionPath, outputDirectory }) {
+export async function buildOkBusinessBulkOffline({ selectionPath, outputDirectory, packagesRoot, signal }) {
+  check(signal === undefined || signal instanceof AbortSignal, "invalid cancellation signal");
+  signal?.throwIfAborted();
   check(path.isAbsolute(outputDirectory), "output directory must be absolute");
   outputDirectory = path.resolve(outputDirectory);
   const relative = path.relative(APP_ROOT, outputDirectory);
   check(relative && !relative.startsWith("..") && !path.isAbsolute(relative), "output must remain inside datahub");
   check(await realpath(path.dirname(outputDirectory)) === path.dirname(outputDirectory), "output parent must be canonical and link-free");
-  const pkg = await readOkBusinessBulkPackage(selectionPath), records = projectOkBusinessOrganizations(pkg);
+  const pkg = await readOkBusinessBulkPackage(selectionPath, { packagesRoot }), records = projectOkBusinessOrganizations(pkg);
+  signal?.throwIfAborted();
   await mkdir(outputDirectory, { recursive: false });
   const recordsBytes = Buffer.from(records.map(row => JSON.stringify(row)).join("\n") + (records.length ? "\n" : ""));
   await writeFile(path.join(outputDirectory, "organizations.jsonl"), recordsBytes, { flag: "wx" });
+  signal?.throwIfAborted();
   const receipt = { schema_version: OK_BUSINESS_BULK_OFFLINE_VERSION, status: "SUCCEEDED", package_id: pkg.packageId, selection_sha256: pkg.selectionSha256, source_sha256: pkg.sourceSha256, source_bytes: pkg.sourceBytes, source_record_counts: pkg.counts, projected_organization_count: records.length, organizations_sha256: sha256(recordsBytes), network_requests: 0, acquisition_performed: false, purchase_performed: false, source_pointer_changed: false, national_admission_performed: false, physical_site_claim: false, current_operation_claim: false, export_policy: "local-review-only" };
   await writeFile(path.join(outputDirectory, "receipt.json"), `${JSON.stringify(receipt, null, 2)}\n`, { flag: "wx" });
   return receipt;

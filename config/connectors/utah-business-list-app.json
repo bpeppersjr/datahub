@@ -1,0 +1,32 @@
+{
+  "connector_id": "utah-business-list-app",
+  "version": "1.0.0",
+  "description": "Application-owned offline wrapper for one explicitly selected Utah Business List workbook and three operator-derived sheet exports.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["selection"],
+    "properties": {
+      "selection": { "type": "string", "pattern": "^data/imports/utah-business-list/packages/[A-Za-z0-9][A-Za-z0-9._-]{0,63}/selection\\.json$" },
+      "operationsRoot": { "type": "string", "enum": ["data/imports/utah-business-list/operations"], "default": "data/imports/utah-business-list/operations" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["utah-business-list-selection-json", "operator-supplied-utah-business-list-original-xlsx", "operator-derived-utah-business-list-busentity-jsonl", "operator-derived-utah-business-list-businfo-jsonl", "operator-derived-utah-business-list-principal-jsonl"],
+  "output_artifact_types": ["utah-business-list-app-start-json", "utah-business-list-app-receipt-json", "operation-scoped-utah-business-list-local-review-release"],
+  "output_schemas": ["config/schemas/utah-business-list-organization.schema.json"],
+  "allowed_hosts": [],
+  "redirect_policy": "No HTTP requests, redirects, discovery, automated acquisition, purchase, or account creation are permitted.",
+  "provider_budget_key": "utah-business-list-offline-operator-package",
+  "resource_class": "cpu-memory-disk",
+  "execution_limits": { "max_parallel_requests": 0, "required_source_files": 4, "maximum_bytes_per_file": 1000000000, "maximum_rows_per_sheet": 1000000 },
+  "retry": "No automatic retry. Inspect the durable receipt and replace or correct the explicitly selected package.",
+  "checkpoint": "One UUID operation owns its durable start record, temporary input snapshot, immutable local-review release, and terminal receipt.",
+  "idempotency": "Five input SHA-256 values bind each operation. Re-running creates a distinct UUID operation and never changes a current pointer.",
+  "cancellation": "Cancellation is cooperative. The operation records CANCELLED and removes only its unpublished snapshot and operation-owned release; selected package inputs are never modified.",
+  "source_policy": "config/source-policies/utah-business-list-offline.json",
+  "retention_profile": "Operator inputs remain under data/imports. Person-free normalized evidence and receipts remain local-review-only and admission-ineligible.",
+  "produced_entities": ["provisional-organization-candidate", "utah-registration-status-assertion", "administrative-address-evidence"],
+  "produced_identifiers": ["utah-entity-id", "utah-entity-number", "zip5", "zip4"]
+}

@@ -6,4 +6,8 @@ Place one operator-supplied package at `packages/<package-id>/` containing exact
 
 The projector retains only type-01 organization evidence, type-02 administrative address, and type-11/type-12 lookup labels. It excludes agents, officers, associated parties, contact details, tax identifiers, filing/audit text, stock data, and documents. ZIP5 and ZIP4 remain separate. Output is local-review-only and does not assert a physical site, current operation, statewide completeness, national admission, or a production pointer.
 
-Run `node scripts/build-ok-business-bulk-offline.mjs --selection <absolute-selection.json> --output <absolute-new-output-directory>`.
+The lower-level command is `node scripts/build-ok-business-bulk-offline.mjs --selection <absolute-selection.json> --output <absolute-new-output-directory>`.
+
+Run `node scripts/run-ok-business-bulk-app.mjs --selection data/imports/oklahoma-business-bulk/packages/<package-id>/selection.json`. Each accepted run creates a UUID directory under `operations/`, durably writes `start.json`, processes an operation-owned verified snapshot, and writes a terminal `receipt.json`. Verify successful evidence with `node scripts/verify-ok-business-bulk-app.mjs --receipt data/imports/oklahoma-business-bulk/operations/<operation-id>/receipt.json`.
+
+The worker has no network, purchase, or account capability. It changes no source/current pointer and performs no national admission. Output is local-review-only; administrative addresses are not physical-site claims and registry status is not proof of current operation.

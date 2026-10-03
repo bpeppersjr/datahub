@@ -11,3 +11,9 @@ This workflow performs zero network requests, purchases, account actions, source
 Use [the example selection](../config/ok-business-bulk-selection.example.json), calculate the source SHA-256 locally, and run:
 
 `node scripts/build-ok-business-bulk-offline.mjs --selection <absolute-selection.json> --output <absolute-new-output-directory>`
+
+## Standalone application handoff
+
+The preferred durable entry point is `node scripts/run-ok-business-bulk-app.mjs --selection data/imports/oklahoma-business-bulk/packages/<package-id>/selection.json`. It creates a UUID operation below `data/imports/oklahoma-business-bulk/operations`, persists a start record before processing, copies the closed package into an operation-owned snapshot, builds an operation-owned release, removes the temporary snapshot, and publishes a terminal receipt. Failure or cancellation removes only that operation's snapshot and incomplete release; the operator package is preserved.
+
+`node scripts/verify-ok-business-bulk-app.mjs --receipt data/imports/oklahoma-business-bulk/operations/<operation-id>/receipt.json` independently replays receipt, hash, row-count, provenance, and policy assertions. The wrapper cannot perform network requests, purchases, account actions, source/current pointer changes, or national admission. Its output remains local-review-only and preserves the explicit no-physical-site and no-current-operation claims. It is not yet enrolled in the managed server or UI.

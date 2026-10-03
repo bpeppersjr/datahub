@@ -1,0 +1,23 @@
+{
+  "connector_id": "ok-business-bulk-app",
+  "version": "1.0.0",
+  "description": "Standalone application-owned offline processing of one operator-supplied Oklahoma SOS business bulk package into an operation-scoped local-review release.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": { "type": "object", "additionalProperties": false, "required": ["selection"], "properties": { "selection": { "type": "string", "pattern": "^data/imports/oklahoma-business-bulk/packages/[A-Za-z0-9][A-Za-z0-9._-]{0,63}/selection\\.json$" }, "operationsRoot": { "type": "string", "enum": ["data/imports/oklahoma-business-bulk/operations"], "default": "data/imports/oklahoma-business-bulk/operations" } } },
+  "named_secret_references": [],
+  "input_artifact_types": ["operator-supplied-ok-sos-business-bulk-text", "ok-business-bulk-selection-json"],
+  "output_artifact_types": ["ok-business-bulk-app-start-json", "ok-business-bulk-app-terminal-receipt-json", "operation-scoped-ok-business-registry-release"],
+  "allowed_hosts": [],
+  "redirect_policy": "No network requests, redirects, source discovery, purchase, or account actions are permitted.",
+  "provider_budget_key": "ok-business-bulk-offline-app",
+  "resource_class": "cpu-memory-disk",
+  "execution_limits": { "max_parallel_requests": 0, "required_source_files": 1, "maximum_source_bytes": 1000000000 },
+  "retry": "No automatic retry. Inspect the durable terminal receipt and the selected closed package before starting a new UUID operation.",
+  "checkpoint": "One UUID operation owns its durable start record, temporary verified input snapshot, operation-scoped release, and terminal receipt.",
+  "idempotency": "Every run creates a new UUID operation while binding the exact selection and source SHA-256; no source or national pointer is changed.",
+  "cancellation": "Cooperative cancellation records CANCELLED and removes only the operation-owned snapshot and incomplete release; operator inputs are never modified.",
+  "source_policy": "config/source-policies/ok-business-entities-bulk.json",
+  "retention_profile": "Operator inputs remain under data/imports. Successful privacy-minimized operation releases and receipts remain local-review-only.",
+  "produced_entities": ["provisional-organization-candidate", "administrative-business-address-evidence"],
+  "produced_identifiers": ["ok-sos-filing-number", "zip5", "zip4"]
+}
