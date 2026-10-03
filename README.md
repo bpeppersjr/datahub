@@ -97,6 +97,8 @@ All local files remain inside the `datahub` repository:
 
 Runtime data is ignored by Git. The empty directories are retained with `.gitkeep` files.
 
+The [childcare state-industry evidence availability projection](docs/CHILDCARE-STATE-INDUSTRY-AVAILABILITY-PROJECTION.md) is a pointer-free, non-denominator view of the registered retained childcare ZIP evidence. It identifies seven measured retained candidate cohorts and 44 unmeasured states/D.C. without business, site, current-operation, or completeness claims.
+
 ## Google ZIP place segments
 
 This connector uses Google Maps Platform APIs rather than scraping `maps.google.com`. Enable the [Geocoding API](https://developers.google.com/maps/documentation/geocoding) and [Places Aggregate API](https://developers.google.com/maps/documentation/places-aggregate) for your Google Cloud project, then copy `.env.example` to `.env` and add your restricted server-side key:

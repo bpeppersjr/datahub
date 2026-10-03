@@ -1,0 +1,12 @@
+{
+  "schema_version": "zcta-demographic-input-readiness-config@1.0.0",
+  "publication_mode": "immutable-local-review-only-pointer-free",
+  "expected_record_count": 33791,
+  "geography": {
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "manifest": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "artifact": "derived/index/zctas.jsonl",
+    "artifact_sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6"
+  }
+}

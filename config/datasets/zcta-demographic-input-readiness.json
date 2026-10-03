@@ -1,0 +1,24 @@
+{
+  "schema_version": "local-review-release-registration@1.0.0",
+  "dataset_id": "zcta-demographic-input-readiness",
+  "publication_scope": "local-review-only",
+  "current_pointer": null,
+  "production_enrollment": false,
+  "network_acquisition": false,
+  "retained_releases": [
+    {
+      "release_id": "zcta-demographic-input-readiness-ba754567a14b3e7aa177f7c702320a5a6c01935f686a449bbc99aa1d06a2de0a",
+      "manifest_path": "data/zcta-demographic-input-readiness/releases/zcta-demographic-input-readiness-ba754567a14b3e7aa177f7c702320a5a6c01935f686a449bbc99aa1d06a2de0a/manifest.json",
+      "manifest_sha256": "373550cbdc749c6250253a2d8be21cd406fb186bf5b990e2c0ab0edc9f4c021d",
+      "status": "retained-pre-hardening-release",
+      "selected_for_review": false
+    },
+    {
+      "release_id": "zcta-demographic-input-readiness-4f26ad46c785afc6b9e9044bce377af1d31eec0bfef9d7da0524c63ae05d7023",
+      "manifest_path": "data/zcta-demographic-input-readiness/releases/zcta-demographic-input-readiness-4f26ad46c785afc6b9e9044bce377af1d31eec0bfef9d7da0524c63ae05d7023/manifest.json",
+      "manifest_sha256": "00e6874f173b0e824a2f169b4b752861f52e48b50027df27b9f17cfb97b3d952",
+      "status": "verified-hardened-successor",
+      "selected_for_review": true
+    }
+  ]
+}

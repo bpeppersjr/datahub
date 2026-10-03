@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "childcare-state-industry-availability-projection",
+  "status": "registered-local-derived-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_denominator_enrollment": false,
+  "claims": {
+    "count_unit": "retained-source-candidate-row",
+    "availability_semantics": "evidence-availability-only",
+    "denominator": null,
+    "business_count": null,
+    "physical_site_count": null,
+    "current_operating_count": null,
+    "completeness_percent": null,
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "retained_release": {
+    "release_id": "childcare-state-industry-availability-projection-db15ef4058400692898bda040f317057949323cb5fcaacd58d994eecc68c5322",
+    "manifest": "data/childcare-state-industry-availability-projection/releases/childcare-state-industry-availability-projection-db15ef4058400692898bda040f317057949323cb5fcaacd58d994eecc68c5322/manifest.json",
+    "manifest_bytes": 1106,
+    "manifest_sha256": "d16a222a0a1aea770dc63f73c450bb00ad2321df12ec293a1289cb187503a58a",
+    "source_release_id": "retained-childcare-zip-evidence-6a696d16df9ccec8836e7bd38872feda3942293d9ff19ad5f528ac41a088fada",
+    "source_manifest_sha256": "6ca80e31d73f033a5e6945f54badf34c4ceb73b21e7e0ddbdae66a77d80ce48b",
+    "measured_jurisdictions": 7,
+    "unmeasured_jurisdictions": 44,
+    "retained_candidate_rows": 12206,
+    "zip_present_candidate_rows": 12205,
+    "missing_zip_candidate_rows": 0,
+    "invalid_zip_candidate_rows": 1
+  }
+}

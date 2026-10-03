@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdir,mkdtemp} from 'node:fs/promises';
+import {mkdir,mkdtemp,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {_electron} from 'playwright';
 import electronPath from 'electron';
@@ -9,6 +9,7 @@ await mkdir(path.join(root,'data/tmp'),{recursive:true});
 const runtime=await mkdtemp(path.join(root,'data/tmp/workspace-economy-ui-'));
 const evidence=path.join(root,'data/ui-verification/workspace-economy');
 await mkdir(evidence,{recursive:true});
+const childcareRegistration=JSON.parse(await readFile(path.join(root,'config/datasets/retained-childcare-zip-evidence.json'),'utf8'));
 const app=await _electron.launch({executablePath:electronPath,args:[path.join(root,'desktop/main.mjs')],cwd:root,env:{...process.env,DATAHUB_ROOT:runtime,DATAHUB_DESKTOP_TEST_MODE:'1'}});
 try{
  const page=await app.firstWindow();
@@ -31,6 +32,7 @@ try{
   if(url.pathname.endsWith('/zip-inspector'))return route.fulfill({json:{zip5:url.searchParams.get('zip'),evidence_status:'positive-source-evidence',governed_zcta:{status:'included',geoid:'00501'},counts:{physical_sites:2,establishments:2,employer_establishments:4},bindings:{coverage_release_id:'synthetic-ui-only'},category_evidence:{category_id:url.searchParams.get('category'),category_label:'Fixture',status:'positive-source-contribution',semantics:'Synthetic source evidence, not GDP.',positive_source_contributions:[{source_id:'fixture-health',source_release_id:'fixture-release',positive_counts:{practice_locations:3}}]}}});
   if(url.pathname.endsWith('/zcta-economic-readiness'))return route.fulfill({json:{schema_version:'zcta-economic-readiness-view@1.0.0',zcta:url.searchParams.get('zcta'),available:true,status:'found',readiness:{population_2020:1200,housing_units_2020:500,zbp_publication_status:'zbp-and-zcta',relationship_count:2,material_relationship_count:1,state_fips:['36'],county_geoids:['36001','36003'],direct_county_gdp_count:2,missing_county_gdp_geoids:[],direct_gdp_relationship_coverage:1,model_status:'withheld',blockers:['no-official-zip-gdp','no-governed-allocation-model']},provenance:{release_id:'readiness-fixture',manifest_sha256:'a'.repeat(64),artifact_sha256:'b'.repeat(64),created_at:'2026-10-02T00:00:00.000Z',geography_release_id:'geography-fixture',input_releases:[{dataset_id:'us-census-geography',release_id:'geography-fixture',manifest_sha256:'c'.repeat(64)}]},limitations:['Synthetic readiness metadata only.'],claims:{official_zip_code:false,active_businesses:false,numeric_gdp_or_demographic_allocation:false}}});
   if(url.pathname.endsWith('/cms-retained-directory-zip-evidence')){const zip5=url.searchParams.get('zip'),denominator=total=>({directory_rows:total,state_dc_rows:total,territory_rows:0,unknown_state_rows:0,missing_zip_rows:0,zip_present_rows:total,reported_states:{'reported:NY':total}});return route.fulfill({json:{schema_version:'cms-retained-directory-zip-evidence@1.0.0',available:true,zip5,status:'retained-directory-evidence-present',row:{zip5,zip4:null,hospital:{directory_rows:2,reported_states:{'reported:NY':2}},nursing_home:{directory_rows:1,reported_states:{'reported:NY':1}}},release_id:`cms-retained-directory-zip-evidence-${'b'.repeat(64)}`,manifest_sha256:cmsSha,created_at:'2026-03-03T00:00:00.000Z',bindings:{sources:{hospital:cmsSource('hospital'),nursing_home:cmsSource('nursing_home')}},denominators:{hospital:denominator(2),nursing_home:denominator(1)},claims:cmsClaims,source_replay_performed:false,semantics:'Separate dated directory-row evidence only; missing source/ZIP evidence is not zero businesses or closure.'}});}
+  if(url.pathname.endsWith('/retained-childcare-zip-evidence')){const zip5=url.searchParams.get('zip'),pin=childcareRegistration.retained_release,source=pin.sources.PA,present=zip5!=='99999',claims=zip5==='11111'?{...childcareRegistration.claims,physical_site_count:1}:childcareRegistration.claims;return route.fulfill({json:{schema_version:'retained-childcare-zip-evidence@1.1.0',available:true,zip5,status:present?'retained-candidate-evidence-present':'absent-from-retained-candidate-evidence',row:present?{zip5,zip4:null,sources:[{publisher_scope:'PA',source_id:source.source_id,reported_state:'PA',candidate_rows:2}]}:null,release_id:pin.release_id,manifest_sha256:pin.manifest_sha256,created_at:pin.created_at,sources:pin.sources,summary:pin.summary,root_view_sha256:pin.root_view_sha256,claims,source_replay_performed:false,semantics:'Source-separated retained candidate rows only. Quality and provenance describe entire source cohorts, not this ZIP. Absent evidence is not zero businesses or invalid USPS membership.'}});}
   return route.fulfill({status:503,json:{error:'Synthetic optional view unavailable'}});
  });
  await page.reload();
@@ -59,6 +61,9 @@ try{
  await page.getByRole('heading',{name:'Observed evidence · ZIP 00501',exact:true}).waitFor();
  await page.getByRole('heading',{name:'Economic-model readiness · Census ZCTA 00501',exact:true}).waitFor();
  await page.getByRole('heading',{name:'Retained CMS directory evidence · reported ZIP 00501',exact:true}).waitFor();
+ await page.getByRole('heading',{name:'Retained childcare candidate evidence · reported ZIP 00501',exact:true}).waitFor();
+ await page.getByRole('region',{name:'Retained childcare source candidate rows',exact:true}).getByRole('cell',{name:'2',exact:true}).waitFor();
+ await page.getByText('They are not unique businesses, verified physical sites, findings of current operations, proof of USPS ZIP validity, or a completeness measure.',{exact:false}).waitFor();
  await page.getByText('These are not active-business counts, verified physical sites, current-operation findings, or completeness measures.',{exact:false}).waitFor();
  await page.getByRole('tab',{name:'Business segments',exact:true}).click();
  await page.getByRole('cell',{name:'3 · practice locations',exact:true}).waitFor();
@@ -74,6 +79,12 @@ try{
  await page.screenshot({path:path.join(evidence,'demographics-200.png'),fullPage:true});
  await page.getByRole('tab',{name:'Demographics',exact:true}).press('Home');
  await page.getByRole('heading',{name:'Total extrapolated ZIP GDP',exact:true}).waitFor();
+ await page.getByLabel('Economy ZIP5',{exact:true}).fill('99999');
+ await page.getByRole('button',{name:'View ZIP',exact:true}).click();
+ await page.getByText('No retained source candidate row reports ZIP 99999.',{exact:false}).waitFor();
+ await page.getByLabel('Economy ZIP5',{exact:true}).fill('11111');
+ await page.getByRole('button',{name:'View ZIP',exact:true}).click();
+ await page.getByRole('alert').filter({hasText:'malformed or unregistered contract'}).waitFor();
  await page.getByRole('tab',{name:'Operations',exact:true}).click();
  await page.getByRole('tab',{name:'Jobs',exact:true}).click();
  await page.getByRole('heading',{name:/Execution queue/}).waitFor();
