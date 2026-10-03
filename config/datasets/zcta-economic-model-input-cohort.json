@@ -1,0 +1,105 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-economic-model-input-cohort",
+  "status": "published-pre-production-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "national_denominator_enrollment": false,
+  "export_policy": "aggregate-public-context",
+  "retained_release": {
+    "release_id": "zcta-economic-model-input-cohort-0d42c0d02977132557b91708a5b58f4fbbaab2dfc2c43b2517c267c7b79839fe",
+    "manifest": "data/zcta-economic-model-input-cohort/releases/zcta-economic-model-input-cohort-0d42c0d02977132557b91708a5b58f4fbbaab2dfc2c43b2517c267c7b79839fe/manifest.json",
+    "manifest_sha256": "2eced7894671c256800b4e08edfac48b343fc4629725aecb67203418ecc00d7e",
+    "manifest_bytes": 16898,
+    "schema_version": "zcta-economic-model-input-cohort@1.0.0",
+    "created_at": "2026-10-03T04:15:00.000Z",
+    "bindings": {
+      "readiness": {
+        "manifest_path": "data/zcta-economic-model-readiness/releases/zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd/manifest.json",
+        "manifest_sha256": "e7f46c55cd6b94b7af3ec19d73ea277c19c5653474ead7f5eb4145be67717720",
+        "release_id": "zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd",
+        "artifact": {
+          "path": "derived/zcta-readiness.jsonl",
+          "artifact_type": "zcta-economic-model-readiness-jsonl",
+          "record_count": 33791,
+          "bytes": 21653285,
+          "sha256": "311950f9ea3af788456e164a2272293f2adb6a0fa81cf4af7815deca57471902"
+        }
+      },
+      "dependencies": [
+        {
+          "dataset_id": "bea-regional-gdp",
+          "release_id": "bea-regional-gdp-2024-20260903-115540751Z-212415ce",
+          "manifest_path": "data/business-baselines/bea-regional-gdp/releases/bea-regional-gdp-2024-20260903-115540751Z-212415ce/manifest.json",
+          "manifest_sha256": "60dc1aeeb6021a534f56161a349e14a68a77269ecb63c97e827cd8f5bb28132d"
+        },
+        {
+          "dataset_id": "census-zbp-baseline",
+          "release_id": "census-zbp-2023-20260830-134622645Z-4da1edc0",
+          "manifest_path": "data/business-baselines/census-zbp/releases/census-zbp-2023-20260830-134622645Z-4da1edc0/manifest.json",
+          "manifest_sha256": "db6ec348a46b4b3ad9692aafc1d47fd388308031e397fb5de8e0193df19bf271"
+        },
+        {
+          "dataset_id": "us-census-geography",
+          "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+          "manifest_path": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+          "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b"
+        },
+        {
+          "dataset_id": "us-census-zcta-jurisdiction-crosswalk",
+          "release_id": "us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8",
+          "manifest_path": "data/zcta-jurisdiction-crosswalk/releases/us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8/manifest.json",
+          "manifest_sha256": "02e19bd98ad587426628cd50013942acc0cc3e9c9a48ac653eaf96cf534b8fe2"
+        }
+      ],
+      "crosswalk_artifact": {
+        "path": "derived/zcta-county-area-weights.jsonl",
+        "bytes": 46510951,
+        "sha256": "ee8916fdfb67fc2863be74812803c24389ae884d9e3e8006899fd014f32e2358",
+        "artifact_type": "zcta-county-area-weights",
+        "record_count": 65631
+      },
+      "bea_artifact": {
+        "path": "derived/county-gdp.jsonl",
+        "bytes": 3224952,
+        "sha256": "7c92a5308e80b37eb2f256ea0896ea8c4a9eb1b190c35f0275a8e471bc514ae7",
+        "artifact_type": "bea-county-gdp-jsonl",
+        "record_count": 3091
+      },
+      "bea_policy": {
+        "path": "config/source-policies/bea-regional-gdp.json",
+        "sha256": "12fe76c43702502322abb5530704658dbd2bbb0dd795cf499791b87b931f38da"
+      },
+      "geography_release_id": "us-census-geography-20260830-132803990Z-3629abc0"
+    },
+    "summary": {
+      "relationships": 65631,
+      "zctas": 33791,
+      "eligible_relationship_inputs": 46320,
+      "blocked_relationship_inputs": 19311,
+      "relationships_missing_direct_bea": 1192,
+      "nonmaterial_relationships": 18630,
+      "zctas_with_incomplete_direct_bea": 623,
+      "model_withheld_relationships": 65631,
+      "sorted_relationship_membership_sha256": "774fb8c459bd78d39b51d08c30d23e36e9aac7c40750703619f34e9e9fc0ee7b",
+      "sorted_zcta_membership_sha256": "a9833d6bf8150c0b738121f91d3b945b964074dbb0aa798e028462cb401c3e8a"
+    },
+    "artifact_count": 99,
+    "artifact_bytes": 52407041,
+    "artifact_inventory_sha256": "0f05cfd724b81584c4f39a9d0da78a9f61c6204ec2cd37755aae66f6cb08542a"
+  },
+  "claims": {
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "national_denominator_enrollment": false,
+    "official_usps_zip": false,
+    "model_ready": false,
+    "numeric_gdp_emitted": false,
+    "area_weights_emitted": false,
+    "demographic_slices_emitted": false,
+    "active_business_claims": false
+  }
+}

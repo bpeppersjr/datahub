@@ -1,0 +1,1359 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "retained-childcare-zip-evidence",
+  "status": "published-pre-production-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_denominator_enrollment": false,
+  "claims": {
+    "export_policy": "internal",
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "national_denominator_enrollment": false,
+    "deduplicated_business_count": null,
+    "physical_site_count": null,
+    "current_operating_count": null,
+    "national_completeness_percent": null,
+    "current_usps_assignment_verified": false,
+    "zip4_aggregated": false,
+    "points_reprojected": false,
+    "county_assignment_performed": false,
+    "publisher_scope_assigns_address_state": false,
+    "atomic_cross_source_snapshot_verified": false,
+    "public_export_authorized": false
+  },
+  "retained_release": {
+    "manifest": "data/retained-childcare-zip-evidence/releases/retained-childcare-zip-evidence-6a696d16df9ccec8836e7bd38872feda3942293d9ff19ad5f528ac41a088fada/manifest.json",
+    "manifest_bytes": 61252,
+    "manifest_sha256": "6ca80e31d73f033a5e6945f54badf34c4ceb73b21e7e0ddbdae66a77d80ce48b",
+    "release_id": "retained-childcare-zip-evidence-6a696d16df9ccec8836e7bd38872feda3942293d9ff19ad5f528ac41a088fada",
+    "created_at": "2026-10-03T04:26:00.196Z",
+    "bindings": [
+      {
+        "path": "config/co-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "e75bd884320f9d70aef804868abcd9cfeea050f5a62a5f1bb3b593cc6f0cd597",
+        "metadata": true
+      },
+      {
+        "path": "config/ct-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "5c1f956279f44bddf66a881eb45ec1797151c3c35ec2006be91e9596bd0bef3a",
+        "metadata": true
+      },
+      {
+        "path": "config/ia-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "0786c71df45fb9e38310358cf167d69af77f6325d79b83b5b7acc2d40607cdce",
+        "metadata": true
+      },
+      {
+        "path": "config/md-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "29686de7c7fcaff50baab5557be9fef9e376b2cf9a660b213b14bff6cba23307",
+        "metadata": true
+      },
+      {
+        "path": "config/pa-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "e2f633d309353edd70f3014530f00c3f995fa6b1dbafb1c5d587f21409efe4a9",
+        "metadata": true
+      },
+      {
+        "path": "config/ut-childcare-reporting-enrollment.json",
+        "bytes": 342,
+        "sha256": "2ee6eee689c603a2a016fa26e25948400dfb2feb6e4d120a3540b3c13e68d785",
+        "metadata": true
+      },
+      {
+        "path": "config/vt-childcare-reporting-enrollment.json",
+        "bytes": 333,
+        "sha256": "f43656656ef9ebd4f6afb1ae35d9ed817aaae173dbdec647a3ea3d0cbeab64b8",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/client-after.json",
+        "bytes": 276,
+        "sha256": "0bb3b988518536f3ba6b0e5720971ea316c1e8e624e7e6227464f5f54177a02a",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/client-before.json",
+        "bytes": 276,
+        "sha256": "5b0d2a3992f3dc1feddfd6ede7df64db6b785235784c85bc9beb48a0ee4dd7e6",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/evidence.json",
+        "bytes": 351010,
+        "sha256": "92de78383775929537dd11c80ebbff822a32b6b57ed38b006697c4f64244fbd7",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/manifest.json",
+        "bytes": 926,
+        "sha256": "88be1a0cf36843fab8bbae6cd11ef01f9c540d71acc60d988034702d8eee1972",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/selected-response.json",
+        "bytes": 349647,
+        "sha256": "d63dbb36865aef6b8552eb61d1c3eb1d52907de8009966e57e5003a19a136728",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/assessments/85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa/assessment-receipt.json",
+        "bytes": 638,
+        "sha256": "2dc704f3e0c0aff4707872b545378626859cc0c0ccdf42107e592b456c9b4519",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/assessments/85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa/manifest.json",
+        "bytes": 952,
+        "sha256": "a374c84c7c405f47bd757bed468c9875a9ef5eff35c6e4b2e8c49876e361b7f5",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/manifest.json",
+        "bytes": 6186,
+        "sha256": "1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/normalized.jsonl",
+        "bytes": 2166589,
+        "sha256": "6212861a181acbf3560da6b51bfb926a4b499bbd6077b67046cd8418e413fe6b",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/summary.json",
+        "bytes": 795,
+        "sha256": "06a902c5cda1596dd866df6dc41bb8afdd7944c120e960b84dacdd248106aaa5",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/pdf-prerequisites/e3332e6b-da88-4110-820b-24ad87758caf/receipt.json",
+        "bytes": 3261,
+        "sha256": "2263a8731bc9774c057d3c260b69c46d564bb50630a49ca01f3f23fbe4082ccb",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/ut-childcare/pdf-prerequisites/e3332e6b-da88-4110-820b-24ad87758caf/selected-observations.json",
+        "bytes": 195994,
+        "sha256": "7133e8ff5aeb83bc7c86f01b661496961e1506ae906d2d3d71e7343e0c527d02",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/jobs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/receipt.json",
+        "bytes": 3596,
+        "sha256": "58279d0c23a503b62efbc68f4934e64e5d7c649bf4404517c3eea62e226a3a95",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/acquisition.json",
+        "bytes": 642786,
+        "sha256": "a9674c7c46390f479f3aeddf5d5a0ff2801e192bfdfed8daaaa521bb7bab259a",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0000.json",
+        "bytes": 9195,
+        "sha256": "24f05057fc2dd97b39fd9de058cfe8c0f3e068506630f86092a437972fbd7519",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0001.json",
+        "bytes": 33456,
+        "sha256": "ce0b84359cfcac15631402b36745e61ce58e56f9970682b55d475083cc1ad563",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0002.json",
+        "bytes": 33747,
+        "sha256": "f66dac0077b0655b968d07a70b0a916123d80695e8fea4faba1564b4b3d21b91",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0003.json",
+        "bytes": 33677,
+        "sha256": "adc62dfd040a10b8a3194b32e5bc0e0ee2aeefdf640c0390142ce02a419a2160",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0004.json",
+        "bytes": 34089,
+        "sha256": "8b37228ff00b57ad45166a615e308d48ee0f66aca58ddbc6d0816be4617f5fca",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0005.json",
+        "bytes": 34025,
+        "sha256": "c19676bcfbee02469cd23e1aa5d7b845b17d94be5b5cd9ca07d28e5ba86b4819",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0006.json",
+        "bytes": 33703,
+        "sha256": "7d5df04c7599dc815d4dd3f63cc300b35b74485919dee74c3b44fc13a753bfc4",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0007.json",
+        "bytes": 33874,
+        "sha256": "24f90deebda0db3be4980058006d088f4dbad1baf6a0d6a0139c528129de57a8",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0008.json",
+        "bytes": 33799,
+        "sha256": "23fa4b4a89d95ea4d46486079da71001d777154d0c188d1dde4758730d9c273a",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0009.json",
+        "bytes": 33780,
+        "sha256": "d4a0b47ec96e23f133b1054f711a741cc514d72f2b787c2fa8c8c5b0815b6c72",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0010.json",
+        "bytes": 33475,
+        "sha256": "cc11c4c57d2be471c7438502abccbed3240d3c8ae5e19a7108cb816b8d6e31ba",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0011.json",
+        "bytes": 33867,
+        "sha256": "4e429219b5acd1a9bd424d3d2e0ed3bd9e3ca381419ea9406873c8cf28f6e5b7",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0012.json",
+        "bytes": 33812,
+        "sha256": "b815772aac7fec1aa9416e764e2ef64dfd979008fe8d5e07c974805582f8dd43",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0013.json",
+        "bytes": 33645,
+        "sha256": "2087fcc757338bc79a25aedd80e12bb0fbd266a42d723c4b24eead5a39c673cb",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0014.json",
+        "bytes": 33659,
+        "sha256": "377f3e63516adc83c21f58507cd06f16a8b14565093e0028e2a0ac61e4972967",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0015.json",
+        "bytes": 33708,
+        "sha256": "d2993a35368cac250254e970d6c6b102c4e116b9e9df69abb24a42e14cc9bb27",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0016.json",
+        "bytes": 33663,
+        "sha256": "63a138a5b72eac98596d982e3d099a73459c7b4d7b396f3b93cdd2152eb74b9e",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0017.json",
+        "bytes": 34040,
+        "sha256": "1f3df0f585350bbf44b3d9534125b89657c26ebbfee21d193694da51eec2659f",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0018.json",
+        "bytes": 24846,
+        "sha256": "3bb229197cbc5866425bbbd6f66768bfc0899b9cd237f928630544b99b2740d7",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/journal-0019.json",
+        "bytes": 9193,
+        "sha256": "2e61956513a19336707a6c1e8ddf27098d1475d825f2e64e1393bad4354ba967",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/manifest.json",
+        "bytes": 3783,
+        "sha256": "64edb619767c381b4f8909146f8f73c7bfe8f5f6c3e618284ef2239111c77b3a",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/acquired/jobs/12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706/prerequisite.json",
+        "bytes": 12989,
+        "sha256": "f28ae2069c5a39b6ff93c1dcdeb7ed14cd8830940578f49f481f001bc18f0356",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/normalized/jobs/88d211f0-428f-4447-9b20-1fe3274f5e90/manifest.json",
+        "bytes": 3126,
+        "sha256": "15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/normalized/jobs/88d211f0-428f-4447-9b20-1fe3274f5e90/normalized.jsonl",
+        "bytes": 7269614,
+        "sha256": "7d1617b7b1f342a1cd9c2f8061af8c1596d8fed854609174748ded6343c01e82",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/normalized/jobs/88d211f0-428f-4447-9b20-1fe3274f5e90/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/1009c617-581f-46a5-a500-86acbb0fb88d/state-md-childcare-centers-MD/runs/78f61bcd-8c4c-4003-9af2-9de0aae372a4/normalized/jobs/88d211f0-428f-4447-9b20-1fe3274f5e90/summary.json",
+        "bytes": 1216,
+        "sha256": "a40be46bcc3123af015b2d01b1a1e737cf62e82100ec8359415821acfc9482e6",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/jobs/4f721905-454e-4f16-b11f-98594d035640/receipt.json",
+        "bytes": 3567,
+        "sha256": "7b82339cffcafd56569561d82c004e1184e8fe4daf943fed0ed38c7bc794f485",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/acquisition.json",
+        "bytes": 401027,
+        "sha256": "7a1b34158dbbbc183968b529e2e50ec1f0bf73d5c5b32fe4721387c4cd00657c",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0000.json",
+        "bytes": 38519,
+        "sha256": "96ff08e17075591ee7353de16022d64d73d2a4445d7dd4cb7e80b6b082c8ede6",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0001.json",
+        "bytes": 930,
+        "sha256": "ca607d89a30deafd01f5da0098596eb8895f57d201a3a161f53ab9f8d222c822",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0002.json",
+        "bytes": 707,
+        "sha256": "2161bd7aef24a6d02fd7198b0a5079fd061bbe87bf891ef1e710855fbb504861",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0003.json",
+        "bytes": 286511,
+        "sha256": "fc556273bd7597c3e16914057a04d646e99611f43cb1944af2eff0c4a0044d0d",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0004.json",
+        "bytes": 2684,
+        "sha256": "886b27f28381ff76843af137513d475f3b1ce4dc307144be2f462f0b6ece6a96",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0005.json",
+        "bytes": 982,
+        "sha256": "f4d9bd8321ae1f4f0ad756f8c71cf62fb8c30cd955869ab786352e06cdca7efb",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0006.json",
+        "bytes": 38516,
+        "sha256": "7d9ebc7f80648f78c693b5c32e2f73f7008ff888a6bb236e4159964b03ee28bd",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0007.json",
+        "bytes": 927,
+        "sha256": "d144d1446ef12f99bd142e7d4226f4a2edf31bc6731d87c73cfdc54b8e87359d",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/journal-0008.json",
+        "bytes": 704,
+        "sha256": "8e054778a52b8b66ab2cf4cfd01da43c5112155b20ecc6470df0cb6787ab3572",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/manifest.json",
+        "bytes": 2868,
+        "sha256": "2af5a986fd2036b4cede77dc0ec70026059ca195e0033e69b33482f107d8fdae",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/acquired/jobs/c56ad1bb-a80d-4612-b7f5-f97f0a4037e0/prerequisite.json",
+        "bytes": 15053,
+        "sha256": "c3b6d372581690261d71975b7355f2cb025215591cb437be4a1d698abef2e6d1",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/manifest.json",
+        "bytes": 3396,
+        "sha256": "76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/normalized.jsonl",
+        "bytes": 2779147,
+        "sha256": "ab178226e15c7a6a3b496ff70506fa73abf9d1812fa01a03c04942bd6e0016ba",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/summary.json",
+        "bytes": 1492,
+        "sha256": "5294063d2dfedacc3f414b1e50377d76c801b4168879c7847bf3b54566b26c45",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/jobs/589c0868-a338-4a2d-a42f-ba93841620fc/receipt.json",
+        "bytes": 3496,
+        "sha256": "fa2310b5c6aab0734abe743559d99b4e221ebce12bb679d0c01c25d0396d378f",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/acquisition.json",
+        "bytes": 539304,
+        "sha256": "df177928a782f32e33945fa2f04e02b64187d5a5d25dd44f0c57b163a60fb4ce",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0000.json",
+        "bytes": 12539,
+        "sha256": "e065b4ba1fb399ea5b6f8d2be62b82585dfe84109b1f2f7bf71216b8920a7b00",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0001.json",
+        "bytes": 13551,
+        "sha256": "48314d1816a6350b93d9372c856e57c57f3d7b05a148cebaee488c06432346be",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0002.json",
+        "bytes": 13566,
+        "sha256": "95b331f754f52faa711abbedab8ae87809a2ed38df29bd19ecac253f60290783",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0003.json",
+        "bytes": 4413,
+        "sha256": "ee07fe3d5c9fbb2dd0dbdaca25307283b70273a408f6c6470e50dafb6eabe1c8",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0004.json",
+        "bytes": 563,
+        "sha256": "79f73f71a90ab7128c2d0075a675edb72264f3705b8252a69538c8e9397a198a",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0005.json",
+        "bytes": 123638,
+        "sha256": "f42f932d4b2839b6bb3ea61b6b9a5d40ab4d64372d051574aa919b5f7cee44ba",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0006.json",
+        "bytes": 124787,
+        "sha256": "f888f2c40712632c45391e1ca2dfae02d8c7856a3b3ba726db83f615cefab0e8",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0007.json",
+        "bytes": 124927,
+        "sha256": "1984fe37162c96f93c576eb31b67df83baf73688cc822b90de2897929ed5f18b",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0008.json",
+        "bytes": 38001,
+        "sha256": "777c5ae5ad76bb9a17d10e05de90d04653887907e17933fbea0ff01bd2b24aaf",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0009.json",
+        "bytes": 668,
+        "sha256": "4273eb2ed0e592cb2ae8708429094371969a65645b3de3e8dffc3f4b45dd3b40",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0010.json",
+        "bytes": 12537,
+        "sha256": "b5cbcd6497dc69968e0e614b71751bec86f535a37ac49de00f07b8e0118e498b",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0011.json",
+        "bytes": 13549,
+        "sha256": "eae4d05acb8520d85cf90c48ccd5698e2331b571687db645d426bb1d10a7fe81",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0012.json",
+        "bytes": 13564,
+        "sha256": "15b206f000a116cad7e2717c2b47596e875147bdd64e0a4f26b0583edf9e1a63",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0013.json",
+        "bytes": 4411,
+        "sha256": "c77e8f6f1c12cbf9e08bf0547d25dcd09b1729ddcc07df1554d699dc34cdd323",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/journal-0014.json",
+        "bytes": 561,
+        "sha256": "2796b4154a6db5f04d1dd4d137ce931847e22cf97313bc625f7ff1529b608f50",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/manifest.json",
+        "bytes": 4504,
+        "sha256": "ae828a8d5cfe4904dbe2cfca4932ef97f2b6ca1edc8c9c47d551b9032c89a146",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/acquired/jobs/2d96fc62-8e64-4cab-bf11-f0f8d2c308ee/prerequisite.json",
+        "bytes": 19032,
+        "sha256": "60410aa1dbceb9453ca04ba90bf396bd4a03119cee436daae960ff6130aa4f09",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/normalized/jobs/a40bcdaf-42b2-4f77-a944-6a44f491909b/manifest.json",
+        "bytes": 3183,
+        "sha256": "1002e00d83cb65dae82e3225a373581d05cf43774cdb0c87fd538180558e302b",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/normalized/jobs/a40bcdaf-42b2-4f77-a944-6a44f491909b/normalized.jsonl",
+        "bytes": 7000174,
+        "sha256": "073cfa2ee6f5aa334dfc69134c155acbceea45121be3dfa1203715cf50a01f1b",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/normalized/jobs/a40bcdaf-42b2-4f77-a944-6a44f491909b/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/7b75574d-cdda-4262-9932-e7639e965204/state-co-childcare-centers-CO/runs/589c0868-a338-4a2d-a42f-ba93841620fc/normalized/jobs/a40bcdaf-42b2-4f77-a944-6a44f491909b/summary.json",
+        "bytes": 1293,
+        "sha256": "0117313f5f8c8375b7c2aa9105fe06d519fcdc5d29130ce358106fc31f9c097c",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/8681405a-0034-435a-bbe9-96263816381d/state-ia-childcare-centers-IA/jobs/f2086679-2638-4fef-8749-42ae95979e7d/receipt.json",
+        "bytes": 3112,
+        "sha256": "949da3f49aa4e7e8469114ce926a9cdd82762c66c8156afde8f77865f7f799ec",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/8681405a-0034-435a-bbe9-96263816381d/state-ia-childcare-centers-IA/runs/f2086679-2638-4fef-8749-42ae95979e7d/normalized/jobs/b03f002e-4a96-4b4c-a8b4-f631a924a54e/manifest.json",
+        "bytes": 2924,
+        "sha256": "f39c2acd1ef07aa075bd45565e29f331a7ef0811bec24fe478ecd5f1ea812acd",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/8681405a-0034-435a-bbe9-96263816381d/state-ia-childcare-centers-IA/runs/f2086679-2638-4fef-8749-42ae95979e7d/normalized/jobs/b03f002e-4a96-4b4c-a8b4-f631a924a54e/normalized.jsonl",
+        "bytes": 5911705,
+        "sha256": "e57520b05a60b92d39c9186de74c833bca5e4a75550afdff88fdd7da77680443",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/8681405a-0034-435a-bbe9-96263816381d/state-ia-childcare-centers-IA/runs/f2086679-2638-4fef-8749-42ae95979e7d/normalized/jobs/b03f002e-4a96-4b4c-a8b4-f631a924a54e/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/8681405a-0034-435a-bbe9-96263816381d/state-ia-childcare-centers-IA/runs/f2086679-2638-4fef-8749-42ae95979e7d/normalized/jobs/b03f002e-4a96-4b4c-a8b4-f631a924a54e/summary.json",
+        "bytes": 1248,
+        "sha256": "c83283c0c2bd326e8366fb50b32c970e887ecb757591efc43a8a16dd4becae70",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/jobs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/receipt.json",
+        "bytes": 2495,
+        "sha256": "1c1fd0682b258d0f6ee0f196f5a7961b743129c6d7fda285bb0f8cd1d4a952e0",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/acquisition.json",
+        "bytes": 3546326,
+        "sha256": "d3607d8a84b91832ae48c99e7c852967575ed45c348fd98a1f4f1eb0a907740f",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0000.json",
+        "bytes": 215262,
+        "sha256": "927dd0102370a49b6ca68e0d479733e8fb4cd2b03f98958ed81e92ef3a402b37",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0001.json",
+        "bytes": 307740,
+        "sha256": "d975e46e8554641d2edb1dd489bc90639274221e707e4e9c502d12f00b259908",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0002.json",
+        "bytes": 306751,
+        "sha256": "e5c667f322e22c599063a48bf496e0339f8dbe2bcba92f96bfeb1a4cfb59b429",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0003.json",
+        "bytes": 306157,
+        "sha256": "402f25a4f8723da3e5b44e1aff765fcda18c0c3e037cab0fa02c166d9b8a7d8b",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0004.json",
+        "bytes": 305114,
+        "sha256": "1eaeba4b76916e969ebc95b4a46e6296c6ff768d54ee36ad2f6ca8b92f7c1413",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0005.json",
+        "bytes": 307447,
+        "sha256": "82945772f3dddf84413c6efd2dbaa0ae2c7967a009c1eee35d460d74704083cd",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0006.json",
+        "bytes": 306282,
+        "sha256": "e6dd772440e8c0da9653148aa9c4e59efb3a9ce863aa9560bdddab790f2a32b6",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0007.json",
+        "bytes": 307044,
+        "sha256": "2110ba0571999c83cdb9a9f6431eb314b9c3a9d3eedd608c1fd01110c45f8969",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0008.json",
+        "bytes": 306641,
+        "sha256": "63cba9d2c935e137d5dd3effd3b1e4f9621251876e72c88772003fac05510a3e",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0009.json",
+        "bytes": 306932,
+        "sha256": "b5cd1690f229ad2cb2491b29f5f9f804ebc5067c884ee67302987bc7301eafdd",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0010.json",
+        "bytes": 303357,
+        "sha256": "11f965c29ff072fa4273bda6ba72e9ae850983d031e6a4fd6bfcf38f53113a26",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0011.json",
+        "bytes": 215260,
+        "sha256": "6d23a0a202599cb4178ceccb4925f1ba99d46f3fa3d95d7887bfd97c76f292e7",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/manifest.json",
+        "bytes": 2507,
+        "sha256": "a69e32dc12306da46439f72d220733c0f564e8180f018100da3b2d43eb90b743",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/prerequisite.json",
+        "bytes": 26244,
+        "sha256": "831330d5b53fa1ddd9d767b7eecdc494ea1fa15aa948b2eaf7efc89648be5fea",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/manifest.json",
+        "bytes": 2272,
+        "sha256": "0bed669a79c7074aa3782949be25564f300a22bc7287995ea10ebef2546b0be5",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/normalized.jsonl",
+        "bytes": 21560867,
+        "sha256": "120fa17e7e1c1f881167a4b35ab5be00936ea566c77086ba8983f40b95063add",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/summary.json",
+        "bytes": 767,
+        "sha256": "10eb0fc3dd94b658a7db53ded8ae5e092f7f78e4a5c85caf67be1336184d65ca",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/c82c25f1-4dcc-4a68-aebe-fd91d81cefe0/state-ut-childcare-centers-retained-UT/jobs/e62e5abb-52f9-4cb7-8984-4917de926293/receipt.json",
+        "bytes": 6281,
+        "sha256": "79e3303235bbcf04dc366cc4b85c7c22de5b05a896f8d5f910bbd8d17424e190",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/jobs/0def40af-f6b8-4d48-aa0b-76408961cdc8/receipt.json",
+        "bytes": 3143,
+        "sha256": "387fbe174b0ea69ab67e65ce5e209b5ba94267e19d4e710cb02e5ada79ce6f46",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/acquisition.json",
+        "bytes": 865414,
+        "sha256": "160acef3d1aca69f1bd58327ba807586aeba618fa22a4b7c4808cbd9c20d463e",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/journal-0000.json",
+        "bytes": 54209,
+        "sha256": "2ccd6ad72ace15f219752ab966d0e39a5864990d0feb6d7b36ce236dc00703fa",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/journal-0001.json",
+        "bytes": 266262,
+        "sha256": "3f4e6574c7448f86b7b5bbffcf6d71ae67d940478269ab679eee5e5e52f7cbd2",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/journal-0002.json",
+        "bytes": 267290,
+        "sha256": "7bacd2206461edc82359f1842dc0977ef0c3283c7cfc0b8b57783556e5f39e13",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/journal-0003.json",
+        "bytes": 209571,
+        "sha256": "f499ef285366ffe1ab0bf3b277b0c7d9815e517a88f6e350ef2299c7b7f84702",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/journal-0004.json",
+        "bytes": 54206,
+        "sha256": "8880739329d787089dedd63cf88091713967fe11eaf19e2c86dc7173a5b10b72",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/manifest.json",
+        "bytes": 1874,
+        "sha256": "d50069a4b2a4812bf10006d96350d0f2db0373c7b77a0cfe76f6779907bea03c",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/acquired/jobs/7c67a938-74df-4df7-af75-13eb84cd11d4/prerequisite.json",
+        "bytes": 6632,
+        "sha256": "b4cb6015773ecd64dac3d493628c0d036003a8d363e2f8d59a9809005366d3ca",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/normalized/jobs/66100e56-2254-4e8a-9286-0d52193f17ee/manifest.json",
+        "bytes": 3116,
+        "sha256": "940bdcaafc39fc891f90723035f4746ddcdc7bed543d47ebb6636676b4aa2bb8",
+        "metadata": true
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/normalized/jobs/66100e56-2254-4e8a-9286-0d52193f17ee/normalized.jsonl",
+        "bytes": 7791478,
+        "sha256": "378927c844d9a3327bfb4c20a9618e134b5a1561b61e8fceb26097ba1dbd14ad",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/normalized/jobs/66100e56-2254-4e8a-9286-0d52193f17ee/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/industry-segments/runs/efd15ce2-6bba-4096-9084-7ace88ea0695/state-ct-childcare-centers-CT/runs/0def40af-f6b8-4d48-aa0b-76408961cdc8/normalized/jobs/66100e56-2254-4e8a-9286-0d52193f17ee/summary.json",
+        "bytes": 1357,
+        "sha256": "9058c7fe2ef9408fdeee712969035a33066182181723b6e31e56d012e9bb5613",
+        "metadata": false
+      }
+    ],
+    "sources": {
+      "PA": {
+        "source_id": "pa-dhs-childcare-centers",
+        "publisher_scope": "PA",
+        "status": "available",
+        "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
+        "source_candidate_rows": 4995,
+        "accepted_candidate_rows": 4995,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": "PA",
+            "candidate_rows": 4995,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 4995,
+          "with_zip4": 0,
+          "with_points": 4930,
+          "missing_points": 65,
+          "capacity_unavailable": 730
+        },
+        "provenance": {
+          "app_receipt_sha256": "1c1fd0682b258d0f6ee0f196f5a7961b743129c6d7fda285bb0f8cd1d4a952e0",
+          "app_run_id": "a6997ff5-9dd9-40de-a1aa-600a23da5ff2",
+          "industry_run_id": "b56d91bb-b781-4fe6-b7f9-be50bd4234ee",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "a69e32dc12306da46439f72d220733c0f564e8180f018100da3b2d43eb90b743",
+          "normalized_manifest_sha256": "0bed669a79c7074aa3782949be25564f300a22bc7287995ea10ebef2546b0be5",
+          "source_updated_at": "2026-08-13T14:32:18.000Z",
+          "observed_at": "2026-09-08T17:07:50.865Z"
+        },
+        "source_claims": {
+          "denominator": "accepted facility rows in this retained Pennsylvania center cohort; not all United States businesses",
+          "row_unit": "publisher-listed-facility-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "identity_matching_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "observation_semantics": "acquisition completion; individual record page observations remain in the normalized release"
+        },
+        "source_metrics": {},
+        "denominator": "accepted facility rows in this retained Pennsylvania center cohort; not all United States businesses",
+        "source_row_unit": "publisher-listed-facility-row",
+        "enrollment_sha256": "e2f633d309353edd70f3014530f00c3f995fa6b1dbafb1c5d587f21409efe4a9"
+      },
+      "CT": {
+        "source_id": "ct-oec-childcare-centers",
+        "publisher_scope": "CT",
+        "status": "available",
+        "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
+        "source_candidate_rows": 1390,
+        "accepted_candidate_rows": 1390,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": "CT",
+            "candidate_rows": 1390,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 1390,
+          "with_zip4": 1208,
+          "with_points": 0,
+          "missing_points": 1390,
+          "state_scope_conflicts": 0,
+          "name_unavailable_reasons": {},
+          "address_unavailable_reasons": {
+            "missing-source-address": 1
+          },
+          "city_unavailable_reasons": {},
+          "state_unavailable_reasons": {},
+          "zip_unavailable_reasons": {},
+          "point_unavailable_reasons": {
+            "source-coordinates-not-selected": 1390
+          },
+          "date_unavailable_counts": {
+            "effectivedate": 0,
+            "expirationdate": 0,
+            "firsteffectivedate": 0,
+            "credentiallastmodifieddate": 0
+          },
+          "capacity_unavailable_counts": {
+            "capacityunder3": 5,
+            "maximumcapacity": 0,
+            "regularcapacity": 1390,
+            "schoolagecapacity": 1390
+          }
+        },
+        "provenance": {
+          "app_receipt_sha256": "387fbe174b0ea69ab67e65ce5e209b5ba94267e19d4e710cb02e5ada79ce6f46",
+          "app_run_id": "0def40af-f6b8-4d48-aa0b-76408961cdc8",
+          "industry_run_id": "efd15ce2-6bba-4096-9084-7ace88ea0695",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "d50069a4b2a4812bf10006d96350d0f2db0373c7b77a0cfe76f6779907bea03c",
+          "normalized_manifest_sha256": "940bdcaafc39fc891f90723035f4746ddcdc7bed543d47ebb6636676b4aa2bb8",
+          "source_updated_at": "2026-09-07T08:15:33.000Z",
+          "observed_at": "2026-09-08T18:24:01.014Z"
+        },
+        "source_claims": {
+          "denominator": "accepted source-candidate rows in this retained Connecticut ACTIVE Child Care Center credential cohort; not all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "native_execution_independently_verified": false,
+          "address_role": "reported-address-unverified",
+          "state_assignment": "trimmed-source-state-label-or-null-not-publisher-inference",
+          "county_assignment": "not-selected-not-inferred",
+          "capacity_summation_applied": false,
+          "observation_semantics": "acquisition completion; individual page observations remain in normalized records"
+        },
+        "source_metrics": {
+          "distinct_source_credentials": 1364,
+          "distinct_accepted_credentials": 1364
+        },
+        "denominator": "accepted source-candidate rows in this retained Connecticut ACTIVE Child Care Center credential cohort; not all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "5c1f956279f44bddf66a881eb45ec1797151c3c35ec2006be91e9596bd0bef3a"
+      },
+      "MD": {
+        "source_id": "md-msde-childcare-centers",
+        "publisher_scope": "MD",
+        "status": "available",
+        "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
+        "source_candidate_rows": 1772,
+        "accepted_candidate_rows": 1772,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": "MD",
+            "candidate_rows": 1772,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 1771,
+          "with_zip4": 0,
+          "with_points": 1772,
+          "missing_points": 0,
+          "state_scope_conflicts": 0,
+          "name_unavailable_reasons": {},
+          "address_unavailable_reasons": {},
+          "city_unavailable_reasons": {},
+          "state_unavailable_reasons": {},
+          "license_unavailable_reasons": {},
+          "zip_unavailable_reasons": {
+            "invalid-source-zip-range": 1
+          },
+          "zip4_unavailable_reasons": {
+            "source-zip4-not-provided": 1772
+          },
+          "point_unavailable_reasons": {}
+        },
+        "provenance": {
+          "app_receipt_sha256": "58279d0c23a503b62efbc68f4934e64e5d7c649bf4404517c3eea62e226a3a95",
+          "app_run_id": "78f61bcd-8c4c-4003-9af2-9de0aae372a4",
+          "industry_run_id": "1009c617-581f-46a5-a500-86acbb0fb88d",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "64edb619767c381b4f8909146f8f73c7bfe8f5f6c3e618284ef2239111c77b3a",
+          "normalized_manifest_sha256": "15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b",
+          "publisher_cohort_date": "2026-02-13",
+          "item_modified_at": "2026-05-27T19:48:49.000Z",
+          "source_updated_at": "2026-05-27T19:48:49.000Z",
+          "source_editing_info": {
+            "lastEditDate": 1779911324252,
+            "schemaLastEditDate": 1779911324252,
+            "dataLastEditDate": 1779911324252
+          },
+          "observed_at": "2026-09-08T19:39:07.882Z"
+        },
+        "source_claims": {
+          "denominator": "accepted source-candidate rows in this retained Maryland licensed-provider center cohort dated 2026-02-13; not current active businesses or all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "current_operations_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "native_execution_independently_verified": false,
+          "address_role": "reported-address-unverified",
+          "state_assignment": "trimmed-source-state-label-or-null-not-publisher-inference",
+          "county_assignment": "not-selected-not-inferred",
+          "license_count_semantics": "distinct nonblank source license text among accepted rows; repeated source rows remain separate",
+          "observation_semantics": "acquisition completion; individual page observations remain in normalized records"
+        },
+        "source_metrics": {
+          "distinct_accepted_license_ids": 1772,
+          "accepted_rows_with_license": 1772,
+          "repeated_accepted_license_rows": 0
+        },
+        "denominator": "accepted source-candidate rows in this retained Maryland licensed-provider center cohort dated 2026-02-13; not current active businesses or all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "29686de7c7fcaff50baab5557be9fef9e376b2cf9a660b213b14bff6cba23307"
+      },
+      "VT": {
+        "source_id": "vt-cdd-childcare-centers",
+        "publisher_scope": "VT",
+        "status": "available",
+        "evidence_basis": "publisher-scope-not-reported-address-state",
+        "source_candidate_rows": 503,
+        "accepted_candidate_rows": 503,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": null,
+            "candidate_rows": 503,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 503,
+          "with_zip4": 2,
+          "with_points": 0,
+          "missing_points": 503,
+          "name_unavailable_reasons": {},
+          "address_unavailable_reasons": {},
+          "city_unavailable_reasons": {},
+          "state_unavailable_reasons": {
+            "source-state-not-provided": 503
+          },
+          "zip_unavailable_reasons": {},
+          "point_unavailable_reasons": {
+            "source-coordinates-not-selected": 503
+          },
+          "date_unavailable_counts": {
+            "current_license_start_date": 0,
+            "current_license_end_date": 0
+          },
+          "capacity_unavailable_counts": {
+            "total_licensed_capacity": 0,
+            "infant_licensed_capacity": 0,
+            "toddler_licensed_capacity": 0,
+            "preschool_licensed_capacity": 0,
+            "school_age_licensed_capacity": 0
+          }
+        },
+        "provenance": {
+          "app_receipt_sha256": "7b82339cffcafd56569561d82c004e1184e8fe4daf943fed0ed38c7bc794f485",
+          "app_run_id": "4f721905-454e-4f16-b11f-98594d035640",
+          "industry_run_id": "52b06724-fa4e-4873-9388-27c1a5f1424d",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "2af5a986fd2036b4cede77dc0ec70026059ca195e0033e69b33482f107d8fdae",
+          "normalized_manifest_sha256": "76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166",
+          "source_updated_at": "2026-08-14T16:48:56.000Z",
+          "view_last_modified_at": "2026-08-14T16:48:53.000Z",
+          "publication_at": "2026-08-13T19:15:21.000Z",
+          "reporting_file": "Provider_Report_07012026_08012026.xlsx",
+          "reporting_period": null,
+          "reporting_period_verified": false,
+          "observed_at": "2026-09-08T21:04:04.240Z"
+        },
+        "source_claims": {
+          "denominator": "accepted source-candidate rows in this retained Vermont publisher cohort, not state-addressed businesses or all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "current_operations_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "native_execution_independently_verified": false,
+          "address_role": "reported-address-role-unspecified",
+          "state_assignment": "not-selected-not-inferred",
+          "reporting_period_verified": false,
+          "exact_address_geocodes_verified": false,
+          "observation_semantics": "acquisition completion; individual page observations remain in normalized records"
+        },
+        "source_metrics": {},
+        "denominator": "accepted source-candidate rows in this retained Vermont publisher cohort, not state-addressed businesses or all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "f43656656ef9ebd4f6afb1ae35d9ed817aaae173dbdec647a3ea3d0cbeab64b8"
+      },
+      "CO": {
+        "source_id": "co-cdec-childcare-centers",
+        "publisher_scope": "CO",
+        "status": "available",
+        "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
+        "source_candidate_rows": 1648,
+        "accepted_candidate_rows": 1648,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": "CO",
+            "candidate_rows": 1648,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 1648,
+          "with_zip4": 3,
+          "with_points": 0,
+          "missing_points": 1648,
+          "state_scope_conflicts": 0,
+          "name_unavailable_reasons": {},
+          "address_unavailable_reasons": {},
+          "city_unavailable_reasons": {},
+          "state_unavailable_reasons": {},
+          "zip_unavailable_reasons": {},
+          "point_unavailable_reasons": {
+            "source-coordinates-not-selected": 1648
+          },
+          "status_unavailable_reasons": {
+            "source-operating-status-not-provided": 1648
+          },
+          "capacity_unavailable_counts": {
+            "total_licensed_capacity": 1
+          }
+        },
+        "provenance": {
+          "app_receipt_sha256": "fa2310b5c6aab0734abe743559d99b4e221ebce12bb679d0c01c25d0396d378f",
+          "app_run_id": "589c0868-a338-4a2d-a42f-ba93841620fc",
+          "industry_run_id": "7b75574d-cdda-4262-9932-e7639e965204",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "ae828a8d5cfe4904dbe2cfca4932ef97f2b6ca1edc8c9c47d551b9032c89a146",
+          "normalized_manifest_sha256": "1002e00d83cb65dae82e3225a373581d05cf43774cdb0c87fd538180558e302b",
+          "source_updated_at": "2026-09-01T15:56:30.000Z",
+          "view_last_modified_at": "2026-09-01T15:56:21.000Z",
+          "publication_at": "2026-07-01T16:07:23.000Z",
+          "observed_at": "2026-09-08T22:33:56.084Z"
+        },
+        "source_claims": {
+          "denominator": "accepted source-candidate rows in this retained Colorado publisher cohort, not state-addressed businesses or all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "current_operations_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "native_execution_independently_verified": false,
+          "address_role": "physical-address-as-reported-in-licensing-application",
+          "state_assignment": "trimmed-source-state-label-CO-alias-only-not-publisher-inference",
+          "exact_address_geocodes_verified": false,
+          "observation_semantics": "acquisition completion; individual page observations remain in normalized records"
+        },
+        "source_metrics": {},
+        "denominator": "accepted source-candidate rows in this retained Colorado publisher cohort, not state-addressed businesses or all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "e75bd884320f9d70aef804868abcd9cfeea050f5a62a5f1bb3b593cc6f0cd597"
+      },
+      "UT": {
+        "source_id": "ut-dlbc-childcare-centers",
+        "publisher_scope": "UT",
+        "status": "available",
+        "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
+        "source_candidate_rows": 422,
+        "accepted_candidate_rows": 422,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": null,
+        "excluded_source_rows": null,
+        "duplicate_selected_rows": null,
+        "by_reported_state": [
+          {
+            "state": "UT",
+            "candidate_rows": 422,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 422,
+          "with_zip4": 0,
+          "with_points": 0,
+          "missing_points": 422,
+          "state_scope_conflicts": 0,
+          "address_unavailable_reasons": {},
+          "address_role_unavailable_reasons": {
+            "source-address-role-unspecified": 422
+          },
+          "status_unavailable_reasons": {
+            "source-operating-status-not-provided": 422
+          },
+          "point_unavailable_reasons": {
+            "source-coordinates-not-selected": 422
+          }
+        },
+        "provenance": {
+          "app_receipt_sha256": "79e3303235bbcf04dc366cc4b85c7c22de5b05a896f8d5f910bbd8d17424e190",
+          "app_run_id": "e62e5abb-52f9-4cb7-8984-4917de926293",
+          "industry_run_id": "c82c25f1-4dcc-4a68-aebe-fd91d81cefe0",
+          "execution_mode": "retained-local-adoption",
+          "normalized_manifest_sha256": "1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43",
+          "normalized_run_id": "6aaca68b-f0cc-4ada-a301-0ada860574b8",
+          "source_sha256": "85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa",
+          "source_url": "https://dlbc.utah.gov/wp-content/uploads/All-Child-Care-Licensing-Facilities-Report-September-2026.pdf",
+          "report_edition": "September 2026",
+          "origin_receipt_sha256": "2dc704f3e0c0aff4707872b545378626859cc0c0ccdf42107e592b456c9b4519",
+          "prerequisite_receipt_sha256": "2263a8731bc9774c057d3c260b69c46d564bb50630a49ca01f3f23fbe4082ccb",
+          "observed_at": "2026-09-08T22:59:26.309Z",
+          "normalization_processed_at": "2026-09-09T00:29:36.503Z",
+          "adoption_started_at": "2026-09-09T00:55:30.159Z",
+          "adoption_finished_at": "2026-09-09T00:55:38.225Z"
+        },
+        "source_claims": {
+          "denominator": "accepted selected Child Care Center source-candidate rows in this retained Utah publisher cohort, not all mixed-program report rows or all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "current_operations_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "historical_app_acquisition_verified": false,
+          "refetch_performed": false,
+          "normalization_rebuilt": false,
+          "address_role": null,
+          "state_assignment": "source-state-label-not-publisher-inference",
+          "exact_address_geocodes_verified": false,
+          "observation_semantics": "original retained PDF GET completion; normalization and app adoption timestamps are separate, not freshness evidence"
+        },
+        "source_metrics": {},
+        "denominator": "accepted selected Child Care Center source-candidate rows in this retained Utah publisher cohort, not all mixed-program report rows or all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "2ee6eee689c603a2a016fa26e25948400dfb2feb6e4d120a3540b3c13e68d785"
+      },
+      "IA": {
+        "source_id": "ia-childcare-centers",
+        "publisher_scope": "IA",
+        "status": "available",
+        "evidence_basis": "publisher-scope-not-reported-address-state",
+        "source_candidate_rows": 1476,
+        "accepted_candidate_rows": 1476,
+        "quarantined_candidate_rows": 0,
+        "source_response_rows": 3201,
+        "excluded_source_rows": 1725,
+        "duplicate_selected_rows": 0,
+        "by_reported_state": [
+          {
+            "state": null,
+            "candidate_rows": 1476,
+            "percent_of_accepted_cohort": 100
+          }
+        ],
+        "quality": {
+          "with_zip5": 1476,
+          "with_zip4": 0,
+          "with_points": 1476,
+          "missing_points": 0,
+          "name_unavailable_reasons": {},
+          "address_unavailable_reasons": {},
+          "city_unavailable_reasons": {},
+          "state_unavailable_reasons": {
+            "source-state-not-provided": 1476
+          },
+          "zip_unavailable_reasons": {},
+          "point_unavailable_reasons": {},
+          "with_unverified_point_accuracy": 1476,
+          "geocode_accuracy_verified": false,
+          "source_update_time_known": false,
+          "source_update_unavailable_rows": 1476,
+          "source_reported_state_available": false
+        },
+        "provenance": {
+          "app_receipt_sha256": "949da3f49aa4e7e8469114ce926a9cdd82762c66c8156afde8f77865f7f799ec",
+          "app_run_id": "f2086679-2638-4fef-8749-42ae95979e7d",
+          "industry_run_id": "8681405a-0034-435a-bbe9-96263816381d",
+          "execution_mode": "fixed-native-fetch",
+          "acquired_manifest_sha256": "88be1a0cf36843fab8bbae6cd11ef01f9c540d71acc60d988034702d8eee1972",
+          "normalized_manifest_sha256": "f39c2acd1ef07aa075bd45565e29f331a7ef0811bec24fe478ecd5f1ea812acd",
+          "observed_at": "2026-09-09T02:14:36.039Z",
+          "source_updated_at": null,
+          "processed_at": "2026-09-09T02:14:36.341Z"
+        },
+        "source_claims": {
+          "denominator": "accepted source-candidate rows in this retained Iowa center/preschool publisher cohort, not state-addressed businesses, unique active businesses, or all United States businesses",
+          "row_unit": "source-candidate-row",
+          "export_policy": "internal",
+          "national_reporting_integrated": false,
+          "national_completeness_percent": null,
+          "unique_active_business_count": null,
+          "current_usps_assignment_verified": false,
+          "boundary_assignment_verified": false,
+          "physical_site_verified": false,
+          "current_operations_verified": false,
+          "identity_matching_applied": false,
+          "credential_deduplication_applied": false,
+          "public_export_authorized": false,
+          "source_authenticity_verified": false,
+          "native_execution_independently_verified": false,
+          "address_role": "reported-address-role-unspecified",
+          "state_assignment": "not-provided-not-inferred",
+          "exact_address_geocodes_verified": false,
+          "geocode_accuracy_verified": false,
+          "source_update_time_known": false,
+          "observation_semantics": "middle map response observation; not source update or operating validity"
+        },
+        "source_metrics": {},
+        "denominator": "accepted source-candidate rows in this retained Iowa center/preschool publisher cohort, not state-addressed businesses, unique active businesses, or all United States businesses",
+        "source_row_unit": "source-candidate-row",
+        "enrollment_sha256": "0786c71df45fb9e38310358cf167d69af77f6325d79b83b5b7acc2d40607cdce"
+      }
+    },
+    "summary": {
+      "accepted_candidate_rows": 12206,
+      "zip_present_candidate_rows": 12205,
+      "missing_zip_candidate_rows": 0,
+      "invalid_zip_candidate_rows": 1,
+      "indexed_zip_count": 2359,
+      "missing_zip_buckets": [],
+      "invalid_zip_buckets": [
+        {
+          "publisher_scope": "MD",
+          "source_id": "md-msde-childcare-centers",
+          "reason": "invalid-source-zip-range",
+          "candidate_rows": 1
+        }
+      ]
+    },
+    "root_view_sha256": "b24c206052969f441b965cab18e38309794adfdc7017c0ee8fb7f41a9fe098c2",
+    "artifact_count": 16,
+    "artifact_bytes": 604580,
+    "artifact_inventory_sha256": "0c9d32cac9104bf7b2b33e68ea0d6666de8d81d003025a395f29b26a88d351f8"
+  }
+}

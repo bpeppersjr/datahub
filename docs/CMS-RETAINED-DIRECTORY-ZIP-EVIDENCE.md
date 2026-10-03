@@ -107,3 +107,9 @@ Focused tests exercise source reconstruction, rehashed tamper, missing-state/ZIP
 conservation, ZIP4 separation, duplicate rejection, links, cancellation, concurrent
 owners, lock recovery, bounded native lookup, authorization and deadline behavior.
 Full repository/runtime checks remain the integrator's release gate.
+
+## ZIP Economy presentation
+
+ZIP Economy reads the protected endpoint only after an exact five-digit ZIP is submitted. The client validates the closed response envelope, immutable claims, source bindings, dated lineage, denominator conservation, reported-state counts, and exact requested ZIP before rendering. ZIP changes and unmounts abort the prior request; a late response cannot replace evidence for the current ZIP.
+
+The retained CMS panel remains separate from ordinary business evidence and Census ZCTA readiness. It reports hospital and nursing-home directory-row counts and their source-reported state distribution, together with release dates and lineage. Directory rows are not active businesses, verified physical sites, current-operation findings, or completeness measures. An absent ZIP row does not establish zero facilities, closure, ZIP invalidity, or lack of facilities, while an unavailable or malformed response is shown as unavailable rather than absence.
