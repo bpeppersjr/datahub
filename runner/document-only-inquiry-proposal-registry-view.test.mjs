@@ -76,10 +76,12 @@ test("registry requires the verified diagnostic batch without treating it as pro
   }
 });
 
-test('native registry fails closed for the incomplete newest lineage without using historical proposals as approval',async()=>{
-  await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(),/newest projection cohort is incomplete/);
+test('native registry uses the complete newest four-wave lineage without converting proposals into approval',async()=>{
+  const view=await loadDocumentOnlyInquiryProposalRegistryView();
+  assert.equal(view.available,true);assert.equal(view.coverage.authorization_packets.covered_current_gap_states,40);
+  assert.ok(Object.values(view.authority).every(value=>value===false));
   let reply;await documentOnlyInquiryProposalRegistryHttp({method:'GET',headers:{}},{},new URL('http://local/'),loadDocumentOnlyInquiryProposalRegistryView,(_res,status,body)=>{reply={status,body};});
-  assert.equal(reply.status,503);assert.equal(JSON.stringify(reply).includes('release'),false);
+  assert.equal(reply.status,200);assert.equal(reply.body.available,true);assert.ok(Object.values(reply.body.authority).every(value=>value===false));
 });
 
 test("proposal HTTP accepts only empty GET and redacts verifier failures", async () => {
