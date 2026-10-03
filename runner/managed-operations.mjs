@@ -52,7 +52,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -116,6 +116,8 @@ export class ManagedOperations {
     this.organizationZipVerifier = options.organizationZipVerifier ?? verifyOrganizationZipEvidenceExport;
     this.adoptionVerifier = options.adoptionVerifier ?? null;
     this.illinoisAppVerifier = options.illinoisAppVerifier ?? null;
+    this.utahAppVerifier = options.utahAppVerifier ?? null;
+    this.okBusinessAppVerifier = options.okBusinessAppVerifier ?? null;
     this.adoptionTiming={deadlineMs:CMS_ADOPTION_DEADLINE_MS,childCleanupMs:35000,verifierCleanupMs:1000};
     if(options.adoptionTestTiming!==undefined){
       const timing=options.adoptionTestTiming;
@@ -216,6 +218,22 @@ export class ManagedOperations {
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Illinois Business Registry requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('il-business-registry',{sourceId:'il-business-registry',selection:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
+  }
+  async startUtahBusinessList(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'selection')?.value!=='string')throw invalid('Utah Business List requires only selection.');
+    const selected=path.resolve(APP_ROOT,input.selection),packages=path.join(APP_ROOT,'data','imports','utah-business-list','packages'),relative=path.relative(packages,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.basename(selected)!=='selection.json'||path.dirname(path.dirname(selected))!==packages||!safeId(path.basename(path.dirname(selected)))||path.basename(path.dirname(selected)).length>64)throw invalid('Utah Business List selection must be a package selection.json.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Utah Business List requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('ut-business-list',{sourceId:'ut-business-list',selection:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
+  }
+  async startOkBusinessBulk(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'selection')?.value!=='string')throw invalid('Oklahoma Business Bulk requires only selection.');
+    const selected=path.resolve(APP_ROOT,input.selection),packages=path.join(APP_ROOT,'data','imports','oklahoma-business-bulk','packages'),relative=path.relative(packages,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.basename(selected)!=='selection.json'||path.dirname(path.dirname(selected))!==packages||!safeId(path.basename(path.dirname(selected)))||path.basename(path.dirname(selected)).length>64)throw invalid('Oklahoma Business Bulk selection must be a package selection.json.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Oklahoma Business Bulk requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('ok-business-bulk',{sourceId:'ok-business-bulk',selection:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -494,6 +512,8 @@ export class ManagedOperations {
       else if(record.kind==='usps-city-state-admission') {script='scripts/admit-usps-city-state-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
       else if(record.kind==='dc-corporate-registration') {script='scripts/run-dc-corporate-registration-app.mjs';args=['--selection',record.details.selection];}
       else if(record.kind==='il-business-registry') {script='scripts/run-il-business-app.mjs';args=['--selection',record.details.selection];}
+      else if(record.kind==='ut-business-list') {script='scripts/run-utah-business-list-app.mjs';args=['--selection',record.details.selection];}
+      else if(record.kind==='ok-business-bulk') {script='scripts/run-ok-business-bulk-app.mjs';args=['--selection',record.details.selection];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -569,6 +589,24 @@ export class ManagedOperations {
         const proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
         if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Illinois Business Registry replay disagreed.');
         record.result={sourceId:'il-business-registry',releaseId:proof.receipt.source.release_id,sourceReleaseId:proof.receipt.source.source_release_id,coverage:proof.receipt.source.coverage,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,nationalAdmissionPerformed:false};record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='ut-business-list'){
+        if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Utah Business List did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout);
+        if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||!isDeepStrictEqual(Reflect.ownKeys(descriptor).sort(),['operationDirectory','receipt','receiptPath'])||typeof descriptor.receiptPath!=='string'||typeof descriptor.operationDirectory!=='string')throw Error('Utah Business List descriptor rejected.');
+        const verifier=this.utahAppVerifier??(await import('./utah-business-list-app.mjs')).verifyUtahBusinessListAppJob;
+        const proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
+        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.purchase_performed!==false||proof.receipt.account_created!==false||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.admission_eligible!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Utah Business List replay disagreed.');
+        record.result={sourceId:'ut-business-list',releaseId:proof.receipt.release.release_id,recordCount:proof.receipt.release.record_count,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,purchasePerformed:false,accountCreated:false,currentPointerWritten:false,nationalAdmissionPerformed:false,sourceNative:false,sourceAuthenticityVerified:false,reproducibleExtractionVerified:false,admissionEligible:false};record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='ok-business-bulk'){
+        if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Oklahoma Business Bulk did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout);
+        if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||!isDeepStrictEqual(Reflect.ownKeys(descriptor).sort(),['operationDirectory','receipt','receiptPath'])||typeof descriptor.receiptPath!=='string'||typeof descriptor.operationDirectory!=='string')throw Error('Oklahoma Business Bulk descriptor rejected.');
+        const verifier=this.okBusinessAppVerifier??(await import('./ok-business-bulk-app.mjs')).verifyOkBusinessBulkAppJob;
+        const proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
+        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.acquisition_performed!==false||proof.receipt.purchase_performed!==false||proof.receipt.account_action_performed!==false||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.physical_site_claim!==false||proof.receipt.current_operation_claim!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Oklahoma Business Bulk replay disagreed.');
+        record.result={sourceId:'ok-business-bulk',projectedOrganizationCount:proof.receipt.source.projected_organization_count,processDate:proof.receipt.source.process_date,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,acquisitionPerformed:false,purchasePerformed:false,accountActionPerformed:false,currentPointerWritten:false,nationalAdmissionPerformed:false,physicalSiteClaim:false,currentOperationClaim:false};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)

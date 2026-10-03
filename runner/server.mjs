@@ -535,7 +535,7 @@ const server = http.createServer(async (request, response) => {
       if (segments.length === 3 && request.method === 'GET' && endpoint === 'operations') {
         json(response, 200, await managedOperations.list()); return;
       }
-      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'organization-zip-evidence-exports', 'cohort-snapshots', 'source-prerequisites', 'source-adoptions', 'source-admissions', 'usps-city-state-admissions', 'dc-corporate-registration', 'il-business-registry', 'source-refresh-plans', 'source-refreshes', 'overture-acquisitions', 'overture-normalizations', 'ok-childcare-collections'].includes(endpoint)) {
+      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'organization-zip-evidence-exports', 'cohort-snapshots', 'source-prerequisites', 'source-adoptions', 'source-admissions', 'usps-city-state-admissions', 'dc-corporate-registration', 'il-business-registry', 'ut-business-list', 'ok-business-bulk', 'source-refresh-plans', 'source-refreshes', 'overture-acquisitions', 'overture-normalizations', 'ok-childcare-collections'].includes(endpoint)) {
         const input = await bodyJson(request);
         const result = endpoint === 'plan' ? await managedOperations.plan(input)
           : endpoint === 'collections' ? await managedOperations.startCollection(input)
@@ -546,6 +546,8 @@ const server = http.createServer(async (request, response) => {
             : endpoint === 'usps-city-state-admissions' ? await managedOperations.startUspsCityStateAdmission(input)
             : endpoint === 'dc-corporate-registration' ? await managedOperations.startDcCorporateRegistration(input)
             : endpoint === 'il-business-registry' ? await managedOperations.startIllinoisBusinessRegistry(input)
+            : endpoint === 'ut-business-list' ? await managedOperations.startUtahBusinessList(input)
+            : endpoint === 'ok-business-bulk' ? await managedOperations.startOkBusinessBulk(input)
             : endpoint === 'source-refresh-plans' ? await managedOperations.sourceRefreshPlan(input)
             : endpoint === 'source-refreshes' ? await managedOperations.startSourceRefresh(input)
             : endpoint === 'ok-childcare-collections' ? await managedOperations.startOkRetainedCollection(input)

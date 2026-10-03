@@ -76,6 +76,8 @@ export default function DataOperations() {
   const [uspsPackageDirectory,setUspsPackageDirectory]=useState('');
   const [dcCorporateSelection,setDcCorporateSelection]=useState('');
   const [illinoisBusinessSelection,setIllinoisBusinessSelection]=useState('');
+  const [utahBusinessSelection,setUtahBusinessSelection]=useState('');
+  const [oklahomaBusinessSelection,setOklahomaBusinessSelection]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -180,6 +182,20 @@ export default function DataOperations() {
       <label>Package selection under data/imports <input aria-label="Illinois Business Registry package selection" value={illinoisBusinessSelection} disabled={busy} placeholder="data/imports/illinois-business-registry/packages/package-id/selection.json" onChange={event=>setIllinoisBusinessSelection(event.target.value)}/></label>
       <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/illinois-business-registry\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(illinoisBusinessSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/illinois-business-registry',{selection:illinoisBusinessSelection})))}>Start offline Illinois package operation</button>
       <p className="operations-note">Status, errors, cancellation, receipts, and any declared artifacts use the shared Operation history below.</p>
+    </section>
+    <section aria-labelledby="utah-business-list-title" className="operations-builder">
+      <h3 id="utah-business-list-title">Process a Utah Business List package</h3>
+      <p className="operations-note">Zero-network, offline processing of one operator-supplied local package. The original workbook and all three derived JSONL sheets must be present in the selected package. The output remains local-review-only and on HOLD: it is not source-native, its authenticity and reproducible extraction are not verified, and it is not admitted to national coverage.</p>
+      <label>Package selection under data/imports <input aria-label="Utah Business List package selection" value={utahBusinessSelection} disabled={busy} placeholder="data/imports/utah-business-list/packages/package-id/selection.json" onChange={event=>setUtahBusinessSelection(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/utah-business-list\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(utahBusinessSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ut-business-list',{selection:utahBusinessSelection})))}>Start offline Utah package operation</button>
+      <p className="operations-note">This operation performs no acquisition or purchase. Durable status, errors, cancellation, and restart-persistent history appear in shared Operation history below. Terminal receipts and private evidence remain retained locally for governed inspection; they are not offered as downloadable artifacts.</p>
+    </section>
+    <section aria-labelledby="oklahoma-business-bulk-title" className="operations-builder">
+      <h3 id="oklahoma-business-bulk-title">Process an Oklahoma Business Bulk package</h3>
+      <p className="operations-note">Zero-network, offline processing of one operator-supplied local package containing the official bulk text file. The result is administrative organization-address evidence only: it is not a physical-site list or proof of current operation, remains local-review-only and on HOLD, and is not admitted to national coverage.</p>
+      <label>Package selection under data/imports <input aria-label="Oklahoma Business Bulk package selection" value={oklahomaBusinessSelection} disabled={busy} placeholder="data/imports/oklahoma-business-bulk/packages/package-id/selection.json" onChange={event=>setOklahomaBusinessSelection(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/oklahoma-business-bulk\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(oklahomaBusinessSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ok-business-bulk',{selection:oklahomaBusinessSelection})))}>Start offline Oklahoma package operation</button>
+      <p className="operations-note">This operation performs no acquisition, purchase, or account action. Durable status, errors, cancellation, and restart-persistent history appear in shared Operation history below. Terminal receipts and private evidence remain retained locally for governed inspection; they are not offered as downloadable artifacts.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />
