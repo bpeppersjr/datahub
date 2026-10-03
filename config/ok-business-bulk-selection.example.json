@@ -1,0 +1,14 @@
+{
+  "schema_version": "ok-business-bulk-selection@1.0.0",
+  "package_id": "replace-with-package-id",
+  "observed_at": "2026-10-03T00:00:00.000Z",
+  "source_file": "business-bulk.txt",
+  "source_sha256": "replace-with-64-lowercase-hex-sha256",
+  "authorization": {
+    "operator_supplied": true,
+    "network_acquisition_authorized": false,
+    "purchase_authorized": false,
+    "production_admission_authorized": false,
+    "source_pointer_change_authorized": false
+  }
+}

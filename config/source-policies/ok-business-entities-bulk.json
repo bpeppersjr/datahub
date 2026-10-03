@@ -1,0 +1,12 @@
+{
+  "policy_id": "ok-business-entities-bulk", "version": "1.0.0",
+  "ownership": "Oklahoma Secretary of State Business Entities Bulk Orders",
+  "allowed_use": ["offline structural validation of an operator-supplied exact package", "person-free local-review-only organization projection"],
+  "prohibited_use": ["automated acquisition, purchase, account creation, or portal operation", "natural-person, agent, officer, contact, tax identifier, telephone, audit comment, document, or free-text retention", "physical-site, current-operation, statewide-completeness, national-admission, or production-pointer claims"],
+  "attribution": "Source: Oklahoma Secretary of State Business Entities Bulk Orders; retain package checksum, observation date, source process date, and layout limitations.",
+  "retention": "Operator-supplied input and privacy-minimized projection remain internal and local-review-only pending explicit source-rights approval.",
+  "redistribution": "Record-level redistribution is not authorized by this policy. Public-record availability is not treated as a redistribution grant.",
+  "source_home": "https://www.sos.ok.gov/corp/bulkorder/bulkDefault.aspx",
+  "layout_url": "https://www.sos.ok.gov/corp/bulkorder/BulkOrderFileLayoutLegalEntity.htm",
+  "reviewed_at": "2026-10-03", "production_approved": false, "coverage_approved": false
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datahub.local/schemas/ok-business-registry-organization.schema.json",
+  "title": "Oklahoma SOS business-registry organization evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "normalized_record_id", "organization_name", "filing_number", "entity_type_code", "entity_type_label", "registry_status_code", "registry_status_label", "formation_date", "inactive_date", "administrative_address", "temporal_status", "provenance", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "ok-business-registry-organization@1.0.0" },
+    "normalized_record_id": { "type": "string", "pattern": "^ok-sos:[^\\s]+$" },
+    "organization_name": { "type": "string", "minLength": 1 },
+    "filing_number": { "type": "string", "minLength": 1 },
+    "entity_type_code": { "type": "string" }, "entity_type_label": { "type": ["string", "null"] },
+    "registry_status_code": { "type": "string" }, "registry_status_label": { "type": ["string", "null"] },
+    "formation_date": { "type": ["string", "null"] }, "inactive_date": { "type": ["string", "null"] },
+    "administrative_address": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["address1", "address2", "city", "state", "zip5", "zip4", "country", "scope"],
+          "properties": {
+            "address1": { "type": ["string", "null"] }, "address2": { "type": ["string", "null"] },
+            "city": { "type": ["string", "null"] }, "state": { "type": ["string", "null"] },
+            "zip5": { "type": ["string", "null"], "pattern": "^[0-9]{5}$" },
+            "zip4": { "type": ["string", "null"], "pattern": "^[0-9]{4}$" },
+            "country": { "type": ["string", "null"] },
+            "scope": { "const": "source-entity-address-not-verified-physical-operating-site" }
+          }
+        }
+      ]
+    },
+    "temporal_status": { "const": "source-registry-status-not-independent-proof-of-current-operation" },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_id", "package_id", "source_sha256", "observed_at", "process_date_raw", "source_record_type"],
+      "properties": {
+        "source_id": { "const": "ok-sos-business-entities-bulk" }, "package_id": { "type": "string" },
+        "source_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "observed_at": { "type": "string", "format": "date-time" },
+        "process_date_raw": { "type": "string", "pattern": "^[0-9]{8}$" }, "source_record_type": { "const": "01" }
+      }
+    }, "export_policy": { "const": "local-review-only" }
+  }
+}

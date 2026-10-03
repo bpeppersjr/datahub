@@ -1,0 +1,15 @@
+{
+  "dataset_id": "utah-business-list-organizations",
+  "schema_version": "1.0.0",
+  "title": "Utah Business List organization-registration candidates",
+  "status": "implemented-offline-awaiting-operator-supplied-purchased-package",
+  "description": "Person-free, local-review-only organization registration evidence from operator-derived JSONL bound to an explicitly supplied Utah Business List workbook; source authenticity and extraction reproducibility are unverified.",
+  "output": null,
+  "connector": "config/connectors/utah-business-list-offline.json",
+  "source_policy": "config/source-policies/utah-business-list-offline.json",
+  "record_schema": "config/schemas/utah-business-list-organization.schema.json",
+  "required_foundations": [],
+  "coverage_claim": "Organizations represented in operator-derived rows from one supplied Utah Business List workbook; not source-native, not authenticity-verified, not reproducibly extracted, not all operating businesses, not verified physical sites, and not current-operation evidence. Ineligible for admission until original-byte authenticity and reproducible extraction are verified.",
+  "current_verified_release": null,
+  "documentation": "docs/UTAH-BUSINESS-LIST-OFFLINE.md"
+}
