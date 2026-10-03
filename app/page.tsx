@@ -7,7 +7,7 @@ import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
 import DataOperations from './data-operations';
-import {CoverageWorkspace, OperationsTabs, WorkspaceTabs, ZipEconomyWorkspace, operationsTabs, workspaceTabs, type OperationsTab, type WorkspaceTab} from './workspace-views';
+import {CoverageWorkspace, DemographicEconomyWorkspace, OperationsTabs, WorkspaceTabs, ZipEconomyWorkspace, operationsTabs, workspaceTabs, type OperationsTab, type WorkspaceTab} from './workspace-views';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
@@ -91,6 +91,10 @@ const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: str
   'ZIP & GDP': {
     eyebrow: 'Local economic view',
     description: 'Inspect ZIP evidence, GDP-model readiness, and demographic inputs; unsupported estimates remain unavailable.',
+  },
+  Demographics: {
+    eyebrow: 'Demographic economic cross-view',
+    description: 'Compare governed race, lineage or ancestry, sex, and age inputs with ZIP industry evidence; unsupported GDP allocations remain withheld.',
   },
   Operations: {
     eyebrow: 'Collection operations',
@@ -364,6 +368,7 @@ export default function Home() {
         {workspaceTab==='Overview'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP & GDP'&&<ZipEconomyWorkspace stateCode={workspaceState}/>}
+        {workspaceTab==='Demographics'&&<DemographicEconomyWorkspace stateCode={workspaceState}/>}
         {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">
