@@ -1,0 +1,7 @@
+# Mississippi business-source reassessment — October 3, 2026
+
+This versioned reassessment supersedes the September 22 Mississippi catalog projection while preserving that historical artifact. The decision remains `HOLD`, with no source request, export, contact, account, payment, agreement acceptance, operation or pointer change.
+
+The [official report](https://corp.sos.ms.gov/corpreporting/Corp/BusinessSearch3) remains free with a 300,000-result Excel ceiling; a full export requires contact. The [official help](https://corp.sos.ms.gov/corpreporting/Corp/ViewHelpDocument) explicitly identifies principal address and describes a unique six- or seven-digit Business ID. These facts resolve the missing published address-role description. They do not establish physical-site validity, identifier lifecycle, exhaustive status vocabulary or a complete snapshot. Help examples include dissolved records, so the landing page's current-registration language must not be converted into an active-only predicate.
+
+The existing [offline review contract](../MISSISSIPPI-BUSINESS-REPORT-OFFLINE.md) already limits results to local, in-memory operator-derived evidence, keeps ZIP5 and ZIP4 separate, and preserves false completeness, authenticity, reproducible extraction and admission claims. It does not parse the workbook or create a source release. No operator package was found. Unattended acquisition, recurring full-export controls, retention and downstream rights remain unresolved; no new connector or acquisition path is introduced.

@@ -13,7 +13,7 @@ function stateAssessment(catalog, stateAbbreviation) {
   return catalog.states.find((state) => state.state_abbreviation === stateAbbreviation);
 }
 
-test("loads a non-overlapping governed catalog with the current Kansas correction", async () => {
+test("loads a non-overlapping governed catalog with current source reassessments", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
   assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ", "MD", "MO", "IN", "SC", "LA", "MN", "AL", "WI", "AR", "HI", "IL", "MS", "NV", "KS", "KY", "TX", "UT", "WA", "CO", "CT", "DE", "FL", "IA", "NY", "OR", "PA"]);
   assert.equal(indexStateBusinessSourceAssessments(catalog).size, 51);
@@ -45,6 +45,13 @@ test("loads a non-overlapping governed catalog with the current Kansas correctio
       "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
       "ks-business-source-reassessment-2026-10-03",
       "ar-business-source-reassessment-2026-10-03",
+      "il-business-source-reassessment-2026-10-03",
+      "ms-business-source-reassessment-2026-10-03",
+      "ky-business-source-reassessment-2026-10-03",
+      "hi-business-source-reassessment-2026-10-03",
+      "nv-business-source-reassessment-2026-10-03",
+      "ut-business-source-reassessment-2026-10-03",
+      "wa-business-source-reassessment-2026-10-03",
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 5,
@@ -161,6 +168,37 @@ test("rejects every Arkansas reassessment authority escalation", async () => {
     const catalog = await loadStateBusinessSourceAssessmentCatalog(); stateAssessment(catalog,"AR")[field]=true;
     assert.throws(()=>validateStateBusinessSourceAssessmentCatalog(catalog),/AR authorization boundary drifted/);
   }
+});
+
+test("current reassessments correct evidence without granting any new authority", async () => {
+  const catalog = await loadStateBusinessSourceAssessmentCatalog();
+  for (const abbreviation of ["IL", "MS", "KY", "HI", "NV", "UT", "WA"]) {
+    const state = stateAssessment(catalog, abbreviation);
+    assert.equal(state.assessment_id, `${abbreviation.toLowerCase()}-business-source-reassessment-2026-10-03`);
+    assert.equal(state.assessment_kind, "official-source-reassessment");
+    assert.equal(state.observed_at, "2026-10-03");
+    assert.equal(state.decision, "hold");
+    assert.equal(state.changed_since_prior_review, false);
+    assert.match(state.supersedes_assessment_id, /2026-?09-?22/);
+    for (const field of ["bounded_connector_implementation_authorized", "autonomous_acquisition_authorized", "paid_acquisition_authorized", "complete_source_acquisition_authorized", "row_bearing_preflight_authorized", "offline_fixture_connector_authorized", "production_ready", "broad_layer_production_ready"]) {
+      const changed = structuredClone(catalog);
+      stateAssessment(changed, abbreviation)[field] = true;
+      assert.throws(() => validateStateBusinessSourceAssessmentCatalog(changed), new RegExp(`${abbreviation} authorization boundary drifted`));
+    }
+    const altered = structuredClone(catalog);
+    stateAssessment(altered, abbreviation).observed_evidence[0] = "invented permission";
+    assert.throws(() => validateStateBusinessSourceAssessmentCatalog(altered), /content digest drifted/);
+  }
+  assert.match(stateAssessment(catalog, "IL").observed_evidence.join(" "), /daily full snapshots/);
+  assert.match(stateAssessment(catalog, "MS").observed_evidence.join(" "), /principal address/);
+  assert.match(stateAssessment(catalog, "MS").observed_evidence.join(" "), /does not parse the workbook/);
+  assert.match(stateAssessment(catalog, "KY").observed_evidence.join(" "), /42 tab-delimited fields/);
+  assert.match(stateAssessment(catalog, "HI").observed_evidence.join(" "), /Commercial use or resale/);
+  assert.equal(stateAssessment(catalog, "NV").candidate.availability, "bulk-service-mentioned-contract-unverified");
+  assert.equal(stateAssessment(catalog, "UT").candidate.availability, "paid-subscriber-bulk");
+  assert.match(stateAssessment(catalog, "UT").observed_evidence.join(" "), /\$0.01 per record/);
+  assert.match(stateAssessment(catalog, "WA").observed_evidence.join(" "), /columns: \[\]/);
+  assert.match(stateAssessment(catalog, "WA").observed_evidence.join(" "), /noncommercial-purpose declaration/);
 });
 
 test("rejects aggregate evidence, source, privacy, and candidate drift", async () => {

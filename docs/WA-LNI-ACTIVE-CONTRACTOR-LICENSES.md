@@ -30,13 +30,13 @@ The source explicitly describes its address as a mailing address. A distinct add
 
 This is a state contractor-license dataset, not a census of all businesses or all contractors in Washington or the United States. Current USPS operational ZIP validity remains `unverified` until an authorized USPS denominator is integrated.
 
-## Current verified release
+## Retained release selected on October 3, 2026
 
-Release `wa-lni-active-contractor-licenses-20260901-232717159Z-3cfc4905` is bound to source refresh `2026-09-01T19:35:41Z` and source release `wa-lni-active-contractor-licenses-2026-09-01-3584fe6581bbcd4a`. Independent verification rehashed and parsed all 21 artifacts totaling 62,165,677 bytes.
+The local current pointer selects release `wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283`. Its retained manifest binds source refresh `2026-09-07T00:35:49.000Z` and source release `wa-lni-active-contractor-licenses-2026-09-07-24c7059d65e4d084`. This documentation correction inspected the pointer, manifest and summary; it did not reacquire data or rehash the complete release.
 
-The complete selected snapshot contains 75,796 active contractor-license rows grouped into 72,783 UBI organizations and 75,796 license activities. Of these, 2,590 organizations have more than one active license. The release retains 73,722 distinct-within-organization source-reported business-name observations and 74,116 distinct-within-organization mailing-address observations.
+The retained manifest reports 75,816 active contractor-license rows grouped into 72,819 UBI organizations and 75,816 license activities. Of these, 2,579 organizations have more than one active license. The release retains 73,753 distinct-within-organization source-reported business-name observations and 74,141 distinct-within-organization mailing-address observations.
 
-Exactly 74,005 mailing-address observations are eligible for ZIP allocation across 3,138 source ZIPs; 105 organizations have no eligible U.S. mailing-address ZIP. No group was quarantined. Physical-site and establishment counts remain `null`.
+Exactly 74,030 mailing-address observations are eligible for ZIP allocation across 3,113 source ZIPs; 105 organizations have no eligible U.S. mailing-address ZIP. The summary records 25 ACTIVE license activities with expiration before observation, reinforcing the source-status limitation. No group was quarantined. Physical-site and establishment counts remain `null`. This sector layer is independent of the [broad-source HOLD reassessment](states/WA-BUSINESS-SOURCE-REASSESSMENT-2026-10-03.md).
 
 ## Operations
 

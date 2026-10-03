@@ -1,0 +1,11 @@
+# Washington business-source reassessment — October 3, 2026
+
+The [immutable current assessment](../../config/state-business-source-assessments/wa-2026-10-03.json) supersedes the September 22 assessment for current catalog evidence and preserves broad-source HOLD with every execution authority false. The historical artifact remains intact.
+
+[SOS guidance](https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/corporations-charities-filing-system-tools-resources) supports no-login advanced-search CSV but warns broad queries can overload or fail. It documents filed-document status semantics and removal of records inactive more than ten years, without a complete export schema, safe full-snapshot route, count/truncation controls or automation contract. Do not partition searches for statewide enumeration.
+
+[DOR metadata 4wur-kfnr](https://data.wa.gov/api/views/4wur-kfnr) is an external `href` with `columns: []` and an HTML lookup access point. Its Daily posting, active-license-account/five-year-closed scope and Public Domain label are catalog statements, not proof of an acquired snapshot or a data API. The [state catalog guide](https://data.wa.gov/stories/s/Cataloging-Your-Agency-s-Open-Data-on-Data-wa-gov-/jyg3-7cid/) explicitly calls this an external-link example.
+
+[DOR public-record guidance](https://dor.wa.gov/contact/public-records) requires a noncommercial-purpose declaration for lists of licenses, individuals and/or taxpayers and describes commercial-purpose list-release constraints. No declaration or request was submitted. [DOR's FAQ](https://dor.wa.gov/open-business/business-licensing-and-renewals-faqs) distinguishes licenses, tax accounts and reseller permits; not every business has a tax account. Neither source proves an operating establishment or an unrestricted broad commercial feed.
+
+The [retained L&I source](../WA-LNI-ACTIVE-CONTRACTOR-LICENSES.md) supplies contractor-license organizations only. Its selected September 7 release is retained evidence; this reassessment performed no refresh or admission. Broad population, schema, identifier/status/address contracts, supported delivery, change/replay/checksums and use rights remain unresolved.

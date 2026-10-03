@@ -1,0 +1,75 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "nv-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "NV",
+    "name": "Nevada"
+  },
+  "supersedes_assessment_id": "state-business-source-nv-20260922-v1",
+  "publisher": "Nevada Secretary of State, Commercial Recordings Division",
+  "reassessment_reason": "The official nonprofit FAQ expressly refers to Bulk Data Download services, so search-only is too strong a classification. The attempted current data-download page yielded an access-protection iframe; current service terms, schema, price and delivery operation remain unverified.",
+  "access": {
+    "classification": "bulk-service-mentioned-contract-unverified",
+    "bulk": "An official SOS FAQ states that charitable-solicitation information is available through Bulk Data Download services. This establishes a publisher-described bulk service, not a validated broad-business extract contract.",
+    "api": "No current official bulk API, credentialless file or supported unattended route was verified.",
+    "search": "The SOS describes free business entity search; public lookup does not establish automated bulk permission.",
+    "fees": "NRS 225.140 requires reasonable fees for searches of office records, including computer-database records; a current bulk extract price was not established."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current public bulk layout, field dictionary, header, status codebook or person-minimized delivery was verified. The Business License FAQ distinguishes Nevada Business Identification Number from the Title 7 Entity Number; neither supplies a bulk identifier-lifecycle contract."
+  },
+  "active_status_semantics": "Registry standing and annual State Business License renewal are separate compliance evidence, neither a verified current-operation claim. A current bulk status codebook remains unverified.",
+  "statewide_completeness": "Title 7 entity filings and non-Title 7 State Business Licenses have different scopes. Sole proprietors and partnerships can have state licenses, with exemptions; their inclusion in any bulk extract is unverified. No all-operating-business control total was established.",
+  "address_zip": "The nonprofit FAQ says public charitable-solicitation filings include principal/business-office addresses and executive-personnel information; home addresses are not required but may occur. No bulk address-role or ZIP guarantee was established.",
+  "automation_terms_fees": "Current download access presented an access-protection iframe. This review stopped there; no bypass, login or order was attempted. Statutory database access authority does not establish free access, credentials, automation permission or current product pricing.",
+  "redistribution": "The official public-record and fee context does not establish a commercial redistribution license. Raw officer/executive/agent material must remain excluded from an organization-only projection; current rights and retention terms are unresolved.",
+  "temporal_refresh": "No current snapshot cadence, deletion/change feed, replay, manifest, provider checksum or service-change contract was verified.",
+  "citations": [
+    {
+      "url": "https://nvsos.gov/index.aspx?page=1344",
+      "evidence": "Official nonprofit FAQ explicitly describes Bulk Data Download services and person-bearing public content."
+    },
+    {
+      "url": "https://nvsos.gov/sos/licensing/state-business-license/state-business-license-faq",
+      "evidence": "License scope, annual renewal and Nevada Business Identification Number versus Entity Number."
+    },
+    {
+      "url": "https://www.leg.state.nv.us/nrs/NRS-225.html",
+      "evidence": "Secretary record-search fee authority, including computer-database records; not a current bulk product price."
+    },
+    {
+      "url": "https://www.nvsos.gov/online-services/data-download",
+      "evidence": "Attempted page returned an access-protection iframe; no product contract was retrieved."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-nv-2026-09-22.json"
+  ],
+  "unresolved_gates": [
+    "current-bulk-delivery-contract",
+    "scope",
+    "schema",
+    "price",
+    "status-codebook",
+    "address-role",
+    "automation",
+    "rights",
+    "refresh-contract"
+  ],
+  "strongest_next_action": "Record publisher-described bulk availability while retaining HOLD until a current accessible official schema and delivery/rights contract are available. Do not bypass protection, enumerate search, acquire, contact, enroll, pay, accept terms, automate, or execute production from this reassessment."
+}

@@ -2,6 +2,8 @@
 
 Status: **PROPOSED — NOT APPROVED — NO ACTION AUTHORIZED**
 
+October 3 evidence note: this remains an unapproved historical inquiry proposal. Current assessments now distinguish Illinois's documented daily full-file layouts, Mississippi's published principal-address/ID semantics, Kentucky's implemented offline schema, Hawaii's explicit use restrictions, Nevada's publisher-described bulk service, Utah's paid Business List Service, and Washington's external DOR lookup metadata. See the current state assessment catalog and linked October 3 reassessments. Those corrections do not approve this proposal or authorize any publisher contact; already documented facts should not be presented as wholly unknown in a future inquiry.
+
 - Proposal ID: `wave-1-document-only-inquiry-20260923-01`
 - Proposed jurisdictions: Illinois, Mississippi, Arkansas, Kentucky, Hawaii, Kansas, Nevada, Utah, Washington, and Oklahoma
 - Matrix gap basis: `national-goal-completion-20260923152841-e96af677`

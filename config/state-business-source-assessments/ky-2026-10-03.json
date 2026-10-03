@@ -1,0 +1,73 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "ky-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "KY",
+    "name": "Kentucky"
+  },
+  "supersedes_assessment_id": "ky-business-source-2026-09-22",
+  "publisher": "Kentucky Secretary of State",
+  "reassessment_reason": "The September assessment predates the existing 42-field offline company-family parser. Local schema implementation is now evidenced; this does not establish source-data possession, current schema continuity, subscription authority, or production readiness.",
+  "access": {
+    "classification": "subscription-bulk-offline-fixture-only",
+    "bulk": "The official service offers monthly All Companies and daily/weekly new-company files plus daily company changes, subject to subscriber access.",
+    "api": "No supported credentialless bulk read API was established.",
+    "search": "Public entity search is separate from bulk subscription.",
+    "fees": "Business records for commercial use cost $2,000/month. Noncommercial monthly fees are waived, but registration and a Subscriber Agreement remain required."
+  },
+  "fields": {
+    "published": true,
+    "summary": "The official page links the company-layout XLS. The existing local offline contract defines 42 tab-delimited fields, composite ID/comptype/compseq, independent recordnumber, native Status/Standing/Type, dates, and principal-office ZIP. This review verified the link and inspected the implementation; it did not reparse the current workbook or inspect publisher rows."
+  },
+  "active_status_semantics": "The offline parser retains Status A/D/I and Standing G/B/X without inferring current operation. All Companies includes registry filings, not a verified active-establishment census. A production status mapping remains unapproved.",
+  "statewide_completeness": "The product is described as all companies on file with the Secretary of State; registry coverage is not complete coverage of operating businesses, and no current control total or verified retained source release was established.",
+  "address_zip": "The implemented projection retains principal administrative address and separately parsed ZIP5/ZIP4 only. Such addresses may be residential or outside Kentucky and are not physical operating sites. Registered-agent and applicant fields are excluded.",
+  "automation_terms_fees": "Registration and a Subscriber Agreement are explicit prerequisites, including for noncommercial use. Unattended transfer support and the applicable unsigned agreement were not established; no account, agreement or payment is authorized.",
+  "redistribution": "Public layout documentation and the offline parser grant no dataset redistribution, publication or geocoding rights. Raw company files remain person-bearing/internal and the minimized projection remains local-review-only under the existing policy.",
+  "temporal_refresh": "Published monthly full and daily/weekly incremental frequencies are known. Deletions, replay, recovery, header/encoding continuity, provider checksums and source-control totals are not verified.",
+  "citations": [
+    {
+      "url": "https://www.sos.ky.gov/bus/Pages/Bulk-Data-Service.aspx",
+      "evidence": "Current subscription, agreement, commercial/noncommercial fees and bulk product availability."
+    },
+    {
+      "url": "https://www.sos.ky.gov/bus/Pages/File-Descriptions.aspx",
+      "evidence": "Monthly and incremental tab-delimited company families and officer linkage."
+    },
+    {
+      "url": "https://www.sos.ky.gov/bus/Documents/Business%20Entity%20Data%20File%20Formats.xls",
+      "evidence": "Official linked schema document; current workbook contents were not reparsed in this review."
+    }
+  ],
+  "local_evidence": [
+    "config/connectors/kentucky-business-entity-bulk-offline.json",
+    "config/source-policies/kentucky-business-entity-bulk-offline.json",
+    "runner/kentucky-business-entity-bulk-offline.mjs",
+    "docs/KENTUCKY-BUSINESS-ENTITY-BULK-OFFLINE.md"
+  ],
+  "unresolved_gates": [
+    "current-schema-continuity",
+    "authorized-source-package",
+    "identifier-lifecycle",
+    "production-status-mapping",
+    "change-replay-contract",
+    "automation",
+    "agreement-rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Retain the existing offline fixture boundary and reconcile assessment evidence with its implemented schema. A future authorized subscription review must resolve source authenticity, rights and transfer terms. Do not acquire, contact, enroll, pay, accept terms, automate, or change production from this reassessment."
+}

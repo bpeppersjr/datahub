@@ -1,0 +1,34 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "wa-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {"abbreviation":"WA","name":"Washington"},
+  "supersedes_assessment_id": "wa-business-source-2026-09-22",
+  "reassessment_reason": "Current SOS guidance preserves the bounded interactive CSV route. DOR catalog metadata establishes that Business Lookup is an external href, not a downloadable Socrata table; public-record list constraints must accompany that alternative source evidence.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {"official_primary_sources_only":true,"record_requests":0,"downloads":0,"accounts_created":0,"terms_accepted":0,"fees_paid":0,"contacts_made":0,"portal_automation":false,"production_changes":0},
+  "authority": {"acquisition":false,"network_execution":false,"account_creation":false,"payment":false,"terms_acceptance":false,"source_contact":false,"pointer_changes":false,"national_admission":false},
+  "access": {
+    "classification": "bounded-search-export",
+    "bulk": "SOS advanced searches support CSV export but warn broad queries can overload, time out or error; no complete snapshot contract or numeric truncation limit is published. DOR Business Lookup catalog 4wur-kfnr is an external href with no columns, not a bulk dataset.",
+    "api": "DOR metadata reports assetType/displayType/viewType href and columns: []; its sole data access point is an HTML lookup. No broad business-entity read API or supported unattended retrieval contract was established.",
+    "search": "SOS corporation search requires no login and supports type/status/date filters and CSV exports. DOR lookup covers business licenses, excise-tax accounts and reseller permits; interactive access does not establish enumeration authority."
+  },
+  "fields": {"published":false,"summary":"SOS documents business name, UBI, type, status, expiration and principal-office fields, but exact CSV headers, complete-result controls and stable-identifier lifecycle remain unpublished. DOR catalog has columns: [] and links a search tool rather than publishing a row schema. Exclude registered agents, governors, owners, officers and other natural-person fields."},
+  "active_status_semantics": "SOS statuses describe filed documents, not proof of current business operation. DOR active-account metadata describes account/license scope, not proof of an open establishment. Existing L&I ACTIVE contractor status is separate sector-specific license evidence.",
+  "statewide_completeness": "No safe complete SOS snapshot contract was established. DOR describes all active business-license accounts and five years of closed accounts, but publishes only an interactive lookup route. Existing L&I coverage is contractor-license scope and cannot fill the broad-organization gap.",
+  "address_zip": "SOS principal-office street/mailing addresses are administrative evidence; exact export fields and address roles remain unresolved. DOR searchable address fields do not establish a bulk schema or verified physical sites. Exclude registered-agent and personal address roles.",
+  "automation_terms_fees": "SOS search/CSV has no listed export fee and needs no login, but provides no supported automation/rate contract. DOR public-record guidance requires a noncommercial-purpose declaration for lists of licenses, individuals and/or taxpayers and warns against commercial-purpose list release. No request or declaration was submitted.",
+  "redistribution": "DOR catalog labels the href Public Domain, but that metadata is not proof of an unrestricted bulk delivery route or resolution of the publisher's public-record list constraints. SOS commercial derived-use/redistribution rights remain unresolved. No broad-source redistribution or production admission is approved.",
+  "temporal_refresh": "SOS inactive records older than ten years leave the online system and filings determine status; snapshot/change/deletion/replay/checksum controls are unpublished. DOR catalog advertises Daily posting and a 2021-2026 period; these are metadata statements, not an observed downloaded snapshot or API freshness guarantee.",
+  "citations": [
+    {"url":"https://www.sos.wa.gov/corporations-charities/frequently-asked-questions-faqs/corporations-charities-filing-system-tools-resources","evidence":"No-login search, advanced CSV export, broad-query warnings, filed-document statuses and ten-year inactive-record boundary."},
+    {"url":"https://data.wa.gov/api/views/4wur-kfnr","evidence":"Official DOR Business Lookup href metadata: empty columns, HTML access point, Public Domain label, Daily posting and active-account/five-year-closed scope."},
+    {"url":"https://data.wa.gov/stories/s/Cataloging-Your-Agency-s-Open-Data-on-Data-wa-gov-/jyg3-7cid/","evidence":"State catalog guidance explicitly uses DOR Business Lookup as an example of an external link landing page."},
+    {"url":"https://dor.wa.gov/contact/public-records","evidence":"Publisher commercial-purpose list constraints and Declaration of Non-Commercial Purpose requirement; no request submitted."},
+    {"url":"https://dor.wa.gov/open-business/business-licensing-and-renewals-faqs","evidence":"Tax account, reseller permit and general business-license lookups have distinct scope; not all businesses have a tax account."}
+  ],
+  "unresolved_gates": ["complete-snapshot-route","csv-schema","stable-identifier-lifecycle","status-codebook","address-role","change-deletion-replay-contract","counts-and-checksums","supported-automation","product-specific-rights","commercial-purpose-list-constraints","privacy-exclusions"],
+  "strongest_next_action": "Keep broad-source acquisition on hold and retain separate L&I sector coverage. Resolve complete person-free snapshot/schema, exact scope, identifier/status/address semantics, control totals, changes/replay, supported automation and applicable use rights before implementation. Do not partition interactive searches or treat href metadata as a data API. This assessment authorizes no contact, declaration, payment, account, terms acceptance, acquisition, network execution or pointer changes."
+}

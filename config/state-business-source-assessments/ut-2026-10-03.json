@@ -1,0 +1,35 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "ut-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {"abbreviation":"UT","name":"Utah"},
+  "supersedes_assessment_id": "ut-business-source-2026-09-22",
+  "reassessment_reason": "The historical search-only assessment missed the official paid Business List Service and its public three-sheet schema. Existing offline processing is implemented; this correction does not authorize acquiring or admitting a package.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {"official_primary_sources_only":true,"record_requests":0,"downloads":0,"accounts_created":0,"terms_accepted":0,"fees_paid":0,"contacts_made":0,"portal_automation":false,"production_changes":0},
+  "authority": {"acquisition":false,"network_execution":false,"account_creation":false,"payment":false,"terms_acceptance":false,"source_contact":false,"pointer_changes":false,"national_admission":false},
+  "access": {
+    "classification": "paid-subscriber-bulk",
+    "bulk": "The official Business List Service advertises the full registered-business list at $0.01 per record, subscribers only. Utah.gov subscription registration costs $125 annually and requires an account and Network Registration Agreement acceptance. Customized lists cost $5 for the first 200 records and $0.05 per additional record.",
+    "api": "No supported unattended business-list API, request-rate contract or delivery automation permission was established.",
+    "search": "The separate business-entity search is public registry access. The paid list service offers entity-type, NAICS, ZIP, change-window, new-registration-window and Active/Expired/Inactive registration filters."
+  },
+  "fields": {"published":true,"summary":"The official example publishes BUSENTITY, BUSINFO and PRINCIPAL sheets joined by Entity ID. BUSENTITY includes entity number/ID, name, type, administrative address/ZIP, registration/expiration/status/change/renewal fields and NAICS. Applicant Name, all BUSINFO content and all PRINCIPAL fields are excluded from projection. The implemented offline connector hash-binds original.xlsx and validates operator-derived JSONL but does not parse or reproducibly extract the workbook or authenticate publisher origin."},
+  "active_status_semantics": "Active/Expired/Inactive are registration filters; license status and status reason are administrative registration evidence, not proof of current business operation. A complete status codebook and its mapping to the product remain unresolved.",
+  "statewide_completeness": "The publisher advertises its full registered-business database, but a selected delivered package, included entity population, row totals and current schema guarantee have not been verified. It is not a census of operating businesses or physical establishments.",
+  "address_zip": "BUSENTITY has Address, Address 2, City, State and ZipCode. Addresses remain administrative registration evidence, not verified physical sites. ZIP5 and ZIP4 stay separate; name/address fields can still identify natural persons despite exclusion of explicit person-role fields.",
+  "automation_terms_fees": "Full-list access is paid and subscriber-only. The $125 annual subscription and $0.01-per-record charge do not authorize enrollment, payment, agreement acceptance or automation. Existing managed UI and app workers only process explicitly selected local packages.",
+  "redistribution": "Utah.gov terms condition unmodified webpage copying/distribution on personal or informational use; this is not an established commercial derivative license for the paid product. Retention, transformation, geocoding and redistribution rights remain unresolved; outputs stay local-review-only and admission-ineligible.",
+  "temporal_refresh": "The list page says updated through the previous Tuesday and separately displayed change/new-registration cutoff 09/28/2026 on observation. Preserve these as distinct publisher statements. Change dates refer to filing receipt, not entry; deletion, correction, replay, checksum and exact delivered-as-of controls remain unverified.",
+  "citations": [
+    {"url":"https://secure.utah.gov/datarequest/businesses/index.html","evidence":"Full-list/custom-list pricing, filters, previous-Tuesday wording, displayed cutoff and filing-receipt change-date semantics."},
+    {"url":"https://secure.utah.gov/datarequest/index.html","evidence":"Business full list is subscribers only; custom-list payment options include credit card or subscriber account."},
+    {"url":"https://secure.utah.gov/datarequest/businesses/listExample.html","evidence":"Public three-sheet field roster and Entity ID joins, with person-bearing fields."},
+    {"url":"https://www.utah.gov/subscription/","evidence":"Annual subscriber registration costs $125."},
+    {"url":"https://www.utah.gov/subscription/faq.html","evidence":"Enrollment requires an account and Network Registration Agreement acceptance."},
+    {"url":"https://www.utah.gov/support/disclaimer.html","evidence":"Conditional unmodified personal/informational webpage-use permission and accuracy/continuity limitations."}
+  ],
+  "unresolved_gates": ["product-specific-rights","stable-identifier-lifecycle","status-codebook","address-role","exact-delivered-population","deterministic-workbook-extraction","source-authenticity","full-delta-deletion-replay-contract","checksums-and-control-totals","supported-automation","privacy-exclusions"],
+  "strongest_next_action": "Retain the existing offline package workflow and correct catalog evidence. Before any acquisition, resolve product-specific unsigned terms, identifier/status/address contracts, current delivery schema, population/counts, checksums, replay semantics and supported automation. Deterministic workbook extraction and source authenticity are separate admission prerequisites. This assessment authorizes no enrollment, payment, contact, network execution, terms acceptance, acquisition or pointer changes."
+}

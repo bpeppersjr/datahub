@@ -1,0 +1,75 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "hi-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "HI",
+    "name": "Hawaii"
+  },
+  "supersedes_assessment_id": "state-business-source-hi-20260922-v1",
+  "publisher": "Hawaii Department of Commerce and Consumer Affairs, Business Registration Division",
+  "reassessment_reason": "Current DCCA pages still announce the July 2026 portal transition, and the linked Business Data List Builder landing page returned 404 during this review. Hawaii.gov terms explicitly restrict automation and commercial reuse, making the prior unspecified rights gate concrete.",
+  "access": {
+    "classification": "paid-list-builder-migration-and-terms-hold",
+    "bulk": "DCCA advertises purchasing custom business lists, but the linked landing page was unavailable and the current bulk delivery route was not verified.",
+    "api": "No public supported bulk API or authorized unattended route was established.",
+    "search": "Business name search and document purchases remain advertised; search access does not authorize enumeration.",
+    "fees": "Custom lists are advertised as purchasable; current list pricing was not established."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current machine schema, status dictionary, person-free projection, complete extract scope or field-level ZIP contract was verified. Historical weekly inventory does not prove the migrated service contract."
+  },
+  "active_status_semantics": "Good standing and annual reporting concern registration compliance, not proof of ongoing operation or a physical establishment. No current bulk status codebook was established.",
+  "statewide_completeness": "BREG's FAQ excludes sole proprietorships, unincorporated nonprofit associations and foreign insurers from its general mandatory-registration universe; optional trade-name registration does not close these gaps.",
+  "address_zip": "Public filings can disclose officers, directors, partners, members, managers and registered agents. Current organization address roles, ZIP coverage and person-minimized delivery remain unverified.",
+  "automation_terms_fees": "Hawaii.gov terms prohibit automated service access and access outside the provided interface absent separate written permission. Commercial use or resale of service-derived data also requires a separate written agreement. No such agreement is evidenced.",
+  "redistribution": "General terms restrict commercial reuse/resale; public filing visibility and payment do not establish an exception. Retention, transformation, geocoding and downstream publication rights remain unresolved. Person-bearing filing content requires exclusion/minimization.",
+  "temporal_refresh": "The current BREG page says the July 6, 2026 system transition is ongoing and additional services will arrive later. Current bulk cadence, migration continuity, deletions, replay and checksum controls are unverified.",
+  "citations": [
+    {
+      "url": "https://cca.hawaii.gov/breg/",
+      "evidence": "Current portal-transition notice, list-builder promotion and registry scope."
+    },
+    {
+      "url": "https://portal.ehawaii.gov/home/online-services/business-data-list-builder/",
+      "evidence": "DCCA-linked landing page returned 404 during the review; this is access-observation evidence, not proof the product was discontinued."
+    },
+    {
+      "url": "https://portal.ehawaii.gov/page/terms-of-use/",
+      "evidence": "Explicit automated-access and commercial-use/resale restrictions absent separate written agreement."
+    },
+    {
+      "url": "https://cca.hawaii.gov/breg/faqs/",
+      "evidence": "Registration exclusions and public natural-person filing information."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-hi-2026-09-22.json"
+  ],
+  "unresolved_gates": [
+    "migration-continuity",
+    "current-bulk-route",
+    "schema",
+    "price",
+    "status-codebook",
+    "address-role",
+    "written-automation-permission",
+    "written-commercial-reuse-permission",
+    "refresh-contract"
+  ],
+  "strongest_next_action": "Keep HOLD with explicit terms restrictions and the observed unavailable list-builder link. Review a current publisher-issued schema and applicable written permissions only when available within an authorized future scope. Do not acquire, contact, enroll, pay, accept terms, scrape, or execute production from this reassessment."
+}

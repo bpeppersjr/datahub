@@ -1,0 +1,21 @@
+# Kentucky, Hawaii and Nevada source reassessment
+
+These dated reassessments supersede the individual September assessments without changing their original files. All three remain HOLD. No dataset was acquired, publisher contacted, account created, fee paid, agreement accepted, production connector enabled, or current pointer changed. The loader pins the complete parsed evidence documents by digest and returns defensive copies.
+
+## Evidence corrections
+
+Kentucky's [bulk service](https://www.sos.ky.gov/bus/Pages/Bulk-Data-Service.aspx) requires registration and a Subscriber Agreement; business records cost $2,000/month for commercial use. The noncommercial monthly-fee waiver does not remove those prerequisites. The [file descriptions](https://www.sos.ky.gov/bus/Pages/File-Descriptions.aspx) distinguish monthly company snapshots from daily/weekly new and changed records. The repository already implements the 42-field offline company-family layout and privacy exclusions in `runner/kentucky-business-entity-bulk-offline.mjs`. That is local schema implementation evidence, not a retained verified publisher release. This audit verified the schema link but did not reparse the current XLS; current schema continuity and production status mapping remain gates. Principal-office addresses remain administrative evidence only.
+
+Hawaii's [BREG page](https://cca.hawaii.gov/breg/) still announces the July 2026 portal transition. Its advertised list-builder link returned 404 during review, which does not establish permanent product withdrawal. [Hawaii.gov terms](https://portal.ehawaii.gov/page/terms-of-use/) explicitly restrict automated access and commercial use/resale absent applicable written permission; the assessment now records these constraints directly. The [BREG FAQ](https://cca.hawaii.gov/breg/faqs/) identifies registration exceptions and public person-bearing filings. Current bulk schema, price, cadence, scope and permissions remain unverified.
+
+Nevada's [official nonprofit FAQ](https://nvsos.gov/index.aspx?page=1344) expressly refers to Bulk Data Download services. The former search-only classification therefore becomes `bulk-service-mentioned-contract-unverified`. The attempted current download page returned an access-protection iframe; no bypass was attempted. Neither this mention nor [NRS 225.140's record-search fee provision](https://www.leg.state.nv.us/nrs/NRS-225.html) supplies a current broad-business schema, delivery route, product price or license. The [State Business License FAQ](https://nvsos.gov/sos/licensing/state-business-license/state-business-license-faq) distinguishes license scope and Nevada Business Identification Number from the Title 7 Entity Number; this does not establish their bulk coverage or lifecycle.
+
+## Retained evidence boundary
+
+The existing coverage pointer selects `national-business-coverage-views-20260911-040908332Z-f01c882a`. Its state rows report 18,752 Hawaii, 90,005 Kentucky and 44,174 Nevada source-preserving profiles, drawn from national and other-jurisdiction sources. These are not deduplicated business counts or direct broad state-publisher acquisitions. Each state's `complete_all_businesses` is false. No Kentucky, Hawaii or Nevada broad-registry source directory was found under `data/business-sources`; no authorized publisher package was established by this review.
+
+## Integration and verification
+
+`runner/ky-hi-nv-business-source-reassessment.mjs` exports the ordered state roster, per-state IDs, single-state loader and array loader. Catalog integration must project `automation_terms_fees` and `redistribution` alongside the other evidence, preserve the historical source artifacts, and retain all existing false acquisition/production authority fields. Kentucky's existing fixture implementation does not grant new acquisition authority.
+
+Focused verification: `node --test runner/ky-hi-nv-business-source-reassessment.test.mjs runner/kentucky-business-entity-bulk-offline.test.mjs runner/state-business-source-validation-wave.test.mjs` passed 12 tests. The new tests cover historical provenance, zero actions, evidence/authority tampering, unsupported state input and defensive copies. Full repository verification belongs to the integrating change.

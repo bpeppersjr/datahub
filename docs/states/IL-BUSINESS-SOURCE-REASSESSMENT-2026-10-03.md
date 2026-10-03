@@ -1,0 +1,9 @@
+# Illinois business-source reassessment — October 3, 2026
+
+This versioned reassessment supersedes the September 22 Illinois catalog projection while preserving that historical artifact. It reconciles official documentation with the already implemented offline connector. The decision remains `HOLD`; no acquisition, contact, account, payment, agreement acceptance, processing operation, admission or pointer mutation is authorized.
+
+The [official corporation layout](https://www.ilsos.gov/content/dam/data/bs/proc_corp_data.pdf) and [LLC layout](https://www.ilsos.gov/content/dam/data/bs/proc_llc_data.pdf), version 004 dated April 4, 2024, explicitly describe daily full snapshots, unique eight-digit file numbers, source run-date headers and record-count trailers. They provide fixed-width schemas and status dictionaries. The existing connector selects Goodstanding/Reinstated registration records; this does not prove current operation. LLC records-office address and ZIP fields are documented administrative evidence, potentially residential, and do not identify verified operating sites. Corporation officer regions and person-linked tables remain excluded.
+
+These facts resolve the prior catalog's missing layout, status dictionary, address-role and basic cadence/full-snapshot evidence. They do not verify any actual package, freshness, archive/replay guarantee, publisher checksum, complete operating-business population or downstream rights. The [Data Transparency page](https://www.ilsos.gov/data/bus-serv-home.html) still expressly prohibits automated website queries. The existing [offline implementation](../IL-BUSINESS-REGISTRY.md) remains the appropriate bounded processor; no duplicate connector or network retrieval is added.
+
+No Illinois statewide release or complete operator package was found. Retained Chicago licenses remain municipal evidence. All access, reuse and separate admission gates remain in force.
