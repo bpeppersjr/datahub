@@ -112,6 +112,8 @@
     "childcare-state-availability:verify": "node scripts/verify-childcare-state-industry-availability-projection.mjs",
     "zip-denominator-gaps:build": "node scripts/build-zip-denominator-gap-cohort.mjs",
     "zip-denominator-gaps:verify": "node scripts/verify-zip-denominator-gap-cohort.mjs",
+    "exact-zip-industry-matrix:build": "node scripts/build-national-exact-zip-industry-evidence-matrix.mjs",
+    "exact-zip-industry-matrix:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
     "usps-zips:build": "node scripts/build-usps-operational-zip-assignments.mjs",

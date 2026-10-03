@@ -1,0 +1,2 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {APP_ROOT} from '../runner/paths.mjs';import {verifyExactZipIndustryEvidenceMatrix} from '../runner/national-exact-zip-industry-evidence-matrix.mjs';
+const r=JSON.parse(await fs.readFile(path.join(APP_ROOT,'config/datasets/national-exact-zip-industry-evidence-matrix.json')));process.stdout.write(`${JSON.stringify(await verifyExactZipIndustryEvidenceMatrix(path.join(APP_ROOT,r.retained_release.manifest),{root:APP_ROOT}),null,2)}\n`);

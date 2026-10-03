@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-d6e4044f0743429b8e974cfe3a9b7604b7216fdf538354071a9c79b28f8f4b5f",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix/releases/national-exact-zip-industry-evidence-matrix-d6e4044f0743429b8e974cfe3a9b7604b7216fdf538354071a9c79b28f8f4b5f/manifest.json",
+    "manifest_sha256": "809116fc1786c79759ffc5a6a41abbf2bad44d03a13ce7f7d3837a8eef2a3da1",
+    "zip5_rows": 48194,
+    "industry_cells": 433746,
+    "artifact_bytes": 94354127,
+    "artifact_count": 100
+  },
+  "claims": {
+    "authoritative_current_usps_zip_denominator": null,
+    "usps_validity_classified": false,
+    "additive_cross_industry_total": false,
+    "current_operation_verified": false,
+    "all_business_completeness": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}
