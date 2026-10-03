@@ -56,6 +56,7 @@ try{
  await page.screenshot({path:path.join(evidence,'demographics-200.png'),fullPage:true});
  await page.getByRole('tab',{name:'Demographics',exact:true}).press('Home');
  await page.getByRole('heading',{name:'Total extrapolated ZIP GDP',exact:true}).waitFor();
+ await page.getByRole('tab',{name:'Operations',exact:true}).click();
  await page.getByRole('tab',{name:'Jobs',exact:true}).click();
  await page.getByRole('heading',{name:/Execution queue/}).waitFor();
  assert.deepEqual(writes,[],'Synthetic interaction flow must not issue non-GET browser API requests');

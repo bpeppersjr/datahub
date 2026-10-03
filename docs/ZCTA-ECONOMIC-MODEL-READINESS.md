@@ -1,0 +1,15 @@
+# ZCTA economic-model readiness
+
+`zcta-economic-model-readiness` is an offline, pointer-free, immutable evidence release. It binds exact retained Census geography, BEA CAGDP1, ZCTA–county overlay, and ZIP Business Patterns releases and emits one readiness row for every governed 2020 Census ZCTA.
+
+It publishes no GDP estimate. Every row is `withheld` because the current BEA policy prohibits ZIP/ZCTA allocation without a published source relationship and no governed race, ancestry, sex, or age input is retained. Population and housing are direct 2020 Census ZCTA context only. ZBP status is historical employer-publication context only. County relationships and direct-BEA coverage identify model blockers; polygon area is never used as an economic, population, address, or business weight.
+
+The builder requires matching geography release identities, authenticates the bytes, hashes, and record counts of every consumed artifact, conserves the complete ZCTA denominator, and records each upstream manifest's canonical absolute path and SHA-256. All manifests and artifacts must remain canonically inside `datahub`; absolute or parent-traversing pointer redirects, links, junction-like aliases, and escaping paths are rejected. The governed Census county index authenticates the county domain: crosswalk counties must be members, relationship state FIPS must match the county GEOID prefix, and direct BEA county rows outside that domain are rejected rather than treated as allocatable counties. It writes the data artifact before the manifest, fully source-replays staging, then atomically renames the release. It never writes `current.json`, enrolls a dataset, performs network access, or changes an input.
+
+The independent verifier reopens the exact bound upstream manifests, authenticates and reparses their consumed artifacts, recomputes every output row, and requires byte-for-byte semantic equality with the release. It also enforces closed manifest and row schemas, allowed status domains, unique ZCTA/source identities, foreign-key membership, relationship conservation, policy and limitation text, mandatory withholding blockers, and the absence of numeric GDP, demographic allocation, ZIP+4, official-USPS-ZIP, and active-business claims.
+
+Cancellation before the release-directory rename removes the run-owned staging directory and publishes nothing. Once the rename succeeds, the immutable release is committed; cancellation observed afterward is reported as `cancellation_after_commit` and does not delete the committed release.
+
+This dataset is readiness evidence—not official ZIP GDP, a USPS denominator, a current-business census, or permission to build an allocation model.
+
+The first retained release is `zcta-economic-model-readiness-20261003T021732755Z-e4adc3cd`; its manifest SHA-256 is `e7f46c55cd6b94b7af3ec19d73ea277c19c5653474ead7f5eb4145be67717720`. Independent CLI replay verified all 33,791 governed ZCTA rows and 21,653,285 derived bytes. All 33,791 rows remain withheld; 623 report at least one relationship without directly matched county GDP. The release is local and pointer-free.

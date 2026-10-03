@@ -7,7 +7,7 @@ import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
 import DataOperations from './data-operations';
-import {CoverageWorkspace, WorkspaceTabs, ZipEconomyWorkspace, workspaceTabs, type WorkspaceTab} from './workspace-views';
+import {CoverageWorkspace, OperationsTabs, WorkspaceTabs, ZipEconomyWorkspace, operationsTabs, workspaceTabs, type OperationsTab, type WorkspaceTab} from './workspace-views';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
@@ -102,6 +102,7 @@ function formatCount(value: number) {
 
 export default function Home() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('Coverage');
+  const [operationsTab, setOperationsTab] = useState<OperationsTab>('Jobs');
   const [workspaceState, setWorkspaceState] = useState('');
   const [workspaceCategory, setWorkspaceCategory] = useState('general-business');
   function navigateWorkspace(tab:WorkspaceTab){setWorkspaceTab(tab);window.requestAnimationFrame(()=>document.getElementById(`workspace-tab-${workspaceTabs.indexOf(tab)}`)?.focus());}
@@ -318,16 +319,6 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <aside className="rail">
-        <div className="brand-mark">C*</div>
-        <nav aria-label="Primary navigation">
-          {workspaceTabs.map((name,index)=><button key={name} className={`rail-link ${workspaceTab===name?'active':''}`} aria-label={name} aria-current={workspaceTab===name?'page':undefined} onClick={()=>setWorkspaceTab(name)}>{['◎','▦','$','⌁','⇅','◉','◇'][index]}</button>)}
-        </nav>
-        <div className="rail-spacer" />
-        <span className={`system-dot ${health ? '' : 'offline'}`} title={health ? 'Runner online' : 'Runner offline'} />
-        <button className="avatar" aria-label="Local operator">DH</button>
-      </aside>
-
       <section className="workspace">
         <header className="topbar">
           <div>
@@ -336,10 +327,7 @@ export default function Home() {
           </div>
           <div className="top-actions">
             <TextSizeControl />
-            <input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden />
-            <button className="ghost-button" onClick={() => importRef.current?.click()} disabled={busy}>Import</button>
-            <button className="ghost-button export-button" onClick={exportJobs} disabled={!jobs.length}>Export</button>
-            <button className="primary-button" onClick={() => openNew()}><span>＋</span> New job</button>
+            {workspaceTab==='Operations'&&operationsTab==='Jobs'&&<><input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden /><button className="ghost-button" onClick={() => importRef.current?.click()} disabled={busy}>Import</button><button className="ghost-button export-button" onClick={exportJobs} disabled={!jobs.length}>Export</button><button className="primary-button" onClick={() => openNew()}><span>＋</span> New job</button></>}
           </div>
         </header>
 
@@ -350,10 +338,7 @@ export default function Home() {
         {workspaceTab==='Coverage'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industries'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP Economy'&&<ZipEconomyWorkspace stateCode={workspaceState}/>}
-        {workspaceTab==='Collection'&&<DataOperations/>}
-        {workspaceTab==='Connectors'&&<ConnectorCatalog/>}
-        {workspaceTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}
-        <div className="content-grid" hidden={workspaceTab!=='Jobs'}>
+        {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">
               <article className="metric-card">
@@ -467,7 +452,7 @@ export default function Home() {
               <div className="type-grid">{(Object.keys(jobMeta) as JobType[]).map((type) => <button key={type} onClick={() => openNew(type)}><i className={jobMeta[type].tone}>{jobMeta[type].short}</i><span>{jobMeta[type].label}</span></button>)}</div>
             </section>
           </aside>
-        </div>
+        </div></div></>}
         </div>
       </section>
 

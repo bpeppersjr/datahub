@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+import path from "node:path";import process from "node:process";
+import {buildZctaEconomicModelReadiness} from "../runner/zcta-economic-model-readiness.mjs";
+import {APP_ROOT,assertInsideApp} from "../runner/paths.mjs";
+const defaults={geography:"data/geography/current.json",bea:"data/business-baselines/bea-regional-gdp/current.json",crosswalk:"data/zcta-jurisdiction-crosswalk/current.json",zbp:"data/business-baselines/census-zbp/current.json",output:"data/zcta-economic-model-readiness"};
+function parse(args){const out={...defaults};for(let i=0;i<args.length;i++){const key=args[i];if(key==="--help")return {help:true};if(!["--geography","--bea","--crosswalk","--zbp","--output"].includes(key)||!args[i+1])throw new Error(`Invalid argument ${key}.`);out[key.slice(2)]=args[++i];}return out;}
+try{const o=parse(process.argv.slice(2));if(o.help){process.stdout.write("Build pointer-free ZCTA economic-model readiness. Options: --geography --bea --crosswalk --zbp --output\n");}else{const local=value=>assertInsideApp(path.resolve(APP_ROOT,value));const result=await buildZctaEconomicModelReadiness({geographyPath:local(o.geography),beaPath:local(o.bea),crosswalkPath:local(o.crosswalk),zbpPath:local(o.zbp),outputRoot:local(o.output)});process.stdout.write(`${JSON.stringify({release_id:result.manifest.release_id,manifest:path.join(result.releaseDirectory,"manifest.json"),coverage:result.manifest.coverage},null,2)}\n`);}}catch(error){process.stderr.write(`ZCTA economic-model readiness build failed: ${error.message}\n`);process.exitCode=1;}

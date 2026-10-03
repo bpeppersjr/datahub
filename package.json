@@ -85,6 +85,8 @@
     "nonemployer:industry-context:verify": "node scripts/verify-census-nonemployer-industry-context.mjs",
     "bea-regional-gdp:build": "node scripts/build-bea-regional-gdp.mjs",
     "bea-regional-gdp:verify": "node scripts/verify-bea-regional-gdp.mjs",
+    "zcta-economic-readiness:build": "node scripts/build-zcta-economic-model-readiness.mjs",
+    "zcta-economic-readiness:verify": "node scripts/verify-zcta-economic-model-readiness.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
     "usps-zips:build": "node scripts/build-usps-operational-zip-assignments.mjs",
