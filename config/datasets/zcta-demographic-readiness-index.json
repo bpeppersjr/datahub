@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-demographic-readiness-index",
+  "status": "registered-local-lookup-index",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "aggregate-public-context",
+  "retained_release": {
+    "release_id": "zcta-demographic-readiness-index-eaa415c4b89f2362e192f2d47a5511661f7b2440c3dd34db9bf85a1d130973ed",
+    "manifest": "data/zcta-demographic-readiness-index/releases/zcta-demographic-readiness-index-eaa415c4b89f2362e192f2d47a5511661f7b2440c3dd34db9bf85a1d130973ed/manifest.json",
+    "manifest_bytes": 15312,
+    "manifest_sha256": "8618e6d54ee560984ce883a13d68f9a9d1a88deb85c3c83c66c7357764480d12",
+    "source_release_id": "zcta-demographic-input-readiness-4f26ad46c785afc6b9e9044bce377af1d31eec0bfef9d7da0524c63ae05d7023",
+    "source_manifest": "data/zcta-demographic-input-readiness/releases/zcta-demographic-input-readiness-4f26ad46c785afc6b9e9044bce377af1d31eec0bfef9d7da0524c63ae05d7023/manifest.json",
+    "source_manifest_bytes": 1177,
+    "source_manifest_sha256": "00e6874f173b0e824a2f169b4b752861f52e48b50027df27b9f17cfb97b3d952",
+    "source_artifact_sha256": "ccabf08b9cd40f648a45f30077e48030c443230b7ea30cf1114b8f0f13b94817"
+  }
+}

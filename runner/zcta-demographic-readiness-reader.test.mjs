@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readZctaDemographicReadiness} from './zcta-demographic-readiness-reader.mjs';
+import {readFile} from 'node:fs/promises';
 
 test('reads the selected verified release and exposes only direct totals and blockers',async()=>{
  const view=await readZctaDemographicReadiness({zcta:'00601'});
@@ -18,4 +19,8 @@ test('preserves governed not-found semantics without zero or availability substi
 
 test('rejects malformed identities and honors cancellation before filesystem access',async()=>{
  await assert.rejects(readZctaDemographicReadiness({zcta:'601'}),/unavailable or incompatible/);const controller=new AbortController();controller.abort();await assert.rejects(readZctaDemographicReadiness({zcta:'00601',signal:controller.signal}),{name:'AbortError'});
+});
+
+test('uses a bounded shard and source-row slice rather than a full artifact scan',async()=>{
+ const code=await readFile(new URL('./zcta-demographic-readiness-reader.mjs',import.meta.url),'utf8');assert.match(code,/Reads one bounded index shard/);assert.match(code,/h\.read\(buffer/);assert.doesNotMatch(code,/createReadStream|readline/);
 });

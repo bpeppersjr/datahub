@@ -93,6 +93,8 @@
     "zcta-economic-readiness-index:verify": "node scripts/verify-zcta-economic-readiness-index.mjs",
     "zcta-demographic-readiness:build": "node scripts/build-zcta-demographic-input-readiness.mjs",
     "zcta-demographic-readiness:verify": "node scripts/verify-zcta-demographic-input-readiness.mjs",
+    "zcta-demographic-readiness-index:build": "node scripts/build-zcta-demographic-readiness-index.mjs",
+    "zcta-demographic-readiness-index:verify": "node scripts/verify-zcta-demographic-readiness-index.mjs",
     "business-temporal-claims:build": "node scripts/build-national-business-temporal-claim-matrix.mjs",
     "business-temporal-claims:verify": "node scripts/verify-national-business-temporal-claim-matrix.mjs",
     "zcta-economic-model-input-cohort:build": "node scripts/build-zcta-economic-model-input-cohort.mjs",
