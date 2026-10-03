@@ -21,6 +21,24 @@ function statusCounts(datasets, field, property) {
   return Object.fromEntries([...counts].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
 }
 
+function percent(numerator, denominator) {
+  return denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : null;
+}
+
+function comparableAvailability(availability) {
+  const { available, denominator, measured, unmeasured, measurement_status: measurementStatus } = availability;
+  return {
+    available,
+    measured,
+    missing_or_unknown: unmeasured,
+    denominator,
+    denominator_percent: percent(available, denominator),
+    measured_only_percent: percent(available, measured),
+    measurement_status: measurementStatus,
+    measure: "governed-dataset-availability-not-business-completeness",
+  };
+}
+
 function unavailable(status) {
   return { available: false, status, release_id: null, all_business_completion_percent: null, jurisdictions: [], category_summaries: [], selected: null, scope_comparison: scopeUnavailable() };
 }
@@ -90,6 +108,7 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
     return { code: jurisdiction.code, name: jurisdiction.name, available: cell.dataset_availability.available, denominator: cell.dataset_availability.denominator,
       measured: cell.dataset_availability.measured, unmeasured: cell.dataset_availability.unmeasured, measurement_status: cell.dataset_availability.measurement_status,
       percent: cell.dataset_availability.percent,
+      comparable_availability: comparableAvailability(cell.dataset_availability),
       temporal_status_counts: statusCounts(datasets, "temporal_status", "status"),
       authorization_state_counts: statusCounts(datasets, "authorization", "state"),
       broad_layer_gap: jurisdiction.categories.find((row) => row.category_id === "general-business")?.datasets[0]?.availability_status !== "available" };
@@ -106,7 +125,16 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
       expected: totals.expected + cell.dataset_availability.denominator,
     }), { available: 0, measured: 0, unmeasured: 0, expected: 0 });
     const stateCell = selectedJurisdiction?.categories.find((row) => row.category_id === categoryId) ?? null;
-    return { category_id: categoryId, national, selected_state: stateCell ? {
+    return { category_id: categoryId, national: {
+      ...national,
+      missing_or_unknown: national.unmeasured,
+      denominator_percent: percent(national.available, national.expected),
+      measured_only_percent: percent(national.available, national.measured),
+      states: report.jurisdictions.length,
+      states_fully_available: cells.filter((cell) => cell.dataset_availability.available === cell.dataset_availability.denominator).length,
+      states_with_missing_or_unknown: cells.filter((cell) => cell.dataset_availability.unmeasured > 0).length,
+      measure: "governed-dataset-availability-not-business-completeness",
+    }, selected_state: stateCell ? {
       code: selectedJurisdiction.code,
       name: selectedJurisdiction.name,
       available: stateCell.dataset_availability.available,
@@ -114,6 +142,7 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
       unmeasured: stateCell.dataset_availability.unmeasured,
       expected: stateCell.dataset_availability.denominator,
       measurement_status: stateCell.dataset_availability.measurement_status,
+      comparable_availability: comparableAvailability(stateCell.dataset_availability),
     } : null };
   });
   let adjacentEvidence=null;

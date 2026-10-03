@@ -43,6 +43,8 @@ import { readExactZipIndustryEvidence } from './national-exact-zip-industry-evid
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
 import { readZipIndustryDemographicCrossView } from './zip-industry-demographic-cross-view.mjs';
 import { zipIndustryDemographicCrossViewHttp } from './zip-industry-demographic-cross-view-http.mjs';
+import { readZipGdpSegmentationView } from './zip-gdp-segmentation-view.mjs';
+import { zipGdpSegmentationHttp } from './zip-gdp-segmentation-http.mjs';
 import { readBusinessIntelligenceReadiness } from './business-intelligence-readiness.mjs';
 import { businessIntelligenceReadinessHttp } from './business-intelligence-readiness-http.mjs';
 import { readNationalBusinessTemporalClaimMatrix } from './national-business-temporal-claim-matrix-reader.mjs';
@@ -803,6 +805,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/zip-industry-demographic-cross-view') {
       await zipIndustryDemographicCrossViewHttp(request,response,url,readZipIndustryDemographicCrossView,json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/zip-gdp-segmentation') {
+      await zipGdpSegmentationHttp(request,response,url,readZipGdpSegmentationView,json);
       return;
     }
     if (url.pathname === '/api/business-map/business-intelligence-readiness') {
