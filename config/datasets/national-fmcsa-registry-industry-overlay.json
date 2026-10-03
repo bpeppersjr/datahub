@@ -1,0 +1,20 @@
+{
+  "dataset_id": "national-fmcsa-registry-industry-overlay",
+  "schema_version": "1.0.0",
+  "title": "FMCSA registry transportation-industry membership overlay",
+  "status": "published-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "additive_to_generic_business_totals": false,
+  "retained_release": {
+    "release_id": "national-fmcsa-registry-industry-overlay-5a87d32aaf5d7e14ed5ec7d3478884199144a25feb25ae8be6ee54d5857faf83",
+    "manifest": "data/national-fmcsa-registry-industry-overlay/releases/national-fmcsa-registry-industry-overlay-5a87d32aaf5d7e14ed5ec7d3478884199144a25feb25ae8be6ee54d5857faf83/manifest.json",
+    "manifest_sha256": "0fa841e4f8e207c93a66fa9acb5ffb2a02aefb84fdf5625f64f079d9c22f59e2",
+    "membership_rows": 2195563,
+    "jurisdiction_rows": 56,
+    "zip5_denominator_rows": 48194,
+    "positive_zip5_rows": 35648
+  },
+  "required_datasets": ["fmcsa-active-us-company-census", "national-business-registry", "national-fmcsa-registrant-principal-office-coverage", "zip-denominator-gap-cohort"],
+  "documentation": "docs/NATIONAL-FMCSA-REGISTRY-INDUSTRY-OVERLAY.md"
+}
