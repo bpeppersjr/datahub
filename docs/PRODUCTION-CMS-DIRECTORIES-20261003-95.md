@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 95 is the current clean-repository successor after committing the governed childcare state-industry availability projection, exact-ZIP retained childcare panel, and complete ZCTA demographic-input readiness inventory.
+Plan 95 is superseded by Plan 96 after the governed national business temporal-claim matrix, ZIP denominator gap cohort, and ZCTA GDP allocation-method evaluation were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-95`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-95.json`
