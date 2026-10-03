@@ -1,0 +1,77 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "sd-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "SD",
+    "name": "South Dakota"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+  "reassessment_reason": "Current linked subscription form is BusinessUCC 20250807; distinguish full-database FTP from password-site update delivery.",
+  "access": {
+    "classification": "paid-bulk-contract-unresolved",
+    "bulk": "Published full Business Filings Database is $1,500; updates are $750 monthly or $250 weekly.",
+    "api": "Full purchases use FTP with emailed instructions; update ZIPs use a password-protected website. No supported public business API established.",
+    "search": "FAQ directs bulk users to the database request form; no entity queries submitted."
+  },
+  "fields": {
+    "published": false,
+    "summary": "The linked subscription form provides product/delivery terms but no data dictionary, stable-ID specification, status codebook or address schema."
+  },
+  "active_status_semantics": "FAQ describes active entities in good standing for certificates; that is not a bulk-file status vocabulary or evidence of operation.",
+  "statewide_completeness": "FAQ distinguishes full database, update subscriptions, new-entity listings and DBA listings. New filings alone cannot substitute for the complete registry.",
+  "address_zip": "The form's subscriber ZIP+4 boxes are not evidence of business-row ZIP coverage. Keep ZIP5 and ZIP4 separate; source address roles remain unresolved.",
+  "automation_terms_fees": "Provider approval, signed terms and funded PAD account precede delivery. No enrollment, payment or unattended access performed.",
+  "redistribution": "Agreement requires compliance with accompanying copyright notices and applicable use restrictions; intended retention and derived-publication rights remain unresolved.",
+  "temporal_refresh": "Form posts monthly updates first Sunday and weekly updates Sundays, subject to exceptions; updates begin the following period. Snapshot/delta and correction/deletion semantics are unverified.",
+  "citations": [
+    {
+      "url": "https://sdsos.gov/Business-Services/database-downloads.aspx",
+      "evidence": "Current official download page links the subscription form."
+    },
+    {
+      "url": "https://sdsos.gov/docs/ucc-docs/NEWBusinessUCCDatabaseSubscriptionForm.pdf",
+      "evidence": "Form 20250807 specifies prices, PAD, distinct delivery paths and update schedule."
+    },
+    {
+      "url": "https://sdsos.gov/business-services/corporations/contact.aspx",
+      "evidence": "FAQ distinguishes full registry, updates, new-entity and DBA products."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a contract checklist for the full business database and its updates: non-ordering schema, entity-ID lifecycle, status/address semantics, person-free projection, counts/checksums, replay/deletions, both delivery paths and reuse rights. HOLD remains; no PAD creation, signature, order or contact is authorized."
+}

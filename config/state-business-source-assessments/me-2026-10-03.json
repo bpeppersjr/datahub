@@ -1,0 +1,71 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "me-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "ME",
+    "name": "Maine"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-1-2026-09-03",
+  "publisher": "Maine Secretary of State through InforME",
+  "reassessment_reason": "Current catalog still bundles corporate and UCC full data, while the weekly corporate update is separately priced. Published subscriber agreement clarifies account obligations but supplies no corporate bulk schema or change contract.",
+  "access": {
+    "classification": "paid-mixed-full-product-contract-unverified",
+    "bulk": "Published monthly full products combine Corporate and UCC Records; Active/Inactive Corporate and UCC Records is a distinct listed option. Weekly Corporate Data is separate.",
+    "api": "No public supported corporate bulk API specification was established.",
+    "search": "Interactive name-search and filing services are separate from bulk delivery.",
+    "fees": "Monthly Corporate and UCC Records $600; Active/Inactive option $1,200; weekly Corporate Data $300. Complete corporate-only price and any subscriber charges remain unverified."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current corporate-only schema, file inventory, Charter Number lifecycle guarantee, status dictionary, counts, checksums or person-field inventory was established. Product names do not supply these contracts."
+  },
+  "active_status_semantics": "The existence of an Active/Inactive product does not define legal status codes or verify operating activity. Charter records cannot be treated as an establishment census.",
+  "statewide_completeness": "Coverage of all operational entities and exact differences between the two monthly products remain unresolved. No retained source release or current count was acquired.",
+  "address_zip": "Principal-office and ZIP coverage remains unverified. Future projection must separate ZIP5/ZIP4 and exclude personal, clerk and registered-agent fields from establishment claims.",
+  "automation_terms_fees": "Current subscriber agreement establishes account/payment and renewal obligations, privacy-law compliance and audited access. It does not document corporate transfer protocol, unattended download limits or corporate-only fulfillment.",
+  "redistribution": "The general agreement addresses use under applicable law; this review established neither a corporate-specific redistribution grant nor a blanket ban. Derived/publication terms remain unresolved.",
+  "temporal_refresh": "Monthly full and weekly update labels are published; insert/update/delete semantics, corrections, replays, encoding and delivery authenticity remain unverified.",
+  "citations": [
+    {
+      "url": "https://www.maine.gov/sos/corporations-commissions/bulk-data",
+      "evidence": "Current monthly mixed Corporate/UCC and weekly Corporate Data pricing."
+    },
+    {
+      "url": "https://www.maine.gov/informe/subscribers/services",
+      "evidence": "Bulk Data and Images listed as a subscription service separate from interactive corporate search."
+    },
+    {
+      "url": "https://www.maine.gov/informe/subscribers/sign-up/service-agreement",
+      "evidence": "General account obligations, use limitations and renewal terms; not accepted."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-4.json"
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a corporate-only contract review rather than treating UCC-inclusive monthly data as admissible business evidence. Resolve product scope, schema, Charter Number lifecycle, status/address meaning, delivery/update controls, total price and derived rights before any authorized order. No publisher contact, account, agreement, purchase, source download or production action is authorized."
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "wv-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "WV",
+    "name": "West Virginia"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+  "publisher": "West Virginia Secretary of State",
+  "reassessment_reason": "Current legislation adds eligible biennial reporting; source freshness must account for that election. Public registration links now lead to an AccessGov form, so historic request-form pricing is not revalidated.",
+  "access": {
+    "classification": "paid-account-bulk-contract-required",
+    "bulk": "Monthly full registry and separate daily, weekly and monthly new-company products are documented. These are not documented all-change streams.",
+    "api": "No supported public registry API established.",
+    "fees": "Current statute lists $12,000 for the full database and $1,000/month for updates. Historical assessment price conflicts are unresolved because the current request form was not inspectable."
+  },
+  "fields": {
+    "published": true,
+    "summary": "The December 2009 layout documents nine tilde-delimited files with headers and Recordid joins. Corporations contains names, formation/filing dates and termination fields. Addresses is described as officer information with ContactType and ZipCode, not a verified operating-site table. Current schema continuity is unverified."
+  },
+  "active_status_semantics": "Do not infer current business operation from filing status or missing annual reports. Effective July 1, 2026, qualifying entities may elect biennial reports after five consecutive timely annual filings while in good standing. Current status codebooks and election fields remain unverified.",
+  "statewide_completeness": "Registry entities and physical establishments are distinct populations. No acquired release or reconciled control total was established.",
+  "address_zip": "Keep future ZIP5 and ZIP4 separate. The old address layout does not establish an organization-only physical address selection; exclude officer/contact and service-of-process addresses.",
+  "automation_terms_fees": "WV.gov credentials, Monthly Account Holder Agreement and source subscription are required. Request and resale links redirected to AccessGov; no form was submitted. Unattended retrieval terms remain unresolved.",
+  "redistribution": "Registration requires a separate commercial resale contract for resale. This review does not grant retention, geocoding, aggregation or public export rights.",
+  "temporal_refresh": "Monthly snapshots plus new-company extracts do not establish update/deletion replay. Biennial election prevents interpreting every missing annual filing as lapse. Counts, checksums, corrections and tombstones remain unresolved.",
+  "citations": [
+    {
+      "url": "https://apps.wv.gov/sos/bulkdata/RegistrationInformation.aspx",
+      "evidence": "Account, agreement, purchase and commercial resale prerequisites; both request/resale links redirected to AccessGov during review."
+    },
+    {
+      "url": "https://apps.wv.gov/sos/bulkdata/Forms/FileDescriptions.aspx",
+      "evidence": "Monthly All Companies and new-company daily/weekly/monthly products."
+    },
+    {
+      "url": "https://apps.wv.gov/sos/bulkdata/Content/BED_FileInformation.pdf",
+      "evidence": "Dated nine-file layout and address-role ambiguity, read as documentation only."
+    },
+    {
+      "url": "https://code.wvlegislature.gov/59-1-2A/",
+      "evidence": "Current subsection (j) database/update prices and July 2026 biennial-report provisions."
+    },
+    {
+      "url": "https://sos.wv.gov/business",
+      "evidence": "Current official directory still links bulk and custom-list services."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-4-wave-3.json"
+  ],
+  "unresolved_gates": [
+    "current-price-contract",
+    "current-schema-continuity",
+    "identifier-lifecycle",
+    "status-and-biennial-election",
+    "organization-address-role",
+    "change-replay",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a document-only inquiry covering the current request/resale terms, price reconciliation, schema continuity, biennial-election/status mapping, organization-only address roles and full-change replay. HOLD persists; this record authorizes no contact, account, payment, rows or connector."
+}

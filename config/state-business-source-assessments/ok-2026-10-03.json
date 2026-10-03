@@ -1,0 +1,74 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "ok-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "OK",
+    "name": "Oklahoma"
+  },
+  "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03",
+  "publisher": "Oklahoma Secretary of State",
+  "reassessment_reason": "The September HOLD predates the implemented offline parser and standalone application operation. Current public documentation still supports its structural contract; a new connector is unnecessary. This review establishes no retained publisher package or production admission.",
+  "access": {
+    "classification": "paid-bulk-with-existing-offline-connector",
+    "bulk": "Monthly complete tilde-delimited database with 19 relational record types; weekly files contain the corresponding week's filings using the same structure.",
+    "api": "No supported credentialless acquisition API was established.",
+    "search": "Custom XHTML reports are a separate paid product filtered by entity type, registration period or ZIP prefix.",
+    "fees": "Master $500; weekly update $150; custom report $1 per 40 records."
+  },
+  "fields": {
+    "published": true,
+    "summary": "Published layout includes 10-character Filing Number, Status ID, Corp Type ID, Address ID, dates, type-02 addresses, type-11/type-12 lookup labels, and a type-99 trailer with process date and 18 type counts. Existing parser validates widths, joins and trailer counts."
+  },
+  "active_status_semantics": "Status descriptions are source-native legal filing facts. No approved mapping to currently operating establishments or identifier lifecycle guarantee was established.",
+  "statewide_completeness": "Advertised complete registry database is not a census of physical operating businesses. No current control total or source release was acquired.",
+  "address_zip": "Type-02 publishes Zip Code and Zip Extension independently. The local parser retains administrative addresses and ZIP5/ZIP4 separately; these are not verified physical sites.",
+  "automation_terms_fees": "Paid download route and public schema do not specify unattended transfer permission, retry limits or current-version guarantees.",
+  "redistribution": "Official disclaimer allows agency sharing of public filings subject to redactions and warns about accuracy/timeliness. It does not settle commercial bulk derivative rights. Existing minimized outputs remain local-review-only.",
+  "temporal_refresh": "Monthly and weekly product frequencies are published; deletion, correction, replay and source checksum guarantees remain unresolved.",
+  "citations": [
+    {
+      "url": "https://www.sos.ok.gov/corp/bulkorder/bulkDefault.aspx",
+      "evidence": "HTTP 200 public product and pricing documentation; no order or sample requested."
+    },
+    {
+      "url": "https://www.sos.ok.gov/corp/bulkorder/BulkOrderFileLayoutLegalEntity.htm",
+      "evidence": "HTTP 200 schema-only layout and trailer fields."
+    },
+    {
+      "url": "https://www.sos.ok.gov/feedback/disclaimer.aspx",
+      "evidence": "HTTP 200 agency public-record sharing, personal-data redaction and accuracy notice."
+    }
+  ],
+  "local_evidence": [
+    "runner/ok-business-bulk-offline.mjs",
+    "runner/ok-business-bulk-app.mjs",
+    "config/connectors/ok-business-bulk-app.json",
+    "config/source-policies/ok-business-entities-bulk.json",
+    "docs/OK-BUSINESS-BULK-OFFLINE.md"
+  ],
+  "unresolved_gates": [
+    "current-schema-continuity",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Reuse the existing offline/app implementation. Before any paid acquisition, resolve current schema continuity, Filing Number lifecycle, weekly replay semantics, status/address meaning, transfer permission and derived-use rights. No contact, purchase, download, account, terms acceptance or production action is authorized by this evidence."
+}

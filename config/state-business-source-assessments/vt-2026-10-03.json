@@ -1,0 +1,79 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "vt-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "VT",
+    "name": "Vermont"
+  },
+  "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03",
+  "publisher": "Vermont Secretary of State",
+  "reassessment_reason": "February 2026 official testimony confirms current/historical registration bulk availability and feeds still in development. The public bulk URL still returns an application shell, leaving the actual acquisition and schema contract unverified.",
+  "access": {
+    "classification": "official-bulk-availability-contract-unverified",
+    "bulk": "Official February 17, 2026 testimony says a bulk download is available. Anonymous HTTP 200 response at the bulk route contains the application shell, not a documented immutable data file.",
+    "api": "Official testimony describes data feeds as in development; no current public API specification was established.",
+    "search": "SOS public-record and copies pages direct users to the online Business Service Center.",
+    "fees": "Current product price unverified. Published 3 V.S.A. 118(c) includes authority for data sales effective July 1, 2025; that provision is not a price schedule."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current bulk field dictionary, record identifier lifecycle, status/address codebook, file controls or machine-readable release manifest was established by the reviewed pages."
+  },
+  "active_status_semantics": "Testimony explicitly includes current and historic registrations; a bulk download cannot be assumed to contain only active businesses.",
+  "statewide_completeness": "Registry scope is not an establishment census. No current full-extract count, inclusion/exclusion contract or verified retained release was established.",
+  "address_zip": "No bulk address-role or ZIP completeness guarantee established. Any future projection must separate ZIP5/ZIP4 and avoid treating registered offices as business sites.",
+  "automation_terms_fees": "No anonymous supported unattended transfer contract, rate limit, current fee or account requirement was verified. Availability testimony does not authorize portal automation.",
+  "redistribution": "No product-specific retention or derivative/export rights contract was established in reviewed documentation. Legislative revenue authority does not itself answer those questions.",
+  "temporal_refresh": "No verified current refresh interval, snapshot identity, correction/deletion contract or checksum continuity. Earlier historical weekly descriptions are not current production proof.",
+  "citations": [
+    {
+      "url": "https://bizfilings.vermont.gov/bulk-download",
+      "evidence": "Read-only HTTP 200 application shell; no portal execution or file request."
+    },
+    {
+      "url": "https://legislature.vermont.gov/Documents/2026/Workgroups/Senate%20Institutions/State%20Agencies/Secretary%20of%20State/W~Sarah%20Copeland%20Hanzas~Senate%20Institutions%20Presentation%20-%20Secretary%20Of%20State%20Data~2-17-2026.pdf",
+      "evidence": "Page 4: current/historic business registration data, bulk available, feeds in development."
+    },
+    {
+      "url": "https://legislature.vermont.gov/statutes/section/03/005/00118",
+      "evidence": "Published statutory text provides optional-services data-sales authority, not actual current bulk pricing."
+    },
+    {
+      "url": "https://sos.vermont.gov/secretary-of-state-services/records-officer",
+      "evidence": "Official indexed public-record access routes; direct web-tool fetch failed, no request submitted."
+    },
+    {
+      "url": "https://sos.vermont.gov/business-services/copies-certificates",
+      "evidence": "Official indexed copies/search guidance; direct web-tool fetch failed."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-revalidation-2026-09-03.json"
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Retain HOLD pending a current schema-only bulk contract: scope, price/account requirements, Record Number lifecycle, status/address definitions, counts, timestamps, refresh semantics, supported transfer and derivative rights. Existing testimony proves product availability only; no account, request, acquisition, portal automation or production action is authorized."
+}

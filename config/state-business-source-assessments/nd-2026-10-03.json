@@ -1,0 +1,71 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "nd-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "ND",
+    "name": "North Dakota"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+  "publisher": "North Dakota Secretary of State",
+  "reassessment_reason": "Distinguish active-only initial inventory, new-record subscription and all-record subscription before selecting a maintenance strategy.",
+  "access": {
+    "classification": "paid-firststop-excel-contract-required",
+    "bulk": "Excel delivery through FirstStop requires ND Login. Active one-time lists and new-record subscriptions cost $40 per selected type; the latter is monthly. All active/inactive business and trademark records cost $1,440/month.",
+    "api": "No supported public bulk API documented."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Official sample links exist but were not fetched or parsed in this review. Their stated purpose is illustrating fields, not proving source contents."
+  },
+  "active_status_semantics": "The active product and all-record product have different populations; a new-record subscription cannot establish later closures or corrections.",
+  "statewide_completeness": "Unknown until business types, exclusions and control totals are reconciled.",
+  "address_zip": "Address roles remain unverified. Preserve ZIP5/ZIP4 separately; do not infer operating sites.",
+  "automation_terms_fees": "No account, purchase or terms acceptance occurred. Automated delivery is unverified.",
+  "redistribution": "No use or export rights established.",
+  "temporal_refresh": "Full-replacement, update, deletion and checksum contracts remain unresolved.",
+  "citations": [
+    {
+      "url": "https://www.sos.nd.gov/services/data-list-requests",
+      "evidence": "Product populations, Excel delivery, login, pricing and sample limitations."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-4-wave-3.json"
+  ],
+  "unresolved_gates": [
+    "business-type-scope",
+    "current-schema",
+    "identifier-lifecycle",
+    "active-predicate",
+    "address-role",
+    "change-replay",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare product-selection questions focused on business-only coverage and change handling. HOLD persists; no source or action authority."
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "nc-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "NC",
+    "name": "North Carolina"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-5-wave-1-2026-09-03",
+  "publisher": "North Carolina Secretary of State",
+  "reassessment_reason": "Current official search notice expressly prohibits scripted searches and directs bulk users to subscriptions. Indexed official documentation supports the bulk route but direct document reads failed; current schema remains unpinned.",
+  "access": {
+    "classification": "paid-weekly-relational-csv-subscription",
+    "bulk": "Official About the Data describes weekly CSV with a relational dictionary on the FTP server, including registered entities and name reservations.",
+    "api": "No documented public REST bulk API established; FTP subscription is the published route.",
+    "search": "Automated or scripted use of the interactive search is explicitly prohibited.",
+    "fees": "Indexed official fee manual lists $750 setup and $2,000 per state fiscal year for Business Registration master files."
+  },
+  "fields": {
+    "published": true,
+    "summary": "Indexed official layout identifies PItemId joins and separate OfficeAddressID, OfficeMailingID and AgentEntityID roles. Direct PDF retrieval failed. Historical assessment retains the older layout's CorpNum uniqueness caveat; current schema continuity and identifier lifecycle are not verified."
+  },
+  "active_status_semantics": "Registration status is not proof of operation. Resolve the current status dictionary and effective dates before mapping active entities.",
+  "statewide_completeness": "Name reservations and administrative filings are not establishments; no state business denominator or source release was acquired.",
+  "address_zip": "Office and mailing roles must remain distinct; exclude registered-agent and person-linked addresses. ZIP5 and ZIP4 remain separate.",
+  "automation_terms_fees": "Subscription access and interactive search have distinct contracts. The explicit search restriction rules out a fallback scrape; current unattended FTP terms are still unresolved.",
+  "redistribution": "No new publication, commercial derived-use, geocoding or redistribution rights established.",
+  "temporal_refresh": "Weekly publication is documented; atomic replacement, full/delta continuity, corrections, deletions, counts and checksums remain unverified.",
+  "citations": [
+    {
+      "url": "https://www.sosnc.gov/divisions/business_registration",
+      "evidence": "Official indexed notice prohibits automated searches and directs bulk access to subscriptions."
+    },
+    {
+      "url": "https://www.sosnc.gov/online_services/data_subscriptions/about_the_data",
+      "evidence": "Indexed official weekly CSV/FTP description, registry population and name reservations."
+    },
+    {
+      "url": "https://www.sosnc.gov/manual/data_subscriptions/Page7",
+      "evidence": "Indexed official setup and annual master-file subscription prices."
+    },
+    {
+      "url": "https://www.sosnc.gov/documents/forms/Data_Subcriptions/Business_Registration_layout.pdf",
+      "evidence": "Indexed official relational field roles; direct fetch unavailable during review."
+    },
+    {
+      "url": "https://www.sosnc.gov/manual/assets/sos/pdf/data_subscriptions.pdf",
+      "evidence": "Direct fetch returned 403; indexed manual reconfirms weekly CSV and dictionary availability."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-5.json"
+  ],
+  "unresolved_gates": [
+    "current-schema-continuity",
+    "identifier-lifecycle",
+    "status-codebook",
+    "address-role",
+    "change-replay",
+    "subscription-automation",
+    "agreement-rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a document-only request for the current unsigned subscription contract, current dictionary and person-free schema proof, PItemId lifecycle, exact organization-address roles and snapshot/change contract. HOLD persists; interactive scripted search is prohibited and no inquiry, subscription or acquisition is authorized."
+}

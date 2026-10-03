@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "ri-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "RI",
+    "name": "Rhode Island"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+  "reassessment_reason": "Current directly retrieved agreement is revised 12/2025; indexed 09/2023 text is stale. Distinguish current subscriptions from the August 2007 weekly layout.",
+  "access": {
+    "classification": "paid-bulk-contract-unresolved",
+    "bulk": "TXT one-time products cost $250 active and $50 inactive. Annual corporate subscriptions are $3,000 active or $3,600 active/inactive.",
+    "api": "The current agreement specifies SFTP with a maintained static IP, credentials after payment and executed agreement; no public API established.",
+    "search": "Public search identifies 9-digit entity IDs and 12-digit filing numbers. No queries submitted."
+  },
+  "fields": {
+    "published": false,
+    "summary": "The weekly export layout dated 2007-08-15 has corp_id, entity/date fields and agent/officer addresses. It cannot establish the current subscription layout or an operating-site address."
+  },
+  "active_status_semantics": "The 12/2025 agreement's Active product includes good standing, 60-day revocation notices and entities revoked less than one year. Inactive includes longer revocations and merged/cancelled/withdrawn/dissolved/expired entities. Active is not operating-business evidence.",
+  "statewide_completeness": "Product scope and identifiers require current file-level validation. Trade names are a distinct product and not interchangeable with corporate entities.",
+  "address_zip": "Preserve business, agent and officer address roles; exclude person-role rows from business projections. Keep ZIP5/ZIP4 separate and do not infer physical sites.",
+  "automation_terms_fees": "Static-IP SFTP setup is a concrete prerequisite, not authorization for app retrieval. No agreement, payment or account action taken.",
+  "redistribution": "Agreement addresses subscriber dissemination and liability for introduced errors; precise intended derivative-use scope still needs review.",
+  "temporal_refresh": "Agreement says corporate data posted daily; HTML table also marks monthly. Snapshot/delta behavior, deletions and checksums remain unresolved despite known posting cadence.",
+  "citations": [
+    {
+      "url": "https://www.sos.ri.gov/divisions/business-services/business-data-hub/data-subscription",
+      "evidence": "TXT product prices and subscription table."
+    },
+    {
+      "url": "https://docs.sos.ri.gov/documents/BusinessServices/Subscriber_Agreement.pdf",
+      "evidence": "Direct retrieval: revision 12/2025, static-IP SFTP and product/status definitions."
+    },
+    {
+      "url": "https://business.sos.ri.gov/corp/WeeklyCorpExport/filestructure.htm",
+      "evidence": "Historical tab-delimited layout dated August 15, 2007; no proof of current compatibility."
+    },
+    {
+      "url": "https://business.sos.ri.gov/CorpWeb/CorpSearch/CorpSearch.aspx",
+      "evidence": "Official search identifies entity and filing-number input widths."
+    },
+    {
+      "url": "https://www.sos.ri.gov/divisions/business-services/search-assistance-corporate-database",
+      "evidence": "Previously cited assistance route redirects to Page Not Found."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a current-versus-2007 schema compatibility checklist and clarify daily/monthly products, full/delta and tombstone controls, ID lifecycle and person-free address projection. Use the published Active definition and static-IP requirement; HOLD remains and no order or contact is authorized."
+}

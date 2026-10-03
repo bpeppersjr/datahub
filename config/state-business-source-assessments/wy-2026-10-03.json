@@ -1,0 +1,73 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "wy-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "WY",
+    "name": "Wyoming"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-1-2026-09-03",
+  "reassessment_reason": "Confirm the paid product and narrow delivery uncertainty to its published monthly Google Drive workflow; schema and replay remain unresolved.",
+  "access": {
+    "classification": "paid-bulk-contract-unresolved",
+    "bulk": "The May 2021 agreement offers $850 for one month (maximum two per year), $5,100 for six months, or $10,200 yearly.",
+    "api": "No public bulk API contract established by the reviewed official material.",
+    "search": "The FAQ directs bulk users to subscription; no entity searches were submitted."
+  },
+  "fields": {
+    "published": false,
+    "summary": "FAQ lists entity status, standing, mailing addresses and person-role content. Agreement describes filings, parties and public annual reports without a field dictionary."
+  },
+  "active_status_semantics": "Status and standing are advertised but their vocabulary and dates remain unverified; registration does not establish current operation.",
+  "statewide_completeness": "No subtype inventory, release count or completeness control was inspected. Corporate registration is not every operating establishment.",
+  "address_zip": "Mailing and registered-agent addresses must retain distinct roles. Keep ZIP5 and ZIP4 separate; no physical-site or coordinate inference.",
+  "automation_terms_fees": "Signed form, advance payment and SOS approval precede access; link sharing is prohibited. Supported unattended retrieval remains unresolved.",
+  "redistribution": "The agreement restricts misleading, fraudulent and unlawful use; the reviewed material does not settle the intended derivative publication scope.",
+  "temporal_refresh": "Delivery is last Friday monthly via emailed Google Drive ZIP link, available seven calendar days. Full-versus-delta, corrections, deletions and replay controls are unspecified.",
+  "citations": [
+    {
+      "url": "https://sos.wyo.gov/FAQS.aspx?root=BUS",
+      "evidence": "Official FAQ identifies paid bulk access and broad information groups."
+    },
+    {
+      "url": "https://sos.wyo.gov/Forms/Business/General/WYSOS-BusinessDatabaseDownload.pdf",
+      "evidence": "May 2021 agreement defines price, prerequisites, monthly delivery and limited link availability."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a clarification against the known delivery workflow for current schema, identifiers, statuses, address roles, person-free projection, release controls, seven-day recovery and automation/derived-use rights. HOLD remains; no subscription or contact is authorized."
+}

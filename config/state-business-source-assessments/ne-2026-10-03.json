@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "ne-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "NE",
+    "name": "Nebraska"
+  },
+  "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03",
+  "publisher": "Nebraska Secretary of State through Nebraska.gov",
+  "reassessment_reason": "Differentiate the documented special-request CSV from the recurring fixed-width FTP batch. The migration FAQ now expressly describes a future account-required bulk route without a Nebraska.gov subscription; it does not prove that route is live or free.",
+  "access": {
+    "classification": "paid-legacy-batch-with-announced-account-migration",
+    "bulk": "Subscriber service describes full fixed-width multi-file FTP deliveries. Separate special-request CSV supplies selected matches.",
+    "api": "No public supported business-entity API contract was established.",
+    "search": "Special-request form supports entity type, registration date, keyword, city or ZIP filters; no query was submitted.",
+    "fees": "Legacy contract: $800 per monthly delivery, $500 per delivery twice monthly, or $300 per weekly delivery; six-month minimum. Subscriber account $100/year. Special-request CSV $15/1,000 records. Replacement bulk price unverified."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Batch schema remains unpublished. The special-request CSV page lists entity name, principal/designated office address and Nature of Business where available; it explicitly excludes officers/directors and registered agents. The subscriber summary instead mentions officer name, an unresolved documentation conflict. Neither establishes a batch schema or stable identifier."
+  },
+  "active_status_semantics": "No complete current status codebook or production status mapping was established. Special-request criteria are not evidence of operational activity.",
+  "statewide_completeness": "Full set refers to the SOS registry. Neither product proves all operating businesses, physical sites or a current count.",
+  "address_zip": "CSV office locations may be in or outside Nebraska; entity-office and registered-agent searches are separate. ZIP coverage and address roles for the batch remain unresolved; future normalization must retain ZIP5/ZIP4 separately.",
+  "automation_terms_fees": "Legacy agreement specifies FTP retrieval and six-month commitment. General site terms restrict automated copying without prior written permission. Replacement FAQ says the Nebraska.gov subscription will no longer be needed for bulk when live, but a new account is required; no account was created.",
+  "redistribution": "General site terms restrict commercial reuse, redistribution and derivatives. Their application alongside a product-specific batch agreement and replacement system needs resolution; no redistribution grant is asserted.",
+  "temporal_refresh": "Weekly/twice-monthly/monthly batch schedules are documented. Replacement is anticipated before end of 2026; exact cutover, layouts, identifier crosswalk, overlap and correction/deletion handling remain unverified.",
+  "citations": [
+    {
+      "url": "https://www.nebraska.gov/subscriber/",
+      "evidence": "Legacy full fixed-width FTP service and conflicting special-request summary."
+    },
+    {
+      "url": "https://www.nebraska.gov/subscriber/pdf/corp-data-bulk-contract.pdf",
+      "evidence": "Per-delivery fees, six-month minimum and FTP-only legacy agreement."
+    },
+    {
+      "url": "https://www.nebraska.gov/apps-subscriber-form/",
+      "evidence": "Annual subscriber fee published; form not submitted."
+    },
+    {
+      "url": "https://www.nebraska.gov/SpecialRequestSearches/index.cgi",
+      "evidence": "Read-only landing-page criteria, CSV fields and explicit excluded people/agent fields."
+    },
+    {
+      "url": "https://sos.nebraska.gov/new-online-business-filing-system",
+      "evidence": "Future bulk route removes legacy subscription requirement but requires account; exact launch unconfirmed."
+    },
+    {
+      "url": "https://www.nebraska.gov/policies/",
+      "evidence": "General commercial-use and automated-copying restrictions."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-revalidation-2026-09-03.json"
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "platform-migration",
+    "conflicting-product-descriptions"
+  ],
+  "strongest_next_action": "Prioritize the replacement system's published bulk contract and migration notices before considering a six-month legacy commitment. Resolve CSV field conflicts and batch schema independently; require identifier crosswalk, status/address definitions, counts, transfer terms and derived-use scope. No account, order, query, source contact, automation or production change is authorized."
+}
