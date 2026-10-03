@@ -36,6 +36,8 @@ import { readZctaEconomicReadiness } from './zcta-economic-readiness-reader.mjs'
 import { zctaEconomicReadinessHttp } from './zcta-economic-readiness-http.mjs';
 import { readZctaDemographicReadiness } from './zcta-demographic-readiness-reader.mjs';
 import { zctaDemographicReadinessHttp } from './zcta-demographic-readiness-http.mjs';
+import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet.mjs';
+import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
 import { readExactZipIndustryEvidence } from './national-exact-zip-industry-evidence-matrix.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
 import { readBusinessIntelligenceReadiness } from './business-intelligence-readiness.mjs';
@@ -774,6 +776,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/zcta-demographic-readiness') {
       await zctaDemographicReadinessHttp(request,response,url,readZctaDemographicReadiness,json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/zcta-gdp-model-approval-packet') {
+      await zctaGdpModelApprovalPacketHttp(request,response,url,readZctaGdpModelApprovalPacket,json);
       return;
     }
     if (url.pathname === '/api/business-map/exact-zip-industry-evidence') {
