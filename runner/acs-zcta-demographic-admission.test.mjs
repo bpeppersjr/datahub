@@ -7,8 +7,10 @@ import { once } from "node:events";
 import { APP_ROOT } from "./paths.mjs";
 import {
   demographicCellContract,
+  expectedDemographicCells,
   expectedVariables,
   inspectAcsZctaDemographicPrerequisites,
+  validateAcsZctaDemographicCandidateRow,
 } from "./acs-zcta-demographic-admission.mjs";
 
 test("production contract is fail-closed and replays the exact governed denominator", async () => {
@@ -66,6 +68,59 @@ test("cell contract preserves estimate, MOE, EA, MA, null and sentinel semantics
     percentages_emitted: false,
   });
   assert.throws(() => demographicCellContract("bad"), /base variable/);
+});
+
+test("offline candidate row validation is closed and preserves raw sentinels and annotations", async () => {
+  const config = JSON.parse(
+      await fs.readFile(
+        path.join(APP_ROOT, "config/acs-zcta-demographic-admission.json"),
+      ),
+    ),
+    variables = expectedDemographicCells(config),
+    cells = Object.fromEntries(
+      variables.map((variable) => [
+        variable,
+        {
+          estimate: "0",
+          margin_of_error: "12",
+          estimate_annotation: null,
+          margin_of_error_annotation: null,
+        },
+      ]),
+    );
+  cells.B01001_001 = {
+    estimate: "-666666666",
+    margin_of_error: "-222222222",
+    estimate_annotation: "source-sentinel",
+    margin_of_error_annotation: "source-sentinel",
+  };
+  const validated = validateAcsZctaDemographicCandidateRow(
+    {zcta: "00601", cells},
+    config,
+  );
+  assert.equal(variables.length, 189);
+  assert.deepEqual(validated.cells.B01001_001, cells.B01001_001);
+  assert.equal(validated.zcta, "00601");
+  assert.throws(
+    () =>
+      validateAcsZctaDemographicCandidateRow(
+        {zcta: "00601", cells: {...cells, EXTRA_001: cells.B01001_001}},
+        config,
+      ),
+    /cell roster/,
+  );
+  assert.throws(
+    () =>
+      validateAcsZctaDemographicCandidateRow(
+        {zcta: "00601", cells: {...cells, B02001_001: {...cells.B02001_001, estimate: 1}}},
+        config,
+      ),
+    /raw E\/M\/EA\/MA/,
+  );
+  assert.throws(
+    () => validateAcsZctaDemographicCandidateRow({zcta: "601", cells}, config),
+    /ZCTA identity/,
+  );
 });
 
 async function cli(args) {

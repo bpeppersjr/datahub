@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import { mnSelectionCanonical as canonical } from "./mn-construction-retained-selection.mjs";
 
-export const VERSION = "acs-zcta-demographic-admission-prerequisites@1.0.0";
+export const VERSION = "acs-zcta-demographic-admission-prerequisites@1.1.0";
 export const TABLES = Object.freeze(["B01001", "B02001", "B03002", "B04006"]);
 const fail = (message) => {
   throw new Error(`ACS ZCTA prerequisite inspection rejected: ${message}.`);
@@ -197,6 +197,43 @@ export function demographicCellContract(baseVariable) {
     missing_value: null,
     percentages_emitted: false,
   };
+}
+export function expectedDemographicCells(config) {
+  return TABLES.flatMap((table) => expectedVariables(config, table));
+}
+const rawNumeric = (value) =>
+  value === null ||
+  (typeof value === "string" && /^-?\d+(?:\.\d+)?$/.test(value));
+const rawAnnotation = (value) =>
+  value === null ||
+  (typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 64 &&
+    !/[\u0000-\u001f\u007f]/.test(value));
+export function validateAcsZctaDemographicCandidateRow(row, config) {
+  check(exact(row, ["zcta", "cells"]), "candidate row envelope");
+  check(/^\d{5}$/.test(row.zcta), "candidate ZCTA identity");
+  const expected = expectedDemographicCells(config);
+  check(exact(row.cells, expected), "candidate cell roster");
+  const cells = {};
+  for (const variable of expected) {
+    const value = row.cells[variable];
+    check(
+      exact(value, [
+        "estimate",
+        "margin_of_error",
+        "estimate_annotation",
+        "margin_of_error_annotation",
+      ]) &&
+        rawNumeric(value.estimate) &&
+        rawNumeric(value.margin_of_error) &&
+        rawAnnotation(value.estimate_annotation) &&
+        rawAnnotation(value.margin_of_error_annotation),
+      `candidate ${variable} raw E/M/EA/MA`,
+    );
+    cells[variable] = Object.freeze({...value});
+  }
+  return Object.freeze({zcta: row.zcta, cells: Object.freeze(cells)});
 }
 export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
   const root = path.resolve(options.root ?? APP_ROOT);
