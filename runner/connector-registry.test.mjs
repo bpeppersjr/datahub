@@ -134,16 +134,17 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(registry.get("usps-city-state-operational-denominator-candidate").implementation_status, "offline-local-candidate-only");
   assert.deepEqual(registry.get("usps-city-state-operational-denominator-candidate").allowed_hosts, []);
   assert.equal(registry.get("usps-city-state-operational-denominator-candidate").resource_class, "local-cpu-disk");
-  assert.equal(registry.get("acs-zcta-demographic-admission").implementation_status, "implemented-offline-prerequisite-inspection-only");
+  assert.equal(registry.get("acs-zcta-demographic-admission").implementation_status, "implemented-offline-local-review-admission");
   assert.deepEqual(registry.get("acs-zcta-demographic-admission").allowed_hosts, []);
-  assert.equal(registry.get("acs-zcta-demographic-admission").resource_class, "local-read-only-cpu-disk");
+  assert.equal(registry.get("acs-zcta-demographic-admission").resource_class, "local-cpu-disk");
   assert.deepEqual(registry.get("acs-zcta-demographic-admission").configuration_defaults, {config_path: "config/acs-zcta-demographic-admission.json"});
   const acsManifest = JSON.parse(await readFile(new URL("../config/connectors/acs-zcta-demographic-admission.json", import.meta.url), "utf8"));
   assert.equal(acsManifest.execution_limits.network_requests, 0);
   assert.equal(acsManifest.execution_limits.production_admission_enabled, false);
-  assert.equal(acsManifest.execution_limits.publication_enabled, false);
-  assert.equal(acsManifest.lifecycle_status.acquire, "disabled-no-network-or-source-ingestion");
-  assert.equal(acsManifest.lifecycle_status.publish, "disabled-no-release-or-current-pointer");
+  assert.equal(acsManifest.execution_limits.local_review_publication_enabled, true);
+  assert.equal(acsManifest.execution_limits.production_publication_enabled, false);
+  assert.equal(acsManifest.lifecycle_status.acquire, "disabled-network-local-package-copied-to-app-owned-operation-storage");
+  assert.equal(acsManifest.lifecycle_status.publish, "immutable-local-review-release-manifest-last-no-current-pointer");
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
   }

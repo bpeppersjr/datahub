@@ -52,7 +52,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -183,6 +183,14 @@ export class ManagedOperations {
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Retained adoption requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('source-adoption',{sourceId:input.sourceId});}catch(error){this.reserved=false;throw error;}
+  }
+  async startAcsZctaDemographicAdmission(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'packageDirectory')?.value!=='string')throw invalid('ACS ZCTA admission requires only packageDirectory.');
+    const selected=path.resolve(APP_ROOT,input.packageDirectory),imports=path.join(APP_ROOT,'data','imports'),relative=path.relative(imports,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative))throw invalid('ACS ZCTA package must be a subdirectory of data/imports.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('ACS ZCTA admission requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('source-admission',{sourceId:'acs-zcta-demographics',packageDirectory:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -457,6 +465,7 @@ export class ManagedOperations {
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
       else if(record.kind==='source-adoption') {script=record.details.sourceId===CMS_NURSING_HOME_RETAINED_ADOPTION.sourceId?'scripts/adopt-cms-nursing-homes.mjs':'scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
+      else if(record.kind==='source-admission') {script='scripts/admit-acs-zcta-demographic-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -500,6 +509,14 @@ export class ManagedOperations {
         if(typeof execution.stdout!=='string'||execution.stdout.length>65536)throw new Error('Credential export descriptor unavailable.');
         const parsed=JSON.parse(execution.stdout);await this.#verifyCredentialExport(record,parsed,controller.signal);
         controller.signal.throwIfAborted();record.status='SUCCEEDED';
+      }
+      else if(record.kind==='source-admission'){
+        if(execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('ACS ZCTA admission did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout),expected=path.join(APP_ROOT,'data/acs-zcta-demographics/releases',descriptor.release_id,'manifest.json');
+        if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||Reflect.ownKeys(descriptor).length!==10||descriptor.status!=='admitted-local-review-only'||descriptor.verification_pending!==true||descriptor.manifest!==expected||descriptor.network_requests!==0||descriptor.current_pointer_written!==false||descriptor.production_enrollment!==false||typeof descriptor.cancellation_after_publication!=='boolean')throw Error('ACS ZCTA admission descriptor rejected.');
+        const {verifyOfflineAcsZctaRelease}=await import('./acs-zcta-demographic-offline-admission.mjs');const proof=await verifyOfflineAcsZctaRelease(descriptor.manifest);
+        if(proof.release_id!==descriptor.release_id||proof.manifest_sha256!==descriptor.manifest_sha256)throw Error('ACS ZCTA admission replay disagreed.');
+        record.result={sourceId:'acs-zcta-demographics',releaseId:descriptor.release_id,recordCount:descriptor.record_count,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,productionEnrollment:false,cancellationAfterPublication:controller.signal.aborted||descriptor.cancellation_after_publication};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)

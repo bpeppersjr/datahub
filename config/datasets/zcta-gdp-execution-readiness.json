@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-gdp-execution-readiness",
+  "status": "published-execution-readiness-hold",
+  "runtime_pointer": null,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "zcta-gdp-execution-readiness-757e0d4746c22bdb5153a35bf25a62dc10b7eb80cc545fe39af3c428bed2471c",
+    "manifest": "data/zcta-gdp-execution-readiness/releases/zcta-gdp-execution-readiness-757e0d4746c22bdb5153a35bf25a62dc10b7eb80cc545fe39af3c428bed2471c/manifest.json",
+    "manifest_sha256": "5ed3bbe7e2fa507fb20df55b0d1ec6dc147dc6fb68de80885194e9e6c3a66de8",
+    "manifest_bytes": 2777,
+    "created_at": "2026-10-03T17:08:17.162Z",
+    "artifact": {
+      "path": "zcta-execution-readiness.jsonl",
+      "bytes": 33985911,
+      "sha256": "d71a2a3c3dae40a7837b508f2ae952ef3ab0e8e8dbf69061c8f85bd3e50789eb",
+      "record_count": 33791
+    }
+  },
+  "claims": {"model_approved":false,"output_authorized":false,"numeric_gdp_emitted":false,"industry_gdp_emitted":false,"current_pointer_written":false,"production_enrollment":false}
+}

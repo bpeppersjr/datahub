@@ -47,6 +47,8 @@ import { readBusinessIntelligenceReadiness } from './business-intelligence-readi
 import { businessIntelligenceReadinessHttp } from './business-intelligence-readiness-http.mjs';
 import { readNationalBusinessTemporalClaimMatrix } from './national-business-temporal-claim-matrix-reader.mjs';
 import { nationalBusinessTemporalClaimMatrixHttp } from './national-business-temporal-claim-matrix-http.mjs';
+import { readZctaGdpExecutionReadiness } from './zcta-gdp-execution-readiness-reader.mjs';
+import { zctaGdpExecutionReadinessHttp } from './zcta-gdp-execution-readiness-http.mjs';
 import { cmsRetainedDirectoryZipHttp } from './cms-retained-directory-zip-http.mjs';
 import { retainedChildcareZipHttp } from './retained-childcare-zip-http.mjs';
 import { readZipOperationalAdmission } from './zip-inspector-governance.mjs';
@@ -531,13 +533,14 @@ const server = http.createServer(async (request, response) => {
       if (segments.length === 3 && request.method === 'GET' && endpoint === 'operations') {
         json(response, 200, await managedOperations.list()); return;
       }
-      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'organization-zip-evidence-exports', 'cohort-snapshots', 'source-prerequisites', 'source-adoptions', 'source-refresh-plans', 'source-refreshes', 'overture-acquisitions', 'overture-normalizations', 'ok-childcare-collections'].includes(endpoint)) {
+      if (segments.length === 3 && request.method === 'POST' && ['plan', 'collections', 'exports', 'organization-zip-evidence-exports', 'cohort-snapshots', 'source-prerequisites', 'source-adoptions', 'source-admissions', 'source-refresh-plans', 'source-refreshes', 'overture-acquisitions', 'overture-normalizations', 'ok-childcare-collections'].includes(endpoint)) {
         const input = await bodyJson(request);
         const result = endpoint === 'plan' ? await managedOperations.plan(input)
           : endpoint === 'collections' ? await managedOperations.startCollection(input)
             : endpoint === 'cohort-snapshots' ? await managedOperations.startCohortSnapshot(input)
             : endpoint === 'source-prerequisites' ? await managedOperations.startSourcePrerequisite(input)
             : endpoint === 'source-adoptions' ? await managedOperations.startSourceAdoption(input)
+            : endpoint === 'source-admissions' ? await managedOperations.startAcsZctaDemographicAdmission(input)
             : endpoint === 'source-refresh-plans' ? await managedOperations.sourceRefreshPlan(input)
             : endpoint === 'source-refreshes' ? await managedOperations.startSourceRefresh(input)
             : endpoint === 'ok-childcare-collections' ? await managedOperations.startOkRetainedCollection(input)
@@ -746,6 +749,9 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/temporal-claim-matrix') {
       await nationalBusinessTemporalClaimMatrixHttp(request,response,url,readNationalBusinessTemporalClaimMatrix,json);return;
+    }
+    if (url.pathname === '/api/business-map/zcta-gdp-execution-readiness') {
+      await zctaGdpExecutionReadinessHttp(request,response,url,readZctaGdpExecutionReadiness,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/state-access'){
       if([...url.searchParams.keys()].some(key=>!['state','industry'].includes(key))||['state','industry'].some(key=>url.searchParams.getAll(key).length!==1)){json(response,400,{error:'Unsupported or repeated state-access option.'});return;}
