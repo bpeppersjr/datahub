@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zcta-gdp-allocation-method-evaluation",
+  "status": "published-research-evaluation-only",
+  "release_only": true,
+  "runtime_pointer": null,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "national_denominator_enrollment": false,
+  "retained_release": {
+    "release_id": "zcta-gdp-allocation-method-evaluation-aa4cac3bcc668d80f2245e40b50da267db3642b694eb03984451017006e0cf65",
+    "manifest": "data/zcta-gdp-allocation-method-evaluation/releases/zcta-gdp-allocation-method-evaluation-aa4cac3bcc668d80f2245e40b50da267db3642b694eb03984451017006e0cf65/manifest.json",
+    "manifest_sha256": "ed84cd953807d447901edb15bc0c4386587c80ac565b8246a88d062219134b92",
+    "manifest_bytes": 3376,
+    "created_at": "2026-10-03T07:10:57.004Z",
+    "relationships": 65631,
+    "counties": 3091,
+    "relationship_artifact_sha256": "d3c1a5c92cc4b12d6b2affd65257c8ab16deee91aba89bc3db664295a2474a19",
+    "county_diagnostics_sha256": "9370a614bedd753e05c26f912d4bec7d2bfe5f827660e7415ed4ebdd24691282"
+  },
+  "claims": {
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "national_denominator_enrollment": false,
+    "official_usps_zip": false,
+    "model_approved": false,
+    "numeric_gdp_emitted": false,
+    "demographic_slices_emitted": false,
+    "active_business_claims": false
+  }
+}

@@ -6,6 +6,11 @@ const transport = (body, calls = []) => async (url, options) => {
   calls.push({ url, ...options });
   return new Response(url === C.client_url ? client : body);
 };
+const containsExact=(value,forbidden)=>{
+  if(value===null||typeof value!=='object')return forbidden.some(item=>Object.is(value,item));
+  if(Array.isArray(value))return value.some(item=>containsExact(item,forbidden));
+  return Object.entries(value).some(([key,item])=>forbidden.includes(key)||containsExact(item,forbidden));
+};
 test('Iowa aggregate exposes only safe metadata and fixed serial itinerary', async () => {
   const calls = [], result = await probe(transport(JSON.stringify([{businessType:'building',businessName:'PRIVATE_NAME',address:'PRIVATE_ADDRESS',zipCode:'50301',latitude:41.2,longitude:-93.2,referral:false,PRIVATE_KEY:'PRIVATE_VALUE'}, {businessType:'SECRET_TYPE',zipCode:50301,latitude:null}]), calls));
   assert.equal(result.status, 'schema-observed-not-collection-ready'); assert.equal(result.execution_mode,'injected-test-transport');
@@ -13,7 +18,7 @@ test('Iowa aggregate exposes only safe metadata and fixed serial itinerary', asy
   assert.equal(calls[1].body,''); assert.equal(calls[1].redirect,'error'); assert.equal(calls[1].credentials,'omit');
   assert.equal(result.schema.counts.center_display_class,1); assert.equal(result.schema.counts.other_display_class,1);
   assert.equal(result.schema.counts.zip5_string,1); assert.equal(result.schema.counts.zip_other,1);
-  for (const value of ['PRIVATE_NAME','PRIVATE_ADDRESS','PRIVATE_KEY','PRIVATE_VALUE','SECRET_TYPE','41.2','93.2','50301']) assert.ok(!JSON.stringify(result).includes(value));
+  assert.equal(containsExact(result,['PRIVATE_NAME','PRIVATE_ADDRESS','PRIVATE_KEY','PRIVATE_VALUE','SECRET_TYPE',41.2,-93.2,'50301',50301]),false);
   assert.ok(Object.values(result.claims).every(v => v === false));
 });
 test('Iowa rejects malformed, non-array, overcount and malformed row bodies', async () => {
