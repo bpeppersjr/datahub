@@ -1,13 +1,27 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import test from "node:test";
 
 import { broadOrganizationCurrentAuthorizationChainHttp } from "./broad-organization-current-authorization-chain-http.mjs";
 import { deriveWeakestComparableDiagnosticBatch, loadBroadOrganizationCurrentAuthorizationChainManagementView } from "./broad-organization-current-authorization-chain-view.mjs";
+import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
+
+async function newestProjection(){
+  const rows=await readAuthorizationViewReleases(path.join(process.cwd(),'data/broad-organization-matrix-gap-projection'),'broad-organization-matrix-gap-projection','gap-projection.json');
+  return newestAuthorizationCohort(rows,row=>row.manifest.release_id)[0];
+}
 
 test("management view independently verifies and summarizes the exact four-wave current chain", async () => {
+  const projection=await newestProjection();
+  const waves=await readAuthorizationViewReleases(path.join(process.cwd(),'data/broad-organization-current-matrix-authorization-wave'),'broad-organization-current-matrix-authorization-wave','authorization-wave.json');
+  if(waves.filter(row=>row.artifact.source_projection.release_id===projection.manifest.release_id).length!==4){
+    // A newer partial cohort must block, not borrow older waves or hide behind
+    // the older complete chain. No production waves are manufactured by tests.
+    await assert.rejects(loadBroadOrganizationCurrentAuthorizationChainManagementView(),/newest projection cohort is incomplete/);
+    return;
+  }
   const first = await loadBroadOrganizationCurrentAuthorizationChainManagementView();
   const second = await loadBroadOrganizationCurrentAuthorizationChainManagementView();
   assert.deepEqual(first, second);
@@ -44,10 +58,7 @@ test("management view independently verifies and summarizes the exact four-wave 
 });
 
 test("diagnostic derivation fails closed on arithmetic, shared-release, and conservation drift", async () => {
-  const releases = path.join(process.cwd(), "data", "broad-organization-matrix-gap-projection", "releases");
-  const entries = await readdir(releases);
-  assert.equal(entries.length, 1);
-  const projection = JSON.parse(await readFile(path.join(releases, entries[0], "gap-projection.json"), "utf8"));
+  const projection = (await newestProjection()).artifact;
   assert.equal(deriveWeakestComparableDiagnosticBatch(projection).states.length, 10);
   const arithmetic = structuredClone(projection);
   arithmetic.gaps.find((row) => row.state_abbreviation === "TN").assessment_snapshot.current_coverage.diagnostic_profile_percent = 14.2;

@@ -1061,7 +1061,10 @@ test('authoritative catalog reports all 51 assessed without changing coverage ca
   assert.equal(ledger.evidence.assessmentCoverageApplicability.status, 'reviewed-compatible');
   assert.equal(ledger.evidence.assessmentCoverageApplicability.reviewedCompatibleJurisdictions, 51);
   assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);
-  assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-22');
+  const assessment=await loadStateBusinessSourceAssessmentCatalog();
+  assert.equal(assessment.assessment_catalog_id,'state-business-source-assessment-catalog-51-2026-10-03');
+  assert.equal(assessment.observed_at,'2026-10-03');
+  assert.equal(ledger.evidence.assessmentObservedAt, assessment.observed_at);
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, baseline.summary.accessEvidenceStatusCounts);
   for (const state of ['CO','CT','DE','FL','IA','NY','OR','PA']) {
     const evidence = ledger.jurisdictions.find((row) => row.state === state).broadOrganizationEvidence;

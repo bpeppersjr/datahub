@@ -1,5 +1,4 @@
-import { lstat, readdir } from "node:fs/promises";
-import path from "node:path";
+import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
 
 import {
   BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,
@@ -45,7 +44,7 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || program.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-program-manifest@2.0.0"
       || program.states?.length !== 40 || manifest.state_count !== 40
-      || manifest.gate_item_count !== 351 || manifest.gate_key_count !== 26
+      || manifest.gate_item_count !== 355 || manifest.gate_key_count !== 37
       || program.scope?.jurisdictions !== manifest.state_count || program.scope?.gate_items !== manifest.gate_item_count
       || program.scope?.gate_key_count !== manifest.gate_key_count
       || program.wave_state_abbreviations?.length !== 4 || program.wave_state_abbreviations.some((wave) => !Array.isArray(wave) || wave.length !== 10)
@@ -124,20 +123,11 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
 }
 
 export async function loadBroadOrganizationAuthorizationProgramManagementView() {
-  const releasesDirectory = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT, "releases");
-  const rootStat = await lstat(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT);
-  const releasesStat = await lstat(releasesDirectory);
-  if (!rootStat.isDirectory() || rootStat.isSymbolicLink() || !releasesStat.isDirectory() || releasesStat.isSymbolicLink()) fail("canonical release ancestry is missing or linked");
-  const entries = await readdir(releasesDirectory, { withFileTypes: true });
-  const identity = new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID}-.+-[0-9a-f]{12}$`, "i");
-  if (!entries.length || entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink() || !identity.test(entry.name))) fail("canonical program releases are missing or invalid");
-  const current = [];
-  for (const entry of entries) {
-    const manifestPath = path.join(releasesDirectory, entry.name, "manifest.json");
-    const verified = await verifyBroadOrganizationAuthorizationProgram(manifestPath);
-    if (verified.manifest.release_id !== entry.name) fail("release directory and manifest identity differ");
-    if (verified.manifest.schema_version === "broad-organization-authorization-program-manifest@2.0.0") current.push(verified);
-  }
-  if (current.length !== 1) fail(`expected exactly one verified current v2 program release; found ${current.length}`);
-  return projectBroadOrganizationAuthorizationProgram(current[0].program, current[0].manifest);
+  const releases=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,'authorization-program.json');
+  if(releases.some(row=>!['broad-organization-authorization-program-manifest@1.0.0','broad-organization-authorization-program-manifest@2.0.0'].includes(row.manifest.schema_version)))fail('unsupported retained program version');
+  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-program-manifest@2.0.0'),row=>row.manifest.release_id);
+  if(current.length!==1)fail('ambiguous newest program');
+  const verified=await verifyBroadOrganizationAuthorizationProgram(current[0].manifestPath);
+  if(JSON.stringify(verified.manifest)!==JSON.stringify(current[0].manifest)||JSON.stringify(verified.program)!==JSON.stringify(current[0].artifact))fail('selected program changed during verification');
+  return projectBroadOrganizationAuthorizationProgram(verified.program,verified.manifest);
 }

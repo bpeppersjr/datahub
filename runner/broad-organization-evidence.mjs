@@ -11,6 +11,9 @@ export const DC_BROAD_ORGANIZATION_CONTRACT_VERSION = "dc-basic-business-license
 export const TX_BROAD_ORGANIZATION_CONTRACT_VERSION = "tx-active-sales-tax-permit-outlet-evidence@1.0.0";
 export const DC_BROAD_ORGANIZATION_SOURCE = Object.freeze({
   datasetId: "dc-basic-business-license-sites",
+  datasetReleaseId: "dc-basic-business-licenses-20260907-175749194Z-aec3b0ac",
+  datasetManifestPath: "data/business-sources/dc-basic-business-license-sites/releases/dc-basic-business-licenses-20260907-175749194Z-aec3b0ac/manifest.json",
+  datasetManifestSha256: "6093b407bddce5a04d5d466fe34c2d920008e1aa348040e9aae8465b9e9caf0c",
   sourceKey: "dc_basic_business_license_sites",
   profileSourceId: "dc-dlcp-active-basic-business-licenses",
   sourceReleaseId: "dc-basic-business-licenses-2026-09-07-70f09a6a032c9408",
@@ -22,10 +25,14 @@ export const DC_BROAD_ORGANIZATION_SOURCE = Object.freeze({
   quarantineCoverage: Object.freeze({
     sourceRows: "dc_basic_business_license_source_rows",
     acceptedRows: "dc_basic_business_license_accepted_rows",
+    normalizedSites: "dc_basic_business_license_normalized_sites",
     normalizedOrganizations: "dc_basic_business_license_organizations",
     quarantinedRecords: "dc_basic_business_license_quarantined_source_records",
     quarantinedCustomerGroups: "dc_basic_business_license_quarantined_customer_groups",
     sourceGeocodedSites: "dc_basic_business_license_source_geocoded_sites",
+    sourceCoordinateConflictSites: "dc_basic_business_license_source_coordinate_conflict_sites",
+    inDcPremiseSites: "dc_basic_business_license_in_dc_premise_sites",
+    outsideDcPremiseSites: "dc_basic_business_license_outside_dc_premise_sites",
   }),
   recordUnitSemantics: "One provisional organization and premise site per DLCP Customer Number. Multiple source-defined Active Business License activity rows remain license assertions on that customer group, not additional organizations or premises. Premise addresses may be outside the District and remain publisher-reported address claims.",
   evidenceContract: Object.freeze({
@@ -94,6 +101,41 @@ const POLICY_IDS = Object.freeze(Object.fromEntries(Object.entries(BROAD_ORGANIZ
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const check = (condition, message) => { if (!condition) throw new Error(`Broad organization evidence rejected: ${message}`); };
 
+function validateDcRetainedRelease(manifestBytes, spec, registryCoverage, source) {
+  check(sha256(manifestBytes) === spec.datasetManifestSha256, "DC retained dataset manifest hash drifted");
+  const manifest = JSON.parse(manifestBytes);
+  check(manifest.dataset_id === spec.datasetId && manifest.release_id === spec.datasetReleaseId
+    && manifest.source_release_id === spec.sourceReleaseId && manifest.status === "complete"
+    && manifest.complete_source_selected_view === true && manifest.policy?.policy_id === POLICY_IDS.DC
+    && manifest.policy?.record_level_distribution === "local-review-only"
+    && manifest.coverage?.complete_all_businesses === false,
+  "DC retained dataset release, policy, or completeness claim drifted");
+  const fields = spec.quarantineCoverage, coverage = manifest.coverage ?? {};
+  check(coverage.source_active_business_license_rows === registryCoverage?.[fields.sourceRows]
+    && coverage.accepted_active_business_license_rows === registryCoverage?.[fields.acceptedRows]
+    && coverage.normalized_licensed_sites === registryCoverage?.[fields.normalizedSites]
+    && coverage.organizations === registryCoverage?.[fields.normalizedOrganizations]
+    && coverage.quarantined_source_records === registryCoverage?.[fields.quarantinedRecords]
+    && coverage.quarantined_customer_groups === registryCoverage?.[fields.quarantinedCustomerGroups]
+    && coverage.source_geocoded_sites === registryCoverage?.[fields.sourceGeocodedSites]
+    && coverage.source_coordinate_conflict_sites === registryCoverage?.[fields.sourceCoordinateConflictSites]
+    && coverage.in_dc_premise_sites === registryCoverage?.[fields.inDcPremiseSites]
+    && coverage.outside_dc_premise_sites === registryCoverage?.[fields.outsideDcPremiseSites]
+    && coverage.source_zip_codes === source.zip_rows_with_contribution
+    && source.zip_level_counts?.licensed_site_count === coverage.normalized_licensed_sites
+    && coverage.source_customer_groups === coverage.normalized_licensed_sites + coverage.quarantined_customer_groups
+    && coverage.normalized_licensed_sites === coverage.organizations
+    && coverage.normalized_licensed_sites === coverage.physical_sites
+    && coverage.normalized_licensed_sites === coverage.establishments
+    && coverage.source_active_business_license_rows === coverage.accepted_active_business_license_rows + coverage.quarantined_source_records
+    && coverage.normalized_licensed_sites === coverage.in_dc_premise_sites + coverage.outside_dc_premise_sites
+    && coverage.source_geocoded_sites <= coverage.normalized_licensed_sites
+    && coverage.source_coordinate_conflict_sites <= coverage.normalized_licensed_sites
+    && coverage.zip_union_records >= coverage.source_zip_codes,
+  "DC retained dataset coverage, quarantine, address-state, or ZIP counts drifted");
+  return manifest;
+}
+
 function geocodePercent(assigned, eligible) {
   if (eligible === 0) return null;
   const scale = 1_000_000_000_000n;
@@ -112,7 +154,11 @@ export async function buildBroadOrganizationEvidence({ state, source, registryCo
     check(source.release_metadata?.source_release_id === spec.sourceReleaseId, `${state} source release lineage drifted`);
     check(source.release_metadata?.record_level_distribution === "local-review-only", `${state} record-level distribution policy drifted`);
   }
-  let txRelease = null;
+  let dcRelease = null, txRelease = null;
+  if (state === "DC") {
+    const datasetManifestPath = path.join(root, ...spec.datasetManifestPath.split("/"));
+    dcRelease = validateDcRetainedRelease(await readFile(datasetManifestPath), spec, registryCoverage, source);
+  }
   if (state === "TX") {
     const datasetManifestPath = path.join(root, ...spec.datasetManifestPath.split("/"));
     const manifestBytes = await readFile(datasetManifestPath);
@@ -198,6 +244,7 @@ export async function buildBroadOrganizationEvidence({ state, source, registryCo
     zip_contribution: { rows: source.zip_rows_with_contribution, address_counts: structuredClone(addressCounts), scope: "source-release" },
     geocode,
     ...(spec.evidenceContract ? { evidence_contract: structuredClone(spec.evidenceContract) } : {}),
+    ...(dcRelease ? { dataset_release_id: dcRelease.release_id, dataset_manifest_sha256: spec.datasetManifestSha256 } : {}),
     ...(txRelease ? { dataset_release_id: txRelease.release_id, dataset_manifest_sha256: spec.datasetManifestSha256 } : {}),
     ...(quarantine ? { quarantine } : {}),
     policy: {
@@ -216,3 +263,5 @@ export async function buildBroadOrganizationEvidence({ state, source, registryCo
     },
   };
 }
+
+export const BROAD_ORGANIZATION_EVIDENCE_TEST_HOOKS = Object.freeze({ validateDcRetainedRelease });

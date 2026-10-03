@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
@@ -46,11 +46,21 @@ test("pre-aborted inspection and output escape fail without publication", async 
   await assert.rejects(buildZipDenominatorAdmissionReadiness({ outputRoot: path.resolve(APP_ROOT, "..", "outside-readiness") }), /containment|inside app/i);
 });
 
-test("registered release verifies and preserves null denominator claims", async () => {
+test("historical registered release retains exact bytes and null claims but fails current-input replay after admission-contract drift", async () => {
   const registrationPath = path.join(APP_ROOT, "config", "datasets", "zip-denominator-admission-readiness.json");
   let registration;
   try { registration = JSON.parse(await fs.readFile(registrationPath, "utf8")); } catch (error) { if (error.code === "ENOENT") return; throw error; }
-  const verified = await verifyZipDenominatorAdmissionReadiness(path.join(APP_ROOT, registration.retained_release.manifest));
-  assert.equal(verified.manifest_sha256, registration.retained_release.manifest_sha256);
-  assert.equal(verified.readiness.claims.completeness_percent, null);
+  const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
+  const manifestPath=path.join(APP_ROOT, registration.retained_release.manifest),manifestBytes=await fs.readFile(manifestPath),manifest=JSON.parse(manifestBytes);
+  const artifactBytes=await fs.readFile(path.join(path.dirname(manifestPath),'readiness.json')),artifact=JSON.parse(artifactBytes);
+  assert.equal(digest(manifestBytes),registration.retained_release.manifest_sha256);
+  assert.equal(digest(artifactBytes),registration.retained_release.readiness_sha256);
+  assert.equal(digest(artifactBytes),manifest.artifacts[0].sha256);
+  assert.equal(artifactBytes.length,manifest.artifacts[0].bytes);
+  assert.equal(artifact.claims.completeness_percent,null);
+  const admission=artifact.bindings.prerequisite_contracts.licensed_city_state.admission_contract;
+  assert.equal(admission.path,'config/connectors/usps-city-state-admission.json');
+  assert.equal(admission.sha256,'1b05b3b9dd2757fe859f40e57fae8b4986f5ee2efaafd185e12cd14b1ecb103a');
+  assert.equal(digest(await fs.readFile(path.join(APP_ROOT,admission.path))),'060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067');
+  await assert.rejects(verifyZipDenominatorAdmissionReadiness(manifestPath),/retained input replay/);
 });

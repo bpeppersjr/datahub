@@ -23,7 +23,7 @@ export const HISTORICAL_AUTHORIZATION_PROGRAM_WAVES = Object.freeze([
 ]);
 
 export const AUTHORIZATION_PROGRAM_WAVES = Object.freeze([
-  Object.freeze(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]),
+  Object.freeze(["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"]),
   Object.freeze(["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"]),
   Object.freeze(["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"]),
   Object.freeze(["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]),
@@ -40,6 +40,18 @@ const NO_ACTION_BOUNDARY = Object.freeze({
 
 // Contract language is intentionally local, non-row-bearing, and non-authorizing.
 const CONTRACTS = Object.freeze({
+  "address-role-and-zip-contract": ["Official schema documentation distinguishing organization address roles and separate ZIP5 and ZIP4 fields.", "Only eligible organization-level addresses can be retained; agent and person addresses are excluded and ZIP5/ZIP4 remain separate."],
+  "exact-population-and-entity-scope": ["Official product specification defining the exact entity population, classes, statuses, exclusions, and statewide coverage.", "The organization population and every material exclusion are explicit; search visibility or an offered product is not accepted as proof of completeness."],
+  "full-delta-deletion-replay-contract": ["Schema-only documentation for full snapshots, deltas, deletions, corrections, replay, cadence, timestamps, and checksums.", "A repeatable reconciliation contract explicitly covers inserts, updates, deletions, replay, observation time, and integrity controls."],
+  "ink-contract": ["Unsigned publisher contract and product-specific terms supplied without enrollment, acceptance, or payment.", "Terms explicitly cover the intended product and uses; reviewing them grants no authority and creates no agreement."],
+  "machine-readable-schema": ["Official machine-readable schema or zero-row layout with field names, types, nullability, keys, and encodings.", "The parser contract is versioned and complete without relying on row-bearing samples."],
+  "privacy-exclusions": ["Official field inventory sufficient to identify person-linked, contact, signature, document, and free-text fields.", "A reviewed allowlist excludes person-linked and sensitive fields before any future row-bearing processing."],
+  "record-count-and-checksum-controls": ["Official control totals and checksum or equivalent integrity documentation for each delivery.", "Counts and integrity controls permit detection of truncation, duplication, corruption, or incomplete delivery."],
+  "retention-transformation-geocoding-derived-publication-redistribution-rights": ["Product-specific rights terms covering retention, transformation, geocoding, derived publication, redistribution, attribution, and revocation.", "Each intended downstream use has an explicit reviewed rights basis; public access or payment alone establishes none."],
+  "stable-filing-number-lifecycle": ["Official filing-number uniqueness, stability, reuse, correction, merger, and reinstatement documentation.", "The filing number is proven suitable as an organization identifier across the documented lifecycle without substituting names or addresses."],
+  "supported-automation": ["Product-specific documentation of supported automated delivery, authentication, cadence, and limits.", "Only an expressly supported bounded mechanism is eligible; scraping, search enumeration, and control circumvention remain excluded."],
+  "unsigned-product-specific-terms": ["Unsigned terms for the exact product, supplied without account activation, acceptance, payment, or download.", "All intended downstream rights are reviewable before any commitment."],
+  "zero-row-schema-layout": ["Official zero-row layout, header-only file, or versioned data dictionary for the exact product.", "All fields, types, nullability, keys, address roles, ZIP fields, and status fields are documented without record rows."],
   "address-role": ["Official field dictionary or schema-only documentation identifying each address role and ZIP field.", "Every retained address role is explicitly classified as administrative, mailing, registered, principal, or other; unknown and person-linked roles are excluded, and ZIP5/ZIP+4 handling is specified."],
   automation: ["Published or already-held written documentation of the officially supported automated access method, limits, authentication, and permitted use.", "The publisher documents an approved repeatable access path and limits without scraping, search enumeration, or circumventing controls; any needed permission remains separately ungranted."],
   "automation-boundary": ["Written description of allowed and prohibited automation for the identified product, including rate and authentication requirements.", "Permitted operations are explicit and compatible with a reviewed bounded connector; prohibited scraping, browser automation, and access-control bypass remain excluded."],
@@ -136,7 +148,7 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
   const waves = historical ? HISTORICAL_AUTHORIZATION_PROGRAM_WAVES : AUTHORIZATION_PROGRAM_WAVES;
   const expectedStates = historical ? HISTORICAL_EXPECTED_STATES : EXPECTED_STATES;
   const expectedCount = historical ? 43 : 40;
-  const expectedGateCount = historical ? 371 : 351;
+  const expectedGateCount = historical ? 371 : 355;
   const expectedBacklogManifestSchema = historical
     ? "broad-organization-acquisition-backlog-manifest@1.0.0"
     : "broad-organization-acquisition-backlog-manifest@2.0.0";

@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, readdir, realpath } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { APP_ROOT } from "./paths.mjs";
+import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
 import { DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT, verifyBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
 import { verifyCurrentMatrixAuthorizationWave } from "./broad-organization-current-matrix-authorization-wave.mjs";
 
@@ -149,19 +150,20 @@ const manifestSha256 = createSha256;
 export async function loadBroadOrganizationCurrentAuthorizationChainManagementView() {
   const canonicalData = path.join(await realpath(APP_ROOT), "data");
   const root = path.join(canonicalData, DATASET), releases = path.join(root, "releases");
-  const rootStat = await lstat(root), releasesStat = await lstat(releases);
-  if (!rootStat.isDirectory() || rootStat.isSymbolicLink() || !releasesStat.isDirectory() || releasesStat.isSymbolicLink() || await realpath(root) !== root || await realpath(releases) !== releases) fail("canonical release ancestry is missing or linked");
-  const entries = await readdir(releases, { withFileTypes: true });
-  if (entries.length !== 4 || entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink())) fail("expected exactly four immutable current-matrix wave releases");
+  const snapshots=await readAuthorizationViewReleases(root,DATASET,'authorization-wave.json');
+  const projectionRows=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT,'broad-organization-matrix-gap-projection','gap-projection.json');
+  const newestProjection=newestAuthorizationCohort(projectionRows,row=>row.manifest.release_id)[0];
+  const entries=snapshots.filter(row=>row.artifact.source_projection?.release_id===newestProjection.manifest.release_id);
+  if(entries.length!==4||entries.some(row=>row.artifact.source_projection.manifest_sha256!==newestProjection.manifestSha256||row.artifact.source_projection.artifact_sha256!==newestProjection.manifest.artifacts[0].sha256))fail('newest projection cohort is incomplete or has inconsistent bindings');
   const verifiedByWave = new Map();
   for (const entry of entries) {
-    const releaseDirectory = path.join(releases, entry.name), manifestPath = path.join(releaseDirectory, "manifest.json");
+    const releaseDirectory = path.dirname(entry.manifestPath), manifestPath = entry.manifestPath;
     if (!isInside(releases, manifestPath) || await realpath(releaseDirectory) !== releaseDirectory) fail("wave release path is not canonical");
     const verified = await verifyCurrentMatrixAuthorizationWave(manifestPath);
     const number = verified.wave.scope.wave_number;
-    if (verified.manifest.release_id !== entry.name || verified.manifest.dataset_id !== DATASET || verifiedByWave.has(number)) fail("wave release identity is invalid or duplicated");
+    if (JSON.stringify(verified.manifest)!==JSON.stringify(entry.manifest)||JSON.stringify(verified.wave)!==JSON.stringify(entry.artifact)||verified.manifest.dataset_id !== DATASET || verifiedByWave.has(number)) fail("wave release identity is invalid or duplicated");
     const manifestBytes = await readFile(manifestPath), artifactBytes = await readFile(path.join(releaseDirectory, "authorization-wave.json"));
-    if (!artifactBytes.equals(Buffer.from(`${JSON.stringify(verified.wave, null, 2)}\n`)) || createSha256(artifactBytes) !== verified.manifest.artifacts[0].sha256) fail(`wave ${number} changed after verification`);
+    if (createSha256(manifestBytes)!==entry.manifestSha256 || !artifactBytes.equals(Buffer.from(`${JSON.stringify(verified.wave, null, 2)}\n`)) || createSha256(artifactBytes) !== verified.manifest.artifacts[0].sha256) fail(`wave ${number} changed after verification`);
     verifiedByWave.set(number, { verified, manifestBytes, manifestSha256: createSha256(manifestBytes) });
   }
   const waves = [1, 2, 3, 4].map((number) => {

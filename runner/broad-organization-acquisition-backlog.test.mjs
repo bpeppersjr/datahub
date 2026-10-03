@@ -24,6 +24,10 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
   const [catalog, matrix] = await Promise.all([loadStateBusinessSourceAssessmentCatalog(), loadCurrentBroadOrganizationGapEvidence()]);
   const backlog = deriveBroadOrganizationAcquisitionBacklog(catalog, matrix);
   assert.equal(backlog.states.length, 40);
+  assert.equal(backlog.assessment_catalog.schema_version, "1.2.0");
+  const arkansas = backlog.states.find(({ assessment }) => assessment.state_abbreviation === "AR");
+  assert.equal(arkansas.assessment.assessment_id, "ar-business-source-reassessment-2026-10-03");
+  assert.equal(arkansas.assessment.assessment_kind, "official-source-reassessment");
   assert.equal(backlog.scope.total_assessed_jurisdictions, 51);
   assert.equal(backlog.scope.current_broad_layer_gaps, 40);
   assert.deepEqual(backlog.scope.first_wave_state_abbreviations, backlog.states.slice(0, 10).map(({ assessment }) => assessment.state_abbreviation));
@@ -43,10 +47,37 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
 
 test("continues to verify the immutable historical v1 lineage without treating it as current", async () => {
   const historical = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
-  const verified = await verifyBroadOrganizationAcquisitionBacklog(historical);
+  const currentCatalog = await loadStateBusinessSourceAssessmentCatalog();
+  assert.equal(currentCatalog.schema_version, "1.2.0");
+  const verified = await verifyBroadOrganizationAcquisitionBacklog(historical, { catalog: currentCatalog });
   assert.equal(verified.manifest.schema_version, "broad-organization-acquisition-backlog-manifest@1.0.0");
+  assert.equal(verified.backlog.assessment_catalog.schema_version, "1.0.0");
   assert.equal(verified.backlog.states.length, 43);
   assert.equal(verified.backlog.states[0].assessment.state_abbreviation, "AK");
+});
+
+test("historical v1 verifier rejects a rehashed mutation instead of trusting its embedded inventory", async () => {
+  const root = await tempDirectory();
+  const releaseId = "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff";
+  const source = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", releaseId);
+  const releaseDirectory = path.join(root, releaseId);
+  try {
+    await mkdir(releaseDirectory);
+    const backlog = JSON.parse(await readFile(path.join(source, "backlog.json"), "utf8"));
+    backlog.states[0].assessment.autonomous_acquisition_authorized = true;
+    const artifactBytes = Buffer.from(`${JSON.stringify(backlog, null, 2)}\n`);
+    await writeFile(path.join(releaseDirectory, "backlog.json"), artifactBytes);
+    const manifest = JSON.parse(await readFile(path.join(source, "manifest.json"), "utf8"));
+    manifest.artifacts[0].bytes = artifactBytes.length;
+    manifest.artifacts[0].sha256 = hash(artifactBytes);
+    await writeFile(path.join(releaseDirectory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    await assert.rejects(
+      verifyBroadOrganizationAcquisitionBacklog(path.join(releaseDirectory, "manifest.json")),
+      /immutable lineage pins/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("builds a manifest-last immutable release locally and verifies it without changing pointers", async () => {

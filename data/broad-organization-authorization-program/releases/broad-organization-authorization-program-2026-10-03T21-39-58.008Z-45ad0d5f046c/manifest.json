@@ -1,0 +1,76 @@
+{
+  "schema_version": "broad-organization-authorization-program-manifest@2.0.0",
+  "dataset_id": "broad-organization-authorization-program",
+  "release_id": "broad-organization-authorization-program-2026-10-03T21-39-58.008Z-45ad0d5f046c",
+  "status": "published",
+  "derived_only": true,
+  "source_actions_performed": 0,
+  "network_requests": 0,
+  "current_pointer_changed": false,
+  "source_backlog_release_id": "broad-organization-acquisition-backlog-2026-10-03T21-39-58.008Z-198a4e2579c0",
+  "source_backlog_manifest_sha256": "e134b7721b31095c3f7b4b54f7d0493ca6d52ca387dd9aab74a474f88bd7c0e4",
+  "source_backlog_artifact_sha256": "198a4e2579c08e8fdaa5ced6d27ed078c2a583731630e8ec173edbc9fc8cd642",
+  "source_matrix_release_id": "national-goal-completion-20261003213958-06da39b3",
+  "source_matrix_manifest_sha256": "5141a793fb398ba997ab19a930d5246b16688d15bf08f770bc7e619416b6f3fd",
+  "source_matrix_artifact_sha256": "98e594e9ee58d4441843cb85a4995c51e8b4801ffe8a6124877e06dee014904b",
+  "state_count": 40,
+  "gate_item_count": 355,
+  "gate_key_count": 37,
+  "wave_state_abbreviations": [
+    [
+      "KS",
+      "AR",
+      "IL",
+      "MS",
+      "KY",
+      "HI",
+      "NV",
+      "UT",
+      "WA",
+      "OK"
+    ],
+    [
+      "AL",
+      "AZ",
+      "CA",
+      "GA",
+      "ID",
+      "IN",
+      "LA",
+      "MA",
+      "MD",
+      "ME"
+    ],
+    [
+      "MI",
+      "MN",
+      "MO",
+      "MT",
+      "NC",
+      "ND",
+      "NH",
+      "NJ",
+      "NM",
+      "OH"
+    ],
+    [
+      "RI",
+      "SC",
+      "SD",
+      "TN",
+      "VA",
+      "VT",
+      "WI",
+      "WV",
+      "WY",
+      "NE"
+    ]
+  ],
+  "artifacts": [
+    {
+      "path": "authorization-program.json",
+      "bytes": 932567,
+      "sha256": "45ad0d5f046c5fb83cdfb5295081630ab46773e0207da66595971b954362ea20"
+    }
+  ]
+}

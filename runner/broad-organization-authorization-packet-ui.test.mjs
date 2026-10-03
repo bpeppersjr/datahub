@@ -7,7 +7,7 @@ import ts from "typescript";
 const source = await readFile(new URL("../app/broad-organization-authorization-packet.tsx", import.meta.url), "utf8");
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 const requestItem = (state) => ({ request_item_id: `${state}-schema`, unresolved_gate: "schema", request_item_type: "non-row-bearing-evidence-specification", row_bearing: false, request_item: "Review schema documentation only.", required_evidence_type: "Header-only schema", acceptance_criterion: "No source rows and fields are classified.", action_boundary: { contact_authorized: false, contact_performed: false, download_authorized: false, download_performed: false, payment_authorized: false, payment_performed: false, record_request_authorized: false, records_requested: 0, row_bearing_evidence_authorized: false, production_change_authorized: false, no_contact: true, no_download: true, no_payment: true, no_record_request: true, no_contact_no_download_no_payment_no_record_request: true } });
-const names = { IL: "Illinois", MS: "Mississippi", AR: "Arkansas", KY: "Kentucky", HI: "Hawaii", KS: "Kansas", NV: "Nevada", UT: "Utah", WA: "Washington", OK: "Oklahoma" };
+const names = { KS: "Kansas", AR: "Arkansas", IL: "Illinois", MS: "Mississippi", KY: "Kentucky", HI: "Hawaii", NV: "Nevada", UT: "Utah", WA: "Washington", OK: "Oklahoma" };
 const currentStates = Object.keys(names);
 const view = (states = currentStates) => ({
   schema_version: "broad-organization-authorization-packet-management-view@2.0.0", available: true,

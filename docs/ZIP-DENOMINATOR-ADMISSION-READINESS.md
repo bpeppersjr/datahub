@@ -10,6 +10,8 @@ The readiness artifact exposes missing inputs as machine-readable arrays. Its au
 
 Registered release: `zip-denominator-admission-readiness-fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb`; manifest SHA-256 `dc4d9e377d924ae400d7d7e96a5187ced4fec4d0331fd8a205eaa7655788e3fa`.
 
+This registration now identifies historical retained evidence, not successful replay against the current contracts. The licensed City State admission contract changed from SHA-256 `1b05b3b9dd2757fe859f40e57fae8b4986f5ee2efaafd185e12cd14b1ecb103a` to `060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067`. Its exact retained bytes and null claims remain intact, but the source-bound verifier correctly rejects it at `retained input replay`. No registration pin was refreshed, replay check waived, replacement release published, or production state changed. Fresh isolated test builds still require successful full retained-input replay; a reviewed replacement is a separate operation.
+
 ```powershell
 node scripts/build-zip-denominator-admission-readiness.mjs
 node scripts/verify-zip-denominator-admission-readiness.mjs data/zip-denominator-admission-readiness/releases/<release-id>/manifest.json

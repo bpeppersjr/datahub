@@ -6,6 +6,25 @@ const fail = (message = "ZIP GDP segmentation view is unavailable or incompatibl
 };
 
 const DIMENSIONS = Object.freeze(["race", "ancestry_lineage", "sex", "age"]);
+const SHA256 = /^[a-f0-9]{64}$/;
+
+function validCurrentReadiness(view, zcta) {
+  if (view?.schema_version !== "zcta-gdp-execution-readiness-view@1.0.0" || view.zcta !== zcta
+      || !SHA256.test(view.provenance?.manifest_sha256 ?? "") || !SHA256.test(view.provenance?.artifact_sha256 ?? "")
+      || typeof view.provenance?.release_id !== "string" || !view.provenance.release_id.startsWith("zcta-gdp-execution-readiness-")
+      || view.claims?.model_approved !== false || view.claims?.output_authorized !== false || view.claims?.numeric_gdp !== false
+      || view.claims?.industry_gdp !== false || view.claims?.official_usps_zip !== false) return false;
+  if (view.available === false) return view.status === "not-found" && view.readiness === null;
+  const row = view.readiness;
+  if (view.available !== true || view.status !== "found" || row?.zcta !== zcta || row.decision_status !== "hold"
+      || !["feasible-on-approval", "withheld"].includes(row.execution_status)
+      || row.total_model?.approval_required !== true || row.total_model?.output_authorized !== false || row.total_model?.numeric_output !== false
+      || row.industry_readiness?.status !== "unavailable" || row.industry_readiness?.numeric_output_authorized !== false
+      || !Array.isArray(row.withhold_reasons) || row.withhold_reasons.some((reason) => typeof reason !== "string" || !reason)
+      || !Number.isSafeInteger(row.material_relationship_count) || row.material_relationship_count < 0
+      || !Array.isArray(row.county_geoids) || row.county_geoids.some((geoid) => !/^\d{5}$/.test(geoid))) return false;
+  return row.execution_status === "feasible-on-approval" ? row.withhold_reasons.length === 0 : row.withhold_reasons.length > 0;
+}
 
 function withheldEstimate(reason) {
   return {
@@ -40,9 +59,8 @@ export async function readZipGdpSegmentationView({
     readCrossView({ zip5, root, signal }),
   ]);
   signal?.throwIfAborted();
-  if (gdp?.schema_version !== "zcta-gdp-execution-readiness-view@1.0.0" || gdp.zcta !== zip5) fail();
+  if (!validCurrentReadiness(gdp, zip5)) fail();
   if (cross?.schema_version !== "zip-industry-demographic-cross-view@1.0.0" || cross.zip5 !== zip5) fail();
-  if (gdp.claims?.model_approved !== false || gdp.claims?.output_authorized !== false || gdp.claims?.numeric_gdp !== false) fail();
 
   const sameCodeZcta = cross.zcta_geoid === zip5;
   const industryCells = cross.industry_evidence?.row?.cells ?? {};
@@ -59,7 +77,7 @@ export async function readZipGdpSegmentationView({
     groups: [],
     gdp: withheldEstimate("demographic-gdp-method-not-specified-or-approved"),
   }));
-  const eligible = sameCodeZcta && gdp.available === true && gdp.readiness?.status === "eligible";
+  const feasibleOnApproval = sameCodeZcta && gdp.available === true && gdp.readiness.execution_status === "feasible-on-approval";
 
   return {
     schema_version: "zip-gdp-segmentation-view@1.0.0",
@@ -71,7 +89,7 @@ export async function readZipGdpSegmentationView({
       relationship: sameCodeZcta ? "same-code-only" : "not-established",
     },
     total_gdp: withheldEstimate(
-      eligible ? "model-approval-and-output-authorization-required" : "zcta-input-eligibility-incomplete",
+      feasibleOnApproval ? "model-approval-and-output-authorization-required" : "zcta-input-eligibility-incomplete",
     ),
     industry_breakdown: industries,
     demographic_breakdown: demographics,

@@ -1,0 +1,23 @@
+{
+  "schema_version": "broad-organization-matrix-gap-projection-manifest@1.0.0",
+  "dataset_id": "broad-organization-matrix-gap-projection",
+  "release_id": "broad-organization-matrix-gap-projection-2026-10-03T21-39-58.008Z-938bebda45f7",
+  "status": "published-local-derived-projection",
+  "source_actions_performed": 0,
+  "network_requests": 0,
+  "current_pointer_changed": false,
+  "source_backlog_release_id": "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff",
+  "source_backlog_manifest_sha256": "5295bd5ee08c140dbbf47ed198898dfc6db15d92a7ee482b91fb6e6e8357b013",
+  "source_matrix_release_id": "national-goal-completion-20261003213958-06da39b3",
+  "source_matrix_manifest_sha256": "5141a793fb398ba997ab19a930d5246b16688d15bf08f770bc7e619416b6f3fd",
+  "jurisdiction_count": 51,
+  "admitted_broad_layer_count": 11,
+  "current_gap_count": 40,
+  "artifacts": [
+    {
+      "path": "gap-projection.json",
+      "bytes": 291490,
+      "sha256": "938bebda45f72b18ef26db690e4639dcfa044e52aad29f090e1c923c589cc3c9"
+    }
+  ]
+}

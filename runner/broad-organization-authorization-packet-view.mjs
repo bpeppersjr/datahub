@@ -1,5 +1,5 @@
-import { lstat, readdir } from "node:fs/promises";
 import path from "node:path";
+import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
 
 import {
   BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,
@@ -30,7 +30,8 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
   if (packet?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID
       || packet.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-packet-manifest@2.0.0"
-      || packet.states?.length !== 10 || manifest.state_count !== 10 || manifest.request_item_count !== 80
+      || packet.states?.length !== 10 || manifest.state_count !== 10 || !Number.isSafeInteger(manifest.request_item_count) || manifest.request_item_count <= 0
+      || manifest.request_item_count !== packet.states.reduce((sum,state)=>sum+(state.request_items?.length??0),0)
       || manifest.request_item_count !== packet.scope?.request_items || packet.scope?.jurisdictions !== manifest.state_count
       || packet.scope?.source_actions_performed !== 0 || packet.scope?.network_requests !== 0
       || packet.scope?.acquisition_authorized !== false || packet.scope?.contact_authorized !== false
@@ -38,7 +39,7 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
       || backlogManifest?.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0"
       || backlogManifest.release_id !== manifest.source_backlog_release_id
       || backlogManifest.source_matrix_release_id === undefined
-      || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");
+      || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");
   return {
     schema_version: "broad-organization-authorization-packet-management-view@2.0.0",
     available: true,
@@ -104,22 +105,12 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
 }
 
 export async function loadBroadOrganizationAuthorizationPacketManagementView() {
-  const releasesDirectory = path.join(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT, "releases");
-  const parentStat = await lstat(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT);
-  const releasesStat = await lstat(releasesDirectory);
-  if (!parentStat.isDirectory() || parentStat.isSymbolicLink() || !releasesStat.isDirectory() || releasesStat.isSymbolicLink()) fail("canonical release ancestry is missing or linked");
-  const entries = await readdir(releasesDirectory, { withFileTypes: true });
-  const identity = new RegExp(`^${BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID}-.+-[0-9a-f]{12}$`, "i");
-  if (!entries.length || entries.some((entry) => !entry.isDirectory() || entry.isSymbolicLink() || !identity.test(entry.name))) fail("canonical packet releases are missing or invalid");
-  const current = [];
-  for (const entry of entries) {
-    const manifestPath = path.join(releasesDirectory, entry.name, "manifest.json");
-    const verified = await verifyBroadOrganizationAuthorizationPacket(manifestPath);
-    if (verified.manifest.release_id !== entry.name) fail("release directory and manifest identity differ");
-    if (verified.manifest.schema_version === "broad-organization-authorization-packet-manifest@2.0.0") current.push(verified);
-  }
-  if (current.length !== 1) fail(`expected exactly one verified current v2 packet release; found ${current.length}`);
-  const verified = current[0];
+  const releases=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,'authorization-packet.json');
+  if(releases.some(row=>!['broad-organization-authorization-packet-manifest@1.0.0','broad-organization-authorization-packet-manifest@2.0.0'].includes(row.manifest.schema_version)))fail('unsupported retained packet version');
+  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-packet-manifest@2.0.0'),row=>row.manifest.release_id);
+  if(current.length!==1)fail('ambiguous newest packet');
+  const verified=await verifyBroadOrganizationAuthorizationPacket(current[0].manifestPath);
+  if(JSON.stringify(verified.manifest)!==JSON.stringify(current[0].manifest)||JSON.stringify(verified.packet)!==JSON.stringify(current[0].artifact))fail('selected packet changed during verification');
   const backlogManifestPath = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases", verified.manifest.source_backlog_release_id, "manifest.json");
   const backlog = await verifyBroadOrganizationAcquisitionBacklog(backlogManifestPath);
   if (backlog.manifest.source_matrix_release_id === undefined) fail("current packet backlog lacks matrix lineage");

@@ -5,14 +5,14 @@ import test from "node:test";
 import { broadOrganizationAuthorizationPacketHttp } from "./broad-organization-authorization-packet-http.mjs";
 import { loadBroadOrganizationAuthorizationPacketManagementView } from "./broad-organization-authorization-packet-view.mjs";
 
-test("management view selects current v2 amid verified historical v1 and returns only the allowlisted ten-state evidence specification", async () => {
+test("management view selects newest deeply verified v2 amid integrity-checked historical releases", async () => {
   const view = await loadBroadOrganizationAuthorizationPacketManagementView();
   assert.equal(view.available, true);
   assert.equal(view.schema_version, "broad-organization-authorization-packet-management-view@2.0.0");
   assert.equal(view.metadata.jurisdiction_count, 10);
-  assert.equal(view.metadata.request_item_count, 80);
+  assert.equal(view.metadata.request_item_count, 84);
   assert.equal(view.states.length, 10);
-  assert.deepEqual(view.metadata.first_wave_state_abbreviations, ["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]);
+  assert.deepEqual(view.metadata.first_wave_state_abbreviations, ["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"]);
   assert.equal(view.states.some((state) => ["AK", "DC"].includes(state.state_abbreviation)), false);
   assert.equal(view.authority.approval_granted, false);
   assert.equal(view.authority.acquisition_authorized, false);

@@ -1,0 +1,29 @@
+{
+  "schema_version": "national-goal-completion-matrix@1.3.0",
+  "dataset_id": "national-goal-completion-matrix",
+  "release_id": "national-goal-completion-20261003213958-06da39b3",
+  "status": "published-local-derived-report",
+  "created_at": "2026-10-03T21:39:58.008Z",
+  "all_business_completion_percent": null,
+  "production_pointers_changed": false,
+  "network_requests": 0,
+  "artifacts": [
+    {
+      "path": "report.json",
+      "bytes": 1351815,
+      "sha256": "98e594e9ee58d4441843cb85a4995c51e8b4801ffe8a6124877e06dee014904b",
+      "record_count": 51,
+      "export_policy": "local-review-only"
+    }
+  ],
+  "evidence": {
+    "catalog_sha256": "f7cb6ec834da04ca225297f0ed61978367dffe1080e76d5f5e8c6d06783a3884",
+    "coverage_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
+    "coverage_pointer_sha256": "dbe15c414452409c6f3ef6ee11263476138d02f2fec9e3b4c19e307ecc58220b",
+    "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+    "state_artifact_sha256": "22783ec56d2e84d6f171b213188e9aead7be8f717869b9e5716713df46125c0c",
+    "source_artifact_sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e",
+    "source_replay_performed_this_build": false,
+    "publisher_authentication_performed_this_build": false
+  }
+}
