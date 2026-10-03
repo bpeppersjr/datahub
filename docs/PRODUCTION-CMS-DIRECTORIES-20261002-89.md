@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 89 is the current clean-repository successor after committing the governed ZIP-by-source native-status distribution, bounded reader, inspector integration, and accessible UI.
+Plan 89 was superseded by Plan 90 after committing the governed USPS acceptance and retained IRS state-adjacent evidence increment. It is no longer eligible for approval or execution.
 
 - Run ID: `production-cms-directories-20261002-89`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-89.json`
@@ -21,7 +21,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Independent review closed all findings. The adversarial suite covers spill-backed conservation, duplicate identities, lineage and policy drift, resource bounds, cancellation cleanup, artifact/conservation/index/range tampering, and failed publication cleanup. The full repository test gate ran 3,001 tests: 2,926 passed, 75 skipped, and zero failed. Lint completed with four pre-existing warnings and no errors; web and desktop builds, desktop control-plane smoke, 200% keyboard UI acceptance, and production dependency audit passed.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and confirmation SHA-256. Plan 88 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 89.
+This document and plan do not constitute approval. Plan 90 supersedes Plan 89, Plan 88, and every earlier CMS directory plan or approval. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 89.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-89 --expected-plan-sha256 3aea0db618d8ddce07f74ef8c560a4da6952aa22a697e7886a884fb5573759bd
