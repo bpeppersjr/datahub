@@ -1,0 +1,9 @@
+# Kansas corporate business-source reassessment — October 3, 2026
+
+This versioned correction supersedes the Kansas portion of the September 22 assessment for current catalog use without rewriting that historical artifact. The earlier assessment incorrectly classified the $1,500/month UCC bulk-download service as corporate business-entity bulk. The [official KSUCC cost list](https://mykansas.ks.gov/ucc/?p=help_costs) establishes that service in the UCC system; it is not evidence of a corporate-registry feed.
+
+The current evidenced corporate offering is the [Kansas SOS Database Records Access Request](https://www.sos.ks.gov/forms/elections/RAR.pdf). It offers one-time active-entity lists by email or CD: $200 for all for-profit corporations, LLCs, LPs and LLPs, or $150 for specified entity classes. It identifies Business Entity ID, type, status, name, mailing address, formation date and jurisdiction, resident-agent name, and registered-office address. Entire-database requests are routed to Information Network of Kansas, but no contract, price, schema, cadence or delivery terms are established.
+
+The decision remains `HOLD`. Mailing addresses are administrative evidence, not physical sites; registered-agent and registered-office person data must be excluded. Active is legal-registry status, not proof of current operation. [K.S.A. 45-230](https://ksrevisor.gov/statutes/chapters/ch45/045_002_0030.html) also restricts sales-solicitation use of public name/address lists. No acquisition, record request, account, payment, term acceptance, automation, connector candidacy, or rights expansion is authorized.
+
+The next safe action remains a non-row-bearing written SOS/INK inquiry for entire-database terms, population, person-free schema, Business Entity ID lifecycle, status/address dictionaries, refresh and change semantics, checksums, unattended delivery, and explicit retention, transformation, geocoding, derived-publication and redistribution rights.

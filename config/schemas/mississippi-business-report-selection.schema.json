@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/mississippi-business-report-selection.schema.json",
+  "title": "Mississippi Business Reports offline package selection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "package_id", "observed_at", "source", "export", "transformation", "files", "claims"],
+  "properties": {
+    "schema_version": {"const": "mississippi-business-report-package@1.0.0"},
+    "package_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"},
+    "observed_at": {"type": "string", "format": "date-time"},
+    "source": {"const": "https://corp.sos.ms.gov/corpreporting/Corp/BusinessSearch3"},
+    "export": {"type": "object", "additionalProperties": false, "required": ["format", "query_description", "statewide_complete"], "properties": {"format": {"enum": ["xls", "xlsx"]}, "query_description": {"type": "string", "minLength": 1, "maxLength": 500}, "statewide_complete": {"const": false}}},
+    "transformation": {"type": "object", "additionalProperties": false, "required": ["version", "method", "performed_by", "source_native", "reproducible_extraction_verified"], "properties": {"version": {"type": "string", "minLength": 1, "maxLength": 128}, "method": {"type": "string", "minLength": 1, "maxLength": 500}, "performed_by": {"type": "string", "minLength": 1, "maxLength": 128}, "source_native": {"const": false}, "reproducible_extraction_verified": {"const": false}}},
+    "files": {"type": "object", "additionalProperties": false, "required": ["ORIGINAL_WORKBOOK", "RECORDS"], "properties": {"ORIGINAL_WORKBOOK": {"$ref": "#/$defs/file"}, "RECORDS": {"type": "object", "additionalProperties": false, "required": ["path", "bytes", "sha256", "row_count"], "properties": {"path": {"const": "records.jsonl"}, "bytes": {"type": "integer", "minimum": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "row_count": {"type": "integer", "minimum": 0, "maximum": 300000}}}}},
+    "claims": {"type": "object", "additionalProperties": false, "required": ["network_requests", "acquisition_performed", "statewide_complete", "current_operation_verified", "physical_site_verified", "redistribution_authorized", "national_admission_performed", "production_enrollment", "source_pointer_changed"], "properties": {"network_requests": {"const": 0}, "acquisition_performed": {"const": false}, "statewide_complete": {"const": false}, "current_operation_verified": {"const": false}, "physical_site_verified": {"const": false}, "redistribution_authorized": {"const": false}, "national_admission_performed": {"const": false}, "production_enrollment": {"const": false}, "source_pointer_changed": {"const": false}}}
+  },
+  "$defs": {"file": {"type": "object", "additionalProperties": false, "required": ["path", "bytes", "sha256"], "properties": {"path": {"type": "string"}, "bytes": {"type": "integer", "minimum": 1}, "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}}
+}

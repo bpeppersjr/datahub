@@ -1,0 +1,32 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "ks-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": { "abbreviation": "KS", "name": "Kansas" },
+  "supersedes_assessment_id": "ks-business-source-2026-09-22",
+  "correction_reason": "The September 22 assessment incorrectly treated the $1,500-per-month UCC bulk-download service as a corporate business-entity product. The official corporate offering evidenced here is the one-time Database Records Access Request; UCC pricing is not corporate-registry pricing.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": { "official_primary_sources_only": true, "record_requests": 0, "downloads": 0, "accounts_created": 0, "terms_accepted": 0, "fees_paid": 0, "portal_automation": false, "production_changes": 0 },
+  "access": {
+    "classification": "one-time-paid-request",
+    "bulk": "The official Database Records Access Request offers one-time active-entity lists by email or CD: $200 for all for-profit corporations, LLCs, LPs and LLPs, or $150 for specified entity classes. Entire-database requests are routed to Information Network of Kansas (INK), with contract, price and delivery terms unknown.",
+    "api": "No official business-entity read API or unattended delivery contract was established.",
+    "search": "Official entity search exists separately and is not evidence of bulk automation permission."
+  },
+  "fields": { "published": true, "summary": "The request form identifies Business Entity ID, entity type and status, name, mailing address, formation date and jurisdiction, resident-agent name, and registered-office address. Person and registered-agent fields require exclusion; no machine-readable schema, sample or checksum is published." },
+  "active_status_semantics": "The offered lists are described as active entities, but registry status and biennial-report standing are legal filing evidence rather than verified current operation; a complete status codebook is not published.",
+  "statewide_completeness": "The $150-$200 products are bounded one-time active-entity lists. An entire-database route exists through INK, but its population, exclusions, contract, price and delivery terms are unknown.",
+  "address_zip": "Mailing and registered-office addresses are listed. Mailing address is administrative evidence only; registered-office and resident-agent data must be excluded. No principal or physical-site field is established.",
+  "automation_terms_fees": "One-time active lists cost $150 or $200 and may be supplied by email or CD. Entire-database inquiries go to INK. No recurring corporate feed, automated retrieval permission, or corporate $1,500 monthly price is established.",
+  "redistribution": "The request form does not grant retention, transformation, geocoding, derived-publication or redistribution rights, and K.S.A. 45-230 restricts use of public name/address lists for sales solicitation.",
+  "temporal_refresh": "The evidenced corporate products are one-time lists; no recurring cadence, full/delta semantics, deletions, replay, archive, counts or checksums are documented. Kansas biennial reporting can make legal/address evidence approximately two years old.",
+  "citations": [
+    { "url": "https://www.sos.ks.gov/forms/elections/RAR.pdf", "evidence": "Official Database Records Access Request describing one-time active-entity products, fields, $150-$200 pricing, email/CD delivery, and routing of entire-database inquiries to INK." },
+    { "url": "https://mykansas.ks.gov/ucc/?p=help_costs", "evidence": "Official KSUCC cost list; establishes that the frequently cited bulk subscription belongs to UCC services, not corporate business-entity data." },
+    { "url": "https://ksrevisor.gov/statutes/chapters/ch45/045_002_0030.html", "evidence": "Official Kansas statute restricting use of public-record names and addresses for sales solicitation." },
+    { "url": "https://sos.ks.gov/eforms/BusinessEntity/Search.aspx", "evidence": "Official business-entity search route, not evidence of a complete automated bulk feed." }
+  ],
+  "unresolved_gates": ["ink-contract", "source-scope", "machine-readable-schema", "stable-identifier-lifecycle", "status-codebook", "address-role", "change-contract", "automation", "rights", "privacy"],
+  "strongest_next_action": "Request non-row-bearing written SOS/INK terms for the entire corporate database, including price, population, person-free schema, Business Entity ID lifecycle, status and address dictionaries, cadence, full/delta/deletion/replay/checksum behavior, unattended delivery, and retention, transformation, geocoding, derived-publication and redistribution rights."
+}

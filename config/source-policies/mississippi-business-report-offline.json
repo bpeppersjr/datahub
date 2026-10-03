@@ -1,0 +1,15 @@
+{
+  "policy_id": "mississippi-business-report-offline",
+  "version": "1.0.0",
+  "publisher": "Mississippi Secretary of State, Business Services & Regulation",
+  "ownership": "Official Mississippi Business Reports standard Excel export.",
+  "source_home": "https://corp.sos.ms.gov/corpreporting/Corp/BusinessSearch3",
+  "allowed_use": ["operator-supplied local package validation", "offline person-free normalization of an explicitly operator-derived projection", "local organization-registration review"],
+  "prohibited_use": ["automated acquisition", "browser automation", "API access", "contacting the publisher", "representing an export at the 300,000-row ceiling as a complete statewide extract", "representing registry status as verified current operation", "representing principal address as a physical operating site", "redistribution", "national admission", "production enrollment", "current-pointer changes"],
+  "attribution": "Source: Mississippi Secretary of State Business Reports.",
+  "retention": "Keep operator inputs and normalized projections local pending written retention and derived-use terms.",
+  "redistribution": "Not authorized by this profile; outputs are local-review-only.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Only published business-report organization columns are accepted. Principal address is retained as administrative registration evidence and may be residential; no person, agent, officer, contact, or free-text fields are accepted.",
+  "contains_secrets": false
+}

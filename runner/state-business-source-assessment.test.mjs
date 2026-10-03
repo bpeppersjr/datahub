@@ -13,7 +13,7 @@ function stateAssessment(catalog, stateAbbreviation) {
   return catalog.states.find((state) => state.state_abbreviation === stateAbbreviation);
 }
 
-test("loads a non-overlapping governed catalog across historical and 2026-09-22 waves", async () => {
+test("loads a non-overlapping governed catalog with the current Kansas correction", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
   assert.deepEqual(catalog.states.map((state) => state.state_abbreviation), ["CA", "GA", "OK", "NE", "VT", "ID", "NM", "ME", "WY", "NH", "MT", "RI", "SD", "WV", "ND", "DC", "AK", "OH", "NC", "NJ", "VA", "MI", "TN", "MA", "AZ", "MD", "MO", "IN", "SC", "LA", "MN", "AL", "WI", "AR", "HI", "IL", "MS", "NV", "KS", "KY", "TX", "UT", "WA", "CO", "CT", "DE", "FL", "IA", "NY", "OR", "PA"]);
   assert.equal(indexStateBusinessSourceAssessments(catalog).size, 51);
@@ -24,10 +24,10 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
     assert.equal(stateAssessment(catalog, stateAbbreviation).authorized_next_action_type, "bounded-connector-implementation");
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
-    schema_version: "1.0.0",
-    assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-09-22",
+    schema_version: "1.1.0",
+    assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-10-03",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
-    observed_at: "2026-09-22",
+    observed_at: "2026-10-03",
     coverage_release_id: catalog.coverage_release_id,
     current_coverage_release_id: catalog.coverage_release_id,
     coverage_release_matches_current: true,
@@ -43,6 +43,7 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
       "state-business-source-validation-wave-ar-hi-il-ms-nv-2026-09-22",
       "state-business-source-assessment-wave-ks-ky-tx-ut-wa-2026-09-22",
       "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
+      "ks-business-source-reassessment-2026-10-03",
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 5,
@@ -56,7 +57,7 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
     production_ready_jurisdictions: 8,
   });
   assert.deepEqual(summarizeLegacyStateBusinessSourceRevalidation(catalog, catalog.coverage_release_id), {
-    schema_version: "1.0.0",
+    schema_version: "1.1.0",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-03",
     coverage_release_id: catalog.coverage_release_id,
@@ -69,6 +70,15 @@ test("loads a non-overlapping governed catalog across historical and 2026-09-22 
     autonomous_acquisitions_authorized: 0,
     production_ready_jurisdictions: 0,
   });
+  const kansas = stateAssessment(catalog, "KS");
+  assert.equal(kansas.assessment_id, "ks-business-source-reassessment-2026-10-03");
+  assert.equal(kansas.assessment_kind, "official-source-correction");
+  assert.equal(kansas.observed_at, "2026-10-03");
+  assert.equal(kansas.candidate.availability, "one-time-paid-request");
+  assert.equal(kansas.candidate.price, "$150-$200 by email or CD; entire-database contract and price unknown");
+  assert.doesNotMatch(kansas.candidate.price, /1,500/);
+  assert.equal(kansas.decision, "hold");
+  assert.equal(kansas.autonomous_acquisition_authorized, false);
 });
 
 test("rejects overlapping provenance, decision escalation, and source-artifact drift", async () => {
