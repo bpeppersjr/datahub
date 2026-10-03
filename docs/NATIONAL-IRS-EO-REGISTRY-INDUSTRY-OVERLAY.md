@@ -1,0 +1,9 @@
+# IRS EO registry industry overlay
+
+The pointer-free retained release replays all 1,955,841 IRS EO BMF organization identities against the organizations already present in the pinned national registry. The mapping is exact and deterministic: each nine-digit source EIN maps to `organization:irs_ein_<EIN>`. Missing and extra identities are zero. The overlay adds zero organizations, physical sites, establishments, or generic businesses.
+
+Only identifier-free aggregate evidence is published: ten partition proofs without identifiers, 56 jurisdiction rows, and 48,194 common-denominator ZIP5 rows, of which 36,950 have positive retained membership counts. EINs, names, filing addresses, source record IDs, tax-profile details, raw records, and quarantine records are not emitted. Identifier-free does not mean disclosure-controlled: these aggregates are not k-anonymous, no small-cell suppression is applied, and the release makes no privacy or re-identification-resistance guarantee.
+
+This is membership in the IRS current EO BMF extract as posted 2026-08-11. It is not proof of every nonprofit or tax-exempt organization, current operation beyond the source assertion, a unique business across sources, a verified physical site or storefront, ownership or group hierarchy, contribution deductibility beyond the source code, USPS ZIP validity, or nationwide business completeness. Filing-address evidence must not be treated as an operating location; ZIP4 and Census ZCTA evidence must not be conflated with current USPS identity.
+
+The build performs no acquisition or network request, writes no current pointer, and is not enrolled in production. It reads exact pinned retained manifests, limits replay to one source and one registry partition at a time, verifies the staged release by full independent reconstruction, and only then atomically renames it into the immutable releases directory.

@@ -696,11 +696,17 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 }
 /* Focused workspaces retain the global text scale and keyboard navigation. */
 [hidden] { display: none !important; }
-.workspace-tabs { display:flex; flex-wrap:wrap; gap:.4rem; padding:1rem 0; }
-.workspace-tabs button { padding:.7rem 1rem; font:inherit; color:inherit; border:1px solid #42516a; border-radius:.5rem; background:#182331; }
+.workspace-tabs { display:flex; flex-wrap:wrap; gap:.4rem; padding:1rem 0; position:sticky; top:0; z-index:20; background:linear-gradient(180deg,var(--bg) 78%,transparent); }
+.workspace-tabs button { flex:1 1 10rem; padding:.8rem 1rem; font:inherit; font-weight:650; color:inherit; border:1px solid #42516a; border-radius:.5rem; background:#182331; }
 .workspace-tabs button[aria-selected="true"] { background:#214b5a; border-color:#65d5e3; }
 .workspace-tabs button:focus-visible, .coverage-state-tiles button:focus-visible { outline:3px solid #a8efff; outline-offset:3px; }
 .focused-workspace { padding:1.25rem; min-width:0; }
+.workspace-heading { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+.workspace-heading h2 { margin:.25rem 0 0; }
+.workspace-heading p { margin:0; color:var(--muted); }
+.scope-note { color:var(--muted-2); }
+.supporting-evidence { margin-top:1rem; padding:1rem; border:1px solid #42516a; border-radius:.6rem; background:rgba(24,35,49,.45); }
+.supporting-evidence > summary { cursor:pointer; font-weight:700; color:var(--cyan); }
 .focused-workspace p { max-width:95ch; line-height:1.6; }
 .focused-workspace select, .focused-workspace input, .focused-workspace button { font:inherit; }
 .focused-workspace select, .focused-workspace input { max-width:100%; padding:.55rem; }
@@ -717,7 +723,7 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 .coverage-selected .summary-stats dd { color:var(--cyan); font-weight:700; text-align:right; }
 .industry-summary { margin-top:1rem; padding:1rem; border:1px solid rgba(82,216,218,.35); border-radius:.6rem; background:rgba(82,216,218,.035); }
 .industry-summary > h3 { margin-top:0; }
-.operations-tabs { padding-top:0; border-bottom:1px solid var(--border); }
+.operations-tabs { padding-top:0; border-bottom:1px solid var(--border); position:static; background:none; }
 .economy-evidence-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr)); gap:1rem; margin:1rem 0; }
 .economy-evidence-grid article { padding:1rem; border:1px solid #42516a; border-radius:.6rem; }
 .coverage-national-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:.75rem; margin:1rem 0; }

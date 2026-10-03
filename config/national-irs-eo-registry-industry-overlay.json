@@ -1,0 +1,26 @@
+{
+  "schema_version": "national-irs-eo-registry-industry-overlay-config@1.0.0",
+  "irs_eo": {
+    "manifest": "data/business-sources/irs-eo-bmf-organizations/releases/irs-eo-bmf-20260903-003447217Z-565da6cd/manifest.json",
+    "manifest_sha256": "999233d73e42eac72a094d1248d6790680d39d276c3a9e849a496d01ed5288f8",
+    "release_id": "irs-eo-bmf-20260903-003447217Z-565da6cd"
+  },
+  "registry": {
+    "manifest": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
+    "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+    "release_id": "national-business-registry-20260911-022652067Z-1ec656c3"
+  },
+  "coverage": {
+    "manifest": "data/national-irs-eo-bmf-organization-coverage/releases/national-irs-eo-bmf-organization-coverage-cf09e08b19c01912/manifest.json",
+    "manifest_sha256": "0106b15988a76a48f2662abcdf767e86b5f8e4fcdc57f04a4b1243ecc8f1316e",
+    "release_id": "national-irs-eo-bmf-organization-coverage-cf09e08b19c01912"
+  },
+  "zip_denominator": {
+    "manifest": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb/manifest.json",
+    "manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+    "artifact": "cohort.jsonl",
+    "artifact_sha256": "c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9",
+    "rows": 48194
+  },
+  "expected": { "membership_rows": 1955841, "jurisdiction_rows": 56, "positive_zip5_rows": 36950, "shards": 10 }
+}

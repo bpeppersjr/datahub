@@ -1,0 +1,20 @@
+{
+  "dataset_id": "national-irs-eo-registry-industry-overlay",
+  "schema_version": "1.0.0",
+  "title": "IRS EO registry tax-exempt-organization membership overlay",
+  "status": "published-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "additive_to_generic_business_totals": false,
+  "retained_release": {
+    "release_id": "national-irs-eo-registry-industry-overlay-61f2ddfb76bee49f47b32b6609cf6004a1bd686f51d50a19e2449b2d750e694c",
+    "manifest": "data/national-irs-eo-registry-industry-overlay/releases/national-irs-eo-registry-industry-overlay-61f2ddfb76bee49f47b32b6609cf6004a1bd686f51d50a19e2449b2d750e694c/manifest.json",
+    "manifest_sha256": "3fadc44772bcf2166d5e777d268028f3427342f7bfd0aab0a7706b92058581ce",
+    "membership_rows": 1955841,
+    "jurisdiction_rows": 56,
+    "zip5_denominator_rows": 48194,
+    "positive_zip5_rows": 36950
+  },
+  "required_datasets": ["irs-eo-bmf-organizations", "national-business-registry", "national-irs-eo-bmf-organization-coverage", "zip-denominator-gap-cohort"],
+  "documentation": "docs/NATIONAL-IRS-EO-REGISTRY-INDUSTRY-OVERLAY.md"
+}
