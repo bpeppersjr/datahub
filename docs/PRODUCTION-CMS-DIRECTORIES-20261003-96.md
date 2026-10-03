@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 96 is the current clean-repository successor after committing three pointer-free research and status releases: the national business temporal-claim matrix, the ZIP denominator gap cohort, and the ZCTA GDP allocation-method evaluation.
+Plan 96 is superseded by Plan 97 after the temporal-coverage UI, GDP model specification, nursing-home/NPPES overlap readiness, and fail-closed ACS prerequisite contract were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-96`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-96.json`
