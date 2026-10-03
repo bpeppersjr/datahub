@@ -1,0 +1,5 @@
+{
+  "schema_version": "usps-city-state-projection-schema-registry@1.0.0",
+  "status": "no-reviewed-projection-schemas",
+  "approved_schemas": []
+}

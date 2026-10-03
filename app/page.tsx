@@ -79,6 +79,25 @@ const statusLabel: Record<Status, string> = {
   idle: 'Ready', queued: 'Queued', running: 'Running', completed: 'Complete', failed: 'Failed', cancelled: 'Cancelled',
 };
 
+const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: string }> = {
+  'State Completion': {
+    eyebrow: 'National coverage',
+    description: 'Governed dataset availability across all 50 states and D.C.; unknown coverage remains unmeasured.',
+  },
+  'Industry Summary': {
+    eyebrow: 'Industry connectivity',
+    description: 'Compare retained industry evidence and state availability without treating source rows as a business census.',
+  },
+  'ZIP & GDP': {
+    eyebrow: 'Local economic view',
+    description: 'Inspect ZIP evidence, GDP-model readiness, and demographic inputs; unsupported estimates remain unavailable.',
+  },
+  Operations: {
+    eyebrow: 'Collection operations',
+    description: 'Manage jobs, local collection workflows, governed evidence, and connector readiness.',
+  },
+};
+
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return runnerJson<T>(path, {
     ...options,
@@ -320,21 +339,28 @@ export default function Home() {
   return (
     <main className="app-shell">
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <div className="eyebrow"><span className={`live-dot ${health ? '' : 'offline'}`} /> {health ? `Runner online · ${health.node}` : 'Runner offline'}</div>
-            <h1>Co*Tive Collector</h1>
+        <header className="topbar app-header">
+          <div className="topbar-primary">
+            <div className="brand-block">
+              <div className="eyebrow"><span className={`live-dot ${health ? '' : 'offline'}`} /> {health ? `Runner online · ${health.node}` : 'Runner offline'}</div>
+              <h1>Co*Tive Collector</h1>
+              <p>United States business-data coverage and economic evidence</p>
+            </div>
+            <div className="top-actions">
+              <TextSizeControl />
+              {workspaceTab==='Operations'&&operationsTab==='Jobs'&&<><input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden /><button className="ghost-button" onClick={() => importRef.current?.click()} disabled={busy}>Import</button><button className="ghost-button export-button" onClick={exportJobs} disabled={!jobs.length}>Export</button><button className="primary-button" onClick={() => openNew()}><span>＋</span> New job</button></>}
+            </div>
           </div>
-          <div className="top-actions">
-            <TextSizeControl />
-            {workspaceTab==='Operations'&&operationsTab==='Jobs'&&<><input ref={importRef} type="file" accept="application/json,.json" onChange={importJobs} hidden /><button className="ghost-button" onClick={() => importRef.current?.click()} disabled={busy}>Import</button><button className="ghost-button export-button" onClick={exportJobs} disabled={!jobs.length}>Export</button><button className="primary-button" onClick={() => openNew()}><span>＋</span> New job</button></>}
-          </div>
+          <WorkspaceTabs value={workspaceTab} onChange={setWorkspaceTab}/>
         </header>
 
         {!health && <div className="offline-banner"><strong>Runner unavailable.</strong> Start the local runner to create and execute jobs.</div>}
 
-        <WorkspaceTabs value={workspaceTab} onChange={setWorkspaceTab}/>
-        <div id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
+        <div className="active-workspace-context">
+          <span>{workspaceContext[workspaceTab].eyebrow}</span>
+          <p>{workspaceContext[workspaceTab].description}</p>
+        </div>
+        <div className="workspace-stage" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
         {workspaceTab==='State Completion'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP & GDP'&&<ZipEconomyWorkspace stateCode={workspaceState}/>}

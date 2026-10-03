@@ -4,6 +4,12 @@ The `il-business-registry` connector is an implemented, offline-only ingestion p
 
 No production release exists yet. The dataset remains `implemented-offline-awaiting-operator-supplied-official-files`, every generated artifact is `local-review-only`, and the national registry does not depend on it.
 
+## Standalone application handoff
+
+The offline app worker accepts exactly one explicit package selection below `data/imports/illinois-business-registry/packages/<package-id>/selection.json`. It validates five distinct package-local regular files, rejects links and path traversal, fixes a hash-checked operation snapshot, and then invokes the existing connector inside a UUID operation directory. Successful and failed operations retain a start record and terminal receipt. Raw operation snapshots are removed after use; failed or cancelled operations also remove their operation-scoped release output. Operator-selected source inputs are never modified.
+
+Run `node scripts/run-il-business-app.mjs --selection <selection-path>` and independently check a successful receipt with `node scripts/verify-il-business-app.mjs --receipt <receipt-path>`. This handoff performs zero network requests, does not auto-discover files, does not change `data/business-sources/il-business-registry-active-organizations/current.json`, and does not admit Illinois to national reporting or broad-layer coverage.
+
 ## Required input set
 
 Supply all five official files from one daily run:

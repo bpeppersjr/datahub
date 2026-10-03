@@ -191,6 +191,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/organization-zip-evidence-exports", "{}"],
     ["POST", "/api/data-operations/cohort-snapshots", "{}"],
     ["POST", "/api/data-operations/source-prerequisites", '{"sourceId":"ne-childcare-pdf"}'],
+    ["POST", "/api/data-operations/usps-city-state-admissions", '{"packageDirectory":"data/imports/fixture"}'],
     ["POST", "/api/data-operations/overture-acquisitions", "{}"],
     ["GET", "/api/data-operations/overture-readiness"],
     ["POST", "/api/data-operations/ok-childcare-collections", "{}"],
@@ -332,7 +333,7 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(connectorCatalog.status, 200);
   const connectorCatalogBody = JSON.parse(connectorCatalog.body);
-  assert.equal(connectorCatalogBody.connector_count, 92);
+  assert.equal(connectorCatalogBody.connector_count, 93);
   assert.equal(connectorCatalogBody.policy_profile_count, 73);
   assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
 

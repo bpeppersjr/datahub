@@ -1,0 +1,16 @@
+{
+  "schema_version": "usps-city-state-offline-admission-config@1.0.0",
+  "publication_mode": "immutable-local-restricted-pointer-free",
+  "maximum_package_bytes": 54525952,
+  "maximum_projection_bytes": 52428800,
+  "maximum_projection_rows": 100000,
+  "maximum_line_bytes": 4096,
+  "authorization_registry": "config/usps-city-state-authorization-registry.json",
+  "projection_schema_registry": "config/usps-city-state-projection-schema-registry.json",
+  "source_policy": "config/source-policies/usps-city-state-licensed.json",
+  "candidate_policy": "config/source-policies/usps-city-state-operational-denominator-candidate.json",
+  "source_profile": "config/source-profiles/usps-city-state-operational-denominator.json",
+  "admission_connector": "config/connectors/usps-city-state-admission.json",
+  "candidate_connector": "config/connectors/usps-city-state-operational-denominator-candidate.json",
+  "candidate_dataset": "config/datasets/usps-city-state-operational-denominator-candidate.json"
+}

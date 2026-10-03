@@ -1,0 +1,11 @@
+{
+  "schema_version": "il-business-import-selection@1.0.0",
+  "package_id": "replace-with-package-id",
+  "files": {
+    "corporation_master": "corporation-master.zip",
+    "corporation_name": "corporation-name.zip",
+    "corporation_annual": "corporation-annual-report.zip",
+    "llc_master": "llc-master.zip",
+    "llc_name": "llc-name.zip"
+  }
+}

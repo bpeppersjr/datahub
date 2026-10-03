@@ -41,6 +41,12 @@ next-env.d.ts
 # local job state and generated artifacts
 /data/*
 !/data/.gitkeep
+!/data/imports/
+/data/imports/*
+!/data/imports/illinois-business-registry/
+/data/imports/illinois-business-registry/*
+!/data/imports/illinois-business-registry/README.md
+!/data/imports/illinois-business-registry/selection.example.json
 /downloads/*
 !/downloads/.gitkeep
 /tmp/*

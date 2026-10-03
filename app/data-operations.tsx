@@ -73,6 +73,7 @@ export default function DataOperations() {
   const [organizationPublisher,setOrganizationPublisher]=useState('');
   const [organizationPolicy,setOrganizationPolicy]=useState<'public-only'|'local-review'>('public-only');
   const [organizationFormat,setOrganizationFormat]=useState('both');
+  const [uspsPackageDirectory,setUspsPackageDirectory]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -156,6 +157,13 @@ export default function DataOperations() {
       </div>
       <button type="button" className="primary-button" disabled={!catalog||!/^\d{5}$/.test(organizationZip5)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/organization-zip-evidence-exports',{zip5:organizationZip5,...(organizationPublisher?{publisher_state:organizationPublisher}:{}),policy_mode:organizationPolicy,format:organizationFormat})))}>Build verified organization ZIP export</button>
       <p className="operations-note">Public-only omits Delaware record-level details while its policy-excluded count remains reported as neither missing nor zero evidence. Choose local review only where that restricted detail is appropriate.</p>
+    </section>
+    <section aria-labelledby="usps-city-state-admission-title" className="operations-builder">
+      <h3 id="usps-city-state-admission-title">Inspect a licensed USPS City State package</h3>
+      <p className="operations-note">Offline local admission only. Co*Tive does not obtain or grant a USPS license. The approval registries are intentionally empty, so packages fail closed until authorization and projection evidence receive a separate governed review.</p>
+      <label>Package directory under data/imports <input aria-label="USPS City State package directory" value={uspsPackageDirectory} disabled={busy} placeholder="data/imports/usps-city-state-package" onChange={event=>setUspsPackageDirectory(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data[\\/]imports[\\/][^\\/]+(?:[\\/][^\\/]+)*$/.test(uspsPackageDirectory)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/usps-city-state-admissions',{packageDirectory:uspsPackageDirectory})))}>Start offline package inspection</button>
+      <p className="operations-note">Success remains local-restricted, candidate-only, pointer-free, non-production, and makes no address-deliverability or ZIP/ZCTA claim.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />

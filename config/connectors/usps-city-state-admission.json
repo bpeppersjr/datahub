@@ -1,26 +1,20 @@
 {
   "connector_id": "usps-city-state-admission",
   "version": "1.0.0",
-  "implementation_status": "offline-governed-prerequisite-only",
-  "description": "Validates an operator-provided licensed USPS City State ZIP5 projection without retaining or redistributing its rows.",
+  "implementation_status": "offline-app-managed-package-admission-fail-closed",
+  "description": "Validates an explicitly approved operator-provided licensed USPS City State package through a protected local managed operation. Approval registries are empty by default; no network, current pointer, production admission, or redistribution is authorized.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["input", "source_month", "source_version", "sha256", "bytes", "permission_reference", "zip_class_declaration"],
+    "required": ["packageDirectory"],
     "properties": {
-      "input": { "type": "string" },
-      "source_month": { "type": "string" },
-      "source_version": { "type": "string" },
-      "sha256": { "type": "string" },
-      "bytes": { "type": "integer" },
-      "permission_reference": { "type": "string" },
-      "zip_class_declaration": { "type": "object" }
+      "packageDirectory": { "type": "string" }
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["operator-provided-licensed-usps-city-state-zip5-jsonl"],
-  "output_artifact_types": ["usps-city-state-admission-receipt-json", "usps-city-state-admission-manifest-json"],
+  "input_artifact_types": ["closed-usps-city-state-offline-package", "approved-usps-license-receipt", "approved-city-state-projection-schema", "operator-provided-licensed-usps-city-state-zip5-jsonl"],
+  "output_artifact_types": ["immutable-local-restricted-package-release", "usps-city-state-admission-receipt-json", "usps-city-state-admission-manifest-json", "usps-city-state-operational-denominator-candidate-jsonl"],
   "allowed_hosts": [],
   "redirect_policy": "not-applicable-no-network",
   "provider_budget_key": "offline-only",
@@ -29,9 +23,9 @@
   "retry": "No automatic retry; correct the rejected local input or declaration and invoke again.",
   "checkpoint": "No checkpoint; validation completes before immutable manifest publication.",
   "idempotency": "Source month and SHA-256 determine the immutable admission identity; an existing identity is never overwritten.",
-  "cancellation": "Cancellation before manifest publication produces no completed admission.",
+  "cancellation": "Copy, validation, replay, staging, and downstream candidate construction honor cooperative cancellation. Staging is removed before publication; an already atomically published immutable package remains inspectable and is never presented as production admission.",
   "source_policy": "config/source-policies/usps-city-state-licensed.json",
-  "retention_profile": "local-restricted metadata only; licensed rows are not copied",
+  "retention_profile": "Operation-owned bounded copies and admitted projections remain local-restricted; no licensed rows are redistributed",
   "produced_entities": ["zip5-denominator-prerequisite-evidence"],
   "produced_identifiers": ["zip5"]
 }

@@ -52,7 +52,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -191,6 +191,14 @@ export class ManagedOperations {
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('ACS ZCTA admission requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('source-admission',{sourceId:'acs-zcta-demographics',packageDirectory:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
+  }
+  async startUspsCityStateAdmission(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'packageDirectory')?.value!=='string')throw invalid('USPS City State admission requires only packageDirectory.');
+    const selected=path.resolve(APP_ROOT,input.packageDirectory),imports=path.join(APP_ROOT,'data','imports'),relative=path.relative(imports,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative))throw invalid('USPS City State package must be a subdirectory of data/imports.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('USPS City State admission requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('usps-city-state-admission',{sourceId:'usps-city-state',packageDirectory:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -466,6 +474,7 @@ export class ManagedOperations {
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
       else if(record.kind==='source-adoption') {script=record.details.sourceId===CMS_NURSING_HOME_RETAINED_ADOPTION.sourceId?'scripts/adopt-cms-nursing-homes.mjs':'scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
       else if(record.kind==='source-admission') {script='scripts/admit-acs-zcta-demographic-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
+      else if(record.kind==='usps-city-state-admission') {script='scripts/admit-usps-city-state-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -517,6 +526,12 @@ export class ManagedOperations {
         const {verifyOfflineAcsZctaRelease}=await import('./acs-zcta-demographic-offline-admission.mjs');const proof=await verifyOfflineAcsZctaRelease(descriptor.manifest);
         if(proof.release_id!==descriptor.release_id||proof.manifest_sha256!==descriptor.manifest_sha256)throw Error('ACS ZCTA admission replay disagreed.');
         record.result={sourceId:'acs-zcta-demographics',releaseId:descriptor.release_id,recordCount:descriptor.record_count,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,productionEnrollment:false,cancellationAfterPublication:controller.signal.aborted||descriptor.cancellation_after_publication};record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='usps-city-state-admission'){
+        if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('USPS City State admission did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout);if(!descriptor||descriptor.sourceId!=='usps-city-state'||descriptor.status!=='admitted-local-restricted-candidate-only'||descriptor.artifactIntegrityVerified!==true||descriptor.networkRequests!==0||descriptor.productionAdmission!==false||descriptor.currentPointerWritten!==false)throw Error('USPS City State admission descriptor rejected.');
+        const {verifyOfflineCityStatePackageRelease}=await import('./usps-city-state-offline-admission.mjs');const proof=await verifyOfflineCityStatePackageRelease(descriptor.packageManifest,{admissionManifest:descriptor.admissionManifest,candidateManifest:descriptor.candidateManifest,signal:controller.signal});if(proof.release_id!==descriptor.packageReleaseId||proof.record_count!==descriptor.recordCount)throw Error('USPS City State admission replay disagreed.');
+        record.result={sourceId:'usps-city-state',releaseId:proof.release_id,recordCount:proof.record_count,receiptIntegrityVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,currentPointerWritten:false,productionEnrollment:false,productionAdmission:false};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)

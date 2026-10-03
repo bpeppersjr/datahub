@@ -1,0 +1,31 @@
+{
+  "connector_id": "il-business-registry-app",
+  "version": "1.0.0",
+  "description": "Application-owned, offline-only Illinois SOS five-file ingestion. An operator explicitly places one complete official daily package under data/imports; the worker performs no discovery or network access and writes only operation-scoped releases and receipts.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["selection"],
+    "properties": {
+      "selection": { "type": "string", "pattern": "^data/imports/illinois-business-registry/packages/[A-Za-z0-9][A-Za-z0-9._-]{0,63}/selection\\.json$" },
+      "operationsRoot": { "type": "string", "enum": ["data/imports/illinois-business-registry/operations"], "default": "data/imports/illinois-business-registry/operations" }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": ["il-sos-five-file-selection-json", "il-sos-corporation-master-fixed-width", "il-sos-corporation-name-fixed-width", "il-sos-corporation-annual-fixed-width", "il-sos-llc-master-fixed-width", "il-sos-llc-name-fixed-width", "census-zbp-baseline-release"],
+  "output_artifact_types": ["il-business-app-start-json", "il-business-app-receipt-json", "operation-scoped-il-business-registry-release"],
+  "allowed_hosts": [],
+  "redirect_policy": "No HTTP requests, redirects, discovery, or automated acquisition are permitted.",
+  "provider_budget_key": "il-sos-offline-operator-supplied-files",
+  "resource_class": "cpu-memory-disk",
+  "execution_limits": { "max_parallel_requests": 0, "required_source_files": 5, "maximum_input_bytes_per_file": 2000000000 },
+  "retry": "No automatic retry. Inspect the durable operation receipt and replace or correct the explicitly selected package.",
+  "checkpoint": "One UUID operation owns its start record, operation-scoped release root, independently verified source manifest, and terminal receipt.",
+  "idempotency": "The existing source connector binds the common source RUN DATE and ordered SHA-256 values of all five selected files. Re-running creates a distinct operation and never changes a national or source current pointer.",
+  "cancellation": "Cancellation is cooperative. The operation records CANCELLED and removes only its unpublished operation-scoped release directory; selected inputs are never modified.",
+  "source_policy": "config/source-policies/il-business-registry.json",
+  "retention_profile": "Operator inputs remain under data/imports. Operation-scoped privacy-minimized evidence and receipts remain local-review-only until an explicit retention action.",
+  "produced_entities": ["organization-candidate", "il-registration-status-assertion", "llc-records-office-address-assertion"],
+  "produced_identifiers": ["il-sos-file-number", "zip5", "zip4", "zcta5"]
+}
