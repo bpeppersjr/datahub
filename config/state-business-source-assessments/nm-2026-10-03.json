@@ -1,0 +1,82 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "nm-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "NM",
+    "name": "New Mexico"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-1-2026-09-03",
+  "reassessment_reason": "Recheck whether the Enterprise portal or official services documentation establishes a recurring statewide business export; clarify that campaign-finance downloads are a different subject.",
+  "access": {
+    "classification": "search-only-export-unverified",
+    "bulk": "Reviewed business and online-services pages establish business search and filing services but no documented recurring statewide business-record export, delivery schema or price.",
+    "api": "The Enterprise landing page returned HTTP 403 to the read-only web tool. This is an observation limit, not proof that an API or export cannot exist; undocumented endpoints were not probed.",
+    "search": "Official pages route public business lookup and requests to Enterprise. The online-services Data Download wording belongs to campaign finance, not the business registry."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current recurring business-export dictionary, stable Business ID contract, entity scope, address-role map or control totals were established by reviewed official public pages."
+  },
+  "active_status_semantics": "An eventual source status must remain administrative registration evidence and is not proof of current business operation; no current export status codebook was verified.",
+  "statewide_completeness": "The reviewed public pages do not establish a complete machine-readable business population or active count. Existing national-source coverage remains separate.",
+  "address_zip": "No export address-role contract was established. Future projection must distinguish mailing, principal and registered-agent addresses and preserve ZIP5 and ZIP4 separately.",
+  "automation_terms_fees": "No supported business-export automation, request-rate contract or price was established. No queries, accounts, contacts, paid requests or terms acceptance occurred.",
+  "redistribution": "The official IPRA information page supplies a records-request route; that alone does not establish recurring export availability or a product-specific retention and derivative-use contract.",
+  "temporal_refresh": "No recurring snapshot cadence, correction/deletion semantics, source release identifier, checksums or replay contract was established.",
+  "citations": [
+    {
+      "url": "https://www.sos.nm.gov/business-services/",
+      "evidence": "Official business-services page describes registry services and online portal access."
+    },
+    {
+      "url": "https://www.sos.nm.gov/online-services/",
+      "evidence": "Business filing services are separate from the campaign-finance Data Download entry."
+    },
+    {
+      "url": "https://enterprise.sos.nm.gov/",
+      "evidence": "Landing-page retrieval returned HTTP 403; no business lookup or record endpoint was queried."
+    },
+    {
+      "url": "https://www.sos.nm.gov/legislation-and-lobbying/legal-resources/ipra-request-information/",
+      "evidence": "Official records-request information route; no request was submitted."
+    }
+  ],
+  "unresolved_gates": [
+    "export-existence",
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Retain HOLD and the existing export-discovery question: determine whether an existing recurring entity export exists, then obtain its schema, population, key/status/address definitions, refresh/checksum controls, price and permitted derived uses. Contact and any record-bearing request remain separately gated."
+}

@@ -1,0 +1,80 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "nh-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {
+    "abbreviation": "NH",
+    "name": "New Hampshire"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+  "reassessment_reason": "Narrow generic identifier and status gaps to product-specific mapping and lifecycle: the official FAQ already defines BID and the status page defines registry standing.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "bounded_connector_implementation_authorized": false,
+    "production_ready": false
+  },
+  "candidate": {
+    "publisher": "New Hampshire Department of State Corporation Division",
+    "product": "Potential recurring business-entity extract; QuickStart public search",
+    "availability": "no-current-named-bulk-product-established",
+    "price": null
+  },
+  "access": {
+    "classification": "public-search-only-contract-unverified",
+    "bulk": "No named current recurring extract, scope, fee, schema or supported delivery contract established.",
+    "api": "No public business-master API contract established.",
+    "automation": "QuickStart is the public search route; no automated search or supported unattended extract access established."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Official FAQ states Charter Number and Business ID Number (BID) identify registered businesses and differ from federal EIN. This does not establish bulk column names, key immutability or merger/conversion lifecycle."
+  },
+  "active_status_semantics": "The official status page defines Active for trade names/entities that do not file reports and Good Standing for entities with reports and fees filed. Neither alone proves current operation. Bulk code mapping and entity-family selection remain unresolved.",
+  "statewide_completeness": "Searchable charter records do not establish a complete active master, exact entity-family coverage or control totals. No source rows were acquired.",
+  "address_zip": "No bulk address-role dictionary established. Registration, agent and person addresses must not become verified physical sites. Future ZIP5 and ZIP4 remain separate.",
+  "automation_terms_fees": "No QuickStart account, order, query, document purchase, contact or terms acceptance occurred. Statutory custom-service availability from the historical assessment does not establish a current product.",
+  "redistribution": "Current product-specific retention, derived-use and redistribution terms remain unverified. The official statutory URL failed retrieval during this review; no new legal conclusion asserted.",
+  "temporal_refresh": "No recurring release cadence, snapshots, changes, tombstones, checksums or archive/replay contract established.",
+  "offline_implementation": "Document-only reassessment; no connector, operation, release, admission or production pointer was changed.",
+  "citations": [
+    {
+      "url": "https://www.sos.nh.gov/corporations-0/business-faqs",
+      "evidence": "Official FAQ defines BID/Charter Number and distinguishes EIN; describes searchable charter documents."
+    },
+    {
+      "url": "https://www.sos.nh.gov/business-status-definitions",
+      "evidence": "Official search-index content defines Active and Good Standing; direct fetch returned 403, without bypass."
+    },
+    {
+      "url": "https://www.gc.nh.gov/rsa/html/XXVII/293-A/293-A-122.htm",
+      "evidence": "Historical optional-service statutory lead; direct page could not be revalidated."
+    }
+  ],
+  "unresolved_gates": [
+    "existing-product-and-price",
+    "bulk-scope-and-schema",
+    "bid-lifecycle-and-bulk-mapping",
+    "bulk-status-selection",
+    "address-role",
+    "change-and-replay-contract",
+    "delivery-and-rights",
+    "separate-acquisition-authorization"
+  ],
+  "strongest_next_action": "Carry published BID and registry-status definitions into the existing preflight, asking only for bulk mapping, lifecycle, source scope, delivery, controls and applicable terms that remain unknown. No contact, query or acquisition is authorized by this reassessment."
+}

@@ -1,0 +1,9 @@
+# New Mexico business-source reassessment — 2026-10-03
+
+HOLD remains accurate. The official [business services](https://www.sos.nm.gov/business-services/) and [online services](https://www.sos.nm.gov/online-services/) pages establish filing and search services. The latter's Data Download entry concerns campaign finance; it does not establish a business-registry export. Direct [Enterprise](https://enterprise.sos.nm.gov/) retrieval returned HTTP 403 to the read-only reader. This limits the observation; it is not proof that no export exists.
+
+The [IPRA page](https://www.sos.nm.gov/legislation-and-lobbying/legal-resources/ipra-request-information/) identifies business filings among held records, points to Enterprise, and says an agency need not create a record. The next question remains whether an existing recurring entity export is available, with a schema, scope, IDs, status/address meanings, control totals, refresh contract and permitted uses. No request or contact was submitted, and no endpoint enumeration, account, payment, terms acceptance or business-record download occurred.
+
+The immutable record is `config/state-business-source-assessments/nm-2026-10-03.json`, superseding this state's entry in `state-business-source-discovery-queue-4-wave-1-2026-09-03`. Integrate `loadNewMexicoBusinessSourceReassessment` from `runner/georgia-new-mexico-montana-business-source-reassessment.mjs` while preserving the historical queue. Authority flags remain false and measured coverage does not change.
+
+The dedicated Node test verifies the campaign-finance distinction, HTTP observation limit and rejects authority, counters, facts and state substitutions. There is no runtime migration. Removing catalog selection of this successor restores the preceding assessment; production data and source policies are untouched.

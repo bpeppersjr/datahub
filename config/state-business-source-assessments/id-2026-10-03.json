@@ -1,0 +1,79 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "id-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {
+    "abbreviation": "ID",
+    "name": "Idaho"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-1-2026-09-03",
+  "reassessment_reason": "Refresh the official business-service route and distinguish the UCC XML filing service from a business-registry retrieval API.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "bounded_connector_implementation_authorized": false,
+    "production_ready": false
+  },
+  "candidate": {
+    "publisher": "Idaho Secretary of State",
+    "product": "SOSBiz business search; possible corporate-information extract remains unconfirmed",
+    "availability": "no-current-business-bulk-contract-established",
+    "price": null
+  },
+  "access": {
+    "classification": "public-search-only-contract-unverified",
+    "bulk": "Current official business resources describe search, filing, annual reports and certificates; no recurring business master contract was established.",
+    "api": "The official UCC XML guide describes submission of financing-statement filings, not business-entity retrieval.",
+    "automation": "No supported unattended business download method established; SOSBiz was not queried or automated."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No complete bulk business schema, identifier lifecycle, status dictionary, address-role layout or record controls established."
+  },
+  "active_status_semantics": "A certificate of existence evidences registration, not operating-establishment activity. No bulk active-selection codebook was established.",
+  "statewide_completeness": "No current statewide business-master product, population, counts or retained release was established. The UCC filing service is not an alternative business census.",
+  "address_zip": "Official resources distinguish registered agents accepting documents and permit an individual agent at an Idaho street address. Agent addresses must not be promoted to operating sites. Future ZIP5 and ZIP4 remain separate.",
+  "automation_terms_fees": "No account enrollment, paid certificate, UCC filing, API request or source download occurred. UCC commercial-filer registration requirements do not authorize business retrieval.",
+  "redistribution": "No current product-specific retention or redistribution terms established. The prior statutory lead for corporate-information lists is retained as an unresolved lead: the official statute URL could not be fetched during this review.",
+  "temporal_refresh": "The site describes filing-processing lag; that is not an extract publication cadence. Snapshot, changes, deletion and replay controls remain unknown.",
+  "offline_implementation": "Document-only reassessment; no connector, operation, release, admission or production pointer was changed.",
+  "citations": [
+    {
+      "url": "https://sos.idaho.gov/business-resources/",
+      "evidence": "Current search, filing, certificate and agent guidance; former business-services-resources URL redirects here."
+    },
+    {
+      "url": "https://sos.idaho.gov/docs/pdf/UCCXMLImpGuide.pdf",
+      "evidence": "Official indexed implementation guide identifies an outbound filing submission service, not registry extraction."
+    },
+    {
+      "url": "https://legislature.idaho.gov/statutesrules/idstat/Title74/T74CH1/SECT74-120/",
+      "evidence": "Historical statutory lead from prior assessment; current official page retrieval failed, so no refreshed legal conclusion is asserted."
+    }
+  ],
+  "unresolved_gates": [
+    "existing-product-confirmation",
+    "scope-and-schema",
+    "identifier-status-address-contract",
+    "snapshot-change-replay-contract",
+    "supported-delivery",
+    "price-and-rights",
+    "separate-acquisition-authorization"
+  ],
+  "strongest_next_action": "Keep the existing document-only preflight focused on whether a recurring person-free business-master product exists. Exclude UCC filing integration from this acquisition path. No contact, source query, account or acquisition is authorized by this reassessment."
+}

@@ -1,0 +1,79 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "la-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "LA",
+    "name": "Louisiana"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03",
+  "reassessment_reason": "Reconfirmed custom Computer Query pricing and separated it from the lookup API. The API guide has a contradictory CommercialLookup path that requires publisher clarification before implementation.",
+  "candidate": {
+    "publisher": "Louisiana Secretary of State, Commercial Division",
+    "product": "custom Computer Query; separate Commercial API lookup service",
+    "availability": "paid-custom-extract-contract-required",
+    "price": "Computer Query: $25 for first 40 records plus $0.01 per additional record; current live API quote not established"
+  },
+  "access": {
+    "classification": "paid-custom-extract-contract-required",
+    "bulk": "Official order instructions offer request-defined custom multi-entity queries; a complete recurring statewide extract contract remains unverified.",
+    "api": "REST JSON uses token plus account email; live tokens are paid and test tokens return test data. Limits are 18 calls/minute and 1,000 search results; no pagination or change-feed contract is documented.",
+    "automation": "The documented API supports customer back-end use, subject to subscription terms. This does not authorize portal harvesting or statewide enumeration."
+  },
+  "fields": {
+    "published": true,
+    "summary": "The guide documents entity identifiers, charter status, address structures and natural-person sections. CommercialLookup names /api/Commercial/Search in the method section but /api/Commercial/Lookup in its appendix. Header version/date and revision-history entries also differ; no route was probed."
+  },
+  "active_status_semantics": "Charter and annual-report standing are legal filing assertions; operating-business status and status-code lifecycle remain unverified.",
+  "statewide_completeness": "The 1,000-result API cap and undocumented enumeration contract cannot establish a statewide baseline. A custom query needs an explicit entity-class scope and complete as-of count.",
+  "address_zip": "Address structures include ZipCode and AddressType; published value semantics are insufficient to identify physical sites. Future outputs must keep ZIP5 and ZIP4 separate and exclude agent/person contact fields.",
+  "automation_terms_fees": "Official query pricing is documented. Account, token, current agreement and permitted scope remain prerequisites for live API use; no signup, payment or acceptance occurred.",
+  "redistribution": "No reviewed grant of indefinite retention, derived publication or redistribution was established for a custom extract.",
+  "temporal_refresh": "No recurring custom-extract cadence, full/delta/deletion, correction, replay or checksum contract established.",
+  "citations": [
+    {
+      "url": "https://www.sos.la.gov/business-services/how-to-order",
+      "evidence": "Custom Computer Query availability and per-record pricing; registry display includes agent/person details."
+    },
+    {
+      "url": "https://static.sos.la.gov/COAPI/Commercial_API_Guide.pdf",
+      "evidence": "Token requirement, request/result limits, published fields, inconsistent lookup route, and disclaimer-change response."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "custom-extract-schema",
+    "api-route-and-version-clarification",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a document-only query for a complete person-free custom extract quote, schema, current rights and refresh contract. Include the guide's lookup-route discrepancy if API integration is contemplated; do not substitute capped name searches for statewide acquisition. Separate authorization is required before sending."
+}

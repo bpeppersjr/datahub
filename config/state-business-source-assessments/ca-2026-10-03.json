@@ -1,0 +1,83 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "ca-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {
+    "abbreviation": "CA",
+    "name": "California"
+  },
+  "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03",
+  "reassessment_reason": "Narrow the prior rights and field-definition gaps using the official filing-data use statement and search FAQ; preserve unverified bulk contract and access boundaries.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "bounded_connector_implementation_authorized": false,
+    "production_ready": false
+  },
+  "candidate": {
+    "publisher": "California Secretary of State",
+    "product": "bizfile Business Entity Master Unload and Weekly Data",
+    "availability": "authenticated-portal-order",
+    "price": "Public manual lists $100 master unload and free weekly data; checkout not accessed."
+  },
+  "access": {
+    "classification": "authenticated-portal-order",
+    "bulk": "Official records page directs bulk orders to bizfile and manual pages 132-134. The indexed official manual describes login-required master and weekly orders.",
+    "api": "No public business-entity API contract established.",
+    "automation": "Terms restrict robots, page scraping, circumvention and excessive loads. Supported unattended bulk delivery remains unverified."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Public search FAQ defines entity number, registration date, jurisdiction, status, executive-office address and mailing address. These are web definitions, not a verified bulk layout or key-lifecycle contract."
+  },
+  "active_status_semantics": "Active describes formation/registration and authorization to conduct business; it does not prove current operation. Foreign status concerns California registration. Bulk-code mapping remains unverified.",
+  "statewide_completeness": "The records page covers corporations, LLCs and limited partnerships; exact master population and reconciliation totals are unverified. No statewide release was acquired.",
+  "address_zip": "Entity Address means executive office, distinct from mailing address and agent service address. It is not a verified establishment location. Bulk address/ZIP layout remains unknown; future ZIP5 and ZIP4 must remain separate.",
+  "automation_terms_fees": "Login/order and terms acceptance remain unperformed. Public pricing is documentation evidence, not a paid order or unattended-access authorization.",
+  "redistribution": "The official Terms Intellectual Property section expressly states SOS places no restriction on use of filing data, subject to third-party rights. The earlier absent-use-grant summary was overbroad. Portal restrictions and any bulk-specific terms still need reconciliation; this finding grants no source-action authority.",
+  "temporal_refresh": "Master and weekly product names are documented. Weekly delta, deletion, correction, sequence, checksum and replay semantics remain unverified.",
+  "offline_implementation": "Document-only reassessment; no connector, operation, release, admission or production pointer was changed.",
+  "citations": [
+    {
+      "url": "https://www.sos.ca.gov/administration/public-records-act-requests/business-entity-records",
+      "evidence": "Bulk ordering route; listed entity families."
+    },
+    {
+      "url": "https://bpd.cdn.sos.ca.gov/ucc/ucc-online-help.pdf",
+      "evidence": "Official search-index excerpt of page 132 establishes login and listed master/weekly prices. Full PDF retrieval exceeded web-tool size limit; no complete PDF inspection claimed."
+    },
+    {
+      "url": "https://www.sos.ca.gov/business-programs/bizfile/privacy-warning-terms-and-conditions-use",
+      "evidence": "Filing-data reuse statement and distinct portal-access restrictions."
+    },
+    {
+      "url": "https://www.sos.ca.gov/business-programs/business-entities/cbs-field-status-definitions",
+      "evidence": "Web field/address definitions and Active registration semantics; not a bulk layout."
+    }
+  ],
+  "unresolved_gates": [
+    "bulk-schema-and-scope",
+    "bulk-identifier-lifecycle",
+    "bulk-status-and-address-mapping",
+    "weekly-change-and-replay-contract",
+    "supported-bulk-retrieval",
+    "bulk-specific-terms-reconciliation",
+    "separate-acquisition-authorization"
+  ],
+  "strongest_next_action": "Use the documented filing-data reuse statement in the existing preflight. Resolve the actual bulk layout, master/weekly semantics and supported delivery method; seek clarification only for remaining product-specific terms. No account, order, contact or acquisition is authorized by this reassessment."
+}

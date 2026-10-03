@@ -1,0 +1,82 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "md-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "MD",
+    "name": "Maryland"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+  "reassessment_reason": "Reconfirmed the publisher-designated paid Corporate File and narrowed schema uncertainty to code values and record encoding, rather than claiming no layout exists.",
+  "candidate": {
+    "publisher": "Maryland SDAT through its designated contractor SpecPrint",
+    "product": "Corporate Master File / Corporate File",
+    "availability": "paid-master-and-subscription-contract-required",
+    "price": "Published $2,100 per Corporate File; weekly subscription quote unresolved"
+  },
+  "access": {
+    "classification": "paid-master-and-subscription-contract-required",
+    "bulk": "SDAT identifies a historical domestic/foreign entity file sold through SpecPrint, with monthly master creation and a weekly subscription option.",
+    "api": "Reviewed official material establishes a file product, not an anonymous bulk API.",
+    "automation": "FTP is preferred delivery; unattended retrieval permission and credentials remain unestablished."
+  },
+  "fields": {
+    "published": true,
+    "summary": "The 25-table positional layout defines BUSENTIT, BUSADDRE and ENTITYST. ID_BUS_PREFIX plus ID_BUS CHAR 16 appears as a key; CD_ADDRESS_TYPE lacks a value dictionary. ENTITYST defines FL_ACTIVE but not its allowed values. VARCHAR and binary-looking numeric positions require an encoding contract."
+  },
+  "active_status_semantics": "A declared FL_ACTIVE column is insufficient to select current entities until code values and joins are confirmed. Registry status is not evidence of current operation.",
+  "statewide_completeness": "SDAT describes corporations active since 1982 and other entity families. SpecPrint labels 9,300,000 average weekly records without a unique-entity definition; it is not a completion denominator.",
+  "address_zip": "BUSADDRE declares AD_ZIP CHAR 9, plus address-type and email fields. Address-role codes must be confirmed before excluding agent/person addresses. ZIP5 and ZIP4 must remain separate in normalized outputs; no postal deliverability or physical-site proof is established.",
+  "automation_terms_fees": "SpecPrint requires advance payment; selected listings require a signed order form. No order, payment, login or source records were requested.",
+  "redistribution": "Publisher designation confirms the sales channel, not downstream retention, transformation, geocoding or redistribution rights. Those remain contract questions.",
+  "temporal_refresh": "Monthly creation and weekly subscription do not establish full-versus-delta delivery, delete/correction handling, checksums or replay. The layout has no reviewed version/date or compatibility promise.",
+  "citations": [
+    {
+      "url": "https://dat.maryland.gov/Pages/Services.aspx",
+      "evidence": "SDAT designates SpecPrint, describes historical scope and principal/agent fields, monthly creation and weekly subscription."
+    },
+    {
+      "url": "https://www.specprint.com/state_prc.html",
+      "evidence": "Designated publisher contractor lists Corporate File price, average weekly record count, FTP preference and payment conditions."
+    },
+    {
+      "url": "https://specprint.com/spec/CORP%20FILE%20LAYOUT.pdf",
+      "evidence": "Seven-page 25-table layout contains public field positions but no address/status value dictionary or encoding specification."
+    }
+  ],
+  "unresolved_gates": [
+    "current-price-and-terms",
+    "schema-encoding-and-version",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a document-only request to SDAT/SpecPrint for current unsigned terms, subscription quote, codebooks, encoding and ID mapping, aggregate byte sizes, and baseline/update/checksum/replay contract. Separate authorization is required before contact or purchase."
+}

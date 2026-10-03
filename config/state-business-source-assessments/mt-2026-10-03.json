@@ -1,0 +1,81 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "mt-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "MT",
+    "name": "Montana"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03",
+  "reassessment_reason": "Narrow schema discovery to validating the current delivery against the already published tagged-record specification; retain unresolved delivery, rights and identity gates.",
+  "access": {
+    "classification": "paid-bulk-published-layout",
+    "bulk": "The official catalog describes comma-delimited corporate extracts compressed into ZIP files. The fee page lists corporate bulk data at $0.02 per record; new-entity reports are $80, with subscriptions separately listed at $80/month.",
+    "api": "No supported unattended bulk API, authenticated transfer contract or rate-limit policy was established.",
+    "search": "Indexed official search-page text warns that results are limited. Direct retrieval returned HTTP 403 to the web reader; no query was submitted or access restriction bypassed."
+  },
+  "fields": {
+    "published": true,
+    "summary": "The public Version 2 specification dated April 26, 2017 defines tagged entity/child rows, Business Entity Number joins, status/date fields and seven-component addresses. Current delivery compatibility remains unverified; a public layout is not a validated package."
+  },
+  "active_status_semantics": "Status descriptions include active and inactive examples, and some entity types have inactive reasons/dates. These are not proof of current business operation; a complete current codebook is unresolved.",
+  "statewide_completeness": "Catalog scope includes corporations, LLCs, partnerships, assumed/foreign names, trademarks and bonds. These are distinct record populations; delivered subtype coverage and counts require validation before any business completeness claim.",
+  "address_zip": "The older specification identifies principal-office mailing addresses and separate agent/person-role addresses. Exclude person-role rows from business projection; preserve address roles and ZIP5/ZIP4 separately.",
+  "automation_terms_fees": "The current fee schedule supports a paid bulk route but does not establish an executable quote, account requirements, automation authorization or an accepted order.",
+  "redistribution": "Retention, derived-use and redistribution rights were not established by the technical specification or fee schedule; public documentation does not grant product-specific rights.",
+  "temporal_refresh": "The specification's 2017 revision is historical contract evidence. The HTML catalog's 2026 table timestamps are publication metadata, not source-release freshness. Refresh, deletions, correction replay, counts and checksums remain unresolved.",
+  "citations": [
+    {
+      "url": "https://sosmt.gov/business/business-services-catalog/",
+      "evidence": "Official current HTML catalog documents tagged comma-delimited extracts, entity scopes and joins."
+    },
+    {
+      "url": "https://sosmt.gov/wp-content/uploads/BulkDownloadSpecs.pdf",
+      "evidence": "Version 2 dated April 26, 2017 defines record layouts and principal/agent/person address roles."
+    },
+    {
+      "url": "https://sosmt.gov/Business/Fees/",
+      "evidence": "Corporate bulk $0.02/record, new-entity report $80, subscription $80/month."
+    },
+    {
+      "url": "https://biz.sosmt.gov/search/business/query/",
+      "evidence": "Indexed official page warns results are limited; direct retrieval returned HTTP 403 and no enumeration was attempted."
+    }
+  ],
+  "unresolved_gates": [
+    "current-layout-compatibility",
+    "source-scope",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Use the published layout to prepare a current-version compatibility checklist, person-role exclusion map and precise unresolved contract questions. Before acquisition, resolve subtype counts, stable keys, current status/address semantics, refresh/replay controls, price and product rights. HOLD remains accurate; no purchase, contact or acquisition authority is added."
+}

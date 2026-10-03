@@ -1,0 +1,9 @@
+# Montana business-source reassessment — 2026-10-03
+
+HOLD remains accurate, but schema work can start from the existing specification. The official [catalog](https://sosmt.gov/business/business-services-catalog/) documents tagged comma-delimited extracts. The [Version 2 specification](https://sosmt.gov/wp-content/uploads/BulkDownloadSpecs.pdf), revised April 26, 2017, describes entity/child joins, status dates, principal-office mailing addresses and person-role rows. The [fee schedule](https://sosmt.gov/Business/Fees/) lists $0.02 per bulk record; new-entity reports and monthly subscriptions are separate $80 offerings.
+
+Current delivery compatibility, subtype counts, identifier lifecycle, full status semantics, automated delivery, replay controls and product rights remain unresolved. HTML table timestamps are publication metadata, not record freshness. Indexed [search-page text](https://biz.sosmt.gov/search/business/query/) warns that results are limited; direct retrieval returned HTTP 403. No search or bypass was attempted.
+
+Next work should prepare a compatibility checklist against the published layout, with explicit exclusions for person-role rows and preservation of address roles and separate ZIP5/ZIP4. This review performed no business queries, data downloads, purchases, accounts, contacts or terms acceptance.
+
+The immutable record is `config/state-business-source-assessments/mt-2026-10-03.json`, superseding this state's entry in `state-business-source-discovery-queue-4-wave-2-2026-09-03`. Integrate `loadMontanaBusinessSourceReassessment` from `runner/georgia-new-mexico-montana-business-source-reassessment.mjs`; preserve historical evidence and all false authority flags. Dedicated Node tests reject evidence mutation and authority escalation. There is no runtime migration; removing catalog selection restores the prior assessment. Business coverage and production data remain unchanged.

@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "bounded_connector_implementation_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "offline_fixture_connector_authorized": false,
+    "production_ready": false,
+    "broad_layer_production_ready": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "assessment_id": "mi-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "MI",
+    "name": "Michigan"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+  "reassessment_reason": "Refresh the FY2026-only rationale using the enacted FY2027 LARA provision. A possible customized listing remains a source inquiry candidate, without an established registry bulk contract.",
+  "candidate": {
+    "publisher": "Michigan Department of Licensing and Regulatory Affairs, Corporations Division",
+    "product": "possible customized nonconfidential business-entity listing",
+    "availability": "written-scope-and-contract-required",
+    "price": "Reasonable fee permitted; no registry extract quote established"
+  },
+  "access": {
+    "classification": "written-scope-and-contract-required",
+    "bulk": "FY2027 PA 21 of 2026, Article 10 section 252, permits customized nonconfidential listings for a reasonable fee. This does not specify a recurring business-entity extract.",
+    "api": "No public registry API contract established by reviewed official documentation.",
+    "automation": "Michigan.gov policies restrict automated access; a separate written agreement or applicable source-specific terms must establish the permitted route."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current extract layout, identifier lifecycle, status dictionary or address-role dictionary established. Legacy COFS endpoints are retired."
+  },
+  "active_status_semantics": "Registry standing cannot by itself prove current business operation. Current extract status values and effective dates remain unresolved.",
+  "statewide_completeness": "No acquired statewide release or complete registry denominator is established by this reassessment. Existing industry evidence remains separate.",
+  "address_zip": "No extract address role or postal format is verified. Future processing must preserve ZIP5 and ZIP4 separately and must not treat registered-agent addresses as physical business sites.",
+  "automation_terms_fees": "Commercial reuse is restricted by the Michigan.gov terms unless a written agreement or applicable agency terms allow it. No account, contract, payment or express acceptance was made; reading notices does not establish exemption from them.",
+  "redistribution": "No new retention, geocoding, derived-publication or redistribution authorization established.",
+  "temporal_refresh": "FY2027 enabling language is current to the reviewed fiscal period; listing cadence, as-of date, replacement/delta semantics, deletions and replay remain unpublished in the reviewed sources.",
+  "citations": [
+    {
+      "url": "https://www.michigan.gov/budget/budget-documents/final-signed-budget-bills",
+      "evidence": "Official index identifies FY27 SB 878 PA 21 of 2026 as an enacted general omnibus."
+    },
+    {
+      "url": "https://www.michigan.gov/budget/-/media/Project/Websites/budget/Fiscal/Final-Signed-Budget-Bills/FY27-General-Omnibus-SB-878-PA-21-of-2026-Includes-2026-Supplemental-Funding.pdf?hash=F75E0A4D16B64EDEC055446DD694B378&rev=528b8230fa2d4f4c941d5fc0c9432a46",
+      "evidence": "Article 10, section 252, printed page 255: customized nonconfidential listings and reasonable fee; not a registry product specification."
+    },
+    {
+      "url": "https://www.michigan.gov/lara/bureau-list/cscl/corps/mibrp/new-system",
+      "evidence": "MiBusiness Registry Portal migration and permanently retired COFS routes."
+    },
+    {
+      "url": "https://www.michigan.gov/som/footer/policies",
+      "evidence": "Automated-access and commercial-use restrictions with agreement/source-specific exceptions."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "current-extract-schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Prepare a document-only inquiry referencing FY2027 Article 10 section 252 to establish whether a recurring person-free registry extract exists and obtain its current blank terms, quote, layout, identifier/status/address dictionaries and refresh contract. Separate authorization is required before sending the inquiry."
+}

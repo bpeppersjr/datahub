@@ -45,6 +45,16 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "state-business-source-existing-wave-co-ct-de-fl-ia-ny-or-pa-2026-09-22",
       "ks-business-source-reassessment-2026-10-03",
       "ar-business-source-reassessment-2026-10-03",
+      "ca-business-source-reassessment-2026-10-03",
+      "id-business-source-reassessment-2026-10-03",
+      "nh-business-source-reassessment-2026-10-03",
+      "oh-business-source-reassessment-2026-10-03",
+      "mi-business-source-reassessment-2026-10-03",
+      "md-business-source-reassessment-2026-10-03",
+      "la-business-source-reassessment-2026-10-03",
+      "ga-business-source-reassessment-2026-10-03",
+      "nm-business-source-reassessment-2026-10-03",
+      "mt-business-source-reassessment-2026-10-03",
       "il-business-source-reassessment-2026-10-03",
       "ms-business-source-reassessment-2026-10-03",
       "ky-business-source-reassessment-2026-10-03",
@@ -54,9 +64,9 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "wa-business-source-reassessment-2026-10-03",
     ],
     jurisdictions_assessed: 51,
-    jurisdictions_revalidated: 5,
-    jurisdictions_discovered: 28,
-    jurisdictions_official_source_validated: 10,
+    jurisdictions_revalidated: 3,
+    jurisdictions_discovered: 20,
+    jurisdictions_official_source_validated: 20,
     jurisdictions_existing_governed_source_validated: 8,
     hold_decisions: 41,
     bounded_connector_decisions: 2,
@@ -220,12 +230,12 @@ test("rejects aggregate evidence, source, privacy, and candidate drift", async (
   }
 });
 
-test("Queue 8 assessments retain their historical provenance and cannot authorize acquisition", async () => {
+test("Queue 8 assessments retain either historical or explicit successor provenance and cannot authorize acquisition", async () => {
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
   for (const abbreviation of ["LA", "MN", "AL", "WI"]) {
     const state = stateAssessment(catalog, abbreviation);
-    assert.equal(state.assessment_id, "state-business-source-discovery-queue-8-wave-1-2026-09-03");
-    assert.equal(state.observed_at, "2026-09-03");
+    assert.equal(state.assessment_id, abbreviation === "LA" ? "la-business-source-reassessment-2026-10-03" : "state-business-source-discovery-queue-8-wave-1-2026-09-03");
+    assert.equal(state.observed_at, abbreviation === "LA" ? "2026-10-03" : "2026-09-03");
     assert.equal(state.decision, "hold");
     assert.equal(state.authorized_next_action_type, "written-preflight-inquiry");
     for (const field of ["autonomous_acquisition_authorized", "paid_acquisition_authorized", "complete_source_acquisition_authorized", "row_bearing_preflight_authorized", "offline_fixture_connector_authorized", "production_ready"]) {

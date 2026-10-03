@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "ga-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "GA",
+    "name": "Georgia"
+  },
+  "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03",
+  "reassessment_reason": "Reconcile two official bulk-product routes whose published price and delivery descriptions differ; do not replace the SOS store contract with the GTA description.",
+  "access": {
+    "classification": "paid-bulk-contract-unresolved",
+    "bulk": "The SOS-linked store lists $500 one-time and $5,000 annual weekly secure-FTP extracts. Georgia.gov separately lists a GTA offering at $1,000 one-time or $100 setup plus $500 monthly, requiring an account and agreement. Product equivalence and current ordering route remain unresolved.",
+    "api": "No supported public business-record API or unattended transfer contract was established by the reviewed product pages.",
+    "search": "Public eCorp search remains a lookup service; this review submitted no business queries or enumeration."
+  },
+  "fields": {
+    "published": false,
+    "summary": "The store names broad content groups, including entity information, officers, addresses, agents and filing history; a sample requires contact. GTA describes tab-space-delimited text but no complete field dictionary. Neither description proves the other product's schema."
+  },
+  "active_status_semantics": "The store advertises active and inactive corporations together. Registry status is not proof of current business operation; full status vocabulary and delivery semantics remain unresolved.",
+  "statewide_completeness": "No delivered count, subtype guarantee or reconciliation control total was inspected. An all-corporations product does not establish coverage of every operating business or physical site.",
+  "address_zip": "Address roles are unresolved for the selected product. Exclude person-role content, preserve administrative roles, and keep ZIP5 and ZIP4 separate; no address becomes a verified physical site by inference.",
+  "automation_terms_fees": "Prices are route-specific evidence, not a quote or authority to order. Account creation, payment, agreement acceptance and FTP automation were not performed or authorized.",
+  "redistribution": "Product-specific retention, transformation, geocoding and derivative redistribution rights remain unresolved. The store terms page was inaccessible to the read-only web tool; no terms were accepted.",
+  "temporal_refresh": "The store publishes weekly subscription delivery. Snapshot-versus-delta, corrections, deletions, exact as-of times, checksums and schema version guarantees remain unverified.",
+  "citations": [
+    {
+      "url": "https://sos.ga.gov/?section=corporations",
+      "evidence": "Official Corporations Division links Order Bulk Corporate Records to the SOS store."
+    },
+    {
+      "url": "https://georgiasecretaryofstate.net/collections/corporations-list/products/idm",
+      "evidence": "One-time $500 secure-FTP product, active/inactive scope, person-bearing content and sample-by-contact route."
+    },
+    {
+      "url": "https://georgiasecretaryofstate.net/collections/corporations-list/products/annual-subscription-for-a-weekly-extract-of-the-georgia-corporations-list",
+      "evidence": "Annual $5,000 product with weekly secure-FTP updates; no subsets offered."
+    },
+    {
+      "url": "https://georgia.gov/bulk-corporations-data",
+      "evidence": "Separate GTA price, account/agreement prerequisites and tab-space text description."
+    },
+    {
+      "url": "https://georgiasecretaryofstate.net/policies/terms-of-service",
+      "evidence": "Read-only retrieval failed; this observation does not establish product reuse rights."
+    }
+  ],
+  "unresolved_gates": [
+    "product-route-reconciliation",
+    "schema",
+    "source-scope",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a route-specific clarification covering SOS versus GTA product identity, current price, unsigned terms, redacted schema, subtype/count guarantees, identifier/status/address semantics, replay controls and permitted automation. Existing HOLD remains accurate. Any contact or purchase requires separate authority; this reassessment grants none."
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "oh-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {
+    "abbreviation": "OH",
+    "name": "Ohio"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-5-wave-1-2026-09-03",
+  "reassessment_reason": "Revalidate official paid FTP ordering and current status guidance; avoid treating registry standing or filing reports as a complete operating-business master.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "autonomous_acquisition_authorized": false,
+    "paid_acquisition_authorized": false,
+    "complete_source_acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "bounded_connector_implementation_authorized": false,
+    "production_ready": false
+  },
+  "candidate": {
+    "publisher": "Ohio Secretary of State",
+    "product": "Business Filing Data",
+    "availability": "paid-one-time-ftp-recurring-contract",
+    "price": "Form 200 lists $62.50 one-time Business Filing Data; recurring price not published in form."
+  },
+  "access": {
+    "classification": "paid-one-time-ftp-recurring-contract",
+    "bulk": "Form 200 specifies payment followed by FTP access for one-time data. Weekly/monthly downloads require a separate contract.",
+    "api": "No public business-master API contract established.",
+    "automation": "FTP delivery exists, but unattended retrieval parameters, credentials and recurring contract were not inspected or authorized."
+  },
+  "fields": {
+    "published": false,
+    "summary": "The official order form contains ordering fields, not the purchased dataset schema. Bulk keys, address roles, status encoding, row counts and integrity controls remain unverified."
+  },
+  "active_status_semantics": "The current official FAQ explains Active as exclusive use of a name and Held as temporary name protection. Registry Active must not be interpreted as verified current business operation.",
+  "statewide_completeness": "A paid Business Filing Data product is documented; its exact current-master population remains unknown. The prior filing-event-report lead does not establish an active master; the reports landing page could not be fetched during this review.",
+  "address_zip": "Official FAQ distinguishes statutory-agent contact information. No purchased-data principal/operating-address contract established. Agent addresses must not become physical sites; future ZIP5 and ZIP4 remain separate.",
+  "automation_terms_fees": "No Form 200 submission, payment, contract, FTP connection or source download occurred.",
+  "redistribution": "Official privacy statement recognizes public records; the reviewed order form does not establish product-specific retention, automation or redistribution terms. Those remain unresolved, without inferring a prohibition.",
+  "temporal_refresh": "Weekly/monthly contractual options are explicit; full-versus-delta, cancellation/tombstone, correction, controls and replay semantics remain unverified.",
+  "offline_implementation": "Document-only reassessment; no connector, operation, release, admission or production pointer was changed.",
+  "citations": [
+    {
+      "url": "https://www.ohiosos.gov/assets/200.pdf",
+      "evidence": "Form 200 revised 11/2023 lists one-time price, FTP delivery and separate weekly/monthly contract."
+    },
+    {
+      "url": "https://www.ohiosos.gov/business/ohio-business-roadmap/frequently-asked-questions",
+      "evidence": "Current official FAQ defines database name standing, agent data and limited regular-reporting duties."
+    },
+    {
+      "url": "https://www.ohiosos.gov/privacy-statement",
+      "evidence": "Public-records statement; not a bulk delivery/reuse contract."
+    },
+    {
+      "url": "https://www.ohiosos.gov/business/business-reports",
+      "evidence": "Prior free filing-report lead; direct fetch failed in this review, no report rows downloaded."
+    }
+  ],
+  "unresolved_gates": [
+    "current-master-scope",
+    "bulk-schema-and-key-lifecycle",
+    "bulk-status-and-address-mapping",
+    "snapshot-change-and-replay-contract",
+    "supported-unattended-ftp",
+    "recurring-price-and-terms",
+    "separate-acquisition-authorization"
+  ],
+  "strongest_next_action": "Retain the paid-FTP preflight and resolve exact master scope, schema, change semantics, integrity controls and recurring delivery terms before an order. No contact, contract, payment or acquisition is authorized by this reassessment."
+}
