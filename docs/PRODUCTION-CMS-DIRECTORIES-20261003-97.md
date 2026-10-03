@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 97 is the current clean-repository successor after committing the temporal-coverage UI, a pointer-free GDP model specification, nursing-home/NPPES overlap readiness, and the fail-closed ACS demographic-admission prerequisite contract.
+Plan 97 is superseded by Plan 98 after the tab-focused Business Intelligence change and retained readiness overlays were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-97`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-97.json`
