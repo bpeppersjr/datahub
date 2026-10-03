@@ -28,10 +28,12 @@ function fixture(runnerJson) {
   return { calls, mount() { const tree = this.render(); for (const effect of effects.splice(0)) effect(); return tree; }, render() { index = 0; return exports.default(); } };
 }
 const state = (code, wave, position) => ({ state_abbreviation: code, state_name: `${code} name`, wave, wave_position: position, historical_backlog_priority: wave * 10 + position, matrix_gap_status: "unmeasured", approval_status: "HOLD", item_kind: "approval-only", acquisition_authorized: false, required_exclusions: ["Person-linked fields excluded"], unresolved_gates: [{ gate_key: "schema-review", status: "HOLD", item_kind: "approval-only", acquisition_authorized: false }] });
-const view = () => ({ schema_version: "broad-organization-current-authorization-chain-management-view@1.0.0", available: true,
+const diagnosticStates = [["TN", 91467, 649168, 14.1], ["VA", 116537, 740321, 15.7], ["AZ", 99038, 598126, 16.6], ["RI", 15949, 95241, 16.7], ["NJ", 156337, 883628, 17.7], ["OH", 163604, 909227, 18], ["VT", 11833, 65028, 18.2], ["SC", 81827, 445689, 18.4], ["MA", 118917, 633439, 18.8], ["NH", 22001, 116209, 18.9]];
+const view = () => ({ schema_version: "broad-organization-current-authorization-chain-management-view@1.1.0", available: true,
   metadata: { matrix_release_id: "matrix-current", matrix_manifest_sha256: "a".repeat(64), gap_projection_release_id: "projection-current", gap_projection_manifest_sha256: "b".repeat(64), gap_projection_artifact_sha256: "c".repeat(64), jurisdiction_count: 51, broad_data_coverage: { admitted_jurisdictions: 11, denominator: 51, current_data_gaps: 40, meaning: "retained evidence; not completeness" }, authorization_packet_coverage: { expected_current_gaps: 40, packeted_current_gaps: 40, authorization_packet_gaps: 0 }, wave_count: 4, current_gap_state_count: 40, gate_item_count: 40 },
   authority: { approval_only: true, status: "HOLD", approval_granted: false, acquisition_authorized: false, contact_authorized: false, download_authorized: false, payment_authorized: false, record_request_authorized: false, network_requests: 0, source_actions_performed: 0, current_pointer_changed: false, production_change_authorized: false },
   waves: rosters.map((codes, index) => ({ wave_number: index + 1, release_id: `wave-${index + 1}`, manifest_sha256: "d".repeat(64), artifact_sha256: "e".repeat(64), selected_count: 10, remaining_count: 30 - index * 10, cumulative_prior_count: index * 10, gate_item_count: 10, state_abbreviations: codes, prior_wave: index ? { release_id: `wave-${index}`, manifest_sha256: "d".repeat(64), artifact_sha256: "e".repeat(64), wave_state_abbreviations: rosters[index - 1] } : null })),
+  diagnostic_batch: { kind: "weakest-comparable-diagnostic-profile-batch", metric: "reported_profiles_divided_by_2023_nonemployer_baseline", selection_count: 10, comparable_gap_count: 31, unavailable_gap_count: 9, source_coverage_release_id: "national-business-coverage-views-20260902-115337634Z-ba689784", meaning: "diagnostic source-profile ratio; not business completeness", unavailable_treatment: "not zero; excluded from ranking", authority: { status: "HOLD", source_action_authorized: false, contact_authorized: false, payment_authorized: false, download_authorized: false, record_request_authorized: false, acquisition_authorized: false, network_request_authorized: false, pointer_change_authorized: false, production_change_authorized: false }, states: diagnosticStates.map(([code, reported, baseline, percent]) => ({ state_abbreviation: code, state_name: `${code} name`, reported_profiles: reported, nonemployer_baseline_2023: baseline, diagnostic_profile_percent: percent, coverage_release_id: "national-business-coverage-views-20260902-115337634Z-ba689784" })) },
   states: rosters.flatMap((codes, index) => codes.map((code, position) => state(code, index + 1, position + 1))),
 });
 function nodes(tree) { if (!tree || typeof tree !== "object") return []; if (Array.isArray(tree)) return tree.flatMap(nodes); return [tree, ...nodes(tree.props?.children)]; }
@@ -45,6 +47,14 @@ test("panel displays data coverage separately from packet coverage and filters 4
   assert.match(textOf(tree), /40 data gaps remain/);
   assert.match(textOf(tree), /0 authorization-packet gaps/);
   assert.match(textOf(tree), /No approval, acquisition, contact, download, payment, record request, network request, pointer change, or production action is authorized/);
+  assert.match(textOf(tree), /Weakest comparable diagnostic batch/);
+  assert.match(textOf(tree), /10 lowest comparable states from 31 comparable current gaps/);
+  assert.match(textOf(tree), /9 unavailable states are not zero and are excluded from the ranking/);
+  assert.match(textOf(tree), /2023 Census nonemployer baseline; the baseline is not an all-business denominator/);
+  assert.match(textOf(tree), /TN name\s+\(\s*TN\s*\).*91,467.*649,168.*14\.1\s*%/s);
+  assert.match(textOf(tree), /NH name\s+\(\s*NH\s*\).*22,001.*116,209.*18\.9\s*%/s);
+  assert.ok(textOf(tree).indexOf("TN name") < textOf(tree).indexOf("VA name"));
+  assert.match(textOf(tree), /does not change wave order and grants no source action, contact, payment, download, record request, acquisition, network request, pointer change, or production authority/);
   assert.equal(nodes(tree).filter((node) => node.type === "article" && node.props.className === "operation-record").length, 40);
   let selects = nodes(tree).filter((node) => node.type === "select");
   assert.deepEqual(nodes(selects[0]).filter((node) => node.type === "option").map((item) => item.props.value), ["", "1", "2", "3", "4"]);

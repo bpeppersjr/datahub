@@ -45,6 +45,18 @@ test("registry fails closed when proposals and the verified current-gap state se
   await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => mismatched), /does not exactly match verified current-gap states/);
 });
 
+test("registry requires the verified diagnostic batch without treating it as proposal authority", async () => {
+  const chain = await loadBroadOrganizationCurrentAuthorizationChainManagementView();
+  for (const mutate of [
+    (value) => { value.schema_version = "broad-organization-current-authorization-chain-management-view@1.0.0"; },
+    (value) => { value.diagnostic_batch.comparable_gap_count = 30; },
+    (value) => { value.diagnostic_batch.authority.acquisition_authorized = true; },
+  ]) {
+    const changed = structuredClone(chain); mutate(changed);
+    await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => changed), /invalid projection/);
+  }
+});
+
 test("proposal HTTP accepts only empty GET and redacts verifier failures", async () => {
   let loads = 0;
   const call = async (method, suffix = "", headers = {}, requestOverride = null, loader = async () => { loads += 1; return { available: true }; }) => { let result; const request = requestOverride ?? { method, headers }; await documentOnlyInquiryProposalRegistryHttp(request, {}, new URL(`http://local/api/data-operations/document-only-inquiry-proposals${suffix}`), loader, (_response, status, body) => { result = { status, body }; }); return result; };

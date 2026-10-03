@@ -4,6 +4,8 @@ This separate immutable `broad-organization-current-matrix-authorization-wave@1.
 
 Every state and gate item is explicitly `approval-only` and `HOLD`. Full assessment snapshots, gate provenance, and required exclusions are preserved. The packet grants no acquisition authority and performs no source, network, pointer, or production action.
 
+The existing authenticated current-chain management view also derives a separate **Weakest comparable diagnostic batch** after it verifies the complete four-wave chain and its source projection. This does not create a release, endpoint, query, action, or alternate wave order. Of the 40 current gaps, 31 have arithmetic-valid source-profile comparisons bound to the same `national-business-coverage-views-20260902-115337634Z-ba689784` release and nine are unavailable. Unavailable values are not zero and are excluded from ranking. Sorting the 31 comparable ratios ascending, with jurisdiction code as the deterministic tie breaker, yields TN, VA, AZ, RI, NJ, OH, VT, SC, MA, and NH. The ratio is reported source profiles divided by the 2023 Census nonemployer baseline. That baseline is not an all-business denominator and the ratio is not business completeness. The diagnostic batch remains `HOLD` and grants no source action, contact, payment, download, record request, acquisition, network request, pointer change, or production authority.
+
 Build and verify a release locally:
 
 ```powershell

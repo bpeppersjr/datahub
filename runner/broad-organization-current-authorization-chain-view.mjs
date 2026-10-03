@@ -13,9 +13,39 @@ const WAVE_ROSTERS = Object.freeze([
   Object.freeze(["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"]),
   Object.freeze(["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]),
 ]);
+const WEAKEST_COMPARABLE_DIAGNOSTIC_STATES = Object.freeze(["TN", "VA", "AZ", "RI", "NJ", "OH", "VT", "SC", "MA", "NH"]);
+const DIAGNOSTIC_COVERAGE_RELEASE_ID = "national-business-coverage-views-20260902-115337634Z-ba689784";
 
 function fail(message) { throw new Error(`Current-matrix authorization-chain view unavailable: ${message}`); }
 const isInside = (parent, candidate) => { const rel = path.relative(parent, candidate); return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== ".." && !path.isAbsolute(rel)); };
+
+export function deriveWeakestComparableDiagnosticBatch(projection) {
+  if (!Array.isArray(projection?.gaps) || projection.gaps.length !== 40) fail("diagnostic source projection must contain the exact 40 current gaps");
+  const comparable = [], unavailable = [];
+  for (const gap of projection.gaps) {
+    const coverage = gap.assessment_snapshot?.current_coverage;
+    const valid = coverage
+      && Number.isSafeInteger(coverage.reported_profiles) && coverage.reported_profiles >= 0
+      && Number.isSafeInteger(coverage.nonemployer_baseline_2023) && coverage.nonemployer_baseline_2023 > 0
+      && Number.isFinite(coverage.diagnostic_profile_percent)
+      && coverage.diagnostic_profile_percent === Number((coverage.reported_profiles / coverage.nonemployer_baseline_2023 * 100).toFixed(1))
+      && gap.assessment_snapshot.coverage_release_id === DIAGNOSTIC_COVERAGE_RELEASE_ID;
+    if (!valid) { unavailable.push(gap.state_abbreviation); continue; }
+    comparable.push({ state_abbreviation: gap.state_abbreviation, state_name: gap.state_name, reported_profiles: coverage.reported_profiles, nonemployer_baseline_2023: coverage.nonemployer_baseline_2023, diagnostic_profile_percent: coverage.diagnostic_profile_percent, coverage_release_id: gap.assessment_snapshot.coverage_release_id });
+  }
+  comparable.sort((left, right) => left.diagnostic_profile_percent - right.diagnostic_profile_percent || left.state_abbreviation.localeCompare(right.state_abbreviation));
+  if (comparable.length !== 31 || unavailable.length !== 9 || comparable.length + unavailable.length !== 40 || JSON.stringify(comparable.slice(0, 10).map((row) => row.state_abbreviation)) !== JSON.stringify(WEAKEST_COMPARABLE_DIAGNOSTIC_STATES)) fail("diagnostic gap comparison does not conserve the reviewed 31 comparable and 9 unavailable states");
+  const diagnosticStates = comparable.slice(0, 10);
+  const expectedDiagnosticValues = [["TN", 91467, 649168, 14.1], ["VA", 116537, 740321, 15.7], ["AZ", 99038, 598126, 16.6], ["RI", 15949, 95241, 16.7], ["NJ", 156337, 883628, 17.7], ["OH", 163604, 909227, 18], ["VT", 11833, 65028, 18.2], ["SC", 81827, 445689, 18.4], ["MA", 118917, 633439, 18.8], ["NH", 22001, 116209, 18.9]];
+  if (diagnosticStates.some((row, index) => JSON.stringify([row.state_abbreviation, row.reported_profiles, row.nonemployer_baseline_2023, row.diagnostic_profile_percent]) !== JSON.stringify(expectedDiagnosticValues[index]))) fail("weakest comparable diagnostic values changed");
+  return {
+    kind: "weakest-comparable-diagnostic-profile-batch", metric: "reported_profiles_divided_by_2023_nonemployer_baseline", selection_count: 10,
+    comparable_gap_count: comparable.length, unavailable_gap_count: unavailable.length, source_coverage_release_id: DIAGNOSTIC_COVERAGE_RELEASE_ID,
+    meaning: "diagnostic source-profile ratio; not business completeness", unavailable_treatment: "not zero; excluded from ranking",
+    authority: { status: "HOLD", source_action_authorized: false, contact_authorized: false, payment_authorized: false, download_authorized: false, record_request_authorized: false, acquisition_authorized: false, network_request_authorized: false, pointer_change_authorized: false, production_change_authorized: false },
+    states: diagnosticStates,
+  };
+}
 
 function projectCurrentMatrixAuthorizationChain(waves, projection, projectionManifest) {
   if (!Array.isArray(waves) || waves.length !== 4 || projection?.dataset_id !== "broad-organization-matrix-gap-projection" || projection.scope?.jurisdictions !== 51 || projection.scope?.broad_layers_admitted !== 11 || projection.scope?.current_broad_layer_gaps !== 40) fail("current projection or four-wave inventory is invalid");
@@ -65,8 +95,9 @@ function projectCurrentMatrixAuthorizationChain(waves, projection, projectionMan
   });
   const states = viewWaves.flatMap((wave) => wave.states);
   if (seen.size !== 40 || gateItemCount !== states.reduce((sum, state) => sum + state.unresolved_gates.length, 0) || states.some((state) => state.unresolved_gates.some((gate) => gate.status !== "HOLD" || gate.item_kind !== "approval-only" || gate.acquisition_authorized !== false))) fail("wave chain does not account for all 40 unique current gaps with held approval-only gates");
+  const diagnosticBatch = deriveWeakestComparableDiagnosticBatch(projection);
   return {
-    schema_version: "broad-organization-current-authorization-chain-management-view@1.0.0",
+    schema_version: "broad-organization-current-authorization-chain-management-view@1.1.0",
     available: true,
     metadata: {
       matrix_release_id: waves[0].verified.wave.source_projection.matrix_release_id,
@@ -107,6 +138,7 @@ function projectCurrentMatrixAuthorizationChain(waves, projection, projectionMan
       state_abbreviations: wave.state_abbreviations,
       prior_wave: wave.prior_wave,
     })),
+    diagnostic_batch: diagnosticBatch,
     states,
   };
 }

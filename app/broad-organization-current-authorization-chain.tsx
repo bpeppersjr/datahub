@@ -23,7 +23,15 @@ type ChainView = {
     wave_count: 4; current_gap_state_count: 40; gate_item_count: number;
   };
   authority: { approval_only: true; status: 'HOLD'; approval_granted: false; acquisition_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; network_requests: 0; source_actions_performed: 0; current_pointer_changed: false; production_change_authorized: false };
-  waves: ChainWave[]; states: ChainState[];
+  waves: ChainWave[];
+  diagnostic_batch: {
+    kind: 'weakest-comparable-diagnostic-profile-batch'; metric: 'reported_profiles_divided_by_2023_nonemployer_baseline'; selection_count: 10;
+    comparable_gap_count: 31; unavailable_gap_count: 9; source_coverage_release_id: string;
+    meaning: string; unavailable_treatment: string;
+    authority: { status: 'HOLD'; source_action_authorized: false; contact_authorized: false; payment_authorized: false; download_authorized: false; record_request_authorized: false; acquisition_authorized: false; network_request_authorized: false; pointer_change_authorized: false; production_change_authorized: false };
+    states: { state_abbreviation: string; state_name: string; reported_profiles: number; nonemployer_baseline_2023: number; diagnostic_profile_percent: number; coverage_release_id: string }[];
+  };
+  states: ChainState[];
 };
 
 const endpoint = '/api/data-operations/broad-organization-current-authorization-chain';
@@ -84,6 +92,14 @@ export default function BroadOrganizationCurrentAuthorizationChain() {
     {view && <>
       <p className="operations-note"><strong>{`${view.metadata.broad_data_coverage.admitted_jurisdictions}/51 jurisdictions have admitted broad-layer evidence · ${view.metadata.broad_data_coverage.current_data_gaps} data gaps remain · ${view.metadata.authorization_packet_coverage.authorization_packet_gaps} authorization-packet gaps`}</strong>. The 40 packets specify review only; every state and gate is HOLD.</p>
       <p className="operations-note">No approval, acquisition, contact, download, payment, record request, network request, pointer change, or production action is authorized. Source actions performed: 0.</p>
+      <section aria-labelledby="weakest-comparable-diagnostic-title">
+        <h4 id="weakest-comparable-diagnostic-title">Weakest comparable diagnostic batch</h4>
+        <p className="operations-note"><strong>10 lowest comparable states from 31 comparable current gaps</strong> · 9 unavailable states are not zero and are excluded from the ranking. Diagnostic profile ratio is reported source profiles divided by the 2023 Census nonemployer baseline; the baseline is not an all-business denominator and this ratio is not business completeness.</p>
+        <div className="table-wrap"><table><thead><tr><th>State</th><th>Reported source profiles</th><th>2023 nonemployer baseline</th><th>Diagnostic profile ratio</th></tr></thead><tbody>
+          {view.diagnostic_batch.states.map((state) => <tr key={state.state_abbreviation}><td>{state.state_name} ({state.state_abbreviation})</td><td>{state.reported_profiles.toLocaleString()}</td><td>{state.nonemployer_baseline_2023.toLocaleString()}</td><td>{state.diagnostic_profile_percent.toFixed(1)}%</td></tr>)}
+        </tbody></table></div>
+        <p className="operations-note">Shared coverage release: {view.diagnostic_batch.source_coverage_release_id}. Status: HOLD. This separate diagnostic selection does not change wave order and grants no source action, contact, payment, download, record request, acquisition, network request, pointer change, or production authority.</p>
+      </section>
       <details><summary>Verified four-wave release chain and lineage</summary>
         <dl>
           <dt>Current matrix release</dt><dd>{view.metadata.matrix_release_id}</dd>
