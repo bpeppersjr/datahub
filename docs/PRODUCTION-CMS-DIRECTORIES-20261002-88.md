@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 2, 2026
 
-Plan 88 is the current clean-repository successor after committing the governed Census ZBP ZIP-industry profile index, registration, bounded reader, inspector integration, and accessible UI.
+Plan 88 is superseded by Plan 89 after the governed ZIP-by-source native-status distribution was committed. It must not be approved or executed.
 
 - Run ID: `production-cms-directories-20261002-88`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261002-88.json`
@@ -19,7 +19,7 @@ Read-only exact-plan preflight returned `READY`, revalidated all pins, and repor
 
 Independent review found no introduced correctness or security issue. Focused index, registration, reader, inspector, and UI tests passed, including a native maximum observed ZIP profile of 837 industry rows and a 575,910-byte composed response below the two-megabyte cap. The full repository gate ran 2,989 tests: 2,914 passed, 75 skipped, and zero failed. Lint completed with four pre-existing warnings and no errors; web and desktop builds, desktop control-plane smoke, 200% keyboard UI acceptance, and production dependency audit passed.
 
-This document and plan do not constitute approval. Execution requires a later explicit approval naming this exact run ID and confirmation SHA-256. Plan 87 and every earlier CMS directory plan or approval are superseded. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing Plan 88.
+This document and plan do not constitute approval. Plan 89 supersedes this run ID and confirmation SHA-256. Plan 88, Plan 87, and every earlier CMS directory plan or approval must not be executed. No source acquisition, network request, CMS production execution, or production pointer change occurred while preparing or superseding Plan 88.
 
 ```powershell
 npm run reconciliation:production:preflight -- --run-id production-cms-directories-20261002-88 --expected-plan-sha256 8efeeecd9615ba24166df6a7c4322b8d59cef8a0c3ecb21c0460b5c759af02db
