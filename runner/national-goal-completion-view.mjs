@@ -6,6 +6,7 @@ import { validateIndustryConfig } from './industry-segments.mjs';
 import { validateNationalReportingCatalog } from './national-reporting-catalog.mjs';
 import { createNationalReportingTenCatalog, TEN_VERSION } from './national-reporting-ten-catalog.mjs';
 import { mnSelectionReadJson } from './mn-construction-retained-selection.mjs';
+import {readRetainedIrsStateAdjacentEvidence} from './retained-irs-state-adjacent-evidence.mjs';
 
 const RELEASE_ID = /^national-goal-completion-\d{14}-[a-f0-9]{8}$/;
 const CATEGORY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -74,7 +75,7 @@ export async function readNewestNationalGoalCompletionMatrix({ root = APP_ROOT, 
   return { report, manifestPath };
 }
 
-export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business", verifier = verifyNationalGoalCompletionMatrix, verifierOptions = {} } = {}) {
+export async function nationalGoalCompletionView({ root = APP_ROOT, state = null, category = "general-business", verifier = verifyNationalGoalCompletionMatrix, verifierOptions = {}, adjacentReader = readRetainedIrsStateAdjacentEvidence, signal } = {}) {
   if (state !== null && !STATE.test(state)) throw Object.assign(new Error("Invalid state selection."), { statusCode: 400 });
   if (!CATEGORY.test(category)) throw Object.assign(new Error("Invalid category selection."), { statusCode: 400 });
   let loaded;
@@ -96,13 +97,15 @@ export async function nationalGoalCompletionView({ root = APP_ROOT, state = null
   const selectedJurisdiction = state ? report.jurisdictions.find((row) => row.code === state) : null;
   if (state && !selectedJurisdiction) throw Object.assign(new Error("State is not in the 50-state and D.C. matrix."), { statusCode: 400 });
   const selected = selectedJurisdiction ? selectedJurisdiction.categories.find((row) => row.category_id === category) : null;
+  let adjacentEvidence=null;
+  if(selectedJurisdiction&&category==='general-business')adjacentEvidence=await adjacentReader({root,state:selectedJurisdiction.code,signal});
   return {
     available: true, status: "verified-immutable-release", release_id: report.release_id, created_at: report.created_at,
     denominator: report.denominator, category, categories: categoryIds,
     all_business_completion_percent: null,
     jurisdictions,
     broad_layer_gaps: jurisdictions.filter((row) => row.broad_layer_gap).length,
-    selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, category: selected } : null,
+    selected: selectedJurisdiction ? { code: selectedJurisdiction.code, name: selectedJurisdiction.name, category: selected, adjacent_evidence: adjacentEvidence ? [adjacentEvidence] : [] } : null,
     limitations: report.limitations,
     scope_comparison: await configuredIndustryScopeComparison(report, { root }),
   };

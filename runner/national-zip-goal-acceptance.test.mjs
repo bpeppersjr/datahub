@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
-import { evaluateNationalZipGoalAcceptanceFixture as evaluate, readNationalZipGoalAcceptance } from './national-zip-goal-acceptance.mjs';
+import { evaluateNationalZipGoalAcceptanceFixture as evaluate, readNationalZipGoalAcceptance, NATIONAL_ZIP_GOAL_ACCEPTANCE_TEST_HOOKS as hooks } from './national-zip-goal-acceptance.mjs';
 
 function fixture() {
   return {
@@ -36,20 +36,59 @@ test('Census/source coverage reporting remains accepted while USPS universal com
     const report = evaluate(fixture(), claim);
     assert.equal(report.acceptance.accepted, false);
     assert.ok(report.acceptance.blockers.includes('authoritative-current-usps-denominator-unavailable'));
-    assert.ok(report.acceptance.blockers.includes('usps-candidate-not-production-admitted'));
+  }
+  const assignment = evaluate(fixture(), 'complete-current-usps-area-district-assignment-set');
+  assert.equal(assignment.acceptance.accepted, false);
+  assert.ok(assignment.acceptance.blockers.includes('authoritative-current-usps-denominator-unavailable'));
+});
+
+test('an independently verified Area/District set accepts only the narrow assignment claim', () => {
+  const input = fixture(), digest = createHash('sha256').update('00123\n00124\n').digest('hex');
+  const denominator = { count: 2, member_set_sha256: digest, evidence_scope: 'current-usps-area-district-5-digit-zip-assignments' };
+  input.registry.coverage.authoritative_current_usps_zip_denominator = denominator;
+  input.coverage.authoritative_current_usps_zip_denominator = denominator;
+  input.uspsProof = { verified: true, member_count: 2, member_set_sha256: digest };
+  const assignment = evaluate(input, 'complete-current-usps-area-district-assignment-set');
+  assert.equal(assignment.acceptance.accepted, true);
+  assert.equal(assignment.authoritative_current_operational_usps_zip_denominator.complete_current_area_district_assignment_set_accepted, true);
+  assert.equal(assignment.authoritative_current_operational_usps_zip_denominator.every_valid_zip_completion_accepted, false);
+  assert.equal(assignment.authoritative_current_operational_usps_zip_denominator.complete_current_delivery_zip_registry, false);
+  const valid = evaluate(input, 'every-valid-usps-zip');
+  assert.equal(valid.acceptance.accepted, false);
+  assert.ok(valid.acceptance.blockers.includes('complete-current-delivery-zip-registry-not-established'));
+  const businesses = evaluate(input, 'every-active-business-by-valid-zip');
+  assert.equal(businesses.acceptance.accepted, false);
+  assert.ok(businesses.acceptance.blockers.includes('all-business-universe-unmeasured'));
+  assert.ok(businesses.acceptance.blockers.includes('current-business-operations-not-independently-verified'));
+});
+
+test('assignment artifact traversal and self-consistent semantic widening fail closed', () => {
+  const manifest = 'data/zip-validity/usps-operational-zips/releases/release-1/manifest.json';
+  assert.equal(hooks.assignmentArtifactPath(manifest, 'derived/operational-zip-assignments.jsonl'),
+    'data/zip-validity/usps-operational-zips/releases/release-1/derived/operational-zip-assignments.jsonl');
+  for (const value of ['../outside.jsonl', 'derived/../outside.jsonl', '/outside.jsonl', 'derived/other.jsonl']) {
+    assert.throws(() => hooks.assignmentArtifactPath(manifest, value), /escapes immutable release/);
+  }
+  const row = { schema_version: '1.0.0', zip_code: '00501', assignment_status: 'listed-in-current-usps-area-district-file',
+    evidence_scope: 'operational-area-district-5-digit-zip-assignment', deliverability_status: 'not-asserted', zcta_status: 'not-asserted',
+    source_month: '2026-08', export_policy: 'permission-governed' };
+  hooks.validateAssignmentRow(row, '2026-08', 'permission-governed');
+  for (const mutate of [value => { value.assignment_status = 'valid-usps-zip'; }, value => { value.deliverability_status = 'deliverable'; },
+    value => { value.zcta_status = 'included'; }, value => { value.source_month = '2026-09'; }, value => { value.export_policy = 'public'; },
+    value => { value.evidence_scope = 'complete-delivery-zip-registry'; }]) {
+    const widened = structuredClone(row); mutate(widened); assert.throws(() => hooks.validateAssignmentRow(widened, '2026-08', 'permission-governed'), /widened/);
   }
 });
 
-test('candidate admission and non-null denominator are independent necessary but insufficient completion conditions', () => {
-  for (const admitted of [false, true]) for (const denominator of [null, { count: 3, evidence_scope: 'synthetic-only' }]) {
-    const input = fixture(); input.candidate.production_admission = admitted;
+test('non-null, malformed, or mismatched USPS proof fails closed', () => {
+  const digest = createHash('sha256').update('00123\n').digest('hex');
+  for (const proof of [null, { verified: false, member_count: 1, member_set_sha256: digest },
+    { verified: true, member_count: 2, member_set_sha256: digest }, { verified: true, member_count: 1, member_set_sha256: '0'.repeat(64) }]) {
+    const input = fixture(), denominator = { count: 1, member_set_sha256: digest };
     input.registry.coverage.authoritative_current_usps_zip_denominator = denominator;
     input.coverage.authoritative_current_usps_zip_denominator = denominator;
-    const result = evaluate(input, 'every-valid-usps-zip');
-    assert.equal(result.acceptance.accepted, false);
-    assert.equal(result.acceptance.blockers.includes('authoritative-current-usps-denominator-unavailable'), denominator === null);
-    assert.equal(result.acceptance.blockers.includes('usps-candidate-not-production-admitted'), !admitted);
-    assert.ok(result.acceptance.blockers.includes('authoritative-operational-member-set-coverage-not-verified'));
+    input.uspsProof = proof;
+    assert.throws(() => evaluate(input, 'every-valid-usps-zip'), /USPS operational proof mismatch/);
   }
 });
 
