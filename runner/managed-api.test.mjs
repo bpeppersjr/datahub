@@ -334,6 +334,16 @@ test('DC Corporate Registration API is authenticated, closed, app-owned, and ind
   assert.equal((await request(fixture.base, `/api/data-operations/operations/${operation.id}/artifacts/receipt.json`)).status, 404);
 });
 
+test('Illinois Business Registry API is authenticated and rejects caller-controlled execution options', { timeout: 20_000 }, async t => {
+  const fixture = await makeFixture(t), route = '/api/data-operations/il-business-registry';
+  const selection = 'data/imports/illinois-business-registry/packages/managed-http-fixture/selection.json';
+  assert.equal((await request(fixture.base, route, { method: 'POST', authenticated: false, body: { selection } })).status, 401);
+  for (const body of [{}, { selection, output: 'data/elsewhere' }, { selection, url: 'https://example.com' }, { selection: 'config/connectors/il-business-registry-app.json' }]) {
+    assert.equal((await request(fixture.base, route, { method: 'POST', body })).status, 400);
+  }
+  assert.deepEqual(await (await request(fixture.base, '/api/data-operations/operations')).json(), []);
+});
+
 test('ten-source API is authenticated read-only and absent enrollment is pending without substituted counts',async t=>{
   const fixture=await makeFixture(t),route='/api/dataset-representation/ten';
   assert.equal((await request(fixture.base,route,{authenticated:false})).status,401);

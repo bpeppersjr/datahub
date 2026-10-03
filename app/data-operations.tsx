@@ -75,6 +75,7 @@ export default function DataOperations() {
   const [organizationFormat,setOrganizationFormat]=useState('both');
   const [uspsPackageDirectory,setUspsPackageDirectory]=useState('');
   const [dcCorporateSelection,setDcCorporateSelection]=useState('');
+  const [illinoisBusinessSelection,setIllinoisBusinessSelection]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -172,6 +173,13 @@ export default function DataOperations() {
       <label>Package selection under data/imports <input aria-label="D.C. Corporate Registration package selection" value={dcCorporateSelection} disabled={busy} placeholder="data/imports/dc-corporate-registration/packages/package-id/selection.json" onChange={event=>setDcCorporateSelection(event.target.value)}/></label>
       <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/dc-corporate-registration\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(dcCorporateSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/dc-corporate-registration',{selection:dcCorporateSelection})))}>Start offline D.C. package operation</button>
       <p className="operations-note">Status, errors, cancellation, receipts, and any declared artifacts appear in Operation history below.</p>
+    </section>
+    <section aria-labelledby="illinois-business-registry-title" className="operations-builder">
+      <h3 id="illinois-business-registry-title">Process an Illinois Business Registry package</h3>
+      <p className="operations-note">Zero-network, offline processing of one explicitly selected local package. Supply all five official corporation and LLC files from the same daily run. The result remains local-review-only, creates no current pointer, and is not admitted to the national registry or broad-layer coverage.</p>
+      <label>Package selection under data/imports <input aria-label="Illinois Business Registry package selection" value={illinoisBusinessSelection} disabled={busy} placeholder="data/imports/illinois-business-registry/packages/package-id/selection.json" onChange={event=>setIllinoisBusinessSelection(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/illinois-business-registry\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(illinoisBusinessSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/illinois-business-registry',{selection:illinoisBusinessSelection})))}>Start offline Illinois package operation</button>
+      <p className="operations-note">Status, errors, cancellation, receipts, and any declared artifacts use the shared Operation history below.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />

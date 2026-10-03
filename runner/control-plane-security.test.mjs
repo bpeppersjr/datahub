@@ -193,6 +193,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/source-prerequisites", '{"sourceId":"ne-childcare-pdf"}'],
     ["POST", "/api/data-operations/usps-city-state-admissions", '{"packageDirectory":"data/imports/fixture"}'],
     ["POST", "/api/data-operations/dc-corporate-registration", '{"selection":"data/imports/dc-corporate-registration/packages/fixture/selection.json"}'],
+    ["POST", "/api/data-operations/il-business-registry", '{"selection":"data/imports/illinois-business-registry/packages/fixture/selection.json"}'],
     ["POST", "/api/data-operations/overture-acquisitions", "{}"],
     ["GET", "/api/data-operations/overture-readiness"],
     ["POST", "/api/data-operations/ok-childcare-collections", "{}"],
