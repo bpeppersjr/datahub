@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 98 is the current clean-repository successor after committing the tab-focused Business Intelligence workspace and the pointer-free hospital/NPPES, pharmacy-registry, and ZIP-denominator readiness releases.
+Plan 98 is superseded by Plan 99 after the Business Intelligence readiness bridge and FMCSA industry overlay were committed. It must not be executed.
 
 - Run ID: `production-cms-directories-20261003-98`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-98.json`
