@@ -1,6 +1,6 @@
 # Proposed additive CMS directory production — October 3, 2026
 
-Plan 92 is the current clean-repository successor after committing the authenticated exact-ZCTA economic-readiness lookup, immutable local lookup index, and ZIP Economy readiness panel.
+Plan 92 is superseded by Plan 93 after the cross-category completion view and retained CMS directory ZIP evidence service were committed. It remains preserved as historical planning evidence and is not authorized for execution.
 
 - Run ID: `production-cms-directories-20261003-92`
 - Local immutable plan: `data/reconciliations/production-plans/production-cms-directories-20261003-92.json`
