@@ -1,12 +1,133 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {readZipIndustryDemographicCrossView} from './zip-industry-demographic-cross-view.mjs';
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readZipIndustryDemographicCrossView } from "./zip-industry-demographic-cross-view.mjs";
 
-const industry=(zip5,zcta=zip5)=>({schema_version:'national-exact-zip-industry-evidence-matrix@1.5.0',status:'present',row:{zip5,zcta_geoid:zcta,cells:{healthcare_organizations:{status:'positive',count:2,temporal_status:{status:'source-referenced-current-operation-unverified',source_reference_date:'2026-01-01'}},la_registered_location_profiles:{status:'measured-zero',count:0,measure:'registry_location_profile_count',source_status_counts:{present:0,'empty-object':0,missing:0,null:0}}}},source_metadata:{},claims:{additive_cross_industry_total:false,authoritative_current_usps_zip_denominator:null}});
-const demographic=zcta=>({schema_version:'zcta-demographic-readiness-view@1.0.0',zcta,available:true,status:'found',readiness:{status:'partial-input-readiness',population_2020:17242,housing_units_2020:7605,availability:{population_2020:true,housing_units_2020:true,race:false,ancestry_lineage:false,sex:false,age:false},blockers:['race-input-unavailable']},provenance:{release_id:'demographic-release'}});
+const industry = (zip5, zcta = zip5) => ({
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.6.0",
+  status: "present",
+  row: {
+    zip5,
+    zcta_geoid: zcta,
+    cells: {
+      healthcare_organizations: {
+        status: "positive",
+        count: 2,
+        temporal_status: {
+          status: "source-referenced-current-operation-unverified",
+          source_reference_date: "2026-01-01",
+        },
+      },
+      la_registered_location_profiles: {
+        status: "measured-zero",
+        count: 0,
+        measure: "registry_location_profile_count",
+        source_status_counts: {
+          present: 0,
+          "empty-object": 0,
+          missing: 0,
+          null: 0,
+        },
+      },
+    },
+  },
+  source_metadata: {},
+  claims: {
+    additive_cross_industry_total: false,
+    authoritative_current_usps_zip_denominator: null,
+  },
+});
+const demographic = (zcta) => ({
+  schema_version: "zcta-demographic-readiness-view@1.0.0",
+  zcta,
+  available: true,
+  status: "found",
+  readiness: {
+    status: "partial-input-readiness",
+    population_2020: 17242,
+    housing_units_2020: 7605,
+    availability: {
+      population_2020: true,
+      housing_units_2020: true,
+      race: false,
+      ancestry_lineage: false,
+      sex: false,
+      age: false,
+    },
+    blockers: ["race-input-unavailable"],
+  },
+  provenance: { release_id: "demographic-release" },
+});
 
-test('composes exact same-code evidence without calculated claims',async()=>{const view=await readZipIndustryDemographicCrossView({zip5:'00601',readIndustry:({zip5})=>industry(zip5),readDemographic:({zcta})=>demographic(zcta)});assert.equal(view.status,'available');assert.equal(view.zcta_geoid,'00601');assert.equal(view.demographic_context.population_2020,17242);assert.equal(view.industry_evidence.row.cells.healthcare_organizations.count,2);assert.deepEqual(view.claims,{same_code_zcta_required:true,ratios_computed:false,cross_industry_total:false,numeric_gdp:false,demographic_shares:false,authoritative_usps_validity:null,network_requests:0,acquisition_performed:false,current_pointer_written:false,production_enrollment:false});assert.match(view.semantics.industry,/nonadditive/);});
+test("composes exact same-code evidence without calculated claims", async () => {
+  const view = await readZipIndustryDemographicCrossView({
+    zip5: "00601",
+    readIndustry: ({ zip5 }) => industry(zip5),
+    readDemographic: ({ zcta }) => demographic(zcta),
+  });
+  assert.equal(view.status, "available");
+  assert.equal(view.zcta_geoid, "00601");
+  assert.equal(view.demographic_context.population_2020, 17242);
+  assert.equal(
+    view.industry_evidence.row.cells.healthcare_organizations.count,
+    2,
+  );
+  assert.deepEqual(view.claims, {
+    same_code_zcta_required: true,
+    ratios_computed: false,
+    cross_industry_total: false,
+    numeric_gdp: false,
+    demographic_shares: false,
+    authoritative_usps_validity: null,
+    network_requests: 0,
+    acquisition_performed: false,
+    current_pointer_written: false,
+    production_enrollment: false,
+  });
+  assert.match(view.semantics.industry, /nonadditive/);
+});
 
-test('does not read demographics without a same-code governed ZCTA',async()=>{let reads=0;for(const [input,expected] of [[industry('00601','00602'),'not-applicable-no-same-code-zcta'],[{...industry('00601'),row:null},'unavailable-exact-zip-evidence']]){const view=await readZipIndustryDemographicCrossView({zip5:'00601',readIndustry:()=>input,readDemographic:()=>{reads++;}});assert.equal(view.status,expected);assert.equal(view.demographic_context,null);}assert.equal(reads,0);});
+test("does not read demographics without a same-code governed ZCTA", async () => {
+  let reads = 0;
+  for (const [input, expected] of [
+    [industry("00601", "00602"), "not-applicable-no-same-code-zcta"],
+    [{ ...industry("00601"), row: null }, "unavailable-exact-zip-evidence"],
+  ]) {
+    const view = await readZipIndustryDemographicCrossView({
+      zip5: "00601",
+      readIndustry: () => input,
+      readDemographic: () => {
+        reads++;
+      },
+    });
+    assert.equal(view.status, expected);
+    assert.equal(view.demographic_context, null);
+  }
+  assert.equal(reads, 0);
+});
 
-test('reports absent same-code demographic context and rejects mismatches',async()=>{const absent=await readZipIndustryDemographicCrossView({zip5:'00601',readIndustry:()=>industry('00601'),readDemographic:({zcta})=>({schema_version:'zcta-demographic-readiness-view@1.0.0',zcta,available:false,status:'not-found',readiness:null})});assert.equal(absent.status,'unavailable-demographic-context');await assert.rejects(readZipIndustryDemographicCrossView({zip5:'00601',readIndustry:()=>industry('99999'),readDemographic:()=>demographic('00601')}),/unavailable or incompatible/);await assert.rejects(readZipIndustryDemographicCrossView({zip5:'601'}),/unavailable or incompatible/);});
+test("reports absent same-code demographic context and rejects mismatches", async () => {
+  const absent = await readZipIndustryDemographicCrossView({
+    zip5: "00601",
+    readIndustry: () => industry("00601"),
+    readDemographic: ({ zcta }) => ({
+      schema_version: "zcta-demographic-readiness-view@1.0.0",
+      zcta,
+      available: false,
+      status: "not-found",
+      readiness: null,
+    }),
+  });
+  assert.equal(absent.status, "unavailable-demographic-context");
+  await assert.rejects(
+    readZipIndustryDemographicCrossView({
+      zip5: "00601",
+      readIndustry: () => industry("99999"),
+      readDemographic: () => demographic("00601"),
+    }),
+    /unavailable or incompatible/,
+  );
+  await assert.rejects(
+    readZipIndustryDemographicCrossView({ zip5: "601" }),
+    /unavailable or incompatible/,
+  );
+});

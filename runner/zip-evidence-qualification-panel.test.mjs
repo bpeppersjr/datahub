@@ -30,7 +30,7 @@ test('ZIP/category changes abort stale responses, release mismatch withholds res
 });
 test('unavailable release permits retry without zero counts or automatic build',async()=>{
  let calls=0;const h=harness(async()=>{calls++;return {schema_version:'zip-evidence-qualification-view@1.0.0',available:false,status:'not-enrolled',zip5:'00501',category_id:'all',rows:[]};});h.render();await flush();const tree=h.render();assert.match(text(tree),/No assessment was rebuilt/);assert.equal(calls,1);assert.equal(nodes(tree).filter(n=>n.type==='table').length,0);assert.ok(nodes(tree).some(n=>n.type==='button'));h.close();
- const workspace=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(workspace,/section==='Business segments'&&<ZipEvidenceQualificationPanel/);
+ const workspace=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(workspace,/section\s*===\s*["']Business segments["'][\s\S]{0,100}<ZipEvidenceQualificationPanel/);
 });
 
 test('navigation state and missing release identities clear and abort qualification without invalid lookup',async()=>{
