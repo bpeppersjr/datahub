@@ -46,7 +46,7 @@ test("pre-aborted inspection and output escape fail without publication", async 
   await assert.rejects(buildZipDenominatorAdmissionReadiness({ outputRoot: path.resolve(APP_ROOT, "..", "outside-readiness") }), /containment|inside app/i);
 });
 
-test("historical registered release retains exact bytes and null claims but fails current-input replay after admission-contract drift", async () => {
+test("registered release retains exact bytes and null claims and replays against current contracts", async () => {
   const registrationPath = path.join(APP_ROOT, "config", "datasets", "zip-denominator-admission-readiness.json");
   let registration;
   try { registration = JSON.parse(await fs.readFile(registrationPath, "utf8")); } catch (error) { if (error.code === "ENOENT") return; throw error; }
@@ -60,7 +60,19 @@ test("historical registered release retains exact bytes and null claims but fail
   assert.equal(artifact.claims.completeness_percent,null);
   const admission=artifact.bindings.prerequisite_contracts.licensed_city_state.admission_contract;
   assert.equal(admission.path,'config/connectors/usps-city-state-admission.json');
-  assert.equal(admission.sha256,'1b05b3b9dd2757fe859f40e57fae8b4986f5ee2efaafd185e12cd14b1ecb103a');
-  assert.equal(digest(await fs.readFile(path.join(APP_ROOT,admission.path))),'060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067');
+  assert.equal(admission.sha256,'060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067');
+  assert.equal(digest(await fs.readFile(path.join(APP_ROOT,admission.path))),admission.sha256);
+  const verified=await verifyZipDenominatorAdmissionReadiness(manifestPath);
+  assert.equal(verified.readiness.status,'blocked-on-authorized-authoritative-input');
+  assert.equal(verified.readiness.claims.authoritative_current_usps_zip_denominator,null);
+});
+
+test("superseded historical release remains immutable and fails current-contract replay", async () => {
+  const manifestPath=path.join(APP_ROOT,"data/zip-denominator-admission-readiness/releases/zip-denominator-admission-readiness-fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb/manifest.json");
+  const manifest=JSON.parse(await fs.readFile(manifestPath,"utf8"));
+  const artifact=JSON.parse(await fs.readFile(path.join(path.dirname(manifestPath),"readiness.json"),"utf8"));
+  assert.equal(manifest.release_id,"zip-denominator-admission-readiness-fb056804a473ed6b9425d5ec0590bb98282e7e15b3b31fb65762cc1c768bf1bb");
+  assert.equal(artifact.bindings.prerequisite_contracts.licensed_city_state.admission_contract.sha256,"1b05b3b9dd2757fe859f40e57fae8b4986f5ee2efaafd185e12cd14b1ecb103a");
+  assert.equal(artifact.claims.authoritative_current_usps_zip_denominator,null);
   await assert.rejects(verifyZipDenominatorAdmissionReadiness(manifestPath),/retained input replay/);
 });
