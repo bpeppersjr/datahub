@@ -7,7 +7,7 @@ import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
 import ConnectorCatalog from './connector-catalog';
 import DataOperations from './data-operations';
-import {CoverageWorkspace, DemographicEconomyWorkspace, OperationsTabs, WorkspaceTabs, ZipEconomyWorkspace, operationsTabs, workspaceTabs, type OperationsTab, type WorkspaceTab} from './workspace-views';
+import {CoverageWorkspace, OperationsTabs, WorkspaceTabs, ZipEconomyWorkspace, operationsTabs, workspaceTabs, type OperationsTab, type WorkspaceTab} from './workspace-views';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 
 type JobType = 'browser' | 'api' | 'map' | 'places' | 'pharmacy' | 'download' | 'parse' | 'ocr' | 'transform';
@@ -80,21 +80,17 @@ const statusLabel: Record<Status, string> = {
 };
 
 const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: string }> = {
-  Overview: {
+  'State Completion': {
     eyebrow: 'National coverage',
-    description: 'Governed dataset availability across all 50 states and D.C.; unknown coverage remains unmeasured.',
+    description: 'Compare expected dataset availability across all 50 states and D.C. Unknown coverage remains unmeasured.',
   },
   'Industry Summary': {
     eyebrow: 'Industry connectivity',
     description: 'Compare retained industry evidence and state availability without treating source rows as a business census.',
   },
-  'ZIP & GDP': {
+  'ZIP Economics': {
     eyebrow: 'Local economic view',
-    description: 'Inspect ZIP evidence, GDP-model readiness, and demographic inputs; unsupported estimates remain unavailable.',
-  },
-  Demographics: {
-    eyebrow: 'Demographic economic cross-view',
-    description: 'Compare governed race, lineage or ancestry, sex, and age inputs with ZIP industry evidence; unsupported GDP allocations remain withheld.',
+    description: 'Connect ZIP source evidence and business segments to total and segment GDP modeling, with demographic context where governed inputs exist.',
   },
   Operations: {
     eyebrow: 'Collection operations',
@@ -124,7 +120,7 @@ function formatCount(value: number) {
 }
 
 export default function Home() {
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('Overview');
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('State Completion');
   const [operationsTab, setOperationsTab] = useState<OperationsTab>('Jobs');
   const [workspaceState, setWorkspaceState] = useState('');
   const [workspaceZip, setWorkspaceZip] = useState('');
@@ -366,10 +362,9 @@ export default function Home() {
           <p>{workspaceContext[workspaceTab].description}</p>
         </div>
         <div className="workspace-stage" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
-        {workspaceTab==='Overview'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
+        {workspaceTab==='State Completion'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
-        {workspaceTab==='ZIP & GDP'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
-        {workspaceTab==='Demographics'&&<DemographicEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
+        {workspaceTab==='ZIP Economics'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
         {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">
