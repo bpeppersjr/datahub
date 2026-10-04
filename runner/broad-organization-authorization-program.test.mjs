@@ -24,19 +24,19 @@ async function sourceBacklog() {
   return { ...built, manifestPath, manifestBytes: await readFile(manifestPath) };
 }
 
-test("derives exact four contiguous current-gap waves, 40 jurisdictions, 355 items and 37 gate contracts", async () => {
+test("derives the pinned current-gap waves from the newest assessment catalog without changing authority", async () => {
   const source = await sourceBacklog();
   const program = deriveBroadOrganizationAuthorizationProgram(source.backlog, source.manifestBytes, source.manifest);
   assert.deepEqual(program.states.map((row) => row.state_abbreviation), AUTHORIZATION_PROGRAM_WAVES.flat());
   assert.deepEqual(program.wave_state_abbreviations, AUTHORIZATION_PROGRAM_WAVES.map((wave) => [...wave]));
   assert.deepEqual(AUTHORIZATION_PROGRAM_WAVES.map((wave) => wave.length), [10, 10, 10, 10]);
-  assert.deepEqual(program.states.slice(0, 10).map((row) => row.state_abbreviation), ["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"]);
+  assert.deepEqual(program.states.slice(0, 10).map((row) => row.state_abbreviation), ["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"]);
   assert.equal(program.states.some((row) => ["AK", "DC"].includes(row.state_abbreviation)), false);
   assert.equal(program.scope.jurisdictions, 40);
-  assert.equal(program.scope.gate_items, 355);
-  assert.equal(program.scope.gate_key_count, 37);
-  assert.equal(new Set(program.states.flatMap((row) => row.unresolved_gates)).size, 37);
-  assert.equal(program.states.reduce((n, row) => n + row.gate_items.length, 0), 355);
+  assert.equal(program.scope.gate_items, 371);
+  assert.equal(program.scope.gate_key_count, 121);
+  assert.equal(new Set(program.states.flatMap((row) => row.unresolved_gates)).size, 121);
+  assert.equal(program.states.reduce((n, row) => n + row.gate_items.length, 0), 371);
   for (const state of program.states) {
     assert.deepEqual(state.unresolved_gates, state.gate_items.map((item) => item.gate_key));
     assert.deepEqual(state.required_exclusions, state.assessment_snapshot.required_exclusions);
@@ -52,7 +52,7 @@ test("pins current gate boundaries without obsolete AK/DC approval items", async
   const source = await sourceBacklog();
   const program = deriveBroadOrganizationAuthorizationProgram(source.backlog, source.manifestBytes, source.manifest);
   const byGate = new Map(program.states.flatMap((state) => state.gate_items.map((item) => [item.gate_key, item])));
-  for (const key of ["complete-snapshot-route", "csv-schema", "current-bulk-scope", "platform-migration"]) {
+  for (const key of ["address-role", "migration-continuity", "status-codebook"]) {
     assert.ok(byGate.get(key)?.required_evidence_type);
     assert.ok(byGate.get(key)?.acceptance_criterion);
     assert.equal(byGate.get(key).row_bearing, false);
@@ -92,8 +92,8 @@ test("publishes and independently verifies an immutable manifest-last release", 
     assert.equal(verified.manifest.source_backlog_manifest_sha256, hash(source.manifestBytes));
     assert.equal(verified.manifest.source_backlog_artifact_sha256, source.manifest.artifacts[0].sha256);
     assert.equal(verified.manifest.state_count, 40);
-    assert.equal(verified.manifest.gate_item_count, 355);
-    assert.equal(verified.manifest.gate_key_count, 37);
+    assert.equal(verified.manifest.gate_item_count, 371);
+    assert.equal(verified.manifest.gate_key_count, 121);
     assert.deepEqual((await readdir(built.releaseDirectory)).sort(), ["authorization-program.json", "manifest.json"]);
     assert.equal((await readdir(outputRoot)).includes("current.json"), false);
     assert.equal((await buildBroadOrganizationAuthorizationProgram({ backlogManifestPath: source.manifestPath, outputRoot })).reused_existing_release, true);

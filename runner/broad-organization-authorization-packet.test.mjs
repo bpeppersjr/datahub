@@ -30,7 +30,7 @@ test("packet derives exactly ten verified first-wave jurisdictions and one bound
     const packet = deriveBroadOrganizationAuthorizationPacket(source.backlog.backlog, manifestBytes, source.backlog.manifest);
     assert.equal(packet.states.length, 10);
     assert.equal(packet.schema_version, "2.0.0");
-    assert.deepEqual(packet.states.map((state) => state.state_abbreviation), ["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"]);
+    assert.deepEqual(packet.states.map((state) => state.state_abbreviation), ["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"]);
     assert.deepEqual(packet.states.map((state) => state.state_abbreviation), source.backlog.manifest.first_wave_state_abbreviations);
     assert.equal(packet.scope.jurisdictions, 10);
     assert.equal(packet.states.reduce((count, state) => count + state.request_items.length, 0), packet.scope.request_items);

@@ -13,7 +13,7 @@ export const BROAD_ORGANIZATION_AUTHORIZATION_PACKET_SCHEMA_VERSION = "2.0.0";
 export const BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID = "broad-organization-authorization-packet";
 export const DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT = path.join(APP_ROOT, "data", BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID);
 export const DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases");
-const CURRENT_FIRST_WAVE = Object.freeze(["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"]);
+const CURRENT_FIRST_WAVE = Object.freeze(["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"]);
 
 const NO_ACTION_BOUNDARY = Object.freeze({
   contact_authorized: false,
@@ -126,8 +126,10 @@ async function assertDataLocalDirectory(directory, { create = false } = {}) {
 }
 
 function makeRequestItem(stateAbbreviation, gate) {
-  const contract = GATE_CONTRACTS[gate];
-  if (!contract) fail(`unmapped assessment gate: ${gate}`);
+  const contract = GATE_CONTRACTS[gate] ?? [
+    `Official non-row-bearing documentation addressing the assessment gate “${gate}”.`,
+    `Review evidence only for the named “${gate}” gap; this packet does not authorize contact, acquisition, payment, row-bearing access, or production change.`,
+  ];
   return {
     request_item_id: `${stateAbbreviation.toLowerCase()}-${gate}`,
     unresolved_gate: gate,

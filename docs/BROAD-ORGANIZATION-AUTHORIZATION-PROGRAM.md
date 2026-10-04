@@ -4,12 +4,12 @@ Version 2 is an offline evidence-specification dataset derived exactly from the 
 
 The four contiguous ten-state waves preserve backlog order:
 
-1. IL, MS, AR, KY, HI, KS, NV, UT, WA, OK
-2. AL, AZ, CA, GA, ID, IN, LA, MA, MD, ME
-3. MI, MN, MO, MT, NC, ND, NH, NJ, NM, OH
-4. RI, SC, SD, TN, VA, VT, WI, WV, WY, NE
+1. CA, ID, IL, OH, KY, NC, NH, OK, HI, MA
+2. MD, ME, MI, MN, MS, ND, NJ, NV, SC, TN
+3. VA, VT, WI, WV, AZ, IN, KS, LA, MO, MT
+4. RI, SD, WY, AL, AR, GA, NE, NM, UT, WA
 
-The release contains 351 gate items across 26 exact gate keys. Each row retains its complete assessment snapshot, exclusions, limitations, official-source provenance, and explicit false authority fields. The manifest also pins the backlog and the backlog's independently verified national-matrix lineage. The builder and verifier perform zero network requests, source contacts, downloads, payments, record requests, pointer changes, or production actions.
+The current pointer-free successor, `broad-organization-authorization-program-2026-10-03T21-39-58.008Z-09e7e96ddc39`, contains 371 gate items across 121 catalog-defined gate keys. Each row retains its complete assessment snapshot, exclusions, limitations, official-source provenance, and explicit false authority fields. The manifest also pins backlog `broad-organization-acquisition-backlog-2026-10-03T21-39-58.008Z-3b06b7e6dc73` and the backlog's independently verified national-matrix lineage. The builder and verifier perform zero network requests, source contacts, downloads, payments, record requests, pointer changes, or production actions.
 
 The historical v1 release remains immutable and independently verifiable. It continues to represent its original 43-jurisdiction, 371-item, five-wave snapshot; its bytes, release identity, and backlog lineage are not rewritten. The older ten-jurisdiction authorization-packet release is also unchanged.
 

@@ -4,28 +4,33 @@ import path from "node:path";
 
 import { APP_ROOT } from "./paths.mjs";
 import { loadBroadOrganizationCurrentAuthorizationChainManagementView } from "./broad-organization-current-authorization-chain-view.mjs";
+import { loadBroadOrganizationAuthorizationProgramManagementView } from "./broad-organization-authorization-program-view.mjs";
 
 const STATUS = "PROPOSED — NOT APPROVED — NO ACTION AUTHORIZED";
-const SUPERSEDED_WAVE_1_SHA256 = "976369982eea4c8289acb4677a921ede6cd0fe7efacf8e0fa5de6c8afd3c2a50";
+const SUPERSEDED_WAVE_1_SHA256 = "895aecf8e1220d3772972a5e5c843bcd46a4887068df28f966268b60d2ec109b";
 const PROPOSALS = Object.freeze([
-  Object.freeze({ wave: 1, sha256: "895aecf8e1220d3772972a5e5c843bcd46a4887068df28f966268b60d2ec109b", states: Object.freeze([["IL", "Illinois"], ["MS", "Mississippi"], ["AR", "Arkansas"], ["KY", "Kentucky"], ["HI", "Hawaii"], ["KS", "Kansas"], ["NV", "Nevada"], ["UT", "Utah"], ["WA", "Washington"], ["OK", "Oklahoma"]]) }),
-  Object.freeze({ wave: 2, sha256: "7af64202446dec8e328a3955cd572b6dacd94863e6797dbbe1ee4498731701dc", states: Object.freeze([["AL", "Alabama"], ["AZ", "Arizona"], ["CA", "California"], ["GA", "Georgia"], ["ID", "Idaho"], ["IN", "Indiana"], ["LA", "Louisiana"], ["MA", "Massachusetts"], ["MD", "Maryland"], ["ME", "Maine"]]) }),
-  Object.freeze({ wave: 3, sha256: "7309b02db317db8667f2c9cc146f002a7d1f8935e6b1db18bab339f824e9dc18", states: Object.freeze([["MI", "Michigan"], ["MN", "Minnesota"], ["MO", "Missouri"], ["MT", "Montana"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"], ["OH", "Ohio"]]) }),
-  Object.freeze({ wave: 4, sha256: "b18ceb51b2c2aadf912587b12ea121a6ab1c4180c4a49db0478946a4b652a9f6", states: Object.freeze([["RI", "Rhode Island"], ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["VA", "Virginia"], ["VT", "Vermont"], ["WI", "Wisconsin"], ["WV", "West Virginia"], ["WY", "Wyoming"], ["NE", "Nebraska"]]) }),
+  Object.freeze({ wave: 1, sha256: "8c6bc9c5d69469edf6dafddf616a208956580df62aea59a09f50e775944ed48a", states: Object.freeze([["CA", "California"], ["ID", "Idaho"], ["IL", "Illinois"], ["OH", "Ohio"], ["KY", "Kentucky"], ["NC", "North Carolina"], ["NH", "New Hampshire"], ["OK", "Oklahoma"], ["HI", "Hawaii"], ["MA", "Massachusetts"]]) }),
+  Object.freeze({ wave: 2, sha256: "8ce9b3a1b3d835915652d92da4d75ba48491c3568a6036b926c99441d5dc8c3e", states: Object.freeze([["MD", "Maryland"], ["ME", "Maine"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"], ["ND", "North Dakota"], ["NJ", "New Jersey"], ["NV", "Nevada"], ["SC", "South Carolina"], ["TN", "Tennessee"]]) }),
+  Object.freeze({ wave: 3, sha256: "156a26c0e1b7ef7bbf58ad73b8c18695bc56fee0ddc63f6f0b2334d5022511b5", states: Object.freeze([["VA", "Virginia"], ["VT", "Vermont"], ["WI", "Wisconsin"], ["WV", "West Virginia"], ["AZ", "Arizona"], ["IN", "Indiana"], ["KS", "Kansas"], ["LA", "Louisiana"], ["MO", "Missouri"], ["MT", "Montana"]]) }),
+  Object.freeze({ wave: 4, sha256: "fe4bee251fcd2d21fc8b562f2ffff9a5b42fd0d3453299cefdcc5f8fc8a15dbb", states: Object.freeze([["RI", "Rhode Island"], ["SD", "South Dakota"], ["WY", "Wyoming"], ["AL", "Alabama"], ["AR", "Arkansas"], ["GA", "Georgia"], ["NE", "Nebraska"], ["NM", "New Mexico"], ["UT", "Utah"], ["WA", "Washington"]]) }),
 ]);
 
-const filename = (wave) => `WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20260923-01.md`;
-const proposalId = (wave) => `wave-${wave}-document-only-inquiry-20260923-01`;
+const filename = (wave) => `WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20261003-02.md`;
+const proposalId = (wave) => `wave-${wave}-document-only-inquiry-20261003-02`;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 function fail(message) { throw new Error(`Document-only inquiry proposal registry unavailable: ${message}`); }
 
-export async function loadDocumentOnlyInquiryProposalRegistryView(docsOverride, loadCurrentChain = loadBroadOrganizationCurrentAuthorizationChainManagementView) {
+export async function loadDocumentOnlyInquiryProposalRegistryView(
+  docsOverride,
+  loadCurrentProgram = loadBroadOrganizationAuthorizationProgramManagementView,
+  loadCurrentChain = loadBroadOrganizationCurrentAuthorizationChainManagementView,
+) {
   const root = await realpath(APP_ROOT);
   const docs = docsOverride === undefined ? path.join(root, "docs") : path.resolve(docsOverride);
   const stat = await lstat(docs);
   if (!stat.isDirectory() || stat.isSymbolicLink() || await realpath(docs) !== docs) fail("canonical documentation directory is unavailable");
   const matching = (await readdir(docs, { withFileTypes: true }))
-    .filter((entry) => /^WAVE-\d+-DOCUMENT-ONLY-INQUIRY-20260923-01\.md$/.test(entry.name));
+    .filter((entry) => /^WAVE-\d+-DOCUMENT-ONLY-INQUIRY-20261003-02\.md$/.test(entry.name));
   if (matching.length !== 4 || matching.some((entry) => !entry.isFile() || entry.isSymbolicLink())) fail("expected exactly four regular proposal documents");
   const seen = new Set();
   const proposals = [];
@@ -40,7 +45,10 @@ export async function loadDocumentOnlyInquiryProposalRegistryView(docsOverride, 
     if (digest !== expected.sha256) fail(`wave ${expected.wave} document hash does not match its governed proposal`);
     const text = bytes.toString("utf8");
     const id = proposalId(expected.wave);
-    if (!text.includes(`Status: **${STATUS}**`) || !text.includes(`Proposal ID: \`${id}\``) || !text.includes(`Approve ${id} with document SHA-256 <exact-sha256>.`)) fail(`wave ${expected.wave} identity, status, or approval syntax is invalid`);
+    const expectedStateCodes = expected.states.map(([code]) => code);
+    const stateCodeLine = `- Program wave roster: \`${expectedStateCodes.join(", ")}\``;
+    if (!text.includes(`Status: **${STATUS}**`) || !text.includes(`Proposal ID: \`${id}\``)
+        || !text.includes(stateCodeLine) || !text.includes(`Approve ${id} with document SHA-256 <exact-sha256>.`)) fail(`wave ${expected.wave} identity, status, roster, or approval syntax is invalid`);
     for (const [code, nameValue] of expected.states) {
       if (seen.has(code) || !text.includes(nameValue)) fail(`wave ${expected.wave} roster is missing or duplicated`);
       seen.add(code);
@@ -62,9 +70,27 @@ export async function loadDocumentOnlyInquiryProposalRegistryView(docsOverride, 
       } : null,
     });
   }
+  const program = await loadCurrentProgram();
   const chain = await loadCurrentChain();
   const chainStates = chain?.states;
   const chainMetadata = chain?.metadata;
+  const programStates = program?.states;
+  const programMetadata = program?.metadata;
+  const lineage = program?.source_lineage;
+  const expectedWaves = PROPOSALS.map((proposal) => proposal.states.map(([code]) => code));
+  if (program?.schema_version !== "broad-organization-authorization-program-management-view@2.0.0" || program?.available !== true
+      || !Array.isArray(programStates) || programStates.length !== 40 || !programMetadata || programMetadata.jurisdiction_count !== 40
+      || JSON.stringify(programMetadata.wave_state_abbreviations) !== JSON.stringify(expectedWaves)
+      || !lineage || !/^broad-organization-acquisition-backlog-/.test(lineage.backlog_release_id ?? "")
+      || !/^broad-organization-authorization-program-/.test(programMetadata.release_id ?? "")
+      || !/^[a-f0-9]{64}$/.test(lineage.program_manifest_sha256 ?? "") || !/^[a-f0-9]{64}$/.test(lineage.program_artifact_sha256 ?? "")
+      || !programMetadata.release_id.endsWith(lineage.program_artifact_sha256.slice(0, 12))
+      || !/^[a-f0-9]{64}$/.test(lineage.backlog_manifest_sha256 ?? "") || !/^[a-f0-9]{64}$/.test(lineage.backlog_artifact_sha256 ?? "")
+      || !lineage.backlog_release_id.endsWith(lineage.backlog_artifact_sha256.slice(0, 12))
+      || !/^[a-f0-9]{64}$/.test(lineage.assessment_catalog_sha256 ?? "") || !lineage.assessment_catalog_id
+      || !program.authority || Object.values(program.authority).some((value) => value !== false && value !== 0)) fail("verified current authorization program or lineage is invalid");
+  const programWaveStates = expectedWaves.map((_, index) => programStates.filter((state) => state.wave === index + 1).map((state) => state.state_abbreviation));
+  if (JSON.stringify(programWaveStates) !== JSON.stringify(expectedWaves)) fail("verified authorization program state roster differs from its four waves");
   const diagnostic = chain?.diagnostic_batch;
   if (chain?.schema_version !== "broad-organization-current-authorization-chain-management-view@1.1.0" || chain?.available !== true || !Array.isArray(chainStates) || !chainMetadata || typeof chainMetadata.jurisdiction_count !== "number" || typeof chainMetadata.current_gap_state_count !== "number" || typeof chainMetadata.broad_data_coverage?.admitted_jurisdictions !== "number" || typeof chainMetadata.broad_data_coverage?.current_data_gaps !== "number" || typeof chainMetadata.authorization_packet_coverage?.expected_current_gaps !== "number" || typeof chainMetadata.authorization_packet_coverage?.packeted_current_gaps !== "number" || typeof chainMetadata.authorization_packet_coverage?.authorization_packet_gaps !== "number" || diagnostic?.kind !== "weakest-comparable-diagnostic-profile-batch" || diagnostic?.selection_count !== 10 || diagnostic?.comparable_gap_count !== 31 || diagnostic?.unavailable_gap_count !== 9 || !Array.isArray(diagnostic?.states) || diagnostic.states.length !== 10 || diagnostic?.authority?.status !== "HOLD" || Object.entries(diagnostic.authority).some(([key, value]) => key !== "status" && value !== false)) fail("verified current authorization chain has an invalid projection");
   const authoritativeStates = new Set();
@@ -73,7 +99,21 @@ export async function loadDocumentOnlyInquiryProposalRegistryView(docsOverride, 
     if (typeof code !== "string" || !/^[A-Z]{2}$/.test(code) || authoritativeStates.has(code)) fail("verified current authorization chain state roster is invalid");
     authoritativeStates.add(code);
   }
-  if (authoritativeStates.size !== chainMetadata.current_gap_state_count || seen.size !== authoritativeStates.size || [...seen].some((code) => !authoritativeStates.has(code)) || [...authoritativeStates].some((code) => !seen.has(code))) fail("proposal roster does not exactly match verified current-gap states");
+  if (authoritativeStates.size !== chainMetadata.current_gap_state_count || seen.size !== authoritativeStates.size || [...seen].some((code) => !authoritativeStates.has(code)) || [...authoritativeStates].some((code) => !seen.has(code))
+      || JSON.stringify(programStates.map((state) => state.state_abbreviation).sort()) !== JSON.stringify([...authoritativeStates].sort())) fail("proposal roster does not exactly match verified current-gap states");
+  const lineageLines = [
+    `- Assessment catalog: \`${lineage.assessment_catalog_id}\` (SHA-256 \`${lineage.assessment_catalog_sha256}\`)`,
+    `- Backlog release: \`${lineage.backlog_release_id}\``,
+    `- Backlog manifest SHA-256: \`${lineage.backlog_manifest_sha256}\``,
+    `- Backlog artifact SHA-256: \`${lineage.backlog_artifact_sha256}\``,
+    `- Authorization program release: \`${programMetadata.release_id}\``,
+    `- Program manifest SHA-256: \`${lineage.program_manifest_sha256}\``,
+    `- Program artifact SHA-256: \`${lineage.program_artifact_sha256}\``,
+  ];
+  for (const proposal of PROPOSALS) {
+    const text = await readFile(path.join(docs, filename(proposal.wave)), "utf8");
+    if (lineageLines.some((line) => !text.includes(line))) fail(`wave ${proposal.wave} document is not bound to the verified current backlog and program lineage`);
+  }
   return {
     schema_version: "document-only-inquiry-proposal-registry-view@1.0.0",
     available: true,

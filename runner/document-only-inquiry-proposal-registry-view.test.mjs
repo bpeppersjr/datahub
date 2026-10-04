@@ -9,6 +9,10 @@ import { loadDocumentOnlyInquiryProposalRegistryView } from "./document-only-inq
 import {APP_ROOT} from './paths.mjs';
 import {deriveWeakestComparableDiagnosticBatch} from './broad-organization-current-authorization-chain-view.mjs';
 import {readAuthorizationViewReleases} from './authorization-view-release-selection.mjs';
+import {buildBroadOrganizationAcquisitionBacklog} from './broad-organization-acquisition-backlog.mjs';
+import {buildBroadOrganizationAuthorizationProgram} from './broad-organization-authorization-program.mjs';
+import {loadBroadOrganizationAuthorizationProgramManagementView} from './broad-organization-authorization-program-view.mjs';
+import {DATA_DIR} from './paths.mjs';
 
 // Inject the complete historical cohort only for document-contract unit tests.
 // This is never a production fallback for the incomplete newest cohort.
@@ -27,61 +31,94 @@ async function completeChainFixture(){
     states:waves.flatMap(row=>row.artifact.states),diagnostic_batch:deriveWeakestComparableDiagnosticBatch(projection.artifact)};
 }
 
-const expectedHashes = ["895aecf8e1220d3772972a5e5c843bcd46a4887068df28f966268b60d2ec109b", "7af64202446dec8e328a3955cd572b6dacd94863e6797dbbe1ee4498731701dc", "7309b02db317db8667f2c9cc146f002a7d1f8935e6b1db18bab339f824e9dc18", "b18ceb51b2c2aadf912587b12ea121a6ab1c4180c4a49db0478946a4b652a9f6"];
+async function currentProgramFixture() {
+  const backlog = await buildBroadOrganizationAcquisitionBacklog();
+  const root = await mkdtemp(path.join(DATA_DIR, ".tmp-document-proposal-program-"));
+  try {
+    await buildBroadOrganizationAuthorizationProgram({ backlogManifestPath: path.join(backlog.releaseDirectory, "manifest.json"), outputRoot: root });
+  } catch (error) {
+    await rm(root, { recursive: true, force: true });
+    throw error;
+  }
+  return {
+    load: () => loadBroadOrganizationAuthorizationProgramManagementView({ programRoot: root }),
+    cleanup: () => rm(root, { recursive: true, force: true }),
+  };
+}
 
-test("registry independently verifies exactly four governed proposals and 40 unique states", async () => {
-  const first = await loadDocumentOnlyInquiryProposalRegistryView(undefined,completeChainFixture); const second = await loadDocumentOnlyInquiryProposalRegistryView(undefined,completeChainFixture);
+const expectedHashes = ["8c6bc9c5d69469edf6dafddf616a208956580df62aea59a09f50e775944ed48a", "8ce9b3a1b3d835915652d92da4d75ba48491c3568a6036b926c99441d5dc8c3e", "156a26c0e1b7ef7bbf58ad73b8c18695bc56fee0ddc63f6f0b2334d5022511b5", "fe4bee251fcd2d21fc8b562f2ffff9a5b42fd0d3453299cefdcc5f8fc8a15dbb"];
+
+test("registry independently verifies four current program-bound proposals and 40 unique states", async () => {
+  const program = await currentProgramFixture();
+  try {
+  const first = await loadDocumentOnlyInquiryProposalRegistryView(undefined,program.load); const second = await loadDocumentOnlyInquiryProposalRegistryView(undefined,program.load);
   assert.deepEqual(first, second); assert.equal(first.available, true); assert.equal(first.proposals.length, 4);
   assert.deepEqual(first.proposals.map((item) => item.document_sha256), expectedHashes);
   assert.deepEqual(first.proposals.map((item) => item.status), Array(4).fill("PROPOSED"));
   assert.ok(first.proposals.every((item) => item.approval_status === "NOT APPROVED" && item.authority_status === "NO ACTION AUTHORIZED" && item.approval_syntax === `Approve ${item.proposal_id} with document SHA-256 ${item.document_sha256}.`));
   const states = first.proposals.flatMap((item) => item.states.map((state) => state.state_abbreviation));
   assert.equal(states.length, 40); assert.equal(new Set(states).size, 40);
+  assert.deepEqual(first.proposals.map((item) => item.states.map((state) => state.state_abbreviation)), [
+    ["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"],
+    ["MD", "ME", "MI", "MN", "MS", "ND", "NJ", "NV", "SC", "TN"],
+    ["VA", "VT", "WI", "WV", "AZ", "IN", "KS", "LA", "MO", "MT"],
+    ["RI", "SD", "WY", "AL", "AR", "GA", "NE", "NM", "UT", "WA"],
+  ]);
   assert.deepEqual(first.coverage.actual_collected_data, { admitted_jurisdictions: 11, denominator: 51, unresolved_data_gaps: 40 });
   assert.deepEqual(first.coverage.authorization_packets, { covered_current_gap_states: 40, expected_current_gap_states: 40, packet_gaps: 0 });
   assert.deepEqual(first.coverage.document_only_proposals, { covered_current_gap_states: 40, expected_current_gap_states: 40, proposal_gaps: 0 });
   assert.ok(Object.values(first.authority).every((value) => value === false));
-  assert.deepEqual(first.proposals[0].supersession, { supersedes_only_prior_unapproved_document_sha256: "976369982eea4c8289acb4677a921ede6cd0fe7efacf8e0fa5de6c8afd3c2a50", prior_proposal_was_approved: false, prior_proposal_authorized_action: false });
+  assert.deepEqual(first.proposals[0].supersession, { supersedes_only_prior_unapproved_document_sha256: "895aecf8e1220d3772972a5e5c843bcd46a4887068df28f966268b60d2ec109b", prior_proposal_was_approved: false, prior_proposal_authorized_action: false });
   assert.ok(first.proposals.slice(1).every((item) => item.supersession === null));
   const serialized = JSON.stringify(first); for (const denied of ["C:\\Master Data", "docs/", ".md", "https://", "source contact"]) assert.equal(serialized.includes(denied), false, denied);
+  } finally { await program.cleanup(); }
 });
 
 test("registry fails closed if a governed document changes or an extra proposal appears", async (context) => {
   await mkdir(path.join(APP_ROOT,'data/tmp'),{recursive:true});
   const temp = await mkdtemp(path.join(APP_ROOT,'data/tmp/cotive-proposals-')); context.after(() => rm(temp, { recursive: true, force: true }));
-  for (let wave = 1; wave <= 4; wave += 1) await cp(new URL(`../docs/WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20260923-01.md`, import.meta.url), path.join(temp, `WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20260923-01.md`));
-  const wave2 = path.join(temp, "WAVE-2-DOCUMENT-ONLY-INQUIRY-20260923-01.md"); await writeFile(wave2, `${await readFile(wave2, "utf8")}\nchanged\n`);
+  for (let wave = 1; wave <= 4; wave += 1) await cp(new URL(`../docs/WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20261003-02.md`, import.meta.url), path.join(temp, `WAVE-${wave}-DOCUMENT-ONLY-INQUIRY-20261003-02.md`));
+  const wave2 = path.join(temp, "WAVE-2-DOCUMENT-ONLY-INQUIRY-20261003-02.md"); await writeFile(wave2, `${await readFile(wave2, "utf8")}\nchanged\n`);
   await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(temp,completeChainFixture), /hash does not match/);
-  await cp(new URL("../docs/WAVE-2-DOCUMENT-ONLY-INQUIRY-20260923-01.md", import.meta.url), wave2);
-  await writeFile(path.join(temp, "WAVE-5-DOCUMENT-ONLY-INQUIRY-20260923-01.md"), "unexpected");
+  await cp(new URL("../docs/WAVE-2-DOCUMENT-ONLY-INQUIRY-20261003-02.md", import.meta.url), wave2);
+  await writeFile(path.join(temp, "WAVE-5-DOCUMENT-ONLY-INQUIRY-20261003-02.md"), "unexpected");
   await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(temp,completeChainFixture), /exactly four/);
 });
 
 test("registry fails closed when proposals and the verified current-gap state set differ", async () => {
-  const chain = await completeChainFixture();
-  const mismatched = structuredClone(chain);
-  mismatched.states[0].state_abbreviation = "TX";
-  await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => mismatched), /does not exactly match verified current-gap states/);
+  const program = await currentProgramFixture();
+  try {
+    const current = await program.load();
+    const mismatched = structuredClone(current);
+    mismatched.states[0].state_abbreviation = "TX";
+    await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => mismatched), /state roster differs from its four waves/);
+  } finally { await program.cleanup(); }
 });
 
 test("registry requires the verified diagnostic batch without treating it as proposal authority", async () => {
-  const chain = await completeChainFixture();
-  for (const mutate of [
-    (value) => { value.schema_version = "broad-organization-current-authorization-chain-management-view@1.0.0"; },
-    (value) => { value.diagnostic_batch.comparable_gap_count = 30; },
-    (value) => { value.diagnostic_batch.authority.acquisition_authorized = true; },
-  ]) {
-    const changed = structuredClone(chain); mutate(changed);
-    await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => changed), /invalid projection/);
-  }
+  const program = await currentProgramFixture();
+  try {
+    const current = await program.load();
+    for (const mutate of [
+      (value) => { value.schema_version = "broad-organization-authorization-program-management-view@1.0.0"; },
+      (value) => { value.source_lineage.program_artifact_sha256 = "0".repeat(64); },
+      (value) => { value.authority.acquisition_authorized = true; },
+    ]) {
+      const changed = structuredClone(current); mutate(changed);
+      await assert.rejects(loadDocumentOnlyInquiryProposalRegistryView(undefined, async () => changed), /program or lineage is invalid/);
+    }
+  } finally { await program.cleanup(); }
 });
 
-test('native registry uses the complete newest four-wave lineage without converting proposals into approval',async()=>{
-  const view=await loadDocumentOnlyInquiryProposalRegistryView();
+test('registry binds current verified four-wave program lineage without converting proposals into approval',async()=>{
+  const program=await currentProgramFixture();
+  try {
+  const view=await loadDocumentOnlyInquiryProposalRegistryView(undefined,program.load);
   assert.equal(view.available,true);assert.equal(view.coverage.authorization_packets.covered_current_gap_states,40);
   assert.ok(Object.values(view.authority).every(value=>value===false));
-  let reply;await documentOnlyInquiryProposalRegistryHttp({method:'GET',headers:{}},{},new URL('http://local/'),loadDocumentOnlyInquiryProposalRegistryView,(_res,status,body)=>{reply={status,body};});
+  let reply;await documentOnlyInquiryProposalRegistryHttp({method:'GET',headers:{}},{},new URL('http://local/'),()=>loadDocumentOnlyInquiryProposalRegistryView(undefined,program.load),(_res,status,body)=>{reply={status,body};});
   assert.equal(reply.status,200);assert.equal(reply.body.available,true);assert.ok(Object.values(reply.body.authority).every(value=>value===false));
+  } finally { await program.cleanup(); }
 });
 
 test("proposal HTTP accepts only empty GET and redacts verifier failures", async () => {

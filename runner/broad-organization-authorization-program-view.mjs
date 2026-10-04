@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
 
 import {
@@ -5,6 +6,7 @@ import {
   DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT,
   verifyBroadOrganizationAuthorizationProgram,
 } from "./broad-organization-authorization-program.mjs";
+import { loadStateBusinessSourceAssessmentCatalog, validateStateBusinessSourceAssessmentCatalog } from "./state-business-source-assessment.mjs";
 
 const DENIED_NARRATIVE = /https?:\/\/|\b(candidate|contact|request|download|purchase|payment|account|enroll|source action|acquisition)\b/i;
 const MAX_LIMITATION_LENGTH = 260;
@@ -39,12 +41,13 @@ function limitations(state) {
   };
 }
 
-export function projectBroadOrganizationAuthorizationProgram(program, manifest) {
+export function projectBroadOrganizationAuthorizationProgram(program, manifest, programManifestSha256) {
   if (program?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || program.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-program-manifest@2.0.0"
       || program.states?.length !== 40 || manifest.state_count !== 40
-      || manifest.gate_item_count !== 355 || manifest.gate_key_count !== 37
+      || !Number.isSafeInteger(manifest.gate_item_count) || manifest.gate_item_count <= 0
+      || !Number.isSafeInteger(manifest.gate_key_count) || manifest.gate_key_count <= 0 || manifest.gate_key_count > manifest.gate_item_count
       || program.scope?.jurisdictions !== manifest.state_count || program.scope?.gate_items !== manifest.gate_item_count
       || program.scope?.gate_key_count !== manifest.gate_key_count
       || program.wave_state_abbreviations?.length !== 4 || program.wave_state_abbreviations.some((wave) => !Array.isArray(wave) || wave.length !== 10)
@@ -65,6 +68,8 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
       wave_state_abbreviations: program.wave_state_abbreviations.map((wave) => [...wave]),
     },
     source_lineage: {
+      program_manifest_sha256: programManifestSha256,
+      program_artifact_sha256: manifest.artifacts[0].sha256,
       backlog_release_id: program.source_backlog.release_id,
       backlog_manifest_sha256: program.source_backlog.manifest_sha256,
       backlog_artifact_sha256: program.source_backlog.artifact_sha256,
@@ -122,12 +127,16 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest) 
   };
 }
 
-export async function loadBroadOrganizationAuthorizationProgramManagementView() {
-  const releases=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,'authorization-program.json');
+export async function loadBroadOrganizationAuthorizationProgramManagementView({ programRoot = DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT } = {}) {
+  const catalog = validateStateBusinessSourceAssessmentCatalog(await loadStateBusinessSourceAssessmentCatalog());
+  const catalogSha256 = createHash("sha256").update(JSON.stringify(catalog)).digest("hex");
+  const releases=await readAuthorizationViewReleases(programRoot,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,'authorization-program.json');
   if(releases.some(row=>!['broad-organization-authorization-program-manifest@1.0.0','broad-organization-authorization-program-manifest@2.0.0'].includes(row.manifest.schema_version)))fail('unsupported retained program version');
-  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-program-manifest@2.0.0'),row=>row.manifest.release_id);
+  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-program-manifest@2.0.0'
+    && row.artifact.source_backlog?.assessment_catalog_id === catalog.assessment_catalog_id
+    && row.artifact.source_backlog?.assessment_catalog_sha256 === catalogSha256),row=>row.manifest.release_id);
   if(current.length!==1)fail('ambiguous newest program');
   const verified=await verifyBroadOrganizationAuthorizationProgram(current[0].manifestPath);
   if(JSON.stringify(verified.manifest)!==JSON.stringify(current[0].manifest)||JSON.stringify(verified.program)!==JSON.stringify(current[0].artifact))fail('selected program changed during verification');
-  return projectBroadOrganizationAuthorizationProgram(verified.program,verified.manifest);
+  return projectBroadOrganizationAuthorizationProgram(verified.program,verified.manifest,current[0].manifestSha256);
 }

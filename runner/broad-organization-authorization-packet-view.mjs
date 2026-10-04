@@ -1,4 +1,5 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
 import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
 
 import {
@@ -10,6 +11,7 @@ import {
   DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT,
   verifyBroadOrganizationAcquisitionBacklog,
 } from "./broad-organization-acquisition-backlog.mjs";
+import { loadStateBusinessSourceAssessmentCatalog, validateStateBusinessSourceAssessmentCatalog } from "./state-business-source-assessment.mjs";
 
 function fail(message) {
   throw new Error(`Verified authorization packet view unavailable: ${message}`);
@@ -39,7 +41,7 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
       || backlogManifest?.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0"
       || backlogManifest.release_id !== manifest.source_backlog_release_id
       || backlogManifest.source_matrix_release_id === undefined
-      || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");
+      || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");
   return {
     schema_version: "broad-organization-authorization-packet-management-view@2.0.0",
     available: true,
@@ -104,10 +106,14 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
   };
 }
 
-export async function loadBroadOrganizationAuthorizationPacketManagementView() {
-  const releases=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,'authorization-packet.json');
+export async function loadBroadOrganizationAuthorizationPacketManagementView({ packetRoot = DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PACKET_ROOT } = {}) {
+  const catalog = validateStateBusinessSourceAssessmentCatalog(await loadStateBusinessSourceAssessmentCatalog());
+  const catalogSha256 = createHash("sha256").update(JSON.stringify(catalog)).digest("hex");
+  const releases=await readAuthorizationViewReleases(packetRoot,BROAD_ORGANIZATION_AUTHORIZATION_PACKET_DATASET_ID,'authorization-packet.json');
   if(releases.some(row=>!['broad-organization-authorization-packet-manifest@1.0.0','broad-organization-authorization-packet-manifest@2.0.0'].includes(row.manifest.schema_version)))fail('unsupported retained packet version');
-  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-packet-manifest@2.0.0'),row=>row.manifest.release_id);
+  const current=newestAuthorizationCohort(releases.filter(row=>row.manifest.schema_version==='broad-organization-authorization-packet-manifest@2.0.0'
+    && row.artifact.source_backlog?.assessment_catalog_id === catalog.assessment_catalog_id
+    && row.artifact.source_backlog?.assessment_catalog_sha256 === catalogSha256),row=>row.manifest.release_id);
   if(current.length!==1)fail('ambiguous newest packet');
   const verified=await verifyBroadOrganizationAuthorizationPacket(current[0].manifestPath);
   if(JSON.stringify(verified.manifest)!==JSON.stringify(current[0].manifest)||JSON.stringify(verified.packet)!==JSON.stringify(current[0].artifact))fail('selected packet changed during verification');

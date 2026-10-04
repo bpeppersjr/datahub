@@ -1,27 +1,36 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import path from "node:path";
 import { Readable } from "node:stream";
 import test from "node:test";
 
 import { broadOrganizationAuthorizationProgramHttp } from "./broad-organization-authorization-program-http.mjs";
 import { loadBroadOrganizationAuthorizationProgramManagementView } from "./broad-organization-authorization-program-view.mjs";
-import {DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID} from './broad-organization-authorization-program.mjs';
+import {buildBroadOrganizationAuthorizationProgram,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID} from './broad-organization-authorization-program.mjs';
+import {buildBroadOrganizationAcquisitionBacklog} from './broad-organization-acquisition-backlog.mjs';
 import {readAuthorizationViewReleases,newestAuthorizationCohort} from './authorization-view-release-selection.mjs';
+import { DATA_DIR } from "./paths.mjs";
 
 test("read-only management view selects newest deeply verified v2 amid integrity-checked historical releases", async () => {
-  const view = await loadBroadOrganizationAuthorizationProgramManagementView();
-  const rows=await readAuthorizationViewReleases(DEFAULT_BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_ROOT,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,'authorization-program.json');
+  const root = await mkdtemp(path.join(DATA_DIR, ".tmp-auth-program-view-"));
+  try {
+  const backlog = await buildBroadOrganizationAcquisitionBacklog();
+  await buildBroadOrganizationAuthorizationProgram({ backlogManifestPath: path.join(backlog.releaseDirectory, "manifest.json"), outputRoot: root });
+  const view = await loadBroadOrganizationAuthorizationProgramManagementView({ programRoot: root });
+  const rows=await readAuthorizationViewReleases(root,BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID,'authorization-program.json');
   const selected=newestAuthorizationCohort(rows.filter(row=>row.manifest.schema_version==='broad-organization-authorization-program-manifest@2.0.0'),row=>row.manifest.release_id)[0];
   assert.equal(view.metadata.release_id,selected.manifest.release_id);
   assert.equal(view.source_lineage.backlog_release_id,selected.artifact.source_backlog.release_id);
+  assert.equal(view.source_lineage.assessment_catalog_id, backlog.manifest.assessment_catalog_id);
+  assert.equal(view.source_lineage.assessment_catalog_sha256, backlog.manifest.assessment_catalog_sha256);
   assert.equal(view.available, true);
   assert.equal(view.schema_version, "broad-organization-authorization-program-management-view@2.0.0");
-  assert.deepEqual([view.metadata.jurisdiction_count, view.metadata.gate_item_count, view.metadata.gate_key_count], [40, 355, 37]);
+  assert.deepEqual([view.metadata.jurisdiction_count, view.metadata.gate_item_count, view.metadata.gate_key_count], [40, 371, 121]);
   assert.deepEqual(view.metadata.wave_state_abbreviations, [
-    ["KS", "AR", "IL", "MS", "KY", "HI", "NV", "UT", "WA", "OK"],
-    ["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"],
-    ["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"],
-    ["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"],
+    ["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"],
+    ["MD", "ME", "MI", "MN", "MS", "ND", "NJ", "NV", "SC", "TN"],
+    ["VA", "VT", "WI", "WV", "AZ", "IN", "KS", "LA", "MO", "MT"],
+    ["RI", "SD", "WY", "AL", "AR", "GA", "NE", "NM", "UT", "WA"],
   ]);
   assert.equal(view.states.length, 40);
   assert.equal(view.states.some((state) => ["AK", "DC"].includes(state.state_abbreviation)), false);
@@ -29,7 +38,7 @@ test("read-only management view selects newest deeply verified v2 amid integrity
   assert.equal(view.authority.source_actions_performed, 0);
   assert.equal(view.authority.network_requests, 0);
   assert.equal(view.authority.acquisition_authorized, false);
-  assert.equal(view.states.reduce((count, state) => count + state.gate_items.length, 0), 355);
+  assert.equal(view.states.reduce((count, state) => count + state.gate_items.length, 0), 371);
   for (const field of ["source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256"]) assert.ok(view.source_lineage[field]);
   const approval = view.states.flatMap((state) => state.gate_items).filter((item) => item.gate_kind === "external-explicit-authorization");
   assert.deepEqual(approval, []);
@@ -41,6 +50,7 @@ test("read-only management view selects newest deeply verified v2 amid integrity
   }
   const encoded = JSON.stringify(view);
   for (const denied of ["assessment_snapshot", "candidate", "official_urls", "strongest_bounded_next_action", "manifest.json", "authorization-program.json", "C:\\\\Master Data", "source access", "https://"]) assert.equal(encoded.includes(denied), false, denied);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("strict HTTP view accepts only authenticated-route empty GET semantics and redacts failures", async () => {
