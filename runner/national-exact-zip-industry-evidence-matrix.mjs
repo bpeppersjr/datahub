@@ -9,9 +9,9 @@ import {
   verifyBroadOrganizationZipSummary,
 } from "./broad-organization-zip-summary.mjs";
 
-export const VERSION = "national-exact-zip-industry-evidence-matrix@1.6.0";
+export const VERSION = "national-exact-zip-industry-evidence-matrix@1.7.0";
 export const ROW_VERSION =
-  "national-exact-zip-industry-evidence-matrix-row@1.6.0";
+  "national-exact-zip-industry-evidence-matrix-row@1.7.0";
 const DATASET = "national-exact-zip-industry-evidence-matrix",
   SHA = /^[a-f0-9]{64}$/;
 export const MAX_PREFIX_BYTES = 16_000_000;
@@ -391,6 +391,52 @@ const SOURCES = [
     dimension: d,
   })),
 ];
+const EXACT_ZIP_DENOMINATOR_SOURCES = new Set([
+  "pharmacy",
+  "transportation",
+  "tax_exempt_organizations",
+  "cms_hospital_directory",
+  "cms_nursing_home_directory",
+]);
+const OUTSIDE_DENOMINATOR_SOURCES = new Set([
+  "healthcare_organizations",
+  "regulated_facilities",
+  "fdic_offices",
+  "food_safety_establishments",
+  "credit_union_locations",
+  "snap_retailers",
+]);
+const STATE_LOCAL_SOURCE_IDS = new Set([
+  ...["PA", "CT", "MD", "VT", "CO", "UT", "IA"].map(
+    (state) => `childcare_${state.toLowerCase()}_candidates`,
+  ),
+  ...REPORTING_CHILDCARE_DIMENSIONS.map((dimension) => dimension.id),
+  ...ZIP_STATUS_DIMENSIONS.map((dimension) => dimension.id),
+  ...BROAD_ORG_DIMENSIONS.map((dimension) => dimension.id),
+]);
+const sourceIds = SOURCES.map((source) => source.id);
+if (!(
+  sourceIds.length === 39 && new Set(sourceIds).size === 39 &&
+  sourceIds.every((id) => EXACT_ZIP_DENOMINATOR_SOURCES.has(id) || OUTSIDE_DENOMINATOR_SOURCES.has(id) || STATE_LOCAL_SOURCE_IDS.has(id)) &&
+    EXACT_ZIP_DENOMINATOR_SOURCES.size + OUTSIDE_DENOMINATOR_SOURCES.size + STATE_LOCAL_SOURCE_IDS.size === sourceIds.length &&
+    [...EXACT_ZIP_DENOMINATOR_SOURCES, ...OUTSIDE_DENOMINATOR_SOURCES, ...STATE_LOCAL_SOURCE_IDS].every((id) => sourceIds.includes(id))
+)) throw Error("Exact ZIP industry matrix rejected: closed per-dimension zero-evidence contract roster.");
+const ZERO_EVIDENCE_CONTRACTS = Object.freeze(Object.fromEntries(
+  SOURCES.map((source) => {
+    const stateLocal = STATE_LOCAL_SOURCE_IDS.has(source.id),
+      outside = OUTSIDE_DENOMINATOR_SOURCES.has(source.id);
+    return [source.id, Object.freeze({
+      absent_cell_status: stateLocal ? "absent-from-retained-source-rows" : outside ? "outside-source-denominator" : "measured-zero",
+        exact_zip_denominator: EXACT_ZIP_DENOMINATOR_SOURCES.has(source.id),
+      explicit_zero_evidence_allowed: !stateLocal,
+      interpretation: stateLocal
+        ? `${source.semantics} This retained state/local source declares no nationwide exact-ZIP measurement denominator; an absent row means only absent-from-retained-source-rows, not measured zero or completeness. Publisher jurisdiction is not inferred from ZIP/ZCTA code.`
+        : outside
+          ? `${source.semantics} The source does not establish an exhaustive exact-ZIP denominator; a ZIP absent from the source index is outside-source-denominator, not zero. An explicit retained source row with count zero remains measured-zero evidence.`
+          : `${source.semantics} The pinned nationwide source membership supports a zero source-row count at an exact ZIP when no row is present; this is not a zero-business or current-operation claim.`,
+    })];
+  }),
+));
 const hash = (b) => createHash("sha256").update(b).digest("hex");
 const stable = (v) => `${JSON.stringify(v)}\n`;
 const check = (v, m) => {
@@ -1850,9 +1896,13 @@ async function inputs(root) {
       registryLocationProfiles: true,
     });
   }
-  const orderedSources = SOURCES.map((spec) =>
-    sources.find((source) => source.id === spec.id),
-  );
+  const orderedSources = SOURCES.map((spec) => {
+    const source = sources.find((item) => item.id === spec.id);
+    return source && {
+      ...source,
+      zero_evidence_contract: ZERO_EVIDENCE_CONTRACTS[spec.id],
+    };
+  });
   check(orderedSources.every(Boolean), "complete exact-ZIP source roster");
   return {
     cohort: {
@@ -1951,8 +2001,18 @@ function compose(i) {
       positive: 0,
       "measured-zero": 0,
       "outside-source-denominator": 0,
+      "absent-from-retained-source-rows": 0,
       unavailable: 0,
-    };
+    },
+    cellStatusCountsByDimension = Object.fromEntries(
+      i.sources.map((source) => [source.id, {
+        positive: 0,
+        "measured-zero": 0,
+        "outside-source-denominator": 0,
+        "absent-from-retained-source-rows": 0,
+        unavailable: 0,
+      }]),
+    );
   for (const c of i.cohort.rows) {
     check(/^\d{5}$/.test(c.zip5) && c.usps_validity === null, "cohort row");
     const cells = {};
@@ -1969,12 +2029,12 @@ function compose(i) {
           Object.values(status_counts).reduce((n, v) => n + v, 0) === count,
           "native status cell conservation",
         );
-        status = count > 0 ? "positive" : "measured-zero";
+        status = count > 0 ? "positive" : s.zero_evidence_contract.absent_cell_status;
       } else if (s.id.startsWith("cms_")) {
         const category =
           s.id === "cms_hospital_directory" ? "hospital" : "nursing_home";
         count = i.cmsByZip.get(c.zip5)?.[category].directory_rows ?? 0;
-        status = count > 0 ? "positive" : "measured-zero";
+        status = count > 0 ? "positive" : s.zero_evidence_contract.absent_cell_status;
       } else if (s.reportingChildcare) {
         const row = i.reportingChildcare.byZip.get(c.zip5)?.[s.id] ?? {
           count: 0,
@@ -1986,23 +2046,27 @@ function compose(i) {
           Object.values(status_counts).reduce((n, v) => n + v, 0) === count,
           "reporting childcare status cell conservation",
         );
-        status = count > 0 ? "positive" : "measured-zero";
+        status = count > 0 ? "positive" : s.zero_evidence_contract.absent_cell_status;
       } else if (s.id.startsWith("childcare_")) {
         count = i.childcareByZip.get(c.zip5)?.[s.publisher_scope] ?? 0;
-        status = count > 0 ? "positive" : "measured-zero";
+        status = count > 0 ? "positive" : s.zero_evidence_contract.absent_cell_status;
       } else if (s.id.startsWith("broad_org_")) {
         count = i.broadByZip.get(c.zip5)?.[s.id] ?? 0;
-        status = count > 0 ? "positive" : "measured-zero";
+        status = count > 0 ? "positive" : s.zero_evidence_contract.absent_cell_status;
       } else {
         const r = bySource.get(s.id).get(c.zip5);
-        count = null;
-        status = "outside-source-denominator";
+        status = s.zero_evidence_contract.absent_cell_status;
+        count = status === "measured-zero" ? 0 : null;
         if (r) {
           check(
             Number.isSafeInteger(r[s.countField]) && r[s.countField] >= 0,
             "overlay alignment",
           );
           count = r[s.countField];
+          check(
+            count > 0 || s.zero_evidence_contract.explicit_zero_evidence_allowed,
+            "source row zero is unsupported by its denominator contract",
+          );
           status = count > 0 ? "positive" : "measured-zero";
         }
       }
@@ -2018,6 +2082,8 @@ function compose(i) {
         ...(status_counts ? { source_status_counts: status_counts } : {}),
       };
       summary[status]++;
+      check(cellStatusCountsByDimension[s.id][status] !== undefined, "unknown cell status");
+      cellStatusCountsByDimension[s.id][status]++;
     }
     rows.push({
       schema_version: ROW_VERSION,
@@ -2068,6 +2134,7 @@ function compose(i) {
   return {
     rows,
     summary,
+    cellStatusCountsByDimension,
     sourceZipGaps,
     sourceQualityGaps: i.childcare.quality_gaps,
     sourceAddressRowGaps: i.broad.address_gaps.map((g) => ({
@@ -2156,6 +2223,20 @@ function manifestFor(
     selectedProfileCount === 1850619,
     "selected registry-location profile conservation",
   );
+  const reclassifiedAbsentCells = Object.values(result.cellStatusCountsByDimension)
+      .reduce((n, counts) => n + counts["absent-from-retained-source-rows"], 0),
+    totalCellsByDimension = Object.values(result.cellStatusCountsByDimension)
+      .map((counts) => Object.values(counts).reduce((n, value) => n + value, 0));
+  check(
+    totalCellsByDimension.length === 39 &&
+      totalCellsByDimension.every((cells) => cells === result.rows.length) &&
+      result.rows.length === 48194 && reclassifiedAbsentCells === 1237187 &&
+      result.summary.positive === 336058 &&
+      result.summary["measured-zero"] === 248869 &&
+      result.summary["outside-source-denominator"] === 57452 &&
+      result.summary["absent-from-retained-source-rows"] === 1237187,
+    "v1.7 exact-ZIP status conservation",
+  );
   const body = {
     schema_version: VERSION,
     dataset_id: DATASET,
@@ -2168,6 +2249,8 @@ function manifestFor(
       industry_cells: result.rows.length * i.sources.length,
       max_prefix_artifact_bytes: Math.max(...artifacts.map((a) => a.bytes)),
       status_counts: result.summary,
+      cell_status_counts_by_dimension: result.cellStatusCountsByDimension,
+      reclassified_absent_source_row_cells: reclassifiedAbsentCells,
       temporal_status_counts: temporalCounts,
       included_industries: i.sources.map((s) => s.id),
       registry_location_profile_zip_union: i.nativeStatus.zip_union_count,
@@ -2517,6 +2600,9 @@ export async function verifyExactZipIndustryEvidenceMatrix(
     industry_cells: result.rows.length * i.sources.length,
     max_prefix_artifact_bytes: maxPrefixBytes,
     status_counts: result.summary,
+    cell_status_counts_by_dimension: result.cellStatusCountsByDimension,
+    reclassified_absent_source_row_cells:
+      result.summary["absent-from-retained-source-rows"],
     out_of_cohort_source_zip_gaps: result.sourceZipGaps,
     source_quality_gaps: result.sourceQualityGaps,
     source_address_row_gaps: result.sourceAddressRowGaps,
@@ -2533,6 +2619,7 @@ export async function readExactZipIndustryEvidence({
     "config/datasets/national-exact-zip-industry-evidence-matrix.json",
   );
   check(
+    reg.value.schema_version === VERSION.slice(VERSION.lastIndexOf("@") + 1) &&
     reg.value.runtime_pointer === null &&
       reg.value.production_enrollment === false,
     "registration policy",
@@ -2541,6 +2628,15 @@ export async function readExactZipIndustryEvidence({
     mr = await readPinned(root, rr.manifest, rr.manifest_sha256),
     m = mr.value,
     { release_id, ...body } = m,
+    statusKeys = [
+      "positive",
+      "measured-zero",
+      "outside-source-denominator",
+      "absent-from-retained-source-rows",
+      "unavailable",
+    ],
+    sourceIds = SOURCES.map((source) => source.id),
+    aggregateCellStatusCounts = Object.fromEntries(statusKeys.map((status) => [status, 0])),
     maxPrefixBytes = Math.max(
       ...m.artifacts
         .filter((a) => a.path.startsWith("prefix="))
@@ -2549,8 +2645,33 @@ export async function readExactZipIndustryEvidence({
   check(
     release_id === rr.release_id &&
       release_id === `${DATASET}-${hash(JSON.stringify(body))}` &&
+      m.schema_version === VERSION &&
+      m.summary?.status_counts?.positive === 336058 &&
+      m.summary?.status_counts?.["measured-zero"] === 248869 &&
+      m.summary?.status_counts?.["outside-source-denominator"] === 57452 &&
+      m.summary?.status_counts?.["absent-from-retained-source-rows"] === 1237187 &&
+      m.summary?.reclassified_absent_source_row_cells === 1237187 &&
+      Object.keys(m.summary?.cell_status_counts_by_dimension ?? {}).length === 39 &&
       rr.max_prefix_artifact_bytes === maxPrefixBytes &&
-      maxPrefixBytes <= MAX_PREFIX_BYTES,
+      maxPrefixBytes <= MAX_PREFIX_BYTES &&
+      Object.keys(m.summary?.status_counts ?? {}).sort().join("|") === [...statusKeys].sort().join("|") &&
+      Object.keys(m.summary?.cell_status_counts_by_dimension ?? {}).join("|") === sourceIds.join("|") &&
+      m.summary.reclassified_absent_source_row_cells === 1237187 &&
+      sourceIds.every((sourceId) => {
+        const counts = m.summary.cell_status_counts_by_dimension[sourceId];
+        if (Object.keys(counts ?? {}).sort().join("|") !== [...statusKeys].sort().join("|") ||
+          statusKeys.some((status) => !Number.isSafeInteger(counts[status]) || counts[status] < 0) ||
+          statusKeys.reduce((sum, status) => sum + counts[status], 0) !== 48194) return false;
+        for (const status of statusKeys) aggregateCellStatusCounts[status] += counts[status];
+        const contract = ZERO_EVIDENCE_CONTRACTS[sourceId];
+        return contract.explicit_zero_evidence_allowed || counts["measured-zero"] === 0;
+      }) &&
+      statusKeys.every((status) => aggregateCellStatusCounts[status] === m.summary.status_counts[status]) &&
+      m.summary.status_counts.positive === 336058 &&
+      m.summary.status_counts["measured-zero"] === 248869 &&
+      m.summary.status_counts["outside-source-denominator"] === 57452 &&
+      m.summary.status_counts["absent-from-retained-source-rows"] === 1237187 &&
+      m.summary.status_counts.unavailable === 0,
     "registered content identity/bucket bound",
   );
   const a = m.artifacts.find(
@@ -2570,6 +2691,25 @@ export async function readExactZipIndustryEvidence({
     Array.isArray(br.value) && br.value.length === a.record_count,
     "bucket",
   );
+  const requestedRow = br.value.find((row) => row.zip5 === zip5);
+  if (requestedRow) for (const source of m.bindings.sources) {
+    const cell = requestedRow.cells?.[source.id],
+      contract = source.zero_evidence_contract;
+    check(cell && contract && [
+      "positive",
+      "measured-zero",
+      "outside-source-denominator",
+      "absent-from-retained-source-rows",
+    ].includes(cell.status), "closed source cell status");
+    check(cell.status === "positive"
+      ? Number.isSafeInteger(cell.count) && cell.count > 0
+      : cell.status === "measured-zero"
+        ? cell.count === 0 && contract.explicit_zero_evidence_allowed === true
+        : cell.status === "outside-source-denominator"
+          ? cell.count === null && contract.absent_cell_status === cell.status
+          : cell.count === 0 && contract.absent_cell_status === cell.status
+        , "cell status/zero-evidence contract");
+  }
   const gap = m.summary.out_of_cohort_source_zip_gaps,
     gb = await readPinned(
       root,
@@ -2612,6 +2752,7 @@ export async function readExactZipIndustryEvidence({
         current_operation_verified:
           source.temporal_status.current_operation_verified,
         semantics: source.temporal_status.semantics,
+        zero_evidence_semantics: source.zero_evidence_contract,
         source_manifest: source.manifest_path,
         source_manifest_sha256: source.manifest_sha256,
       };
@@ -2685,13 +2826,17 @@ export async function readExactZipIndustryEvidence({
   return {
     schema_version: VERSION,
     status: "present",
-    row: br.value.find((r) => r.zip5 === zip5) ?? null,
+    row: requestedRow ?? null,
     out_of_cohort_source_zip_gaps: gb.value.filter(
       (item) => item.zip5 === zip5,
     ),
     source_quality_gaps: qb.value,
     source_address_row_gaps: ab.value,
     source_metadata,
+    status_counts: m.summary.status_counts,
+    cell_status_counts_by_dimension: m.summary.cell_status_counts_by_dimension,
+    reclassified_absent_source_row_cells:
+      m.summary.reclassified_absent_source_row_cells,
     release_id,
     manifest_sha256: mr.sha256,
     source_bytes_read: br.bytes + gb.bytes + qb.bytes + ab.bytes,

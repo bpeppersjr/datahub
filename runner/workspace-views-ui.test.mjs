@@ -32,6 +32,21 @@ const nativeStatusRegistration = JSON.parse(
   ),
 );
 const nativeStatusPin = nativeStatusRegistration.retained_release;
+const exactZipMatrixRegistration = JSON.parse(
+  await readFile(
+    new URL(
+      "../config/datasets/national-exact-zip-industry-evidence-matrix.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+),
+  exactZipMatrixManifest = JSON.parse(
+    await readFile(
+      new URL(`../${exactZipMatrixRegistration.retained_release.manifest}`, import.meta.url),
+      "utf8",
+    ),
+  );
 const nodes = (t) =>
   !t || typeof t !== "object"
     ? []
@@ -491,8 +506,10 @@ function crossView(zip = "00601", status = "available") {
           ? source === "ak_license_location_profiles"
             ? 2
             : 0
-          : childcare
+          : source === "fdic_offices"
             ? null
+            : childcare
+            ? 0
             : reporting
               ? 1
               : index
@@ -501,11 +518,15 @@ function crossView(zip = "00601", status = "available") {
       return [
         source,
         {
-          status: childcare
+          status: source === "fdic_offices"
             ? "outside-source-denominator"
+            : childcare
+            ? "absent-from-retained-source-rows"
             : countValue
               ? "positive"
-              : "measured-zero",
+              : (source.startsWith("broad_org_") || profile || reporting)
+                ? "absent-from-retained-source-rows"
+                : "measured-zero",
           count: countValue,
           measure: profile
             ? "registry_location_profile_count"
@@ -579,6 +600,39 @@ function crossView(zip = "00601", status = "available") {
               : profile
                 ? nativeStatusPin.manifest_sha256
                 : hash,
+          zero_evidence_semantics: (() => {
+            const stateLocal = source.startsWith("childcare_") ||
+                source.startsWith("broad_org_") || !!profile,
+              outside = [
+                "healthcare_organizations",
+                "regulated_facilities",
+                "fdic_offices",
+                "food_safety_establishments",
+                "credit_union_locations",
+                "snap_retailers",
+              ].includes(source),
+              exact = [
+                "pharmacy",
+                "transportation",
+                "tax_exempt_organizations",
+                "cms_hospital_directory",
+                "cms_nursing_home_directory",
+              ].includes(source);
+            return {
+              absent_cell_status: stateLocal
+                ? "absent-from-retained-source-rows"
+                : outside
+                  ? "outside-source-denominator"
+                  : "measured-zero",
+              exact_zip_denominator: exact,
+              explicit_zero_evidence_allowed: !stateLocal,
+              interpretation: stateLocal
+                ? "Retained source rows only; not measured zero or completeness; jurisdiction not inferred from ZCTA."
+                : outside
+                  ? "A ZIP absent from this source is outside-source-denominator; explicit retained zero rows are evidence."
+                  : "Nationwide source supports a zero source-row count for exact ZIP membership.",
+            };
+          })(),
         };
       if (source.startsWith("childcare_") && source.endsWith("_candidates")) {
         const publisher_scope = source
@@ -732,7 +786,7 @@ function crossView(zip = "00601", status = "available") {
       ? null
       : {
           schema_version:
-            "national-exact-zip-industry-evidence-matrix-row@1.6.0",
+            "national-exact-zip-industry-evidence-matrix-row@1.7.0",
           zip5: zip,
           zip4: null,
           cohort_classification: "same-code-census-zcta",
@@ -742,13 +796,18 @@ function crossView(zip = "00601", status = "available") {
           cells,
         };
   const industry_evidence = {
-    schema_version: "national-exact-zip-industry-evidence-matrix@1.6.0",
+    schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
     status: "present",
     row,
     out_of_cohort_source_zip_gaps: [],
     source_quality_gaps: [qualityGap, ...reportingQualityGaps],
     source_address_row_gaps: [addressRowGap],
     source_metadata,
+    status_counts: exactZipMatrixManifest.summary.status_counts,
+    cell_status_counts_by_dimension:
+      exactZipMatrixManifest.summary.cell_status_counts_by_dimension,
+    reclassified_absent_source_row_cells:
+      exactZipMatrixManifest.summary.reclassified_absent_source_row_cells,
     release_id: `national-exact-zip-industry-evidence-matrix-${hash}`,
     manifest_sha256: hash,
     source_bytes_read: 4000,
@@ -2603,6 +2662,19 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     },
     {
       ...matrix,
+      row: {
+        ...matrix.row,
+        cells: {
+          ...matrix.row.cells,
+          childcare_pa_candidates: {
+            ...matrix.row.cells.childcare_pa_candidates,
+            status: "unknown-zero-state",
+          },
+        },
+      },
+    },
+    {
+      ...matrix,
       source_metadata: {
         ...matrix.source_metadata,
         pharmacy: {
@@ -2636,6 +2708,32 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     },
     { ...matrix, claims: { ...matrix.claims, usps_validity_classified: true } },
     { ...matrix, full_matrix_replay_performed: true },
+    {
+      ...matrix,
+      source_metadata: {
+        ...matrix.source_metadata,
+        childcare_pa_candidates: {
+          ...matrix.source_metadata.childcare_pa_candidates,
+          zero_evidence_semantics: {
+            ...matrix.source_metadata.childcare_pa_candidates.zero_evidence_semantics,
+            exact_zip_denominator: true,
+          },
+        },
+      },
+    },
+    {
+      ...matrix,
+      row: {
+        ...matrix.row,
+        cells: {
+          ...matrix.row.cells,
+          childcare_pa_candidates: {
+            ...matrix.row.cells.childcare_pa_candidates,
+            status: "measured-zero",
+          },
+        },
+      },
+    },
   ];
   for (const value of malformed)
     assert.equal(h.render("validExactZipEvidence", value, "00601"), false);
@@ -2651,6 +2749,7 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
   );
   assert.match(value, /Measured zero in this source projection/);
   assert.match(value, /Outside source denominator — not zero/);
+  assert.match(value, /No retained source row — not measured zero/);
   assert.match(value, /USPS validity: Unknown/);
   assert.match(value, /ZIP\+4: Separate and not joined/);
   assert.match(value, /Cells are nonadditive/);

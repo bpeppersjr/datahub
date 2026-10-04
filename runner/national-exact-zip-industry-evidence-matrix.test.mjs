@@ -110,7 +110,7 @@ test("reporting registry lineage tampering fails before publisher artifacts are 
     await fs.rm(root, { recursive: true, force: true });
   }
 });
-test("registered v1.6 exact-ZIP matrix replays all retained dimensions and conserves source units", async () => {
+test("registered v1.7 exact-ZIP matrix replays all retained dimensions and conserves source units", async () => {
   const registration = JSON.parse(
       await fs.readFile(
         path.join(
@@ -300,7 +300,7 @@ test("bounded lookup preserves registry status categories and both source clocks
   const v = await readExactZipIndustryEvidence({ zip5: "00000" });
   assert.equal(
     v.schema_version,
-    "national-exact-zip-industry-evidence-matrix@1.6.0",
+    "national-exact-zip-industry-evidence-matrix@1.7.0",
   );
   assert.equal(v.full_matrix_replay_performed, false);
   assert.equal(v.row.zip5, "00000");
@@ -308,8 +308,18 @@ test("bounded lookup preserves registry status categories and both source clocks
   assert.equal(v.row.usps_validity, null);
   assert.equal(v.claims.additive_cross_industry_total, false);
   assert.equal(Object.keys(v.row.cells).length, 39);
-  assert.equal(v.row.cells.fdic_offices.status, "outside-source-denominator");
+  assert.equal(v.row.cells.regulated_facilities.status, "outside-source-denominator");
   assert.equal(v.row.cells.pharmacy.status, "measured-zero");
+  assert.equal(v.row.cells.healthcare_organizations.status, "positive");
+  assert.equal(v.row.cells.childcare_pa_candidates.status, "absent-from-retained-source-rows");
+  assert.equal(v.row.cells.childcare_pa_candidates.count, 0);
+  assert.equal(v.source_metadata.childcare_pa_candidates.zero_evidence_semantics.exact_zip_denominator, false);
+  assert.equal(v.source_metadata.pharmacy.zero_evidence_semantics.exact_zip_denominator, true);
+  assert.equal(v.status_counts["absent-from-retained-source-rows"], 1237187);
+  assert.equal(v.status_counts["measured-zero"], 248869);
+  assert.equal(v.status_counts["outside-source-denominator"], 57452);
+  assert.equal(v.reclassified_absent_source_row_cells, 1237187);
+  assert.equal(Object.values(v.cell_status_counts_by_dimension).length, 39);
   assert.equal(v.row.cells.cms_hospital_directory.measure, "directory_rows");
   assert.equal(
     v.row.cells.cms_nursing_home_directory.measure,
@@ -453,6 +463,31 @@ test("bounded lookup preserves registry status categories and both source clocks
       source_observed_at: "2026-09-08T00:36:36.628Z",
     },
   ]);
+});
+test("state/local source absence is not measured zero or inferred from same-code ZCTA", async () => {
+  const absent = await readExactZipIndustryEvidence({ zip5: "10000" });
+  assert.equal(absent.row.zcta_geoid, null);
+  for (const dimension of [
+    "childcare_pa_candidates",
+    "ak_license_location_profiles",
+    "broad_org_co_organization_addresses",
+  ]) {
+    assert.equal(absent.row.cells[dimension].status, "absent-from-retained-source-rows");
+    assert.equal(absent.row.cells[dimension].count, 0);
+    assert.equal(absent.source_metadata[dimension].zero_evidence_semantics.exact_zip_denominator, false);
+  }
+  const sameCodeZcta = await readExactZipIndustryEvidence({ zip5: "00601" });
+  assert.equal(sameCodeZcta.row.zcta_geoid, "00601");
+  assert.equal(sameCodeZcta.row.cells.childcare_pa_candidates.status, "absent-from-retained-source-rows");
+  for (const [zip5, dimension] of [
+    ["15001", "childcare_pa_candidates"],
+    ["00802", "ak_license_location_profiles"],
+    ["00602", "broad_org_co_organization_addresses"],
+  ]) {
+    const positive = await readExactZipIndustryEvidence({ zip5 });
+    assert.equal(positive.row.cells[dimension].status, "positive");
+    assert.ok(positive.row.cells[dimension].count > 0);
+  }
 });
 test("reporting-center ZIP lookup preserves source status labels, row units, temporal bounds, and OH geography restriction", async () => {
   const ma = await readExactZipIndustryEvidence({ zip5: "01001" });

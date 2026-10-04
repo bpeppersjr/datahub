@@ -4178,8 +4178,21 @@ const EXACT_ZIP_SOURCES = [
   "broad_org_pa_organization_addresses",
 ] as const;
 type ExactZipSource = (typeof EXACT_ZIP_SOURCES)[number];
+type ExactZipZeroEvidenceSemantics = {
+  absent_cell_status:
+    | "measured-zero"
+    | "outside-source-denominator"
+    | "absent-from-retained-source-rows";
+  exact_zip_denominator: boolean;
+  explicit_zero_evidence_allowed: boolean;
+  interpretation: string;
+};
 type ExactZipCell = {
-  status: "positive" | "measured-zero" | "outside-source-denominator";
+  status:
+    | "positive"
+    | "measured-zero"
+    | "outside-source-denominator"
+    | "absent-from-retained-source-rows";
   count: number | null;
   measure: string;
   source_release_id: string;
@@ -4197,6 +4210,7 @@ type ExactZipSourceMetadata = {
   semantics: string;
   source_manifest: string;
   source_manifest_sha256: string;
+  zero_evidence_semantics: ExactZipZeroEvidenceSemantics;
   publisher_scope?: string;
   source_id?: string;
   row_unit?: string;
@@ -4284,10 +4298,10 @@ type ExactZipAddressRowGap = {
   };
 };
 type ExactZipEvidence = {
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.6.0";
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0";
   status: "present";
   row: null | {
-    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.6.0";
+    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.7.0";
     zip5: string;
     zip4: null;
     cohort_classification: string;
@@ -4299,6 +4313,9 @@ type ExactZipEvidence = {
   source_quality_gaps: ExactZipQualityGap[];
   source_address_row_gaps: ExactZipAddressRowGap[];
   source_metadata: Record<ExactZipSource, ExactZipSourceMetadata>;
+  status_counts: Record<string, number>;
+  cell_status_counts_by_dimension: Record<ExactZipSource, Record<string, number>>;
+  reclassified_absent_source_row_cells: number;
   release_id: string;
   manifest_sha256: string;
   source_bytes_read: number;
@@ -4332,6 +4349,9 @@ export function validExactZipEvidence(
       "source_quality_gaps",
       "source_address_row_gaps",
       "source_metadata",
+      "status_counts",
+      "cell_status_counts_by_dimension",
+      "reclassified_absent_source_row_cells",
       "release_id",
       "manifest_sha256",
       "source_bytes_read",
@@ -4548,7 +4568,7 @@ export function validExactZipEvidence(
     typeof value === "string" &&
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value);
   if (
-    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.6.0" ||
+    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.7.0" ||
     v.status !== "present" ||
     !/^national-exact-zip-industry-evidence-matrix-[a-f0-9]{64}$/.test(
       v.release_id,
@@ -4686,6 +4706,7 @@ export function validExactZipEvidence(
         "semantics",
         "source_manifest",
         "source_manifest_sha256",
+        "zero_evidence_semantics",
       ],
       childcare =
         source.startsWith("childcare_") && source.endsWith("_candidates"),
@@ -4768,6 +4789,50 @@ export function validExactZipEvidence(
       !sha(metadata.source_manifest_sha256)
     )
       return false;
+    const stateLocal = source.startsWith("childcare_") ||
+        source.startsWith("broad_org_") ||
+        (EXACT_ZIP_PROFILE_SOURCES as readonly string[]).includes(source),
+      outsideDenominator = [
+        "healthcare_organizations",
+        "regulated_facilities",
+        "fdic_offices",
+        "food_safety_establishments",
+        "credit_union_locations",
+        "snap_retailers",
+      ].includes(source),
+      exactDenominator = [
+        "pharmacy",
+        "transportation",
+        "tax_exempt_organizations",
+        "cms_hospital_directory",
+        "cms_nursing_home_directory",
+      ].includes(source),
+      expectedZeroContract: ExactZipZeroEvidenceSemantics = {
+        absent_cell_status: stateLocal
+          ? "absent-from-retained-source-rows"
+          : outsideDenominator
+            ? "outside-source-denominator"
+            : "measured-zero",
+        exact_zip_denominator: exactDenominator,
+        explicit_zero_evidence_allowed: !stateLocal,
+        interpretation: metadata.zero_evidence_semantics?.interpretation ?? "",
+      };
+    if (
+      !exactKeys(metadata.zero_evidence_semantics, [
+        "absent_cell_status",
+        "exact_zip_denominator",
+        "explicit_zero_evidence_allowed",
+        "interpretation",
+      ]) ||
+      metadata.zero_evidence_semantics.absent_cell_status !== expectedZeroContract.absent_cell_status ||
+      metadata.zero_evidence_semantics.exact_zip_denominator !== expectedZeroContract.exact_zip_denominator ||
+      metadata.zero_evidence_semantics.explicit_zero_evidence_allowed !== expectedZeroContract.explicit_zero_evidence_allowed ||
+      typeof metadata.zero_evidence_semantics.interpretation !== "string" ||
+      metadata.zero_evidence_semantics.interpretation.length < 30 ||
+      (stateLocal && !metadata.zero_evidence_semantics.interpretation.includes("not measured zero or completeness")) ||
+      (!stateLocal && !outsideDenominator && !metadata.zero_evidence_semantics.interpretation.includes("supports a zero source-row count")) ||
+      (outsideDenominator && !metadata.zero_evidence_semantics.interpretation.includes("outside-source-denominator"))
+    ) return false;
     if (profile) {
       const expected = profileSpecs[source as keyof typeof profileSpecs],
         counts = metadata.source_status_counts,
@@ -4967,6 +5032,39 @@ export function validExactZipEvidence(
     return true;
   });
   if (!validMetadata) return false;
+  const statusKeys = [
+      "positive",
+      "measured-zero",
+      "outside-source-denominator",
+      "absent-from-retained-source-rows",
+      "unavailable",
+    ],
+    expectedStatusCounts = {
+      positive: 336058,
+      "measured-zero": 248869,
+      "outside-source-denominator": 57452,
+      "absent-from-retained-source-rows": 1237187,
+      unavailable: 0,
+    },
+    aggregateDimensionCounts = Object.fromEntries(statusKeys.map((key) => [key, 0])) as Record<string, number>;
+  if (
+    !sameClosed(v.status_counts, expectedStatusCounts) ||
+    v.reclassified_absent_source_row_cells !== 1237187 ||
+    !exactObject(v.cell_status_counts_by_dimension) ||
+    JSON.stringify(Object.keys(v.cell_status_counts_by_dimension)) !==
+      JSON.stringify(EXACT_ZIP_SOURCES) ||
+    !EXACT_ZIP_SOURCES.every((source) => {
+      const counts = v.cell_status_counts_by_dimension[source];
+      if (!exactKeys(counts, statusKeys) ||
+        !statusKeys.every((key) => nonnegative(counts[key])) ||
+        statusKeys.reduce((sum, key) => sum + counts[key], 0) !== 48194) return false;
+      for (const key of statusKeys) aggregateDimensionCounts[key] += counts[key];
+      const contract = v.source_metadata[source].zero_evidence_semantics;
+      return (contract.explicit_zero_evidence_allowed || counts["measured-zero"] === 0) &&
+        statusKeys.every((key) => nonnegative(counts[key])) &&
+        statusKeys.reduce((sum, key) => sum + counts[key], 0) === 48194;
+    }) || !sameClosed(aggregateDimensionCounts, v.status_counts)
+  ) return false;
   if (v.row === null)
     return v.out_of_cohort_source_zip_gaps.every((g) => g.zip5 === zip);
   const r = v.row;
@@ -4981,7 +5079,7 @@ export function validExactZipEvidence(
       "cells",
     ]) ||
     r.schema_version !==
-      "national-exact-zip-industry-evidence-matrix-row@1.6.0" ||
+      "national-exact-zip-industry-evidence-matrix-row@1.7.0" ||
     r.zip5 !== zip ||
     r.zip4 !== null ||
     r.usps_validity !== null ||
@@ -5020,7 +5118,7 @@ export function validExactZipEvidence(
             ];
     if (
       !exactKeys(cell, cellKeys) ||
-      !["positive", "measured-zero", "outside-source-denominator"].includes(
+      !["positive", "measured-zero", "outside-source-denominator", "absent-from-retained-source-rows"].includes(
         cell.status,
       ) ||
       typeof cell.measure !== "string" ||
@@ -5032,6 +5130,13 @@ export function validExactZipEvidence(
         : !nonnegative(cell.count)) ||
       (cell.status === "positive" && Number(cell.count) === 0) ||
       (cell.status === "measured-zero" && cell.count !== 0) ||
+      (cell.status === "absent-from-retained-source-rows" && cell.count !== 0) ||
+      (cell.status === "absent-from-retained-source-rows" &&
+        v.source_metadata[source].zero_evidence_semantics.absent_cell_status !== cell.status) ||
+      (cell.status === "measured-zero" &&
+        v.source_metadata[source].zero_evidence_semantics.explicit_zero_evidence_allowed !== true) ||
+      (cell.status === "outside-source-denominator" &&
+        v.source_metadata[source].zero_evidence_semantics.absent_cell_status !== cell.status) ||
       !exactKeys(temporal, ["status", "source_reference_date"]) ||
       ![
         "source-referenced-current-operation-unverified",
@@ -5311,6 +5416,9 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
           distinct source units; publisher labels do not verify operations.
           Broad-organization publisher address rows and Oregon legal and
           brand-registration dimensions are also separate.
+          {" "}A state/local source with no retained row is shown as “absent
+          from retained source rows,” not measured zero; same-code ZCTA does not
+          establish that publisher’s ZIP denominator or jurisdiction.
         </p>
         <div
           className="representation-table"
@@ -5341,7 +5449,9 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
                         ? "Measured zero in this source projection"
                         : cell.status === "outside-source-denominator"
                           ? "Outside source denominator — not zero"
-                          : "Positive source evidence"}
+                          : cell.status === "absent-from-retained-source-rows"
+                            ? "No retained source row — not measured zero"
+                            : "Positive source evidence"}
                     </td>
                     <td>
                       {cell.count === null ? "Not measured" : count(cell.count)}{" "}

@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { exactZipIndustryEvidenceHttp } from "./exact-zip-industry-evidence-http.mjs";
 
 const sample = (zip5) => ({
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.6.0",
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
   status: "present",
   row: null,
   zip5,
