@@ -98,6 +98,80 @@ function validateGoalReadinessBindings(value) {
 }
 export const NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS = Object.freeze({ validateGoalReadinessBindings });
 
+/** Closed API projection. All readiness semantics originate in the retained acceptance report above. */
+export function projectNationalZipObjectiveReadiness(report) {
+  check(report?.schema_version === NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION
+    && report.requested_claim === 'every-active-business-by-valid-zip' && report.acceptance?.accepted === false,
+    'active-business acceptance report');
+  const readiness = report.objective_readiness;
+  validateGoalReadinessBindings(readiness);
+  const binding = readiness.bindings;
+  const expectedBlockers = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
+    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified'];
+  const acceptanceBlockers = ['authoritative-current-usps-denominator-unavailable', 'complete-current-delivery-zip-registry-not-established',
+    'all-business-universe-unmeasured', 'current-business-operations-not-independently-verified', ...expectedBlockers];
+  check(same(report.acceptance.blockers, acceptanceBlockers)
+    && same(readiness.blockers.map(item => item.code), expectedBlockers)
+    && readiness.blockers.every(item => same(Object.keys(item).sort(), item.code === 'broad-jurisdiction-source-gaps' ? ['code', 'count'] : ['code']))
+    && readiness.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40,
+    'closed objective acceptance blockers');
+  check(report.all_business_completion_percent === null && report.current_operating_business_count === null
+    && report.public_export_authorized === false && report.production_execution === false
+    && report.publication_performed === false && report.network_requests === 0, 'acceptance claims widened');
+  const requirements_ledger = readiness.requirements_ledger.map(row => ({
+    requirement: row.requirement,
+    status: row.status,
+    ...(row.current_gap_count === undefined ? {} : { current_gap_count: row.current_gap_count }),
+    ...(row.jurisdiction_count === undefined ? {} : { jurisdiction_count: row.jurisdiction_count }),
+    evidence: row.evidence,
+  }));
+  const expectedRequirements = [
+    ['geography', 'achieved'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
+  ];
+  check(same(requirements_ledger.map(row => [row.requirement, row.status]), expectedRequirements)
+    && requirements_ledger.every(row => typeof row.evidence === 'string' && row.evidence.length > 0
+      && same(Object.keys(row).sort(), row.requirement === 'broad-state-coverage'
+        ? ['current_gap_count', 'evidence', 'jurisdiction_count', 'requirement', 'status']
+        : ['evidence', 'requirement', 'status']))
+    && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.current_gap_count === 40
+    && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51,
+  'closed eight-row objective readiness ledger');
+  return {
+    schema_version: 'national-zip-objective-readiness-api@1.0.0',
+    available: true,
+    status: 'not-accepted',
+    assessment_as_of: readiness.assessment_as_of,
+    acceptance: { accepted: false, blockers: [...report.acceptance.blockers], blocker_details: readiness.blockers.map(item => ({ ...item })) },
+    requirements_ledger,
+    broad_jurisdiction_gap_count: 40,
+    claims: { all_business_completion_percent: null, active_business_count: null, current_operating_business_count: null,
+      current_operations_verified: false, all_business_completeness: false, public_export_authorized: false,
+      production_execution: false, publication_performed: false, network_requests: 0 },
+    lineage: {
+      zip_entity_resolution: { release_id: binding.zip_entity_resolution.release_id, manifest_sha256: binding.zip_entity_resolution.manifest_sha256,
+        registration_sha256: binding.zip_entity_resolution.registration_sha256 },
+      zip_industry_matrix: { release_id: binding.zip_industry_matrix.release_id, manifest_sha256: binding.zip_industry_matrix.manifest_sha256,
+        registration_sha256: binding.zip_industry_matrix.registration_sha256 },
+      temporal_claim_matrix: { release_id: binding.temporal_claim_matrix.release_id, manifest_sha256: binding.temporal_claim_matrix.manifest_sha256,
+        registration_sha256: binding.temporal_claim_matrix.registration_sha256 },
+      goal_completion_matrix: { release_id: binding.goal_completion_matrix.release_id, manifest_sha256: binding.goal_completion_matrix.manifest_sha256,
+        report_sha256: binding.goal_completion_matrix.report_sha256 },
+      broad_organization_projection: {
+        release_id: binding.broad_organization_projection.release_id,
+        program_manifest_sha256: binding.broad_organization_projection.source_lineage.program_manifest_sha256,
+        backlog_release_id: binding.broad_organization_projection.source_lineage.backlog_release_id,
+        backlog_manifest_sha256: binding.broad_organization_projection.source_lineage.backlog_manifest_sha256,
+        assessment_catalog_id: binding.broad_organization_projection.source_lineage.assessment_catalog_id,
+        assessment_catalog_sha256: binding.broad_organization_projection.source_lineage.assessment_catalog_sha256,
+        source_matrix_release_id: binding.broad_organization_projection.source_lineage.source_matrix_release_id,
+        source_matrix_manifest_sha256: binding.broad_organization_projection.source_lineage.source_matrix_manifest_sha256,
+      },
+    },
+  };
+}
+
 async function readObjectiveReadiness({ signal }) {
   signal?.throwIfAborted();
   const sampleZip = '00501';

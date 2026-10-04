@@ -1320,6 +1320,111 @@ export function BroadGapAdjacentEvidencePanel({
   );
 }
 
+const OBJECTIVE_READINESS_ROWS = [
+  ["geography", "achieved"],
+  ["postal-denominator", "blocked"],
+  ["source-authorization-policy-and-provenance", "partial"],
+  ["broad-state-coverage", "blocked"],
+  ["industry-coverage", "unmeasured"],
+  ["temporal-and-current-operation", "blocked"],
+  ["reconciliation-and-benchmark", "blocked"],
+  ["all-business-completeness-denominator", "unmeasured"],
+] as const;
+
+type ObjectiveLineageEntry = {
+  release_id: string; manifest_sha256?: string; registration_sha256?: string; report_sha256?: string;
+  program_manifest_sha256?: string; backlog_release_id?: string; backlog_manifest_sha256?: string;
+  assessment_catalog_id?: string; assessment_catalog_sha256?: string; source_matrix_release_id?: string;
+  source_matrix_manifest_sha256?: string;
+};
+type NationalObjectiveReadiness = {
+  schema_version: string; available: true; status: "not-accepted"; assessment_as_of: string;
+  acceptance: { accepted: false; blockers: string[]; blocker_details: Array<{ code: string; count?: number }> };
+  requirements_ledger: Array<{ requirement: string; status: string; evidence: string; current_gap_count?: number; jurisdiction_count?: number }>;
+  broad_jurisdiction_gap_count: 40;
+  claims: { all_business_completion_percent: null; active_business_count: null; current_operating_business_count: null; current_operations_verified: false; all_business_completeness: false; public_export_authorized: false; production_execution: false; publication_performed: false; network_requests: 0 };
+  lineage: { zip_entity_resolution: ObjectiveLineageEntry; zip_industry_matrix: ObjectiveLineageEntry; temporal_claim_matrix: ObjectiveLineageEntry; goal_completion_matrix: ObjectiveLineageEntry; broad_organization_projection: ObjectiveLineageEntry };
+};
+
+export function validNationalObjectiveReadiness(value: unknown): value is NationalObjectiveReadiness {
+  const exactKeys = (item: unknown, expected: string[]) => item && typeof item === "object"
+    && !Array.isArray(item) && Object.keys(item).sort().join("|") === [...expected].sort().join("|");
+  const sha = (item: unknown) => typeof item === "string" && /^[a-f0-9]{64}$/.test(item);
+  if (!exactKeys(value, ["schema_version", "available", "status", "assessment_as_of", "acceptance", "requirements_ledger", "broad_jurisdiction_gap_count", "claims", "lineage"])) return false;
+  const payload = value as NationalObjectiveReadiness;
+  if (payload.schema_version !== "national-zip-objective-readiness-api@1.0.0" || payload.available !== true || payload.status !== "not-accepted" ||
+      payload.acceptance?.accepted !== false || !exactKeys(payload.acceptance, ["accepted", "blockers", "blocker_details"]) || payload.broad_jurisdiction_gap_count !== 40 || !Array.isArray(payload.requirements_ledger) ||
+      payload.requirements_ledger.length !== OBJECTIVE_READINESS_ROWS.length || !Array.isArray(payload.acceptance.blockers) ||
+      !Array.isArray(payload.acceptance.blocker_details)) return false;
+  for (let index = 0; index < OBJECTIVE_READINESS_ROWS.length; index++) {
+    const [requirement, status] = OBJECTIVE_READINESS_ROWS[index], row = payload.requirements_ledger[index];
+    if (row?.requirement !== requirement || row.status !== status || typeof row.evidence !== "string" || !row.evidence.trim()) return false;
+    const expected = requirement === "broad-state-coverage"
+      ? ["requirement", "status", "current_gap_count", "jurisdiction_count", "evidence"]
+      : ["requirement", "status", "evidence"];
+    if (!exactKeys(row, expected)) return false;
+    if (requirement === "broad-state-coverage" && (row.current_gap_count !== 40 || row.jurisdiction_count !== 51)) return false;
+    if (Object.hasOwn(row, "percent") || Object.hasOwn(row, "completion_percent")) return false;
+  }
+  const requiredBlockers = ["entity-resolution-benchmark-gate-not-passed", "entity-resolution-not-applied",
+    "nationwide-industry-universe-unmeasured", "broad-jurisdiction-source-gaps", "current-operation-not-independently-verified"];
+  const acceptanceBlockers = ["authoritative-current-usps-denominator-unavailable", "complete-current-delivery-zip-registry-not-established",
+    "all-business-universe-unmeasured", "current-business-operations-not-independently-verified", ...requiredBlockers];
+  if (payload.acceptance.blockers.length !== acceptanceBlockers.length || acceptanceBlockers.some((code, index) => payload.acceptance.blockers[index] !== code) ||
+      payload.acceptance.blocker_details.length !== requiredBlockers.length || !requiredBlockers.every(code => payload.acceptance.blockers.includes(code) && payload.acceptance.blocker_details.some(item => item.code === code)) ||
+      payload.acceptance.blocker_details.some(item => !exactKeys(item, item.code === "broad-jurisdiction-source-gaps" ? ["code", "count"] : ["code"])) ||
+      payload.acceptance.blocker_details.find(item => item.code === "broad-jurisdiction-source-gaps")?.count !== 40) return false;
+  if (!exactKeys(payload.claims, ["all_business_completion_percent", "active_business_count", "current_operating_business_count", "current_operations_verified", "all_business_completeness", "public_export_authorized", "production_execution", "publication_performed", "network_requests"]) ||
+      payload.claims.all_business_completion_percent !== null || payload.claims.active_business_count !== null || payload.claims.current_operating_business_count !== null ||
+      payload.claims.current_operations_verified !== false || payload.claims.all_business_completeness !== false || payload.claims.public_export_authorized !== false ||
+      payload.claims.production_execution !== false || payload.claims.publication_performed !== false || payload.claims.network_requests !== 0) return false;
+  const lineage = payload.lineage;
+  if (!exactKeys(lineage, ["zip_entity_resolution", "zip_industry_matrix", "temporal_claim_matrix", "goal_completion_matrix", "broad_organization_projection"])) return false;
+  for (const [key, item] of Object.entries(lineage) as [string, ObjectiveLineageEntry][]) {
+    if (typeof item?.release_id !== "string" || !item.release_id) return false;
+    if (key !== "goal_completion_matrix" && key !== "broad_organization_projection" && !sha(item.registration_sha256)) return false;
+    if (key !== "goal_completion_matrix" && key !== "broad_organization_projection" && !sha(item.manifest_sha256)) return false;
+  }
+  if (!sha(lineage.goal_completion_matrix.report_sha256) || !sha(lineage.broad_organization_projection.program_manifest_sha256) ||
+      !sha(lineage.broad_organization_projection.backlog_manifest_sha256) || !sha(lineage.broad_organization_projection.assessment_catalog_sha256) ||
+      !lineage.broad_organization_projection.backlog_release_id || !lineage.broad_organization_projection.assessment_catalog_id ||
+      lineage.broad_organization_projection.source_matrix_release_id !== lineage.goal_completion_matrix.release_id ||
+      lineage.broad_organization_projection.source_matrix_manifest_sha256 !== lineage.goal_completion_matrix.manifest_sha256 ||
+      !sha(lineage.broad_organization_projection.source_matrix_manifest_sha256)) return false;
+  return typeof payload.assessment_as_of === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.assessment_as_of);
+}
+
+function NationalObjectiveReadinessCard({ value, unavailable }: { value: NationalObjectiveReadiness | null; unavailable: boolean }) {
+  if (!value) return (
+    <section className="objective-readiness-card" aria-label="National Objective Readiness">
+      <div className="objective-readiness-heading"><div><span>National Objective Readiness</span><strong>Unavailable</strong></div><small>Verified readiness evidence could not be validated.</small></div>
+      <p role="status">{unavailable ? "Fail-closed: no prior result, zero, or percentage is substituted." : "Loading verified objective evidence…"}</p>
+    </section>
+  );
+  const blockerLabels: Record<string, string> = {
+    "authoritative-current-usps-denominator-unavailable": "USPS denominator unavailable",
+    "complete-current-delivery-zip-registry-not-established": "Current delivery-ZIP registry not established",
+    "all-business-universe-unmeasured": "All-business universe unmeasured",
+    "current-business-operations-not-independently-verified": "Current operation not independently verified",
+    "entity-resolution-benchmark-gate-not-passed": "Entity-resolution benchmark gate not passed",
+    "entity-resolution-not-applied": "Entity resolution not applied",
+    "nationwide-industry-universe-unmeasured": "Nationwide industry universe unmeasured",
+    "broad-jurisdiction-source-gaps": "Broad-jurisdiction source gaps: 40",
+    "current-operation-not-independently-verified": "Temporal/current operation not independently verified",
+  };
+  return (
+    <section className="objective-readiness-card" aria-label="National Objective Readiness">
+      <div className="objective-readiness-heading"><div><span>National Objective Readiness</span><strong>Not accepted</strong></div><small>Assessment {value.assessment_as_of} · report-only</small></div>
+      <p className="objective-readiness-caveat">Governed dataset availability is not all-business completeness.</p>
+      <div className="objective-readiness-ledger" aria-label="Eight objective readiness requirements">
+        {value.requirements_ledger.map((row) => <div key={row.requirement}><span>{row.requirement.replaceAll("-", " ")}</span><strong>{row.status}</strong>{row.requirement === "broad-state-coverage" && <small>{row.current_gap_count} broad jurisdiction gaps / {row.jurisdiction_count} jurisdictions</small>}</div>)}
+      </div>
+      <div className="objective-readiness-blockers"><strong>Blocking requirements</strong><div>{value.acceptance.blockers.map((code: string) => <span key={code}>{blockerLabels[code] ?? code.replaceAll("-", " ")}</span>)}</div></div>
+      <details className="objective-readiness-lineage"><summary>Verified evidence lineage</summary><ul>{Object.entries(value.lineage).map(([key, item]) => <li key={key}>{key.replaceAll("_", " ")}: <code>{item.release_id}</code>{Object.entries(item).filter(([field]) => field.endsWith("_sha256")).map(([field, hash]) => <small key={field}>{field.replaceAll("_", " ")}: <code>{hash}</code></small>)}</li>)}</ul></details>
+    </section>
+  );
+}
+
 export function CoverageWorkspace({
   industries = false,
   stateCode,
@@ -1344,6 +1449,8 @@ export function CoverageWorkspace({
     [error, setError] = useState(""),
     [temporal, setTemporal] = useState<TemporalMatrix | null>(null),
     [temporalError, setTemporalError] = useState(false),
+    [objectiveReadiness, setObjectiveReadiness] = useState<NationalObjectiveReadiness | null>(null),
+    [objectiveReadinessError, setObjectiveReadinessError] = useState(false),
     [overall, setOverall] = useState(true),
     [adjacentResult, setAdjacentResult] = useState<{
       state: string;
@@ -1401,6 +1508,26 @@ export function CoverageWorkspace({
       .catch(() => {
         if (!controller.signal.aborted) setShares(null);
       });
+    return () => controller.abort();
+  }, [industries]);
+  useEffect(() => {
+    if (industries) return;
+    const controller = new AbortController();
+    setObjectiveReadiness(null);
+    setObjectiveReadinessError(false);
+    void runnerJson<unknown>("/api/business-map/national-objective-readiness", {
+      signal: controller.signal,
+    }).then((value) => {
+      if (controller.signal.aborted) return;
+      const valid = validNationalObjectiveReadiness(value);
+      setObjectiveReadiness(valid ? value : null);
+      setObjectiveReadinessError(!valid);
+    }).catch((reason) => {
+      if (!controller.signal.aborted && reason?.name !== "AbortError") {
+        setObjectiveReadiness(null);
+        setObjectiveReadinessError(true);
+      }
+    });
     return () => controller.abort();
   }, [industries]);
   useEffect(() => {
@@ -1548,6 +1675,7 @@ export function CoverageWorkspace({
         unknown, and not applicable are distinct. This is not all-business or
         GDP completeness.
       </p>
+      {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
       <div className="workspace-filters">
         <label>
           {industries ? "Reporting industry" : "Coverage category"}{" "}
@@ -1712,7 +1840,7 @@ export function CoverageWorkspace({
         view?.available && (
           <div className="coverage-focus-layout">
             <div>
-              <h3>50 states and D.C. · {selectedCategoryLabel} availability</h3>
+              <h3>50 states and D.C. · governed dataset availability</h3>
               <StateAvailabilityChoropleth
                 rows={rows}
                 selected={state}

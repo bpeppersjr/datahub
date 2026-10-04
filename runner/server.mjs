@@ -26,6 +26,7 @@ import { credentialHeatmapHttp } from './credential-heatmap-http.mjs';
 import { createCensusZbpIndustryView } from './census-zbp-industry-view.mjs';
 import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
+import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 import { broadOrganizationAdjacentEvidenceHttp } from './broad-organization-adjacent-evidence-http.mjs';
 import { stateAccessView } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
@@ -751,6 +752,10 @@ const server = http.createServer(async (request, response) => {
       } catch (error) {
         json(response, error.statusCode === 400 ? 400 : 503, { error: error.statusCode === 400 ? error.message : 'Goal-completion matrix is unavailable.' });
       }
+      return;
+    }
+    if (url.pathname === '/api/business-map/national-objective-readiness') {
+      await nationalZipGoalObjectiveReadinessHttp(request, response, url, json);
       return;
     }
     if (url.pathname === '/api/business-map/broad-organization-adjacent-evidence') {
