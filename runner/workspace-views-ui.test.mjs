@@ -527,7 +527,9 @@ function crossView(zip = "00601", status = "available") {
               : (source.startsWith("broad_org_") || profile || reporting)
                 ? "absent-from-retained-source-rows"
                 : "measured-zero",
-          count: countValue,
+          count: (source.startsWith("broad_org_") || profile || reporting || childcare) && countValue === 0
+            ? null
+            : countValue,
           measure: profile
             ? "registry_location_profile_count"
             : (broad?.measure ??
@@ -786,7 +788,7 @@ function crossView(zip = "00601", status = "available") {
       ? null
       : {
           schema_version:
-            "national-exact-zip-industry-evidence-matrix-row@1.7.0",
+            "national-exact-zip-industry-evidence-matrix-row@1.8.0",
           zip5: zip,
           zip4: null,
           cohort_classification: "same-code-census-zcta",
@@ -796,7 +798,7 @@ function crossView(zip = "00601", status = "available") {
           cells,
         };
   const industry_evidence = {
-    schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
+    schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
     status: "present",
     row,
     out_of_cohort_source_zip_gaps: [],
@@ -804,6 +806,12 @@ function crossView(zip = "00601", status = "available") {
     source_address_row_gaps: [addressRowGap],
     source_metadata,
     status_counts: exactZipMatrixManifest.summary.status_counts,
+    serialized_status_value_counts: {
+      positive: { cells: 336058, numeric_cells: 336058, null_cells: 0 },
+      "measured-zero": { cells: 248869, numeric_cells: 248869, null_cells: 0 },
+      "outside-source-denominator": { cells: 57452, numeric_cells: 0, null_cells: 57452 },
+      "absent-from-retained-source-rows": { cells: 1237187, numeric_cells: 0, null_cells: 1237187 },
+    },
     cell_status_counts_by_dimension:
       exactZipMatrixManifest.summary.cell_status_counts_by_dimension,
     reclassified_absent_source_row_cells:
@@ -2794,7 +2802,7 @@ test("exact ZIP source tables derive display values from closed cell statuses", 
     childcare_pa_candidates: {
       ...matrix.row.cells.childcare_pa_candidates,
       status: "absent-from-retained-source-rows",
-      count: 0,
+      count: null,
     },
   };
   matrix.row = { ...matrix.row, cells };

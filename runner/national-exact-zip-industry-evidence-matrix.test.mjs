@@ -110,7 +110,7 @@ test("reporting registry lineage tampering fails before publisher artifacts are 
     await fs.rm(root, { recursive: true, force: true });
   }
 });
-test("registered v1.7 exact-ZIP matrix replays all retained dimensions and conserves source units", async () => {
+test("registered v1.8 exact-ZIP matrix replays all retained dimensions and conserves source units", async () => {
   const registration = JSON.parse(
       await fs.readFile(
         path.join(
@@ -300,7 +300,7 @@ test("bounded lookup preserves registry status categories and both source clocks
   const v = await readExactZipIndustryEvidence({ zip5: "00000" });
   assert.equal(
     v.schema_version,
-    "national-exact-zip-industry-evidence-matrix@1.7.0",
+    "national-exact-zip-industry-evidence-matrix@1.8.0",
   );
   assert.equal(v.full_matrix_replay_performed, false);
   assert.equal(v.row.zip5, "00000");
@@ -312,7 +312,11 @@ test("bounded lookup preserves registry status categories and both source clocks
   assert.equal(v.row.cells.pharmacy.status, "measured-zero");
   assert.equal(v.row.cells.healthcare_organizations.status, "positive");
   assert.equal(v.row.cells.childcare_pa_candidates.status, "absent-from-retained-source-rows");
-  assert.equal(v.row.cells.childcare_pa_candidates.count, 0);
+  assert.equal(v.row.cells.childcare_pa_candidates.count, null);
+  assert.equal(v.serialized_status_value_counts["absent-from-retained-source-rows"].numeric_cells, 0);
+  assert.equal(v.serialized_status_value_counts["absent-from-retained-source-rows"].null_cells, 1237187);
+  assert.equal(v.serialized_status_value_counts["measured-zero"].numeric_cells, 248869);
+  assert.equal(v.serialized_status_value_counts["outside-source-denominator"].null_cells, 57452);
   assert.equal(v.source_metadata.childcare_pa_candidates.zero_evidence_semantics.exact_zip_denominator, false);
   assert.equal(v.source_metadata.pharmacy.zero_evidence_semantics.exact_zip_denominator, true);
   assert.equal(v.status_counts["absent-from-retained-source-rows"], 1237187);
@@ -473,7 +477,7 @@ test("state/local source absence is not measured zero or inferred from same-code
     "broad_org_co_organization_addresses",
   ]) {
     assert.equal(absent.row.cells[dimension].status, "absent-from-retained-source-rows");
-    assert.equal(absent.row.cells[dimension].count, 0);
+    assert.equal(absent.row.cells[dimension].count, null);
     assert.equal(absent.source_metadata[dimension].zero_evidence_semantics.exact_zip_denominator, false);
   }
   const sameCodeZcta = await readExactZipIndustryEvidence({ zip5: "00601" });

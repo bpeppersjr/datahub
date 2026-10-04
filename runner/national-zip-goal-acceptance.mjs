@@ -45,9 +45,9 @@ function validateGoalReadinessBindings(value) {
     && entity.registration_sha256 === 'a99311cfc37b523a9a924555cceb21ab184c65d4192ad9dbe30a428e5da34c39'
     && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba', 'ZIP entity-resolution evidence pin/semantics');
   check(industry?.version === ZIP_INDUSTRY_VERSION
-    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-105d71c084bf307d9ced71ec3a92623fb228770c36ef7bdefc7e6c348047a43f'
-    && industry.registration_sha256 === 'c8c8b31d451a19a80b977216daceacf53ab080a1d40294247c55cba341cb1f15'
-    && industry.manifest_sha256 === 'dd495c383f4d5a0bde67e2a4d4b2223ecde15597936ae4820e4b31ff47a3cca6'
+    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6'
+    && industry.registration_sha256 === 'ef3ef5b424d35df017f354066f0acc7eaa7f3ed2823cd34922c14a777fbcf568'
+    && industry.manifest_sha256 === '743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe'
     && industry?.claims?.current_operation_verified === false
     && industry?.claims?.all_business_completeness === false
     && industry?.claims?.additive_cross_industry_total === false
@@ -190,8 +190,8 @@ async function readObjectiveReadiness({ signal }) {
     && industryPin?.industry_cells === 1879566, 'registered industry-matrix release binding');
   check(entity.available && entity.registration_sha256 && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'
     && entity.evidence?.entity_resolution_applied === false && entity.evidence?.benchmark_gate_passed === false, 'registered ZIP entity-resolution evidence');
-  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-105d71c084bf307d9ced71ec3a92623fb228770c36ef7bdefc7e6c348047a43f'
-    && industry.manifest_sha256 === 'dd495c383f4d5a0bde67e2a4d4b2223ecde15597936ae4820e4b31ff47a3cca6'
+  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6'
+    && industry.manifest_sha256 === '743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe'
     && industry.claims?.network_requests === 0 && industry.claims?.production_enrollment === false, 'registered ZIP industry matrix');
   check(temporal.rows.length === 30 && temporal.provenance?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
     && temporal.provenance?.manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05', 'selected temporal claim release');

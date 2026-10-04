@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readZipIndustryDemographicCrossView } from "./zip-industry-demographic-cross-view.mjs";
 
 const industry = (zip5, zcta = zip5) => ({
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
   status: "present",
   row: {
     zip5,

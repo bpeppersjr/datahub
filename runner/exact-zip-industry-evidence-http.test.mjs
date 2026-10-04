@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import { exactZipIndustryEvidenceHttp } from "./exact-zip-industry-evidence-http.mjs";
+import { readExactZipIndustryEvidence } from "./national-exact-zip-industry-evidence-matrix.mjs";
 
 const sample = (zip5) => ({
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
   status: "present",
   row: null,
   zip5,
@@ -64,6 +65,23 @@ test("accepts one bodyless exact-ZIP GET and disables caching", async () => {
     assert.equal(bad.status, 400);
     assert.equal(bad.reads, 0);
   }
+});
+test("HTTP JSON preserves null values for absent/outside cells and numeric zero only for measured-zero", async () => {
+  const result = await call({ reader: readExactZipIndustryEvidence });
+  assert.equal(result.status, 200);
+  for (const cell of Object.values(result.body.row.cells)) {
+    if (cell.status === "absent-from-retained-source-rows" || cell.status === "outside-source-denominator") {
+      assert.equal(cell.count, null);
+    } else if (cell.status === "measured-zero") {
+      assert.equal(cell.count, 0);
+    } else if (cell.status === "positive") {
+      assert.ok(Number.isSafeInteger(cell.count) && cell.count > 0);
+    } else {
+      assert.fail(`unexpected status ${cell.status}`);
+    }
+  }
+  assert.equal(result.body.serialized_status_value_counts["absent-from-retained-source-rows"].null_cells, 1237187);
+  assert.equal(result.body.serialized_status_value_counts["absent-from-retained-source-rows"].numeric_cells, 0);
 });
 test("redacts failures and aborts bounded reads on disconnect", async () => {
   const failed = await call({

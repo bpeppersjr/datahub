@@ -45,14 +45,14 @@ function projectedIndustryValue(cell) {
   }
   if (cell.status === "measured-zero" && cell.count === 0) return 0;
   if (cell.status === "outside-source-denominator" && cell.count === null) return null;
-  if (cell.status === "absent-from-retained-source-rows" && cell.count === 0) return null;
+  if (cell.status === "absent-from-retained-source-rows" && cell.count === null) return null;
   fail();
 }
 
 function validatedIndustryEvidence(cross, zip5) {
   const evidence = cross?.industry_evidence;
   const releaseMatch = INDUSTRY_RELEASE.exec(evidence?.release_id ?? "");
-  if (evidence?.schema_version !== "national-exact-zip-industry-evidence-matrix@1.7.0"
+  if (evidence?.schema_version !== "national-exact-zip-industry-evidence-matrix@1.8.0"
       || evidence.status !== "present"
       || !SHA256.test(evidence.manifest_sha256 ?? "")
       || !releaseMatch
@@ -64,7 +64,7 @@ function validatedIndustryEvidence(cross, zip5) {
       || evidence.claims.all_business_completeness !== false) fail();
   const row = evidence.row;
   if (row === null) return { evidence, cells: {} };
-  if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.7.0"
+  if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.8.0"
       || row.zip5 !== zip5 || row.zip4 !== null || !row.cells
       || typeof row.cells !== "object" || Array.isArray(row.cells)) fail();
   for (const cell of Object.values(row.cells)) projectedIndustryValue(cell);

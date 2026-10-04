@@ -9,12 +9,23 @@ import {
   verifyBroadOrganizationZipSummary,
 } from "./broad-organization-zip-summary.mjs";
 
-export const VERSION = "national-exact-zip-industry-evidence-matrix@1.7.0";
+export const VERSION = "national-exact-zip-industry-evidence-matrix@1.8.0";
 export const ROW_VERSION =
-  "national-exact-zip-industry-evidence-matrix-row@1.7.0";
+  "national-exact-zip-industry-evidence-matrix-row@1.8.0";
 const DATASET = "national-exact-zip-industry-evidence-matrix",
   SHA = /^[a-f0-9]{64}$/;
 export const MAX_PREFIX_BYTES = 16_000_000;
+const V17_PREDECESSOR = Object.freeze({
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
+  release_id:
+    "national-exact-zip-industry-evidence-matrix-105d71c084bf307d9ced71ec3a92623fb228770c36ef7bdefc7e6c348047a43f",
+  manifest_path:
+    "data/national-exact-zip-industry-evidence-matrix/releases/national-exact-zip-industry-evidence-matrix-105d71c084bf307d9ced71ec3a92623fb228770c36ef7bdefc7e6c348047a43f/manifest.json",
+  manifest_sha256:
+    "dd495c383f4d5a0bde67e2a4d4b2223ecde15597936ae4820e4b31ff47a3cca6",
+  historical_absent_cell_count: 0,
+  historical_absent_cell_value: 0,
+});
 const REPORTING_REGISTRY_MANIFEST =
   "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json";
 const REPORTING_REGISTRY_SHA =
@@ -1129,6 +1140,19 @@ export function projectOutOfCohortSourceZipGaps(cohortZip5s, sources) {
   );
 }
 async function inputs(root) {
+  const predecessor = await readPinned(
+    root,
+    V17_PREDECESSOR.manifest_path,
+    V17_PREDECESSOR.manifest_sha256,
+  );
+  check(
+    predecessor.value.release_id === V17_PREDECESSOR.release_id &&
+      predecessor.value.schema_version === V17_PREDECESSOR.schema_version &&
+      predecessor.value.summary?.zip5_rows === 48194 &&
+      predecessor.value.summary?.industry_cells === 1879566 &&
+      predecessor.value.summary?.status_counts?.["absent-from-retained-source-rows"] === 1237187,
+    "immutable v1.7 predecessor binding",
+  );
   const cohortReg = await readPinned(
     root,
     "config/datasets/zip-denominator-gap-cohort.json",
@@ -2070,9 +2094,21 @@ function compose(i) {
           status = count > 0 ? "positive" : "measured-zero";
         }
       }
+      const serializedCount =
+        status === "absent-from-retained-source-rows" ? null : count;
+      check(
+        status === "positive"
+          ? Number.isSafeInteger(serializedCount) && serializedCount > 0
+          : status === "measured-zero"
+            ? serializedCount === 0 && s.zero_evidence_contract.explicit_zero_evidence_allowed === true
+            : status === "outside-source-denominator" || status === "absent-from-retained-source-rows"
+              ? serializedCount === null && s.zero_evidence_contract.absent_cell_status === status
+              : false,
+        "v1.8 compose status/count pairing",
+      );
       cells[s.id] = {
         status,
-        count,
+        count: serializedCount,
         measure: s.countField,
         source_release_id: s.release_id,
         temporal_status: {
@@ -2235,7 +2271,20 @@ function manifestFor(
       result.summary["measured-zero"] === 248869 &&
       result.summary["outside-source-denominator"] === 57452 &&
       result.summary["absent-from-retained-source-rows"] === 1237187,
-    "v1.7 exact-ZIP status conservation",
+    "v1.8 exact-ZIP status conservation",
+  );
+  const serializedStatusCounts = {
+    positive: { cells: result.summary.positive, numeric_cells: result.summary.positive, null_cells: 0 },
+    "measured-zero": { cells: result.summary["measured-zero"], numeric_cells: result.summary["measured-zero"], null_cells: 0 },
+    "outside-source-denominator": { cells: result.summary["outside-source-denominator"], numeric_cells: 0, null_cells: result.summary["outside-source-denominator"] },
+    "absent-from-retained-source-rows": { cells: result.summary["absent-from-retained-source-rows"], numeric_cells: 0, null_cells: result.summary["absent-from-retained-source-rows"] },
+  };
+  check(
+    serializedStatusCounts.positive.cells === 336058 &&
+      serializedStatusCounts["measured-zero"].numeric_cells === 248869 &&
+      serializedStatusCounts["outside-source-denominator"].null_cells === 57452 &&
+      serializedStatusCounts["absent-from-retained-source-rows"].null_cells === 1237187,
+    "v1.8 serialized status/value conservation",
   );
   const body = {
     schema_version: VERSION,
@@ -2243,12 +2292,14 @@ function manifestFor(
     status: "immutable-local-review-only",
     publication_mode: "pointer-free",
     created_at: createdAt,
+    predecessor: V17_PREDECESSOR,
     bindings,
     summary: {
       zip5_rows: result.rows.length,
       industry_cells: result.rows.length * i.sources.length,
       max_prefix_artifact_bytes: Math.max(...artifacts.map((a) => a.bytes)),
       status_counts: result.summary,
+      serialized_status_value_counts: serializedStatusCounts,
       cell_status_counts_by_dimension: result.cellStatusCountsByDimension,
       reclassified_absent_source_row_cells: reclassifiedAbsentCells,
       temporal_status_counts: temporalCounts,
@@ -2494,6 +2545,10 @@ export async function verifyExactZipIndustryEvidenceMatrix(
       path.basename(path.dirname(manifestPath)) === release_id,
     "content identity",
   );
+  check(
+    JSON.stringify(m.predecessor) === JSON.stringify(V17_PREDECESSOR),
+    "v1.8 immutable predecessor lineage",
+  );
   const i = await inputs(root),
     result = compose(i),
     prefixArtifacts = m.artifacts.filter((a) => a.path.startsWith("prefix=")),
@@ -2531,6 +2586,20 @@ export async function verifyExactZipIndustryEvidenceMatrix(
     const rows = JSON.parse(b);
     check(rows.length === a.record_count, "artifact count");
     for (const row of rows) {
+      for (const source of i.sources) {
+        const cell = row.cells?.[source.id], contract = source.zero_evidence_contract;
+        check(cell && contract, "v1.8 source cell contract");
+        check(
+          cell.status === "positive"
+            ? Number.isSafeInteger(cell.count) && cell.count > 0
+            : cell.status === "measured-zero"
+              ? cell.count === 0 && contract.explicit_zero_evidence_allowed === true
+              : cell.status === "outside-source-denominator" || cell.status === "absent-from-retained-source-rows"
+                ? cell.count === null && contract.absent_cell_status === cell.status
+                : false,
+          "v1.8 status/count pairing",
+        );
+      }
       check(
         rowIndex < result.rows.length &&
           JSON.stringify(row) === JSON.stringify(result.rows[rowIndex]),
@@ -2603,6 +2672,7 @@ export async function verifyExactZipIndustryEvidenceMatrix(
     cell_status_counts_by_dimension: result.cellStatusCountsByDimension,
     reclassified_absent_source_row_cells:
       result.summary["absent-from-retained-source-rows"],
+    serialized_status_value_counts: m.summary.serialized_status_value_counts,
     out_of_cohort_source_zip_gaps: result.sourceZipGaps,
     source_quality_gaps: result.sourceQualityGaps,
     source_address_row_gaps: result.sourceAddressRowGaps,
@@ -2644,6 +2714,11 @@ export async function readExactZipIndustryEvidence({
     );
   check(
     release_id === rr.release_id &&
+      JSON.stringify(m.predecessor) === JSON.stringify(V17_PREDECESSOR) &&
+      m.summary?.serialized_status_value_counts?.["absent-from-retained-source-rows"]?.null_cells === 1237187 &&
+      m.summary?.serialized_status_value_counts?.["absent-from-retained-source-rows"]?.numeric_cells === 0 &&
+      m.summary?.serialized_status_value_counts?.["measured-zero"]?.numeric_cells === 248869 &&
+      m.summary?.serialized_status_value_counts?.["outside-source-denominator"]?.null_cells === 57452 &&
       release_id === `${DATASET}-${hash(JSON.stringify(body))}` &&
       m.schema_version === VERSION &&
       m.summary?.status_counts?.positive === 336058 &&
@@ -2651,6 +2726,12 @@ export async function readExactZipIndustryEvidence({
       m.summary?.status_counts?.["outside-source-denominator"] === 57452 &&
       m.summary?.status_counts?.["absent-from-retained-source-rows"] === 1237187 &&
       m.summary?.reclassified_absent_source_row_cells === 1237187 &&
+      JSON.stringify(m.summary?.serialized_status_value_counts) === JSON.stringify({
+        positive: { cells: 336058, numeric_cells: 336058, null_cells: 0 },
+        "measured-zero": { cells: 248869, numeric_cells: 248869, null_cells: 0 },
+        "outside-source-denominator": { cells: 57452, numeric_cells: 0, null_cells: 57452 },
+        "absent-from-retained-source-rows": { cells: 1237187, numeric_cells: 0, null_cells: 1237187 },
+      }) &&
       Object.keys(m.summary?.cell_status_counts_by_dimension ?? {}).length === 39 &&
       rr.max_prefix_artifact_bytes === maxPrefixBytes &&
       maxPrefixBytes <= MAX_PREFIX_BYTES &&
@@ -2707,7 +2788,7 @@ export async function readExactZipIndustryEvidence({
         ? cell.count === 0 && contract.explicit_zero_evidence_allowed === true
         : cell.status === "outside-source-denominator"
           ? cell.count === null && contract.absent_cell_status === cell.status
-          : cell.count === 0 && contract.absent_cell_status === cell.status
+          : cell.count === null && contract.absent_cell_status === cell.status
         , "cell status/zero-evidence contract");
   }
   const gap = m.summary.out_of_cohort_source_zip_gaps,
@@ -2834,6 +2915,7 @@ export async function readExactZipIndustryEvidence({
     source_address_row_gaps: ab.value,
     source_metadata,
     status_counts: m.summary.status_counts,
+    serialized_status_value_counts: m.summary.serialized_status_value_counts,
     cell_status_counts_by_dimension: m.summary.cell_status_counts_by_dimension,
     reclassified_absent_source_row_cells:
       m.summary.reclassified_absent_source_row_cells,

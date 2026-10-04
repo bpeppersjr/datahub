@@ -4313,10 +4313,10 @@ type ExactZipAddressRowGap = {
   };
 };
 type ExactZipEvidence = {
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0";
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0";
   status: "present";
   row: null | {
-    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.7.0";
+    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.8.0";
     zip5: string;
     zip4: null;
     cohort_classification: string;
@@ -4329,6 +4329,7 @@ type ExactZipEvidence = {
   source_address_row_gaps: ExactZipAddressRowGap[];
   source_metadata: Record<ExactZipSource, ExactZipSourceMetadata>;
   status_counts: Record<string, number>;
+  serialized_status_value_counts: Record<string, { cells: number; numeric_cells: number; null_cells: number }>;
   cell_status_counts_by_dimension: Record<ExactZipSource, Record<string, number>>;
   reclassified_absent_source_row_cells: number;
   release_id: string;
@@ -4365,6 +4366,7 @@ export function validExactZipEvidence(
       "source_address_row_gaps",
       "source_metadata",
       "status_counts",
+      "serialized_status_value_counts",
       "cell_status_counts_by_dimension",
       "reclassified_absent_source_row_cells",
       "release_id",
@@ -4583,7 +4585,7 @@ export function validExactZipEvidence(
     typeof value === "string" &&
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value);
   if (
-    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.7.0" ||
+    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.8.0" ||
     v.status !== "present" ||
     !/^national-exact-zip-industry-evidence-matrix-[a-f0-9]{64}$/.test(
       v.release_id,
@@ -5064,6 +5066,12 @@ export function validExactZipEvidence(
     aggregateDimensionCounts = Object.fromEntries(statusKeys.map((key) => [key, 0])) as Record<string, number>;
   if (
     !sameClosed(v.status_counts, expectedStatusCounts) ||
+    !sameClosed(v.serialized_status_value_counts, {
+      positive: { cells: 336058, numeric_cells: 336058, null_cells: 0 },
+      "measured-zero": { cells: 248869, numeric_cells: 248869, null_cells: 0 },
+      "outside-source-denominator": { cells: 57452, numeric_cells: 0, null_cells: 57452 },
+      "absent-from-retained-source-rows": { cells: 1237187, numeric_cells: 0, null_cells: 1237187 },
+    }) ||
     v.reclassified_absent_source_row_cells !== 1237187 ||
     !exactObject(v.cell_status_counts_by_dimension) ||
     JSON.stringify(Object.keys(v.cell_status_counts_by_dimension)) !==
@@ -5094,7 +5102,7 @@ export function validExactZipEvidence(
       "cells",
     ]) ||
     r.schema_version !==
-      "national-exact-zip-industry-evidence-matrix-row@1.7.0" ||
+      "national-exact-zip-industry-evidence-matrix-row@1.8.0" ||
     r.zip5 !== zip ||
     r.zip4 !== null ||
     r.usps_validity !== null ||
@@ -5140,12 +5148,10 @@ export function validExactZipEvidence(
       cell.measure.length === 0 ||
       typeof cell.source_release_id !== "string" ||
       cell.source_release_id.length === 0 ||
-      (cell.status === "outside-source-denominator"
-        ? cell.count !== null
-        : !nonnegative(cell.count)) ||
-      (cell.status === "positive" && Number(cell.count) === 0) ||
+      (cell.status === "positive" && (!nonnegative(cell.count) || cell.count === 0)) ||
       (cell.status === "measured-zero" && cell.count !== 0) ||
-      (cell.status === "absent-from-retained-source-rows" && cell.count !== 0) ||
+      (cell.status === "outside-source-denominator" && cell.count !== null) ||
+      (cell.status === "absent-from-retained-source-rows" && cell.count !== null) ||
       (cell.status === "absent-from-retained-source-rows" &&
         v.source_metadata[source].zero_evidence_semantics.absent_cell_status !== cell.status) ||
       (cell.status === "measured-zero" &&
@@ -5177,7 +5183,8 @@ export function validExactZipEvidence(
         childcare_tn_reporting_centers: ["Active"],
         childcare_oh_reporting_centers: ["Open"],
       };
-      const counts = cell.source_status_counts;
+      const counts = cell.source_status_counts,
+        retainedRowCount = cell.status === "absent-from-retained-source-rows" ? 0 : cell.count;
       return (
         !!counts &&
         Object.entries(counts).every(
@@ -5187,7 +5194,7 @@ export function validExactZipEvidence(
             value > 0,
         ) &&
         Object.values(counts).reduce((n, value) => n + value, 0) ===
-          cell.count &&
+          retainedRowCount &&
         cell.measure === "reported_center_rows" &&
         cell.temporal_status.status ===
           "source-referenced-current-operation-unverified"
@@ -5195,17 +5202,18 @@ export function validExactZipEvidence(
     }
     if (!profile) return true;
     const statusCounts = cell.source_status_counts,
+      retainedRowCount = cell.status === "absent-from-retained-source-rows" ? 0 : cell.count,
       expected =
         source === "la_registered_location_profiles"
-          ? { present: 0, "empty-object": 0, missing: 0, null: cell.count }
-          : { present: cell.count, "empty-object": 0, missing: 0, null: 0 };
+          ? { present: 0, "empty-object": 0, missing: 0, null: retainedRowCount }
+          : { present: retainedRowCount, "empty-object": 0, missing: 0, null: 0 };
     return (
       sameClosed(statusCounts, expected) &&
       statusCounts.present +
         statusCounts["empty-object"] +
         statusCounts.missing +
         statusCounts.null ===
-        cell.count &&
+        retainedRowCount &&
       cell.measure === "registry_location_profile_count" &&
       cell.temporal_status.status ===
         "source-referenced-current-operation-unverified" &&

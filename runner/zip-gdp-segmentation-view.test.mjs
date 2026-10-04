@@ -34,10 +34,10 @@ const industryCell = (status, count) => ({
   },
 });
 const industryEvidence = (zip5, cells = { retail: industryCell("positive", 12) }) => ({
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.7.0",
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
   status: "present",
   row: {
-    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.7.0",
+    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.8.0",
     zip5,
     zip4: null,
     cells,
@@ -89,7 +89,7 @@ test("projects only positive and measured-zero source values; absent and outside
   const evidence = industryEvidence("00601", {
     positive: industryCell("positive", 17),
     zero: industryCell("measured-zero", 0),
-    absent: industryCell("absent-from-retained-source-rows", 0),
+    absent: industryCell("absent-from-retained-source-rows", null),
     outside: industryCell("outside-source-denominator", null),
   });
   const view = await readZipGdpSegmentationView({
@@ -101,7 +101,7 @@ test("projects only positive and measured-zero source values; absent and outside
     Object.fromEntries(view.industry_breakdown.map((row) => [row.industry_id, row.source_measure_value])),
     { absent: null, outside: null, positive: 17, zero: 0 },
   );
-  assert.equal(view.industry_breakdown.find((row) => row.industry_id === "absent").source_evidence.count, 0);
+  assert.equal(view.industry_breakdown.find((row) => row.industry_id === "absent").source_evidence.count, null);
   assert.ok(view.industry_breakdown.every((row) => row.gdp.display_value === null));
   assert.equal(view.claims.industry_gdp_emitted, false);
 });
@@ -141,8 +141,8 @@ test("real exact-ZIP reader provenance is bound into the GDP view", async () => 
     }),
   });
   assert.deepEqual(view.provenance.industry_evidence, {
-    release_id: "national-exact-zip-industry-evidence-matrix-105d71c084bf307d9ced71ec3a92623fb228770c36ef7bdefc7e6c348047a43f",
-    manifest_sha256: "dd495c383f4d5a0bde67e2a4d4b2223ecde15597936ae4820e4b31ff47a3cca6",
+    release_id: "national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6",
+    manifest_sha256: "743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe",
   });
 });
 
