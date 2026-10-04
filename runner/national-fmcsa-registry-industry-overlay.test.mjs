@@ -8,6 +8,30 @@ import { buildNationalFmcsaRegistryIndustryOverlay as build, readSecureOverlayFi
 const ROOT = path.resolve(import.meta.dirname, '..');
 const digest = value => createHash('sha256').update(value).digest('hex');
 const catalogPath = path.join(ROOT, 'config/datasets/national-fmcsa-registry-industry-overlay.json');
+const unrelatedStageName = '.stage-000-unrelated-historical-sentinel';
+
+async function isolatedOutput(t) {
+  const outputRoot = await fs.mkdtemp(path.join(ROOT, 'tmp/fmcsa-overlay-output-isolation-'));
+  t.after(() => fs.rm(outputRoot, { recursive: true, force: true }));
+  const base = path.join(outputRoot, 'data', 'national-fmcsa-registry-industry-overlay'), releases = path.join(base, 'releases');
+  await fs.mkdir(releases, { recursive: true });
+  await fs.mkdir(path.join(base, unrelatedStageName));
+  const sentinelPath = path.join(base, unrelatedStageName, 'preserve.bin'), sentinel = Buffer.from('unrelated historical staging evidence\n');
+  await fs.writeFile(sentinelPath, sentinel);
+  await fs.mkdir(path.join(releases, 'historical-sentinel-release'));
+  await fs.writeFile(path.join(releases, 'historical-sentinel-release', 'preserve.bin'), sentinel);
+  const releaseNames = await fs.readdir(releases), sentinelHash = digest(await fs.readFile(sentinelPath));
+  return { outputRoot, base, releases, releaseNames, sentinelPath, sentinelHash,
+    options(hooks, extra = {}) { return { _testOutputRoot: outputRoot, _testHooks: hooks, ...extra }; },
+    async ownedStage() { const stages = (await fs.readdir(base)).filter(name => name.startsWith('.stage-') && name !== unrelatedStageName); assert.equal(stages.length, 1, 'exactly one invocation-owned stage is present'); return path.join(base, stages[0]); },
+    async assertClean() {
+      assert.deepEqual((await fs.readdir(releases)).sort(), [...releaseNames].sort(), 'immutable release inventory is unchanged');
+      assert.deepEqual((await fs.readdir(base)).filter(name => name.startsWith('.stage-')).sort(), [unrelatedStageName]);
+      assert.equal((await fs.readdir(base)).some(name => name.startsWith('.verify-') || name === '.build.lock'), false);
+      assert.equal(digest(await fs.readFile(sentinelPath)), sentinelHash, 'unrelated stage bytes are preserved');
+      assert.deepEqual(await fs.readFile(path.join(releases, 'historical-sentinel-release', 'preserve.bin')), Buffer.from('unrelated historical staging evidence\n'));
+    } };
+}
 
 test('registered FMCSA overlay independently replays exact USDOT/site/establishment membership', { timeout: 240_000 }, async () => {
   const catalog = JSON.parse(await fs.readFile(catalogPath)), manifest = path.join(ROOT, catalog.retained_release.manifest), raw = await fs.readFile(manifest);
@@ -57,21 +81,24 @@ test('secure reads reject symlinks and same-size same-mtime named replacements',
   const stamp = (await fs.stat(original)).mtime; await assert.rejects(secureRead(ROOT, original, 100, async () => { await fs.rename(original, backup); await fs.writeFile(original, '87654321'); await fs.utimes(original, stamp, stamp); }), /identity changed/);
 });
 
-test('post-manifest failure and post-verification cancellation publish no immutable release', { timeout: 600_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-fmcsa-registry-industry-overlay/releases'), before = new Set(await fs.readdir(releases));
-  await assert.rejects(build({ _testHooks: async phase => { if (phase === 'after-manifest-before-verification') throw new Error('injected'); } }), /injected/);
-  const controller = new AbortController(); await assert.rejects(build({ signal: controller.signal, _testHooks: async phase => { if (phase === 'after-verification-before-publication') controller.abort(); } }), { name: 'AbortError' });
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(path.dirname(releases))).some(x => x.startsWith('.stage-')), false);
+test('post-manifest failure and post-verification cancellation clean only invocation-owned output', { timeout: 600_000 }, async t => {
+  const failed = await isolatedOutput(t); let failedStage; const primary = new Error('injected FMCSA post-manifest failure');
+  await assert.rejects(build(failed.options(async (phase, context) => { if (phase === 'after-manifest-before-verification') { failedStage = context.stage; throw primary; } })), error => error === primary && error.inspection_required !== true);
+  assert.ok(failedStage); await assert.rejects(fs.stat(failedStage), { code: 'ENOENT' }); await failed.assertClean();
+
+  const cancelled = await isolatedOutput(t); let cancelledStage; const controller = new AbortController();
+  await assert.rejects(build(cancelled.options(async (phase, context) => { if (phase === 'after-verification-before-publication') { cancelledStage = context.stage; controller.abort(); } }, { signal: controller.signal })), { name: 'AbortError' });
+  assert.ok(cancelledStage); await assert.rejects(fs.stat(cancelledStage), { code: 'ENOENT' }); await cancelled.assertClean();
 });
 
-test('mid-shard cancellation destroys the gzip pipeline and cleans unpublished staging', { timeout: 30_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-fmcsa-registry-industry-overlay/releases'), base = path.dirname(releases), before = new Set(await fs.readdir(releases)), controller = new AbortController();
-  await assert.rejects(build({ signal: controller.signal, _testHooks: async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) controller.abort(); } }), { name: 'AbortError' });
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(base)).some(x => x.startsWith('.stage-') || x === '.build.lock'), false);
+test('mid-shard cancellation settles streams and removes only its own stage', { timeout: 600_000 }, async t => {
+  const isolated = await isolatedOutput(t), controller = new AbortController(); let ownedStage, streams;
+  await assert.rejects(build(isolated.options(async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) { ownedStage = await isolated.ownedStage(); streams = [context.sourceStream, context.gzip, context.sink]; controller.abort(); } }, { signal: controller.signal })), { name: 'AbortError' });
+  assert.ok(ownedStage); await assert.rejects(fs.stat(ownedStage), { code: 'ENOENT' }); assert.ok(streams?.every(stream => stream.destroyed), 'all invocation streams are destroyed after cancellation'); await isolated.assertClean();
 });
 
-test('mid-shard sink failure settles streams and cleans unpublished staging', { timeout: 30_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-fmcsa-registry-industry-overlay/releases'), base = path.dirname(releases), before = new Set(await fs.readdir(releases));
-  const started = Date.now(); await assert.rejects(build({ _testHooks: async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) context.sink.destroy(new Error('injected write failure')); } }), /injected write failure|premature close|stream was destroyed/); assert.ok(Date.now() - started < 10_000, 'asynchronous sink failure must reject promptly');
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(base)).some(x => x.startsWith('.stage-') || x === '.build.lock'), false);
+test('mid-shard sink failure settles streams and cleans only invocation-owned output', { timeout: 600_000 }, async t => {
+  const isolated = await isolatedOutput(t); let ownedStage, streams; const started = Date.now();
+  await assert.rejects(build(isolated.options(async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) { ownedStage = await isolated.ownedStage(); streams = [context.sourceStream, context.gzip, context.sink]; context.sink.destroy(new Error('injected FMCSA write failure')); } })), /injected FMCSA write failure|premature close|stream was destroyed/);
+  assert.ok(Date.now() - started < 10_000, 'asynchronous sink failure must reject promptly'); assert.ok(ownedStage); await assert.rejects(fs.stat(ownedStage), { code: 'ENOENT' }); assert.ok(streams?.every(stream => stream.destroyed), 'all invocation streams are destroyed after sink failure'); await isolated.assertClean();
 });

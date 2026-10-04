@@ -9,6 +9,30 @@ import { buildNationalIrsEoRegistryIndustryOverlay as build, readOverlayArtifact
 const ROOT = path.resolve(import.meta.dirname, '..');
 const digest = value => createHash('sha256').update(value).digest('hex');
 const catalogPath = path.join(ROOT, 'config/datasets/national-irs-eo-registry-industry-overlay.json');
+const unrelatedStageName = '.stage-000-unrelated-historical-sentinel';
+
+async function isolatedOutput(t) {
+  const outputRoot = await fs.mkdtemp(path.join(ROOT, 'tmp/irs-eo-overlay-output-isolation-'));
+  t.after(() => fs.rm(outputRoot, { recursive: true, force: true }));
+  const base = path.join(outputRoot, 'data', 'national-irs-eo-registry-industry-overlay'), releases = path.join(base, 'releases');
+  await fs.mkdir(releases, { recursive: true });
+  await fs.mkdir(path.join(base, unrelatedStageName));
+  const sentinelPath = path.join(base, unrelatedStageName, 'preserve.bin'), sentinel = Buffer.from('unrelated historical staging evidence\n');
+  await fs.writeFile(sentinelPath, sentinel);
+  await fs.mkdir(path.join(releases, 'historical-sentinel-release'));
+  await fs.writeFile(path.join(releases, 'historical-sentinel-release', 'preserve.bin'), sentinel);
+  const releaseNames = await fs.readdir(releases), sentinelHash = digest(await fs.readFile(sentinelPath));
+  return { outputRoot, base, releases, releaseNames, sentinelPath, sentinelHash,
+    options(hooks, extra = {}) { return { _testOutputRoot: outputRoot, _testHooks: hooks, ...extra }; },
+    async ownedStage() { const stages = (await fs.readdir(base)).filter(name => name.startsWith('.stage-') && name !== unrelatedStageName); assert.equal(stages.length, 1, 'exactly one invocation-owned stage is present'); return path.join(base, stages[0]); },
+    async assertClean() {
+      assert.deepEqual((await fs.readdir(releases)).sort(), [...releaseNames].sort(), 'immutable release inventory is unchanged');
+      assert.deepEqual((await fs.readdir(base)).filter(name => name.startsWith('.stage-')).sort(), [unrelatedStageName]);
+      assert.equal((await fs.readdir(base)).some(name => name.startsWith('.verify-') || name === '.build.lock'), false);
+      assert.equal(digest(await fs.readFile(sentinelPath)), sentinelHash, 'unrelated stage bytes are preserved');
+      assert.deepEqual(await fs.readFile(path.join(releases, 'historical-sentinel-release', 'preserve.bin')), Buffer.from('unrelated historical staging evidence\n'));
+    } };
+}
 
 test('retained overlay replays exact EIN organization membership', { timeout: 240_000 }, async () => {
   const catalog = JSON.parse(await fs.readFile(catalogPath)), manifest = path.join(ROOT, catalog.retained_release.manifest), raw = await fs.readFile(manifest);
@@ -67,27 +91,30 @@ test('artifact streaming rejects an oversized newline-free decompressed line', a
   await assert.rejects(readArtifact(ROOT, temporary, declaration), /JSONL line bound/);
 });
 
-test('failure and cancellation never publish', { timeout: 600_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-irs-eo-registry-industry-overlay/releases'), before = new Set(await fs.readdir(releases));
-  await assert.rejects(build({ _testHooks: async phase => { if (phase === 'after-manifest-before-verification') throw new Error('injected'); } }), /injected/);
-  const controller = new AbortController(); await assert.rejects(build({ signal: controller.signal, _testHooks: async phase => { if (phase === 'after-verification-before-publication') controller.abort(); } }), { name: 'AbortError' });
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(path.dirname(releases))).some(x => x.startsWith('.stage-')), false);
+test('failure and cancellation clean only invocation-owned output', { timeout: 600_000 }, async t => {
+  const failed = await isolatedOutput(t); let failedStage; const primary = new Error('injected IRS post-manifest failure');
+  await assert.rejects(build(failed.options(async (phase, context) => { if (phase === 'after-manifest-before-verification') { failedStage = context.stage; throw primary; } })), error => error === primary && error.inspection_required !== true);
+  assert.ok(failedStage); await assert.rejects(fs.stat(failedStage), { code: 'ENOENT' }); await failed.assertClean();
+
+  const cancelled = await isolatedOutput(t); let cancelledStage; const controller = new AbortController();
+  await assert.rejects(build(cancelled.options(async (phase, context) => { if (phase === 'after-verification-before-publication') { cancelledStage = context.stage; controller.abort(); } }, { signal: controller.signal })), { name: 'AbortError' });
+  assert.ok(cancelledStage); await assert.rejects(fs.stat(cancelledStage), { code: 'ENOENT' }); await cancelled.assertClean();
 });
 
-test('post-verification corruption is sealed out and cannot publish', { timeout: 240_000 }, async () => {
-  const base = path.join(ROOT, 'data/national-irs-eo-registry-industry-overlay'), releases = path.join(base, 'releases'), before = new Set(await fs.readdir(releases));
-  await assert.rejects(build({ _testHooks: async phase => { if (phase === 'after-verification-before-publication') { const stage = (await fs.readdir(base)).find(name => name.startsWith('.stage-')); assert.ok(stage); await fs.writeFile(path.join(base, stage, 'jurisdictions.jsonl'), '{"corrupt":true}\n'); } } }), /sealed staged artifact/);
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(base)).some(x => x.startsWith('.stage-') || x === '.build.lock'), false);
+test('post-verification corruption seals the explicit invocation stage, not unrelated staging', { timeout: 600_000 }, async t => {
+  const isolated = await isolatedOutput(t); let ownedStage;
+  await assert.rejects(build(isolated.options(async (phase, context) => { if (phase === 'after-verification-before-publication') { ownedStage = context.stage; assert.equal(path.basename(ownedStage).startsWith('.stage-'), true); assert.equal(await fs.readFile(isolated.sentinelPath, 'utf8'), 'unrelated historical staging evidence\n'); await fs.writeFile(path.join(ownedStage, 'jurisdictions.jsonl'), '{"corrupt":true}\n'); } })), /sealed staged artifact: jurisdictions\.jsonl/);
+  assert.ok(ownedStage); await assert.rejects(fs.stat(ownedStage), { code: 'ENOENT' }); await isolated.assertClean();
 });
 
-test('mid-shard cancellation cleans staging and lock', { timeout: 30_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-irs-eo-registry-industry-overlay/releases'), base = path.dirname(releases), before = new Set(await fs.readdir(releases)), controller = new AbortController();
-  await assert.rejects(build({ signal: controller.signal, _testHooks: async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) controller.abort(); } }), { name: 'AbortError' });
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(base)).some(x => x.startsWith('.stage-') || x === '.build.lock'), false);
+test('mid-shard cancellation cleans only invocation-owned stage and lock', { timeout: 600_000 }, async t => {
+  const isolated = await isolatedOutput(t), controller = new AbortController(); let ownedStage;
+  await assert.rejects(build(isolated.options(async (phase, context) => { if (phase === 'membership-row' && context.prefix === 0 && context.membershipRows === 100) { ownedStage = await isolated.ownedStage(); controller.abort(); } }, { signal: controller.signal })), { name: 'AbortError' });
+  assert.ok(ownedStage); await assert.rejects(fs.stat(ownedStage), { code: 'ENOENT' }); await isolated.assertClean();
 });
 
-test('write failure cleans staging and lock', { timeout: 30_000 }, async () => {
-  const releases = path.join(ROOT, 'data/national-irs-eo-registry-industry-overlay/releases'), base = path.dirname(releases), before = new Set(await fs.readdir(releases));
-  await assert.rejects(build({ _testHooks: async (phase, context) => { if (phase === 'before-partition-proof-write' && context.prefix === 0) await fs.mkdir(context.target); } }), /EEXIST|EISDIR|illegal operation|is a directory/i);
-  assert.deepEqual(new Set(await fs.readdir(releases)), before); assert.equal((await fs.readdir(base)).some(x => x.startsWith('.stage-') || x === '.build.lock'), false);
+test('proof write failure preserves primary error and unrelated staging', { timeout: 600_000 }, async t => {
+  const isolated = await isolatedOutput(t); let ownedStage;
+  await assert.rejects(build(isolated.options(async (phase, context) => { if (phase === 'before-partition-proof-write' && context.prefix === 0) { ownedStage = await isolated.ownedStage(); await fs.mkdir(context.target); } })), /EEXIST|EISDIR|illegal operation|is a directory/i);
+  assert.ok(ownedStage); await assert.rejects(fs.stat(ownedStage), { code: 'ENOENT' }); await isolated.assertClean();
 });
