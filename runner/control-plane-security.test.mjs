@@ -208,6 +208,8 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/entity-resolution/benchmark/labels"],
     ["POST", "/api/entity-resolution/benchmark/labels/import/preview", "{}"],
     ["POST", "/api/entity-resolution/benchmark/labels/import/commit", "{}"],
+    ["POST", "/api/entity-resolution/benchmark/labels/finalize/preview", "{}"],
+    ["POST", "/api/entity-resolution/benchmark/labels/finalize/publish", "{}"],
     ["PUT", "/api/entity-resolution/benchmark/labels/fixture", "{}"],
     ["GET", "/api/jobs"],
     ["POST", "/api/jobs", "{}"],
@@ -234,6 +236,13 @@ test("protects every live management endpoint while leaving only narrow liveness
     const malformedImport = await rawRequest({ port, hostHeader, method: "POST", pathname, authorization: `Bearer ${CONTROL_TOKEN}`, body });
     assert.equal(malformedImport.status, 400, `${pathname} rejects malformed/extra fields`);
     assert.equal(malformedImport.body.includes(CONTROL_TOKEN), false);
+  }
+  for (const [pathname, body] of [
+    ["/api/entity-resolution/benchmark/labels/finalize/preview", '{"operatorId":"operator-01","expectedRevision":"' + "0".repeat(64) + '","labels":"not-allowed"}'],
+    ["/api/entity-resolution/benchmark/labels/finalize/publish", '{"operatorId":"operator-01","expectedRevision":"' + "0".repeat(64) + '","previewToken":"' + "0".repeat(64) + '","confirmation":"PUBLISH LABEL SNAPSHOT","path":"bad"}'],
+  ]) {
+    const malformedFinalization = await rawRequest({ port, hostHeader, method: "POST", pathname, authorization: `Bearer ${CONTROL_TOKEN}`, body });
+    assert.equal(malformedFinalization.status, 400, `${pathname} rejects client paths and unknown fields`);
   }
 
   const wrongHost = await rawRequest({

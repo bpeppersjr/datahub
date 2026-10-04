@@ -421,6 +421,15 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .review-conflict label { display: grid; gap: 5px; color: var(--muted); font-size: .5rem; text-transform: uppercase; letter-spacing: .08em; }
 .review-conflict select, .review-conflict textarea { width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid #2d3640; border-radius: 6px; background: #0b1015; color: var(--ink); font-size: .5625rem; text-transform: none; letter-spacing: 0; }
 .review-conflict textarea { min-height: 54px; resize: vertical; }
+.benchmark-finalization { border-bottom: 1px solid var(--border); }
+.benchmark-finalization > summary { padding: 14px 18px; color: #bdc7cf; font-size: .625rem; cursor: pointer; }
+.benchmark-finalization > summary::marker { color: var(--amber); }
+.benchmark-finalization > .operations-note { margin: 0 18px 12px; }
+.benchmark-finalization .benchmark-toolbar { flex-wrap: wrap; border-top: 1px solid var(--border); }
+.benchmark-finalization .benchmark-toolbar label { grid-template-columns: auto minmax(180px, 1fr); }
+.benchmark-finalization .benchmark-toolbar input, .finalize-confirmation input { height: 36px; min-width: 180px; padding: 0 10px; border: 1px solid #2d3640; border-radius: 7px; outline: none; background: #0b1015; color: var(--ink); font-size: .625rem; text-transform: none; letter-spacing: 0; }
+.finalize-confirmation { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 12px; }
+.finalize-confirmation label { display: grid; gap: 5px; color: var(--muted); font-size: .5rem; text-transform: uppercase; letter-spacing: .08em; }
 @media (max-width: 900px) { .review-conflict { grid-template-columns: 1fr; } .benchmark-import .benchmark-toolbar { align-items: flex-start; } }
 
 .connector-panel { overflow: hidden; }

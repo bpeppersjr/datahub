@@ -8,6 +8,7 @@ import { createStore } from './store.mjs';
 import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
 import { commitBenchmarkLabelImport, getBenchmarkReviewState, getBenchmarkWorkingLabels, previewBenchmarkLabelImport, saveBenchmarkLabel } from './benchmark-review-store.mjs';
+import { previewBenchmarkLabelFinalization, publishBenchmarkLabelFinalization } from './benchmark-label-finalization.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
 import {handleNationalReportingTen} from './national-reporting-ten-http.mjs';
 import { createBusinessMapStore } from './business-map-store.mjs';
@@ -914,6 +915,21 @@ const server = http.createServer(async (request, response) => {
       json(response, 200, committing
         ? await commitBenchmarkLabelImport({ ...options, previewToken: input.previewToken })
         : await previewBenchmarkLabelImport(options));
+      return;
+    }
+
+    if (request.method === 'POST' && (url.pathname === '/api/entity-resolution/benchmark/labels/finalize/preview'
+      || url.pathname === '/api/entity-resolution/benchmark/labels/finalize/publish')) {
+      const input = await bodyJson(request, 8 * 1024);
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('Finalization request must be an object.'), { statusCode: 400 });
+      const publishing = url.pathname.endsWith('/publish');
+      const allowed = new Set(['operatorId', 'expectedRevision', ...(publishing ? ['previewToken', 'confirmation'] : [])]);
+      if (Object.keys(input).some((key) => !allowed.has(key)) || [...allowed].some((key) => !Object.hasOwn(input, key))) {
+        throw Object.assign(new Error('Finalization request has unsupported or missing fields.'), { statusCode: 400 });
+      }
+      json(response, 200, publishing
+        ? await publishBenchmarkLabelFinalization(input)
+        : await previewBenchmarkLabelFinalization(input));
       return;
     }
 

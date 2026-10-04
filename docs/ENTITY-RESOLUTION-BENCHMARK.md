@@ -50,14 +50,15 @@ The working copy can be downloaded as JSON Lines. It is not yet a published immu
 
 ## Immutable label snapshots
 
-After at least one independent label is saved, publish and verify an immutable snapshot:
+After at least one independent label is saved, preview and explicitly publish an immutable snapshot. Finalization is bound to the registered current sample, its pointer and manifest hashes, the full working-label revision, audit-journal hash, schema/policy registrations, operator, and the previously selected label pointer. Preview does not write files. The empty live template returns `ready: false`, no preview token, and a blocker; publication requires an explicit confirmation and cannot turn a precision pass into export permission.
 
 ```powershell
-npm run entity-resolution:benchmark:labels:publish
+npm run entity-resolution:benchmark:labels:publish -- --preview --operator-id reviewer-lead --expected-revision <working-revision-sha256>
+npm run entity-resolution:benchmark:labels:publish -- --publish --operator-id reviewer-lead --expected-revision <working-revision-sha256> --preview-token <preview-token> --confirm "PUBLISH LABEL SNAPSHOT"
 npm run entity-resolution:benchmark:labels:verify
 ```
 
-The publisher refuses an empty working set. It stores submitted labels, the exact working-set SHA-256, aggregate automatic-rule metrics, and source-pair diagnostic counts under a checksummed dependency on the immutable sample. Partial snapshots remain explicitly incomplete; later corrections create a new release. Even a passing precision result sets `export_authorized` to `false` until privacy and every contributing source policy pass separately.
+The publisher refuses an empty working set. It stores submitted labels, the exact working-set SHA-256, aggregate automatic-rule metrics, and source-pair diagnostic counts under a checksummed dependency on the immutable sample. Partial snapshots remain explicitly incomplete; later corrections create a new release. The label CLI accepts no file paths and has no direct `--labels` publication bypass; the read-only evaluator reports the registered working draft only. Publication receipts support same-preview retry/reconciliation and immutable releases are verified before pointer installation. Even a passing precision result sets `export_authorized` to `false` until privacy and every contributing source policy pass separately.
 
 ## Precision gate
 
@@ -77,10 +78,11 @@ This benchmark estimates precision, not recall, and overall rule precision can h
 ```powershell
 npm run entity-resolution:benchmark:build
 npm run entity-resolution:benchmark:verify
-npm run entity-resolution:benchmark:evaluate -- --labels data/business-entity-resolution-benchmark/labels/completed-labels.jsonl
+npm run entity-resolution:benchmark:evaluate
+npm run entity-resolution:benchmark:evaluate -- --labels data/business-entity-resolution-benchmark/labels/diagnostic-labels.jsonl
 ```
 
-The build publishes an immutable `awaiting-independent-labels` sample and a null label template. The evaluator can report incomplete progress at any time, but the gate remains false until every automatic sample row satisfies the rules above.
+The build publishes an immutable `awaiting-independent-labels` sample and a null label template. The evaluator can report registered-draft progress or read a bounded (4 MiB maximum) local JSONL file through the same strict label parser; it never writes or publishes that diagnostic input. It cannot select arbitrary benchmark manifests, and labels must refer to candidates in the registered sample. The gate remains false until every automatic sample row satisfies the rules above.
 
 ## Validated live sample
 

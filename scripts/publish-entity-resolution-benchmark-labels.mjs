@@ -1,49 +1,42 @@
 #!/usr/bin/env node
 
-import path from "node:path";
 import process from "node:process";
-import { buildEntityResolutionBenchmarkLabelRelease } from "../runner/entity-resolution-benchmark-labels.mjs";
-import { APP_ROOT, assertInsideApp } from "../runner/paths.mjs";
+import { previewBenchmarkLabelFinalization, publishBenchmarkLabelFinalization } from "../runner/benchmark-label-finalization.mjs";
 
 function parseArguments(args) {
-  const options = {
-    output: "data/business-entity-resolution-benchmark-labels",
-    benchmark: "data/business-entity-resolution-benchmark/current.json",
-    labels: null,
-  };
+  const options = {};
+  const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (["--output", "--benchmark", "--labels"].includes(argument)) {
+    if (["--preview", "--publish"].includes(argument)) {
+      if (seen.has("action")) throw new Error("Choose exactly one of --preview or --publish.");
+      seen.add("action");
+      if (options.action) throw new Error("Choose exactly one of --preview or --publish.");
+      options.action = argument.slice(2);
+    } else if (["--operator-id", "--expected-revision", "--preview-token", "--confirm"].includes(argument)) {
+      if (seen.has(argument)) throw new Error(`${argument} may only be provided once.`);
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
-      if (argument === "--output") options.output = value;
-      if (argument === "--benchmark") options.benchmark = value;
-      if (argument === "--labels") options.labels = value;
-      continue;
-    }
-    throw new Error(`Unknown argument ${argument}.`);
+      seen.add(argument);
+      options[{ "--operator-id": "operatorId", "--expected-revision": "expectedRevision", "--preview-token": "previewToken", "--confirm": "confirmation" }[argument]] = value;
+    } else throw new Error(`Unknown argument ${argument}.`);
   }
+  if (!options.action || !options.operatorId || !options.expectedRevision) throw new Error("Provide one action, --operator-id, and --expected-revision.");
+  if (options.action === "publish" && (!options.previewToken || options.confirmation !== "PUBLISH LABEL SNAPSHOT")) throw new Error("Publishing requires --preview-token and --confirm \"PUBLISH LABEL SNAPSHOT\".");
+  if (options.action === "preview" && (options.previewToken || options.confirmation)) throw new Error("Preview does not accept publish confirmation fields.");
   return options;
 }
 
 try {
   const options = parseArguments(process.argv.slice(2));
-  const result = await buildEntityResolutionBenchmarkLabelRelease({
-    outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
-    benchmarkPointer: assertInsideApp(path.resolve(APP_ROOT, options.benchmark)),
-    labelsPath: options.labels ? assertInsideApp(path.resolve(APP_ROOT, options.labels)) : null,
-  });
-  process.stdout.write(`${JSON.stringify({
-    release_id: result.manifest.release_id,
-    release_directory: result.releaseDirectory,
-    manifest: path.join(result.releaseDirectory, "manifest.json"),
-    status: result.manifest.status,
-    coverage: result.manifest.coverage,
-    automatic_precision_gate_passed: result.manifest.automatic_precision_gate_passed,
-    export_authorized: result.manifest.export_authorized,
-  }, null, 2)}\n`);
+  const result = options.action === "preview"
+    ? await previewBenchmarkLabelFinalization(options)
+    : await publishBenchmarkLabelFinalization(options);
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (options.action === "preview" && !result.ready) process.exitCode = 2;
 } catch (error) {
-  process.stderr.write(`Entity-resolution benchmark label publication failed: ${error.message}\n`);
+  process.stderr.write(`Entity-resolution benchmark label finalization failed: ${error.message}\n`);
+  if (error.inspection_required) process.stderr.write("Publication state requires local inspection; do not retry with a new token.\n");
   process.exitCode = 1;
 }

@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, stat, writeFile, lstat, realpath } from "node:fs/promises";
+import { mkdir, open, readFile, rename, stat, writeFile, lstat, realpath } from "node:fs/promises";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { createGunzip, gzipSync } from "node:zlib";
+import { createGunzip, gzipSync, gunzipSync } from "node:zlib";
+import { TextDecoder } from "node:util";
 import {
   COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS,
   verifyBusinessEntityResolution,
@@ -190,6 +191,37 @@ async function readGzipRecords(filePath) {
     if (line) records.push(JSON.parse(line));
   }
   return records;
+}
+
+async function readBoundedReviewPacket(filePath, maxBytes, { gzip = false, expectedSha256 = null, expectedBytes = null } = {}) {
+  await replaySafeFile(path.resolve(filePath), path.dirname(path.resolve(filePath)));
+  const handle = await open(filePath, "r");
+  let bytes;
+  try {
+    const before = await handle.stat();
+    if (!before.isFile() || before.nlink !== 1 || before.size > maxBytes) throw new Error("Benchmark review artifact exceeds its bounded regular-file contract.");
+    bytes = await handle.readFile();
+    const after = await handle.stat();
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size || bytes.length !== after.size
+      || await realpath(filePath) !== path.resolve(filePath)) throw new Error("Benchmark review artifact changed during bounded read.");
+  } finally { await handle.close(); }
+  if (expectedBytes != null && bytes.length !== expectedBytes || expectedSha256 && sha256(bytes) !== expectedSha256) {
+    throw new Error("Benchmark review artifact changed after manifest verification.");
+  }
+  if (!gzip) return bytes;
+  let decoded;
+  try { decoded = gunzipSync(bytes, { maxOutputLength: 16 * 1024 * 1024 }); }
+  catch { throw new Error("Benchmark candidate artifact is malformed or exceeds its decoded byte limit."); }
+  let text;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(decoded); }
+  catch { throw new Error("Benchmark candidate artifact is not valid UTF-8."); }
+  const lines = text.split(/\r?\n/);
+  if (lines.at(-1) === "") lines.pop();
+  if (lines.length > 1275) throw new Error("Benchmark candidate artifact exceeds its row limit.");
+  return lines.map((line) => {
+    if (!line || Buffer.byteLength(line) > 16 * 1024) throw new Error("Benchmark candidate artifact contains an empty or oversized row.");
+    return JSON.parse(line);
+  });
 }
 
 async function writeArtifact(directory, relativePath, content, metadata = {}) {
@@ -673,6 +705,12 @@ export async function verifyEntityResolutionBenchmarkSample(manifestPath) {
       artifactPaths.add(artifact.path);
       const filename = path.resolve(releaseDirectory, artifact.path);
       assertContained(releaseDirectory, filename, `Benchmark artifact ${artifact.path}`);
+      const maxBytes = artifact.artifact_type === "entity-resolution-benchmark-candidate-jsonl-gzip" ? 2 * 1024 * 1024
+        : artifact.artifact_type === "entity-resolution-benchmark-label-template-jsonl" ? 4 * 1024 * 1024 : 2 * 1024 * 1024;
+      const info = await lstat(filename);
+      if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.size > maxBytes || info.size !== artifact.bytes) {
+        throw new Error("artifact exceeds its bounded regular-file contract");
+      }
       const actual = await hashFile(filename);
       if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error("size or SHA-256 mismatch");
     } catch (error) {
@@ -686,8 +724,13 @@ export async function verifyEntityResolutionBenchmarkSample(manifestPath) {
   let labels = [];
   try {
     if (!candidateArtifact || !labelArtifact || !summaryArtifact || manifest.artifacts.length !== 3) throw new Error("expected exactly three benchmark artifacts");
-    candidates = await readGzipRecords(path.join(releaseDirectory, candidateArtifact.path));
-    labels = (await readFile(path.join(releaseDirectory, labelArtifact.path), "utf8")).trim().split("\n").filter(Boolean).map(JSON.parse);
+    candidates = await readBoundedReviewPacket(path.join(releaseDirectory, candidateArtifact.path), 2 * 1024 * 1024, { gzip: true, expectedSha256: candidateArtifact.sha256, expectedBytes: candidateArtifact.bytes });
+    const templateBytes = await readBoundedReviewPacket(path.join(releaseDirectory, labelArtifact.path), 4 * 1024 * 1024, { expectedSha256: labelArtifact.sha256, expectedBytes: labelArtifact.bytes });
+    const templateText = new TextDecoder("utf-8", { fatal: true }).decode(templateBytes);
+    const templateLines = templateText.split(/\r?\n/);
+    if (templateLines.at(-1) === "") templateLines.pop();
+    if (templateLines.length > 1275 || templateLines.some((line) => !line || Buffer.byteLength(line) > 16 * 1024)) throw new Error("label template exceeds row limits");
+    labels = templateLines.map(JSON.parse);
     if (candidates.length !== candidateArtifact.record_count || labels.length !== labelArtifact.record_count || candidates.length !== labels.length) {
       throw new Error("candidate or label-template counts do not reconcile");
     }

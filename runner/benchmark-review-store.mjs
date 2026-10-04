@@ -112,6 +112,11 @@ function serializedMutation(workRoot, action) {
   return operation;
 }
 
+export function withBenchmarkReviewMutationLock(workRoot = DEFAULT_WORK_ROOT, action) {
+  if (typeof action !== "function") throw requestError("A benchmark review mutation action is required.");
+  return serializedMutation(workRoot, action);
+}
+
 function labelStatus(label) {
   return label?.label ? "labeled" : "unlabeled";
 }
@@ -443,10 +448,17 @@ export async function commitBenchmarkLabelImport(options = {}) {
 export async function getBenchmarkWorkingLabels({ pointerPath = DEFAULT_POINTER, workRoot = DEFAULT_WORK_ROOT } = {}) {
   const loaded = await loadReviewData({ pointerPath, workRoot });
   if (!loaded) throw requestError("No benchmark sample is available.", 404);
+  let journalContent = "";
+  try { journalContent = await readFile(loaded.working.journalPath, "utf8"); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
   return {
     release_id: loaded.verified.release_id,
     labels: loaded.working.labels,
     content: loaded.working.content,
     revision: loaded.working.revision,
+    journalContent,
+    journalSha256: sha256(journalContent),
+    pointerSha256: loaded.pointerSha256,
+    manifestSha256: loaded.manifestSha256,
   };
 }

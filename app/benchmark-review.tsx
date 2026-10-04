@@ -72,6 +72,21 @@ type ImportPreview = {
   export_authorized: false;
   benchmark_gate_passed: boolean;
 };
+type FinalizationPreview = {
+  ready: boolean;
+  preview_token: string | null;
+  blockers: string[];
+  submitted_label_count: number;
+  unlabeled_count: number;
+  reviewer_count: number;
+  strata: Record<string, StratumAssessment>;
+  prior_snapshot: { release_id: string; manifest_sha256: string | null } | null;
+  label_diff: { added: number; removed: number; unchanged: number };
+  benchmark_gate_passed: boolean;
+  complete_labeled_benchmark: boolean;
+  export_authorized: false;
+  bindings: { draft_revision: string };
+};
 
 const labelText: Record<ReviewLabelValue, string> = {
   match: 'Match',
@@ -122,6 +137,11 @@ export default function BenchmarkReview() {
   const [previewStale, setPreviewStale] = useState(true);
   const [conflictResolutions, setConflictResolutions] = useState<Record<string, ImportResolution>>({});
   const [importBusy, setImportBusy] = useState(false);
+  const [finalizationOperatorId, setFinalizationOperatorId] = useState('');
+  const [finalizationPreview, setFinalizationPreview] = useState<FinalizationPreview | null>(null);
+  const [finalizationConfirmation, setFinalizationConfirmation] = useState('');
+  const [finalizationBusy, setFinalizationBusy] = useState(false);
+  const [finalizationError, setFinalizationError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +168,7 @@ export default function BenchmarkReview() {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+
 
   useEffect(() => {
     if (reviewerId.trim()) window.localStorage.setItem('cotive-benchmark-reviewer-id', reviewerId.trim());
@@ -286,8 +307,45 @@ export default function BenchmarkReview() {
     setPreviewStale(true);
   }
 
+  async function previewFinalization() {
+    if (!data?.revision || finalizationOperatorId.trim().length < 2) return;
+    setFinalizationBusy(true);
+    setFinalizationError('');
+    try {
+      const preview = await benchmarkApi<FinalizationPreview>('/api/entity-resolution/benchmark/labels/finalize/preview', {
+        method: 'POST', body: JSON.stringify({ operatorId: finalizationOperatorId.trim(), expectedRevision: data.revision }),
+      });
+      setFinalizationPreview(preview);
+      setFinalizationConfirmation('');
+    } catch (caught) {
+      setFinalizationPreview(null);
+      setFinalizationError(caught instanceof Error ? caught.message : 'Unable to preview label snapshot.');
+    } finally { setFinalizationBusy(false); }
+  }
+
+  async function publishFinalization() {
+    if (!data?.revision || !finalizationPreview?.ready || !finalizationPreview.preview_token || finalizationConfirmation !== 'PUBLISH LABEL SNAPSHOT') return;
+    setFinalizationBusy(true);
+    setFinalizationError('');
+    try {
+      const result = await benchmarkApi<{ release_id: string }>('/api/entity-resolution/benchmark/labels/finalize/publish', {
+        method: 'POST', body: JSON.stringify({
+          operatorId: finalizationOperatorId.trim(), expectedRevision: data.revision,
+          previewToken: finalizationPreview.preview_token, confirmation: finalizationConfirmation,
+        }),
+      });
+      setFinalizationPreview(null);
+      setFinalizationConfirmation('');
+      setNotice(`Immutable label snapshot ${result.release_id} published. Export remains unauthorized.`);
+      await load();
+    } catch (caught) {
+      setFinalizationError(caught instanceof Error ? caught.message : 'Unable to publish label snapshot; inspect local publication status before retrying.');
+    } finally { setFinalizationBusy(false); }
+  }
+
   const siteAssessment = data?.assessment?.strata['automatic-physical-site'];
   const establishmentAssessment = data?.assessment?.strata['automatic-establishment'];
+  const finalizationPreviewStale = !!finalizationPreview && finalizationPreview.bindings.draft_revision !== data?.revision;
 
   return (
     <section id="benchmark" className="panel benchmark-panel">
@@ -345,6 +403,28 @@ export default function BenchmarkReview() {
               {(previewStale || !importPreview.ready) && importPreview.conflicts.length > 0 && <button className="ghost-button" onClick={() => void previewImport()} disabled={importBusy}>Apply conflict choices to preview</button>}
               {importPreview.ready && <button className="primary-button" onClick={() => void commitImport()} disabled={importBusy || previewStale}>Commit to working draft</button>}
             </div>}
+          </details>
+
+          <details className="benchmark-finalization">
+            <summary>Finalize an immutable label snapshot</summary>
+            <p className="operations-note">A separate, irreversible publication step. Preview is read-only and will block while labels are empty, audit recovery is pending, or the registered sample/draft/pointer has drifted. A precision pass never authorizes export.</p>
+            <div className="benchmark-toolbar">
+              <label>Finalizing operator ID<input value={finalizationOperatorId} onChange={(event) => { setFinalizationOperatorId(event.target.value); setFinalizationPreview(null); setFinalizationConfirmation(''); }} placeholder="operator-name" /></label>
+              <button className="ghost-button" onClick={() => void previewFinalization()} disabled={finalizationBusy || !data.revision || finalizationOperatorId.trim().length < 2}>{finalizationBusy ? 'Working…' : 'Preview snapshot'}</button>
+              <span>Current draft: {data.revision?.slice(0, 12) || 'unavailable'}</span>
+            </div>
+            {finalizationPreview && <div className="operations-plan" aria-live="polite">
+              <strong>{finalizationPreviewStale ? 'Draft changed · preview again' : finalizationPreview.ready ? 'Ready for explicit publication confirmation' : 'Publication blocked'}</strong>
+              <p>{finalizationPreview.submitted_label_count.toLocaleString()} submitted · {finalizationPreview.unlabeled_count.toLocaleString()} unlabeled · {finalizationPreview.reviewer_count.toLocaleString()} reviewers</p>
+              <p>Automatic precision gate: {finalizationPreview.benchmark_gate_passed ? 'passed' : 'not passed'} · full benchmark labeled: {finalizationPreview.complete_labeled_benchmark ? 'yes' : 'no'} · export authorized: no</p>
+              {finalizationPreview.prior_snapshot && <p>Prior immutable snapshot: {finalizationPreview.prior_snapshot.release_id}</p>}
+              {finalizationPreview.blockers.map((blocker) => <p className="benchmark-error" key={blocker}>{blocker}</p>)}
+              {finalizationPreview.ready && !finalizationPreviewStale && <div className="finalize-confirmation">
+                <label>Type PUBLISH LABEL SNAPSHOT to confirm<input value={finalizationConfirmation} onChange={(event) => setFinalizationConfirmation(event.target.value)} /></label>
+                <button className="primary-button" onClick={() => void publishFinalization()} disabled={finalizationBusy || finalizationConfirmation !== 'PUBLISH LABEL SNAPSHOT'}>Publish immutable snapshot</button>
+              </div>}
+            </div>}
+            {finalizationError && <p className="benchmark-error">{finalizationError}</p>}
           </details>
 
           {error && <p className="benchmark-error">{error}</p>}

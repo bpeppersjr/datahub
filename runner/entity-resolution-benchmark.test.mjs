@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -10,6 +11,8 @@ import {
   buildEntityResolutionBenchmarkLabelRelease,
   verifyEntityResolutionBenchmarkLabelRelease,
 } from "./entity-resolution-benchmark-labels.mjs";
+import { previewBenchmarkLabelFinalization, publishBenchmarkLabelFinalization } from "./benchmark-label-finalization.mjs";
+import { getBenchmarkWorkingLabels, previewBenchmarkLabelImport, commitBenchmarkLabelImport } from "./benchmark-review-store.mjs";
 import {
   buildEntityResolutionBenchmarkSample,
   evaluateBenchmarkLabels,
@@ -218,7 +221,7 @@ test("builds and independently verifies a deterministic enriched benchmark sampl
     logger: () => {},
   });
   const benchmark = await buildEntityResolutionBenchmarkSample({
-    outputRoot: path.join(root, "benchmark"),
+    outputRoot: path.join(root, "data", "business-entity-resolution-benchmark"),
     resolutionPointer: resolution.pointerPath,
     registryPointer,
     sampleSizePerStratum: 384,
@@ -261,25 +264,113 @@ test("builds and independently verifies a deterministic enriched benchmark sampl
     outputRoot: path.join(root, "empty-label-release"),
     benchmarkPointer: benchmark.pointerPath,
     workRoot: path.join(root, "empty-label-work"),
-  }), /At least one independently completed label/);
+  }), /preview and explicit publish workflow/);
 
-  const completedLabelsPath = path.join(root, "completed-labels.jsonl");
-  const completedLabels = verified.candidates.map((candidate) => completedLabel(candidate));
-  await writeFile(completedLabelsPath, `${completedLabels.map((label) => JSON.stringify(label)).join("\n")}\n`);
-  const labelRelease = await buildEntityResolutionBenchmarkLabelRelease({
-    outputRoot: path.join(root, "label-release"),
-    benchmarkPointer: benchmark.pointerPath,
-    labelsPath: completedLabelsPath,
-    now: () => new Date("2026-08-30T23:00:00.000Z"),
+  // Exercise the registered, preview-bound publication path against an isolated
+  // fixture root. The empty live workspace is never touched by this test.
+  const appRoot = root;
+  const benchmarkPointerPath = benchmark.pointerPath;
+  const benchmarkManifestPath = path.join(benchmark.releaseDirectory, "manifest.json");
+  const benchmarkManifestBytes = await readFile(benchmarkManifestPath);
+  const relativeManifest = path.relative(appRoot, benchmarkManifestPath).replaceAll("\\", "/");
+  const relativePointer = path.relative(appRoot, benchmarkPointerPath).replaceAll("\\", "/");
+  const configPath = async (relative) => path.join(appRoot, relative);
+  const benchmarkRegistration = {
+    dataset_id: "national-business-entity-resolution-benchmark",
+    current_verified_sample: { release_id: benchmark.manifest.release_id, manifest: relativeManifest, manifest_sha256: sha256(benchmarkManifestBytes) },
+    runtime_pointer: relativePointer,
+  };
+  await mkdir(await configPath("config/datasets"), { recursive: true });
+  await mkdir(await configPath("config/schemas"), { recursive: true });
+  await mkdir(await configPath("config/source-policies"), { recursive: true });
+  await writeFile(await configPath("config/datasets/national-business-entity-resolution-benchmark.json"), JSON.stringify(benchmarkRegistration));
+  const repoRoot = process.cwd();
+  for (const relative of [
+    "config/datasets/national-business-entity-resolution-benchmark-labels.json",
+    "config/schemas/business-entity-resolution-benchmark-label.schema.json",
+    "config/source-policies/national-business-entity-resolution-benchmark.json",
+  ]) await writeFile(await configPath(relative), await readFile(path.join(repoRoot, relative)));
+  const workRoot = path.join(root, "review-work");
+  const draft = await getBenchmarkWorkingLabels({ pointerPath: benchmarkPointerPath, workRoot });
+  const outputRoot = path.join(root, "data", "business-entity-resolution-benchmark-labels");
+  const emptyPreview = await previewBenchmarkLabelFinalization({
+    appRoot, benchmarkPointerPath, workRoot, outputRoot,
+    operatorId: "fixture-publisher", expectedRevision: draft.revision,
   });
-  assert.equal(labelRelease.manifest.automatic_precision_gate_passed, true);
-  assert.equal(labelRelease.manifest.export_authorized, false);
-  const verifiedLabels = await verifyEntityResolutionBenchmarkLabelRelease(
-    path.join(labelRelease.releaseDirectory, "manifest.json"),
-    { benchmarkPointer: benchmark.pointerPath },
-  );
+  assert.equal(emptyPreview.ready, false);
+  assert.equal(emptyPreview.preview_token, null);
+  assert.equal(emptyPreview.submitted_label_count, 0);
+  await assert.rejects(publishBenchmarkLabelFinalization({
+    appRoot, benchmarkPointerPath, workRoot, outputRoot,
+    operatorId: "fixture-publisher", expectedRevision: draft.revision,
+    previewToken: "0".repeat(64), confirmation: "PUBLISH LABEL SNAPSHOT",
+  }), /independently completed label/);
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  await assert.rejects(readFile(workRoot), { code: "ENOENT" });
+  const rows = verified.candidates.map((candidate) => completedLabel(candidate));
+  const upload = `${rows.map((label) => JSON.stringify(label)).join("\n")}\n`;
+  const diagnosticPath = path.join(root, "diagnostic-labels.jsonl");
+  await writeFile(diagnosticPath, upload);
+  const diagnostic = spawnSync(process.execPath, [path.join(process.cwd(), "scripts", "evaluate-entity-resolution-benchmark.mjs"), "--labels", diagnosticPath], {
+    cwd: process.cwd(), encoding: "utf8", env: { ...process.env, DATAHUB_ROOT: appRoot },
+  });
+  assert.equal(diagnostic.status, 0, diagnostic.stderr);
+  assert.equal(Object.values(JSON.parse(diagnostic.stdout).strata).reduce((sum, item) => sum + item.submitted, 0), 1152);
+  await writeFile(diagnosticPath, `${upload}${JSON.stringify(rows[0])}\n`);
+  const malformedDiagnostic = spawnSync(process.execPath, [path.join(process.cwd(), "scripts", "evaluate-entity-resolution-benchmark.mjs"), "--labels", diagnosticPath], {
+    cwd: process.cwd(), encoding: "utf8", env: { ...process.env, DATAHUB_ROOT: appRoot },
+  });
+  assert.notEqual(malformedDiagnostic.status, 0);
+  const importPreview = await previewBenchmarkLabelImport({
+    pointerPath: benchmarkPointerPath, workRoot, jsonl: upload,
+    importingOperatorId: "fixture-importer", expectedRevision: draft.revision,
+  });
+  await commitBenchmarkLabelImport({
+    pointerPath: benchmarkPointerPath, workRoot, jsonl: upload,
+    importingOperatorId: "fixture-importer", expectedRevision: draft.revision,
+    previewToken: importPreview.preview_token,
+  });
+  const completedDraft = await getBenchmarkWorkingLabels({ pointerPath: benchmarkPointerPath, workRoot });
+  const options = {
+    appRoot, benchmarkPointerPath, workRoot,
+    outputRoot,
+    operatorId: "fixture-publisher", expectedRevision: completedDraft.revision,
+  };
+  const finalization = await previewBenchmarkLabelFinalization(options);
+  assert.equal(finalization.ready, true);
+  assert.equal(finalization.export_authorized, false);
+  const aborted = new AbortController();
+  aborted.abort();
+  await assert.rejects(publishBenchmarkLabelFinalization({
+    ...options, previewToken: finalization.preview_token, confirmation: "PUBLISH LABEL SNAPSHOT", signal: aborted.signal,
+  }), { name: "AbortError" });
+  await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
+  await assert.rejects(publishBenchmarkLabelFinalization({
+    ...options, previewToken: "0".repeat(64), confirmation: "PUBLISH LABEL SNAPSHOT",
+  }), /preview no longer matches/);
+  const publishRequest = { ...options, previewToken: finalization.preview_token, confirmation: "PUBLISH LABEL SNAPSHOT" };
+  const [published, racedPublish] = await Promise.all([
+    publishBenchmarkLabelFinalization(publishRequest),
+    publishBenchmarkLabelFinalization(publishRequest),
+  ]);
+  assert.equal(published.automatic_precision_gate_passed, true);
+  assert.equal(published.export_authorized, false);
+  assert.equal(racedPublish.release_id, published.release_id);
+  const verifyManifest = path.join(options.outputRoot, "releases", published.release_id, "manifest.json");
+  const verifiedLabels = await verifyEntityResolutionBenchmarkLabelRelease(verifyManifest, { appRoot });
   assert.equal(verifiedLabels.coverage.submitted_labels, 1152);
   assert.equal(verifiedLabels.export_authorized, false);
+  const recovered = await publishBenchmarkLabelFinalization({
+    ...options, previewToken: finalization.preview_token, confirmation: "PUBLISH LABEL SNAPSHOT",
+  });
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.release_id, published.release_id);
+  const submittedArtifact = (await readFile(verifyManifest, "utf8")).trim();
+  const verifiedManifest = JSON.parse(submittedArtifact);
+  const labelsPath = path.join(path.dirname(verifyManifest), verifiedManifest.artifacts.find((item) => item.path === "labels/submitted-labels.jsonl.gz").path);
+  const pristineLabels = await readFile(labelsPath);
+  await writeFile(labelsPath, Buffer.concat([pristineLabels, Buffer.from("tamper")]));
+  await assert.rejects(verifyEntityResolutionBenchmarkLabelRelease(verifyManifest, { appRoot }), /hash or size differs/);
 
   const labelsArtifact = benchmark.manifest.artifacts.find(
     (artifact) => artifact.artifact_type === "entity-resolution-benchmark-label-template-jsonl",
