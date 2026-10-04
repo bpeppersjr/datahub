@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
-import { evaluateNationalZipGoalAcceptanceFixture as evaluate, readNationalZipGoalAcceptance, NATIONAL_ZIP_GOAL_ACCEPTANCE_TEST_HOOKS as hooks } from './national-zip-goal-acceptance.mjs';
+import { evaluateNationalZipGoalAcceptanceFixture as evaluate, readNationalZipGoalAcceptance, NATIONAL_ZIP_GOAL_ACCEPTANCE_TEST_HOOKS as hooks,
+  NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS as readinessHooks } from './national-zip-goal-acceptance.mjs';
 
 function fixture() {
   return {
@@ -123,13 +124,53 @@ test('current retained ZIP membership check binds evidence without accepting eve
   assert.equal(report.production_execution, false); assert.equal(report.publication_performed, false); assert.equal(report.network_requests, 0);
 });
 
+test('active-business acceptance binds exact governance releases and stays blocked by the closed readiness ledger', async () => {
+  const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
+  assert.equal(report.acceptance.accepted, false);
+  const readiness = report.objective_readiness;
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.0.0');
+  assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
+    ['geography', 'achieved'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
+  ]);
+  assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
+  assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
+    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified']);
+  assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
+  for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified']) assert.ok(report.acceptance.blockers.includes(blocker));
+  for (const [name, binding] of Object.entries(readiness.bindings)) {
+    assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
+    assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
+  }
+  assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '41d3ac3b043317bd650ba2d79082ea24729c48d19a2137b627eec1e674db031d');
+  assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
+  assert.equal(readiness.bindings.goal_completion_matrix.broad_layer_gaps, 40);
+  assert.equal(readiness.bindings.broad_organization_projection.metadata.gate_readiness.distinct_keys_classified, 121);
+  assert.equal(readiness.claims.acceptance, false); assert.equal(readiness.claims.report_only, true);
+  assert.equal(readiness.claims.network_requests, 0); assert.equal(readiness.claims.writes, 0); assert.equal(readiness.claims.pointers_changed, false);
+  const invalids = [
+    value => { value.bindings.zip_entity_resolution.manifest_sha256 = '0'.repeat(64); },
+    value => { value.bindings.zip_industry_matrix.release_id = 'self-consistent-unverified-release'; },
+    value => { value.bindings.temporal_claim_matrix.summary.broad_state_dc_gaps = 0; },
+    value => { value.requirements_ledger.find(row => row.requirement === 'industry-coverage').status = 'achieved'; },
+    value => { value.bindings.broad_organization_projection.metadata.gate_readiness.taxonomy_exhaustive = false; },
+    value => { value.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count = 39; },
+    value => { delete value.bindings.goal_completion_matrix; },
+  ];
+  for (const mutate of invalids) { const changed = structuredClone(readiness); mutate(changed); assert.throws(() => readinessHooks.validateGoalReadinessBindings(changed), /rejected/); }
+});
+
 test('abort and unknown claim reject before retained I/O', async () => {
   await assert.rejects(readNationalZipGoalAcceptance({ signal: AbortSignal.abort() }), { name: 'AbortError' });
   await assert.rejects(readNationalZipGoalAcceptance({ claim: 'all-done' }), /unknown completion claim/);
 });
 
 test('read-only CLI succeeds for truthful reporting and exits two for universal ZIP completion', () => {
-  for (const [claim, status] of [['source-reported-zip-membership', 0], ['every-valid-usps-zip', 2]]) {
+  for (const [claim, status] of [['source-reported-zip-membership', 0], ['every-valid-usps-zip', 2], ['every-active-business-by-valid-zip', 2]]) {
     const result = spawnSync(process.execPath, [path.join(APP_ROOT, 'scripts/check-national-zip-goal.mjs'), '--claim', claim],
       { cwd: APP_ROOT, encoding: 'utf8', timeout: 60000, maxBuffer: 1000000, windowsHide: true });
     assert.ifError(result.error); assert.equal(result.status, status, result.stderr);
