@@ -1,4 +1,5 @@
 import {readExactZipIndustryEvidence} from './national-exact-zip-industry-evidence-matrix.mjs';
+import {VERSION as EXACT_ZIP_VERSION} from './national-exact-zip-industry-evidence-matrix.mjs';
 import {readZctaDemographicReadiness} from './zcta-demographic-readiness-reader.mjs';
 
 const check=value=>{if(!value)throw Error('ZIP industry and demographic cross-view is unavailable or incompatible.');};
@@ -14,7 +15,7 @@ export async function readZipIndustryDemographicCrossView({
  signal?.throwIfAborted();
  const industry=await readIndustry({zip5,root,signal});
  signal?.throwIfAborted();
- check(industry?.status==='present'&&industry.schema_version==='national-exact-zip-industry-evidence-matrix@1.1.0');
+ check(industry?.status==='present'&&industry.schema_version===EXACT_ZIP_VERSION);
  const row=industry.row;
  let status='available',demographic=null;
  if(!row)status='unavailable-exact-zip-evidence';
