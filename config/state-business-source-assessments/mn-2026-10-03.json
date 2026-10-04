@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "mn-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "state": {
+    "abbreviation": "MN",
+    "name": "Minnesota"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03",
+  "publisher": "Minnesota Secretary of State, Business Services",
+  "reassessment_reason": "The current full Business Bulk Data guide has moved to a new media URL and publishes stronger identity/address contracts. These do not remove the separate Active Business Data product's unresolved lifecycle and controlling-license gates.",
+  "access": {
+    "classification": "paid-active-list-separate-full-bulk",
+    "bulk": "Active Business Data provides names and primary addresses once or weekly. Full Business Bulk Data is a distinct active/inactive product with master, history and name/address records.",
+    "api": "No supported unattended MBLS bulk download API was established; guides describe portal delivery.",
+    "search": "Interactive filing search is separate from both downloadable products.",
+    "fees": "Active Business Data costs $30 once or $30 each week. Full bulk offers a request path for eligible noncommercial users and a separate commercial request/license process; this project has not claimed eligibility."
+  },
+  "fields": {
+    "published": true,
+    "summary": "Active guide publishes 16 columns with File Number plus Business Filing Type as composite key; filing dates may be partial and primary party names may be individuals. Full bulk separately guarantees static non-recycled Master ID across record types, publishes party/address domains and separate postal extension. Its schema must not be attributed to Active Business Data."
+  },
+  "active_status_semantics": "Active output reflects filing status when generated, not proof of operation. A disappeared Active row cannot be treated as a documented closure event. Foreign nonprofits lack annual-renewal dates under the Active guide.",
+  "statewide_completeness": "The landing page and Active guide differ on Housing Cooperative inclusion. Full bulk includes name reservations and trademarks, which require separate classification; neither product is a census of operating sites.",
+  "address_zip": "Active output provides ZIP and extension separately and identifies a primary business address without a full published value domain. Full bulk separately distinguishes principal, registered-office, mailing, home and agent address roles; geocoding must preserve those distinctions.",
+  "automation_terms_fees": "Account/order prerequisites remain. Full bulk guide describes monthly creation and Transaction History delivery within ten days; it does not authorize portal automation. Active weekly ordering does not establish unattended extraction rights.",
+  "redistribution": "The full-bulk license allows customer access in normal business but restricts substantial bulk resale/repackaging and sublicensing, and excludes updates absent a separate agreement. Which license governs Active Business Data remains unresolved; the full-bulk grant cannot be transferred by inference.",
+  "temporal_refresh": "Active filenames identify run date; full bulk has export dates, monthly creation and complete related-record sets for supplied businesses. Neither establishes a verified Active deletion/replay/checksum contract or current control totals.",
+  "citations": [
+    {
+      "url": "https://www.sos.mn.gov/business-liens/business-liens-data/business-data-available/",
+      "evidence": "Distinct Active and full-bulk products, current guide link, charges and order prerequisites."
+    },
+    {
+      "url": "https://www.sos.mn.gov/media/3974/business-data-active-user-guide.pdf",
+      "evidence": "Active layout, composite identity, partial dates, party fields, ZIP extension and renewal exception."
+    },
+    {
+      "url": "https://www.sos.mn.gov/media/d3skshdo/business-bulk-order-implementation-guide-and-record-layout.pdf",
+      "evidence": "Current full-bulk guide Rev08012025: permanent Master ID, monthly creation, record types, address roles and delivery. Documentation examples only, no source dataset acquired."
+    },
+    {
+      "url": "https://www.sos.mn.gov/media/5125/business-bulk-la.pdf",
+      "evidence": "Conditional commercial grant, substantial bulk resale/repackaging limit and separate update agreement."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-8.json"
+  ],
+  "unresolved_gates": [
+    "active-product-controlling-license",
+    "active-file-number-lifecycle",
+    "active-address-domain",
+    "population-discrepancy",
+    "current-delivery-counts",
+    "active-deletion-and-replay",
+    "supported-automation",
+    "derived-rights",
+    "privacy-exclusions"
+  ],
+  "strongest_next_action": "Narrow Active Business Data review to its controlling license, composite-key lifecycle, address-value domain, Housing Cooperative scope, replacement/deletion/replay semantics and supported delivery. Treat the separately documented full-bulk Master ID and address dictionary as an alternative product contract, not a resolved Active gate. No account, order, payment, terms, contact, download, connector implementation or production admission is authorized."
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "az-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "AZ",
+    "name": "Arizona"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+  "reassessment_reason": "Current FAQ confirms online extraction ordering; distinguish that route from the older form's delivery instructions and the January 2026 platform migration.",
+  "access": {
+    "classification": "paid-request-schema-unresolved",
+    "bulk": "FAQ advertises online full extraction for $1,000 or partial extraction for $75. The older M027 form specifies quoted comma-separated ASCII, CD-ROM/email delivery and a full-database download option.",
+    "api": "No public unattended API or recurring extraction contract established by reviewed official documentation.",
+    "search": "Arizona Business Center replaced eCorp in January 2026; no entity searches or order flows were submitted."
+  },
+  "fields": {
+    "published": false,
+    "summary": "M027 lists name/address, dates, status, business type and person-role groups, but no exact current header or stable-ID contract. SIC codes, phone, EIN and financial information are unavailable."
+  },
+  "active_status_semantics": "Bulk status vocabulary and effective dates remain unverified; corporate registration cannot establish operating-site activity.",
+  "statewide_completeness": "The advertised corporation/LLC database is not a denominator of every business establishment. Current counts, types and historical inclusion remain unresolved.",
+  "address_zip": "Business address, statutory-agent address and officer addresses need distinct roles. Keep ZIP5 and ZIP4 separate and do not infer business coordinates from agent addresses.",
+  "automation_terms_fees": "Online ordering availability does not establish automated delivery. Commercial-purpose disclosure and purpose-specific charges remain applicable; no order or purpose declaration was submitted.",
+  "redistribution": "ARS 39-121.03 links commercial use to the declared purpose. Intended retention, geocoding and derivative distribution need a product-specific determination.",
+  "temporal_refresh": "No release cadence, full/delta semantics, deletion contract, replay controls or post-migration identifier continuity was established.",
+  "citations": [
+    {
+      "url": "https://www.azcc.gov/faqs",
+      "evidence": "Ad-hoc report/database extraction FAQ expressly describes online requests and full/partial prices."
+    },
+    {
+      "url": "https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6",
+      "evidence": "M027 provides legacy transport, format, field-group and unavailable-field information."
+    },
+    {
+      "url": "https://www.azcc.gov/news/home/2026/01/07/less-than-one-week-away-from-the-launch-of-arizona-business-connect",
+      "evidence": "January 12, 2026 launch announcement establishes the platform migration boundary."
+    },
+    {
+      "url": "https://www.azcc.gov/public-records-request",
+      "evidence": "Current public-records page links extraction requests and warns customized reports may be denied."
+    },
+    {
+      "url": "https://www.azleg.gov/ars/39/00121-03.htm",
+      "evidence": "Commercial-purpose statement and use consequences are source-specific."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a document-only clarification of current online extraction delivery, person-free schema, identifier continuity, release totals, replay and intended-use rights. HOLD remains; no account, request submission, payment or contact is authorized."
+}

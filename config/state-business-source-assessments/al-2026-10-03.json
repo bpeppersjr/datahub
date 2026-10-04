@@ -1,0 +1,91 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "al-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "state": {
+    "abbreviation": "AL",
+    "name": "Alabama"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03",
+  "publisher": "Alabama Secretary of State, Business Services",
+  "reassessment_reason": "Reconfirm the absence of an established recurring business-entity export in reviewed pages and narrow the public-record fallback by its explicit Alabama-citizen eligibility, while distinguishing UCC pricing and blank filing forms.",
+  "access": {
+    "classification": "search-only-bulk-unverified",
+    "bulk": "Reviewed business pages do not establish a recurring business-entity dataset. Business Downloads contains forms; UCC bulk pricing applies to a different record family.",
+    "api": "No supported public business-entity API or complete export contract was established by the official documentation reviewed.",
+    "search": "Government Records Inquiry provides individual entity name/number and person-role searches. No searches for business records were executed.",
+    "fees": "No business-entity bulk quote established. Public-record policy lists $1/page plus outside costs; UCC fee schedule lists $1,500 full and $300 weekly, not corporate export prices."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Search documentation confirms a six-to-nine digit Entity ID display change through leading zeroes. That is not a current bulk schema or guarantee of universal non-reuse. Blank forms and internal retention descriptions cannot substitute for an export contract."
+  },
+  "active_status_semantics": "Legal registration/existence does not establish operating activity. Official notice on removal of the SOS annual-report requirement supports caution about using annual filings as current-activity evidence.",
+  "statewide_completeness": "No exact recurring product population, row totals, byte size or complete source snapshot was established; absence from the reviewed docs is not proof that no export can exist.",
+  "address_zip": "No current bulk principal-address/ZIP domain was established. Registered-agent and service addresses must remain separate from operating sites. Future ZIP5 and ZIP4 fields stay separate and identifiers retain leading zeroes.",
+  "automation_terms_fees": "The official public-record request route is described for Alabama citizens; project eligibility is unverified. Free online inspection is described for the general public, but does not establish a bulk automation contract.",
+  "redistribution": "The public-record policy provides inspection/copy procedures, not a product-specific commercial transformation, geocoding or redistribution specification. Applicable source terms remain unresolved.",
+  "temporal_refresh": "No snapshot/delta schedule, deletion or correction semantics, replay, checksums or current delivery controls were established. Historic annual-report forms do not prove a continuing refresh requirement.",
+  "citations": [
+    {
+      "url": "https://www.sos.alabama.gov/government-records/business-entity-records?area=Business+Entity",
+      "evidence": "Individual search options and official six-to-nine digit Entity ID display notice."
+    },
+    {
+      "url": "https://www.sos.alabama.gov/business-entities/business-downloads",
+      "evidence": "Downloads page lists blank filing forms rather than a business-entity dataset."
+    },
+    {
+      "url": "https://www.sos.alabama.gov/public-records-request",
+      "evidence": "Alabama-citizen request route, separate free online access for the public and quoted-copy process."
+    },
+    {
+      "url": "https://www.sos.alabama.gov/sites/default/files/form-files/FeeSchedule.pdf",
+      "evidence": "Bulk fee line belongs specifically to UCC, not business entities."
+    },
+    {
+      "url": "https://www.sos.alabama.gov/newsroom/secretary-state-wes-allen-applauds-final-passage-legislation-cutting-red-tape-alabama",
+      "evidence": "Official announcement describes removal of SOS annual-report requirement."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-8.json"
+  ],
+  "unresolved_gates": [
+    "bulk-product-existence",
+    "requester-eligibility",
+    "current-schema",
+    "stable-identifier-lifecycle",
+    "status-codebook",
+    "address-role",
+    "complete-population",
+    "refresh-and-replay",
+    "automation",
+    "rights",
+    "privacy"
+  ],
+  "strongest_next_action": "Keep HOLD and prepare a product-existence/contract question set. Establish an eligible route before proposing a public-record request; do not assume Alabama citizenship. Require exact business-entity scope, schema, identity/status/address contracts, refresh/replay controls and rights before connector implementation. No public-record submission, source contact, record request, scraping, payment or production action is authorized."
+}

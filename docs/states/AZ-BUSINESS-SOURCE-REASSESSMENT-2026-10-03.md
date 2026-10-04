@@ -1,0 +1,9 @@
+# Arizona business-source reassessment — October 3, 2026
+
+Decision: **HOLD**. Source discovery and connector engineering review only. Immutable evidence is `config/state-business-source-assessments/az-2026-10-03.json`; it succeeds queue 6's September 3 assessment without changing acquisition authority.
+
+The [current ACC FAQ](https://www.azcc.gov/faqs) explicitly offers online extraction requests: $1,000 for the full database or $75 for a partial extraction. Ordering should therefore not be described as exclusively postal. The [older M027 instructions](https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6) still describe CD-ROM/email delivery and a full-database download. These establish product availability but leave the current fulfillment contract unresolved.
+
+The [January 2026 announcement](https://www.azcc.gov/news/home/2026/01/07/less-than-one-week-away-from-the-launch-of-arizona-business-connect) establishes an Arizona Business Center migration boundary. Current extraction headers, identifier continuity and refresh/replay behavior need confirmation. Corporate records cannot establish a physical operating site or industry classification. Preserve address roles and separate ZIP5 from ZIP4. The [commercial-use statute](https://www.azleg.gov/ars/39/00121-03.htm) still makes declared purpose relevant to this requested use.
+
+Next step: prepare clarification of current online fulfillment, person-free schema, counts, status/address dictionaries, replay and intended-use terms. No account, order, contact, payment, row download, automation or production change occurred. All action authority remains false. The dedicated reassessment loader pins the evidence content hash; corrections require a successor assessment.

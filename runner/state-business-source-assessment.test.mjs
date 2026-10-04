@@ -65,6 +65,16 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "wv-business-source-reassessment-2026-10-03",
       "nd-business-source-reassessment-2026-10-03",
       "nc-business-source-reassessment-2026-10-03",
+      "nj-business-source-reassessment-2026-10-03",
+      "va-business-source-reassessment-2026-10-03",
+      "tn-business-source-reassessment-2026-10-03",
+      "ma-business-source-reassessment-2026-10-03",
+      "az-business-source-reassessment-2026-10-03",
+      "mo-business-source-reassessment-2026-10-03",
+      "in-business-source-reassessment-2026-10-03",
+      "sc-business-source-reassessment-2026-10-03",
+      "mn-business-source-reassessment-2026-10-03",
+      "al-business-source-reassessment-2026-10-03",
       "il-business-source-reassessment-2026-10-03",
       "ms-business-source-reassessment-2026-10-03",
       "ky-business-source-reassessment-2026-10-03",
@@ -75,8 +85,8 @@ test("loads a non-overlapping governed catalog with current source reassessments
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 0,
-    jurisdictions_discovered: 13,
-    jurisdictions_official_source_validated: 30,
+    jurisdictions_discovered: 3,
+    jurisdictions_official_source_validated: 40,
     jurisdictions_existing_governed_source_validated: 8,
     hold_decisions: 41,
     bounded_connector_decisions: 2,
@@ -244,8 +254,9 @@ test("Queue 8 assessments retain either historical or explicit successor provena
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
   for (const abbreviation of ["LA", "MN", "AL", "WI"]) {
     const state = stateAssessment(catalog, abbreviation);
-    assert.equal(state.assessment_id, abbreviation === "LA" ? "la-business-source-reassessment-2026-10-03" : "state-business-source-discovery-queue-8-wave-1-2026-09-03");
-    assert.equal(state.observed_at, abbreviation === "LA" ? "2026-10-03" : "2026-09-03");
+    const hasSuccessor = abbreviation !== "WI";
+    assert.equal(state.assessment_id, hasSuccessor ? `${abbreviation.toLowerCase()}-business-source-reassessment-2026-10-03` : "state-business-source-discovery-queue-8-wave-1-2026-09-03");
+    assert.equal(state.observed_at, hasSuccessor ? "2026-10-03" : "2026-09-03");
     assert.equal(state.decision, "hold");
     assert.equal(state.authorized_next_action_type, "written-preflight-inquiry");
     for (const field of ["autonomous_acquisition_authorized", "paid_acquisition_authorized", "complete_source_acquisition_authorized", "row_bearing_preflight_authorized", "offline_fixture_connector_authorized", "production_ready"]) {

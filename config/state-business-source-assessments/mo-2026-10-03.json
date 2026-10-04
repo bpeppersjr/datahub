@@ -1,0 +1,81 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "mo-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "MO",
+    "name": "Missouri"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+  "reassessment_reason": "Revalidate published service availability and distinguish entity-type filing cadence from data-release freshness.",
+  "access": {
+    "classification": "bulk-product-current-contract-unresolved",
+    "bulk": "Current SOS service catalog lists searches, filings and copies but no bulk ordering route or price. The historical implementation report referenced by queue 7 could not be fetched in this review.",
+    "api": "No public API contract or unattended delivery specification established.",
+    "search": "Public search is listed; no searches were submitted."
+  },
+  "fields": {
+    "published": false,
+    "summary": "No current bulk field dictionary, person-free header, stable charter-key lifecycle or release count was located in the reviewed service documentation."
+  },
+  "active_status_semantics": "Legal standing and dissolution are filing facts; neither proves that an establishment is operating.",
+  "statewide_completeness": "General partnerships, separately regulated banking/insurance filings and local licenses require separate coverage. Bulk inclusion of entity types and fictitious names remains unverified.",
+  "address_zip": "Registered office is a service-of-process location. Preserve address roles and separate ZIP5/ZIP4; do not treat that office as a business establishment.",
+  "automation_terms_fees": "Current product fees and automation permissions remain unresolved. Indiana's comparative pricing table is not a Missouri publisher quote.",
+  "redistribution": "Reviewed Missouri service documentation does not settle intended retention, transformation, geocoding or redistribution rights.",
+  "temporal_refresh": "LLCs have no annual-report duty; corporations can elect biennial reports; LLP/LLLP registrations renew yearly. These are filing cadences, not a bulk release or replay contract.",
+  "citations": [
+    {
+      "url": "https://www.sos.mo.gov/business/formsAndServices",
+      "evidence": "Current service catalog has no published bulk route or technical contract."
+    },
+    {
+      "url": "https://www.sos.mo.gov/business/corporations/faqs.asp",
+      "evidence": "Explains entity-specific reporting duties, registered-office purpose, dissolution and distinct licensing/registry universes."
+    },
+    {
+      "url": "https://www.sos.mo.gov/business/corporations/fictitious_faq",
+      "evidence": "Fictitious registrations last five years and names need not be unique."
+    },
+    {
+      "url": "https://www.sos.mo.gov/CMSImages/SOSMain/AshcroftAdministrationAccomplishments.pdf",
+      "evidence": "Historical queue-7 evidence only: browser retrieval failed in this review; no new assertion of current availability is based on this failed retrieval."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a document-only inquiry for the current bulk product route, quote, person-free schema, scope, entity-specific status and filing-age semantics, delivery/replay controls and derived-use rights. Do not infer universal annual freshness. HOLD remains and no contact or acquisition is authorized."
+}

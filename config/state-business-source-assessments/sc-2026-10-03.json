@@ -1,0 +1,89 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "sc-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "state": {
+    "abbreviation": "SC",
+    "name": "South Carolina"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+  "publisher": "South Carolina Secretary of State through South Carolina Interactive / SC.gov",
+  "reassessment_reason": "Confirm the paid corporate baseline, distinguish new-filings and UCC products, and record the September 2026 filing-login identity notice without extending it to a bulk-delivery contract.",
+  "access": {
+    "classification": "paid-corporate-bulk-contract-unverified",
+    "bulk": "Corporate baseline: monthly CSV archives CORP_NAMES.ZIP, CORP_TXN.ZIP and CORPORATION.ZIP, delivered to a subscriber FTP endpoint on the fifth. Separate new-filings product uses Corporation.xls; it is not evidence of a complete baseline.",
+    "api": "Published web service concerns UCC filing, not a corporate registry enumeration API.",
+    "search": "Public organization and agent search remains separate. The portal announces identity verification from September 10, 2026 for applicable online filing login; its application to bulk service is unverified.",
+    "fees": "Corporate baseline $12,000 per fiscal year plus $125 subscription. New-filings $350/month or $3,850/year; combined UCC/corporate product $20,000/year, each with subscription charges."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Archive names are published, but a current field schema, stable entity-key lifecycle, status/address dictionaries and person-field inventory remain unverified. CORP_TXN cannot be assumed to supply a complete change log."
+  },
+  "active_status_semantics": "The portal defines Good Standing as legal existence not terminated or dissolved, not proof of current operation. Nonprofit good standing also does not establish solicitation authority.",
+  "statewide_completeness": "The SOS filing population excludes sole proprietorships and general partnerships. Neither corporation-product scope nor all operating establishments is established by the bulk label.",
+  "address_zip": "Registered-agent and registered-office information is available in public searches, but does not establish physical business locations. Bulk address/ZIP coverage is unresolved; any later projection must keep ZIP5 and ZIP4 separate.",
+  "automation_terms_fees": "Registration, signature, ACH and subscriber transfer credentials are required. Push delivery is described; a supported secure-transfer, retry or replay contract remains unverified.",
+  "redistribution": "General subscription terms require compliance with applicable limitations and allow additional agreements. No product-specific grant establishing derived publication or redistribution was found.",
+  "temporal_refresh": "Monthly delivery is established. Baseline versus delta semantics, deletions, correction handling, checksums and control totals are unresolved; new-filings access is a distinct product.",
+  "citations": [
+    {
+      "url": "https://scdgs.sc.gov/sites/scdgs/files/Documents/06252025_SC_Subscriber_Agreement.pdf",
+      "evidence": "Pages 1, 2, 12-14 distinguish pricing, baseline archives, delivery and new-filings product; document footer remains version 2.7 revised 07/19/2023."
+    },
+    {
+      "url": "https://scdgs.sc.gov/service/secretary-state-bulk-data-images-and-notary-registration",
+      "evidence": "Current service page confirms bulk products require agreement and annual/monthly fees."
+    },
+    {
+      "url": "https://businessfilings.sc.gov/businessfiling/Home",
+      "evidence": "September 2026 filing-login identity notice and explicit Good Standing limits."
+    },
+    {
+      "url": "https://www.sos.sc.gov/online-filings/business-entities",
+      "evidence": "Filing scope and sole-proprietor/general-partnership exclusions."
+    },
+    {
+      "url": "https://sos.sc.gov/online-filings/business-entities/file-and-search-online",
+      "evidence": "Public search provides registered-agent and registered-office information."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-7.json"
+  ],
+  "unresolved_gates": [
+    "corporate-product-scope",
+    "current-schema",
+    "stable-identifier-lifecycle",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "secure-transfer-and-replay",
+    "product-specific-rights",
+    "privacy-exclusions"
+  ],
+  "strongest_next_action": "Keep corporate baseline contract review separate from the new-filings add-on and UCC products. Resolve current schema, entity/status/address meanings, secure delivery, change semantics, totals and derived rights before an authorized order. The new filing-login notice is not a bulk automation specification. No contact, registration, signing, payment, credentials, rows or production action is authorized."
+}

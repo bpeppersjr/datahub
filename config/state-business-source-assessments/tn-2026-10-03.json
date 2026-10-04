@@ -1,0 +1,76 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "source_access": false,
+    "acquisition": false,
+    "connector_implementation": false,
+    "production": false
+  },
+  "assessment_id": "tn-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "TN",
+    "name": "Tennessee"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-6-wave-1-2026-09-03",
+  "publisher": "Tennessee Secretary of State, Division of Business and Charitable Organizations",
+  "reassessment_reason": "Record the limits of current verification rather than representing historical TNCaB product discovery as a verified current download service.",
+  "access": {
+    "classification": "historically-advertised-paid-database-current-contract-unverified",
+    "bulk": "September evidence records purchase/download of the Business Entity Database through TNCaB. Search-indexed official service descriptions corroborate historical availability; live product availability was not revalidated.",
+    "api": "No current supported public bulk API or recurring-delivery contract established.",
+    "fees": "Current database price and service fees unverified. A tooling fetch result of HTTP 402 is not evidence of the product price or a required payment."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Prior evidence identifies SOS control number and distinguishes principal, mailing and registered-office roles. Current machine schema, key lifecycle, status codebook and safe projection remain unverified."
+  },
+  "active_status_semantics": "Preserve prior distinction between registry filing status and operating activity. Current record status or full vocabulary was not queried.",
+  "statewide_completeness": "Prior Q4 2024 aggregate of 406,667 active entities is historical, not a current download denominator; statewide_complete=false.",
+  "address_zip": "Prior form evidence does not prove bulk address fields or physical locations; retain ZIP5 and ZIP4 separately.",
+  "automation_terms_fees": "Read-only web fetches of the forms/fees page and TNCaB landing page returned 403 and 402 respectively. These are observation limitations, not proof of a service shutdown or access license. No bypass or portal interaction attempted.",
+  "redistribution": "Current unsigned product agreement and downstream-use terms remain unresolved.",
+  "temporal_refresh": "No newly verified refresh, replacement, delta, deletion, checksum or replay contract.",
+  "citations": [
+    {
+      "url": "https://sos.tn.gov/business-services",
+      "evidence": "Official indexed service page establishes TNCaB as the business filing/search destination; live fetch unsuccessful."
+    },
+    {
+      "url": "https://sos.tn.gov/businesses/forms-and-fees",
+      "evidence": "Read-only fetch returned 403 on October 3, 2026; no current fee conclusion drawn."
+    },
+    {
+      "url": "https://tncab.tnsos.gov/portal",
+      "evidence": "Read-only tooling fetch returned 402; no product terms or price observed."
+    }
+  ],
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-6.json"
+  ],
+  "strongest_next_action": "Revalidate the current public product description and unsigned database-download terms before any purchase. Obtain exact price, schema, control-number lifecycle, population/status/address definitions and supported delivery/change/use terms. This assessment authorizes no contact, credentials, rows or connector.",
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ]
+}

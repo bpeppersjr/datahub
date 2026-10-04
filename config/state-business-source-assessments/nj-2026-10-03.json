@@ -1,0 +1,80 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "source_access": false,
+    "acquisition": false,
+    "connector_implementation": false,
+    "production": false
+  },
+  "assessment_id": "nj-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "NJ",
+    "name": "New Jersey"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-5-wave-1-2026-09-03",
+  "publisher": "New Jersey Division of Revenue and Enterprise Services",
+  "reassessment_reason": "Pin the current July 2026 fee schedule and 2023 readoption; distinguish listed bulk selectors and capacity qualifications from a complete statewide machine feed.",
+  "access": {
+    "classification": "paid-written-bulk-request",
+    "bulk": "Bulk Access Status Reports line item 01000000 remains listed. Filing date and entity type are the published selectors; an active-only or ZIP selector is not established.",
+    "api": "No supported public business-entity bulk API contract was established.",
+    "fees": "$0.0185 per record; final volume, media and payment charges require a quote. Listed delivery media include FTP, email, magnetic disk and paper, subject to capacity."
+  },
+  "fields": {
+    "published": false,
+    "summary": "The schedule lists business names, legal status, registered-agent/office, annual-report dates, business addresses and associated names. This is an informational inventory, not a machine schema; identifier lifecycle, widths, types and missing-value rules remain unresolved."
+  },
+  "active_status_semantics": "Legal status in the status report does not establish an operating business or physical establishment. No complete bulk status codebook or active subset was verified.",
+  "statewide_completeness": "A quote for a selected registry population does not establish all operating businesses or complete geographic coverage; statewide_complete=false.",
+  "address_zip": "Business-address roles need a bulk dictionary. Registered office is separate from an operating location. Preserve ZIP5 and ZIP4 in separate fields.",
+  "automation_terms_fees": "The 2023 notice readopts N.J.A.C. 17:34 through June 27, 2030. Historical published procedures describe quotes, authorization and payment before production; FTP being listed is not a supported unattended retrieval contract.",
+  "redistribution": "The portal disclaimer is not an affirmative paid-extract retention or redistribution grant; scope for derived outputs remains unresolved.",
+  "temporal_refresh": "Published historical procedure permits ongoing updates, but cadence, baseline, deletion, correction, replay and checksum contracts remain unverified.",
+  "citations": [
+    {
+      "url": "https://www.nj.gov/treasury/revenue/fees.shtml",
+      "evidence": "Current page dated July 1, 2026 confirms price, selectors, content inventory and capacity caveat."
+    },
+    {
+      "url": "https://www.nj.gov/treasury/proposed_rules/NoR17_3455NJR1741a.pdf",
+      "evidence": "2023 readoption states effective June 27, 2023 and expiration June 27, 2030."
+    },
+    {
+      "url": "https://nj.gov/treasury/proposed_rules/PRN%202015-154%20(47%20NJR%202912(a)).pdf",
+      "evidence": "Historical proposed amendments describe 500-record threshold, quote and payment workflow; not a current machine-delivery specification."
+    },
+    {
+      "url": "https://www.njportal.com/errorpages/disclaimer.aspx",
+      "evidence": "Portal disclaimer reviewed; no paid-extract license established."
+    }
+  ],
+  "strongest_next_action": "Obtain the schema-only specification for line item 01000000, exact type/status selection and address roles, and supported delivery/change/use terms before ordering. Reconfirm current request procedure rather than treating the historical proposal as an executed agreement. This assessment authorizes no contact or order.",
+  "local_evidence": [
+    "config/state-business-source-discovery-queue-5.json"
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy"
+  ]
+}

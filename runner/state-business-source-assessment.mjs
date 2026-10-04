@@ -15,6 +15,9 @@ import { GEORGIA_REASSESSMENT_ID, NEW_MEXICO_REASSESSMENT_ID, MONTANA_REASSESSME
 import { OK_NE_VT_ME_REASSESSMENT_IDS, loadOkNeVtMeBusinessSourceReassessments } from "./ok-ne-vt-me-business-source-reassessment.mjs";
 import { WYOMING_REASSESSMENT_ID, RHODE_ISLAND_REASSESSMENT_ID, SOUTH_DAKOTA_REASSESSMENT_ID, loadWyomingBusinessSourceReassessment, loadRhodeIslandBusinessSourceReassessment, loadSouthDakotaBusinessSourceReassessment } from "./wyoming-rhode-island-south-dakota-business-source-reassessment.mjs";
 import { WV_ND_NC_REASSESSMENT_IDS, loadWvNdNcBusinessSourceReassessments } from "./wv-nd-nc-business-source-reassessment.mjs";
+import { NJ_VA_TN_MA_REASSESSMENT_IDS, loadNjVaTnMaBusinessSourceReassessments } from "./nj-va-tn-ma-business-source-reassessment.mjs";
+import { ARIZONA_REASSESSMENT_ID, MISSOURI_REASSESSMENT_ID, INDIANA_REASSESSMENT_ID, loadArizonaBusinessSourceReassessment, loadMissouriBusinessSourceReassessment, loadIndianaBusinessSourceReassessment } from "./arizona-missouri-indiana-business-source-reassessment.mjs";
+import { SC_MN_AL_REASSESSMENT_IDS, loadScMnAlBusinessSourceReassessments } from "./sc-mn-al-business-source-reassessment.mjs";
 import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
 import { EXISTING_SOURCE_STATES, loadExistingGovernedSourceAssessmentWave } from "./state-business-source-existing-wave.mjs";
 import { APP_ROOT } from "./paths.mjs";
@@ -27,7 +30,7 @@ import {
 
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.2.0";
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-10-03";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "c5cfd300fe5df1879fb089ec97d15491e136a490b676f16eaea412335ccf097c";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "cf7b18cbee09c84577acc185d552dbc4959e0a537e85d8774205b4aaac5fc58e";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -146,6 +149,11 @@ const CURRENT_REASSESSMENT_IDS = Object.freeze({
   RI: RHODE_ISLAND_REASSESSMENT_ID,
   SD: SOUTH_DAKOTA_REASSESSMENT_ID,
   ...WV_ND_NC_REASSESSMENT_IDS,
+  ...NJ_VA_TN_MA_REASSESSMENT_IDS,
+  AZ: ARIZONA_REASSESSMENT_ID,
+  MO: MISSOURI_REASSESSMENT_ID,
+  IN: INDIANA_REASSESSMENT_ID,
+  ...SC_MN_AL_REASSESSMENT_IDS,
   IL: ILLINOIS_REASSESSMENT_ID,
   MS: MISSISSIPPI_REASSESSMENT_ID,
   ...KY_HI_NV_REASSESSMENT_IDS,
@@ -442,7 +450,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
-  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments] = await Promise.all([
+  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments, njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, scMnAlReassessments] = await Promise.all([
     loadStateBusinessSourceAssessmentWave(),
     Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
     loadExistingGovernedSourceAssessmentWave(),
@@ -463,6 +471,11 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     loadRhodeIslandBusinessSourceReassessment(),
     loadSouthDakotaBusinessSourceReassessment(),
     loadWvNdNcBusinessSourceReassessments(),
+    loadNjVaTnMaBusinessSourceReassessments(),
+    loadArizonaBusinessSourceReassessment(),
+    loadMissouriBusinessSourceReassessment(),
+    loadIndianaBusinessSourceReassessment(),
+    loadScMnAlBusinessSourceReassessments(),
   ]);
   const sourceArtifacts = [
     {
@@ -518,7 +531,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
         if (seen.has(state.state_abbreviation)) fail(`${state.state_abbreviation} existing-source wave overlaps prior assessment`);
         seen.add(state.state_abbreviation); states.push(state);
       }
-      for (const reassessment of [...caIdNhOhReassessments, ...miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, ...okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, ...wvNdNcReassessments, illinoisReassessment, mississippiReassessment, ...kyHiNvReassessments, utahReassessment, washingtonReassessment]) {
+      for (const reassessment of [...caIdNhOhReassessments, ...miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, ...okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, ...wvNdNcReassessments, ...njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, ...scMnAlReassessments, illinoisReassessment, mississippiReassessment, ...kyHiNvReassessments, utahReassessment, washingtonReassessment]) {
         const index = states.findIndex((state) => state.state_abbreviation === reassessment.state.abbreviation);
         if (index < 0) fail(`${reassessment.state.abbreviation} historical assessment is missing`);
         const normalized = normalizeCurrentReassessment(reassessment);

@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "contacts_made": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "assessment_id": "in-business-source-reassessment-2026-10-03",
+  "state": {
+    "abbreviation": "IN",
+    "name": "Indiana"
+  },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03",
+  "reassessment_reason": "Surface all-registered versus active-only scope ambiguity and distinguish 2026 residential-address suppression from CMRA disclosure requirements.",
+  "access": {
+    "classification": "account-gated-paid-bulk-contract-unresolved",
+    "bulk": "INBiz advertises a month-start full file through prior month-end, with 12 months of update eligibility. Regulatory analysis describes USB baseline delivery, $8,000 one-time or $9,500 plus $500 per selected monthly update.",
+    "api": "Monthly download access does not establish an unattended API.",
+    "search": "INBiz requires an account to purchase bulk files; no login, purchase, sample download or entity search occurred."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Exact bulk schema, Business-ID lifecycle, control totals and person-free projection remain unverified. The $35 new-business list is a separate product, not a full registry."
+  },
+  "active_status_semantics": "Biennial reporting maintains registry status; general partnerships and sole proprietors do not register. Operational activity cannot be inferred from registry standing.",
+  "statewide_completeness": "Product narrative says all registered businesses; regulatory analysis comparison table says all active. Resolve this scope ambiguity before assigning a denominator.",
+  "address_zip": "2026 guidance permits eligible remote businesses to exclude a residential address and separately requires CMRA disclosures. It does not say CMRA addresses are categorically withheld. Keep ZIP5/ZIP4 separate and suppressed addresses unknown.",
+  "automation_terms_fees": "Account, payment, delivery and automation terms need verification. The March 2025 first-public-comment document is proposed-rule evidence, not proof of final adoption.",
+  "redistribution": "Commercial demand for bulk records does not itself settle retention, geocoding, derived publication or redistribution terms.",
+  "temporal_refresh": "Updates are described as differential. Tombstones, ordering, correction/replay, baseline compatibility and checksums remain unresolved.",
+  "citations": [
+    {
+      "url": "https://inbiz.in.gov/Inbiz/BulkDataServices/Index",
+      "evidence": "Account requirement, all-registered month-end snapshot and optional monthly updates."
+    },
+    {
+      "url": "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf",
+      "evidence": "USB baseline and price descriptions; page 6 comparison labels Indiana one-time coverage all active, unlike the page 2 narrative."
+    },
+    {
+      "url": "https://inbiz.in.gov/business-filings/business-entityreport",
+      "evidence": "Biennial reports and exclusion of general partnerships and sole proprietors."
+    },
+    {
+      "url": "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/",
+      "evidence": "2026 remote-residential suppression and distinct CMRA disclosure requirements."
+    },
+    {
+      "url": "https://www.in.gov/sos/business/files/20250326-IR-075250155FNA.pdf",
+      "evidence": "First-public-comment notice with proposed bulk fee provisions; not used as proof of final rule adoption."
+    }
+  ],
+  "unresolved_gates": [
+    "source-scope",
+    "schema",
+    "stable-identifier",
+    "status-codebook",
+    "address-role",
+    "change-contract",
+    "automation",
+    "rights",
+    "privacy",
+    "control-totals"
+  ],
+  "strongest_next_action": "Prepare a document-only clarification of all-registered versus active scope, current USB/download delivery, redaction flags, person-free schema, differential replay and intended-use terms. HOLD remains; no account, purchase, contact or acquisition is authorized."
+}
