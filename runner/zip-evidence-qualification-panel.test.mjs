@@ -29,7 +29,7 @@ test('ZIP/category changes abort stale responses, release mismatch withholds res
  nodes(tree).find(n=>n.type==='button').props.onClick();h.render({zip:'12345',categoryId:'health-care'});assert.equal(pending.length,3);const mismatch=qualificationFixture({zip:'12345',category:'health-care'});mismatch.bindings.coverage_release_id='other';pending[2].resolve(mismatch);await flush();assert.match(text(h.render({zip:'12345',categoryId:'health-care'})),/does not match/);h.close();assert.equal(pending[2].signal.aborted,true);
 });
 test('unavailable release permits retry without zero counts or automatic build',async()=>{
- let calls=0;const h=harness(async()=>{calls++;return {schema_version:'zip-evidence-qualification-view@1.0.0',available:false,status:'not-enrolled',zip5:'00501',category_id:'all',rows:[]};});h.render();await flush();const tree=h.render();assert.match(text(tree),/No assessment was rebuilt/);assert.equal(calls,1);assert.equal(nodes(tree).filter(n=>n.type==='table').length,0);assert.ok(nodes(tree).some(n=>n.type==='button'));h.close();
+ let calls=0;const h=harness(async()=>{calls++;return {schema_version:'zip-evidence-qualification-view@1.1.0',available:false,status:'not-enrolled',zip5:'00501',category_id:'all',rows:[]};});h.render();await flush();const tree=h.render();assert.match(text(tree),/No assessment was rebuilt/);assert.equal(calls,1);assert.equal(nodes(tree).filter(n=>n.type==='table').length,0);assert.ok(nodes(tree).some(n=>n.type==='button'));h.close();
  const workspace=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(workspace,/section\s*===\s*["']Business segments["'][\s\S]{0,100}<ZipEvidenceQualificationPanel/);
 });
 
