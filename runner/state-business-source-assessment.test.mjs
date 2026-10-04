@@ -75,6 +75,10 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "sc-business-source-reassessment-2026-10-03",
       "mn-business-source-reassessment-2026-10-03",
       "al-business-source-reassessment-2026-10-03",
+      "wi-business-source-reassessment-2026-10-03",
+      "tx-business-source-reassessment-2026-10-03",
+      "ak-business-source-reassessment-2026-10-03",
+      "dc-business-source-reassessment-2026-10-03",
       "il-business-source-reassessment-2026-10-03",
       "ms-business-source-reassessment-2026-10-03",
       "ky-business-source-reassessment-2026-10-03",
@@ -85,8 +89,8 @@ test("loads a non-overlapping governed catalog with current source reassessments
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 0,
-    jurisdictions_discovered: 3,
-    jurisdictions_official_source_validated: 40,
+    jurisdictions_discovered: 0,
+    jurisdictions_official_source_validated: 43,
     jurisdictions_existing_governed_source_validated: 8,
     hold_decisions: 41,
     bounded_connector_decisions: 2,
@@ -254,9 +258,8 @@ test("Queue 8 assessments retain either historical or explicit successor provena
   const catalog = await loadStateBusinessSourceAssessmentCatalog();
   for (const abbreviation of ["LA", "MN", "AL", "WI"]) {
     const state = stateAssessment(catalog, abbreviation);
-    const hasSuccessor = abbreviation !== "WI";
-    assert.equal(state.assessment_id, hasSuccessor ? `${abbreviation.toLowerCase()}-business-source-reassessment-2026-10-03` : "state-business-source-discovery-queue-8-wave-1-2026-09-03");
-    assert.equal(state.observed_at, hasSuccessor ? "2026-10-03" : "2026-09-03");
+    assert.equal(state.assessment_id, `${abbreviation.toLowerCase()}-business-source-reassessment-2026-10-03`);
+    assert.equal(state.observed_at, "2026-10-03");
     assert.equal(state.decision, "hold");
     assert.equal(state.authorized_next_action_type, "written-preflight-inquiry");
     for (const field of ["autonomous_acquisition_authorized", "paid_acquisition_authorized", "complete_source_acquisition_authorized", "row_bearing_preflight_authorized", "offline_fixture_connector_authorized", "production_ready"]) {

@@ -1,0 +1,78 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "wi-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": {
+    "acquisition": false,
+    "network_execution": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "source_contact": false,
+    "pointer_changes": false,
+    "national_admission": false
+  },
+  "state": { "abbreviation": "WI", "name": "Wisconsin" },
+  "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03",
+  "publisher": "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+  "reassessment_reason": "Reconfirm paid bulk delivery and narrow unresolved schema/status questions using the public dictionary; refresh the latest observed aggregate while preserving its limited population.",
+  "access": {
+    "classification": "paid-full-corporate-database-sharefile",
+    "bulk": "Full Corporate Database is a text snapshot. New Formations is a separate prior-month additions product, not a replacement baseline or general update feed.",
+    "api": "The reviewed official pages establish no anonymous bulk API or supported unattended ShareFile retrieval contract.",
+    "search": "Interactive CRIS is a separate source; no searches or entity requests were performed.",
+    "fees": "Production Form 51, revised August 2024, prices each full snapshot at $40 and each New Formations delivery at $5. Ordering requires mailing the form and payment; DFI creates the ShareFile subscriber account."
+  },
+  "fields": {
+    "published": false,
+    "summary": "Public pages describe field categories, not an exact text layout, delimiter, encoding or bulk identifier mapping. Officer/director details are expressly omitted. The FAQ supplies public status, transaction and type dictionaries, but their serialization in the purchased file remains unverified."
+  },
+  "active_status_semantics": "CRIS describes legal filing condition. ORG indicates no termination filing; INC also includes reporting standing, while DLQ means overdue reports. MER denotes the survivor and MGD the non-survivor. These definitions do not establish operating activity or a validated bulk active filter.",
+  "statewide_completeness": "DFI expressly excludes many unregistered sole proprietors and general partnerships from its registry. The August 2026 active summary is an aggregate for selected entity classes, not the all-status purchased file's control total or the state's operating-business universe.",
+  "aggregate_observation": {
+    "as_of": "2026-08-31",
+    "published_print_date": "2026-09-15",
+    "active_entity_count": 639593,
+    "excludes": ["miscellaneous entities", "foreign registered names"],
+    "bulk_control_total": false,
+    "business_completion_denominator": false
+  },
+  "address_zip": "Only registered agent/office address is advertised for bulk delivery. A principal-office definition in the FAQ does not prove that field is supplied in the file. ZIP and ZIP+4 layout is unpublished; preserve them as separate fields if later documented. Agent addresses cannot establish operating sites under the project's canonical boundary.",
+  "automation_terms_fees": "Full files are offered once, weekly on Tuesday, or monthly on the second Tuesday. New Formations arrives by email on the second Monday. These delivery schedules do not establish unattended retrieval permission or an acquisition authorization.",
+  "redistribution": "The reviewed pages do not publish controlling bulk reuse/redistribution terms. Open-records guidance points corporate compilations to the paid product and warns purchased products may not be obtainable by an open-records request; it supplies no alternate free acquisition contract.",
+  "temporal_refresh": "The FAQ distinguishes effective dates from processing dates, which can differ. Published delivery cadence does not define snapshot cutoffs, disappearance/deletion meaning, correction replay or checksums. Monthly formation additions do not convey subsequent status changes.",
+  "citations": [
+    { "url": "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx", "evidence": "Product scope, bulk field categories, address role, omitted officer/director data and registry incompleteness." },
+    { "url": "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf", "evidence": "Production August 2024 form, pricing, cadence and DFI-created ShareFile account; blank ordering documentation only." },
+    { "url": "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/FAQ.aspx", "evidence": "Status/transaction/type dictionary and effective-versus-processing-date semantics." },
+    { "url": "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CurrentHistoricalStats.aspx", "evidence": "Latest listed active summary observed is August 2026." },
+    { "url": "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/083126_EndOfMonthEntityCounts.pdf", "evidence": "Aggregate-only publication: 639,593 active entities with two excluded classes; not entity-level rows." },
+    { "url": "https://dfi.wi.gov/Pages/About/OpenRecords.aspx", "evidence": "Corporate compilation purchase route and limits on substituting an open-records request." }
+  ],
+  "local_evidence": ["config/state-business-source-discovery-queue-8.json"],
+  "unresolved_gates": [
+    "bulk-layout-and-identifier-mapping",
+    "identifier-lifecycle",
+    "bulk-status-type-date-mapping",
+    "eligible-business-address-availability",
+    "current-file-counts-and-checksums",
+    "snapshot-cutoff-deletion-and-replay",
+    "supported-unattended-delivery",
+    "controlling-bulk-rights",
+    "privacy-exclusions"
+  ],
+  "strongest_next_action": "Prepare a document-only request for the purchased text layout and public-key lifecycle, mapping to the existing public type/status/date dictionary, any principal-business-address availability, file control totals, snapshot/replay contract, unattended delivery support and unsigned reuse terms. Treat the full file as an organization layer if eligible business addresses are absent. No contact, account, order, payment, terms acceptance, data acquisition, connector implementation or production admission is authorized."
+}

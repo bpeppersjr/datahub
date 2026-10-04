@@ -1,0 +1,58 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "tx-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": { "abbreviation": "TX", "name": "Texas" },
+  "supersedes_assessment_id": "tx-business-source-2026-09-22",
+  "publisher": "Texas Secretary of State",
+  "decision": "hold",
+  "connector_candidate": false,
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "authority": { "source_access": false, "acquisition": false, "connector_implementation": false, "production": false },
+  "reassessment_reason": "The current SOSPortal business-filings product publishes its own JSON layout; the September claim that detailed JSON documentation was UCC-only is superseded.",
+  "access": {
+    "classification": "paid-account-bulk",
+    "bulk": "SOSPortal offers a $1,350 Master Unload, $60 daily updates purchasable for the preceding 30 days, and $20 weekly formation-only updates for the preceding eight weeks.",
+    "api": "No public supported business-filings retrieval API or unattended transport contract was verified.",
+    "search": "Paid account-mediated search/order facilities; no portal query was performed."
+  },
+  "fields": {
+    "published": true,
+    "summary": "Business-filings JSON specification v1.2 supplies FilingNumber keys, entity names/types/status codes, address roles, historical names, related entities, filings, audit records and delete records. Personal-agent/officer nodes require exclusion and audit text requires privacy review."
+  },
+  "active_status_semantics": "The status dictionary is published. Status 4 denotes forfeited rights and bars transacting; status 5 denotes delinquent professional associations that may transact. Administrative existence cannot prove current physical operation.",
+  "statewide_completeness": "The master product describes the SOS database, not every operating business. Delivered population, entity-type exclusions and control totals remain unverified; statewide_complete=false.",
+  "address_zip": "Primary and initial-mail addresses are separate from agent/officer roles. masterZipCode and masterZipExtension are distinct strings; preserve ZIP5 and ZIP4 separately. These addresses alone do not prove operating sites or geocodes.",
+  "automation_terms_fees": "SOSPortal account and payment are required. Published pricing establishes a procurement option, not authorization. No account, order or payment was created. Unattended retrieval and product terms remain unverified.",
+  "redistribution": "SOS open-records policy supports access to nonconfidential records; the website disclaimer disclaims accuracy and timeliness. Neither reviewed page supplies a product-specific redistribution/retention contract or establishes a prohibition. Governance must determine permitted uses before admission.",
+  "temporal_refresh": "Master Unload covers filings through the month's first day; daily updates cover database changes; weekly updates only new formations. Delete nodes and filing/audit dates are documented. Delivery checksums, ordering, gap recovery and identifier continuity across migration remain unverified.",
+  "existing_governed_sources": {
+    "franchise_tax": "tx-active-franchise-taxpayers is a separate Comptroller source: anonymous metadata/count checks and governed operator-supplied offline processing. Existing policy does not authorize automated row acquisition or registry admission.",
+    "sales_tax": "tx-active-sales-tax-permits is a separate Comptroller source with selected-field API and aggregate-use policy. Permit/outlet scope cannot establish universal organization coverage. This reassessment changes neither source's existing policy nor authorization."
+  },
+  "citations": [
+    { "url": "https://www.sos.state.tx.us/corp/bulk-order.shtml", "evidence": "Current business-filings product, prices, cadence, account ordering and JSON format." },
+    { "url": "https://www.sos.state.tx.us/corp/forms/bf-bulk-border-json-spec-v1.2.pdf", "evidence": "Business-filings schema and reference tables, distinct from UCC." },
+    { "url": "https://www.sos.state.tx.us/records.shtml", "evidence": "Public access process and confidential-record exceptions." },
+    { "url": "https://www.sos.state.tx.us/disclaimer.shtml", "evidence": "Website accuracy/completeness/timeliness limitations." },
+    { "url": "https://comptroller.texas.gov/about/policies/open-records/", "evidence": "Comptroller open-data portal and account-based SIFT are separate access routes." },
+    { "url": "https://comptroller.texas.gov/transparency/open-data/search-datasets/", "evidence": "Comptroller identifies franchise taxpayers and sales permit holders as separate datasets." }
+  ],
+  "local_evidence": [
+    "config/state-business-source-assessments/tx-2026-09-22.json",
+    "config/source-policies/tx-active-franchise-taxpayers.json",
+    "config/source-policies/tx-active-sales-tax-permits.json"
+  ],
+  "unresolved_gates": ["delivered-scope-and-controls", "identifier-lifecycle", "change-replay-contract", "automation", "rights", "privacy", "paid-access-authorization"],
+  "strongest_next_action": "Use the published business-filings JSON contract to scope a person-minimized offline adapter proposal and an exact priced procurement option. Resolve delivery controls, migration/replay semantics, privacy and use scope before an authorized acquisition. Do not request a schema already published or substitute UCC/Comptroller contracts."
+}

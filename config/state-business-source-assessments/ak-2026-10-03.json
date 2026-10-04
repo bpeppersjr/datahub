@@ -1,0 +1,34 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "ak-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {"abbreviation":"AK","name":"Alaska"},
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+  "reassessment_reason": "Official download documentation still supports a bounded connector candidate. The separate Copyright Notice adds explicit republication restrictions. This document-only observation preserves the earlier offline implementation boundary; it does not refresh the historical CSV header, size, counts or preflight receipt.",
+  "decision": "proceed-to-bounded-connector",
+  "connector_candidate": true,
+  "controls": {"official_primary_sources_only":true,"record_requests":0,"datasets_acquired":0,"accounts_created":0,"terms_accepted":0,"fees_paid":0,"publisher_contacts":0,"portal_automation":false,"production_changes":0},
+  "authority": {"source_access":false,"acquisition":false,"connector_implementation":true,"production":false},
+  "access": {
+    "classification":"public-bulk-bounded-offline-only",
+    "bulk":"The official landing page offers full corporation, business-license and professional-license CSV databases and links CorporationsDownload. It warns that organizing the files may require further investigation. The download link was inspected as documentation and was not followed.",
+    "api":"No supported corporation-record API or new source execution authority was established. Existing metadata and bounded-prefix preflight code remains available under its original constraints; it was not run during this review.",
+    "search":"The corporations information page distinguishes registry search, filings and status resources. Its myAlaska account requirement concerns online filing payments and does not establish an account requirement for the separately advertised download."
+  },
+  "fields": {"published":true,"summary":"The repository preserves a historical 35-column CSV header from 2026-09-03, including ENTITYNUMBER, CORPTYPE, LEGALNAME, STATUS, dates and entity mailing/physical addresses. This is historical transport evidence, not a newly observed October header. Registered-agent fields remain excluded before persistence by the existing offline implementation."},
+  "active_status_semantics":"Official corporation resources distinguish compliance, dissolution and revocation. Registry status is administrative evidence, not proof of current business operation. Current CSV status vocabulary, entity-number lifecycle and status-to-active mapping were not independently refreshed.",
+  "statewide_completeness":"The publisher advertises all licenses on record, which is a registry population claim. A current delivered corporation snapshot, entity-type scope, row controls and operating-business denominator remain unverified. No completeness credit follows from this assessment.",
+  "address_zip":"Existing offline normalization treats entity mailing and physical addresses as administrative evidence. ZIP5 and ZIP4 remain separate. An address or registry status does not establish an operating location, and this review creates no geometry, geocode or establishment.",
+  "automation_terms_fees":"The reviewed public download landing page displays no corporation-download price. It does not publish a rate, checksum, automation service level or stable delivery agreement. No payment, account, terms acceptance, source contact or dataset transfer occurred.",
+  "redistribution":"DCCED's Copyright Notice conditions copying and reposting its material on permission beyond fair use and specifically addresses altered electronic documents, including CSVs. It does not establish a general open-data license. Resolve product-specific derivative/publication rights; the existing local-review-only boundary remains in force.",
+  "temporal_refresh":"The public pages do not establish an immutable snapshot date, checksum, complete-versus-delta contract, deletion feed or refresh guarantee for the corporation CSV. Historical 2026-09-03 size and schema observations must retain their original date.",
+  "offline_implementation":"runner/ak-corporations.mjs already implements acknowledged, SHA-256-bound offline processing and a bounded-prefix network preflight. Such a prefix can contain unparsed row bytes and must not be described as a header-only transfer. Live full acquisition remains unimplemented; production, registry, coverage and Heatmap admission remain disabled.",
+  "citations": [
+    {"url":"https://www.commerce.alaska.gov/cbp/main/","evidence":"Official CSV download links, registry search, full-license scope wording and accuracy limitations; no dataset link followed."},
+    {"url":"https://www.commerce.alaska.gov/web/TermsofUsePolicy.aspx","evidence":"Website warranties and disclaimers do not establish an open-data license."},
+    {"url":"https://www.commerce.alaska.gov/web/CopyrightNotice.aspx","evidence":"Permission and republication restrictions explicitly address modified electronic documents including CSV."},
+    {"url":"https://www.commerce.alaska.gov/web/cbpl/Corporations/Corporations.aspx","evidence":"Compliance/dissolution resources and myAlaska requirement for online filing payments, distinct from bulk-download documentation."}
+  ],
+  "unresolved_gates": ["current-schema-preflight","identifier-lifecycle","status-codebook","delivery-control-totals","snapshot-as-of","full-delta-deletion-contract","product-specific-rights","privacy-review","supported-acquisition-implementation","production-admission"],
+  "strongest_next_action":"Continue bounded offline connector maintenance and document the stronger copyright evidence. Retain existing schema and privacy gates. A future authorized source run needs fresh contract verification and a reviewed acquisition implementation; this assessment grants no dataset transfer, source execution or production permission."
+}

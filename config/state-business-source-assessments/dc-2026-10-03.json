@@ -1,0 +1,35 @@
+{
+  "schema_version": "state-business-source-reassessment@1.0.0",
+  "assessment_id": "dc-business-source-reassessment-2026-10-03",
+  "observed_at": "2026-10-03",
+  "state": {"abbreviation":"DC","name":"District of Columbia"},
+  "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03",
+  "reassessment_reason": "Official Corporate Registration layer metadata and District open-data documents continue to support bounded connector implementation. DLCP now describes BOSS as the successor name for CorpOnline. This review refreshes documentation and metadata only; September counts, status distributions and preflight receipts were not refreshed.",
+  "decision": "proceed-to-bounded-connector",
+  "connector_candidate": true,
+  "controls": {"official_primary_sources_only":true,"record_requests":0,"datasets_acquired":0,"accounts_created":0,"terms_accepted":0,"fees_paid":0,"publisher_contacts":0,"portal_automation":false,"production_changes":0},
+  "authority": {"source_access":false,"acquisition":false,"connector_implementation":true,"production":false},
+  "access": {
+    "classification":"public-api-bounded-offline-only",
+    "bulk":"The Corporate Registration catalog route remains present but its browser-readable response supplied no license text. No catalog export or feature-record request was made. Earlier item-specific license observations remain historical until independently refreshed.",
+    "api":"Official FeatureServer layer 0 remains a no-geometry Table, with Query/Extract, statistics, distinct counts and pagination support; MaxRecordCount is 2000. Metadata capability flags establish technical availability only, not this project's acquisition authority.",
+    "search":"DLCP's public FAQ now names BOSS (formerly CorpOnline) and an Access DC account for filing services. This separate portal was not accessed or automated."
+  },
+  "fields": {"published":true,"summary":"Layer metadata lists 32 fields: the existing 24-field selected contract plus eight RA_ fields. FILE_NUMBER remains a nullable string, not an upstream uniqueness guarantee. Preserve BUSNIESS_ADDRESS_LINE1 through LINE4 spelling. EMAIL appears in the layer description but is absent from the listed fields; EMAIL and all RA_ fields remain excluded."},
+  "active_status_semantics":"DLCP ties active/good-standing maintenance to biennial reporting and a registered agent. This is not proof of current business operation. The existing two-status active selection remains historically validated only; no current status distribution or distinct-identifier count was requested.",
+  "statewide_completeness":"Corporate registrations represent organizations rather than a census of operating establishments. This table is distinct from the separately retained Basic Business Licenses source. Neither the catalog's existence nor historical registration counts prove current nationwide coverage or jurisdiction completeness.",
+  "address_zip":"The listed business address and ZIPCODE fields are administrative registration evidence. The existing offline contract keeps ZIP5 and ZIP4 separate and creates provisional organizations only. This audit does not validate address occupancy, derive business geometries or add geocodes.",
+  "automation_terms_fees":"District open-data policy requires machine-readable catalog data and open APIs suitable for automated processing. Public metadata is anonymous. BOSS filing account/payment rules are separate. No new source execution, paid service or dataset acquisition is authorized here.",
+  "redistribution":"District catalog terms state CC0/public domain unless otherwise noted and request attribution. The repository's earlier item-specific CC BY 4.0 observation was not re-established from the empty catalog response or unsuccessful item-metadata fetch. Preserve conservative attribution/version notices and the existing local-review-only record boundary until item-specific terms and privacy admission are resolved.",
+  "temporal_refresh":"Metadata still reports Sync Can Return Changes false and Supports Query With Historic Moment false. DLCP's biennial filing obligation is not a data publication cadence. No current maximum DCS_LAST_MOD_DTTM, count, tombstone feed or checksum was obtained; historical September controls must not be re-dated.",
+  "offline_implementation":"runner/dc-corporate-registration.mjs and its app worker already support acknowledged local selected-record fixtures bound to a fresh validated metadata/count-only preflight. Live acquisition remains default-denied and unimplemented; current.json, production, registry, coverage and Heatmap integration remain disabled.",
+  "citations": [
+    {"url":"https://maps2.dcgis.dc.gov/dcgis/rest/services/DCGIS_DATA/Business_Licensing_and_Grants_WebMercator/FeatureServer/0","evidence":"Public layer metadata, 32-field roster, table/no-geometry type, query capabilities and absent change-sync/historical-query support; no record queries."},
+    {"url":"https://opendata.dc.gov/datasets/DCGIS::corporate-registration","evidence":"Catalog route returned an empty browser-readable document, insufficient to revalidate item-specific license text."},
+    {"url":"https://dc.gov/page/terms-and-conditions-use-district-data","evidence":"Catalog-data CC0 default subject to exceptions, optional requested credit and no warranty."},
+    {"url":"https://dc.gov/page/transparency-open-government-and-open-data-directive","evidence":"Open-format API and automated processing policy with protected-data exclusions."},
+    {"url":"https://dlcp.dc.gov/page/corporations-division-business-registration-faqs","evidence":"BOSS/Access DC, biennial filing and registered-agent obligations; filing cadence is distinct from publisher refresh cadence."}
+  ],
+  "unresolved_gates": ["fresh-count-only-preflight","current-status-vocabulary","current-distinct-identifier-controls","item-specific-license-revalidation","privacy-review","snapshot-consistency","deletion-replay-contract","source-acquisition-implementation","production-admission","operating-establishment-denominator"],
+  "strongest_next_action":"Maintain the bounded offline connector and preserve current metadata evidence. Before a future authorized acquisition, resolve fresh controls, snapshot consistency, selected-field privacy and item-specific rights. Existing local-review processing authority does not grant live row acquisition or production admission."
+}
