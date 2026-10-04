@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "zip-entity-resolution-evidence",
+  "status": "registered-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "export_policy": "local-review-only",
+  "retained_release": {
+    "release_id": "zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564",
+    "manifest": "data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564/manifest.json",
+    "manifest_sha256": "742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba",
+    "manifest_bytes": 17795,
+    "artifact_count": 100,
+    "zip_rows": 26919,
+    "artifact_bytes": 16276503,
+    "maximum_prefix_bytes": 324550
+  },
+  "claims": {
+    "network_requests": 0,
+    "source_acquisition_performed": false,
+    "source_scan_verified": true,
+    "identity_merges": false,
+    "entity_resolution_applied": false,
+    "benchmark_gate_passed": false,
+    "production_pointer_changed": false,
+    "production_enrollment": false,
+    "public_export_authorized": false,
+    "personal_data_or_names_in_output": false,
+    "aggregate_local_review_only": true
+  }
+}

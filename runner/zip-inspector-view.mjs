@@ -1,7 +1,7 @@
 import {compatibleZipQualification} from './zip-inspector-governance.mjs';
 import {unavailableCensusZbpZipProfile} from './census-zbp-zip-profile-reader.mjs';
 /** Exact ZIP5 factual detail joining verified selected coverage and registry evidence. */
-export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, sourceNativeStatusReader = null, operationalAdmission = null, censusZbpProfile = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
+export function createZipInspectorView({ businessCoverageViews, businessMap, zipQualityView, indexedEvidence = null, qualificationReader = null, sourceNativeStatusReader = null, operationalAdmission = null, censusZbpProfile = null, entityResolutionEvidenceReader = null, pharmacyCoverage = null, snapRetailerCoverage = null, fmcsaRegistrantCoverage = null, fdicBankfindCoverage = null, ncuaCreditUnionCoverage = null, fsisActiveEstablishmentCoverage = null, epaEchoActiveFacilityCoverage = null, irsEoBmfOrganizationCoverage = null, cmsNppesOrganizationPracticeLocationCoverage = null }) {
   return async function zipInspectorView({ zip, categoryId = "all", signal } = {}) {
     signal?.throwIfAborted();
     if (!/^\d{5}$/.test(zip ?? "")) throw Object.assign(new Error("ZIP inspection requires exactly five digits."), { statusCode: 400 });
@@ -22,7 +22,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     const categorySourceIds = categoryId === "all"
       ? new Set(categories.filter((item) => item.id !== "all").flatMap((item) => item.source_ids ?? []))
       : new Set(category.source_ids ?? []);
-    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence, cmsNppesOrganizationPracticeLocationEvidence] = await Promise.all([
+    const [quality, coverage, pharmacyEvidence, snapRetailerEvidence, fmcsaRegistrantEvidence, fdicBankfindEvidence, ncuaCreditUnionEvidence, fsisActiveEstablishmentEvidence, epaEchoActiveFacilityEvidence, irsEoBmfOrganizationEvidence, cmsNppesOrganizationPracticeLocationEvidence, entityResolutionRead] = await Promise.all([
       indexed ? indexed.quality : zipQualityView({ zip, signal }),
       indexed ? indexed.coverage : businessCoverageViews.listDimension("zips", { query: zip, offset: 0, limit: 100 }),
       pharmacyCoverage ? pharmacyCoverage({ zip, signal }) : null,
@@ -34,6 +34,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       epaEchoActiveFacilityCoverage ? epaEchoActiveFacilityCoverage({ zip, signal }) : null,
       irsEoBmfOrganizationCoverage ? irsEoBmfOrganizationCoverage({ zip, signal }) : null,
       cmsNppesOrganizationPracticeLocationCoverage ? cmsNppesOrganizationPracticeLocationCoverage({ zip, signal }) : null,
+      entityResolutionEvidenceReader ? entityResolutionEvidenceReader({ zip5: zip, signal }) : null,
     ]);
     signal?.throwIfAborted();
     let qualification;
@@ -45,6 +46,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
     if(sourceNativeStatusReader)try{sourceNativeStatusDistribution=await sourceNativeStatusReader({zip5:zip,signal});}catch{signal?.throwIfAborted();}
     const admission=operationalAdmission?await operationalAdmission({signal}):null;
     if (indexed) await indexed.recheck();
+    if (entityResolutionRead?.recheck) await entityResolutionRead.recheck();
     if(admission)await admission.recheck();
     if(zbpRead)try{await zbpRead.recheck();}catch{signal?.throwIfAborted();zbpValue=unavailableCensusZbpZipProfile(zip);}
     signal?.throwIfAborted();
@@ -183,6 +185,7 @@ export function createZipInspectorView({ businessCoverageViews, businessMap, zip
       epa_echo_active_facility_evidence: epaEchoActiveFacilityEvidence,
       irs_eo_bmf_organization_evidence: irsEoBmfOrganizationEvidence,
       cms_nppes_organization_practice_location_evidence: cmsNppesOrganizationPracticeLocationEvidence,
+      zip_entity_resolution_evidence: entityResolutionRead?.evidence ?? null,
       coverage_gap_codes: selected?.coverage_gap_codes ?? qualityRow?.limitations ?? [],
       employer_alignment: {
         numerator: numerator,

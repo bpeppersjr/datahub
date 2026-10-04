@@ -143,6 +143,16 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const openBenchmark = () => {
+      setWorkspaceTab('Operations');
+      setOperationsTab('Evidence');
+      window.setTimeout(() => document.getElementById('benchmark-review-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    };
+    window.addEventListener('datahub:navigate-benchmark-review', openBenchmark);
+    return () => window.removeEventListener('datahub:navigate-benchmark-review', openBenchmark);
+  }, []);
+
   const refresh = useCallback(async (quiet = true) => {
     try {
       const [nextJobs, nextRuns, nextActivity, nextHealth] = await Promise.all([
@@ -365,7 +375,7 @@ export default function Home() {
         {workspaceTab==='State Completion'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP Economics'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
-        {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><BenchmarkReview/></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
+        {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><div id="benchmark-review-panel" tabIndex={-1}><BenchmarkReview/></div></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">
               <article className="metric-card">

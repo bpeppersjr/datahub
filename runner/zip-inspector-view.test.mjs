@@ -76,6 +76,20 @@ test("category evidence rejects categories outside the current governed catalog"
   assert.equal(evidenceReads, 0, "unrecognized category is rejected before ZIP evidence reads");
 });
 
+test("exact ZIP inspector includes separately qualified aggregate linkage evidence and rechecks it", async () => {
+  let rechecked = 0;
+  const detail = await createZipInspectorView({
+    businessMap: { getCatalog: async () => ({ available: true, coverage_release_id: "coverage-1", registry_release_id: "registry-1", registry_manifest_sha256: "m", categories: [{ id: "all", label: "All source categories", source_ids: [] }] }) },
+    businessCoverageViews: { listDimension: async () => ({ available: true, release_id: "coverage-1", records: [] }) },
+    zipQualityView: async ({ zip }) => quality(zip),
+    entityResolutionEvidenceReader: async ({ zip5 }) => ({ evidence: { zip5, status: "no-retained-linkage-decisions", site_alias_memberships: 0, site_alias_groups: 0, establishment_alias_memberships: 0, establishment_alias_groups: 0, unapplied_review_candidates: 0, benchmark_gate_passed: false, entity_resolution_applied: false, unique_business_count: null, current_operating_business_count: null }, recheck: async () => { rechecked++; } }),
+  })({ zip: "12345" });
+  assert.equal(detail.zip_entity_resolution_evidence.status, "no-retained-linkage-decisions");
+  assert.equal(detail.zip_entity_resolution_evidence.unique_business_count, null);
+  assert.equal(detail.zip_entity_resolution_evidence.benchmark_gate_passed, false);
+  assert.equal(rechecked, 1);
+});
+
 test("measured zero remains zero and a zero or missing baseline yields null percent", async () => {
   const zero = await fixture({ rows: [row("12345", { physical_site_count: 0, employer_establishments: 0 })] })({ zip: "12345" });
   assert.equal(zero.counts.physical_sites, 0);

@@ -123,6 +123,8 @@
     "zip-denominator-gaps:verify": "node scripts/verify-zip-denominator-gap-cohort.mjs",
     "exact-zip-industry-matrix:build": "node scripts/build-national-exact-zip-industry-evidence-matrix.mjs",
     "exact-zip-industry-matrix:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix.mjs",
+    "zip-entity-resolution-evidence:build": "node scripts/build-zip-entity-resolution-evidence.mjs",
+    "zip-entity-resolution-evidence:verify": "node scripts/verify-zip-entity-resolution-evidence.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",
     "hud-usps:verify": "node scripts/verify-hud-usps-crosswalk.mjs",
     "usps-zips:build": "node scripts/build-usps-operational-zip-assignments.mjs",

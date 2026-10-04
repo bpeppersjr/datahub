@@ -168,10 +168,18 @@ type ZipQualitySummary = {
   usps_evidence_status: 'unverified';
 };
 type ZipContribution = { source_id: string; source_release_id: string | null; source_through_date?: string; source_date?: string; source_month?: string; reference_year?: number; positive_counts: Record<string, number> };
+type ZipEntityResolutionEvidence = {
+  status: 'retained-linkage-evidence' | 'no-retained-linkage-decisions';
+  site_alias_memberships: number; site_alias_groups: number;
+  establishment_alias_memberships: number; establishment_alias_groups: number;
+  unapplied_review_candidates: number; benchmark_gate_passed: false; entity_resolution_applied: false;
+  unique_business_count: null; current_operating_business_count: null;
+};
 type ZipInspection = {
   zip5: string; evidence_status: string; coverage_status: string | null;
   classification: { class: string; ordinary_zip5_eligible: boolean } | null;
   bindings: Record<string, string | null>;
+  zip_entity_resolution_evidence: ZipEntityResolutionEvidence | null;
   governed_zcta: { status: string; geoid: string | null };
   counts: null | { physical_sites: number; establishments: number; organization_primary_locations: number; employer_establishments: number | null; employer_baseline_status: string };
   contributions: ZipContribution[];
@@ -858,6 +866,15 @@ function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer
                   </details>
                   : <p>No selected positive evidence is available for this category and ZIP. This is not a measured zero, does not establish absence of organizations, and does not measure category completeness.</p>}
                 <p>{zipInspection.category_evidence.semantics}</p>
+              </section>
+              <section className="category-zip-evidence" aria-label={`Entity-resolution linkage evidence for exact ZIP ${zipInspection.zip5}`} data-testid="zip-entity-resolution-evidence">
+                <h3>Retained entity-linkage evidence</h3>
+                {zipInspection.zip_entity_resolution_evidence ? <>
+                  <p>{zipInspection.zip_entity_resolution_evidence.status === 'retained-linkage-evidence' ? 'Retained linkage decisions are present for this ZIP.' : 'No retained linkage decisions for this ZIP; this does not establish uniqueness or absence.'}</p>
+                  <dl><div><dt>Physical-site alias memberships</dt><dd>{count(zipInspection.zip_entity_resolution_evidence.site_alias_memberships)}</dd></div><div><dt>Physical-site alias groups</dt><dd>{count(zipInspection.zip_entity_resolution_evidence.site_alias_groups)}</dd></div><div><dt>Establishment alias memberships</dt><dd>{count(zipInspection.zip_entity_resolution_evidence.establishment_alias_memberships)}</dd></div><div><dt>Establishment alias groups</dt><dd>{count(zipInspection.zip_entity_resolution_evidence.establishment_alias_groups)}</dd></div><div><dt>Unapplied review candidates</dt><dd>{count(zipInspection.zip_entity_resolution_evidence.unapplied_review_candidates)}</dd></div></dl>
+                  <p>Aggregate linkage evidence only. Aliases have not been applied; benchmark gate passed: no. These are not unique-business counts or current-operation evidence. Active decision status means alias lifecycle only.</p>
+                  <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('datahub:navigate-benchmark-review'))}>Open benchmark review</button>
+                </> : <p>Retained linkage evidence is unavailable. No inference is made from its absence.</p>}
               </section>
               {zipInspection.pharmacy_evidence && <section className="category-zip-evidence" aria-label={`Pharmacy evidence for exact ZIP ${zipInspection.zip5}`}>
                 <h3>Pharmacy evidence for exact ZIP {zipInspection.zip5}</h3>
