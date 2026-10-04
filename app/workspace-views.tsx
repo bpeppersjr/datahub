@@ -366,6 +366,21 @@ const percent = (value: number | null | undefined) =>
   value == null ? "Unmeasured" : `${value.toFixed(1)}%`;
 const count = (value: number | null | undefined) =>
   value == null ? "Unmeasured" : value.toLocaleString();
+const exactZipSourceMeasureValue = (cell: ExactZipCell): number | null => {
+  switch (cell.status) {
+    case "positive":
+      return cell.count !== null && Number.isSafeInteger(cell.count) && cell.count > 0
+        ? cell.count
+        : null;
+    case "measured-zero":
+      return cell.count === 0 ? 0 : null;
+    case "outside-source-denominator":
+    case "absent-from-retained-source-rows":
+      return null;
+    default:
+      return null;
+  }
+};
 const CATEGORY_LABELS: Record<string, string> = {
   "general-business": "Broad state organization layer",
   "retail-consumer": "Retail and consumer",
@@ -5440,7 +5455,8 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             <tbody>
               {EXACT_ZIP_SOURCES.map((source) => {
                 const cell = view.row!.cells[source],
-                  metadata = view.source_metadata[source];
+                  metadata = view.source_metadata[source],
+                  measureValue = exactZipSourceMeasureValue(cell);
                 return (
                   <tr key={source}>
                     <th scope="row">{sourceLabel(source)}</th>
@@ -5454,7 +5470,7 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
                             : "Positive source evidence"}
                     </td>
                     <td>
-                      {cell.count === null ? "Not measured" : count(cell.count)}{" "}
+                      {measureValue === null ? "Not measured" : count(measureValue)}{" "}
                       · {cell.measure.replaceAll("_", " ")}
                       {registryStatus(source, cell, metadata)}
                     </td>
@@ -5811,6 +5827,7 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
           <tbody>
             {EXACT_ZIP_SOURCES.map((source) => {
               const cell = view.industry_evidence.row!.cells[source],
+                measureValue = exactZipSourceMeasureValue(cell),
                 metadata = view.industry_evidence.source_metadata[source],
                 statusCounts = cell.source_status_counts,
                 observation = metadata.source_observation,
@@ -5822,7 +5839,7 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
                   <th scope="row">{sourceLabel(source)}</th>
                   <td>{cell.status.replaceAll("-", " ")}</td>
                   <td>
-                    {cell.count === null ? "Not measured" : count(cell.count)} ·{" "}
+                    {measureValue === null ? "Not measured" : count(measureValue)}{" "}·{" "}
                     {cell.measure.replaceAll("_", " ")}
                     {statusCounts && (
                       <small>

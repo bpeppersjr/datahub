@@ -2771,6 +2771,72 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
   assert.match(value, new RegExp(matrix.release_id));
   h.close();
 });
+test("exact ZIP source tables derive display values from closed cell statuses", async () => {
+  const cross = crossView(),
+    matrix = cross.industry_evidence;
+  const cells = {
+    ...matrix.row.cells,
+    healthcare_organizations: {
+      ...matrix.row.cells.healthcare_organizations,
+      status: "positive",
+      count: 17,
+    },
+    pharmacy: {
+      ...matrix.row.cells.pharmacy,
+      status: "measured-zero",
+      count: 0,
+    },
+    fdic_offices: {
+      ...matrix.row.cells.fdic_offices,
+      status: "outside-source-denominator",
+      count: null,
+    },
+    childcare_pa_candidates: {
+      ...matrix.row.cells.childcare_pa_candidates,
+      status: "absent-from-retained-source-rows",
+      count: 0,
+    },
+  };
+  matrix.row = { ...matrix.row, cells };
+  cross.industry_evidence = matrix;
+  const matrixPanel = harness(async () => matrix);
+  matrixPanel.render("ExactZipIndustryEvidencePanel", { zip: "00601" });
+  await flush();
+  const matrixTree = matrixPanel.render("ExactZipIndustryEvidencePanel", {
+    zip: "00601",
+  });
+  const matrixRows = nodes(matrixTree)
+    .filter((node) => node.type === "tbody")
+    .flatMap((body) => nodes(body).filter((node) => node.type === "tr"));
+  const rowText = (source) =>
+    text(matrixRows.find((row) => text(row).includes(source)));
+  assert.match(rowText("Health-care organizations"), /17 · measure 0/);
+  assert.match(rowText("Pharmacy organizations"), /0 · measure 6/);
+  assert.match(rowText("FDIC offices"), /Not measured · measure 2/);
+  assert.match(rowText("PA childcare candidate rows"), /Not measured · candidate rows/);
+  matrixPanel.close();
+
+  const crossPanel = harness(async () => cross);
+  crossPanel.render("ZipIndustryDemographicCrossViewPanel", { zip: "00601" });
+  await flush();
+  const crossTree = crossPanel.render("ZipIndustryDemographicCrossViewPanel", {
+    zip: "00601",
+  });
+  const crossRows = nodes(crossTree)
+    .filter((node) => node.type === "tbody")
+    .flatMap((body) => nodes(body).filter((node) => node.type === "tr"));
+  const crossRowText = (source) =>
+    text(crossRows.find((row) => text(row).includes(source)));
+  assert.match(crossRowText("Health-care organizations"), /17 · measure 0/);
+  assert.match(crossRowText("Pharmacy organizations"), /0 · measure 6/);
+  assert.match(crossRowText("FDIC offices"), /Not measured · measure 2/);
+  assert.match(crossRowText("PA childcare candidate rows"), /Not measured · candidate rows/);
+  assert.doesNotMatch(
+    `${crossRowText("FDIC offices")} ${crossRowText("PA childcare candidate rows")}`,
+    /\b0\s*·/,
+  );
+  crossPanel.close();
+});
 test("registry profile cells fail closed on lost status conservation or conflated source clocks", () => {
   const base = crossView().industry_evidence,
     h = harness(() => base),

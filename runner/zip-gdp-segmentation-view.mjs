@@ -7,6 +7,7 @@ const fail = (message = "ZIP GDP segmentation view is unavailable or incompatibl
 
 const DIMENSIONS = Object.freeze(["race", "ancestry_lineage", "sex", "age"]);
 const SHA256 = /^[a-f0-9]{64}$/;
+const INDUSTRY_RELEASE = /^national-exact-zip-industry-evidence-matrix-([a-f0-9]{64})$/;
 
 function validCurrentReadiness(view, zcta) {
   if (view?.schema_version !== "zcta-gdp-execution-readiness-view@1.0.0" || view.zcta !== zcta
@@ -37,6 +38,39 @@ function withheldEstimate(reason) {
   };
 }
 
+function projectedIndustryValue(cell) {
+  if (!cell || typeof cell !== "object") fail();
+  if (cell.status === "positive" && Number.isSafeInteger(cell.count) && cell.count > 0) {
+    return cell.count;
+  }
+  if (cell.status === "measured-zero" && cell.count === 0) return 0;
+  if (cell.status === "outside-source-denominator" && cell.count === null) return null;
+  if (cell.status === "absent-from-retained-source-rows" && cell.count === 0) return null;
+  fail();
+}
+
+function validatedIndustryEvidence(cross, zip5) {
+  const evidence = cross?.industry_evidence;
+  const releaseMatch = INDUSTRY_RELEASE.exec(evidence?.release_id ?? "");
+  if (evidence?.schema_version !== "national-exact-zip-industry-evidence-matrix@1.7.0"
+      || evidence.status !== "present"
+      || !SHA256.test(evidence.manifest_sha256 ?? "")
+      || !releaseMatch
+      || !Array.isArray(evidence.out_of_cohort_source_zip_gaps)
+      || !Array.isArray(evidence.source_quality_gaps)
+      || !Array.isArray(evidence.source_address_row_gaps)
+      || !evidence.claims || evidence.claims.additive_cross_industry_total !== false
+      || evidence.claims.current_operation_verified !== false
+      || evidence.claims.all_business_completeness !== false) fail();
+  const row = evidence.row;
+  if (row === null) return { evidence, cells: {} };
+  if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.7.0"
+      || row.zip5 !== zip5 || row.zip4 !== null || !row.cells
+      || typeof row.cells !== "object" || Array.isArray(row.cells)) fail();
+  for (const cell of Object.values(row.cells)) projectedIndustryValue(cell);
+  return { evidence, cells: row.cells };
+}
+
 /**
  * Compose the app's ZIP-facing GDP contract without creating a GDP estimate.
  * ZIP5 is an operator lookup key; the modeled geography is a same-code Census
@@ -61,12 +95,13 @@ export async function readZipGdpSegmentationView({
   signal?.throwIfAborted();
   if (!validCurrentReadiness(gdp, zip5)) fail();
   if (cross?.schema_version !== "zip-industry-demographic-cross-view@1.0.0" || cross.zip5 !== zip5) fail();
+  const { evidence: industryEvidence, cells: industryCells } = validatedIndustryEvidence(cross, zip5);
 
   const sameCodeZcta = cross.zcta_geoid === zip5;
-  const industryCells = cross.industry_evidence?.row?.cells ?? {};
   const industries = Object.keys(industryCells).sort().map((industryId) => ({
     industry_id: industryId,
     source_evidence: industryCells[industryId],
+    source_measure_value: projectedIndustryValue(industryCells[industryId]),
     gdp: withheldEstimate("industry-allocation-method-not-approved"),
   }));
   const availability = cross.demographic_context?.availability ?? {};
@@ -111,7 +146,10 @@ export async function readZipGdpSegmentationView({
     },
     provenance: {
       gdp_readiness: { ...gdp.provenance },
-      industry_evidence: cross.industry_evidence?.provenance ?? cross.industry_evidence?.release ?? null,
+      industry_evidence: {
+        release_id: industryEvidence.release_id,
+        manifest_sha256: industryEvidence.manifest_sha256,
+      },
       demographic_context: cross.demographic_context?.provenance ?? null,
     },
     claims: {
