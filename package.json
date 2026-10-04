@@ -81,6 +81,8 @@
     "cms:retained-directory-coverage:verify": "node scripts/verify-cms-retained-directory-coverage-catalog.mjs",
     "cms:retained-directory-zip:build": "node scripts/build-cms-retained-directory-zip-evidence.mjs",
     "cms:retained-directory-zip:verify": "node scripts/verify-cms-retained-directory-zip-evidence.mjs",
+    "broad-org-zip-summary:build": "node scripts/build-broad-organization-zip-summary.mjs",
+    "broad-org-zip-summary:verify": "node scripts/verify-broad-organization-zip-summary.mjs",
     "zbp:build": "node scripts/build-census-zbp.mjs",
     "zbp:verify": "node scripts/verify-census-zbp.mjs",
     "nonemployer:build": "node scripts/build-census-nonemployer.mjs",

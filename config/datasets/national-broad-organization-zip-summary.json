@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "national-broad-organization-zip-summary",
+  "status": "registered-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-broad-organization-zip-summary-bb8ca12cdb429a520406d141319d2424569199a55a87469e37e94f52f2bb2b2c",
+    "manifest": "data/national-broad-organization-zip-summary/releases/national-broad-organization-zip-summary-bb8ca12cdb429a520406d141319d2424569199a55a87469e37e94f52f2bb2b2c/manifest.json",
+    "manifest_sha256": "13600e6fc129d3e1ab3e7ce0a5cea1fbc7b9e8e352fd3d70b01a5d144a8c25e6",
+    "manifest_bytes": 210835,
+    "zip5_rows": 30802,
+    "artifact_bytes": 12566022,
+    "artifact_count": 100
+  },
+  "claims": {
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "current_operation_verified": false,
+    "additive_cross_industry_total": false
+  }
+}
