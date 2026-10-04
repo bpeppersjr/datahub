@@ -93,3 +93,13 @@ The retained sample `business-entity-resolution-benchmark-sample-20260911-040724
 The 1,275-row packet contains 2,545 unique source-preserving profiles across three artifacts totaling 941,342 manifest-declared bytes. Its label template has zero submitted labels; the precision gate and export authorization remain false. Reporting-only locations, separately retained childcare candidates, and Minnesota credential rows are not identity-matching benchmark populations.
 
 The dataset catalog binds the current pointer, manifest hash, publisher, timestamp, status, dependencies and headline sample counts. The read-only release-chain catalog test checks those bindings against retained manifests; it is not a new artifact-content replay, independent labeling, acquisition or publication.
+
+## Governed label import
+
+The review workspace accepts a strict UTF-8 JSONL subset or full upload as a two-step draft workflow. Each row must match the versioned label schema exactly; uploads are limited to 4 MiB, 16 KiB per row and 1,275 rows. Unknown/duplicate candidate IDs, duplicate rows, invalid/future timestamps, invalid null-row attribution, and unsupported fields fail closed. Evidence references are recorded as strings only and are never fetched.
+
+Preview is read-only. It binds the immutable benchmark release/manifest and current pointer hashes, expected working-label revision, raw upload SHA-256, canonical merged-label SHA-256, importing operator, and explicit conflict decisions. It reports row changes and before/after per-stratum precision gates while remaining `draft_only`; export authorization remains false. Omitted rows retain their current value, imported null rows never clear a judgment, and exact matches are unchanged. A changed completed judgment requires an explicit per-candidate keep-existing decision or replacement with a correction reason.
+
+Commit resubmits and recomputes the preview under the same serialized cross-process mutation lock used by individual reviewer saves. It appends a proposed batch audit event with prior/next row values, atomically replaces one full working-label file, and appends the matching committed event. A working revision mismatch returns conflict; if replacement succeeded but the committed event could not be confirmed, the operation requires inspection and an identical retry reconciles the proposed event. The importing operator is audited separately from row-level reviewers.
+
+These endpoints only update the local working-label draft and audit journal. They do not modify the immutable sample/template, publish a label snapshot, apply identity aliases, or authorize exports. The explicit label-snapshot publication command remains a separate governance action.

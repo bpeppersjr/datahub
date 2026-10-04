@@ -7,7 +7,7 @@ import path from 'node:path';
 import { createStore } from './store.mjs';
 import { cleanupExpiredGooglePlacesOutputs } from './google-places.mjs';
 import { inspectNppesSource } from './nppes-source.mjs';
-import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from './benchmark-review-store.mjs';
+import { commitBenchmarkLabelImport, getBenchmarkReviewState, getBenchmarkWorkingLabels, previewBenchmarkLabelImport, saveBenchmarkLabel } from './benchmark-review-store.mjs';
 import { createBusinessCoverageViewStore } from './business-coverage-view-store.mjs';
 import {handleNationalReportingTen} from './national-reporting-ten-http.mjs';
 import { createBusinessMapStore } from './business-map-store.mjs';
@@ -425,12 +425,12 @@ function json(response, status, value) {
   response.end(body);
 }
 
-async function bodyJson(request) {
+async function bodyJson(request, maxBytes = 1_000_000) {
   const chunks = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 1_000_000) throw Object.assign(new Error('Request body is too large.'), { statusCode: 413 });
+    if (size > maxBytes) throw Object.assign(new Error('Request body is too large.'), { statusCode: 413 });
     chunks.push(chunk);
   }
   if (!chunks.length) return {};
@@ -893,6 +893,27 @@ const server = http.createServer(async (request, response) => {
         ETag: `"${working.revision}"`,
       });
       response.end(content);
+      return;
+    }
+
+    if (request.method === 'POST' && (url.pathname === '/api/entity-resolution/benchmark/labels/import/preview'
+      || url.pathname === '/api/entity-resolution/benchmark/labels/import/commit')) {
+        const input = await bodyJson(request, 4 * 1024 * 1024);
+      if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('Benchmark import request must be an object.'), { statusCode: 400 });
+      const committing = url.pathname.endsWith('/commit');
+      const allowed = new Set(['jsonl', 'importingOperatorId', 'expectedRevision', 'conflictResolutions', ...(committing ? ['previewToken'] : [])]);
+      if (Object.keys(input).some((key) => !allowed.has(key)) || [...allowed].some((key) => !Object.hasOwn(input, key))) {
+        throw Object.assign(new Error('Benchmark import request has unsupported or missing fields.'), { statusCode: 400 });
+      }
+      const options = {
+        jsonl: input.jsonl,
+        importingOperatorId: input.importingOperatorId,
+        expectedRevision: input.expectedRevision,
+        conflictResolutions: input.conflictResolutions,
+      };
+      json(response, 200, committing
+        ? await commitBenchmarkLabelImport({ ...options, previewToken: input.previewToken })
+        : await previewBenchmarkLabelImport(options));
       return;
     }
 

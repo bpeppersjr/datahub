@@ -407,6 +407,21 @@ h2 { margin: 4px 0 0; font-size: 1.0625rem; letter-spacing: -.025em; font-weight
 .benchmark-empty { min-height: 130px; display: grid; place-items: center; padding: 20px; color: var(--muted); font-size: 0.625rem; text-align: center; }
 .benchmark-error, .benchmark-notice { margin: 12px 18px 0; padding: 9px 11px; border: 1px solid rgba(227,111,111,.25); border-radius: 7px; background: rgba(227,111,111,.07); color: #e38b8b; font-size: 0.5625rem; }
 .benchmark-notice { border-color: rgba(105,212,155,.22); background: rgba(105,212,155,.06); color: #79d7a5; }
+.benchmark-import { border-bottom: 1px solid var(--border); }
+.benchmark-import > summary { padding: 14px 18px; color: #bdc7cf; font-size: .625rem; cursor: pointer; }
+.benchmark-import > summary::marker { color: var(--cyan); }
+.benchmark-import > .operations-note { margin: 0 18px 12px; }
+.benchmark-import .benchmark-toolbar { flex-wrap: wrap; border-top: 1px solid var(--border); }
+.benchmark-import .benchmark-toolbar label { grid-template-columns: auto minmax(150px, 1fr); }
+.benchmark-import .benchmark-toolbar input[type="file"] { max-width: 260px; color: var(--muted); font-size: .5625rem; text-transform: none; letter-spacing: 0; }
+.benchmark-import .benchmark-toolbar input:not([type="file"]) { height: 36px; min-width: 150px; padding: 0 10px; border: 1px solid #2d3640; border-radius: 7px; outline: none; background: #0b1015; color: var(--ink); font-size: .625rem; text-transform: none; letter-spacing: 0; }
+.review-conflict { display: grid; grid-template-columns: minmax(190px, 1fr) minmax(170px, 1fr) minmax(190px, .8fr); align-items: center; gap: 10px; margin-top: 10px; padding: 10px; border: 1px solid rgba(241,189,105,.2); border-radius: 7px; background: rgba(241,189,105,.035); }
+.review-conflict > strong { overflow-wrap: anywhere; color: #cad2d8; font-size: .5625rem; }
+.review-conflict > span { color: var(--muted); font-size: .5625rem; }
+.review-conflict label { display: grid; gap: 5px; color: var(--muted); font-size: .5rem; text-transform: uppercase; letter-spacing: .08em; }
+.review-conflict select, .review-conflict textarea { width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid #2d3640; border-radius: 6px; background: #0b1015; color: var(--ink); font-size: .5625rem; text-transform: none; letter-spacing: 0; }
+.review-conflict textarea { min-height: 54px; resize: vertical; }
+@media (max-width: 900px) { .review-conflict { grid-template-columns: 1fr; } .benchmark-import .benchmark-toolbar { align-items: flex-start; } }
 
 .connector-panel { overflow: hidden; }
 .connector-heading { min-height: 82px; }

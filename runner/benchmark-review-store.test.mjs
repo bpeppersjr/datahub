@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { gzipSync } from "node:zlib";
-import { getBenchmarkReviewState, getBenchmarkWorkingLabels, saveBenchmarkLabel } from "./benchmark-review-store.mjs";
+import { commitBenchmarkLabelImport, getBenchmarkReviewState, getBenchmarkWorkingLabels, previewBenchmarkLabelImport, saveBenchmarkLabel } from "./benchmark-review-store.mjs";
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -172,4 +172,126 @@ test("maintains an optimistic-concurrency working label copy and append-only aud
   const journal = (await readFile(path.join(workRoot, "benchmark-review-fixture.journal.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.deepEqual(journal.map((event) => event.phase), ["proposed", "committed"]);
   assert.equal(journal[0].event_id, journal[1].event_id);
+});
+
+function importRow(candidateId, labelValue = "match", overrides = {}) {
+  return {
+    schema_version: "1.0.0", candidate_id: candidateId, label: labelValue,
+    reviewer_id: labelValue === null ? null : "reviewer-import-01",
+    reviewed_at: labelValue === null ? null : "2026-10-03T12:00:00.000Z",
+    evidence_note: labelValue === null || labelValue === "match" ? null : "Independent sources support the submitted judgment.",
+    evidence_references: [], ...overrides,
+  };
+}
+
+function upload(...rows) { return rows.map((row) => JSON.stringify(row)).join("\n"); }
+
+test("import preview is read-only and explicit commit merges a partial upload as draft-only", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "benchmark-import-preview-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { pointerPath, candidates } = await writeBenchmarkFixture(path.join(root, "benchmark"));
+  const workRoot = path.join(root, "work"), pointerBefore = await readFile(pointerPath);
+  const current = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  const jsonl = upload(importRow(candidates[0].candidate_id), importRow(candidates[1].candidate_id, null));
+  const options = { pointerPath, workRoot, jsonl, importingOperatorId: "operator-batch-01", expectedRevision: current.revision };
+  const preview = await previewBenchmarkLabelImport(options);
+  assert.equal(preview.ready, true); assert.equal(preview.draft_only, true); assert.equal(preview.export_authorized, false);
+  assert.equal(preview.counts.added, 1); assert.equal(preview.counts.ignored_null_rows, 1);
+  assert.equal(preview.before.strata["automatic-physical-site"].submitted, 0);
+  assert.equal(preview.after.strata["automatic-physical-site"].submitted, 1);
+  await assert.rejects(readdir(workRoot), { code: "ENOENT" }, "preview must not create a work directory");
+  assert.deepEqual(await readFile(pointerPath), pointerBefore, "preview leaves the sample pointer unchanged");
+
+  const committed = await commitBenchmarkLabelImport({ ...options, previewToken: preview.preview_token });
+  assert.equal(committed.committed, true); assert.equal(committed.draft_only, true); assert.equal(committed.export_authorized, false);
+  const working = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  assert.equal(working.labels[0].label, "match"); assert.equal(working.labels[1].label, null); assert.notEqual(working.revision, current.revision);
+  const events = (await readFile(path.join(workRoot, "benchmark-review-fixture.journal.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  assert.deepEqual(events.map((event) => event.phase), ["proposed", "committed"]);
+  assert.equal(events[0].event_kind, "batch-import"); assert.equal(events[0].event_id, events[1].event_id);
+  assert.equal(events[0].importing_operator_id, "operator-batch-01"); assert.equal(events[0].changes[0].prior_label.label, null);
+  assert.deepEqual(await readFile(pointerPath), pointerBefore, "draft merge never publishes or changes the immutable sample pointer");
+});
+
+test("conflicts require per-row resolution and replacement retains correction reason", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "benchmark-import-conflicts-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { pointerPath, candidates } = await writeBenchmarkFixture(path.join(root, "benchmark"));
+  const workRoot = path.join(root, "work");
+  const saved = await getBenchmarkReviewState({ pointerPath, workRoot });
+  const original = await saveBenchmarkLabel({ pointerPath, workRoot, candidateId: candidates[0].candidate_id, label: "match", reviewerId: "reviewer-1", expectedRevision: saved.revision, now: () => new Date("2026-10-03T12:00:00.000Z") });
+  const jsonl = upload(importRow(candidates[0].candidate_id, "non-match"));
+  const base = { pointerPath, workRoot, jsonl, importingOperatorId: "operator-batch-01", expectedRevision: original.revision };
+  const conflict = await previewBenchmarkLabelImport(base);
+  assert.equal(conflict.ready, false); assert.equal(conflict.preview_token, null);
+  assert.deepEqual(conflict.unresolved_conflicts, [candidates[0].candidate_id]);
+  const keep = await previewBenchmarkLabelImport({ ...base, conflictResolutions: { [candidates[0].candidate_id]: { action: "keep-existing" } } });
+  assert.equal(keep.ready, true); assert.equal(keep.counts.kept_existing, 1); assert.equal(keep.after.strata["automatic-physical-site"].labels.match, 1);
+  const changedUpload = upload(importRow(candidates[0].candidate_id, "non-match", { evidence_note: "A changed, explicit reason." }));
+  await assert.rejects(commitBenchmarkLabelImport({ ...base, jsonl: changedUpload, conflictResolutions: { [candidates[0].candidate_id]: { action: "keep-existing" } }, previewToken: keep.preview_token }), (error) => error.statusCode === 409);
+  const replaceResolution = { [candidates[0].candidate_id]: { action: "replace", correction_reason: "Second-source review corrected the prior decision." } };
+  const replacement = await previewBenchmarkLabelImport({ ...base, conflictResolutions: replaceResolution });
+  const committed = await commitBenchmarkLabelImport({ ...base, conflictResolutions: replaceResolution, previewToken: replacement.preview_token });
+  assert.equal(committed.counts.replaced, 1);
+  const working = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  assert.equal(working.labels[0].label, "non-match");
+  const events = (await readFile(path.join(workRoot, "benchmark-review-fixture.journal.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const batch = events.find((event) => event.event_kind === "batch-import" && event.phase === "proposed");
+  assert.equal(batch.conflict_resolutions[0].correction_reason, replaceResolution[candidates[0].candidate_id].correction_reason);
+  assert.equal(batch.changes[0].prior_label.label, "match");
+});
+
+test("same preview commits idempotently, and recovery completes a proposed batch after replacement", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "benchmark-import-recovery-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { pointerPath, candidates } = await writeBenchmarkFixture(path.join(root, "benchmark"));
+  const workRoot = path.join(root, "work"), initial = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  const firstOptions = { pointerPath, workRoot, jsonl: upload(importRow(candidates[0].candidate_id)), importingOperatorId: "operator-batch-01", expectedRevision: initial.revision };
+  const firstPreview = await previewBenchmarkLabelImport(firstOptions);
+  const concurrent = await Promise.all([
+    commitBenchmarkLabelImport({ ...firstOptions, previewToken: firstPreview.preview_token }),
+    commitBenchmarkLabelImport({ ...firstOptions, previewToken: firstPreview.preview_token }),
+  ]);
+  assert.equal(concurrent.filter((item) => item.committed).length, 2);
+  assert.equal(concurrent.filter((item) => item.recovered).length, 1);
+
+  const current = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  const secondOptions = { pointerPath, workRoot, jsonl: upload(importRow(candidates[1].candidate_id, "uncertain")), importingOperatorId: "operator-batch-02", expectedRevision: current.revision };
+  const secondPreview = await previewBenchmarkLabelImport(secondOptions);
+  await assert.rejects(commitBenchmarkLabelImport({ ...secondOptions, previewToken: secondPreview.preview_token, _testHooks: async (phase) => { if (phase === "after-replace-before-committed") throw new Error("injected audit failure"); } }), (error) => error.inspection_required === true);
+  const afterReplace = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  assert.notEqual(afterReplace.revision, current.revision);
+  const recovered = await commitBenchmarkLabelImport({ ...secondOptions, previewToken: secondPreview.preview_token });
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.revision, afterReplace.revision);
+  const events = (await readFile(path.join(workRoot, "benchmark-review-fixture.journal.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
+  const second = events.filter((event) => event.preview_token === secondPreview.preview_token);
+  assert.deepEqual(second.map((event) => event.phase), ["proposed", "committed"]);
+  assert.equal(second[0].event_id, second[1].event_id);
+
+  const replacementRow = importRow(candidates[1].candidate_id, "uncertain", { evidence_note: "Re-reviewed with additional source context." });
+  const replacementOptions = {
+    pointerPath, workRoot, jsonl: upload(replacementRow), importingOperatorId: "operator-batch-03",
+    expectedRevision: afterReplace.revision,
+    conflictResolutions: { [candidates[1].candidate_id]: { action: "replace", correction_reason: "The reviewer documented a correction." } },
+  };
+  const replacementPreview = await previewBenchmarkLabelImport(replacementOptions);
+  await assert.rejects(commitBenchmarkLabelImport({ ...replacementOptions, previewToken: replacementPreview.preview_token, _testHooks: async (phase) => { if (phase === "after-replace-before-committed") throw new Error("injected replacement audit failure"); } }), (error) => error.inspection_required === true);
+  const replacementRevision = (await getBenchmarkWorkingLabels({ pointerPath, workRoot })).revision;
+  const replacementRecovered = await commitBenchmarkLabelImport({ ...replacementOptions, previewToken: replacementPreview.preview_token });
+  assert.equal(replacementRecovered.recovered, true);
+  assert.equal(replacementRecovered.revision, replacementRevision);
+  assert.equal(replacementRecovered.assessment.strata["automatic-establishment"].labels.uncertain, 1);
+});
+
+test("preview rejects stale revisions, malformed uploads, and unknown candidates without mutation", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "benchmark-import-invalid-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const { pointerPath, candidates } = await writeBenchmarkFixture(path.join(root, "benchmark"));
+  const workRoot = path.join(root, "work"), current = await getBenchmarkWorkingLabels({ pointerPath, workRoot });
+  const base = { pointerPath, workRoot, importingOperatorId: "operator-batch-01", expectedRevision: current.revision };
+  await assert.rejects(previewBenchmarkLabelImport({ ...base, jsonl: upload(importRow("benchmark-candidate:" + "f".repeat(32))) }), /unknown candidate/);
+  await assert.rejects(previewBenchmarkLabelImport({ ...base, jsonl: "{bad" }), /invalid JSON/);
+  await assert.rejects(previewBenchmarkLabelImport({ ...base, jsonl: upload(importRow(candidates[0].candidate_id)), expectedRevision: "0".repeat(64) }), (error) => error.statusCode === 409);
+  await assert.rejects(readdir(workRoot), { code: "ENOENT" });
 });

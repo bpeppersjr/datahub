@@ -58,6 +58,20 @@ type BenchmarkState = {
   pagination?: { offset: number; limit: number; total: number; has_more: boolean };
   candidates?: Candidate[];
 };
+type ImportResolution = { action: 'keep-existing' } | { action: 'replace'; correction_reason: string };
+type ImportConflict = { candidate_id: string; existing_label: ReviewLabelValue; incoming_label: ReviewLabelValue };
+type ImportPreview = {
+  ready: boolean;
+  preview_token: string | null;
+  counts: { uploaded_rows: number; added: number; replaced: number; kept_existing: number; unchanged: number; ignored_null_rows: number };
+  conflicts: ImportConflict[];
+  unresolved_conflicts: string[];
+  before: { strata: Record<string, StratumAssessment> };
+  after: { strata: Record<string, StratumAssessment> };
+  draft_only: true;
+  export_authorized: false;
+  benchmark_gate_passed: boolean;
+};
 
 const labelText: Record<ReviewLabelValue, string> = {
   match: 'Match',
@@ -101,6 +115,13 @@ export default function BenchmarkReview() {
   const [reviewerId, setReviewerId] = useState('');
   const [editor, setEditor] = useState<{ candidate: Candidate; label: ReviewLabelValue; note: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importingOperatorId, setImportingOperatorId] = useState('');
+  const [uploadName, setUploadName] = useState('');
+  const [jsonl, setJsonl] = useState('');
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [previewStale, setPreviewStale] = useState(true);
+  const [conflictResolutions, setConflictResolutions] = useState<Record<string, ImportResolution>>({});
+  const [importBusy, setImportBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,6 +203,89 @@ export default function BenchmarkReview() {
     }
   }
 
+  async function selectImportFile(file?: File) {
+    if (!file) return;
+    try {
+      const decoded = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
+      setJsonl(decoded);
+      setUploadName(file.name);
+      setImportPreview(null);
+      setPreviewStale(true);
+      setConflictResolutions({});
+      setError('');
+      setNotice('Upload loaded locally. No labels have been changed.');
+    } catch {
+      setJsonl('');
+      setUploadName('');
+      setImportPreview(null);
+      setPreviewStale(true);
+      setError('The selected file is not valid UTF-8.');
+    }
+  }
+
+  function importRequest() {
+    if (!data?.revision) throw new Error('Refresh the benchmark working revision before importing.');
+    if (importingOperatorId.trim().length < 2) throw new Error('Enter a separate importing operator ID.');
+    return {
+      jsonl,
+      importingOperatorId: importingOperatorId.trim(),
+      expectedRevision: data.revision,
+      conflictResolutions,
+    };
+  }
+
+  async function previewImport() {
+    setImportBusy(true);
+    setPreviewStale(true);
+    try {
+      const preview = await benchmarkApi<ImportPreview>('/api/entity-resolution/benchmark/labels/import/preview', {
+        method: 'POST', body: JSON.stringify(importRequest()),
+      });
+      setImportPreview(preview);
+      setPreviewStale(false);
+      setError('');
+      setNotice(preview.ready ? 'Preview ready. This is still a local working-label draft.' : 'Resolve each completed-label conflict, then preview again.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to preview label import.');
+      setPreviewStale(true);
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  async function commitImport() {
+    if (!importPreview?.ready || !importPreview.preview_token || previewStale) return;
+    setImportBusy(true);
+    try {
+      await benchmarkApi('/api/entity-resolution/benchmark/labels/import/commit', {
+        method: 'POST', body: JSON.stringify({ ...importRequest(), previewToken: importPreview.preview_token }),
+      });
+      setImportPreview(null);
+      setPreviewStale(true);
+      setJsonl('');
+      setUploadName('');
+      setConflictResolutions({});
+      setNotice('Labels merged into the local working draft. No label snapshot was published and export remains unauthorized.');
+      setError('');
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to commit label import. Refresh and preview again if the draft changed.');
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  function setResolution(candidateId: string, value: string) {
+    setConflictResolutions((current) => {
+      const next = { ...current };
+      if (value === 'keep-existing') next[candidateId] = { action: 'keep-existing' };
+      else if (value === 'replace') next[candidateId] = { action: 'replace', correction_reason: current[candidateId]?.action === 'replace' ? current[candidateId].correction_reason : '' };
+      else delete next[candidateId];
+      return next;
+    });
+    setPreviewStale(true);
+  }
+
   const siteAssessment = data?.assessment?.strata['automatic-physical-site'];
   const establishmentAssessment = data?.assessment?.strata['automatic-establishment'];
 
@@ -215,6 +319,33 @@ export default function BenchmarkReview() {
             <span>{data.pagination?.total ?? 0} matching packets</span>
             <div className="benchmark-pager"><button onClick={() => setOffset(Math.max(0, offset - 8))} disabled={offset === 0}>← Previous</button><button onClick={() => setOffset(offset + 8)} disabled={!data.pagination?.has_more}>Next →</button></div>
           </div>
+
+          <details className="benchmark-import">
+            <summary>Import reviewed labels into the working draft</summary>
+            <p className="operations-note">Strict UTF-8 JSONL subset or full upload (maximum 4 MiB, 1,275 rows). Preview is read-only. Import changes remain a draft; publishing a label snapshot and export authorization are separate actions.</p>
+            <div className="benchmark-toolbar">
+              <label>Label JSONL<input type="file" accept=".jsonl,application/x-ndjson,application/jsonl" onChange={(event) => void selectImportFile(event.target.files?.[0])} /></label>
+              <label>Importing operator ID<input value={importingOperatorId} onChange={(event) => { setImportingOperatorId(event.target.value); setImportPreview(null); setPreviewStale(true); }} placeholder="operator-name" /></label>
+              <span>{uploadName || (jsonl ? 'JSONL loaded' : 'No file selected')}</span>
+              <button className="ghost-button" onClick={() => void previewImport()} disabled={importBusy || !jsonl || importingOperatorId.trim().length < 2}>{importBusy ? 'Working…' : previewStale ? 'Preview import' : 'Re-preview import'}</button>
+            </div>
+            {importPreview && <div className="operations-plan" aria-live="polite">
+              <strong>{previewStale ? 'Preview is out of date · preview again' : importPreview.ready ? 'Preview ready · draft only' : 'Conflict resolutions required'}</strong>
+              <p>{importPreview.counts.uploaded_rows.toLocaleString()} uploaded · {importPreview.counts.added.toLocaleString()} added · {importPreview.counts.replaced.toLocaleString()} replaced · {importPreview.counts.kept_existing.toLocaleString()} kept · {importPreview.counts.unchanged.toLocaleString()} unchanged · {importPreview.counts.ignored_null_rows.toLocaleString()} null rows ignored</p>
+              <p>Automatic precision gate after merge: {importPreview.benchmark_gate_passed ? 'passed' : 'not passed'} · export authorized: no</p>
+              {importPreview.conflicts.map((conflict) => {
+                const resolution = conflictResolutions[conflict.candidate_id];
+                return <div className="review-conflict" key={conflict.candidate_id}>
+                  <strong>{conflict.candidate_id}</strong>
+                  <span>Existing: {labelText[conflict.existing_label]} · uploaded: {labelText[conflict.incoming_label]}</span>
+                  <label>Resolution<select value={resolution?.action ?? ''} onChange={(event) => setResolution(conflict.candidate_id, event.target.value)}><option value="">Choose explicitly</option><option value="keep-existing">Keep existing</option><option value="replace">Replace with correction</option></select></label>
+                  {resolution?.action === 'replace' && <label>Correction reason<textarea value={resolution.correction_reason} maxLength={2000} onChange={(event) => { setConflictResolutions((current) => ({ ...current, [conflict.candidate_id]: { action: 'replace', correction_reason: event.target.value } })); setPreviewStale(true); }} /></label>}
+                </div>;
+              })}
+              {(previewStale || !importPreview.ready) && importPreview.conflicts.length > 0 && <button className="ghost-button" onClick={() => void previewImport()} disabled={importBusy}>Apply conflict choices to preview</button>}
+              {importPreview.ready && <button className="primary-button" onClick={() => void commitImport()} disabled={importBusy || previewStale}>Commit to working draft</button>}
+            </div>}
+          </details>
 
           {error && <p className="benchmark-error">{error}</p>}
           {notice && <p className="benchmark-notice">{notice}</p>}

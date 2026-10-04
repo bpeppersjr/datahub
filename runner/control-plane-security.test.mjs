@@ -206,6 +206,8 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/operations/fixture/artifacts/records.csv"],
     ["GET", "/api/entity-resolution/benchmark"],
     ["GET", "/api/entity-resolution/benchmark/labels"],
+    ["POST", "/api/entity-resolution/benchmark/labels/import/preview", "{}"],
+    ["POST", "/api/entity-resolution/benchmark/labels/import/commit", "{}"],
     ["PUT", "/api/entity-resolution/benchmark/labels/fixture", "{}"],
     ["GET", "/api/jobs"],
     ["POST", "/api/jobs", "{}"],
@@ -223,6 +225,15 @@ test("protects every live management endpoint while leaving only narrow liveness
     const missing = await rawRequest({ port, hostHeader, method, pathname, body });
     assert.equal(missing.status, 401, `${method} ${pathname}`);
     assert.equal(missing.body.includes(CONTROL_TOKEN), false, `${method} ${pathname}`);
+  }
+
+  for (const [pathname, body] of [
+    ["/api/entity-resolution/benchmark/labels/import/preview", "{}"],
+    ["/api/entity-resolution/benchmark/labels/import/commit", '{"jsonl":"","importingOperatorId":"operator-01","expectedRevision":"' + "0".repeat(64) + '","conflictResolutions":{},"previewToken":"' + "0".repeat(64) + '","extra":true}'],
+  ]) {
+    const malformedImport = await rawRequest({ port, hostHeader, method: "POST", pathname, authorization: `Bearer ${CONTROL_TOKEN}`, body });
+    assert.equal(malformedImport.status, 400, `${pathname} rejects malformed/extra fields`);
+    assert.equal(malformedImport.body.includes(CONTROL_TOKEN), false);
   }
 
   const wrongHost = await rawRequest({
