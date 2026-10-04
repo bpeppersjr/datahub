@@ -17,6 +17,6 @@ test('missing total is not computed; empty, absent and unavailable remain distin
  assert.match(text(render(null,'absent-from-selected-zbp-zip-union')),/No profile in the selected ZIP union/);
  let retries=0;const tree=exports.default({view:{available:false},onRetry:()=>retries++});assert.match(text(tree),/unavailable/);nodes(tree).find(n=>n.type==='button').props.onClick();assert.equal(retries,1);assert.equal(nodes(tree).filter(n=>n.type==='table').length,0);
 });
-test('Overview consumes the existing inspector result and does not dispatch a second browser request',async()=>{
- const workspace=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(workspace,/section==='Overview'.*CensusZbpZipProfile view=\{view.census_zbp_industry_profile\}/);assert.doesNotMatch(source,/runnerJson|fetch\(|useEffect/);
+test('ZIP Economics overview consumes the existing inspector result without a second browser request',async()=>{
+ const workspace=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(workspace,/mode === "economy" && section === "Overview"[\s\S]*<CensusZbpZipProfile[\s\S]*view=\{view\.census_zbp_industry_profile\}/);assert.doesNotMatch(source,/runnerJson|fetch\(|useEffect/);
 });

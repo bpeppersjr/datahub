@@ -79,7 +79,7 @@ async function artifact(root, base, declaration, signal, onRow) {
     check(count === declaration.record_count && bytes === declaration.bytes && digest.digest('hex') === declaration.sha256, `parsed-byte binding: ${declaration.path}`);
     check(same(named, await handle.stat({ bigint: true })) && same(named, await fs.lstat(file, { bigint: true })), `stable row replay: ${declaration.path}`);
     return { bytes, sha256: declaration.sha256, decodedBytes };
-  } finally { reader?.close(); decoded?.destroy(); input?.destroy(); await handle.close().catch(() => {}); }
+  } finally { reader?.close(); decoded?.destroy(); if (input && !input.readableEnded) input.destroy(); await handle.close().catch(() => {}); }
 }
 
 async function load(root, configPath, signal) {

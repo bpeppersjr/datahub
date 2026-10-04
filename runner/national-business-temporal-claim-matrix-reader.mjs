@@ -40,7 +40,7 @@ async function readMatrix({root=APP_ROOT,signal,includeRows=false}={}){
 }
 
 /** Public summary API deliberately omits the row-level semantic roster. */
-export async function readNationalBusinessTemporalClaimMatrix(opts={}){check(opts&&Object.keys(opts).every(key=>['root','signal'].includes(key)));return readMatrix({root:opts.root,signal:opts.signal});}
+export async function readNationalBusinessTemporalClaimMatrix(opts={}){check(opts&&Object.keys(opts).every(key=>['root','signal','includeRows'].includes(key))&&(opts.includeRows===undefined||typeof opts.includeRows==='boolean'));return readMatrix({root:opts.root,signal:opts.signal});}
 
 /** Validated bounded semantic roster for internal joins to the pinned ZIP view. */
 export async function readNationalBusinessTemporalClaimRows(opts={}){

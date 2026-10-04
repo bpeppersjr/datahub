@@ -21,6 +21,8 @@ test('reader remains bounded, pointer-free and contains no acquisition path',asy
 test('internal semantic reader exposes only validated compact source semantics while summary remains unchanged',async()=>{
  const summary=await readNationalBusinessTemporalClaimMatrix(),internal=await readNationalBusinessTemporalClaimRows();
  assert.equal((await readNationalBusinessTemporalClaimMatrix({includeRows:true})).semantic_rows,undefined);
+ await assert.rejects(readNationalBusinessTemporalClaimMatrix({includeRows:'true'}),/unavailable or incompatible/);
+ await assert.rejects(readNationalBusinessTemporalClaimMatrix({includeRaws:true}),/unavailable or incompatible/);
  assert.equal(summary.semantic_rows,undefined);assert.equal(internal.rows.length,30);assert.equal(new Set(internal.rows.map(row=>row.source_key)).size,30);
  assert.equal(internal.provenance.artifact_sha256,'d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0');
  const ny=internal.rows.find(row=>row.source_key==='ny_retail_food_store_license_sites');assert.equal(ny.source_release_id,'ny-retail-food-stores-2025-09-30-9dfbb0199594dab8');assert.equal(ny.classification,'non-active-reporting-membership');assert.equal(ny.policy_sha256.length,64);
