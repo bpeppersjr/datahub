@@ -1821,7 +1821,7 @@ test("state heat map is driven only by scoped matrix availability and distinguis
   assert.equal(selected, "DC");
   h.close();
 });
-test("four primary tab cards expose their work areas and arrow Home End keyboard navigation", () => {
+test("five primary tab cards expose their work areas and arrow Home End keyboard navigation", () => {
   let selected;
   const h = harness(() => assert.fail()),
     tree = h.render("WorkspaceTabs", {
@@ -1841,19 +1841,21 @@ test("four primary tab cards expose their work areas and arrow Home End keyboard
     "State Completion",
     "Industry Summary",
     "ZIP Economics",
+    "Demographic GDP",
     "Operations",
   ]);
   assert.deepEqual(tabs.map(description), [
     "State CompletionNationwide dataset availability",
     "Industry SummaryIndustry reach and connectivity",
-    "ZIP EconomicsZIP GDP and demographic modeling",
+    "ZIP EconomicsZIP total and segment GDP",
+    "Demographic GDPNational and ZIP cross-views",
     "OperationsJobs, evidence, and connectors",
   ]);
   assert.equal(tabs[0].props["aria-selected"], true);
   for (const [key, index] of [
-    ["ArrowLeft", 3],
+    ["ArrowLeft", 4],
     ["ArrowRight", 1],
-    ["End", 3],
+    ["End", 4],
     ["Home", 0],
   ]) {
     let prevented = false;
@@ -1861,7 +1863,7 @@ test("four primary tab cards expose their work areas and arrow Home End keyboard
     assert.equal(prevented, true);
     assert.equal(
       selected,
-      ["State Completion", "Industry Summary", "ZIP Economics", "Operations"][
+      ["State Completion", "Industry Summary", "ZIP Economics", "Demographic GDP", "Operations"][
         index
       ],
     );

@@ -7,6 +7,11 @@ import {
   verifyBroadOrganizationAuthorizationProgram,
 } from "./broad-organization-authorization-program.mjs";
 import { loadStateBusinessSourceAssessmentCatalog, validateStateBusinessSourceAssessmentCatalog } from "./state-business-source-assessment.mjs";
+import {
+  BROAD_ORGANIZATION_GATE_READINESS_TAXONOMY_VERSION,
+  classifyBroadOrganizationGateReadiness,
+  validateBroadOrganizationGateReadinessTaxonomyKeys,
+} from "./broad-organization-gate-readiness.mjs";
 
 const DENIED_NARRATIVE = /https?:\/\/|\b(candidate|contact|request|download|purchase|payment|account|enroll|source action|acquisition)\b/i;
 const MAX_LIMITATION_LENGTH = 260;
@@ -42,6 +47,9 @@ function limitations(state) {
 }
 
 export function projectBroadOrganizationAuthorizationProgram(program, manifest, programManifestSha256) {
+  const allGateKeys = program?.states?.flatMap((state) => state.gate_items?.map((item) => item.gate_key) ?? []) ?? [];
+  let taxonomyCounts;
+  try { taxonomyCounts = validateBroadOrganizationGateReadinessTaxonomyKeys(allGateKeys); } catch (error) { fail(error.message); }
   if (program?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || manifest?.dataset_id !== BROAD_ORGANIZATION_AUTHORIZATION_PROGRAM_DATASET_ID
       || program.schema_version !== "2.0.0" || manifest.schema_version !== "broad-organization-authorization-program-manifest@2.0.0"
@@ -54,10 +62,15 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest, 
       || program.source_backlog?.source_matrix_release_id !== manifest.source_matrix_release_id
       || program.source_backlog?.source_matrix_manifest_sha256 !== manifest.source_matrix_manifest_sha256
       || program.source_backlog?.source_matrix_artifact_sha256 !== manifest.source_matrix_artifact_sha256
+      || program.source_backlog?.release_id !== manifest.source_backlog_release_id
+      || program.source_backlog?.manifest_sha256 !== manifest.source_backlog_manifest_sha256
+      || program.source_backlog?.artifact_sha256 !== manifest.source_backlog_artifact_sha256
+      || program.source_backlog?.assessment_catalog_id == null || !/^[a-f0-9]{64}$/.test(program.source_backlog?.assessment_catalog_sha256 ?? "")
+      || !/^[a-f0-9]{64}$/.test(programManifestSha256 ?? "")
       || program.scope?.source_actions_performed !== 0 || program.scope?.network_requests !== 0
       || program.scope?.acquisition_authorized !== false || program.scope?.current_pointer_changed !== false) fail("identity, counts, lineage, or authority boundary invalid");
   return {
-    schema_version: "broad-organization-authorization-program-management-view@2.0.0",
+    schema_version: "broad-organization-authorization-program-management-view@3.0.0",
     available: true,
     metadata: {
       release_id: manifest.release_id,
@@ -65,6 +78,13 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest, 
       jurisdiction_count: manifest.state_count,
       gate_item_count: manifest.gate_item_count,
       gate_key_count: manifest.gate_key_count,
+      gate_readiness: {
+        taxonomy_version: BROAD_ORGANIZATION_GATE_READINESS_TAXONOMY_VERSION,
+        distinct_keys_classified: taxonomyCounts.distinct_gate_key_count,
+        taxonomy_exhaustive: taxonomyCounts.exhaustive,
+        unresolved_gate_item_count: manifest.gate_item_count,
+        readiness_uplift: false,
+      },
       wave_state_abbreviations: program.wave_state_abbreviations.map((wave) => [...wave]),
     },
     source_lineage: {
@@ -107,18 +127,21 @@ export function projectBroadOrganizationAuthorizationProgram(program, manifest, 
         address_limitations: bounded.address,
         gate_items: state.gate_items.map((item) => item.gate_kind === "external-explicit-authorization" ? {
           gate_key: item.gate_key,
+          original_gate_kind: item.gate_kind,
           gate_kind: "external-explicit-authorization",
+          ...classifyBroadOrganizationGateReadiness(item.gate_key),
           document_closable: false,
           automatic_closure_permitted: false,
           closure_requires: "Separate authenticated scope-specific user authorization for an exact reviewed proposal.",
           no_document_or_evidence_upload_can_close: true,
         } : {
           gate_key: item.gate_key,
+          original_gate_kind: item.gate_kind,
           gate_kind: "non-row-bearing-contract-evidence",
-          document_closable: true,
+          ...classifyBroadOrganizationGateReadiness(item.gate_key),
           automatic_closure_permitted: false,
-          row_bearing: false,
-          required_evidence_type: item.required_evidence_type,
+          original_required_evidence_type: item.required_evidence_type,
+          required_evidence_type: classifyBroadOrganizationGateReadiness(item.gate_key).evidence_requirement,
           acceptance_criterion: item.acceptance_criterion,
           grants_authority: false,
         }),

@@ -5,7 +5,14 @@ import { runnerJson } from './runner-client';
 
 type GateItem = {
   gate_key: string;
+  original_gate_kind: string;
   gate_kind: 'non-row-bearing-contract-evidence' | 'external-explicit-authorization';
+  effective_gate_kind: 'contract-evidence' | 'authenticated-operator-authorization' | 'retained-source-package-evidence' | 'reproducible-execution-verification-evidence' | 'national-admission-decision';
+  taxonomy_version: string;
+  evidence_requirement: string;
+  closure_state: 'unresolved';
+  readiness_uplift: false;
+  authority_implication: false;
   document_closable: boolean;
   automatic_closure_permitted: false;
   row_bearing?: false;
@@ -21,7 +28,7 @@ type ProgramState = {
 };
 type ProgramView = {
   schema_version: string; available: true;
-  metadata: { release_id: string; observed_at: string; jurisdiction_count: number; gate_item_count: number; gate_key_count: number; wave_state_abbreviations: string[][] };
+  metadata: { release_id: string; observed_at: string; jurisdiction_count: number; gate_item_count: number; gate_key_count: number; gate_readiness: { taxonomy_version: string; distinct_keys_classified: number; taxonomy_exhaustive: true; unresolved_gate_item_count: number; readiness_uplift: false }; wave_state_abbreviations: string[][] };
   source_lineage: { backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string; assessment_catalog_id: string; assessment_catalog_sha256: string; source_matrix_release_id: string; source_matrix_manifest_sha256: string; source_matrix_artifact_sha256: string };
   authority: { approval_granted: false; acquisition_authorized: false; evidence_request_authorized: false; contact_authorized: false; download_authorized: false; payment_authorized: false; record_request_authorized: false; row_bearing_evidence_authorized: false; production_change_authorized: false; source_actions_performed: 0; network_requests: 0; current_pointer_changed: false; evidence_specification_is_approval: false };
   states: ProgramState[];
@@ -84,7 +91,7 @@ export default function BroadOrganizationAuthorizationProgram() {
     {loading && <p role="status">Verifying the retained all-wave program…</p>}
     {error && <p role="alert">The canonical authorization program is unavailable or failed verification. No program details or actions are available.</p>}
     {view && <>
-      <p className="operations-note"><strong>{`${view.metadata.jurisdiction_count} jurisdictions · ${view.metadata.gate_item_count} gate items · ${view.metadata.gate_key_count} gate keys`}</strong> · observed {view.metadata.observed_at}. Approval granted: no. Acquisition authorized: no. Source actions performed: 0. Network requests: 0. Evidence specifications grant no authority.</p>
+      <p className="operations-note"><strong>{`${view.metadata.jurisdiction_count} jurisdictions · ${view.metadata.gate_item_count} unresolved gate items · ${view.metadata.gate_key_count} gate keys`}</strong> · exhaustive taxonomy {view.metadata.gate_readiness.taxonomy_version} · observed {view.metadata.observed_at}. Approval granted: no. Acquisition authorized: no. Source actions performed: 0. Network requests: 0. Evidence specifications grant no authority or readiness uplift.</p>
       <details><summary>Verified lineage and authority boundaries</summary>
         <dl>
           <dt>Program release</dt><dd>{view.metadata.release_id}</dd>
@@ -107,17 +114,15 @@ export default function BroadOrganizationAuthorizationProgram() {
           <h5>Status limitations</h5><ul>{state.status_limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
           <h5>Address limitations</h5><ul>{state.address_limitations.map((text, index) => <li key={index}>{text}</li>)}</ul>
         </details>
-        <h5>Gate specifications</h5>
+        <h5>Unresolved gate requirements</h5>
         <ul>{state.gate_items.map((item) => <li key={item.gate_key}>
-          {item.gate_kind === 'external-explicit-authorization' ? <div className="operations-note">
-            <strong>{words(item.gate_key)} · explicit authorization only, not an evidence item</strong>
-            <p>{item.closure_requires} No document or upload can close this gate; automatic closure is not permitted.</p>
-          </div> : <details>
-            <summary>{words(item.gate_key)} · non-row-bearing evidence specification, not approval</summary>
-            <p><strong>Required evidence:</strong> {item.required_evidence_type}</p>
-            <p><strong>Acceptance criterion:</strong> {item.acceptance_criterion}</p>
-            <p className="operations-note">This specification grants no authority; automatic closure is not permitted.</p>
-          </details>}
+          <details>
+            <summary>{words(item.gate_key)} · {words(item.effective_gate_kind)} · unresolved</summary>
+            <p><strong>Evidence required:</strong> {item.evidence_requirement}</p>
+            {item.acceptance_criterion && <p><strong>Acceptance criterion:</strong> {item.acceptance_criterion}</p>}
+            <p><strong>Document-only closure:</strong> {item.document_closable ? 'eligible only for reviewed contract evidence' : 'not sufficient'}.</p>
+            <p className="operations-note">Original gate kind: {words(item.original_gate_kind)}. Row-bearing: no. Authority implication: no. Automatic closure: no. Readiness uplift: no.</p>
+          </details>
         </li>)}</ul>
       </article>)}
     </>}

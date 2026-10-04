@@ -78,7 +78,14 @@ export async function loadDocumentOnlyInquiryProposalRegistryView(
   const programMetadata = program?.metadata;
   const lineage = program?.source_lineage;
   const expectedWaves = PROPOSALS.map((proposal) => proposal.states.map(([code]) => code));
-  if (program?.schema_version !== "broad-organization-authorization-program-management-view@2.0.0" || program?.available !== true
+  const programSchemaSupported = ["broad-organization-authorization-program-management-view@2.0.0", "broad-organization-authorization-program-management-view@3.0.0"].includes(program?.schema_version);
+  const readinessValid = program?.schema_version !== "broad-organization-authorization-program-management-view@3.0.0"
+    || (program?.metadata?.gate_readiness?.taxonomy_version === "1.0.0"
+      && program.metadata.gate_readiness.distinct_keys_classified === 121
+      && program.metadata.gate_readiness.taxonomy_exhaustive === true
+      && program.metadata.gate_readiness.unresolved_gate_item_count === 371
+      && program.metadata.gate_readiness.readiness_uplift === false);
+  if (!programSchemaSupported || !readinessValid || program?.available !== true
       || !Array.isArray(programStates) || programStates.length !== 40 || !programMetadata || programMetadata.jurisdiction_count !== 40
       || JSON.stringify(programMetadata.wave_state_abbreviations) !== JSON.stringify(expectedWaves)
       || !lineage || !/^broad-organization-acquisition-backlog-/.test(lineage.backlog_release_id ?? "")

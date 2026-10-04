@@ -24,7 +24,7 @@ test("read-only management view selects newest deeply verified v2 amid integrity
   assert.equal(view.source_lineage.assessment_catalog_id, backlog.manifest.assessment_catalog_id);
   assert.equal(view.source_lineage.assessment_catalog_sha256, backlog.manifest.assessment_catalog_sha256);
   assert.equal(view.available, true);
-  assert.equal(view.schema_version, "broad-organization-authorization-program-management-view@2.0.0");
+  assert.equal(view.schema_version, "broad-organization-authorization-program-management-view@3.0.0");
   assert.deepEqual([view.metadata.jurisdiction_count, view.metadata.gate_item_count, view.metadata.gate_key_count], [40, 371, 121]);
   assert.deepEqual(view.metadata.wave_state_abbreviations, [
     ["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"],
