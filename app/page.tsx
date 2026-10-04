@@ -90,7 +90,11 @@ const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: str
   },
   'ZIP Economics': {
     eyebrow: 'Local economic view',
-    description: 'Connect ZIP source evidence and business segments to total and segment GDP modeling, with demographic context where governed inputs exist.',
+    description: 'Connect ZIP source evidence and business segments to total and segment GDP modeling where governed inputs exist.',
+  },
+  'Demographic GDP': {
+    eyebrow: 'National demographic cross-view',
+    description: 'Inspect the governed readiness for extrapolated GDP by race, lineage or ancestry, sex, and age without substituting unavailable estimates.',
   },
   Operations: {
     eyebrow: 'Collection operations',
@@ -375,6 +379,7 @@ export default function Home() {
         {workspaceTab==='State Completion'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP Economics'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
+        {workspaceTab==='Demographic GDP'&&<ZipEconomyWorkspace mode="demographics" stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
         {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><div id="benchmark-review-panel" tabIndex={-1}><BenchmarkReview/></div></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">

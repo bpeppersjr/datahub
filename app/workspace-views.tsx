@@ -22,6 +22,7 @@ export const workspaceTabs = [
   "State Completion",
   "Industry Summary",
   "ZIP Economics",
+  "Demographic GDP",
   "Operations",
 ] as const;
 export type WorkspaceTab = (typeof workspaceTabs)[number];
@@ -39,9 +40,13 @@ const workspaceTabDetails: Record<
   },
   "ZIP Economics": {
     number: "03",
-    description: "ZIP GDP and demographic modeling",
+    description: "ZIP total and segment GDP",
   },
-  Operations: { number: "04", description: "Jobs, evidence, and connectors" },
+  "Demographic GDP": {
+    number: "04",
+    description: "National and ZIP cross-views",
+  },
+  Operations: { number: "05", description: "Jobs, evidence, and connectors" },
 };
 export function WorkspaceTabs({
   value,
@@ -5658,7 +5663,9 @@ export function ZipEconomyWorkspace({
     [view, setView] = useState<ZipEvidence | null>(null),
     [error, setError] = useState(""),
     [dimension, setDimension] = useState("Race"),
-    [section, setSection] = useState<(typeof economyTabs)[number]>("Overview"),
+    [section, setSection] = useState<(typeof economyTabs)[number]>(
+      mode === "demographics" ? "Demographics" : "Overview",
+    ),
     [segment, setSegment] = useState("all"),
     [attempt, setAttempt] = useState(0),
     [readiness, setReadiness] = useState<ZctaEconomicReadiness | null>(null),
@@ -5737,12 +5744,17 @@ export function ZipEconomyWorkspace({
     <section className="panel focused-workspace">
       <div className="workspace-heading">
         <div>
-          <span className="section-kicker">Local economic view</span>
-          <h2>ZIP Economics</h2>
+          <span className="section-kicker">
+            {mode === "demographics"
+              ? "National demographic cross-view"
+              : "Local economic view"}
+          </span>
+          <h2>{mode === "demographics" ? "Demographic GDP" : "ZIP Economics"}</h2>
         </div>
         <p>
-          Connect exact ZIP evidence and business segments with modeled total
-          GDP and demographic context where governed inputs exist.
+          {mode === "demographics"
+            ? "Cross-view modeled GDP by demographic dimension without converting unavailable inputs into estimates."
+            : "Connect exact ZIP evidence and business segments with modeled total GDP where governed inputs exist."}
         </p>
       </div>
       <p className="scope-note">
@@ -5800,7 +5812,7 @@ export function ZipEconomyWorkspace({
           </select>
         </label>
         <button type="submit">{error && zip ? "Retry ZIP" : "View ZIP"}</button>
-        {section === "Demographics" && (
+        {(mode === "demographics" || section === "Demographics") && (
           <label>
             Demographic dimension{" "}
             <select
@@ -5828,7 +5840,7 @@ export function ZipEconomyWorkspace({
         allocations require governed inputs; missing evidence is not a measured
         zero.
       </p>
-      <div
+      {mode === "economy" && <div
         className="workspace-tabs subsection-tabs"
         role="tablist"
         aria-label="ZIP Economics views"
@@ -5863,7 +5875,7 @@ export function ZipEconomyWorkspace({
             {name}
           </button>
         ))}
-      </div>
+      </div>}
       {error && <p role="alert">{error}</p>}
       {zip && !view && !error && (
         <p role="status">
@@ -6074,7 +6086,7 @@ export function ZipEconomyWorkspace({
             </details>
           </>
         )}
-        {section === "Demographics" && (
+        {(mode === "demographics" || section === "Demographics") && (
           <>
             <section
               className="model-method-panel"
