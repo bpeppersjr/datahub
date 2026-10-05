@@ -215,6 +215,8 @@ function pageHarness() {
                     ? { default: CoverageExplorer }
                     : name === "./benchmark-review"
                       ? { default: BenchmarkReview }
+                    : name === "./administration"
+                      ? { default: marker("Administration") }
                       : name === "./text-size-control"
                         ? { default: marker("TextSizeControl") }
                         : name === "./runner-client"
@@ -1892,7 +1894,7 @@ test("state heat map is driven only by scoped matrix availability and distinguis
   assert.equal(selected, "DC");
   h.close();
 });
-test("five primary tab cards expose their work areas and arrow Home End keyboard navigation", () => {
+test("six primary tab cards expose their work areas and arrow Home End keyboard navigation", () => {
   let selected;
   const h = harness(() => assert.fail()),
     tree = h.render("WorkspaceTabs", {
@@ -1913,6 +1915,7 @@ test("five primary tab cards expose their work areas and arrow Home End keyboard
     "Industry Summary",
     "ZIP Economics",
     "Demographic GDP",
+    "Administration",
     "Operations",
   ]);
   assert.deepEqual(tabs.map(description), [
@@ -1920,13 +1923,14 @@ test("five primary tab cards expose their work areas and arrow Home End keyboard
     "Industry SummaryIndustry reach and connectivity",
     "ZIP EconomicsZIP total and segment GDP",
     "Demographic GDPNational and ZIP cross-views",
+    "AdministrationMaintained industry settings",
     "OperationsJobs, evidence, and connectors",
   ]);
   assert.equal(tabs[0].props["aria-selected"], true);
   for (const [key, index] of [
-    ["ArrowLeft", 4],
+    ["ArrowLeft", 5],
     ["ArrowRight", 1],
-    ["End", 4],
+    ["End", 5],
     ["Home", 0],
   ]) {
     let prevented = false;
@@ -1934,7 +1938,7 @@ test("five primary tab cards expose their work areas and arrow Home End keyboard
     assert.equal(prevented, true);
     assert.equal(
       selected,
-      ["State Completion", "Industry Summary", "ZIP Economics", "Demographic GDP", "Operations"][
+      ["State Completion", "Industry Summary", "ZIP Economics", "Demographic GDP", "Administration", "Operations"][
         index
       ],
     );

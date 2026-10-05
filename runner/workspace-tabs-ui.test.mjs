@@ -14,6 +14,7 @@ test("primary navigation exposes focused completion, industry, economic, demogra
     "Industry Summary",
     "ZIP Economics",
     "Demographic GDP",
+    "Administration",
     "Operations",
   ];
   let previous = -1;

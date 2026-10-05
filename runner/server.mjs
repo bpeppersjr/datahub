@@ -70,6 +70,7 @@ import { loadBroadOrganizationCurrentAuthorizationChainManagementView } from './
 import { documentOnlyInquiryProposalRegistryHttp } from './document-only-inquiry-proposal-registry-http.mjs';
 import { loadDocumentOnlyInquiryProposalRegistryView } from './document-only-inquiry-proposal-registry-view.mjs';
 import { nationalGeographyGoalStatusHttp } from './national-geography-goal-status-http.mjs';
+import { createIndustryMaintenanceStore } from './maintenance-settings.mjs';
 import { loadNationalGeographyGoalStatusView } from './national-geography-goal-status-view.mjs';
 import { reportedOrganizationZipEvidenceStatusHttp } from './reported-organization-zip-evidence-status-http.mjs';
 import { loadReportedOrganizationZipEvidenceStatusView } from './reported-organization-zip-evidence-status.mjs';
@@ -216,6 +217,7 @@ const templates = {
 };
 
 const store = await createStore();
+const industryMaintenance = await createIndustryMaintenanceStore();
 const connectorRegistry = await createConnectorRegistry();
 const businessCoverageViews = createBusinessCoverageViewStore();
 const businessMap = createBusinessMapStore();
@@ -1062,6 +1064,23 @@ const server = http.createServer(async (request, response) => {
       const input = await bodyJson(request);
       const concurrency = pool.setConcurrency(input.concurrency);
       json(response, 200, await store.updateSettings({ concurrency }));
+      return;
+    }
+
+    if (url.pathname === '/api/administration/industries' && request.method === 'GET') {
+      const value = industryMaintenance.view();
+      response.setHeader('ETag', `"${value.revision}"`);
+      json(response, 200, value);
+      return;
+    }
+
+    if (url.pathname === '/api/administration/industries' && request.method === 'PUT') {
+      const input = await bodyJson(request, 16 * 1024);
+      const match = String(request.headers['if-match'] ?? '').match(/^"(\d+)"$/);
+      if (!match) throw Object.assign(new Error('If-Match with the current revision is required.'), { statusCode: 428 });
+      const value = await industryMaintenance.update(input, Number(match[1]));
+      response.setHeader('ETag', `"${value.revision}"`);
+      json(response, 200, value);
       return;
     }
 

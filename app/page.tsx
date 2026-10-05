@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent } from 'react';
 import BenchmarkReview from './benchmark-review';
+import Administration from './administration';
 import BusinessIntelligence from './business-intelligence';
 import TextSizeControl from './text-size-control';
 import CoverageExplorer from './coverage-explorer';
@@ -95,6 +96,10 @@ const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: str
   'Demographic GDP': {
     eyebrow: 'National demographic cross-view',
     description: 'Inspect the governed readiness for extrapolated GDP by race, lineage or ancestry, sex, and age without substituting unavailable estimates.',
+  },
+  Administration: {
+    eyebrow: 'Application-owned maintenance',
+    description: 'Choose industries for local maintenance planning without changing evidence, authorization, or production state.',
   },
   Operations: {
     eyebrow: 'Collection operations',
@@ -380,6 +385,7 @@ export default function Home() {
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP Economics'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
         {workspaceTab==='Demographic GDP'&&<ZipEconomyWorkspace mode="demographics" stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
+        {workspaceTab==='Administration'&&<Administration/>}
         {workspaceTab==='Operations'&&<><OperationsTabs value={operationsTab} onChange={setOperationsTab}/><div id="operations-panel" role="tabpanel" aria-labelledby={`operations-tab-${operationsTabs.indexOf(operationsTab)}`} tabIndex={0}>{operationsTab==='Collection'&&<DataOperations/>}{operationsTab==='Connectors'&&<ConnectorCatalog/>}{operationsTab==='Evidence'&&<><BusinessIntelligence/><details><summary>Coverage evidence explorer and retained source panels</summary><CoverageExplorer/></details><details><summary>Entity-resolution benchmark</summary><div id="benchmark-review-panel" tabIndex={-1}><BenchmarkReview/></div></details></>}<div className="content-grid" hidden={operationsTab!=='Jobs'}>
           <section className="main-column">
             <div className="metrics">

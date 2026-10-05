@@ -730,7 +730,7 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 .app-header { position:sticky; top:0; z-index:30; display:block; padding:0 clamp(18px,4vw,56px); background:rgba(10,15,20,.96); backdrop-filter:blur(14px); box-shadow:0 10px 30px rgba(0,0,0,.16); }
 .topbar-primary { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:18px; }
 .brand-block p { margin:.3rem 0 0; color:var(--muted); font-size:.78rem; }
-.app-header .workspace-tabs { position:static; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.65rem; padding:.35rem 0 .9rem; background:none; }
+.app-header .workspace-tabs { position:static; display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:.65rem; padding:.35rem 0 .9rem; background:none; }
 .active-workspace-context { display:flex; align-items:center; gap:1rem; padding:.75rem clamp(18px,4vw,56px); border-bottom:1px solid var(--border); background:rgba(17,25,33,.72); }
 .active-workspace-context span { flex:0 0 auto; color:var(--cyan); font-size:.7rem; font-weight:750; letter-spacing:.12em; text-transform:uppercase; }
 .active-workspace-context p { margin:0; color:var(--muted); font-size:.78rem; line-height:1.45; }
@@ -833,3 +833,11 @@ html[data-text-size='175'] .editor-body, html[data-text-size='200'] .editor-body
 @media(max-width:420px) { .app-header .workspace-tabs { grid-template-columns:1fr; } .app-header .workspace-tabs button { min-height:3.5rem; } }
 html[data-text-size='150'] .coverage-focus-layout, html[data-text-size='175'] .coverage-focus-layout, html[data-text-size='200'] .coverage-focus-layout { grid-template-columns:1fr; }
 html[data-text-size='150'] .coverage-selected, html[data-text-size='175'] .coverage-selected, html[data-text-size='200'] .coverage-selected { position:static; max-height:none; }
+.industry-evidence-boundary { padding:.75rem 1rem; border-left:3px solid var(--cyan); background:rgba(82,216,218,.06); }
+.administration-actions { display:flex; align-items:center; flex-wrap:wrap; gap:.65rem; margin:1rem 0; }
+.administration-actions span { margin-left:auto; color:var(--muted); }
+.maintenance-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap:.7rem; margin:1rem 0; }
+.maintenance-grid label { display:flex; align-items:flex-start; gap:.75rem; padding:1rem; border:1px solid var(--border); border-radius:.6rem; background:#121b24; cursor:pointer; }
+.maintenance-grid label.maintained { border-color:var(--cyan); background:rgba(82,216,218,.08); }
+.maintenance-grid label span { display:grid; gap:.3rem; }
+.maintenance-grid small { color:var(--muted); }

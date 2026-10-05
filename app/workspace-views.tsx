@@ -23,6 +23,7 @@ export const workspaceTabs = [
   "Industry Summary",
   "ZIP Economics",
   "Demographic GDP",
+  "Administration",
   "Operations",
 ] as const;
 export type WorkspaceTab = (typeof workspaceTabs)[number];
@@ -46,7 +47,8 @@ const workspaceTabDetails: Record<
     number: "04",
     description: "National and ZIP cross-views",
   },
-  Operations: { number: "05", description: "Jobs, evidence, and connectors" },
+  Administration: { number: "05", description: "Maintained industry settings" },
+  Operations: { number: "06", description: "Jobs, evidence, and connectors" },
 };
 export function WorkspaceTabs({
   value,
@@ -1781,10 +1783,10 @@ export function CoverageWorkspace({
         <thead>
           <tr>
             <th scope="col">Reporting industry</th>
-            <th scope="col">National complete</th>
+            <th scope="col">National dataset availability</th>
             <th scope="col">Available / expected</th>
             <th scope="col">Missing / unknown</th>
-            <th scope="col">{state || "Selected state"} complete</th>
+            <th scope="col">{state || "Selected state"} dataset availability</th>
           </tr>
         </thead>
         <tbody>
@@ -1852,6 +1854,7 @@ export function CoverageWorkspace({
         unknown, and not applicable are distinct. This is not all-business or
         GDP completeness.
       </p>
+      {industries && <p className="industry-evidence-boundary"><strong>Industry status reports evidence actually retained.</strong> It does not require an all-business denominator, complete geocoding, or nationwide industry completeness. Missing and unmeasured evidence remains unknown rather than zero.</p>}
       {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
       <div className="workspace-filters">
         <label>
@@ -4235,6 +4238,10 @@ export function ZipGeographySummary({ view }: { view: ZipEvidence }) {
         ? "Not in the selected governed ZCTA denominator"
         : "Unknown — no registry classification"
       : evidenceLabel(view.governed_zcta?.status);
+  const hasZcta = !!view.governed_zcta?.geoid;
+  const unresolvedGrouping = hasZcta
+    ? "Not applicable — represented by governed Census ZCTA geography"
+    : "Reported ZIP5 without same-code ZCTA / non-ZCTA ZIP evidence · state and cardinal/central region unresolved because no governed retained assignment is available";
   return (
     <section
       aria-label="Shared ZIP geography evidence"
@@ -4251,6 +4258,7 @@ export function ZipGeographySummary({ view }: { view: ZipEvidence }) {
         verify USPS operation, business operations or membership in the selected
         navigation state.
       </p>
+      <p className="industry-evidence-boundary"><strong>Census ZCTA map status remains usable independently of USPS ZIP polygons or an operational ZIP denominator.</strong> Postal evidence gaps do not hide the governed statistical geography.</p>
       <dl>
         <dt>Registry classification</dt>
         <dd>{evidenceLabel(view.classification?.class)}</dd>
@@ -4260,6 +4268,10 @@ export function ZipGeographySummary({ view }: { view: ZipEvidence }) {
         <dd>{membership}</dd>
         <dt>Same-code ZCTA GEOID</dt>
         <dd>{view.governed_zcta?.geoid ?? "Unknown — not evidenced"}</dd>
+        <dt>Non-ZCTA fallback grouping</dt>
+        <dd>{unresolvedGrouping}</dd>
+        <dt>Special-area categorization</dt>
+        <dd>Unresolved — no governed retained overlay classifies this ZIP as park, Native, private, or another special area; no classification is inferred</dd>
         <dt>Selected coverage ZCTA status / GEOID</dt>
         <dd>
           {evidenceLabel(geography?.zcta_status)} ·{" "}
