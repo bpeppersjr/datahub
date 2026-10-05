@@ -53,3 +53,11 @@ The [2026-09-03 five-state source revalidation](STATE-BUSINESS-SOURCE-REVALIDATI
 The current machine-validated catalog now covers all 50 states plus D.C. with exact per-state provenance. It reports 41 holds, two bounded-connector decisions (Alaska and D.C.), and eight production-ready retained broad layers (Colorado, Connecticut, Delaware, Florida, Iowa, New York, Oregon, and Pennsylvania). This separate catalog's `production_ready` count is not the same measure as the national goal matrix's broader retained-evidence admission: D.C. and Texas qualify there under bounded licensing evidence contracts, without becoming complete state business registers. Neither status authorizes autonomous acquisition or establishes complete active-business coverage. All 51 catalog rows continue to authorize zero autonomous acquisitions.
 
 This readiness assessment changes no source release, registry release, coverage release, or production pointer.
+
+## Exact-ZIP admission reconciliation
+
+Run `npm run state-source-exact-zip-admission:check` to perform the zero-network, fail-closed reconciliation between the maintained assessment catalog, the selected broad-organization source contract, its retained ZIP summary, and the registered exact-ZIP industry matrix.
+
+The guard requires the catalog's exact production-ready set—Colorado, Connecticut, Delaware, Florida, Iowa, New York, Oregon, and Pennsylvania—to equal the selected eight-publisher contract. Those publishers must map to exactly nine source dimensions because Oregon legal-entity registrations and assumed-business-name brands remain separate. It pins the retained releases, manifests, source provenance, and source policies; enforces ZIP5-only keys with ZIP+4 retained separately and never joined; and conserves input, eligible-address, and missing/ineligible-address rows.
+
+Passing this guard means only that already-retained, source-specific evidence is consistently admitted to the pointer-free local-review matrix. It performs zero network requests, writes no production pointer, leaves `production_enrollment` false, and does not establish all-business completeness or verified current operation.
