@@ -72,5 +72,5 @@ test("state exact-ZIP validator fails closed on joined and geography conservatio
 test("State Completion mounts the panel once and Industry Summary does not duplicate it", async () => {
   const workspace = await readFile(new URL("../app/workspace-views.tsx", import.meta.url), "utf8");
   assert.equal(workspace.match(/<StateExactZipEvidencePanel state=\{state\} \/>/g)?.length, 1);
-  assert.match(workspace, /\{!industries && <StateExactZipEvidencePanel state=\{state\} \/>\}/);
+  assert.match(workspace, /\{!industries && mapMode === "availability" && <StateExactZipEvidencePanel state=\{state\} \/>\}/);
 });

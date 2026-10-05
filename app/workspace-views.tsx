@@ -18,6 +18,7 @@ import ZipSourceNativeStatus, {
 import childcareRegistration from "../config/datasets/retained-childcare-zip-evidence.json";
 import CensusZctaResidualLayer from "./census-zcta-residual-layer";
 import StateExactZipEvidencePanel from "./state-exact-zip-evidence-panel";
+import StateExactZipEvidenceMap from "./state-exact-zip-evidence-map";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
 
 export const workspaceTabs = [
@@ -1639,6 +1640,7 @@ export function CoverageWorkspace({
     [temporalError, setTemporalError] = useState(false),
     [objectiveReadiness, setObjectiveReadiness] = useState<NationalObjectiveReadiness | null>(null),
     [objectiveReadinessError, setObjectiveReadinessError] = useState(false),
+    [mapMode, setMapMode] = useState<"availability" | "exact-zip-evidence">("availability"),
     [overall, setOverall] = useState(true),
     [adjacentResult, setAdjacentResult] = useState<{
       state: string;
@@ -1856,8 +1858,9 @@ export function CoverageWorkspace({
       </p>
       {industries && <p className="industry-evidence-boundary"><strong>Industry status reports evidence actually retained.</strong> It does not require an all-business denominator, complete geocoding, or nationwide industry completeness. Missing and unmeasured evidence remains unknown rather than zero.</p>}
       {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
-      {!industries && <StateExactZipEvidencePanel state={state} />}
+      {!industries && mapMode === "availability" && <StateExactZipEvidencePanel state={state} />}
       <div className="workspace-filters">
+        {!industries && <label>Map mode <select aria-label="State map mode" value={mapMode} onChange={event=>setMapMode(event.target.value==="exact-zip-evidence"?"exact-zip-evidence":"availability")}><option value="availability">Dataset availability</option><option value="exact-zip-evidence">Exact-ZIP source evidence</option></select></label>}
         <label>
           {industries ? "Reporting industry" : "Coverage category"}{" "}
           <select
@@ -1898,7 +1901,7 @@ export function CoverageWorkspace({
           {view.status.replaceAll("-", " ")}. Completion is unmeasured.
         </p>
       )}
-      {national && (
+      {national && (industries || mapMode === "availability") && (
         <div
           className="coverage-national-metrics"
           aria-label="National dataset expectations"
@@ -2020,7 +2023,7 @@ export function CoverageWorkspace({
           )}
         </>
       ) : (
-        view?.available && (
+        mapMode === "exact-zip-evidence" ? <StateExactZipEvidenceMap selected={state} onSelect={chooseState}/> : view?.available && (
           <div className="coverage-focus-layout">
             <div>
               <h3>50 states and D.C. · governed dataset availability</h3>
@@ -2186,7 +2189,7 @@ export function CoverageWorkspace({
           </div>
         )
       )}
-      {!industries && view?.available && (
+      {!industries && mapMode === "availability" && view?.available && (
         <details className="supporting-evidence">
           <summary>
             Nationwide industry connectivity and selected-state availability
