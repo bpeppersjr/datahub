@@ -43,6 +43,7 @@ import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
 import { readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
+import { readExactZipIndustrySummary } from './exact-zip-industry-summary.mjs';
 import { readZipIndustryDemographicCrossView } from './zip-industry-demographic-cross-view.mjs';
 import { zipIndustryDemographicCrossViewHttp } from './zip-industry-demographic-cross-view-http.mjs';
 import { readZipGdpSegmentationView } from './zip-gdp-segmentation-view.mjs';
@@ -824,6 +825,10 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/business-map/exact-zip-industry-evidence') {
       await exactZipIndustryEvidenceHttp(request,response,url,readExactZipIndustryEvidenceWithTemporalQualification,json);
       return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/exact-zip-industry-summary'){
+      if([...url.searchParams.keys()].length){json(response,400,{error:'Exact-ZIP industry summary does not accept options.'});return;}
+      json(response,200,await readExactZipIndustrySummary());return;
     }
     if (url.pathname === '/api/business-map/zip-industry-demographic-cross-view') {
       await zipIndustryDemographicCrossViewHttp(request,response,url,readZipIndustryDemographicCrossView,json);
