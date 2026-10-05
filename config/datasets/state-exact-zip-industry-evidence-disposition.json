@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition/releases/state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd/manifest.json",
+    "manifest_sha256": "ba434ac7cfc67963291a338e50995453d34bb1dd79b4cb69b86504a95b3b4213",
+    "manifest_bytes": 5426,
+    "artifact_sha256": "456c23c36863adc4974d7a79d5aa19d5813b4d6e5e6473fc1d2ef24a62c9e264",
+    "artifact_bytes": 5772604,
+    "scope_rows": 60,
+    "state_scope_rows": 51,
+    "territory_scope_rows": 5,
+    "special_scope_rows": 4,
+    "zip5_rows": 48194,
+    "assigned_state_zip5_rows": 33455,
+    "non_state_zip5_rows": 14739,
+    "geography_scope_counts": {
+      "state": 33455,
+      "territory": 149,
+      "multi-state-material": 184,
+      "zcta-overlay-unresolved": 3,
+      "non-zcta-unassigned": 14402,
+      "explicit-placeholder": 1
+    },
+    "industry_dimensions": 39,
+    "joined_cell_total": 1879566,
+    "disposition_rows": 2340
+  },
+  "claims": {
+    "polygon_area_only_not_business_location": true,
+    "usps_zip_state_assignment": false,
+    "fractional_allocation": false,
+    "additive_cross_industry_total": false,
+    "current_operation_verified": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  }
+}

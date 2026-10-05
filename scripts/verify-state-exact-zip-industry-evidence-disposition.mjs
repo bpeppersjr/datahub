@@ -1,0 +1,2 @@
+import path from 'node:path';import {APP_ROOT} from '../runner/paths.mjs';import {verifyStateExactZipIndustryEvidenceDisposition} from '../runner/state-exact-zip-industry-evidence-disposition.mjs';
+if(process.argv.length!==3)throw Error('Supply exactly one immutable manifest path.');process.stdout.write(`${JSON.stringify(await verifyStateExactZipIndustryEvidenceDisposition(path.resolve(APP_ROOT,process.argv[2]),{root:APP_ROOT}),null,2)}\n`);

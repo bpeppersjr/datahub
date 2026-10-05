@@ -127,6 +127,8 @@
     "exact-zip-industry-matrix:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix.mjs",
     "exact-zip-industry-temporal-qualification:build": "node scripts/build-exact-zip-industry-temporal-qualification.mjs",
     "exact-zip-industry-temporal-qualification:verify": "node scripts/verify-exact-zip-industry-temporal-qualification.mjs",
+    "state-exact-zip:build": "node scripts/build-state-exact-zip-industry-evidence-disposition.mjs",
+    "state-exact-zip:verify": "node scripts/verify-state-exact-zip-industry-evidence-disposition.mjs data/state-exact-zip-industry-evidence-disposition/releases/state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd/manifest.json",
     "zip-entity-resolution-evidence:build": "node scripts/build-zip-entity-resolution-evidence.mjs",
     "zip-entity-resolution-evidence:verify": "node scripts/verify-zip-entity-resolution-evidence.mjs",
     "hud-usps:build": "node scripts/build-hud-usps-crosswalk.mjs",

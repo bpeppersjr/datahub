@@ -17,6 +17,7 @@ import ZipSourceNativeStatus, {
 } from "./zip-source-native-status";
 import childcareRegistration from "../config/datasets/retained-childcare-zip-evidence.json";
 import CensusZctaResidualLayer from "./census-zcta-residual-layer";
+import StateExactZipEvidencePanel from "./state-exact-zip-evidence-panel";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
 
 export const workspaceTabs = [
@@ -1855,6 +1856,7 @@ export function CoverageWorkspace({
       </p>
       {industries && <p className="industry-evidence-boundary"><strong>Industry status reports evidence actually retained.</strong> It does not require an all-business denominator, complete geocoding, or nationwide industry completeness. Missing and unmeasured evidence remains unknown rather than zero.</p>}
       {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
+      {!industries && <StateExactZipEvidencePanel state={state} />}
       <div className="workspace-filters">
         <label>
           {industries ? "Reporting industry" : "Coverage category"}{" "}
