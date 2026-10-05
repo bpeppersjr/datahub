@@ -128,15 +128,23 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.1.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.2.0');
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
-    ['geography', 'achieved'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
+    ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
     ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
+  const geoRow = readiness.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
+  assert.equal(geoRow.profile_count, 8011835); assert.equal(geoRow.registry_profile_count, 8011835);
+  assert.deepEqual(geoRow.postal_counts, { 'same-code-zcta-candidate': 7963395, 'outside-zcta': 48439, 'explicit-placeholder': 1, missing: 0 });
+  assert.deepEqual(geoRow.point_assignment_counts, { 'assigned-single-county': 372079, unmatched: 21, ambiguous: 7, conflict: 0, 'missing-geocode': 6976397, 'invalid-coordinate': 0, 'unassignable-legacy-coordinate-crs-unproven': 640383, 'unassignable-coordinate-not-premise-point': 22948 });
+  assert.equal(geoRow.reported_state_conflict_count, 11); assert.equal(geoRow.usps_unverified_profile_count, 8011835);
+  assert.equal(geoRow.usps_operational_assignment_verified, false); assert.equal(geoRow.usps_deliverability_verified, false);
+  assert.equal(geoRow.same_code_zcta_is_membership, false); assert.equal(geoRow.entity_polygons_present, false);
   assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
     'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'entity-geography-relationship-not-complete',
     'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']);
   assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
   const lifecycleRow = readiness.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility');
@@ -150,7 +158,7 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-stale-records-present').count, 24230);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unknown-or-contradictory').count, 635899);
   for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
-    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'lifecycle-active-eligibility-not-established',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established',
     'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
   for (const [name, binding] of Object.entries(readiness.bindings)) {
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);

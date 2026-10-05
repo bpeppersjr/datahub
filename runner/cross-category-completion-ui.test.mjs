@@ -28,7 +28,7 @@ test('state changes clear prior completion counts and aborted late responses can
  pending[0].resolve(response('MD','maryland-stale',7));await flush();tree=h.render('CoverageWorkspace',{industries:true,stateCode:'VA'});assert.match(text(tree),/Selected state: VA/);assert.doesNotMatch(text(tree),/maryland stale|Selected state: MD/);h.close();
 });
 
-test('State Completion shows strict lifecycle readiness counts and six-lineage contract without invented percentages',async()=>{
+test('State Completion shows strict lifecycle and partial entity geography counts with seven lineage bindings and no invented percentages',async()=>{
  const readiness=projectNationalZipObjectiveReadiness(await readNationalZipGoalAcceptance({claim:'every-active-business-by-valid-zip'}));
  const h=harness(async url=>url.includes('national-objective-readiness')?readiness:url.includes('temporal-claim-matrix')?{available:false,status:'unavailable'}:url.includes('state-summary')?{available:false,states:[],categories:[],national_category_counts:{},national_category_percent_of_collected_evidence:{}}:{available:false,status:'unavailable'});
  assert.equal(h.exports.validNationalObjectiveReadiness(readiness),true);
@@ -37,9 +37,12 @@ test('State Completion shows strict lifecycle readiness counts and six-lineage c
   value=>{value.lineage.lifecycle_eligibility.artifact_inventory_sha256='0'.repeat(64);},
   value=>{value.lineage.lifecycle_eligibility.review_status_counts.stale=0;},
   value=>{value.acceptance.blocker_details.find(row=>row.code==='lifecycle-unknown-or-contradictory').count=0;},
+  value=>{value.lineage.business_entity_geography_relationship.artifact_inventory_sha256='0'.repeat(64);},
+  value=>{value.requirements_ledger.find(row=>row.requirement==='entity-geography-relationship').postal_counts['explicit-placeholder']=0;},
+  value=>{value.requirements_ledger.find(row=>row.requirement==='entity-geography-relationship').same_code_zcta_is_membership=true;},
  ]){const invalid=structuredClone(readiness);mutate(invalid);assert.equal(h.exports.validNationalObjectiveReadiness(invalid),false);}
  h.render('CoverageWorkspace',{industries:false,stateCode:'CA'});await flush();const tree=h.render('CoverageWorkspace',{industries:false,stateCode:'CA'}),component=nodes(tree).find(node=>node.type?.name==='NationalObjectiveReadinessCard'),card=component?.type(component.props),value=text(card);
- assert.ok(component);assert.match(value,/Not accepted/);assert.match(value,/Governed dataset availability is not all-business completeness/);assert.match(value,/40 broad jurisdiction gaps \/ 51 jurisdictions/);assert.match(value,/USPS denominator unavailable/);assert.match(value,/Entity-resolution benchmark gate not passed/);assert.match(value,/Nationwide industry universe unmeasured/);assert.match(value,/Current operation not independently verified/);assert.match(value,/Lifecycle eligibility not established: 0 \/ 8,011,835 eligible/);assert.match(value,/24,230 stale/);assert.match(value,/635,899 unknown\/contradictory/);assert.match(value,/0 independently verified operating/);assert.doesNotMatch(value,/%/);assert.equal(nodes(card).filter(node=>node.type==='strong'&&['achieved','blocked','partial','unmeasured'].includes(text(node))).length,9);h.close();
+ assert.ok(component);assert.match(value,/Not accepted/);assert.match(value,/Governed dataset availability is not all-business completeness/);assert.match(value,/40 broad jurisdiction gaps \/ 51 jurisdictions/);assert.match(value,/USPS denominator unavailable/);assert.match(value,/Entity-resolution benchmark gate not passed/);assert.match(value,/Nationwide industry universe unmeasured/);assert.match(value,/Current operation not independently verified/);assert.match(value,/Entity geography is partial/);assert.match(value,/7,963,395 same-code ZCTA candidates/);assert.match(value,/USPS validity is unverified for 8,011,835 profiles/);assert.match(value,/ZCTA correspondence is not membership/);assert.match(value,/Lifecycle eligibility not established: 0 \/ 8,011,835 eligible/);assert.match(value,/24,230 stale/);assert.match(value,/635,899 unknown\/contradictory/);assert.match(value,/0 independently verified operating/);assert.doesNotMatch(value,/%/);assert.equal(nodes(card).filter(node=>node.type==='strong'&&['achieved','blocked','partial','unmeasured'].includes(text(node))).length,10);h.close();
 });
 
 test('invalid objective readiness is fail-closed without old rows, zero counts, or percentages',async()=>{
