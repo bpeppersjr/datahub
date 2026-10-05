@@ -16,14 +16,14 @@ const catalog = {
 };
 
 function fixture(request) {
-  const values = [catalog, [], '', [], [], null], exports = {}, downloads=[];
+  const values = [catalog, [], ['childcare'], [], [], null], exports = {}, downloads=[];
   let index = 0;
   const noop = () => null;
   runInNewContext(code, {
     exports,
     require: (name) => name === './runner-client' ? { runnerJson: request, downloadRunnerArtifact: (...args)=>downloads.push(args) }
       : name === './data-operation-model' ? { operationLabel: () => 'Collection', operationEvidence: () => null }
-      : name === 'react' ? { useState(value) { const i = index++; if (!(i in values)) values[i] = value; return [values[i], (next) => { values[i] = typeof next === 'function' ? next(values[i]) : next; }]; }, useEffect() {} }
+      : name === 'react' ? { useState(value) { const i = index++; if (!(i in values)) values[i] = value; return [values[i], (next) => { values[i] = typeof next === 'function' ? next(values[i]) : next; }]; }, useEffect() {}, useRef(value){return {current:value};} }
         : name === 'react/jsx-runtime' ? { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'fragment' }
           : { __esModule: true, default: noop },
   });
@@ -57,7 +57,7 @@ test('collection UI batches unique sources, shows selection, previews before dis
   await settle();
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, '/api/data-operations/plan');
-  assert.deepEqual(calls[0].body, { industries: [], states: [], sourceIds: ['state-ma-childcare', 'state-nj-childcare'] });
+  assert.deepEqual(calls[0].body, { industries: ['childcare'], states: [], sourceIds: ['state-ma-childcare', 'state-nj-childcare'] });
   assert.deepEqual(calls[0].body.sourceIds, ['state-ma-childcare', 'state-nj-childcare']);
 
   tree = f.render();
@@ -73,6 +73,23 @@ test('collection UI batches unique sources, shows selection, previews before dis
   assert.match(textOf(tree), /No selected sources means use default sources only/);
   const clearedSelect = nodes(tree).find(node => node.type === 'select' && node.props['aria-describedby'] === 'collection-source-guidance');
   assert.equal(clearedSelect.props.value.length, 0);
+});
+
+test('empty maintenance intent stays empty and cannot preview or dispatch automatically', () => {
+  const calls=[]; const f=fixture(async(...args)=>{calls.push(args);return[];});
+  f.values[2]=[];
+  const tree=f.render();
+  assert.equal(calls.length,0);
+  assert.equal(button(tree,'Preview collection').props.disabled,true);
+  assert.equal(button(tree,'Start collection').props.disabled,true);
+  assert.match(textOf(tree),/empty maintenance selection stays empty/i);
+  assert.deepEqual(nodes(tree).find(node=>node.type==='select'&&node.props['aria-label']==='Collection industries').props.value,[]);
+});
+
+test('maintenance defaults retain only exact operational catalog IDs without fallback',()=>{
+  const exports={};runInNewContext(`${code}\nexports.defaultSelection=maintenancePlanningDefault;`,{exports,require:(name)=>name==='react'?{}:name==='react/jsx-runtime'?{}:{}});
+  assert.deepEqual(exports.defaultSelection(['childcare','transportation'],['transportation','unknown','transportation']),['transportation']);
+  assert.deepEqual(exports.defaultSelection(['childcare'],[]),[]);
 });
 
 test('select all chooses only currently matching sources', () => {

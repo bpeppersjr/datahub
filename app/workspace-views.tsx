@@ -328,6 +328,13 @@ type Shares = {
     percent_of_category_nationwide: Record<string, number | null>;
   }>;
 };
+type MaintenanceIntentView={industries:Array<{id:string;label:string}>;maintainedIndustries:string[];revision:number;semantics:string};
+type OperationalIndustryEvidence={schema_version:string;jurisdictions:51;industry_cells:459;industries:Array<{id:string;jurisdictions:51;access_status_counts:Record<string,number>;temporal_status_counts:Record<string,number>}>;claims:{active_business_count:null;nationwide_industry_completeness:null;complete_geocodes:false;maintenance_selection_affects_evidence:false}};
+function OperationalMaintenanceIntent(){
+  const[view,setView]=useState<MaintenanceIntentView|null>(null),[evidence,setEvidence]=useState<OperationalIndustryEvidence|null>(null),[error,setError]=useState(false);
+  useEffect(()=>{const controller=new AbortController();void Promise.allSettled([runnerJson<MaintenanceIntentView>("/api/administration/industries",{signal:controller.signal}),runnerJson<OperationalIndustryEvidence>("/api/business-map/state-access-industry-summary",{signal:controller.signal})]).then(([intent,status])=>{if(controller.signal.aborted)return;if(intent.status==='fulfilled')setView(intent.value);else setError(true);if(status.status==='fulfilled'&&status.value.industry_cells===459)setEvidence(status.value)});return()=>controller.abort()},[]);
+  return <section className="industry-summary" aria-label="Operational industry maintenance intent"><h3>Operational maintenance intent</h3><p>Operational segment IDs are shown separately from reporting/map categories. Selection controls planning defaults only; historical evidence below remains visible and unchanged.</p>{error?<p role="status">Maintenance intent is unavailable. No selection is inferred; reporting evidence remains visible.</p>:!view?<p role="status">Loading local maintenance intent…</p>:<div className="maintenance-status-list">{view.industries.map(item=>{const status=evidence?.industries.find(row=>row.id===item.id);return <div key={item.id}><strong>{item.label}</strong><code>{item.id}</code><span className={view.maintainedIndustries.includes(item.id)?"status-succeeded":"scope-note"}>{view.maintainedIndustries.includes(item.id)?"Selected for maintenance":"Not selected"}</span><small>{status?`${Object.entries(status.access_status_counts).map(([key,value])=>`${key.replaceAll('-', ' ')}: ${value}`).join(' · ')} across 51 jurisdictions`:'Evidence status unavailable; no zero inferred'}</small></div>})}</div>}<p className="operations-note">Manual-only and unauthorized sources retain their own gates. Maintenance intent does not imply authorization or completeness. Evidence status is hash-pinned and remains independent of this selection.</p></section>;
+}
 type TemporalMatrix = {
   schema_version: "national-business-temporal-claim-matrix-view@1.0.0";
   available: true;
@@ -1677,16 +1684,7 @@ export function CoverageWorkspace({
   useEffect(() => {
     if (!industries) return;
     const controller = new AbortController();
-    void runnerJson<Shares>(
-      "/api/business-map/state-summary?include_territories=false",
-      { signal: controller.signal },
-    )
-      .then((value) => {
-        if (!controller.signal.aborted) setShares(value);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setShares(null);
-      });
+    void runnerJson<Shares>("/api/business-map/state-summary?include_territories=false",{signal:controller.signal}).then(value=>{if(!controller.signal.aborted)setShares(value)}).catch(()=>{if(!controller.signal.aborted)setShares(null)});
     return () => controller.abort();
   }, [industries]);
   useEffect(() => {
@@ -1928,6 +1926,7 @@ export function CoverageWorkspace({
       )}
       {industries ? (
         <>
+          <OperationalMaintenanceIntent/>
           <h3>Industry connectivity</h3>
           {view?.available ? (
             connectivity

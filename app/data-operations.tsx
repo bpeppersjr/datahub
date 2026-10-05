@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { downloadRunnerArtifact, runnerJson } from './runner-client';
 import RefreshSchedules from './refresh-schedules';
 import ProductionRuns from './production-runs';
@@ -45,11 +45,13 @@ type Plan = {
   tasks: Array<{ id: string; sourceId: string; scope: string; state?: string }>;
   gaps: Array<{ industry: string; state: string; reason: string }>;
 };
+type MaintenanceView = { industries: Array<{id:string;label:string}>; maintainedIndustries:string[]; revision:number; semantics:string };
 const base = '/api/data-operations';
 const active = (status: string) => ['QUEUED', 'RUNNING', 'UNKNOWN'].includes(status);
 const label = (text: string) => text.replaceAll('-', ' ').replaceAll('_', ' ');
 const initialFields = ['business_name', 'street', 'city', 'state', 'zip_code', 'zip4', 'latitude', 'longitude'];
 const selectedValues = (element: HTMLSelectElement) => Array.from(element.selectedOptions, (option) => option.value);
+export const maintenancePlanningDefault = (catalogIds:string[], maintainedIds:string[]) => maintainedIds.filter((id,index) => catalogIds.includes(id) && maintainedIds.indexOf(id) === index);
 
 async function post<T>(endpoint: string, body: unknown): Promise<T> {
   return runnerJson<T>(`${base}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -58,7 +60,7 @@ async function post<T>(endpoint: string, body: unknown): Promise<T> {
 export default function DataOperations() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
-  const [industry, setIndustry] = useState('');
+  const [industries, setIndustries] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [sourceIds, setSourceIds] = useState<string[]>([]);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -82,6 +84,8 @@ export default function DataOperations() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
+  const [maintenanceError,setMaintenanceError]=useState('');
+  const maintenanceLoaded=useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,7 +98,16 @@ export default function DataOperations() {
           runnerJson<Catalog>(`${base}/catalog`, { signal: controller.signal }),
           runnerJson<Operation[]>(`${base}/operations`, { signal: controller.signal }),
         ]);
-        if (!controller.signal.aborted) { setCatalog(nextCatalog); setOperations(history); setConnectionError(''); }
+        if (!controller.signal.aborted) {
+          setCatalog(nextCatalog); setOperations(history); setConnectionError('');
+          if(!maintenanceLoaded.current){
+            maintenanceLoaded.current=true;
+            try{
+              const maintenance=await runnerJson<MaintenanceView>('/api/administration/industries',{signal:controller.signal});
+              if(!controller.signal.aborted){setIndustries(maintenancePlanningDefault(nextCatalog.industries.map(item=>item.id),maintenance.maintainedIndustries));setMaintenanceError('');}
+            }catch{if(!controller.signal.aborted){setIndustries([]);setMaintenanceError('Maintenance selection is unavailable; no industries were selected by default.');}}
+          }
+        }
       } catch (reason) {
         if (!controller.signal.aborted) setConnectionError(reason instanceof Error ? reason.message : 'Unable to reach data operations.');
       } finally { pending = false; }
@@ -112,9 +125,9 @@ export default function DataOperations() {
     finally { setBusy(false); }
   };
   const remember = (operation: Operation) => setOperations((items) => [operation, ...items.filter((item) => item.id !== operation.id)]);
-  const collectionInput = { industries: industry ? [industry] : [], states, ...(sourceIds.length ? { sourceIds: Array.from(new Set(sourceIds)) } : {}) };
-  const collectionSources = catalog?.collectionSources?.filter(source => (!industry || source.industries.includes(industry))
-    && (!states.length || source.states === 'all' || states.some(state => source.states.includes(state)))) ?? [];
+  const collectionInput = { industries, states, ...(sourceIds.length ? { sourceIds: Array.from(new Set(sourceIds)) } : {}) };
+  const collectionSources = industries.length ? (catalog?.collectionSources?.filter(source => source.industries.some(item=>industries.includes(item))
+    && (!states.length || source.states === 'all' || states.some(state => source.states.includes(state)))) ?? []) : [];
 
   return <section id="data-operations" className="panel data-operations">
     <div className="panel-heading"><div><span className="section-kicker">Collect · compile · extract</span><h2>Data operations</h2></div><span className="operations-local">Runs locally · no AI required</span></div>
@@ -122,13 +135,15 @@ export default function DataOperations() {
     <div className="operations-builders">
       <section aria-labelledby="collection-title" className="operations-builder">
         <h3 id="collection-title">Update an industry</h3>
-        <label>Industry<select value={industry} disabled={!catalog || busy} onChange={(event) => { setIndustry(event.target.value); setSourceIds([]); setPlan(null); }}><option value="">All configured industries</option>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? label(item.id)}</option>)}</select></label>
+        <label>Industries selected for this plan<select aria-label="Collection industries" multiple size={6} value={industries} disabled={!catalog || busy} onChange={(event) => { setIndustries(selectedValues(event.currentTarget)); setSourceIds([]); setPlan(null); }}>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? label(item.id)}</option>)}</select></label>
+        <p className="operations-note">Initialized once from Administration maintenance intent. This is an explicit plan selection, not authorization, coverage, scheduling, or dispatch. An empty maintenance selection stays empty.</p>
+        {maintenanceError&&<p className="operations-note" role="status">{maintenanceError}</p>}
         <label>Publisher states<select multiple size={5} value={states} disabled={!catalog || busy} onChange={(event) => { setStates(selectedValues(event.currentTarget)); setSourceIds([]); setPlan(null); }}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
         <p className="operations-note">No state selection means all states. Hold Ctrl or Command to select several. State publishers may include out-of-state premises; national sources are acquired once in full.</p>
         <label>Collection sources<select multiple size={6} value={sourceIds} disabled={!catalog || busy} onChange={(event) => { setSourceIds(Array.from(new Set(selectedValues(event.currentTarget)))); setPlan(null); }} aria-describedby="collection-source-guidance">{collectionSources.map(source => <option key={source.id} value={source.id}>{label(source.id)}{source.manualSelectionRequired ? ' (manual-only)' : ''}</option>)}</select></label>
         <div className="operations-actions"><button type="button" className="ghost-button" disabled={!catalog || busy || !collectionSources.length} onClick={() => { setSourceIds(collectionSources.map(source => source.id)); setPlan(null); }}>Select all matching sources</button><button type="button" className="ghost-button" disabled={!sourceIds.length || busy} onClick={() => { setSourceIds([]); setPlan(null); }}>Clear selected sources</button></div>
         <p id="collection-source-guidance" className="operations-note">{sourceIds.length ? `Selected ${sourceIds.length} source${sourceIds.length === 1 ? '' : 's'}: ${collectionSources.filter(source => sourceIds.includes(source.id)).map(source => label(source.id)).join(', ')}.` : 'No selected sources means use default sources only.'} Manual-only sources are excluded from default runs. Selecting a source does not grant approval or bypass its checks.</p>
-        <div className="operations-actions"><button className="ghost-button" disabled={!catalog || busy} onClick={() => void act(async () => setPlan(await post<Plan>('/plan', collectionInput)))}>Preview collection</button><button className="primary-button" disabled={!plan?.taskCount || locked || busy || !!connectionError} onClick={() => void act(async () => remember(await post<Operation>('/collections', collectionInput)))}>Start collection</button></div>
+        <div className="operations-actions"><button className="ghost-button" disabled={!catalog || busy || !industries.length} onClick={() => void act(async () => setPlan(await post<Plan>('/plan', collectionInput)))}>Preview collection</button><button className="primary-button" disabled={!plan?.taskCount || locked || busy || !!connectionError || !industries.length} onClick={() => void act(async () => remember(await post<Operation>('/collections', collectionInput)))}>Start collection</button></div>
         {plan && <div className="operations-plan" aria-live="polite">
           <strong>{plan.taskCount} source updates · up to {Math.min(plan.taskCount, plan.maxConcurrency)} parallel workers; remaining tasks wait in this operation</strong>
           <ul>{plan.tasks.map((task) => <li key={task.id}>{label(task.sourceId)} <span>({task.state ?? 'national'})</span></li>)}</ul>

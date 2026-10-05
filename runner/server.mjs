@@ -28,7 +28,7 @@ import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 import { broadOrganizationAdjacentEvidenceHttp } from './broad-organization-adjacent-evidence-http.mjs';
-import { stateAccessView } from './state-access-view.mjs';
+import { stateAccessView, stateAccessIndustrySummary } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.mjs';
@@ -775,6 +775,10 @@ const server = http.createServer(async (request, response) => {
       if([...url.searchParams.keys()].some(key=>!['state','industry'].includes(key))||['state','industry'].some(key=>url.searchParams.getAll(key).length!==1)){json(response,400,{error:'Unsupported or repeated state-access option.'});return;}
       try{json(response,200,await stateAccessView({state:url.searchParams.get('state'),industry:url.searchParams.get('industry')}));}
       catch(error){json(response,/Invalid|outside/.test(error.message)?400:503,{error:/Invalid|outside/.test(error.message)?error.message:'State-access evidence is unavailable.'});}return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/state-access-industry-summary'){
+      if([...url.searchParams.keys()].length){json(response,400,{error:'State-access industry summary does not accept options.'});return;}
+      json(response,200,await stateAccessIndustrySummary());return;
     }
     if (url.pathname === '/api/business-map/nonemployer-county-heatmap') {
       const [{ nonemployerCountyHeatmapView }, { censusNonemployerCountyHeatmapHttp }] = await Promise.all([
