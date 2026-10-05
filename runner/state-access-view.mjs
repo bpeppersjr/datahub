@@ -55,5 +55,9 @@ export async function stateAccessIndustrySummary({root=APP_ROOT,configLoader=loa
     for(const cell of jurisdiction.industries){const row=rows.get(cell.industry);check(row&&ACCESS_STATUSES.has(cell.accessEvidenceStatus)&&TEMPORAL_STATUSES.has(cell.temporalStatus?.status),'State-access industry status vocabulary is invalid.');row.jurisdictions+=1;row.access_status_counts[cell.accessEvidenceStatus]=(row.access_status_counts[cell.accessEvidenceStatus]??0)+1;row.temporal_status_counts[cell.temporalStatus.status]=(row.temporal_status_counts[cell.temporalStatus.status]??0)+1;cells+=1;}
   }
   check(states.size===51&&cells===459&&[...rows.values()].every(row=>row.jurisdictions===51),'State-access industry-cell conservation failed.');
-  return {schema_version:'state-access-industry-summary@1.0.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
+  for(const row of rows.values()){
+    row.jurisdictions_with_retained_access_evidence=(row.access_status_counts['direct-state-publisher']??0)+(row.access_status_counts['local-publisher-substate-evidence']??0)+(row.access_status_counts['national-dataset-state-evidence']??0);
+    row.retained_access_evidence_percent=Number(((row.jurisdictions_with_retained_access_evidence/row.jurisdictions)*100).toFixed(1));
+  }
+  return {schema_version:'state-access-industry-summary@1.1.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
 }

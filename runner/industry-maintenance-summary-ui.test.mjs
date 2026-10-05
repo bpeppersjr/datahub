@@ -9,6 +9,9 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Operational segment IDs are shown separately from reporting\/map categories/);
   assert.match(source,/historical evidence below remains visible and unchanged/);
   assert.match(source,/Manual-only and unauthorized sources retain their own gates/);
+  assert.match(source,/of jurisdictions \(/);
+  assert.match(source,/have retained access evidence\. This is not business completeness/);
+  assert.match(source,/Temporal review:/);
   assert.match(source,/Industry connectivity/);
   assert.match(source,/Industry summary/);
 });
