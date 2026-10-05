@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
 import { evaluateNationalZipGoalAcceptanceFixture as evaluate, readNationalZipGoalAcceptance, NATIONAL_ZIP_GOAL_ACCEPTANCE_TEST_HOOKS as hooks,
-  NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS as readinessHooks } from './national-zip-goal-acceptance.mjs';
+  NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS as readinessHooks, activeBusinessResolutionGateEstablished, lifecycleActiveEligibilityEstablished } from './national-zip-goal-acceptance.mjs';
 
 function fixture() {
   return {
@@ -128,19 +128,30 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.0.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.1.0');
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
     ['geography', 'achieved'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
-    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
     ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified']);
+    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']);
   assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
+  const lifecycleRow = readiness.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility');
+  assert.equal(lifecycleRow.profile_count, 8011835); assert.equal(lifecycleRow.active_business_eligible_count, 0);
+  assert.equal(lifecycleRow.stale_count, 24230); assert.equal(lifecycleRow.unknown_or_contradictory_count, 635899);
+  assert.deepEqual(readiness.bindings.lifecycle_eligibility.review_status_counts, { 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 });
+  assert.deepEqual(readiness.bindings.lifecycle_eligibility.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 });
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').profile_count, 8011835);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').eligible_count, 0);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-stale-records-present').count, 24230);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unknown-or-contradictory').count, 635899);
   for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
-    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified']) assert.ok(report.acceptance.blockers.includes(blocker));
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'lifecycle-active-eligibility-not-established',
+    'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
   for (const [name, binding] of Object.entries(readiness.bindings)) {
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
@@ -148,6 +159,11 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
   assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe');
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
+  assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
+  assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
+  assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae');
+  assert.equal(readiness.bindings.lifecycle_eligibility.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
+  assert.equal(readiness.bindings.lifecycle_eligibility.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');
   assert.equal(readiness.bindings.goal_completion_matrix.broad_layer_gaps, 40);
   assert.equal(readiness.bindings.broad_organization_projection.metadata.gate_readiness.distinct_keys_classified, 121);
   assert.equal(readiness.claims.acceptance, false); assert.equal(readiness.claims.report_only, true);
@@ -158,6 +174,9 @@ test('active-business acceptance binds exact governance releases and stays block
     value => { value.bindings.temporal_claim_matrix.summary.broad_state_dc_gaps = 0; },
     value => { value.requirements_ledger.find(row => row.requirement === 'industry-coverage').status = 'achieved'; },
     value => { value.bindings.broad_organization_projection.metadata.gate_readiness.taxonomy_exhaustive = false; },
+    value => { value.bindings.lifecycle_eligibility.taxonomy_sha256 = '0'.repeat(64); },
+    value => { value.bindings.lifecycle_eligibility.artifact_inventory_sha256 = '0'.repeat(64); },
+    value => { value.bindings.lifecycle_eligibility.profile_count = 1; },
     value => { value.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count = 39; },
     value => { delete value.bindings.goal_completion_matrix; },
   ];
@@ -167,6 +186,25 @@ test('active-business acceptance binds exact governance releases and stays block
 test('abort and unknown claim reject before retained I/O', async () => {
   await assert.rejects(readNationalZipGoalAcceptance({ signal: AbortSignal.abort() }), { name: 'AbortError' });
   await assert.rejects(readNationalZipGoalAcceptance({ claim: 'all-done' }), /unknown completion claim/);
+});
+
+test('lifecycle active-eligibility transition requires full denominator, zero uncertainty/staleness, and every operation verified', () => {
+  const safe = { release_manifest_verified: true, registry_profile_count: 12, profile_count: 12, active_business_eligible_count: 12, current_operation_verified_count: 12,
+    review_status_counts: { stale: 0, unmeasured: 0, unmapped: 0 }, lifecycle_evidence_counts: { unknown: 0, contradictory: 0 } };
+  assert.equal(lifecycleActiveEligibilityEstablished(safe), true);
+  for (const changed of [
+    { ...safe, active_business_eligible_count: 11 }, { ...safe, current_operation_verified_count: 11 },
+    { ...safe, review_status_counts: { ...safe.review_status_counts, stale: 1 } },
+    { ...safe, review_status_counts: { ...safe.review_status_counts, unmeasured: 1 } },
+    { ...safe, review_status_counts: { ...safe.review_status_counts, unmapped: 1 } },
+    { ...safe, lifecycle_evidence_counts: { ...safe.lifecycle_evidence_counts, unknown: 1 } },
+    { ...safe, lifecycle_evidence_counts: { ...safe.lifecycle_evidence_counts, contradictory: 1 } },
+    { ...safe, profile_count: 0 }, { ...safe, registry_profile_count: 13 }, { ...safe, release_manifest_verified: false },
+  ]) assert.equal(lifecycleActiveEligibilityEstablished(changed), false);
+  assert.equal(lifecycleActiveEligibilityEstablished({ ...safe, active_business_eligible_count: undefined }), false);
+  assert.equal(activeBusinessResolutionGateEstablished(safe, { entity_resolution_applied: true, benchmark_gate_passed: true }), true);
+  assert.equal(activeBusinessResolutionGateEstablished(safe, { entity_resolution_applied: false, benchmark_gate_passed: true }), false);
+  assert.equal(activeBusinessResolutionGateEstablished(safe, { entity_resolution_applied: true, benchmark_gate_passed: false }), false);
 });
 
 test('read-only CLI succeeds for truthful reporting and exits two for universal ZIP completion', () => {

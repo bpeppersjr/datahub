@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
-import { businessEntityLifecycleInputs, classifyBusinessEntityLifecycle } from './business-entity-lifecycle-eligibility.mjs';
+import { businessEntityLifecycleInputs, classifyBusinessEntityLifecycle, readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
 
 const taxonomy = JSON.parse(await readFile(path.join(APP_ROOT, 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json'), 'utf8'));
 const item = sourceId => taxonomy.sources.find(row => row.source_id === sourceId);
@@ -28,6 +28,30 @@ test('lifecycle taxonomy exhaustively pins the retained 15 profile cohorts and 1
   assert.equal(input.registry.manifest_sha256, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
   assert.equal(input.temporal.release_id, 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090');
   assert.equal(input.qualification.release_id, 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503');
+});
+
+test('bounded lifecycle summary binds registration, selected manifest, inventory, lineage and exact conservation', async () => {
+  const result = await readBusinessEntityLifecycleEligibilitySummary();
+  assert.equal(result.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
+  assert.equal(result.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
+  assert.equal(result.manifest_sha256, 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae');
+  assert.equal(result.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
+  assert.equal(result.artifact_count, 100); assert.equal(result.artifact_record_count, 8011835);
+  assert.equal(result.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');
+  assert.deepEqual(result.summary.review_status_counts, { 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 });
+  assert.deepEqual(result.summary.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 });
+  assert.equal(result.summary.profile_count, 8011835);
+  assert.equal(result.verified_claims.current_operation_verified, false); assert.equal(result.verified_claims.active_business_eligible, false);
+
+  const root = await mkdtemp(path.join(APP_ROOT, 'data/tmp/lifecycle-summary-'));
+  try {
+    await assert.rejects(readBusinessEntityLifecycleEligibilitySummary({ root }), /ENOENT|rejected/i);
+    const config = path.join(root, 'config/datasets'); await mkdir(config, { recursive: true });
+    const registration = JSON.parse(await readFile(path.join(APP_ROOT, 'config/datasets/business-entity-lifecycle-eligibility.json'), 'utf8'));
+    registration.retained_releases[0].manifest_sha256 = '0'.repeat(64);
+    await writeFile(path.join(config, 'business-entity-lifecycle-eligibility.json'), JSON.stringify(registration));
+    await assert.rejects(readBusinessEntityLifecycleEligibilitySummary({ root }), /incompatible/i);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test('every membership and review category remains non-operational and never active-business eligible', () => {

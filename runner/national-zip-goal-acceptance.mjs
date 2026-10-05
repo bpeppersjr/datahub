@@ -8,8 +8,9 @@ import { readExactZipIndustryEvidence, VERSION as ZIP_INDUSTRY_VERSION } from '.
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { readNewestNationalGoalCompletionMatrix } from './national-goal-completion-view.mjs';
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
+import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
 
-export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.2.0';
+export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.3.0';
 export const NATIONAL_ZIP_GOAL_CLAIMS = Object.freeze(['report-only', 'complete-selected-census-zcta-denominator', 'source-reported-zip-membership', 'complete-current-usps-area-district-assignment-set', 'every-valid-usps-zip', 'every-active-business-by-valid-zip']);
 const fail = message => { throw Error(`National ZIP goal acceptance rejected: ${message}.`); };
 const check = (value, message) => { if (!value) fail(message); };
@@ -20,6 +21,19 @@ const memberHash = values => hash([...values].sort().join('\n') + (values.size ?
 const memberEvidence = values => ({ count: values.size, member_set_sha256: memberHash(values) });
 const claims = () => ({ all_business_completion_percent: null, current_operating_business_count: null, public_export_authorized: false,
   zip4_separate: true, zip4_geometric: false, production_execution: false, publication_performed: false, network_requests: 0 });
+export function lifecycleActiveEligibilityEstablished(value) {
+  const profiles = value?.profile_count;
+  return value?.release_manifest_verified === true && count(profiles) && profiles > 0 && value?.registry_profile_count === profiles
+    && value?.active_business_eligible_count === profiles
+    && value?.current_operation_verified_count === profiles
+    && value?.review_status_counts?.stale === 0 && value?.review_status_counts?.unmeasured === 0
+    && value?.review_status_counts?.unmapped === 0 && value?.lifecycle_evidence_counts?.unknown === 0
+    && value?.lifecycle_evidence_counts?.contradictory === 0;
+}
+export function activeBusinessResolutionGateEstablished(lifecycle, entityResolution) {
+  return lifecycleActiveEligibilityEstablished(lifecycle)
+    && entityResolution?.entity_resolution_applied === true && entityResolution?.benchmark_gate_passed === true;
+}
 function assignmentArtifactPath(sourceManifestPath, artifactPath) {
   const directory = path.posix.dirname(sourceManifestPath), expected = path.posix.join(directory, 'derived/operational-zip-assignments.jsonl');
   const resolved = path.posix.normalize(path.posix.join(directory, artifactPath));
@@ -38,7 +52,7 @@ export const NATIONAL_ZIP_GOAL_ACCEPTANCE_TEST_HOOKS = Object.freeze({ assignmen
 function validateGoalReadinessBindings(value) {
   const entity = value?.bindings?.zip_entity_resolution, industry = value?.bindings?.zip_industry_matrix,
     temporal = value?.bindings?.temporal_claim_matrix, goal = value?.bindings?.goal_completion_matrix,
-    broad = value?.bindings?.broad_organization_projection;
+    broad = value?.bindings?.broad_organization_projection, lifecycle = value?.bindings?.lifecycle_eligibility;
   check(entity?.claims?.entity_resolution_applied === false
     && entity.claims.benchmark_gate_passed === false
     && entity.release_id === 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'
@@ -74,9 +88,38 @@ function validateGoalReadinessBindings(value) {
     && broad.source_lineage.source_matrix_artifact_sha256 === goal.report_sha256
     && SHA.test(broad.source_lineage.program_manifest_sha256 ?? '') && SHA.test(broad.source_lineage.backlog_manifest_sha256 ?? '')
     && SHA.test(broad.source_lineage.assessment_catalog_sha256 ?? ''), 'broad organization readiness semantics');
+  check(lifecycle?.release_id === 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057'
+    && lifecycle.registration_path === 'config/datasets/business-entity-lifecycle-eligibility.json'
+    && lifecycle.manifest_path === `data/business-entity-lifecycle-eligibility/releases/${lifecycle.release_id}/manifest.json`
+    && lifecycle.taxonomy_path === 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json'
+    && lifecycle.registration_sha256 === 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035'
+    && lifecycle.manifest_sha256 === 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae'
+    && lifecycle.taxonomy_sha256 === '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc'
+    && lifecycle.artifact_inventory_sha256 === 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907'
+    && lifecycle.artifact_count === 100 && lifecycle.artifact_record_count === 8011835
+    && lifecycle.registry_release_id === 'national-business-registry-20260911-022652067Z-1ec656c3'
+    && lifecycle.registry_manifest_sha256 === 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'
+    && lifecycle.temporal_release_id === temporal.release_id && lifecycle.temporal_manifest_sha256 === temporal.manifest_sha256
+    && lifecycle.temporal_artifact_sha256 === 'd7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0'
+    && lifecycle.qualification_release_id === 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503'
+    && lifecycle.qualification_manifest_sha256 === '771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e'
+    && lifecycle.qualification_artifact_sha256 === '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed'
+    && lifecycle.profile_count === 8011835 && lifecycle.source_count === 15 && lifecycle.source_status_value_count === 17
+    && lifecycle.registry_profile_count === lifecycle.profile_count && lifecycle.release_manifest_verified === true
+    && lifecycle.review_status_counts?.['within-review-window'] === 7987605 && lifecycle.review_status_counts?.stale === 24230
+    && lifecycle.review_status_counts?.unmeasured === 0 && lifecycle.review_status_counts?.unmapped === 0
+    && lifecycle.lifecycle_evidence_counts?.['source-defined-current'] === 5240481
+    && lifecycle.lifecycle_evidence_counts?.['non-active-reporting'] === 2135455
+    && lifecycle.lifecycle_evidence_counts?.unknown === 633232 && lifecycle.lifecycle_evidence_counts?.contradictory === 2667
+    && lifecycle.exception_counts?.la_null_source_status === 633232
+    && lifecycle.exception_counts?.ca_expiration_before_observation_profiles === 2667
+    && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
+    && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
+    && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
   const ledger = value.requirements_ledger, expectedLedger = {
     geography: 'achieved', 'postal-denominator': 'blocked', 'source-authorization-policy-and-provenance': 'partial',
     'broad-state-coverage': 'blocked', 'industry-coverage': 'unmeasured', 'temporal-and-current-operation': 'blocked',
+    'lifecycle-eligibility': 'blocked',
     'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'unmeasured',
   };
   check(Array.isArray(ledger) && ledger.length === Object.keys(expectedLedger).length
@@ -87,10 +130,15 @@ function validateGoalReadinessBindings(value) {
     && value.claims?.network_requests === 0 && value.claims?.writes === 0 && value.claims?.pointers_changed === false,
     'objective readiness authority/coverage boundary');
   const blockerCodes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified'];
+    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
   check(Array.isArray(value.blockers) && value.blockers.length === blockerCodes.length
     && blockerCodes.every(code => value.blockers.some(item => item.code === code))
-    && value.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40,
+    && value.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40
+    && value.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.profile_count === 8011835
+    && value.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.eligible_count === 0
+    && value.blockers.find(item => item.code === 'lifecycle-stale-records-present')?.count === 24230
+    && value.blockers.find(item => item.code === 'lifecycle-unknown-or-contradictory')?.count === 635899,
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
@@ -107,13 +155,21 @@ export function projectNationalZipObjectiveReadiness(report) {
   validateGoalReadinessBindings(readiness);
   const binding = readiness.bindings;
   const expectedBlockers = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified'];
+    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
   const acceptanceBlockers = ['authoritative-current-usps-denominator-unavailable', 'complete-current-delivery-zip-registry-not-established',
     'all-business-universe-unmeasured', 'current-business-operations-not-independently-verified', ...expectedBlockers];
   check(same(report.acceptance.blockers, acceptanceBlockers)
     && same(readiness.blockers.map(item => item.code), expectedBlockers)
-    && readiness.blockers.every(item => same(Object.keys(item).sort(), item.code === 'broad-jurisdiction-source-gaps' ? ['code', 'count'] : ['code']))
-    && readiness.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40,
+    && readiness.blockers.every(item => same(Object.keys(item).sort(), item.code === 'broad-jurisdiction-source-gaps' || item.code === 'lifecycle-stale-records-present'
+      || item.code === 'lifecycle-unknown-or-contradictory' ? ['code', 'count']
+      : item.code === 'lifecycle-active-eligibility-not-established' ? ['code', 'eligible_count', 'profile_count', 'verified_current_operation_count'] : ['code']))
+    && readiness.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40
+    && readiness.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.profile_count === 8011835
+    && readiness.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.eligible_count === 0
+    && readiness.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.verified_current_operation_count === 0
+    && readiness.blockers.find(item => item.code === 'lifecycle-stale-records-present')?.count === 24230
+    && readiness.blockers.find(item => item.code === 'lifecycle-unknown-or-contradictory')?.count === 635899,
     'closed objective acceptance blockers');
   check(report.all_business_completion_percent === null && report.current_operating_business_count === null
     && report.public_export_authorized === false && report.production_execution === false
@@ -121,25 +177,38 @@ export function projectNationalZipObjectiveReadiness(report) {
   const requirements_ledger = readiness.requirements_ledger.map(row => ({
     requirement: row.requirement,
     status: row.status,
+    ...(row.profile_count === undefined ? {} : { profile_count: row.profile_count }),
+    ...(row.registry_profile_count === undefined ? {} : { registry_profile_count: row.registry_profile_count }),
+    ...(row.active_business_eligible_count === undefined ? {} : { active_business_eligible_count: row.active_business_eligible_count }),
+    ...(row.stale_count === undefined ? {} : { stale_count: row.stale_count }),
+    ...(row.unknown_or_contradictory_count === undefined ? {} : { unknown_or_contradictory_count: row.unknown_or_contradictory_count }),
+    ...(row.verified_current_operation_count === undefined ? {} : { verified_current_operation_count: row.verified_current_operation_count }),
     ...(row.current_gap_count === undefined ? {} : { current_gap_count: row.current_gap_count }),
     ...(row.jurisdiction_count === undefined ? {} : { jurisdiction_count: row.jurisdiction_count }),
     evidence: row.evidence,
   }));
   const expectedRequirements = [
     ['geography', 'achieved'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
-    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
     ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
   ];
   check(same(requirements_ledger.map(row => [row.requirement, row.status]), expectedRequirements)
     && requirements_ledger.every(row => typeof row.evidence === 'string' && row.evidence.length > 0
       && same(Object.keys(row).sort(), row.requirement === 'broad-state-coverage'
         ? ['current_gap_count', 'evidence', 'jurisdiction_count', 'requirement', 'status']
+        : row.requirement === 'lifecycle-eligibility' ? ['active_business_eligible_count', 'evidence', 'profile_count', 'registry_profile_count', 'requirement', 'stale_count', 'status', 'unknown_or_contradictory_count', 'verified_current_operation_count']
         : ['evidence', 'requirement', 'status']))
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.current_gap_count === 40
-    && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51,
-  'closed eight-row objective readiness ledger');
+    && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.profile_count === 8011835
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.registry_profile_count === 8011835
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.active_business_eligible_count === 0
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.stale_count === 24230
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.unknown_or_contradictory_count === 635899
+    && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.verified_current_operation_count === 0,
+  'closed nine-row objective readiness ledger');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.0.0',
+    schema_version: 'national-zip-objective-readiness-api@1.1.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -147,7 +216,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     requirements_ledger,
     broad_jurisdiction_gap_count: 40,
     claims: { all_business_completion_percent: null, active_business_count: null, current_operating_business_count: null,
-      current_operations_verified: false, all_business_completeness: false, public_export_authorized: false,
+      current_operations_verified: false, all_business_completeness: false, active_business_eligible_count: 0, public_export_authorized: false,
       production_execution: false, publication_performed: false, network_requests: 0 },
     lineage: {
       zip_entity_resolution: { release_id: binding.zip_entity_resolution.release_id, manifest_sha256: binding.zip_entity_resolution.manifest_sha256,
@@ -168,6 +237,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         source_matrix_release_id: binding.broad_organization_projection.source_lineage.source_matrix_release_id,
         source_matrix_manifest_sha256: binding.broad_organization_projection.source_lineage.source_matrix_manifest_sha256,
       },
+      lifecycle_eligibility: binding.lifecycle_eligibility,
     },
   };
 }
@@ -175,12 +245,16 @@ export function projectNationalZipObjectiveReadiness(report) {
 async function readObjectiveReadiness({ signal }) {
   signal?.throwIfAborted();
   const sampleZip = '00501';
-  const [entity, industry, temporal, loadedGoal, broad] = await Promise.all([
+  const [entity, industry, temporal, loadedGoal, broad, lifecycle] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
     readExactZipIndustryEvidence({ zip5: sampleZip }),
     readNationalBusinessTemporalClaimRows({ signal }),
     readNewestNationalGoalCompletionMatrix(),
     loadBroadOrganizationAuthorizationProgramManagementView(),
+    readBusinessEntityLifecycleEligibilitySummary({ signal }).catch(error => {
+      if (signal?.aborted || error?.name === 'AbortError') throw error;
+      const failure = new Error('Selected lifecycle release is unavailable or invalid.'); failure.code = 'LIFECYCLE_RELEASE_INVALID'; throw failure;
+    }),
   ]);
   const industryRegistration = await snapshot('config/datasets/national-exact-zip-industry-evidence-matrix.json', signal);
   const industryPin = industryRegistration.value.retained_release;
@@ -218,6 +292,23 @@ async function readObjectiveReadiness({ signal }) {
   check(temporalClassCounts['source-defined-current-membership'] === 22
     && temporalClassCounts['non-active-reporting-membership'] === 7 && temporalClassCounts['annual-aggregate'] === 1,
     'temporal classification roster widened');
+  const lifecycleBinding = {
+    registration_path: lifecycle.registration_path, registration_sha256: lifecycle.registration_sha256,
+    release_id: lifecycle.release_id, manifest_path: lifecycle.manifest_path, manifest_sha256: lifecycle.manifest_sha256,
+    taxonomy_path: lifecycle.taxonomy_path, taxonomy_sha256: lifecycle.taxonomy_sha256,
+    artifact_count: lifecycle.artifact_count, artifact_inventory_sha256: lifecycle.artifact_inventory_sha256,
+    artifact_record_count: lifecycle.artifact_record_count,
+    registry_release_id: lifecycle.registry_release_id, registry_manifest_sha256: lifecycle.registry_manifest_sha256,
+    temporal_release_id: lifecycle.temporal_release_id, temporal_manifest_sha256: lifecycle.temporal_manifest_sha256,
+    temporal_artifact_sha256: lifecycle.temporal_artifact_sha256,
+    qualification_release_id: lifecycle.qualification_release_id, qualification_manifest_sha256: lifecycle.qualification_manifest_sha256,
+    qualification_artifact_sha256: lifecycle.qualification_artifact_sha256,
+    assessment_as_of: lifecycle.assessment_as_of, profile_count: lifecycle.summary.profile_count,
+    registry_profile_count: lifecycle.registry_profile_count, release_manifest_verified: true,
+    source_count: lifecycle.summary.source_count, source_status_value_count: lifecycle.summary.source_status_value_count,
+    review_status_counts: lifecycle.summary.review_status_counts, lifecycle_evidence_counts: lifecycle.summary.lifecycle_evidence_counts,
+    exception_counts: lifecycle.summary.exception_counts, current_operation_verified_count: 0, active_business_eligible_count: 0,
+  };
   const bindings = {
     zip_entity_resolution: { registration_path: 'config/datasets/zip-entity-resolution-evidence.json', registration_sha256: entity.registration_sha256,
       release_id: 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564',
@@ -237,8 +328,9 @@ async function readObjectiveReadiness({ signal }) {
       all_business_completion_percent: loadedGoal.report.all_business_completion_percent },
     broad_organization_projection: { release_id: broad.metadata.release_id, manifest_sha256: broad.source_lineage.program_manifest_sha256,
       source_lineage: broad.source_lineage, metadata: broad.metadata, authority: broad.authority },
+    lifecycle_eligibility: lifecycleBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.0.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.1.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'postal-denominator', status: 'blocked', evidence: 'No complete current USPS delivery-ZIP registry is established.' },
@@ -246,6 +338,13 @@ async function readObjectiveReadiness({ signal }) {
       { requirement: 'broad-state-coverage', status: 'blocked', current_gap_count: broadStateGapCount, jurisdiction_count: 51, evidence: 'The newest verified goal matrix has unresolved broad-layer jurisdictions.' },
       { requirement: 'industry-coverage', status: 'unmeasured', zip5_rows: industryPin.zip5_rows, industry_cells: industryPin.industry_cells, evidence: 'ZIP industry dimensions exist, but the nationwide industry universe/denominator is not measured.' },
       { requirement: 'temporal-and-current-operation', status: 'blocked', source_defined_current_membership_sources: 22, non_active_reporting_sources: 7, annual_aggregate_sources: 1, verified_current_complete_jurisdictions: 0, evidence: 'Source classifications and reference clocks do not independently verify current operation.' },
+      { requirement: 'lifecycle-eligibility', status: lifecycleActiveEligibilityEstablished(lifecycleBinding) ? 'achieved' : 'blocked', profile_count: lifecycleBinding.profile_count,
+        registry_profile_count: lifecycleBinding.registry_profile_count,
+        active_business_eligible_count: lifecycleBinding.active_business_eligible_count,
+        stale_count: lifecycleBinding.review_status_counts.stale,
+        unknown_or_contradictory_count: lifecycleBinding.lifecycle_evidence_counts.unknown + lifecycleBinding.lifecycle_evidence_counts.contradictory,
+        verified_current_operation_count: lifecycleBinding.current_operation_verified_count,
+        evidence: 'Retained lifecycle evidence is conservative: stale, unknown, and contradictory profiles remain ineligible; no row independently verifies current operation.' },
       { requirement: 'reconciliation-and-benchmark', status: 'blocked', benchmark_gate_passed: false, entity_resolution_applied: false, evidence: 'ZIP linkage evidence is aggregate and unapplied; benchmark gate is not passed.' },
       { requirement: 'all-business-completeness-denominator', status: 'unmeasured', all_business_completion_percent: null, active_business_count: null, evidence: 'No verified national all-business denominator exists.' },
     ],
@@ -255,6 +354,11 @@ async function readObjectiveReadiness({ signal }) {
       { code: 'nationwide-industry-universe-unmeasured' },
       { code: 'broad-jurisdiction-source-gaps', count: broadStateGapCount },
       { code: 'current-operation-not-independently-verified' },
+      ...(!lifecycleActiveEligibilityEstablished(lifecycleBinding) ? [{ code: 'lifecycle-active-eligibility-not-established', profile_count: lifecycleBinding.profile_count,
+        eligible_count: lifecycleBinding.active_business_eligible_count, verified_current_operation_count: lifecycleBinding.current_operation_verified_count }] : []),
+      ...(lifecycleBinding.review_status_counts.stale > 0 ? [{ code: 'lifecycle-stale-records-present', count: lifecycleBinding.review_status_counts.stale }] : []),
+      ...((lifecycleBinding.lifecycle_evidence_counts.unknown + lifecycleBinding.lifecycle_evidence_counts.contradictory) > 0
+        ? [{ code: 'lifecycle-unknown-or-contradictory', count: lifecycleBinding.lifecycle_evidence_counts.unknown + lifecycleBinding.lifecycle_evidence_counts.contradictory }] : []),
     ],
     claims: { acceptance: false, report_only: true, network_requests: 0, writes: 0, releases_created: false, pointers_changed: false,
       current_operations_verified: false, all_business_completion_percent: null, public_export_authorized: false } };

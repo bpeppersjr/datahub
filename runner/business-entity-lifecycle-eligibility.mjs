@@ -17,6 +17,7 @@ const AS_OF = '2026-10-02T16:30:00.000Z';
 const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057';
 const SELECTED_MANIFEST_SHA256 = 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae';
 const SELECTED_TAXONOMY_SHA256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
+const SELECTED_REGISTRATION_SHA256 = 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035';
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business entity lifecycle eligibility contract rejected.') => { if (!value) throw new Error(message); };
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -216,6 +217,66 @@ export async function readBusinessEntityLifecycleEligibilityPartition({ root = A
 }
 
 export async function businessEntityLifecycleInputs({ root = APP_ROOT, signal } = {}) { return readBindings(path.resolve(root), signal); }
+
+/**
+ * Validate the exact selected release summary without expanding its 8M decision rows.
+ * The selected registration and manifest hashes bind the complete shard inventory;
+ * independent full replay remains available through verifyBusinessEntityLifecycleRelease.
+ */
+export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP_ROOT, signal } = {}) {
+  root = path.resolve(root); signal?.throwIfAborted();
+  const registrationMeter = {}, registration = await readJson(path.join(root, `config/datasets/${DATASET}.json`), 1_000_000, signal, registrationMeter);
+  check(registrationMeter.sha256 === SELECTED_REGISTRATION_SHA256
+    && registration.schema_version === `${DATASET}-registration@1.0.0` && registration.dataset_id === DATASET
+    && registration.status === 'registered-pointer-free-local-review-only' && registration.runtime_pointer === null
+    && registration.production_enrollment === false && registration.current_pointer_written === false
+    && registration.selected_release_id === SELECTED_RELEASE_ID && registration.retained_releases.length === 1
+    && registration.retained_releases[0].selected === true && registration.retained_releases[0].release_id === SELECTED_RELEASE_ID
+    && registration.retained_releases[0].manifest === `data/${DATASET}/releases/${SELECTED_RELEASE_ID}/manifest.json`
+    && registration.retained_releases[0].manifest_sha256 === SELECTED_MANIFEST_SHA256
+    && registration.retained_releases[0].profile_count === 8011835, 'Lifecycle selected registration is unavailable or incompatible.');
+  const manifestPath = registration.retained_releases[0].manifest, manifestMeter = {};
+  const manifest = await readJson(path.join(root, manifestPath), 1_000_000, signal, manifestMeter);
+  check(manifestMeter.sha256 === SELECTED_MANIFEST_SHA256 && manifest.schema_version === `${DATASET}-release@1.0.0`
+    && manifest.dataset_id === DATASET && manifest.release_id === SELECTED_RELEASE_ID && manifest.status === 'immutable-pointer-free-local-review-only'
+    && manifest.publication_mode === 'pointer-free' && manifest.assessment_as_of === AS_OF
+    && stable(manifest.claims) === stable({ current_operation_verified: false, active_business_eligible: false, identity_resolution_applied: false,
+      registry_bytes_modified: false, source_acquisition_performed: false, current_pointer_written: false, production_enrollment: false }),
+  'Lifecycle selected manifest is unavailable or incompatible.');
+  const input = await readBindings(root, signal), expectedBindings = bindingObject(input);
+  check(stable(manifest.bindings) === stable(expectedBindings) && input.taxonomy_sha256 === SELECTED_TAXONOMY_SHA256,
+    'Lifecycle selected upstream lineage is incompatible.');
+  const artifacts = manifest.artifacts;
+  check(Array.isArray(artifacts) && artifacts.length === 100 && artifacts.every((item, index) => {
+    const zip2 = String(index).padStart(2, '0');
+    return item?.artifact_type === 'business-entity-lifecycle-decision-jsonl-gzip' && item.path === `decisions/zip2=${zip2}.jsonl.gz`
+      && Number.isSafeInteger(item.record_count) && item.record_count > 0 && Number.isSafeInteger(item.bytes) && item.bytes > 0 && SHA.test(item.sha256);
+  }) && artifacts.reduce((sum, item) => sum + item.record_count, 0) === 8011835
+    && artifacts.reduce((sum, item) => sum + item.bytes, 0) > 0, 'Lifecycle artifact inventory is incompatible.');
+  const summary = manifest.summary;
+  check(summary?.profile_count === 8011835 && summary.source_count === 15 && summary.source_status_value_count === 17
+    && summary.assessment_as_of === AS_OF && stable(summary.source_counts) === stable(sourceCounts)
+    && stable(summary.status_value_counts) === stable(expectedStatusCounts(input.taxonomy))
+    && stable(summary.review_status_counts) === stable({ 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 })
+    && stable(summary.lifecycle_evidence_counts) === stable({ 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 })
+    && stable(summary.exception_counts) === stable({ la_null_source_status: 633232, ca_expiration_before_observation_profiles: 2667, ny_retail_food_stale_non_active: 24230 })
+    && stable(summary.bindings) === stable({ registry_release_id: input.registry.release_id, temporal_release_id: input.temporal.release_id, qualification_release_id: input.qualification.release_id }),
+  'Lifecycle selected summary conservation differs from the audited cohort.');
+  return {
+    schema_version: BUSINESS_ENTITY_LIFECYCLE_VERSION,
+    registration_path: `config/datasets/${DATASET}.json`, registration_sha256: registrationMeter.sha256,
+    release_id: manifest.release_id, manifest_path: manifestPath, manifest_sha256: manifestMeter.sha256,
+    taxonomy_path: 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json', taxonomy_sha256: input.taxonomy_sha256,
+    artifact_count: artifacts.length, artifact_inventory_sha256: sha(JSON.stringify(artifacts)), artifact_record_count: artifacts.reduce((sum, item) => sum + item.record_count, 0),
+    registry_release_id: input.registry.release_id, registry_manifest_sha256: input.registry.manifest_sha256,
+    temporal_release_id: input.temporal.release_id, temporal_manifest_sha256: input.temporal.manifest_sha256, temporal_artifact_sha256: input.temporal.artifact_sha256,
+    qualification_release_id: input.qualification.release_id, qualification_manifest_sha256: input.qualification.manifest_sha256,
+    qualification_artifact_sha256: input.qualification.artifact_sha256, assessment_as_of: AS_OF,
+    registry_profile_count: input.registry.manifest_object.coverage.resolution_location_profiles,
+    summary,
+    verified_claims: manifest.claims,
+  };
+}
 
 function emptySummary(bindings) {
   return {

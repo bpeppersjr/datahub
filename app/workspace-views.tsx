@@ -1342,12 +1342,21 @@ const OBJECTIVE_READINESS_ROWS = [
   ["broad-state-coverage", "blocked"],
   ["industry-coverage", "unmeasured"],
   ["temporal-and-current-operation", "blocked"],
+  ["lifecycle-eligibility", "blocked"],
   ["reconciliation-and-benchmark", "blocked"],
   ["all-business-completeness-denominator", "unmeasured"],
 ] as const;
 
 type ObjectiveLineageEntry = {
   release_id: string; manifest_sha256?: string; registration_sha256?: string; report_sha256?: string;
+  taxonomy_sha256?: string; artifact_inventory_sha256?: string; registry_manifest_sha256?: string;
+  temporal_artifact_sha256?: string; qualification_manifest_sha256?: string; qualification_artifact_sha256?: string;
+  artifact_count?: number; artifact_record_count?: number; profile_count?: number; source_count?: number; source_status_value_count?: number;
+  assessment_as_of?: string; current_operation_verified_count?: number; active_business_eligible_count?: number;
+  registry_profile_count?: number; release_manifest_verified?: boolean;
+  review_status_counts?: { "within-review-window": number; stale: number; unmeasured: number; unmapped: number };
+  lifecycle_evidence_counts?: { "source-defined-current": number; "non-active-reporting": number; unknown: number; contradictory: number };
+  exception_counts?: { la_null_source_status: number; ca_expiration_before_observation_profiles: number; ny_retail_food_stale_non_active: number };
   program_manifest_sha256?: string; backlog_release_id?: string; backlog_manifest_sha256?: string;
   assessment_catalog_id?: string; assessment_catalog_sha256?: string; source_matrix_release_id?: string;
   source_matrix_manifest_sha256?: string;
@@ -1355,10 +1364,11 @@ type ObjectiveLineageEntry = {
 type NationalObjectiveReadiness = {
   schema_version: string; available: true; status: "not-accepted"; assessment_as_of: string;
   acceptance: { accepted: false; blockers: string[]; blocker_details: Array<{ code: string; count?: number }> };
-  requirements_ledger: Array<{ requirement: string; status: string; evidence: string; current_gap_count?: number; jurisdiction_count?: number }>;
+  requirements_ledger: Array<{ requirement: string; status: string; evidence: string; current_gap_count?: number; jurisdiction_count?: number;
+    profile_count?: number; registry_profile_count?: number; active_business_eligible_count?: number; stale_count?: number; unknown_or_contradictory_count?: number; verified_current_operation_count?: number }>;
   broad_jurisdiction_gap_count: 40;
-  claims: { all_business_completion_percent: null; active_business_count: null; current_operating_business_count: null; current_operations_verified: false; all_business_completeness: false; public_export_authorized: false; production_execution: false; publication_performed: false; network_requests: 0 };
-  lineage: { zip_entity_resolution: ObjectiveLineageEntry; zip_industry_matrix: ObjectiveLineageEntry; temporal_claim_matrix: ObjectiveLineageEntry; goal_completion_matrix: ObjectiveLineageEntry; broad_organization_projection: ObjectiveLineageEntry };
+  claims: { all_business_completion_percent: null; active_business_count: null; current_operating_business_count: null; active_business_eligible_count: 0; current_operations_verified: false; all_business_completeness: false; public_export_authorized: false; production_execution: false; publication_performed: false; network_requests: 0 };
+  lineage: { zip_entity_resolution: ObjectiveLineageEntry; zip_industry_matrix: ObjectiveLineageEntry; temporal_claim_matrix: ObjectiveLineageEntry; goal_completion_matrix: ObjectiveLineageEntry; broad_organization_projection: ObjectiveLineageEntry; lifecycle_eligibility: ObjectiveLineageEntry };
 };
 
 export function validNationalObjectiveReadiness(value: unknown): value is NationalObjectiveReadiness {
@@ -1367,7 +1377,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
   const sha = (item: unknown) => typeof item === "string" && /^[a-f0-9]{64}$/.test(item);
   if (!exactKeys(value, ["schema_version", "available", "status", "assessment_as_of", "acceptance", "requirements_ledger", "broad_jurisdiction_gap_count", "claims", "lineage"])) return false;
   const payload = value as NationalObjectiveReadiness;
-  if (payload.schema_version !== "national-zip-objective-readiness-api@1.0.0" || payload.available !== true || payload.status !== "not-accepted" ||
+  if (payload.schema_version !== "national-zip-objective-readiness-api@1.1.0" || payload.available !== true || payload.status !== "not-accepted" ||
       payload.acceptance?.accepted !== false || !exactKeys(payload.acceptance, ["accepted", "blockers", "blocker_details"]) || payload.broad_jurisdiction_gap_count !== 40 || !Array.isArray(payload.requirements_ledger) ||
       payload.requirements_ledger.length !== OBJECTIVE_READINESS_ROWS.length || !Array.isArray(payload.acceptance.blockers) ||
       !Array.isArray(payload.acceptance.blocker_details)) return false;
@@ -1376,25 +1386,33 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
     if (row?.requirement !== requirement || row.status !== status || typeof row.evidence !== "string" || !row.evidence.trim()) return false;
     const expected = requirement === "broad-state-coverage"
       ? ["requirement", "status", "current_gap_count", "jurisdiction_count", "evidence"]
+      : requirement === "lifecycle-eligibility" ? ["requirement", "status", "profile_count", "registry_profile_count", "active_business_eligible_count", "stale_count", "unknown_or_contradictory_count", "verified_current_operation_count", "evidence"]
       : ["requirement", "status", "evidence"];
     if (!exactKeys(row, expected)) return false;
     if (requirement === "broad-state-coverage" && (row.current_gap_count !== 40 || row.jurisdiction_count !== 51)) return false;
+    if (requirement === "lifecycle-eligibility" && (row.profile_count !== 8011835 || row.registry_profile_count !== row.profile_count || row.active_business_eligible_count !== 0 || row.stale_count !== 24230 || row.unknown_or_contradictory_count !== 635899 || row.verified_current_operation_count !== 0)) return false;
     if (Object.hasOwn(row, "percent") || Object.hasOwn(row, "completion_percent")) return false;
   }
   const requiredBlockers = ["entity-resolution-benchmark-gate-not-passed", "entity-resolution-not-applied",
-    "nationwide-industry-universe-unmeasured", "broad-jurisdiction-source-gaps", "current-operation-not-independently-verified"];
+    "nationwide-industry-universe-unmeasured", "broad-jurisdiction-source-gaps", "current-operation-not-independently-verified",
+    "lifecycle-active-eligibility-not-established", "lifecycle-stale-records-present", "lifecycle-unknown-or-contradictory"];
   const acceptanceBlockers = ["authoritative-current-usps-denominator-unavailable", "complete-current-delivery-zip-registry-not-established",
     "all-business-universe-unmeasured", "current-business-operations-not-independently-verified", ...requiredBlockers];
   if (payload.acceptance.blockers.length !== acceptanceBlockers.length || acceptanceBlockers.some((code, index) => payload.acceptance.blockers[index] !== code) ||
       payload.acceptance.blocker_details.length !== requiredBlockers.length || !requiredBlockers.every(code => payload.acceptance.blockers.includes(code) && payload.acceptance.blocker_details.some(item => item.code === code)) ||
-      payload.acceptance.blocker_details.some(item => !exactKeys(item, item.code === "broad-jurisdiction-source-gaps" ? ["code", "count"] : ["code"])) ||
-      payload.acceptance.blocker_details.find(item => item.code === "broad-jurisdiction-source-gaps")?.count !== 40) return false;
-  if (!exactKeys(payload.claims, ["all_business_completion_percent", "active_business_count", "current_operating_business_count", "current_operations_verified", "all_business_completeness", "public_export_authorized", "production_execution", "publication_performed", "network_requests"]) ||
+      payload.acceptance.blocker_details.some(item => !exactKeys(item, item.code === "broad-jurisdiction-source-gaps" || item.code === "lifecycle-stale-records-present" || item.code === "lifecycle-unknown-or-contradictory" ? ["code", "count"] : item.code === "lifecycle-active-eligibility-not-established" ? ["code", "eligible_count", "profile_count", "verified_current_operation_count"] : ["code"])) ||
+      payload.acceptance.blocker_details.find(item => item.code === "broad-jurisdiction-source-gaps")?.count !== 40 ||
+      payload.acceptance.blocker_details.find(item => item.code === "lifecycle-stale-records-present")?.count !== 24230 ||
+      payload.acceptance.blocker_details.find(item => item.code === "lifecycle-unknown-or-contradictory")?.count !== 635899 ||
+      payload.acceptance.blocker_details.find(item => item.code === "lifecycle-active-eligibility-not-established")?.eligible_count !== 0 ||
+      payload.acceptance.blocker_details.find(item => item.code === "lifecycle-active-eligibility-not-established")?.profile_count !== 8011835) return false;
+  if (!exactKeys(payload.claims, ["all_business_completion_percent", "active_business_count", "current_operating_business_count", "active_business_eligible_count", "current_operations_verified", "all_business_completeness", "public_export_authorized", "production_execution", "publication_performed", "network_requests"]) ||
       payload.claims.all_business_completion_percent !== null || payload.claims.active_business_count !== null || payload.claims.current_operating_business_count !== null ||
+      payload.claims.active_business_eligible_count !== 0 ||
       payload.claims.current_operations_verified !== false || payload.claims.all_business_completeness !== false || payload.claims.public_export_authorized !== false ||
       payload.claims.production_execution !== false || payload.claims.publication_performed !== false || payload.claims.network_requests !== 0) return false;
   const lineage = payload.lineage;
-  if (!exactKeys(lineage, ["zip_entity_resolution", "zip_industry_matrix", "temporal_claim_matrix", "goal_completion_matrix", "broad_organization_projection"])) return false;
+  if (!exactKeys(lineage, ["zip_entity_resolution", "zip_industry_matrix", "temporal_claim_matrix", "goal_completion_matrix", "broad_organization_projection", "lifecycle_eligibility"])) return false;
   for (const [key, item] of Object.entries(lineage) as [string, ObjectiveLineageEntry][]) {
     if (typeof item?.release_id !== "string" || !item.release_id) return false;
     if (key !== "goal_completion_matrix" && key !== "broad_organization_projection" && !sha(item.registration_sha256)) return false;
@@ -1406,6 +1424,39 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       lineage.broad_organization_projection.source_matrix_release_id !== lineage.goal_completion_matrix.release_id ||
       lineage.broad_organization_projection.source_matrix_manifest_sha256 !== lineage.goal_completion_matrix.manifest_sha256 ||
       !sha(lineage.broad_organization_projection.source_matrix_manifest_sha256)) return false;
+  const lifecycle = lineage.lifecycle_eligibility;
+  if (!exactKeys(lifecycle, ["registration_path", "registration_sha256", "release_id", "manifest_path", "manifest_sha256", "taxonomy_path", "taxonomy_sha256",
+      "artifact_count", "artifact_inventory_sha256", "artifact_record_count", "registry_release_id", "registry_manifest_sha256", "temporal_release_id",
+      "temporal_manifest_sha256", "temporal_artifact_sha256", "qualification_release_id", "qualification_manifest_sha256", "qualification_artifact_sha256",
+      "assessment_as_of", "profile_count", "registry_profile_count", "release_manifest_verified", "source_count", "source_status_value_count", "review_status_counts", "lifecycle_evidence_counts",
+      "exception_counts", "current_operation_verified_count", "active_business_eligible_count"]) ||
+      lifecycle.registration_path !== "config/datasets/business-entity-lifecycle-eligibility.json" ||
+      lifecycle.manifest_path !== `data/business-entity-lifecycle-eligibility/releases/${lifecycle.release_id}/manifest.json` ||
+      lifecycle.taxonomy_path !== "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json" ||
+      lifecycle.registry_release_id !== "national-business-registry-20260911-022652067Z-1ec656c3" ||
+      lifecycle.temporal_release_id !== "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090" ||
+      lifecycle.qualification_release_id !== "exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503" ||
+      !exactKeys(lifecycle.review_status_counts, ["within-review-window", "stale", "unmeasured", "unmapped"]) ||
+      lifecycle.review_status_counts["within-review-window"] !== 7987605 || lifecycle.review_status_counts.stale !== 24230 ||
+      lifecycle.review_status_counts.unmeasured !== 0 || lifecycle.review_status_counts.unmapped !== 0 ||
+      !exactKeys(lifecycle.lifecycle_evidence_counts, ["source-defined-current", "non-active-reporting", "unknown", "contradictory"]) ||
+      lifecycle.lifecycle_evidence_counts["source-defined-current"] !== 5240481 || lifecycle.lifecycle_evidence_counts["non-active-reporting"] !== 2135455 ||
+      lifecycle.lifecycle_evidence_counts.unknown !== 633232 || lifecycle.lifecycle_evidence_counts.contradictory !== 2667 ||
+      !exactKeys(lifecycle.exception_counts, ["la_null_source_status", "ca_expiration_before_observation_profiles", "ny_retail_food_stale_non_active"]) ||
+      lifecycle.exception_counts.la_null_source_status !== 633232 || lifecycle.exception_counts.ca_expiration_before_observation_profiles !== 2667 ||
+      lifecycle.exception_counts.ny_retail_food_stale_non_active !== 24230) return false;
+  if (lifecycle.release_id !== "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057" ||
+      lifecycle.registration_sha256 !== "f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035" ||
+      lifecycle.manifest_sha256 !== "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae" ||
+      lifecycle.taxonomy_sha256 !== "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc" ||
+      lifecycle.artifact_inventory_sha256 !== "ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907" ||
+      lifecycle.artifact_count !== 100 || lifecycle.artifact_record_count !== 8011835 || lifecycle.profile_count !== 8011835 || lifecycle.registry_profile_count !== lifecycle.profile_count || lifecycle.release_manifest_verified !== true ||
+      lifecycle.registry_manifest_sha256 !== "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76" ||
+      lifecycle.temporal_artifact_sha256 !== "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0" ||
+      lifecycle.qualification_manifest_sha256 !== "771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e" ||
+      lifecycle.qualification_artifact_sha256 !== "958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed" ||
+      lifecycle.active_business_eligible_count !== 0 || lifecycle.current_operation_verified_count !== 0 ||
+      lifecycle.review_status_counts?.stale !== 24230 || lifecycle.lifecycle_evidence_counts?.unknown !== 633232 || lifecycle.lifecycle_evidence_counts?.contradictory !== 2667) return false;
   return typeof payload.assessment_as_of === "string" && /^\d{4}-\d{2}-\d{2}$/.test(payload.assessment_as_of);
 }
 
@@ -1426,13 +1477,16 @@ function NationalObjectiveReadinessCard({ value, unavailable }: { value: Nationa
     "nationwide-industry-universe-unmeasured": "Nationwide industry universe unmeasured",
     "broad-jurisdiction-source-gaps": "Broad-jurisdiction source gaps: 40",
     "current-operation-not-independently-verified": "Temporal/current operation not independently verified",
+    "lifecycle-active-eligibility-not-established": "Lifecycle eligibility not established: 0 / 8,011,835 eligible",
+    "lifecycle-stale-records-present": "Lifecycle records stale: 24,230",
+    "lifecycle-unknown-or-contradictory": "Lifecycle records unknown or contradictory: 635,899",
   };
   return (
     <section className="objective-readiness-card" aria-label="National Objective Readiness">
       <div className="objective-readiness-heading"><div><span>National Objective Readiness</span><strong>Not accepted</strong></div><small>Assessment {value.assessment_as_of} · report-only</small></div>
       <p className="objective-readiness-caveat">Governed dataset availability is not all-business completeness.</p>
-      <div className="objective-readiness-ledger" aria-label="Eight objective readiness requirements">
-        {value.requirements_ledger.map((row) => <div key={row.requirement}><span>{row.requirement.replaceAll("-", " ")}</span><strong>{row.status}</strong>{row.requirement === "broad-state-coverage" && <small>{row.current_gap_count} broad jurisdiction gaps / {row.jurisdiction_count} jurisdictions</small>}</div>)}
+      <div className="objective-readiness-ledger" aria-label="Nine objective readiness requirements">
+        {value.requirements_ledger.map((row) => <div key={row.requirement}><span>{row.requirement.replaceAll("-", " ")}</span><strong>{row.status}</strong>{row.requirement === "broad-state-coverage" && <small>{row.current_gap_count} broad jurisdiction gaps / {row.jurisdiction_count} jurisdictions</small>}{row.requirement === "lifecycle-eligibility" && <small>{row.active_business_eligible_count?.toLocaleString("en-US")} eligible / {row.profile_count?.toLocaleString("en-US")} profiles (registry denominator {row.registry_profile_count?.toLocaleString("en-US")}) · {row.stale_count?.toLocaleString("en-US")} stale · {row.unknown_or_contradictory_count?.toLocaleString("en-US")} unknown/contradictory · {row.verified_current_operation_count?.toLocaleString("en-US")} independently verified operating</small>}</div>)}
       </div>
       <div className="objective-readiness-blockers"><strong>Blocking requirements</strong><div>{value.acceptance.blockers.map((code: string) => <span key={code}>{blockerLabels[code] ?? code.replaceAll("-", " ")}</span>)}</div></div>
       <details className="objective-readiness-lineage"><summary>Verified evidence lineage</summary><ul>{Object.entries(value.lineage).map(([key, item]) => <li key={key}>{key.replaceAll("_", " ")}: <code>{item.release_id}</code>{Object.entries(item).filter(([field]) => field.endsWith("_sha256")).map(([field, hash]) => <small key={field}>{field.replaceAll("_", " ")}: <code>{hash}</code></small>)}</li>)}</ul></details>

@@ -37,9 +37,10 @@ export async function nationalZipGoalObjectiveReadinessHttp(request, response, u
       response.setHeader?.('Cache-Control', 'no-store');
       json(response, 200, result);
     }
-  } catch {
+  } catch (error) {
     if (!disconnected && !response.destroyed && !response.writableEnded)
-      json(response, 503, { error: 'National objective readiness evidence is unavailable or incompatible.' });
+      json(response, 503, { error: 'National objective readiness evidence is unavailable or incompatible.',
+        ...(error?.code === 'LIFECYCLE_RELEASE_INVALID' ? { blocker_code: 'lifecycle-release-unavailable-or-invalid' } : {}) });
   } finally {
     clearTimeout(timer);
     controller.signal.removeEventListener('abort', rejectAbort);
