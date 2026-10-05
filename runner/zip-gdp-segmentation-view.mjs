@@ -65,7 +65,7 @@ function validatedIndustryEvidence(cross, zip5) {
       || evidence.claims.current_operation_verified !== false
       || evidence.claims.all_business_completeness !== false) fail();
   const temporal=evidence.temporal_qualification;
-  if(temporal?.schema_version!=='exact-zip-industry-temporal-qualification@1.0.0'||temporal.zip5!==zip5||temporal.assessment_as_of!=='2026-10-02T16:30:00.000Z'||temporal.claims?.current_operations_verified!==false||temporal.claims?.acquisition_performed!==false||temporal.claims?.network_requests!==0||temporal.claims?.current_pointer_written!==false||temporal.claims?.production_enrollment!==false||temporal.rows?.length!==39||temporal.provenance?.release_id!==TEMPORAL_QUALIFICATION_RELEASE||temporal.provenance?.manifest_sha256!==TEMPORAL_QUALIFICATION_MANIFEST||!SHA256.test(temporal.provenance.artifact_sha256??''))fail();
+  if(!['exact-zip-industry-temporal-qualification@1.0.0','exact-zip-industry-temporal-qualification-view@1.1.0'].includes(temporal?.schema_version)||temporal.zip5!==zip5||temporal.assessment_as_of!=='2026-10-02T16:30:00.000Z'||temporal.claims?.current_operations_verified!==false||temporal.claims?.acquisition_performed!==false||temporal.claims?.network_requests!==0||temporal.claims?.current_pointer_written!==false||temporal.claims?.production_enrollment!==false||temporal.rows?.length!==39||temporal.provenance?.release_id!==TEMPORAL_QUALIFICATION_RELEASE||temporal.provenance?.manifest_sha256!==TEMPORAL_QUALIFICATION_MANIFEST||!SHA256.test(temporal.provenance.artifact_sha256??''))fail();
   const row = evidence.row;
   if (row === null) return { evidence, cells: {} };
   if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.8.0"

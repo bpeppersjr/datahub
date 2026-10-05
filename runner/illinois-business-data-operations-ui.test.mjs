@@ -20,6 +20,7 @@ function harness(request) {
       : name === 'react' ? {
         useState(initial) { const index = cursor++; if (!(index in values)) values[index] = initial; return [values[index], next => { values[index] = typeof next === 'function' ? next(values[index]) : next; }]; },
         useEffect() {},
+        useRef(initial) { return { current: initial }; },
       }
         : name === 'react/jsx-runtime' ? { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }), Fragment: 'fragment' }
           : { __esModule: true, default: noop },
