@@ -1,11 +1,11 @@
 {
-  "schema_version": "reporting-only-site-qualification-registration@1.0.0",
+  "schema_version": "reporting-only-site-qualification-registration@1.1.0",
   "dataset_id": "reporting-only-site-qualification",
   "status": "registered-pointer-free-local-review-only",
   "runtime_pointer": null,
   "production_enrollment": false,
   "current_pointer_written": false,
-  "selected_release_id": "reporting-only-site-qualification-b9a3ce44ffa33ec048794d7db22e3147ebb1626a2f6e990d4a203072cb381e0c",
+  "selected_release_id": "reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce",
   "retained_releases": [
     {
       "release_id": "reporting-only-site-qualification-5bfd9d2ded81df65b234fd9f374807c7221d8f6748236f6666f7c1c0d294e3f5",
@@ -563,6 +563,234 @@
             "policy_id": "oh-childcare-local-review",
             "policy_profile": "oh-childcare-local-review@1.0.0",
             "policy_sha256": "53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98",
+            "transformation_version": "oh-childcare-normalization@1.0.0",
+            "observed_at": "2026-09-08T08:31:19.971Z"
+          }
+        },
+        "temporal": {
+          "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+          "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+          "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0",
+          "registration_sha256": "65e7c8e5a3f32ee1a71f816f4aeb449c43925c924926ec6a1d777a727e19d738"
+        },
+        "zip_temporal_qualification": {
+          "release_id": "exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503",
+          "manifest_sha256": "771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e",
+          "artifact_sha256": "958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed",
+          "assessment_as_of": "2026-10-02T16:30:00.000Z"
+        },
+        "geography": {
+          "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+          "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+          "zcta_index_sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6",
+          "county_geometry_inventory_sha256": "993e450f60492f7c651020e7135caf6d92b5f30a5a54d2adee8ad2fe9d9c38ae",
+          "point_assignment_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
+          "point_assignment_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6"
+        }
+      },
+      "summary": {
+        "site_count": 13182,
+        "matching_profile_count": 0,
+        "by_source": {
+          "MA": 3007,
+          "NJ": 4075,
+          "TN": 1863,
+          "OH": 4237
+        },
+        "zip": {
+          "present": 13010,
+          "absent": 172,
+          "missing-source-zip": 27,
+          "invalid-source-zip-placeholder": 145
+        },
+        "point_assignment": {
+          "assigned-single-county": 8942,
+          "unmatched": 0,
+          "ambiguous": 0,
+          "missing-geocode": 3,
+          "invalid-coordinate": 0,
+          "assignment-ineligible-by-source-policy": 4237
+        },
+        "current_operation_verified": 0,
+        "active_business_verified": 0,
+        "active_business_eligible": 0,
+        "identity_matching_eligible": 0,
+        "temporal_review_unmeasured": 13182,
+        "source_status_counts": {
+          "MA": {
+            "Current": 2561,
+            "Renewal in progress": 431,
+            "Expired": 13,
+            "Regional Enrollment Freeze": 2
+          },
+          "NJ": {
+            "null": 4075
+          },
+          "TN": {
+            "Active": 1863
+          },
+          "OH": {
+            "Open": 4237
+          }
+        },
+        "physical_site_denominator": {
+          "matching_profiles": 8011835,
+          "reporting_only_sites": 13182,
+          "combined_retained_site_evidence": 8025017
+        }
+      },
+      "selected": false
+    },
+    {
+      "release_id": "reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce",
+      "manifest": "data/reporting-only-site-qualification/releases/reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce/manifest.json",
+      "manifest_sha256": "e3e62ff1ad7d05c9fdfaf51e93783effb07d738a1f2236128183229c08b95e83",
+      "artifact_sha256": "c4d882b146cdd06f0817744ffa92ce8c9d9bf6b36dd5326aa1c10286953144ab",
+      "record_count": 13182,
+      "bindings": {
+        "registry": {
+          "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+          "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+          "registration_sha256": "6a1e0be6811e9c69d3e7f0a995e0ab3da86907f9373f016fa2dfeed7d2a9a72f",
+          "reporting_artifact_inventory_sha256": "e060dd4979babd4ce4824edbf7e3469cd6447e2513c368615111da16259cf1c5",
+          "reporting_artifact_count": 10,
+          "reporting_artifacts": [
+            {
+              "path": "reporting/location-evidence/zip2=01/records.jsonl.gz",
+              "bytes": 265976,
+              "sha256": "1f6c669259d2141a7e019443a8139c6ef7655f073b1b25bb9aa8c43ade664be8",
+              "record_count": 1377,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=02/records.jsonl.gz",
+              "bytes": 312406,
+              "sha256": "582298f71b61fe030370f01924b0facbfa89e532337b19ca087cd351fd78efe8",
+              "record_count": 1630,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=07/records.jsonl.gz",
+              "bytes": 550345,
+              "sha256": "ad2702e0b8b405b093cef98e601529f48a037b98ed13639921093337e73dcd5e",
+              "record_count": 2503,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=08/records.jsonl.gz",
+              "bytes": 344841,
+              "sha256": "aaef08b296c853bd95e72a9e2eb66675887e4fed92d790d2b4084774ce0d39d9",
+              "record_count": 1572,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=37/records.jsonl.gz",
+              "bytes": 255055,
+              "sha256": "d03b9cca409bcd2cb765a3ebacc1361fe3708bdbaf4b6259ed7823588104f927",
+              "record_count": 1105,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=38/records.jsonl.gz",
+              "bytes": 132370,
+              "sha256": "09a64cffa1e2aab52f05813ab692cd66653d096fac4af199c528f8b4b71c3ce9",
+              "record_count": 586,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=43/records.jsonl.gz",
+              "bytes": 317033,
+              "sha256": "cddf0e0105b9b942d990132f9fc6cd99fce0be268b2666092162f59cbafc772d",
+              "record_count": 1429,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=44/records.jsonl.gz",
+              "bytes": 342751,
+              "sha256": "acfe82aafee8518233a12c2eda940c0f133071bf62c0663ca435c50a1db44dc0",
+              "record_count": 1539,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=45/records.jsonl.gz",
+              "bytes": 281473,
+              "sha256": "c06abbd547ad6e2ade63fcb0eaf79caaa4dfb3ef2f9b62a326efa003a60c3804",
+              "record_count": 1269,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            },
+            {
+              "path": "reporting/location-evidence/zip2=unassigned/records.jsonl.gz",
+              "bytes": 39688,
+              "sha256": "0b44b999e708770c9d8cbe031652cae09bae006d7271347065e7a0088b51ea2f",
+              "record_count": 172,
+              "artifact_type": "business-reporting-location-evidence-jsonl-gzip",
+              "export_policy": "local-review-only"
+            }
+          ]
+        },
+        "sources": {
+          "MA": {
+            "source_id": "ma-licensed-center-based-childcare",
+            "release_id": "ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6",
+            "source_release_id": "ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5",
+            "manifest_path": "data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json",
+            "manifest_sha256": "c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc",
+            "policy_id": "massgis-eec-childcare-local-review",
+            "policy_profile": "massgis-eec-childcare-local-review@1.0.0",
+            "policy_profile_path": "config/source-policies/massgis-eec-childcare-local-review.json",
+            "policy_profile_sha256": "8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742",
+            "source_manifest_policy_sha256": "bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201",
+            "transformation_version": "ma-childcare-normalization@1.0.0",
+            "observed_at": "2026-09-07T19:10:25.331Z"
+          },
+          "NJ": {
+            "source_id": "nj-licensed-childcare-centers",
+            "release_id": "nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812",
+            "source_release_id": "nj-childcare-a9ed3d970922f919cee26a93310677b81a8319ae6ce960d83b34f607fec34f69",
+            "manifest_path": "data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json",
+            "manifest_sha256": "b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e",
+            "policy_id": "njdep-childcare-local-review",
+            "policy_profile": "njdep-childcare-local-review@1.0.0",
+            "policy_profile_path": "config/source-policies/njdep-childcare-local-review.json",
+            "policy_profile_sha256": "3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc",
+            "source_manifest_policy_sha256": "79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410",
+            "transformation_version": "nj-childcare-normalization@1.0.1",
+            "observed_at": "2026-09-07T20:05:27.313Z"
+          },
+          "TN": {
+            "source_id": "tn-dhs-active-childcare-centers",
+            "release_id": "tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801",
+            "source_release_id": "tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7",
+            "manifest_path": "data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json",
+            "manifest_sha256": "98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d",
+            "policy_id": "tn-childcare-local-review",
+            "policy_profile": "tn-childcare-local-review@1.0.0",
+            "policy_profile_path": "config/source-policies/tn-childcare-local-review.json",
+            "policy_profile_sha256": "06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e",
+            "source_manifest_policy_sha256": "78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b",
+            "transformation_version": "tn-childcare-normalization@1.0.1",
+            "observed_at": "2026-09-08T00:36:36.628Z"
+          },
+          "OH": {
+            "source_id": "oh-dcy-publisher-open-childcare-centers",
+            "release_id": "oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee",
+            "source_release_id": "oh-childcare-2c38df58d6d977c7e93a26d6b1e730e7850ec893b6f5a947b76d5060e1cc6e4b",
+            "manifest_path": "data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json",
+            "manifest_sha256": "e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171",
+            "policy_id": "oh-childcare-local-review",
+            "policy_profile": "oh-childcare-local-review@1.0.0",
+            "policy_profile_path": "config/source-policies/oh-childcare-local-review.json",
+            "policy_profile_sha256": "f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2",
+            "source_manifest_policy_sha256": "53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98",
             "transformation_version": "oh-childcare-normalization@1.0.0",
             "observed_at": "2026-09-08T08:31:19.971Z"
           }

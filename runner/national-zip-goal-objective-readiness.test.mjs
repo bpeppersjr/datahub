@@ -53,7 +53,7 @@ test('strict projection exposes eleven ordered requirements, blockers, forty gap
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_inventory_sha256, 'ca92485cf7659fc8f4565fe81de5728c960de9667f9b5c605f66c9e07d24a5f5');
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_count, 100);
   assert.equal(value.lineage.reporting_only_site_qualification.record_count, 13182);
-  assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, 'fadb6144c6d325685950b374677e14b7f897a3c5c916f59695d089691027aa1f');
+  assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba');
   assert.deepEqual(value.lineage.reporting_only_site_qualification.source_manifest_hashes, { MA: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' });
   assert.equal(value.lineage.reporting_only_site_qualification.source_bindings.MA.transformation_version, 'ma-childcare-normalization@1.0.0');
   assert.equal(value.lineage.reporting_only_site_qualification.zip_temporal_qualification_artifact_sha256, '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed');
@@ -75,7 +75,9 @@ test('strict projection exposes eleven ordered requirements, blockers, forty gap
     value => { value.bindings.business_entity_geography_relationship.upstream.zip_audit_manifest_sha256 = '0'.repeat(64); },
     value => { value.requirements_ledger = value.requirements_ledger.filter(row => row.requirement !== 'entity-geography-relationship'); },
     value => { value.bindings.reporting_only_site_qualification.artifact_sha256 = '0'.repeat(64); },
-    value => { value.bindings.reporting_only_site_qualification.source_policy_hashes.MA = '0'.repeat(64); },
+    value => { value.bindings.reporting_only_site_qualification.source_manifest_policy_hashes.MA = '0'.repeat(64); },
+    value => { value.bindings.reporting_only_site_qualification.policy_profile_hashes.MA = '0'.repeat(64); },
+    value => { value.bindings.reporting_only_site_qualification.source_bindings.NJ.policy_profile_path = '../njdep-childcare-local-review.json'; },
     value => { value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification').site_count++; },
     value => { delete value.bindings.reporting_only_site_qualification; },
   ]) {

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { lstat, readFile, mkdir, writeFile } from 'node:fs/promises';
+import { lstat, readFile, mkdir, writeFile, realpath } from 'node:fs/promises';
 import { APP_ROOT } from './paths.mjs';
 import { loadReportingSiteGeographyContext } from './business-entity-geography-relationship.mjs';
 import { normalizeCoordinateGeocode } from './business-location-profile-contract.mjs';
@@ -9,16 +9,16 @@ import { assignPointToCounty } from './national-business-coverage-views.mjs';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { readExactZipIndustryTemporalQualification } from './exact-zip-industry-temporal-qualification.mjs';
 
-export const REPORTING_ONLY_SITE_QUALIFICATION_VERSION = 'reporting-only-site-qualification@1.0.0';
+export const REPORTING_ONLY_SITE_QUALIFICATION_VERSION = 'reporting-only-site-qualification@1.1.0';
 const DATASET = 'reporting-only-site-qualification';
 const REGISTRY_RELEASE = 'national-business-registry-20260911-022652067Z-1ec656c3';
 const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
 const AS_OF = '2026-10-02T16:30:00.000Z';
 const SOURCE = Object.freeze({
-  MA: { id: 'ma-licensed-center-based-childcare', key: 'ma_childcare_centers', dimension: 'childcare_ma_reporting_centers', manifest: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifestSha: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', count: 3007, statuses: { Current: 'source-defined-current', 'Renewal in progress': 'non-active-reporting', Expired: 'non-active-reporting', 'Regional Enrollment Freeze': 'unknown' } },
-  NJ: { id: 'nj-licensed-childcare-centers', key: 'nj_childcare_centers', dimension: 'childcare_nj_reporting_centers', manifest: 'data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json', manifestSha: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', count: 4075, statuses: {} },
-  TN: { id: 'tn-dhs-active-childcare-centers', key: 'tn_childcare_centers', dimension: 'childcare_tn_reporting_centers', manifest: 'data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json', manifestSha: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', count: 1863, statuses: { Active: 'source-defined-current' } },
-  OH: { id: 'oh-dcy-publisher-open-childcare-centers', key: 'oh_childcare_centers', dimension: 'childcare_oh_reporting_centers', manifest: 'data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json', manifestSha: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171', count: 4237, statuses: { Open: 'source-defined-current' } },
+  MA: { id: 'ma-licensed-center-based-childcare', key: 'ma_childcare_centers', dimension: 'childcare_ma_reporting_centers', manifest: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifestSha: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', policyId: 'massgis-eec-childcare-local-review', policyPath: 'config/source-policies/massgis-eec-childcare-local-review.json', policySha: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742', count: 3007, statuses: { Current: 'source-defined-current', 'Renewal in progress': 'non-active-reporting', Expired: 'non-active-reporting', 'Regional Enrollment Freeze': 'unknown' } },
+  NJ: { id: 'nj-licensed-childcare-centers', key: 'nj_childcare_centers', dimension: 'childcare_nj_reporting_centers', manifest: 'data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json', manifestSha: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', policyId: 'njdep-childcare-local-review', policyPath: 'config/source-policies/njdep-childcare-local-review.json', policySha: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc', count: 4075, statuses: {} },
+  TN: { id: 'tn-dhs-active-childcare-centers', key: 'tn_childcare_centers', dimension: 'childcare_tn_reporting_centers', manifest: 'data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json', manifestSha: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', policyId: 'tn-childcare-local-review', policyPath: 'config/source-policies/tn-childcare-local-review.json', policySha: '06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e', count: 1863, statuses: { Active: 'source-defined-current' } },
+  OH: { id: 'oh-dcy-publisher-open-childcare-centers', key: 'oh_childcare_centers', dimension: 'childcare_oh_reporting_centers', manifest: 'data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json', manifestSha: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171', policyId: 'oh-childcare-local-review', policyPath: 'config/source-policies/oh-childcare-local-review.json', policySha: 'f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2', count: 4237, statuses: { Open: 'source-defined-current' } },
 });
 const ARTIFACT_PATHS = Object.freeze([
   'reporting/location-evidence/zip2=01/records.jsonl.gz', 'reporting/location-evidence/zip2=02/records.jsonl.gz',
@@ -38,6 +38,39 @@ async function boundedJson(file, max = 8_000_000) {
   const stat = await lstat(file); check(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && stat.size <= max);
   const bytes = await readFile(file); check(bytes.length === stat.size);
   return { value: JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), sha256: sha(bytes), bytes };
+}
+export async function readContainedPolicyProfile({ root = APP_ROOT, relativePath, sourceState } = {}) {
+  const expected = SOURCE[sourceState]; check(expected && relativePath === expected.policyPath, 'unrecognized reporting policy profile path');
+  check(typeof relativePath === 'string' && !path.isAbsolute(relativePath)
+    && path.normalize(relativePath).replaceAll('\\', '/') === relativePath
+    && !relativePath.split('/').some(part => !part || part === '.' || part === '..'), 'reporting policy path traversal');
+  const rootPath = path.resolve(root), rootReal = await realpath(rootPath);
+  check(rootReal === rootPath, 'reporting policy root must not be a link');
+  let cursor = rootPath;
+  const parts = relativePath.split('/');
+  for (let index = 0; index < parts.length; index++) {
+    cursor = path.join(cursor, parts[index]);
+    const stat = await lstat(cursor);
+    check(!stat.isSymbolicLink() && (index === parts.length - 1 ? stat.isFile() && stat.nlink === 1 && stat.size <= 128_000 : stat.isDirectory()),
+      'reporting policy path must be contained, single-link, and bounded');
+  }
+  const stat = await lstat(cursor), bytes = await readFile(cursor);
+  check(bytes.length === stat.size, 'reporting policy changed during read');
+  const value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+  check(value.policy_id === expected.policyId && value.version === '1.0.0'
+    && value.publisher && value.export_policy === 'local-review-only'
+    && typeof value.redistribution === 'string' && /not authorized|not-authorized/i.test(value.redistribution)
+    && value.contains_personal_data === true && value.contains_secrets === false
+    && Array.isArray(value.allowed_use) && value.allowed_use.some(item => /local.review/i.test(item))
+    && Array.isArray(value.prohibited_use) && value.prohibited_use.some(item => /operation|ownership|identity|completeness|redistribution/i.test(item))
+    && value.field_export_policy && Object.values(value.field_export_policy).includes('local-review-only')
+    && (!Object.hasOwn(value, 'acquisition_authorized') || value.acquisition_authorized === false)
+    && (!Object.hasOwn(value, 'legal_approval') || value.legal_approval === false)
+    && (!Object.hasOwn(value, 'agreement_acceptance_performed') || value.agreement_acceptance_performed === false)
+    && (!Object.hasOwn(value, 'export_authorized') || value.export_authorized === false)
+    && !value.contains_secrets, `${sourceState} source policy identity or local-review semantics`);
+  const digest = sha(bytes); check(digest === expected.policySha, `${sourceState} authoritative policy profile hash`);
+  return { value, sha256: digest, bytes };
 }
 function classifyLifecycle(source, row, semantic, qualification) {
   const value = row.source_status?.status_source ?? null;
@@ -112,9 +145,18 @@ async function loadInputs(root, signal) {
     const sourceRead = await boundedJson(path.join(root, expected.manifest), 8_000_000), manifest = sourceRead.value;
     check(sourceRead.sha256 === expected.manifestSha && manifest.dataset_id === expected.id && manifest.release_id === dep.release_id
       && manifest.status && manifest.policy && typeof manifest.transformation_version === 'string' && manifest.observed_at);
+    const policyRead = await readContainedPolicyProfile({ root, relativePath: expected.policyPath, sourceState: state });
+    const policy = policyRead.value, sourceManifestPolicySha = sha(stable(manifest.policy));
+    check(policyRead.sha256 === expected.policySha && policy.policy_id === expected.policyId
+      && `${policy.policy_id}@${policy.version}` === manifest.policy.profile
+      && (manifest.policy.export ?? manifest.policy.export_policy) === policy.export_policy && manifest.policy.redistribution
+      && /not.authorized|not-authorized/i.test(manifest.policy.redistribution)
+      && (manifest.policy.owner ?? manifest.policy.publisher) === policy.publisher,
+    `${state} source policy file and embedded manifest policy binding`);
     sources[state] = { ...expected, release_id: manifest.release_id, source_release_id: manifest.source_release_id, manifest_sha256: sourceRead.sha256,
-      policy_id: manifest.policy.policy_id ?? manifest.policy.profile.split('@')[0], policy_profile: manifest.policy.profile,
-      policy_sha256: sha(stable(manifest.policy)), transformation_version: manifest.transformation_version,
+      policy_id: policy.policy_id, policy_profile: `${policy.policy_id}@${policy.version}`, policy_profile_path: expected.policyPath,
+      policy_profile_sha256: policyRead.sha256, source_manifest_policy_sha256: sourceManifestPolicySha,
+      transformation_version: manifest.transformation_version,
       observed_at: manifest.observed_at, source_status_counts: state === 'MA' ? { Current: 2561, 'Renewal in progress': 431, Expired: 13, 'Regional Enrollment Freeze': 2 }
         : state === 'NJ' ? { null: 4075 } : state === 'TN' ? { Active: 1863 } : { Open: 4237 } };
     check(manifest.counts?.accepted === expected.count, `${state} source manifest count`);
@@ -133,6 +175,7 @@ async function loadInputs(root, signal) {
     const semantic = temporalRows.get(source.key), qualification = qualRows.get(source.dimension);
     check(semantic?.profile_source_id === source.id && semantic.source_release_id === source.source_release_id
       && ['source-defined-current-membership', 'non-active-reporting-membership'].includes(semantic.classification)
+      && semantic.policy_path === source.policy_profile_path && semantic.policy_sha256 === source.policy_profile_sha256
       && qualification?.source_key === source.key && qualification.source_release_id === source.source_release_id
       && qualification.review_qualification === 'unmeasured' && qualification.current_operations_verified === false);
     semanticByState[state] = semantic;
@@ -171,12 +214,13 @@ async function rowsFromInputs(input, root, signal) {
       counts.source[state]++; if (row.zip_code === null) { counts.zip.absent++; counts.zip[geography.postal.zip_unavailable_reason]++; }
       else counts.zip.present++;
       counts.point[geography.point_assignment.status]++;
-      out.push({ schema_version: 'reporting-only-site-qualification-row@1.0.0', cohort_kind: 'reporting-only',
+      out.push({ schema_version: 'reporting-only-site-qualification-row@1.1.0', cohort_kind: 'reporting-only',
         site_entity_id: row.site_entity_id, establishment_entity_id: row.establishment_entity_id,
         source: { source_id: source.id, source_release_id: source.source_release_id, source_record_id: row.source.source_record_id,
           registry_release_id: REGISTRY_RELEASE, registry_manifest_sha256: REGISTRY_SHA, source_manifest_sha256: source.manifest_sha256,
           source_observed_at: row.observed_at, transformation_version: row.source.transformation_version, policy_id: source.policy_id,
-          policy_profile: source.policy_profile, policy_sha256: source.policy_sha256, source_manifest_observed_at: source.observed_at,
+          policy_profile: source.policy_profile, policy_profile_path: source.policyPath, policy_profile_sha256: source.policy_profile_sha256,
+          source_manifest_policy_sha256: source.source_manifest_policy_sha256, source_manifest_observed_at: source.observed_at,
           row_observed_at: row.observed_at, export_policy: 'local-review-only' },
         source_status: row.source_status, source_evidence_lineage: { release_id: row.evidence.release_id, manifest_sha256: row.evidence.manifest_sha256,
           input_feature_sha256: row.evidence.input_feature_sha256 ?? row.evidence.normalized_provenance?.input_feature_sha256 ?? null,
@@ -203,7 +247,9 @@ function bindings(input) {
       reporting_artifacts: input.selectedArtifacts.map(({ path, bytes, sha256, record_count, artifact_type, export_policy }) => ({ path, bytes, sha256, record_count, artifact_type, export_policy })) },
     sources: Object.fromEntries(Object.entries(input.sources).map(([state, source]) => [state, { source_id: source.id, release_id: source.release_id,
       source_release_id: source.source_release_id, manifest_path: source.manifest, manifest_sha256: source.manifest_sha256,
-      policy_id: source.policy_id, policy_profile: source.policy_profile, policy_sha256: source.policy_sha256, transformation_version: source.transformation_version,
+      policy_id: source.policy_id, policy_profile: source.policy_profile, policy_profile_path: source.policyPath,
+      policy_profile_sha256: source.policy_profile_sha256, source_manifest_policy_sha256: source.source_manifest_policy_sha256,
+      transformation_version: source.transformation_version,
       observed_at: source.observed_at }])),
     temporal: { release_id: input.temporal.provenance.release_id, manifest_sha256: input.temporal.provenance.manifest_sha256,
       artifact_sha256: input.temporal.provenance.artifact_sha256, registration_sha256: input.temporalRegistrationSha },
@@ -227,7 +273,7 @@ export async function buildReportingOnlySiteQualification({ root = APP_ROOT, sig
   const claims = { current_operation_verified: false, active_business_verified: false, active_business_eligible: false, identity_matching_eligible: false,
     usps_operational_assignment_verified: false, usps_deliverability_verified: false, zcta_membership_inferred: false, entity_polygons_present: false,
     network_requests: 0, source_acquisition_performed: false, current_pointer_written: false, production_enrollment: false, production_execution: false, export_policy: 'local-review-only' };
-  const body = { schema_version: `${DATASET}-release@1.0.0`, contract_version: REPORTING_ONLY_SITE_QUALIFICATION_VERSION,
+  const body = { schema_version: `${DATASET}-release@1.1.0`, contract_version: REPORTING_ONLY_SITE_QUALIFICATION_VERSION,
     assessment_as_of: AS_OF, cohort_kind: 'reporting-only', bindings: pin, summary, claims, artifact };
   const release_id = `${DATASET}-${sha(JSON.stringify(body))}`;
   const manifest = { dataset_id: DATASET, release_id, status: 'immutable-pointer-free-local-review-only', publication_mode: 'pointer-free', ...body };
@@ -242,7 +288,7 @@ export async function buildReportingOnlySiteQualification({ root = APP_ROOT, sig
   const retained_releases = prior.map(row => ({ ...row, selected: false }));
   retained_releases.push({ release_id, manifest: `${relative}/manifest.json`, manifest_sha256, artifact_sha256: artifact.sha256,
     record_count: produced.rows.length, bindings: pin, summary, selected: true });
-  const registration = { schema_version: `${DATASET}-registration@1.0.0`, dataset_id: DATASET, status: 'registered-pointer-free-local-review-only',
+  const registration = { schema_version: `${DATASET}-registration@1.1.0`, dataset_id: DATASET, status: 'registered-pointer-free-local-review-only',
     runtime_pointer: null, production_enrollment: false, current_pointer_written: false, selected_release_id: release_id, retained_releases };
   await writeFile(configPath, `${JSON.stringify(registration, null, 2)}\n`);
   return { release_id, manifest_sha256, artifact_sha256: artifact.sha256, summary };
@@ -251,7 +297,7 @@ export async function buildReportingOnlySiteQualification({ root = APP_ROOT, sig
 export async function readReportingOnlySiteQualification({ root = APP_ROOT, signal } = {}) {
   root = path.resolve(root); signal?.throwIfAborted();
   const reg = await boundedJson(path.join(root, `config/datasets/${DATASET}.json`), 2_000_000);
-  check(reg.value.schema_version === `${DATASET}-registration@1.0.0` && reg.value.status === 'registered-pointer-free-local-review-only'
+  check(reg.value.schema_version === `${DATASET}-registration@1.1.0` && reg.value.status === 'registered-pointer-free-local-review-only'
     && reg.value.runtime_pointer === null && reg.value.current_pointer_written === false && reg.value.production_enrollment === false
     && Array.isArray(reg.value.retained_releases));
   const selectedRows = reg.value.retained_releases.filter(row => row.selected === true); check(selectedRows.length === 1);
@@ -259,7 +305,7 @@ export async function readReportingOnlySiteQualification({ root = APP_ROOT, sign
   const manifestPath = path.join(root, selected.manifest), manifestRead = await boundedJson(manifestPath, 3_000_000), manifest = manifestRead.value;
   check(manifestRead.sha256 === selected.manifest_sha256 && manifest.dataset_id === DATASET && manifest.release_id === selected.release_id
     && manifest.status === 'immutable-pointer-free-local-review-only' && manifest.publication_mode === 'pointer-free'
-    && manifest.schema_version === `${DATASET}-release@1.0.0` && manifest.contract_version === REPORTING_ONLY_SITE_QUALIFICATION_VERSION && manifest.summary.site_count === EXPECTED.total
+    && manifest.schema_version === `${DATASET}-release@1.1.0` && manifest.contract_version === REPORTING_ONLY_SITE_QUALIFICATION_VERSION && manifest.summary.site_count === EXPECTED.total
     && stable(manifest.bindings) === stable(selected.bindings) && stable(manifest.summary) === stable(selected.summary)
     && stable(manifest.claims) === stable({ current_operation_verified: false, active_business_verified: false, active_business_eligible: false, identity_matching_eligible: false,
       usps_operational_assignment_verified: false, usps_deliverability_verified: false, zcta_membership_inferred: false, entity_polygons_present: false,
@@ -272,7 +318,7 @@ export async function readReportingOnlySiteQualification({ root = APP_ROOT, sign
   const lines = gunzipSync(compressed, { maxOutputLength: 128_000_000 }).toString('utf8').split(/\r?\n/).filter(Boolean);
   check(lines.length === EXPECTED.total); const rows = lines.map(line => JSON.parse(line)), byRecord = new Map();
   for (const row of rows) {
-    signal?.throwIfAborted(); check(row.schema_version === 'reporting-only-site-qualification-row@1.0.0' && row.cohort_kind === 'reporting-only'
+    signal?.throwIfAborted(); check(row.schema_version === 'reporting-only-site-qualification-row@1.1.0' && row.cohort_kind === 'reporting-only'
       && row.identity_matching_eligible === false && row.current_operation_verified === false && row.active_business_verified === false && row.active_business_eligible === false
       && row.lifecycle?.current_operation_verified === false && row.lifecycle?.active_business_eligible === false
       && row.geography?.postal?.usps_operational_assignment === null && row.geography?.postal?.usps_deliverability === null

@@ -12,28 +12,32 @@ import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
 import { readReportingOnlySiteQualification, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
 
-export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.5.0';
+export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.6.0';
 const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
-  registration_sha256: 'fadb6144c6d325685950b374677e14b7f897a3c5c916f59695d089691027aa1f',
-  release_id: 'reporting-only-site-qualification-b9a3ce44ffa33ec048794d7db22e3147ebb1626a2f6e990d4a203072cb381e0c',
-  manifest_sha256: 'e66fd91f1c77c49a788aab02261d1d6eea4259c0dda3b362277b6d4807bf993b',
-  artifact_sha256: 'bc6a9216936389cdb0736af7b6d7d6bf7ed68ed1b77caac2e32a25685cc2abbb', record_count: 13182 });
+  registration_sha256: '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba',
+  release_id: 'reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce',
+  manifest_sha256: 'e3e62ff1ad7d05c9fdfaf51e93783effb07d738a1f2236128183229c08b95e83',
+  artifact_sha256: 'c4d882b146cdd06f0817744ffa92ce8c9d9bf6b36dd5326aa1c10286953144ab', record_count: 13182 });
 const REPORTING_SOURCE_PINS = Object.freeze({
   MA: { source_id: 'ma-licensed-center-based-childcare', release_id: 'ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6',
     source_release_id: 'ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5', manifest_path: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifest_sha256: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc',
-    policy_id: 'massgis-eec-childcare-local-review', policy_profile: 'massgis-eec-childcare-local-review@1.0.0', policy_sha256: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
+    policy_id: 'massgis-eec-childcare-local-review', policy_profile: 'massgis-eec-childcare-local-review@1.0.0', policy_profile_path: 'config/source-policies/massgis-eec-childcare-local-review.json',
+    policy_profile_sha256: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742', source_manifest_policy_sha256: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
     transformation_version: 'ma-childcare-normalization@1.0.0', observed_at: '2026-09-07T19:10:25.331Z' },
   NJ: { source_id: 'nj-licensed-childcare-centers', release_id: 'nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812',
     source_release_id: 'nj-childcare-a9ed3d970922f919cee26a93310677b81a8319ae6ce960d83b34f607fec34f69', manifest_path: 'data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json', manifest_sha256: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e',
-    policy_id: 'njdep-childcare-local-review', policy_profile: 'njdep-childcare-local-review@1.0.0', policy_sha256: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410',
+    policy_id: 'njdep-childcare-local-review', policy_profile: 'njdep-childcare-local-review@1.0.0', policy_profile_path: 'config/source-policies/njdep-childcare-local-review.json',
+    policy_profile_sha256: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc', source_manifest_policy_sha256: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410',
     transformation_version: 'nj-childcare-normalization@1.0.1', observed_at: '2026-09-07T20:05:27.313Z' },
   TN: { source_id: 'tn-dhs-active-childcare-centers', release_id: 'tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801',
     source_release_id: 'tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7', manifest_path: 'data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json', manifest_sha256: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d',
-    policy_id: 'tn-childcare-local-review', policy_profile: 'tn-childcare-local-review@1.0.0', policy_sha256: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b',
+    policy_id: 'tn-childcare-local-review', policy_profile: 'tn-childcare-local-review@1.0.0', policy_profile_path: 'config/source-policies/tn-childcare-local-review.json',
+    policy_profile_sha256: '06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e', source_manifest_policy_sha256: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b',
     transformation_version: 'tn-childcare-normalization@1.0.1', observed_at: '2026-09-08T00:36:36.628Z' },
   OH: { source_id: 'oh-dcy-publisher-open-childcare-centers', release_id: 'oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee',
     source_release_id: 'oh-childcare-2c38df58d6d977c7e93a26d6b1e730e7850ec893b6f5a947b76d5060e1cc6e4b', manifest_path: 'data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json', manifest_sha256: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171',
-    policy_id: 'oh-childcare-local-review', policy_profile: 'oh-childcare-local-review@1.0.0', policy_sha256: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98',
+    policy_id: 'oh-childcare-local-review', policy_profile: 'oh-childcare-local-review@1.0.0', policy_profile_path: 'config/source-policies/oh-childcare-local-review.json',
+    policy_profile_sha256: 'f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2', source_manifest_policy_sha256: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98',
     transformation_version: 'oh-childcare-normalization@1.0.0', observed_at: '2026-09-08T08:31:19.971Z' },
 });
 export const NATIONAL_ZIP_GOAL_CLAIMS = Object.freeze(['report-only', 'complete-selected-census-zcta-denominator', 'source-reported-zip-membership', 'complete-current-usps-area-district-assignment-set', 'every-valid-usps-zip', 'every-active-business-by-valid-zip']);
@@ -189,10 +193,14 @@ function validateReportingOnlySiteBinding(value) {
       NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e',
       TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d',
       OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' })
-    && same(value.source_policy_hashes, { MA: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
+    && same(value.source_manifest_policy_hashes, { MA: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
       NJ: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410',
       TN: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b',
       OH: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98' })
+    && same(value.policy_profile_hashes, { MA: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742',
+      NJ: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc',
+      TN: '06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e',
+      OH: 'f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2' })
     && same(value.source_bindings, REPORTING_SOURCE_PINS),
   'reporting-only site qualification registration/release/summary binding');
 }
@@ -427,7 +435,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.usps_unverified_count === 13182,
   'reporting-only site readiness counts');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.3.0',
+    schema_version: 'national-zip-objective-readiness-api@1.4.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -483,7 +491,8 @@ export function projectNationalZipObjectiveReadiness(report) {
         registry_manifest_sha256: binding.reporting_only_site_qualification.registry_manifest_sha256,
         reporting_artifact_inventory_sha256: binding.reporting_only_site_qualification.reporting_artifact_inventory_sha256,
         source_manifest_hashes: binding.reporting_only_site_qualification.source_manifest_hashes,
-        source_policy_hashes: binding.reporting_only_site_qualification.source_policy_hashes,
+        source_manifest_policy_hashes: binding.reporting_only_site_qualification.source_manifest_policy_hashes,
+        policy_profile_hashes: binding.reporting_only_site_qualification.policy_profile_hashes,
         source_bindings: binding.reporting_only_site_qualification.source_bindings,
         temporal_release_id: binding.reporting_only_site_qualification.temporal_release_id,
         temporal_manifest_sha256: binding.reporting_only_site_qualification.temporal_manifest_sha256,
@@ -704,7 +713,8 @@ async function readObjectiveReadiness({ signal }) {
     reporting_artifact_inventory_sha256: reportingSites.provenance.bindings.registry.reporting_artifact_inventory_sha256,
     source_artifacts: reportingSites.provenance.bindings.registry.reporting_artifacts,
     source_manifest_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.manifest_sha256])),
-    source_policy_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.policy_sha256])),
+    source_manifest_policy_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.source_manifest_policy_sha256])),
+    policy_profile_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.policy_profile_sha256])),
     source_bindings: reportingSources,
     temporal_release_id: reportingSites.provenance.bindings.temporal.release_id,
     temporal_manifest_sha256: reportingSites.provenance.bindings.temporal.manifest_sha256,
@@ -750,7 +760,7 @@ async function readObjectiveReadiness({ signal }) {
     business_entity_geography_relationship: geographyRelationshipBinding,
     reporting_only_site_qualification: reportingBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.3.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.4.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,
