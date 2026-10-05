@@ -16,6 +16,7 @@ import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeograph
 import { flatfileReportingCompatibility } from '../runner/business-flatfile-compatibility.mjs';
 import { OH_SOURCE, loadOhioCoverageContext, validateOhChildcareGeographicEvidence, verifyOhChildcareGeographicMembership } from '../runner/oh-childcare-coverage-evidence.mjs';
 import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from '../runner/business-location-profile-contract.mjs';
+import { readBusinessEntityLifecycleEligibilityPartition } from '../runner/business-entity-lifecycle-eligibility.mjs';
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -23,7 +24,7 @@ const REPORTING_TYPE = "business-reporting-location-evidence-jsonl-gzip";
 const DEFAULT_OUTPUT = "data/exports/flat-business/builds";
 const PUBLIC_POLICIES = new Set(["public", "public-open-ny-terms", "public-factual-fields-with-source-limitations"]);
 const LOCAL_POLICIES = new Set([...PUBLIC_POLICIES, "local-review-only"]);
-const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "policy_id", "export_policy", "transformation_version", "dataset_id", "source_dataset_release_id"];
+const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "policy_id", "export_policy", "transformation_version", "dataset_id", "source_dataset_release_id", "lifecycle_eligibility"];
 
 // Export categories include independently verified reporting-only Ohio rows.
 // This does not change the map's source adoption or geographic assignment rules.
@@ -39,7 +40,7 @@ export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "licensed-businesses": ["alaska-dcced-active-business-licenses", "los-angeles-office-of-finance-active-businesses", "texas-comptroller-active-sales-tax-permits", "city-of-chicago-bacp-current-active-business-licenses", "dc-dlcp-active-basic-business-licenses", "nyc-dcwp-issued-licenses-active-premises"],
 });
 export const AVAILABLE_EXPORT_FIELDS = Object.freeze([
-  "business_name", "profile_id", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "geocode",
+  "business_name", "profile_id", "lifecycle_eligibility", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "geocode",
   "industry_categories", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "source_status_value",
   "source_status_scope", "source_status_observed_at", "observed_at", "policy_id", "export_policy", "transformation_version",
   "dataset_id", "source_dataset_release_id", "external_identifiers", "site_entity_id", "establishment_entity_id", "organization_entity_id",
@@ -115,11 +116,12 @@ async function governedArtifact(source, artifact, signal, boundedReporting = fal
   if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Artifact checksum mismatch: ${artifact.path}`);
   return file;
 }
-function projection(record, source, rowCategories) {
+function projection(record, source, rowCategories, lifecycleEligibility = null) {
   const normalizedZip5 = zip5(record.address?.zip_code ?? record.zip_code ?? null);
   if (record.address && Object.hasOwn(record.address, "postal_code") && record.address.postal_code !== (record.address.zip_code ?? null)) throw new Error("Normalized export requires postal_code to equal exact ZIP5.");
   return {
     business_name: record.names?.find((n) => String(n?.raw ?? "").trim())?.raw?.trim() ?? null, profile_id: record.profile_id ?? null,
+    lifecycle_eligibility: lifecycleEligibility,
     street: record.address?.street ?? null, unit_or_additional: record.address?.unit_or_additional ?? record.address?.street2 ?? null, city: record.address?.city ?? null,
     state: state(record.address?.state), zip_code: normalizedZip5, zip4: zip4(record),
     geocode: normalizedGeocode(record),
@@ -164,6 +166,7 @@ async function* profileLines(file, signal, verifiedArtifact) {
 
 export async function composeFlatBusinessExport(argv = process.argv.slice(2), options = {}) {
   const signal = options.signal;
+  const lifecyclePartitionReader = options.lifecyclePartitionReader ?? readBusinessEntityLifecycleEligibilityPartition;
   signal?.throwIfAborted();
   const args = parseArguments(argv); if (args.help) return { usage: usage() };
   const runId = options.runId ?? randomUUID(); const root = appPath(args.output);
@@ -187,7 +190,12 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
         const boundedReporting = (tnEnabled || ohEnabled) && artifact.artifact_type === REPORTING_TYPE;
         const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
+        const profilePartition = artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip";
+        const zip2 = profilePartition ? /zip2=(\d{2})\.jsonl\.gz$/.exec(artifact.path)?.[1] : null;
+        const lifecycleJoiner = profilePartition && zip2 ? await lifecyclePartitionReader({ zip2, signal }) : null;
+        if (lifecycleJoiner) sourceLineage.lifecycle_release = lifecycleJoiner.provenance;
         let artifactRows = 0;
+        try {
         for await (const line of profileLines(file, signal, boundedReporting ? artifact : undefined)) {
           if (!line.trim()) continue; read += 1; let record = JSON.parse(line);
           artifactRows++;
@@ -196,6 +204,7 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
             record = normalizeBusinessLocationProfile(record, registryProfileCompatibilityBinding(source.manifest, source.manifestHash.sha256));
           }
           if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || record.source?.source_id === OH_SOURCE || /^(site|establishment):(tn|oh)_childcare_/.test(record.site_entity_id) || /^(site|establishment):(tn|oh)_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+          if (profilePartition && !zip2) throw new Error("Lifecycle profile partition identity is malformed.");
           if (record.source?.source_id === TN_SOURCE) {
             if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires an exact supported registry reporting version.");
             (tnFresh ? validateFreshTnChildcareGeographicEvidence : validateTnChildcareGeographicEvidence)(record);
@@ -210,15 +219,18 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
             if (artifact.path !== `reporting/location-evidence/zip2=${record.zip_code?.slice(0,2) ?? 'unassigned'}/records.jsonl.gz` || artifact.export_policy !== 'local-review-only') throw Error('OH export partition or policy differs.');
             ohRows.push(record);
           } else if (artifact.artifact_type === REPORTING_TYPE) validateChildcareGeographicEvidence(record);
+          const lifecycleEligibility = lifecycleJoiner ? await lifecycleJoiner.nextFor(record) : null;
           const sourceId = String(record.source?.source_id ?? ""); const rowState = state(record.address?.state); const rowCategories = categoriesFor(sourceId);
           if ((selectedSources.size && !selectedSources.has(sourceId)) || (states.size && !states.has(rowState))) { filtered += 1; continue; }
           const policy = typeof record.export_policy === "string" ? record.export_policy : "missing"; policies[policy] = (policies[policy] ?? 0) + 1;
           const permitted = args.policyMode === "public-only" ? PUBLIC_POLICIES : LOCAL_POLICIES;
           if (!permitted.has(policy)) { policyRejected += 1; continue; }
-          const full = projection(record, source, rowCategories.length ? rowCategories : ["uncategorized"]); const row = Object.fromEntries(args.fields.map((field) => [field, full[field]]));
+          const full = projection(record, source, rowCategories.length ? rowCategories : ["uncategorized"], lifecycleEligibility); const row = Object.fromEntries(args.fields.map((field) => [field, full[field]]));
           if (csvStream) await put(csvStream, `${args.fields.map((field) => csv(row[field])).join(",")}\n`); if (jsonlStream) await put(jsonlStream, `${JSON.stringify(row)}\n`);
           written += 1; sourceCounts[sourceId] = (sourceCounts[sourceId] ?? 0) + 1;
         }
+        if (lifecycleJoiner) await lifecycleJoiner.finish();
+        } finally { await lifecycleJoiner?.close(); }
         if ((tnEnabled || ohEnabled) && artifact.artifact_type === REPORTING_TYPE && artifactRows !== artifact.record_count) throw new Error("TN/OH reporting artifact count differs.");
       }
       if (tnEnabled) {

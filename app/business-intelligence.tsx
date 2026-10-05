@@ -90,6 +90,7 @@ type NameResponse = {
   total: number;
   limitation?: string;
   local_review_only?: boolean;
+  lifecycle_release?: { release_id: string; manifest_sha256: string; taxonomy_sha256: string } | null;
   records: Array<{
     business_name: string;
     address: { street: string | null; street2?: string | null; city: string | null; state: string | null; zip_code: string | null; zip4: string | null };
@@ -102,6 +103,14 @@ type NameResponse = {
     policy_id: string | null;
     observed_at: string | null;
     export_policy: string;
+    lifecycle_eligibility: null | {
+      source_membership_class: string;
+      review_status: 'within-review-window' | 'stale' | 'unmeasured' | 'unmapped';
+      lifecycle_evidence: 'source-defined-current' | 'non-active-reporting' | 'unknown' | 'contradictory';
+      current_operation_verified: false;
+      active_business_eligible: false;
+      reason_codes: string[];
+    };
   }>;
 };
 type StateSummary = {
@@ -614,7 +623,7 @@ function BusinessNames({ selectedZip, stateFips, stateName, categoryId, canDrill
       {data && !loading && !data.available && <p>No compatible published evidence is available for this address scope.</p>}
       {data?.available && !loading && canDrill && <div className="business-name-list">
         {!data.records.length && <p>No matching physical-location names in this category.</p>}
-        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'}{record.address.street2 ? ` · ${record.address.street2}` : ''} · {record.address.city}, {record.address.state} {record.address.zip_code ?? 'ZIP unavailable'}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
+        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'}{record.address.street2 ? ` · ${record.address.street2}` : ''} · {record.address.city}, {record.address.state} {record.address.zip_code ?? 'ZIP unavailable'}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}<small>Lifecycle: {record.lifecycle_eligibility?.lifecycle_evidence.replaceAll('-', ' ') ?? 'not applicable to reporting-only evidence'} · review {record.lifecycle_eligibility?.review_status.replaceAll('-', ' ') ?? 'unmeasured'}. Current operation is unverified; not eligible as an active business.</small></div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
         {data.total > data.records.length && <small>Showing {data.records.length} of {count(data.total)} distinct names.</small>}
       </div>}
     </section>

@@ -91,6 +91,23 @@ async function makeFixture(t) {
     "oh-childcare-registry-input.mjs", "oh-childcare-app.mjs", "oh-childcare-source-use.mjs", "oh-childcare-preflight.mjs", "oh-childcare-acquired-release.mjs",
     "oh-childcare-transport.mjs", "oh-childcare-acquisition.mjs", "oh-childcare-release.mjs", "oh-childcare-normalization.mjs",
     "dc-corporate-registration.mjs", "dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+  // This managed-API fixture uses a synthetic registry release, so it cannot
+  // satisfy the registered production lifecycle lineage. Keep the child import
+  // isolated with an explicit test-only unknown projection; production runners
+  // continue to import and verify the pinned lifecycle release.
+  await writeFile(path.join(root, "runner", "business-entity-lifecycle-eligibility.mjs"), `
+export async function readBusinessEntityLifecycleEligibilityPartition() {
+  return {
+    provenance: { release_id: "fixture-lifecycle-release", manifest_sha256: "${"a".repeat(64)}", taxonomy_sha256: "${"b".repeat(64)}" },
+    async nextFor(profile) { return { schema_version: "business-entity-lifecycle-eligibility-row@1.0.0", profile_id: profile.profile_id,
+      source_id: profile.source.source_id, source_release_id: profile.source.source_release_id,
+      source_membership_class: "unknown-source-status", review_status: "unmapped", lifecycle_evidence: "unknown",
+      current_operation_verified: false, active_business_eligible: false, reason_codes: ["synthetic-managed-api-fixture"],
+      release: { release_id: "fixture-lifecycle-release", manifest_sha256: "${"a".repeat(64)}" } }; },
+    async finish() {}, async close() {},
+  };
+}
+`);
   await mkdir(path.join(root, "docs/states"), { recursive: true });
   await copyFile(path.join(APP_ROOT, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"), path.join(root, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"));
   // Import the real isolated child before HTTP dispatch so missing fixture dependencies

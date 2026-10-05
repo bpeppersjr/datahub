@@ -1,0 +1,54 @@
+{
+  "schema_version": "business-entity-lifecycle-taxonomy@1.0.0",
+  "status": "closed-local-review-taxonomy",
+  "assessment_as_of": "2026-10-02T16:30:00.000Z",
+  "profile_source_count": 15,
+  "source_status_value_count": 17,
+  "source_status_value_count_semantics": "16 exact non-null values plus the separately enumerated LA null-status category",
+  "expected_null_status_profiles": 633232,
+  "expected_profile_counts": {
+    "alaska-dcced-active-business-licenses": 94550,
+    "california-abc-daily-active-licenses": 84497,
+    "city-of-chicago-bacp-current-active-business-licenses": 42940,
+    "cms-nppes-monthly-v2": 2088780,
+    "dc-dlcp-active-basic-business-licenses": 54910,
+    "epa-echo-exporter-active-facility": 1517826,
+    "fdic-bankfind-current-structure": 77285,
+    "fmcsa-company-census-active-us-principal-office": 2195563,
+    "los-angeles-office-of-finance-active-businesses": 633232,
+    "ncua-final-quarterly-call-report": 22445,
+    "new-york-agriculture-markets-retail-food-stores": 24230,
+    "nyc-dcwp-issued-licenses-active-premises": 31163,
+    "texas-comptroller-active-sales-tax-permits": 885097,
+    "usda-fsis-active-mpi-directory": 7237,
+    "usda-snap-current-retailers": 252080
+  },
+  "unknown_status_behavior": "Classify as unknown and fail closed; never widen eligibility.",
+  "sources": [
+    { "source_id": "alaska-dcced-active-business-licenses", "source_key": "ak_active_business_licenses", "policy_sha256": "ab9e21b69c1089c945353d7ac1e2b7e39ee2da6ea1954e28a5e250a5c507229f", "source_release_id": "ak-active-business-licenses-2026-09-03-d77a60ab0d6e75dc", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["active-in-alaska-business-license-download-as-of-retrieval"] },
+    { "source_id": "california-abc-daily-active-licenses", "source_key": "california_abc_active_issued_license_sites", "policy_sha256": "54fed1a0e36faa44d2355960e52f10d9db6e9234cf6e6cb76734d95a8ee8a9d4", "source_release_id": "ca-abc-active-licenses-2026-09-07-4adb619cd534904b", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-as-active-issued-license-in-california-abc-daily-export"], "contradiction_counter": "expiration_before_observation_count" },
+    { "source_id": "city-of-chicago-bacp-current-active-business-licenses", "source_key": "chicago_active_business_license_sites", "policy_sha256": "6307bd8f600b72b4bb54608d16b3ab7a60506ea844320ad7e34af42943af4e55", "source_release_id": "chicago-active-business-licenses-2026-09-02-5509fc257e382b49", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-in-city-of-chicago-current-active-business-license-view-as-of-source-refresh"] },
+    { "source_id": "cms-nppes-monthly-v2", "source_key": "cms_nppes_organizations", "policy_sha256": "3dca9e845b7d567009d0363618ade92ef0e02805d10682ba14efca662e534c7f", "source_release_id": "NPPES_Data_Dissemination_August_2026_V2", "membership_class": "non-active-reporting-membership", "lifecycle_evidence": "non-active-reporting", "source_status_values": ["npi-active-as-of-source-release", "npi-reactivated-as-of-source-release", "reported-non-primary-practice-location-for-active-npi"], "source_status_counts": { "npi-active-as-of-source-release": 1955672, "npi-reactivated-as-of-source-release": 2417, "reported-non-primary-practice-location-for-active-npi": 130691 } },
+    { "source_id": "dc-dlcp-active-basic-business-licenses", "source_key": "dc_basic_business_license_sites", "policy_sha256": "4644a1cde74fe1ea6893efb88a4b5b729a87b6bead5e438c954778100d33cbd8", "source_release_id": "dc-basic-business-licenses-2026-09-07-70f09a6a032c9408", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-as-active-business-license-in-official-dc-dlcp-feed-at-source-refresh"] },
+    { "source_id": "epa-echo-exporter-active-facility", "source_key": "epa_echo_active_facilities", "policy_sha256": "f3249ac78bc38f4ccb90247edc86e9e44f70a0efdf3d57e1366b5d5a96e3d09b", "source_release_id": "epa-echo-2026-08-30-382d612a42041dc0", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["epa-echo-active-program-facility-as-of-source-release"] },
+    { "source_id": "fdic-bankfind-current-structure", "source_key": "fdic_bankfind", "policy_sha256": "81b482a596eaf1fe1e9e004e3ef7633d9a6b96361d612d5218ef634c3f562f33", "source_release_id": "fdic-bankfind-5710a083e3b49f87", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["fdic-current-location-for-active-institution-as-of-index"] },
+    { "source_id": "fmcsa-company-census-active-us-principal-office", "source_key": "fmcsa_active_us_company_census", "policy_sha256": "01c7b76c6d16a458e3b74ba2e26e501723b9b78d1a8a0184c3bcc3e6fbdaa930", "source_release_id": "fmcsa-company-census-2026-08-30-55fd24985d97e66e", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["fmcsa-active-registration-as-of-daily-source-release"] },
+    { "source_id": "los-angeles-office-of-finance-active-businesses", "source_key": "la_active_business_location_accounts", "policy_sha256": "45e2917529dd0e6df238eeb8db770389eb40ddac4de6283a6003f2f07a1dc656", "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac", "membership_class": "unknown-source-status", "lifecycle_evidence": "unknown", "source_status_values": [], "null_status_allowed": true },
+    { "source_id": "ncua-final-quarterly-call-report", "source_key": "ncua_quarterly_credit_unions", "policy_sha256": "e47f7ec2d55da2688832c61f56245bfdfe2052d211c840483c971d4a94e4dbb3", "source_release_id": "ncua-2026-03-31-6d7fdf1e7eaf9078", "membership_class": "non-active-reporting-membership", "lifecycle_evidence": "non-active-reporting", "source_status_values": ["ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release"] },
+    { "source_id": "new-york-agriculture-markets-retail-food-stores", "source_key": "ny_retail_food_store_license_sites", "policy_sha256": "735293eafbd68e3aaabaa91610eaaad3bac6b848c64bf02e3de7bd67c44ca012", "source_release_id": "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8", "membership_class": "non-active-reporting-membership", "lifecycle_evidence": "non-active-reporting", "source_status_values": ["included-in-current-new-york-retail-food-store-license-snapshot"] },
+    { "source_id": "nyc-dcwp-issued-licenses-active-premises", "source_key": "nyc_dcwp_active_license_sites", "policy_sha256": "9721be33fdc2744fe5336bdf00e00cb36e270335dc99271eb40ee935baa379c4", "source_release_id": "nyc-dcwp-active-premises-2026-08-20-6c47b96b3ab94aec", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-as-active-nyc-dcwp-premise-license-as-of-source-refresh"] },
+    { "source_id": "texas-comptroller-active-sales-tax-permits", "source_key": "tx_active_sales_tax_permit_outlets", "policy_sha256": "85929b0f6ddb7ba4af5a6bf1ec52131be7412e36ead31f1aa3387158a23fc0ab", "source_release_id": "tx-active-sales-tax-2026-08-29-98b90d177d81493e", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-as-active-texas-sales-tax-permit-outlet-as-of-source-refresh"] },
+    { "source_id": "usda-fsis-active-mpi-directory", "source_key": "fsis_active_mpi_establishments", "policy_sha256": "f1adc2deadb535527c09684e8962a716d00e05cd21254ae08195957881000fd7", "source_release_id": "fsis-mpi-2026-08-24-e7be6d8dfc46f68e", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["listed-in-fsis-active-mpi-directory-as-of-release"] },
+    { "source_id": "usda-snap-current-retailers", "source_key": "usda_snap_retailers", "policy_sha256": "996d09569542b9e8d26b90be8953c444c680b8695ccbcad306a725f39c09877d", "source_release_id": "usda-snap-20260819T174009953Z", "membership_class": "source-defined-current-membership", "lifecycle_evidence": "source-defined-current", "source_status_values": ["snap-authorized-as-of-source-update"] }
+  ],
+  "separate_scopes": [
+    { "source_id": "co-business-registry", "scope": "organization assertion cohort only; excluded from the 8,011,835 location-profile decisions", "reported_status_semantics": { "Good Standing": "source-defined-current registry standing only", "Delinquent": "non-active-reporting" }, "operation_verified": false }
+  ],
+  "claims": {
+    "current_operation_verified": false,
+    "active_business_eligible": false,
+    "identity_resolution_applied": false,
+    "registry_bytes_modified": false,
+    "source_acquisition_performed": false
+  }
+}

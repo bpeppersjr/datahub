@@ -168,6 +168,8 @@ The verifier hashes every artifact, parses every record, checks unique IDs and r
 
 Match profiles feed the separate [`national-business-entity-resolution`](BUSINESS-ENTITY-RESOLUTION.md) dataset. That layer can publish reversible aliases and review candidates without changing this registry release, its source assertions, or its current pointer.
 
+Record-level profile lifecycle labels and review clocks are exposed separately through the pointer-free [`business-entity-lifecycle-eligibility`](BUSINESS-ENTITY-LIFECYCLE-ELIGIBILITY.md) derivative. It pins this registry release together with the national temporal claim matrix and exact-ZIP temporal qualification; it does not establish current operation or active-business eligibility.
+
 ## Validated live release
 
 The current independently verified publisher-2.15 release `national-business-registry-20260911-022652067Z-1ec656c3` contains 33,992,773 governed source rows. It publishes 19,247,120 organizations, 116,429 brands, 8,025,017 provisional physical sites, 8,025,017 provisional establishments, one service, 191,321,853 assertions, 11,682,994 relationships, and 8,011,835 identity-resolution location profiles across 695 checksummed artifacts totaling 12,132,804,096 bytes. Its exact manifest SHA-256 is `d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76`.

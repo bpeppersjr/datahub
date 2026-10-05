@@ -1,0 +1,18 @@
+{
+  "schema_version": "business-entity-lifecycle-eligibility-registration@1.0.0",
+  "dataset_id": "business-entity-lifecycle-eligibility",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "selected_release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057",
+  "retained_releases": [
+    {
+      "release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057",
+      "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057/manifest.json",
+      "manifest_sha256": "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae",
+      "profile_count": 8011835,
+      "selected": true
+    }
+  ]
+}

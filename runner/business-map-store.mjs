@@ -9,6 +9,7 @@ import { validateChildcareGeographicEvidence } from "./childcare-geographic-evid
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
 import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
+import { readBusinessEntityLifecycleEligibilityPartition } from "./business-entity-lifecycle-eligibility.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const IRS_EO_SOURCE = "irs-eo-bmf-organizations";
@@ -506,6 +507,7 @@ export function createBusinessMapStore({
   geographyPointerPath = DEFAULT_GEOGRAPHY_POINTER,
   registryPointerPath = DEFAULT_REGISTRY_POINTER,
   gdpPointerPath = DEFAULT_GDP_POINTER,
+  lifecyclePartitionReader = readBusinessEntityLifecycleEligibilityPartition,
 } = {}) {
   let indexKey = null;
   let indexPromise = null;
@@ -1078,6 +1080,8 @@ export function createBusinessMapStore({
     if (reportingArtifact) {
       files.push({ rows: await readReportingRows(registry, reportingArtifact), reporting: true });
     }
+    const lifecycleJoiner = !missingZipOnly && files.some(file => !file.reporting)
+      ? await lifecyclePartitionReader({ zip2: zip.slice(0, 2) }) : null;
     const categoryBySource = new Map(CATEGORY_DEFINITIONS.flatMap((item) => item.source_ids.map((sourceId) => [sourceId, item.id])));
     const OH_SOURCE = "oh-dcy-publisher-open-childcare-centers";
     // Names are reported-address evidence, not input to the county/ZCTA aggregation.
@@ -1101,6 +1105,7 @@ export function createBusinessMapStore({
         || parsedRow.identity_matching_eligible === false)) throw new Error("Reporting-only childcare cannot appear in matching-profile artifacts.");
       const row = file.reporting ? parsedRow : normalizeBusinessLocationProfile(parsedRow,
         registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256));
+      const lifecycleEligibility = file.reporting ? null : await lifecycleJoiner.nextFor(row);
       if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
         if (row.source?.source_id === OH_SOURCE) {
@@ -1167,12 +1172,14 @@ export function createBusinessMapStore({
           policy_id: row.source?.policy_id ?? null,
           observed_at: row.observed_at ?? null,
           export_policy: sourceId === IRS_EO_SOURCE ? "local-review-only" : (row.export_policy ?? "local-review-only"),
+          lifecycle_eligibility: lifecycleEligibility,
           ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
           ...(sourceId === OH_SOURCE ? { governed_geographic_assignment_eligible: false } : {}),
         });
       }
     }
-    } finally { lines?.close(); input?.destroy(); decoded?.destroy(); }
+    if (!file.reporting) await lifecycleJoiner?.finish();
+    } finally { lines?.close(); input?.destroy(); decoded?.destroy(); if (!file.reporting) await lifecycleJoiner?.close(); }
     }
     if (ohioContext) await ohioApi.verifyOhChildcareGeographicMembership(ohioContext.input.rows, ohioContext.input.verificationContext);
     return {
@@ -1183,6 +1190,7 @@ export function createBusinessMapStore({
       total,
       limit: cappedLimit,
       records,
+      ...(lifecycleJoiner ? { lifecycle_release: lifecycleJoiner.provenance } : {}),
       limitation: categoryId === "all"
         ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list. Ohio reported names are not included in geographic category counts."
         : categoryId === "childcare" && index.compatibility.ohio

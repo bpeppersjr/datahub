@@ -326,6 +326,13 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     geographyPointerPath: path.join(geographyRoot, "current.json"),
     registryPointerPath: path.join(registryRoot, "current.json"),
     gdpPointerPath: path.join(gdpRoot, "current.json"),
+    lifecyclePartitionReader: async () => ({
+      provenance: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64), taxonomy_sha256: 'b'.repeat(64) },
+      async nextFor(row) { return { profile_id: row.profile_id, source_id: row.source.source_id, source_release_id: row.source.source_release_id,
+        lifecycle_evidence: 'unknown', review_status: 'unmapped', current_operation_verified: false, active_business_eligible: false,
+        release: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) } }; },
+      async finish() {}, async close() {},
+    }),
   });
 }
 
@@ -356,6 +363,9 @@ test("IRS category filters the exact registry profile source and rejects public-
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "tax-exempt-organizations" });
   assert.equal(names.total, 1); assert.equal(names.records[0].business_name, "Fixture Exempt Organization");
   assert.equal(names.records[0].source_id, "irs-eo-bmf-organizations"); assert.equal(names.records[0].export_policy, "local-review-only"); assert.equal(names.local_review_only, true);
+  assert.equal(names.records[0].lifecycle_eligibility.lifecycle_evidence, 'unknown');
+  assert.equal(names.records[0].lifecycle_eligibility.active_business_eligible, false);
+  assert.equal(names.records[0].lifecycle_eligibility.release.release_id, 'fixture-lifecycle-release');
   const unrelated = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer" });
   assert.equal(unrelated.records.some(row => row.source_id === "irs-eo-bmf-organizations"), false);
   const escalated = await fixture(context, { irsCount: 1, irsProfile: { ...irsProfile, export_policy: "public" } });
@@ -702,7 +712,14 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer", query: "market", limit: 10 });
   assert.equal(names.total, 1);
   assert.equal(names.limitation, null);
-  assert.deepEqual(names.records[0], {
+  assert.equal(names.lifecycle_release.release_id, "fixture-lifecycle-release");
+  assert.equal(names.lifecycle_release.manifest_sha256, "a".repeat(64));
+  const { lifecycle_eligibility: lifecycle, ...nameRecord } = names.records[0];
+  assert.equal(lifecycle.lifecycle_evidence, 'unknown');
+  assert.equal(lifecycle.review_status, 'unmapped');
+  assert.equal(lifecycle.current_operation_verified, false);
+  assert.equal(lifecycle.active_business_eligible, false);
+  assert.deepEqual(nameRecord, {
     business_name: "Main Street Market",
     address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" },
     geocode: { latitude: 32.5678, longitude: -86.1234 },

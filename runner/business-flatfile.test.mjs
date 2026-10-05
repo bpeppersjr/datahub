@@ -5,13 +5,27 @@ import { createHash, randomUUID } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
-import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport, parseArguments } from "../scripts/compose-flat-business-export.mjs";
+import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport as composeFlatBusinessExportImpl, parseArguments } from "../scripts/compose-flat-business-export.mjs";
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
 import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-contract.mjs";
 
 const digest = (buffer) => createHash("sha256").update(buffer).digest("hex");
+async function composeFlatBusinessExport(argv, options = {}) {
+  return composeFlatBusinessExportImpl(argv, { ...options, lifecyclePartitionReader: options.lifecyclePartitionReader ?? (async () => ({
+    provenance: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) },
+    async nextFor(profile) { return { schema_version: 'business-entity-lifecycle-eligibility-row@1.0.0', profile_id: profile.profile_id,
+      zip5: profile.zip_code, source_id: profile.source.source_id, source_release_id: profile.source.source_release_id,
+      source_record_lineage_sha256: 'b'.repeat(64), policy_id: profile.source.policy_id, policy_sha256: 'c'.repeat(64),
+      taxonomy_source_key: 'fixture-unmapped', source_status_value: profile.source_status?.value ?? null, source_status_sha256: 'd'.repeat(64),
+      profile_observed_at: profile.observed_at, source_reference_at: null, assessment_as_of: '2026-10-02T16:30:00.000Z',
+      source_membership_class: 'unknown-source-status', review_status: 'unmapped', lifecycle_evidence: 'unknown',
+      current_operation_verified: false, active_business_eligible: false, reason_codes: ['fixture-unmapped'],
+      release: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) } }; },
+    async finish() {}, async close() {},
+  })) });
+}
 function makeProfile({ id, name, street = null, city = null, state = null, zip, zip4 = null, geocode = null, sourceId, releaseId, recordId, runId, policy, exportPolicy }) {
   const complete = Boolean(street && city && state);
   const normalizedKey = complete ? `street|${street.toUpperCase()}||${city.toUpperCase()}|${state}|${zip}` : null;
@@ -74,7 +88,10 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   assert.equal(allowed.summary.counts.rows_written, 1);
   const rows = (await readFile(path.join(allowed.outputDirectory, "records.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(rows.length, 1);
-  assert.deepEqual(rows[0], { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
+  const { lifecycle_eligibility: lifecycle, ...rowWithoutLifecycle } = rows[0];
+  assert.equal(lifecycle.lifecycle_evidence, 'unknown'); assert.equal(lifecycle.current_operation_verified, false); assert.equal(lifecycle.active_business_eligible, false);
+  assert.deepEqual(allowed.manifest.source_lineage[0].lifecycle_release, { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) });
+  assert.deepEqual(rowWithoutLifecycle, { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
     source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: null,
     ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });
   assert.equal(allowed.manifest.filters.categories[0], "tax-exempt-organizations");
