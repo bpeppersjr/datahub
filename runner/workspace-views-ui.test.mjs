@@ -47,6 +47,7 @@ const exactZipMatrixRegistration = JSON.parse(
       "utf8",
     ),
   );
+const temporalQualificationRegistration=JSON.parse(await readFile(new URL("../config/datasets/exact-zip-industry-temporal-qualification.json",import.meta.url),"utf8")), temporalQualificationManifest=JSON.parse(await readFile(new URL(`../${temporalQualificationRegistration.retained_release.manifest}`,import.meta.url),"utf8")), temporalQualificationArtifact=JSON.parse(await readFile(new URL(`../${temporalQualificationRegistration.retained_release.manifest.replace(/manifest\.json$/,temporalQualificationManifest.artifact.path)}`,import.meta.url),"utf8"));
 const nodes = (t) =>
   !t || typeof t !== "object"
     ? []
@@ -818,6 +819,7 @@ function crossView(zip = "00601", status = "available") {
       exactZipMatrixManifest.summary.reclassified_absent_source_row_cells,
     release_id: `national-exact-zip-industry-evidence-matrix-${hash}`,
     manifest_sha256: hash,
+    temporal_qualification:{schema_version:temporalQualificationArtifact.schema_version,zip5:zip,assessment_as_of:temporalQualificationArtifact.assessment_as_of,rows:temporalQualificationArtifact.rows,summary:temporalQualificationArtifact.summary,provenance:{release_id:temporalQualificationRegistration.retained_release.release_id,manifest_sha256:temporalQualificationRegistration.retained_release.manifest_sha256,artifact_sha256:temporalQualificationRegistration.retained_release.artifact_sha256,bindings:temporalQualificationRegistration.retained_release.bindings},claims:temporalQualificationArtifact.claims},
     source_bytes_read: 4000,
     full_matrix_replay_performed: false,
     claims: {
@@ -935,6 +937,8 @@ test("cross-view renders thirty-nine temporal cells with source-native status an
   assert.match(value, /Current 1/);
   assert.match(value, /Coordinates are not eligible for governed geography/);
   assert.match(value, /observation, not refresh/);
+  assert.match(value,/Governed semantic:/);
+  assert.match(value,/source-defined current is not verified current operation/);
   h.close();
   const na = crossView("00601", "not-applicable-no-same-code-zcta"),
     notApplicable = harness(async () => na);
@@ -2716,6 +2720,10 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     },
     { ...matrix, claims: { ...matrix.claims, usps_validity_classified: true } },
     { ...matrix, full_matrix_replay_performed: true },
+    { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, provenance: { ...matrix.temporal_qualification.provenance, release_id: "unregistered" } } },
+    { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, rows: matrix.temporal_qualification.rows.slice(0,38) } },
+    { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, rows: matrix.temporal_qualification.rows.map((row,index)=>index===0?{...row,semantic_class:"current-operation-verified"}:row) } },
+    { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, claims: { ...matrix.temporal_qualification.claims, current_operations_verified: true } } },
     {
       ...matrix,
       source_metadata: {

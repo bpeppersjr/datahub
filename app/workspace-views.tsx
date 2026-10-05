@@ -4334,6 +4334,26 @@ type ExactZipEvidence = {
   reclassified_absent_source_row_cells: number;
   release_id: string;
   manifest_sha256: string;
+  temporal_qualification: {
+    schema_version: "exact-zip-industry-temporal-qualification@1.0.0";
+    zip5: string;
+    assessment_as_of: "2026-10-02T16:30:00.000Z";
+    rows: Array<{
+      dimension_id: ExactZipSource;
+      source_key: string | null;
+      source_release_id: string | null;
+      semantic_class: "source-defined-current" | "non-active-reporting" | "unmapped";
+      source_status_term: string | null;
+      source_reference_at: string | null;
+      assessment_as_of: "2026-10-02T16:30:00.000Z";
+      review_qualification: "within-review-window" | "stale" | "unmeasured" | "unmapped";
+      review_due_at: string | null;
+      current_operations_verified: false;
+    }>;
+    summary: Record<string, unknown>;
+    provenance: { release_id: string; manifest_sha256: string; artifact_sha256: string; bindings: Record<string, unknown> };
+    claims: { current_operations_verified: false; active_business_count: null; all_business_denominator: null; all_business_completion_percent: null; additive: false; network_requests: 0; acquisition_performed: false; current_pointer_written: false; production_enrollment: false };
+  };
   source_bytes_read: number;
   full_matrix_replay_performed: false;
   claims: {
@@ -4371,6 +4391,7 @@ export function validExactZipEvidence(
       "reclassified_absent_source_row_cells",
       "release_id",
       "manifest_sha256",
+      "temporal_qualification",
       "source_bytes_read",
       "full_matrix_replay_performed",
       "claims",
@@ -4380,6 +4401,12 @@ export function validExactZipEvidence(
   const v = value as ExactZipEvidence,
     childcarePin = childcareRegistration.retained_release,
     nativePin = zipSourceStatusRegistration.retained_release;
+  const tq=v.temporal_qualification;
+  if(!exactKeys(tq,["schema_version","zip5","assessment_as_of","rows","summary","provenance","claims"])||tq.schema_version!=="exact-zip-industry-temporal-qualification@1.0.0"||tq.zip5!==zip||tq.assessment_as_of!=="2026-10-02T16:30:00.000Z"||!Array.isArray(tq.rows)||tq.rows.length!==39||!exactKeys(tq.provenance,["release_id","manifest_sha256","artifact_sha256","bindings"])||tq.provenance.release_id!=="exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503"||tq.provenance.manifest_sha256!=="771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e"||!sha(tq.provenance.artifact_sha256)||!exactKeys(tq.claims,["current_operations_verified","active_business_count","all_business_denominator","all_business_completion_percent","additive","network_requests","acquisition_performed","current_pointer_written","production_enrollment"])||tq.claims.current_operations_verified!==false||tq.claims.active_business_count!==null||tq.claims.all_business_denominator!==null||tq.claims.all_business_completion_percent!==null||tq.claims.additive!==false||tq.claims.network_requests!==0||tq.claims.acquisition_performed!==false||tq.claims.current_pointer_written!==false||tq.claims.production_enrollment!==false)return false;
+  const tRows=tq.rows;
+  if(tRows.some((r,i)=>!exactKeys(r,["dimension_id","source_key","source_release_id","semantic_class","source_status_term","source_reference_at","assessment_as_of","review_qualification","review_due_at","current_operations_verified"])||r.dimension_id!==EXACT_ZIP_SOURCES[i]||!(["source-defined-current","non-active-reporting","unmapped"].includes(r.semantic_class))||!(["within-review-window","stale","unmeasured","unmapped"].includes(r.review_qualification))||r.assessment_as_of!==tq.assessment_as_of||r.current_operations_verified!==false||(r.semantic_class==="unmapped")!==(r.source_key===null)||(r.semantic_class==="unmapped")!==(r.review_qualification==="unmapped")))return false;
+  const qualificationCounts=Object.fromEntries(["within-review-window","stale","unmeasured","unmapped"].map(status=>[status,tRows.filter(row=>row.review_qualification===status).length])), semanticCounts=Object.fromEntries(["source-defined-current","non-active-reporting","unmapped"].map(status=>[status,tRows.filter(row=>row.semantic_class===status).length])), binds=tq.provenance.bindings;
+  if(!sameClosed(qualificationCounts,{"within-review-window":25,stale:1,unmeasured:4,unmapped:9})||!sameClosed(semanticCounts,{"source-defined-current":22,"non-active-reporting":8,unmapped:9})||tq.summary?.qualification_cell_total!==48194*39||tq.summary?.semantic_cell_total!==48194*39||tq.summary?.zip_cohort_members!==48194||!exactKeys(binds,["matrix","temporal","qualification"])||!exactKeys(binds.matrix,["release_id","manifest_sha256","artifact_inventory_sha256","registration_sha256"])||binds.matrix.release_id!=="national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6"||binds.matrix.manifest_sha256!=="743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe"||!sha(binds.matrix.artifact_inventory_sha256)||!sha(binds.matrix.registration_sha256)||!exactKeys(binds.temporal,["release_id","manifest_sha256","artifact_sha256","registration_sha256"])||binds.temporal.release_id!=="national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090"||binds.temporal.manifest_sha256!=="342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05"||!sha(binds.temporal.artifact_sha256)||!sha(binds.temporal.registration_sha256)||!exactKeys(binds.qualification,["release_id","manifest_sha256","projection_sha256","inventory_sha256","registration_sha256","assessment_as_of"])||binds.qualification.release_id!=="zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9"||binds.qualification.manifest_sha256!=="9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493"||binds.qualification.projection_sha256!=="bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8"||binds.qualification.inventory_sha256!=="9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5"||binds.qualification.assessment_as_of!==tq.assessment_as_of)return false;
   const expectedQuality: ExactZipQualityGap[] = [
     {
       zip5: null,
@@ -5464,6 +5491,7 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
               {EXACT_ZIP_SOURCES.map((source) => {
                 const cell = view.row!.cells[source],
                   metadata = view.source_metadata[source],
+                  qualification=view.temporal_qualification.rows.find(row=>row.dimension_id===source)!,
                   measureValue = exactZipSourceMeasureValue(cell);
                 return (
                   <tr key={source}>
@@ -5488,6 +5516,9 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
                       <small>
                         {cell.temporal_status.status.replaceAll("-", " ")} ·
                         current operation unverified
+                      </small>
+                      <small>
+                        Governed semantic: {qualification.semantic_class.replaceAll("-", " ")} · review: {qualification.review_qualification.replaceAll("-", " ")} as of {qualification.assessment_as_of}. Source-defined current is not verified current operation.
                       </small>
                     </td>
                     <td>
@@ -5837,6 +5868,7 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
               const cell = view.industry_evidence.row!.cells[source],
                 measureValue = exactZipSourceMeasureValue(cell),
                 metadata = view.industry_evidence.source_metadata[source],
+                qualification=view.industry_evidence.temporal_qualification.rows.find(row=>row.dimension_id===source)!,
                 statusCounts = cell.source_status_counts,
                 observation = metadata.source_observation,
                 reportingObservation = metadata.earliest_observed_at
@@ -5867,6 +5899,9 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
                     {cell.temporal_status.source_reference_date ?? "Unresolved"}
                     <small>
                       {cell.temporal_status.status.replaceAll("-", " ")}
+                    </small>
+                    <small>
+                      Governed semantic: {qualification.semantic_class.replaceAll("-", " ")} · review: {qualification.review_qualification.replaceAll("-", " ")} as of {qualification.assessment_as_of}; source-defined current is not verified current operation.
                     </small>
                     {observation && (
                       <small>

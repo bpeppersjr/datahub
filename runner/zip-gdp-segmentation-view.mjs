@@ -8,6 +8,8 @@ const fail = (message = "ZIP GDP segmentation view is unavailable or incompatibl
 const DIMENSIONS = Object.freeze(["race", "ancestry_lineage", "sex", "age"]);
 const SHA256 = /^[a-f0-9]{64}$/;
 const INDUSTRY_RELEASE = /^national-exact-zip-industry-evidence-matrix-([a-f0-9]{64})$/;
+const TEMPORAL_QUALIFICATION_RELEASE="exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503";
+const TEMPORAL_QUALIFICATION_MANIFEST="771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e";
 
 function validCurrentReadiness(view, zcta) {
   if (view?.schema_version !== "zcta-gdp-execution-readiness-view@1.0.0" || view.zcta !== zcta
@@ -62,6 +64,8 @@ function validatedIndustryEvidence(cross, zip5) {
       || !evidence.claims || evidence.claims.additive_cross_industry_total !== false
       || evidence.claims.current_operation_verified !== false
       || evidence.claims.all_business_completeness !== false) fail();
+  const temporal=evidence.temporal_qualification;
+  if(temporal?.schema_version!=='exact-zip-industry-temporal-qualification@1.0.0'||temporal.zip5!==zip5||temporal.assessment_as_of!=='2026-10-02T16:30:00.000Z'||temporal.claims?.current_operations_verified!==false||temporal.claims?.acquisition_performed!==false||temporal.claims?.network_requests!==0||temporal.claims?.current_pointer_written!==false||temporal.claims?.production_enrollment!==false||temporal.rows?.length!==39||temporal.provenance?.release_id!==TEMPORAL_QUALIFICATION_RELEASE||temporal.provenance?.manifest_sha256!==TEMPORAL_QUALIFICATION_MANIFEST||!SHA256.test(temporal.provenance.artifact_sha256??''))fail();
   const row = evidence.row;
   if (row === null) return { evidence, cells: {} };
   if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.8.0"
@@ -102,8 +106,10 @@ export async function readZipGdpSegmentationView({
     industry_id: industryId,
     source_evidence: industryCells[industryId],
     source_measure_value: projectedIndustryValue(industryCells[industryId]),
+    temporal_qualification: industryEvidence.temporal_qualification.rows.find(row=>row.dimension_id===industryId)??null,
     gdp: withheldEstimate("industry-allocation-method-not-approved"),
   }));
+  if(industries.some(row=>!row.temporal_qualification||row.temporal_qualification.current_operations_verified!==false))fail();
   const availability = cross.demographic_context?.availability ?? {};
   const demographics = DIMENSIONS.map((dimension) => ({
     dimension,
@@ -150,6 +156,7 @@ export async function readZipGdpSegmentationView({
         release_id: industryEvidence.release_id,
         manifest_sha256: industryEvidence.manifest_sha256,
       },
+      industry_temporal_qualification: { ...industryEvidence.temporal_qualification.provenance },
       demographic_context: cross.demographic_context?.provenance ?? null,
     },
     claims: {

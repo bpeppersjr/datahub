@@ -1,4 +1,4 @@
-import {readExactZipIndustryEvidence} from './national-exact-zip-industry-evidence-matrix.mjs';
+import {readExactZipIndustryEvidenceWithTemporalQualification as readExactZipIndustryEvidence} from './exact-zip-industry-temporal-qualification.mjs';
 import {VERSION as EXACT_ZIP_VERSION} from './national-exact-zip-industry-evidence-matrix.mjs';
 import {readZctaDemographicReadiness} from './zcta-demographic-readiness-reader.mjs';
 

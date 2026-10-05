@@ -134,6 +134,6 @@ test("server wires the route after authentication to the bounded reader", async 
   assert.ok(authorize >= 0 && route > authorize);
   assert.match(
     server,
-    /exactZipIndustryEvidenceHttp\(request,response,url,readExactZipIndustryEvidence,json\)/,
+    /exactZipIndustryEvidenceHttp\(request,response,url,readExactZipIndustryEvidenceWithTemporalQualification,json\)/,
   );
 });

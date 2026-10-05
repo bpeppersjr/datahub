@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "exact-zip-industry-temporal-qualification",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "export_policy": "local-review-only",
+  "retained_release": {
+    "release_id": "exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503",
+    "manifest": "data/exact-zip-industry-temporal-qualification/releases/exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503/manifest.json",
+    "manifest_sha256": "771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e",
+    "artifact_sha256": "958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed",
+    "bindings": {
+      "matrix": {
+        "release_id": "national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6",
+        "manifest_sha256": "743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe",
+        "artifact_inventory_sha256": "30fcfff93936934d4c1359ce318b3a9b35187a7709247a9b2ba1091d8a353199",
+        "registration_sha256": "ef3ef5b424d35df017f354066f0acc7eaa7f3ed2823cd34922c14a777fbcf568"
+      },
+      "temporal": {
+        "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+        "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+        "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0",
+        "registration_sha256": "65e7c8e5a3f32ee1a71f816f4aeb449c43925c924926ec6a1d777a727e19d738"
+      },
+      "qualification": {
+        "release_id": "zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9",
+        "manifest_sha256": "9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493",
+        "projection_sha256": "bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8",
+        "inventory_sha256": "9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5",
+        "registration_sha256": "c54054aaf04e42a4da3028c6cb17fd8615d6b37fc99f2faa7cc9e1541ca2ffe0",
+        "assessment_as_of": "2026-10-02T16:30:00.000Z"
+      }
+    },
+    "summary": {
+      "dimension_count": 39,
+      "mapped_dimension_count": 30,
+      "unmapped_dimension_count": 9,
+      "source_key_count": 28,
+      "qualification_dimension_counts": {
+        "within-review-window": 25,
+        "stale": 1,
+        "unmeasured": 4,
+        "unmapped": 9
+      },
+      "qualification_cell_counts": {
+        "within-review-window": 1204850,
+        "stale": 48194,
+        "unmeasured": 192776,
+        "unmapped": 433746
+      },
+      "semantic_dimension_counts": {
+        "source-defined-current": 22,
+        "non-active-reporting": 8,
+        "unmapped": 9
+      },
+      "semantic_cell_counts": {
+        "source-defined-current": 1060268,
+        "non-active-reporting": 385552,
+        "unmapped": 433746
+      },
+      "zip_cohort_members": 48194,
+      "qualification_cell_total": 1879566,
+      "semantic_cell_total": 1879566
+    }
+  }
+}

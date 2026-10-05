@@ -23,6 +23,7 @@ const readiness = (zcta, executionStatus = "feasible-on-approval") => ({
 });
 const matrixHash = "c".repeat(64);
 const matrixRelease = `national-exact-zip-industry-evidence-matrix-${matrixHash}`;
+const temporalQualification=(zip5,ids)=>({schema_version:"exact-zip-industry-temporal-qualification@1.0.0",zip5,assessment_as_of:"2026-10-02T16:30:00.000Z",rows:[...ids,...Array.from({length:39-ids.length},(_,i)=>`filler_${i}`)].map(dimension_id=>({dimension_id,source_key:null,source_release_id:null,semantic_class:"unmapped",source_status_term:null,source_reference_at:null,assessment_as_of:"2026-10-02T16:30:00.000Z",review_qualification:"unmapped",review_due_at:null,current_operations_verified:false})),summary:{},provenance:{release_id:"exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503",manifest_sha256:"771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e",artifact_sha256:"e".repeat(64),bindings:{}},claims:{current_operations_verified:false,acquisition_performed:false,network_requests:0,current_pointer_written:false,production_enrollment:false}});
 const industryCell = (status, count) => ({
   status,
   count,
@@ -47,6 +48,7 @@ const industryEvidence = (zip5, cells = { retail: industryCell("positive", 12) }
   source_address_row_gaps: [],
   release_id: matrixRelease,
   manifest_sha256: matrixHash,
+  temporal_qualification:temporalQualification(zip5,Object.keys(cells)),
   claims: {
     additive_cross_industry_total: false,
     current_operation_verified: false,
@@ -77,6 +79,9 @@ test("exposes the requested total, industry, and demographic structure while wit
     release_id: matrixRelease,
     manifest_sha256: matrixHash,
   });
+  assert.equal(view.industry_breakdown[0].temporal_qualification.current_operations_verified,false);
+  assert.equal(view.provenance.industry_temporal_qualification.release_id,"exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503");
+  assert.equal(view.claims.acquisition_performed,false);
   assert.ok(view.industry_breakdown.every((row) => row.gdp.estimate_current_dollars === null));
   assert.deepEqual(view.demographic_breakdown.map((row) => row.dimension), ["race", "ancestry_lineage", "sex", "age"]);
   assert.ok(view.demographic_breakdown.every((row) => row.role === "context-only-not-allocation-weight" && row.groups.length === 0));
@@ -102,6 +107,7 @@ test("projects only positive and measured-zero source values; absent and outside
     { absent: null, outside: null, positive: 17, zero: 0 },
   );
   assert.equal(view.industry_breakdown.find((row) => row.industry_id === "absent").source_evidence.count, null);
+  assert.equal(view.industry_breakdown.find((row) => row.industry_id === "absent").temporal_qualification.review_qualification,"unmapped");
   assert.ok(view.industry_breakdown.every((row) => row.gdp.display_value === null));
   assert.equal(view.claims.industry_gdp_emitted, false);
 });
