@@ -1085,7 +1085,8 @@ const server = http.createServer(async (request, response) => {
 
     if (url.pathname === '/api/administration/industry-backlog' && request.method === 'GET') {
       if ([...url.searchParams.keys()].length) throw Object.assign(new Error('Industry backlog does not accept options.'), { statusCode: 400 });
-      json(response, 200, await stateAccessMaintenanceBacklog({ maintainedIndustries: industryMaintenance.view().maintainedIndustries }));
+      const maintenance=industryMaintenance.view();
+      json(response, 200, await stateAccessMaintenanceBacklog({ maintainedIndustries: maintenance.maintainedIndustries, maintenanceRevision: maintenance.revision }));
       return;
     }
 

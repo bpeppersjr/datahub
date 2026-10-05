@@ -10,7 +10,7 @@ type View = {
   semantics: string;
   revision: number;
 };
-type Backlog = {schema_version:"state-access-maintenance-backlog@1.0.0";maintained_industries:string[];total_attention_cells:number;batch_limit:10;next_batch:Array<{state:string;industry:string;access_status:string;temporal_status:string;issue_codes:string[]}>;remaining_after_batch:number;claims:{acquisition_authorized:false;dispatch_performed:false;production_change:false;business_completeness:null}};
+type Backlog = {schema_version:"state-access-maintenance-backlog@1.1.0";backlog_sha256:string;maintenance_revision:number;maintained_industries:string[];total_attention_cells:number;batch_limit:10;next_batch:Array<{state:string;industry:string;action_kind:"source-discovery-review"|"temporal-source-review";access_status:string;temporal_status:string;source_keys:string[];issue_codes:string[]}>;remaining_after_batch:number;claims:{acquisition_authorized:false;dispatch_performed:false;production_change:false;business_completeness:null}};
 
 export default function Administration() {
   const [view, setView] = useState<View | null>(null);
@@ -54,6 +54,8 @@ export default function Administration() {
     }
   }
 
+  function downloadBacklog(){if(!backlog)return;const url=URL.createObjectURL(new Blob([`${JSON.stringify(backlog,null,2)}\n`],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download=`cotive-maintenance-backlog-${backlog.backlog_sha256.slice(0,12)}.json`;link.click();URL.revokeObjectURL(url);}
+
   return (
     <section className="panel focused-workspace administration-workspace">
       <div className="workspace-heading"><div><span className="section-kicker">Local application settings</span><h2>Administration</h2></div><p>Choose which industry programs Co*Tive should maintain.</p></div>
@@ -77,7 +79,7 @@ export default function Administration() {
         </div>
         <button className="primary-button" type="button" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save maintenance selection"}</button>
         {message && <p role="status">{message}</p>}
-        {backlog&&<section className="maintenance-backlog" aria-label="Maintained industry attention backlog"><h3>Next maintenance review batch</h3><p>{backlog.total_attention_cells} selected industry/state cells need access or temporal review. The first {backlog.next_batch.length} are shown; {backlog.remaining_after_batch} remain.</p>{backlog.next_batch.length?<ol>{backlog.next_batch.map(row=><li key={`${row.industry}:${row.state}`}><strong>{row.state} · {row.industry.replaceAll("-"," ")}</strong><span>{row.issue_codes.map(code=>code.replaceAll("-"," ")).join(" · ")}</span></li>)}</ol>:<p>No selected industry currently has an access or temporal-review item. An empty selection does not imply complete coverage.</p>}<p className="operations-note">This deterministic batch is planning evidence only. It does not authorize acquisition, dispatch workers, change production, or measure business completeness.</p></section>}
+        {backlog&&<section className="maintenance-backlog" aria-label="Maintained industry attention backlog"><h3>Next maintenance review batch</h3><p>{backlog.total_attention_cells} selected industry/state cells need access or temporal review. The first {backlog.next_batch.length} are shown; {backlog.remaining_after_batch} remain.</p>{backlog.next_batch.length?<ol>{backlog.next_batch.map(row=><li key={`${row.industry}:${row.state}`}><strong>{row.state} · {row.industry.replaceAll("-"," ")}</strong><span>{row.action_kind.replaceAll("-"," ")} · {row.issue_codes.map(code=>code.replaceAll("-"," ")).join(" · ")}{row.source_keys.length?` · sources: ${row.source_keys.join(", ")}`:" · no retained source cohort"}</span></li>)}</ol>:<p>No selected industry currently has an access or temporal-review item. An empty selection does not imply complete coverage.</p>}<button type="button" onClick={downloadBacklog}>Download review batch JSON</button><p className="operations-note">Revision {backlog.maintenance_revision} · fingerprint {backlog.backlog_sha256}. This deterministic batch is planning evidence only. It does not authorize acquisition, dispatch workers, change production, or measure business completeness.</p></section>}
         <p className="operations-note">{view.semantics}</p>
       </>}
     </section>

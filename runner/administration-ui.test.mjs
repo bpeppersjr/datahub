@@ -18,6 +18,9 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(server, /statusCode: 428/);
   assert.match(server, /industryMaintenance\.update/);
   assert.match(admin, /Next maintenance review batch/);
+  assert.match(admin, /Download review batch JSON/);
+  assert.match(admin, /backlog_sha256/);
+  assert.match(admin, /sources:/);
   assert.match(admin, /planning evidence only/);
   assert.match(admin, /does not authorize acquisition, dispatch workers, change production, or measure business completeness/);
   assert.match(server, /\/api\/administration\/industry-backlog/);

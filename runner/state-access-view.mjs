@@ -62,9 +62,9 @@ export async function stateAccessIndustrySummary({root=APP_ROOT,configLoader=loa
   return {schema_version:'state-access-industry-summary@1.1.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
 }
 
-export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedIndustries=[],configLoader=loadIndustryConfig}={}){
+export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedIndustries=[],maintenanceRevision=0,configLoader=loadIndustryConfig}={}){
   const [{report,config},industryConfig]=await Promise.all([enrolledReport(root),configLoader(path.join(root,'config','industry-segments.json'))]);
-  check(Array.isArray(maintainedIndustries),'Maintained industry selection is invalid.');
+  check(Array.isArray(maintainedIndustries)&&Number.isSafeInteger(maintenanceRevision)&&maintenanceRevision>=0,'Maintained industry selection is invalid.');
   const allowed=Object.keys(industryConfig.industries),selected=[...new Set(maintainedIndustries)];
   check(selected.length===maintainedIndustries.length&&selected.every(id=>allowed.includes(id)),'Maintained industry selection is invalid.');
   const severity={'unsupported-missing':0,'unsupported-evidence-not-measured':1,'review-due':2,'missing-source-reference':3},items=[];
@@ -73,8 +73,9 @@ export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedInd
     const issue_codes=[];
     if(cell.accessEvidenceStatus==='unsupported-missing'||cell.accessEvidenceStatus==='unsupported-evidence-not-measured')issue_codes.push(cell.accessEvidenceStatus);
     if(cell.temporalStatus?.status==='review-due'||cell.temporalStatus?.status==='missing-source-reference')issue_codes.push(cell.temporalStatus.status);
-    if(issue_codes.length)items.push({state:jurisdiction.state,industry:cell.industry,access_status:cell.accessEvidenceStatus,temporal_status:cell.temporalStatus.status,issue_codes});
+    if(issue_codes.length){const source_keys=[...new Set(cell.evidence.map(item=>item?.temporalEvidence?.sourceKey).filter(value=>typeof value==='string'&&value.length>0))].sort();items.push({state:jurisdiction.state,industry:cell.industry,action_kind:issue_codes.some(code=>code.startsWith('unsupported-'))?'source-discovery-review':'temporal-source-review',access_status:cell.accessEvidenceStatus,temporal_status:cell.temporalStatus.status,source_keys,issue_codes});}
   }
   items.sort((a,b)=>Math.min(...a.issue_codes.map(code=>severity[code]))-Math.min(...b.issue_codes.map(code=>severity[code]))||a.industry.localeCompare(b.industry)||a.state.localeCompare(b.state));
-  return {schema_version:'state-access-maintenance-backlog@1.0.0',report_sha256:config.reportSha256,maintained_industries:selected,total_attention_cells:items.length,batch_limit:10,next_batch:items.slice(0,10),remaining_after_batch:Math.max(0,items.length-10),claims:{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}};
+  const view={schema_version:'state-access-maintenance-backlog@1.1.0',report_sha256:config.reportSha256,maintenance_revision:maintenanceRevision,maintained_industries:selected,total_attention_cells:items.length,batch_limit:10,next_batch:items.slice(0,10),remaining_after_batch:Math.max(0,items.length-10),claims:{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}};
+  return {...view,backlog_sha256:hash(Buffer.from(JSON.stringify(view)))};
 }
