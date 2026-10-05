@@ -1,0 +1,25 @@
+{
+  "schema_version": "business-entity-geography-relationship-registration@1.0.0",
+  "dataset_id": "business-entity-geography-relationship",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "selected_release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
+  "retained_releases": [
+    {
+      "release_id": "business-entity-geography-relationship-3f8b4297d43a89c464700d324501902581b3e05b85f4eb05fa69f02b5c7d9b8b",
+      "manifest": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-3f8b4297d43a89c464700d324501902581b3e05b85f4eb05fa69f02b5c7d9b8b/manifest.json",
+      "manifest_sha256": "9fd560a001b95760f95b7a7d1855ea8dd609c5e859a815378396e17e605bd3c0",
+      "profile_count": 8011835,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
+      "manifest": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7/manifest.json",
+      "manifest_sha256": "07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2",
+      "profile_count": 8011835,
+      "selected": true
+    }
+  ]
+}

@@ -267,7 +267,7 @@ function shiftAntimeridianGeometry(geometry) {
   };
 }
 
-function createCountySpatialIndex(countyFeatures, countyIndexRecords) {
+export function createCountySpatialIndex(countyFeatures, countyIndexRecords) {
   const metadataByGeoid = new Map(countyIndexRecords.map((record) => [record.geoid, record]));
   const index = new RBush();
   const entries = [];

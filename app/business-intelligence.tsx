@@ -71,6 +71,10 @@ type MapProperties = {
   heat_value: number | null;
   retained_childcare_county_status?: string;
   scope_assignment: string;
+  point_assigned_source_profile_evidence_rows_by_source?: Record<string, number> | null;
+  point_assignment_cross_source_additive?: false;
+  point_assignment_release_id?: string;
+  point_assignment_manifest_sha256?: string;
 };
 type MapFeature = { type: 'Feature'; geometry: { type: string; coordinates: unknown }; properties: MapProperties };
 type MapResponse = {
@@ -80,7 +84,7 @@ type MapResponse = {
   level: 'states' | 'counties' | 'zips';
   category_id: string;
   enhancer_id: string;
-  meta: Record<string, number | string | null>;
+  meta: Record<string, number | string | null | Record<string, number>>;
   features: MapFeature[];
 };
 type NameResponse = {
@@ -91,6 +95,7 @@ type NameResponse = {
   limitation?: string;
   local_review_only?: boolean;
   lifecycle_release?: { release_id: string; manifest_sha256: string; taxonomy_sha256: string } | null;
+  geography_relationship_release?: { release_id: string; manifest_sha256: string; bindings: Record<string, unknown> } | null;
   records: Array<{
     business_name: string;
     address: { street: string | null; street2?: string | null; city: string | null; state: string | null; zip_code: string | null; zip4: string | null };
@@ -110,6 +115,13 @@ type NameResponse = {
       current_operation_verified: false;
       active_business_eligible: false;
       reason_codes: string[];
+    };
+    geography_relationship: null | {
+      postal: { classification: string; zip4: string | null; usps_operational_assignment: null; usps_deliverability: null };
+      source_reported_state: string | null;
+      code_correspondence: { status: string; zcta_geoid: string | null; membership: false };
+      point_assignment: { status: string; county_geoid: string | null; state_fips: string | null; zcta_geoid: null };
+      claims: { current_operation_verified: false; postal_validity_verified: false; entity_polygon_present: false };
     };
   }>;
 };
@@ -623,7 +635,7 @@ function BusinessNames({ selectedZip, stateFips, stateName, categoryId, canDrill
       {data && !loading && !data.available && <p>No compatible published evidence is available for this address scope.</p>}
       {data?.available && !loading && canDrill && <div className="business-name-list">
         {!data.records.length && <p>No matching physical-location names in this category.</p>}
-        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'}{record.address.street2 ? ` · ${record.address.street2}` : ''} · {record.address.city}, {record.address.state} {record.address.zip_code ?? 'ZIP unavailable'}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}<small>Lifecycle: {record.lifecycle_eligibility?.lifecycle_evidence.replaceAll('-', ' ') ?? 'not applicable to reporting-only evidence'} · review {record.lifecycle_eligibility?.review_status.replaceAll('-', ' ') ?? 'unmeasured'}. Current operation is unverified; not eligible as an active business.</small></div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
+        {data.records.map((record, index) => <article key={`${record.business_name}-${index}`}><div><strong>{record.business_name}</strong><span>{record.address.street || 'Street not reported'}{record.address.street2 ? ` · ${record.address.street2}` : ''} · {record.address.city}, {record.address.state} {record.address.zip_code ?? 'ZIP unavailable'}{record.address.zip4 ? <small> +4 {record.address.zip4}</small> : null}</span>{record.geocode && <small className="business-geocode">{record.geocode.latitude.toFixed(6)}; {record.geocode.longitude.toFixed(6)}</small>}<small>Lifecycle: {record.lifecycle_eligibility?.lifecycle_evidence.replaceAll('-', ' ') ?? 'not applicable to reporting-only evidence'} · review {record.lifecycle_eligibility?.review_status.replaceAll('-', ' ') ?? 'unmeasured'}. Current operation is unverified; not eligible as an active business.</small>{record.geography_relationship && <small>Geography: county point assignment {record.geography_relationship.point_assignment.status.replaceAll('-', ' ')}. ZIP/ZCTA is code correspondence only, not polygon membership; USPS validity is unknown. Source-reported state remains separate.</small>}</div><em>{record.category_id.replaceAll('-', ' ')}</em></article>)}
         {data.total > data.records.length && <small>Showing {data.records.length} of {count(data.total)} distinct names.</small>}
       </div>}
     </section>
@@ -847,7 +859,7 @@ function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer
           <nav className="map-breadcrumb" aria-label="Map scope"><button onClick={national}>United States</button>{stateFips && <><span>›</span><button onClick={state}>{stateName}</button></>}{countyGeoid && <><span>›</span><button onClick={county}>{countyName}</button></>}{selectedZip && <><span>›</span><strong>Census ZCTA {selectedZip}</strong></>}</nav>
           {loading && <div className="map-loading overlay">Loading {level} polygons and evidence…</div>}
           {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
-          {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span></div>}
+          {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span>{level !== 'zips' && <span>Point-assigned profile evidence by source (not additive): {Object.entries((data.meta.point_assigned_source_profile_evidence_rows_by_source ?? {}) as Record<string, number>).map(([source, value]) => `${source}: ${count(value)}`).join(' · ')}</span>}</div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
           {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">
             Registry ZIP5 total: {count(zipQuality.national_zip_coverage.registry_zip5.members.count)} · same-code Census ZCTA members: {count(zipQuality.national_zip_coverage.census_zcta.same_code_governed_zcta_members.count)} · source-contributed ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.record_level_source_contribution.count)} · denominator-only ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.denominator_only_no_record_level_contribution.count)}. USPS governed assignment denominator: {zipQuality.national_zip_coverage.usps_assignment.complete_current_assignment_denominator_verified ? 'verified' : 'not verified'}{zipQuality.national_zip_coverage.usps_assignment.assignment_members ? ` (${count(zipQuality.national_zip_coverage.usps_assignment.assignment_members.count)} governed assignments)` : ''}. Active-business completion remains unknown (null); no percentage is claimed. Registry ZIP5 keys and Census ZCTAs are distinct measures; a ZCTA is not a USPS boundary, and ZIP totals do not measure business coverage.

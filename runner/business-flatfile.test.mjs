@@ -24,6 +24,14 @@ async function composeFlatBusinessExport(argv, options = {}) {
       current_operation_verified: false, active_business_eligible: false, reason_codes: ['fixture-unmapped'],
       release: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) } }; },
     async finish() {}, async close() {},
+  })), geographyRelationshipPartitionReader: options.geographyRelationshipPartitionReader ?? (async () => ({
+    provenance: { release_id: 'fixture-geography-relationship-release', manifest_sha256: 'e'.repeat(64), bindings: {} },
+    async nextFor(profile) { return { profile_id: profile.profile_id, postal: { zip_code: profile.zip_code, zip4: profile.address?.zip4 ?? null,
+      classification: 'same-code-zcta-candidate', usps_operational_assignment: null, usps_deliverability: null },
+    source_reported_state: profile.address?.state ?? null, code_correspondence: { status: 'same-code-census-zcta-candidate', zcta_geoid: profile.zip_code, membership: false },
+    point_assignment: { status: profile.geocode ? 'assigned-single-county' : 'missing-geocode', county_geoid: null, state_fips: null, zcta_geoid: null },
+    claims: { current_operation_verified: false, postal_validity_verified: false, entity_polygon_present: false, zip_to_state_inferred: false, zip_to_county_inferred: false } }; },
+    async finish() {}, async close() {},
   })) });
 }
 function makeProfile({ id, name, street = null, city = null, state = null, zip, zip4 = null, geocode = null, sourceId, releaseId, recordId, runId, policy, exportPolicy }) {
@@ -88,9 +96,12 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   assert.equal(allowed.summary.counts.rows_written, 1);
   const rows = (await readFile(path.join(allowed.outputDirectory, "records.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(rows.length, 1);
-  const { lifecycle_eligibility: lifecycle, ...rowWithoutLifecycle } = rows[0];
+  const { lifecycle_eligibility: lifecycle, geography_relationship: geography, ...rowWithoutLifecycle } = rows[0];
   assert.equal(lifecycle.lifecycle_evidence, 'unknown'); assert.equal(lifecycle.current_operation_verified, false); assert.equal(lifecycle.active_business_eligible, false);
   assert.deepEqual(allowed.manifest.source_lineage[0].lifecycle_release, { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) });
+  assert.deepEqual(allowed.manifest.source_lineage[0].geography_relationship_release, { release_id: 'fixture-geography-relationship-release', manifest_sha256: 'e'.repeat(64), bindings: {} });
+  assert.equal(geography.code_correspondence.membership, false); assert.equal(geography.postal.usps_deliverability, null);
+  assert.equal(geography.claims.current_operation_verified, false);
   assert.deepEqual(rowWithoutLifecycle, { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
     source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: null,
     ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });

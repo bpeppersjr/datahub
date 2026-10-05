@@ -333,6 +333,15 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
         release: { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) } }; },
       async finish() {}, async close() {},
     }),
+    geographyRelationshipPartitionReader: async () => ({
+      provenance: { release_id: 'fixture-geography-relationship-release', manifest_sha256: 'c'.repeat(64) },
+      async nextFor(row) { return { profile_id: row.profile_id, postal: { zip_code: row.zip_code, zip4: row.address?.zip4 ?? null,
+        classification: 'same-code-zcta-candidate', usps_operational_assignment: null, usps_deliverability: null },
+      source_reported_state: row.address?.state ?? null, code_correspondence: { membership: false, zcta_geoid: row.zip_code },
+      point_assignment: { status: row.geocode ? 'assigned-single-county' : 'missing-geocode', county_geoid: null, state_fips: null, zcta_geoid: null },
+      claims: { current_operation_verified: false, postal_validity_verified: false, entity_polygon_present: false } }; },
+      async finish() {}, async close() {},
+    }),
   });
 }
 
@@ -519,6 +528,13 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const states = await store.getFeatures({ level: "states", categoryId: "retail-consumer", enhancerId: "business_count" });
   assert.equal(states.features.length, 2);
+  assert.equal(states.meta.point_assignment_release_id, 'business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7');
+  assert.equal(states.meta.point_assignment_manifest_sha256, '07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2');
+  assert.deepEqual(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assigned_source_profile_evidence_rows_by_source, {
+    'fdic-bankfind-current-structure': 1390, 'usda-snap-current-retailers': 4853,
+  });
+  assert.equal(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assignment_cross_source_additive, false);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assignment_release_id, states.meta.point_assignment_release_id);
   assert.equal(states.aggregation_contract, "business-map-nonadditive-aggregation@2.0.0");
   assert.equal(states.aggregation_status, "withheld-overlapping-source-units-entity-resolution-not-applied");
   assert.equal(states.cross_source_additive, false);
@@ -571,6 +587,11 @@ test("serves governed category, geography, demographic, and percentage views", a
   const counties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "businesses_per_1000_people" });
   const alphaCounty = counties.features.find((feature) => feature.properties.geoid === "01001");
   const emptyCounty = counties.features.find((feature) => feature.properties.geoid === "01003");
+  assert.deepEqual(alphaCounty.properties.point_assigned_source_profile_evidence_rows_by_source, {
+    'fdic-bankfind-current-structure': 14, 'usda-snap-current-retailers': 44,
+  });
+  assert.equal(alphaCounty.properties.point_assignment_release_id, states.meta.point_assignment_release_id);
+  assert.match(counties.meta.point_assignment_semantics, /ZIP\/ZCTA code correspondence does not contribute/);
   assert.equal(alphaCounty.properties.business_count, null);
   assert.equal(alphaCounty.properties.population_2020, 1000);
   assert.equal(alphaCounty.properties.heat_value, null);
@@ -714,11 +735,17 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
   assert.equal(names.limitation, null);
   assert.equal(names.lifecycle_release.release_id, "fixture-lifecycle-release");
   assert.equal(names.lifecycle_release.manifest_sha256, "a".repeat(64));
-  const { lifecycle_eligibility: lifecycle, ...nameRecord } = names.records[0];
+  assert.equal(names.geography_relationship_release.release_id, "fixture-geography-relationship-release");
+  assert.equal(names.geography_relationship_release.manifest_sha256, "c".repeat(64));
+  const { lifecycle_eligibility: lifecycle, geography_relationship: geographyRelationship, ...nameRecord } = names.records[0];
   assert.equal(lifecycle.lifecycle_evidence, 'unknown');
   assert.equal(lifecycle.review_status, 'unmapped');
   assert.equal(lifecycle.current_operation_verified, false);
   assert.equal(lifecycle.active_business_eligible, false);
+  assert.equal(geographyRelationship.code_correspondence.membership, false);
+  assert.equal(geographyRelationship.postal.usps_deliverability, null);
+  assert.equal(geographyRelationship.point_assignment.status, 'assigned-single-county');
+  assert.equal(geographyRelationship.claims.current_operation_verified, false);
   assert.deepEqual(nameRecord, {
     business_name: "Main Street Market",
     address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" },

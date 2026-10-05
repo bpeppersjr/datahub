@@ -10,6 +10,7 @@ import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeograph
 import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
 import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 import { readBusinessEntityLifecycleEligibilityPartition } from "./business-entity-lifecycle-eligibility.mjs";
+import { businessEntityGeographyRelationshipMatchesRegistry, normalizeRetainedGeographyProfile, readBusinessEntityGeographyRelationshipPartition, readBusinessEntityGeographyRelationshipSummary } from "./business-entity-geography-relationship.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const IRS_EO_SOURCE = "irs-eo-bmf-organizations";
@@ -508,6 +509,7 @@ export function createBusinessMapStore({
   registryPointerPath = DEFAULT_REGISTRY_POINTER,
   gdpPointerPath = DEFAULT_GDP_POINTER,
   lifecyclePartitionReader = readBusinessEntityLifecycleEligibilityPartition,
+  geographyRelationshipPartitionReader = readBusinessEntityGeographyRelationshipPartition,
 } = {}) {
   let indexKey = null;
   let indexPromise = null;
@@ -823,6 +825,7 @@ export function createBusinessMapStore({
     const housingFloor = optionalWholeNumber(minHousingUnits, "min_housing_units");
     const index = await ensureIndex();
     if (!index) return { available: false, type: "FeatureCollection", features: [] };
+    const pointEvidence = level === "states" || level === "counties" ? await readBusinessEntityGeographyRelationshipSummary() : null;
     let collection;
     let features;
     let meta;
@@ -835,6 +838,9 @@ export function createBusinessMapStore({
         return decorate(feature, { ...(index.stateAggregates.get(geoid) ?? emptyAggregate()), coverage_release_id: index.coverage.manifest.release_id }, categoryId, enhancerId, {
           level: "state",
           scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
+          point_assigned_source_profile_evidence_rows_by_source: pointEvidence.state_point_source_counts?.[geoid] ?? null,
+          point_assignment_cross_source_additive: false,
+          point_assignment_release_id: pointEvidence.release_id, point_assignment_manifest_sha256: pointEvidence.manifest_sha256,
           ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
           ...gdpProperties(index.gdp, index.stateGdp.get(geoid), "state"),
         });
@@ -859,6 +865,9 @@ export function createBusinessMapStore({
           level: "county",
           state_fips: state,
           scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
+          point_assigned_source_profile_evidence_rows_by_source: pointEvidence.county_point_source_counts?.[geoid] ?? null,
+          point_assignment_cross_source_additive: false,
+          point_assignment_release_id: pointEvidence.release_id, point_assignment_manifest_sha256: pointEvidence.manifest_sha256,
           ...nonemployerProperties(index.countyCoverage.get(geoid), "county"),
           ...gdpProperties(index.gdp, index.countyGdp.get(geoid), "county"),
         });
@@ -909,6 +918,19 @@ export function createBusinessMapStore({
       alignmentPeerScope = `uniquely state-assigned ZCTA peers within state ${state}`;
     } else {
       throw Object.assign(new Error("Unsupported heat-map geography level."), { statusCode: 400 });
+    }
+    if (pointEvidence) {
+      meta.point_assignment_semantics = "State/county evidence uses only row-level retained geocodes with exact governed CRS adapters and deterministic point-in-county assignment; source-profile evidence rows are nonadditive across publishers and are not unique businesses or current operations. ZIP/ZCTA code correspondence does not contribute to these counts.";
+      meta.point_assignment_release_id = pointEvidence.release_id;
+      meta.point_assignment_manifest_sha256 = pointEvidence.manifest_sha256;
+      const sourceRows = level === "states"
+        ? Object.values(pointEvidence.state_point_source_counts ?? {})
+        : Object.entries(pointEvidence.county_point_source_counts ?? {}).filter(([geoid]) => geoid.startsWith(String(stateFips))).map(([, values]) => values);
+      meta.point_assigned_source_profile_evidence_rows_by_source = sourceRows.reduce((totals, bySource) => {
+        for (const [source, count] of Object.entries(bySource)) totals[source] = (totals[source] ?? 0) + count;
+        return totals;
+      }, {});
+      meta.point_assignment_cross_source_additive = false;
     }
     const aligned = addRelativeCoverageAlignment(features, {
       peerMedian: alignmentPeerMedian,
@@ -1082,6 +1104,10 @@ export function createBusinessMapStore({
     }
     const lifecycleJoiner = !missingZipOnly && files.some(file => !file.reporting)
       ? await lifecyclePartitionReader({ zip2: zip.slice(0, 2) }) : null;
+    const geographyJoiner = !missingZipOnly && files.some(file => !file.reporting)
+      && (geographyRelationshipPartitionReader !== readBusinessEntityGeographyRelationshipPartition
+        || businessEntityGeographyRelationshipMatchesRegistry(registry.manifest, registry.manifestSha256))
+      ? await geographyRelationshipPartitionReader({ zip2: zip.slice(0, 2) }) : null;
     const categoryBySource = new Map(CATEGORY_DEFINITIONS.flatMap((item) => item.source_ids.map((sourceId) => [sourceId, item.id])));
     const OH_SOURCE = "oh-dcy-publisher-open-childcare-centers";
     // Names are reported-address evidence, not input to the county/ZCTA aggregation.
@@ -1103,9 +1129,11 @@ export function createBusinessMapStore({
       const parsedRow = file.reporting ? line : JSON.parse(line);
       if (!file.reporting && (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(parsedRow.source?.source_id)
         || parsedRow.identity_matching_eligible === false)) throw new Error("Reporting-only childcare cannot appear in matching-profile artifacts.");
-      const row = file.reporting ? parsedRow : normalizeBusinessLocationProfile(parsedRow,
-        registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256));
+      const row = file.reporting ? parsedRow : businessEntityGeographyRelationshipMatchesRegistry(registry.manifest, registry.manifestSha256)
+        ? normalizeRetainedGeographyProfile(parsedRow, registry.manifest, registry.manifestSha256)
+        : normalizeBusinessLocationProfile(parsedRow, registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256));
       const lifecycleEligibility = file.reporting ? null : await lifecycleJoiner.nextFor(row);
+      const geographyRelationship = file.reporting ? null : await geographyJoiner.nextFor(row);
       if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
         if (row.source?.source_id === OH_SOURCE) {
@@ -1173,13 +1201,14 @@ export function createBusinessMapStore({
           observed_at: row.observed_at ?? null,
           export_policy: sourceId === IRS_EO_SOURCE ? "local-review-only" : (row.export_policy ?? "local-review-only"),
           lifecycle_eligibility: lifecycleEligibility,
+          geography_relationship: geographyRelationship,
           ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
           ...(sourceId === OH_SOURCE ? { governed_geographic_assignment_eligible: false } : {}),
         });
       }
     }
-    if (!file.reporting) await lifecycleJoiner?.finish();
-    } finally { lines?.close(); input?.destroy(); decoded?.destroy(); if (!file.reporting) await lifecycleJoiner?.close(); }
+    if (!file.reporting) { await lifecycleJoiner?.finish(); await geographyJoiner?.finish(); }
+    } finally { lines?.close(); input?.destroy(); decoded?.destroy(); if (!file.reporting) { await lifecycleJoiner?.close(); await geographyJoiner?.close(); } }
     }
     if (ohioContext) await ohioApi.verifyOhChildcareGeographicMembership(ohioContext.input.rows, ohioContext.input.verificationContext);
     return {
@@ -1191,6 +1220,7 @@ export function createBusinessMapStore({
       limit: cappedLimit,
       records,
       ...(lifecycleJoiner ? { lifecycle_release: lifecycleJoiner.provenance } : {}),
+      ...(geographyJoiner ? { geography_relationship_release: geographyJoiner.provenance } : {}),
       limitation: categoryId === "all"
         ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list. Ohio reported names are not included in geographic category counts."
         : categoryId === "childcare" && index.compatibility.ohio
