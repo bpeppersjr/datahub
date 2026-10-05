@@ -11,8 +11,9 @@ import { readNewestNationalGoalCompletionMatrix } from './national-goal-completi
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
 import { readReportingOnlySiteQualification, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
+import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
 
-export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.6.0';
+export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.7.0';
 const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
   registration_sha256: '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba',
   release_id: 'reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce',
@@ -220,7 +221,8 @@ function validateGoalReadinessBindings(value) {
   const entity = value?.bindings?.zip_entity_resolution, industry = value?.bindings?.zip_industry_matrix,
     temporal = value?.bindings?.temporal_claim_matrix, goal = value?.bindings?.goal_completion_matrix,
     broad = value?.bindings?.broad_organization_projection, lifecycle = value?.bindings?.lifecycle_eligibility,
-    geographyRelationship = value?.bindings?.business_entity_geography_relationship;
+    geographyRelationship = value?.bindings?.business_entity_geography_relationship,
+    sourcePolicy = value?.bindings?.business_entity_source_policy_provenance;
   check(entity?.claims?.entity_resolution_applied === false
     && entity.claims.benchmark_gate_passed === false
     && entity.release_id === 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'
@@ -284,6 +286,23 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
+  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098'
+    && sourcePolicy.registration_path === 'config/datasets/business-entity-source-policy-provenance.json'
+    && sourcePolicy.registration_sha256 === 'dea750ba0c597b4792189f321cdba2d6f73e69664fcb901587ad0d43302e603f'
+    && sourcePolicy.manifest_sha256 === '4706f9cb6bfaf9ff11b488c8bb692172ec46e2ea85847c07571e1a0e7efbce54'
+    && sourcePolicy.artifact_sha256 === 'be3ae723b0728ff161e0764233bfae7888222fc8f0b1768bad70635d5a378534'
+    && sourcePolicy.source_count === 15 && sourcePolicy.profile_count === 8011835
+    && sourcePolicy.registry_release_id === lifecycle.registry_release_id
+    && sourcePolicy.registry_manifest_sha256 === lifecycle.registry_manifest_sha256
+    && sourcePolicy.lifecycle_release_id === lifecycle.release_id && sourcePolicy.lifecycle_manifest_sha256 === lifecycle.manifest_sha256
+    && sourcePolicy.taxonomy_sha256 === lifecycle.taxonomy_sha256 && sourcePolicy.temporal_release_id === temporal.release_id
+    && sourcePolicy.temporal_manifest_sha256 === temporal.manifest_sha256 && sourcePolicy.policy_files_verified === 15
+    && sourcePolicy.profile_policy_rows_verified === 8011835 && sourcePolicy.authorization_granted === false
+    && sourcePolicy.acquisition_authorized === false && sourcePolicy.export_authorized === false
+    && sourcePolicy.profile_export_policy_counts?.['local-review-only'] === 1850619
+    && sourcePolicy.profile_export_policy_counts?.public === 6161216
+    && SHA.test(sourcePolicy.source_profile_counts_sha256 ?? ''),
+  'business-entity source-policy provenance registration/release/summary binding');
   validateGeographyRelationshipBinding(geographyRelationship);
   validateReportingOnlySiteBinding(value.bindings?.reporting_only_site_qualification);
   const ledger = value.requirements_ledger, expectedLedger = {
@@ -291,6 +310,7 @@ function validateGoalReadinessBindings(value) {
     'broad-state-coverage': 'blocked', 'industry-coverage': 'unmeasured', 'temporal-and-current-operation': 'blocked',
     'lifecycle-eligibility': 'blocked',
     'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'unmeasured', 'reporting-only-site-qualification': 'partial',
+    'business-entity-source-policy-provenance': 'achieved',
   };
   check(Array.isArray(ledger) && ledger.length === Object.keys(expectedLedger).length
     && ledger.every(row => row && expectedLedger[row.requirement] === row.status && typeof row.evidence === 'string' && row.evidence.length > 0)
@@ -307,6 +327,11 @@ function validateGoalReadinessBindings(value) {
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8025017
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_absent_count === 172
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.active_business_eligible_count === 0
+    && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.source_count === 15
+    && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.profile_count === 8011835
+    && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.policy_files_verified === 15
+    && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.profile_policy_rows_verified === 8011835
+    && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.authorization_granted === false
     && value.acceptance_uplift === false && value.claims?.acceptance === false && value.claims?.report_only === true
     && value.claims?.network_requests === 0 && value.claims?.writes === 0 && value.claims?.pointers_changed === false,
     'objective readiness authority/coverage boundary');
@@ -327,6 +352,8 @@ function validateGoalReadinessBindings(value) {
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
+  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098',
+    'source-policy inventory binding absent');
   return true;
 }
 export const NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS = Object.freeze({ validateGoalReadinessBindings, validateGeographyRelationshipBinding, entityGeographyRequirementComplete, readVerifiedBusinessEntityGeographyBinding });
@@ -390,12 +417,19 @@ export function projectNationalZipObjectiveReadiness(report) {
     ...(row.point_assignment_ineligible_count === undefined ? {} : { point_assignment_ineligible_count: row.point_assignment_ineligible_count }),
     ...(row.matching_profile_denominator === undefined ? {} : { matching_profile_denominator: row.matching_profile_denominator }),
     ...(row.combined_retained_site_evidence_count === undefined ? {} : { combined_retained_site_evidence_count: row.combined_retained_site_evidence_count }),
+    ...(row.source_count === undefined ? {} : { source_count: row.source_count }),
+    ...(row.policy_files_verified === undefined ? {} : { policy_files_verified: row.policy_files_verified }),
+    ...(row.profile_policy_rows_verified === undefined ? {} : { profile_policy_rows_verified: row.profile_policy_rows_verified }),
+    ...(row.authorization_granted === undefined ? {} : { authorization_granted: row.authorization_granted }),
+    ...(row.acquisition_authorized === undefined ? {} : { acquisition_authorized: row.acquisition_authorized }),
+    ...(row.export_authorized === undefined ? {} : { export_authorized: row.export_authorized }),
     evidence: row.evidence,
   }));
   const expectedRequirements = [
     ['geography', 'achieved'], ['entity-geography-relationship', entityGeographyRequirementComplete(binding.business_entity_geography_relationship) ? 'achieved' : 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
     ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
+    ['business-entity-source-policy-provenance', 'achieved'],
   ];
   check(same(requirements_ledger.map(row => [row.requirement, row.status]), expectedRequirements)
     && requirements_ledger.every(row => typeof row.evidence === 'string' && row.evidence.length > 0
@@ -404,6 +438,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         : row.requirement === 'entity-geography-relationship' ? ['entity_polygons_present', 'evidence', 'point_assignment_counts', 'postal_counts', 'profile_count', 'registry_profile_count', 'reported_state_conflict_count', 'requirement', 'same_code_zcta_is_membership', 'status', 'usps_deliverability_verified', 'usps_operational_assignment_verified', 'usps_unverified_profile_count']
         : row.requirement === 'lifecycle-eligibility' ? ['active_business_eligible_count', 'evidence', 'profile_count', 'registry_profile_count', 'requirement', 'stale_count', 'status', 'unknown_or_contradictory_count', 'verified_current_operation_count']
         : row.requirement === 'reporting-only-site-qualification' ? ['active_business_eligible_count', 'combined_retained_site_evidence_count', 'current_operation_verified_count', 'evidence', 'matching_profile_count', 'matching_profile_denominator', 'point_assigned_count', 'point_assignment_ineligible_count', 'requirement', 'site_count', 'status', 'usps_unverified_count', 'zip_absent_count', 'zip_present_count']
+        : row.requirement === 'business-entity-source-policy-provenance' ? ['acquisition_authorized', 'authorization_granted', 'evidence', 'export_authorized', 'policy_files_verified', 'profile_count', 'profile_policy_rows_verified', 'requirement', 'source_count', 'status']
         : ['evidence', 'requirement', 'status']))
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.current_gap_count === 40
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51
@@ -423,7 +458,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.usps_deliverability_verified === false
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.same_code_zcta_is_membership === false
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.entity_polygons_present === false,
-    'closed eleven-row objective readiness ledger');
+    'closed twelve-row objective readiness ledger');
   check(requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.site_count === 13182
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_count === 0
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011835
@@ -433,9 +468,17 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_present_count === 13010
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_absent_count === 172
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.usps_unverified_count === 13182,
-  'reporting-only site readiness counts');
+    'reporting-only site readiness counts');
+  check(requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.source_count === 15
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.profile_count === 8011835
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.policy_files_verified === 15
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.profile_policy_rows_verified === 8011835
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.authorization_granted === false
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.acquisition_authorized === false
+    && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.export_authorized === false,
+  'source-policy provenance integrity-only requirement');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.4.0',
+    schema_version: 'national-zip-objective-readiness-api@1.5.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -513,6 +556,46 @@ export function projectNationalZipObjectiveReadiness(report) {
         current_operation_verified_count: binding.reporting_only_site_qualification.current_operation_verified_count,
         usps_unverified_count: binding.reporting_only_site_qualification.usps_unverified_count,
         export_policy: binding.reporting_only_site_qualification.export_policy,
+      },
+      business_entity_source_policy_provenance: {
+        release_id: binding.business_entity_source_policy_provenance.release_id,
+        registration_sha256: binding.business_entity_source_policy_provenance.registration_sha256,
+        manifest_sha256: binding.business_entity_source_policy_provenance.manifest_sha256,
+        artifact_sha256: binding.business_entity_source_policy_provenance.artifact_sha256,
+        source_count: binding.business_entity_source_policy_provenance.source_count,
+        profile_count: binding.business_entity_source_policy_provenance.profile_count,
+        registry_release_id: binding.business_entity_source_policy_provenance.registry_release_id,
+        registry_manifest_sha256: binding.business_entity_source_policy_provenance.registry_manifest_sha256,
+        lifecycle_release_id: binding.business_entity_source_policy_provenance.lifecycle_release_id,
+        lifecycle_manifest_sha256: binding.business_entity_source_policy_provenance.lifecycle_manifest_sha256,
+        taxonomy_sha256: binding.business_entity_source_policy_provenance.taxonomy_sha256,
+        temporal_release_id: binding.business_entity_source_policy_provenance.temporal_release_id,
+        temporal_manifest_sha256: binding.business_entity_source_policy_provenance.temporal_manifest_sha256,
+        source_profile_counts_sha256: binding.business_entity_source_policy_provenance.source_profile_counts_sha256,
+        policy_files_verified: binding.business_entity_source_policy_provenance.policy_files_verified,
+        profile_policy_rows_verified: binding.business_entity_source_policy_provenance.profile_policy_rows_verified,
+        profile_export_policy_counts: binding.business_entity_source_policy_provenance.profile_export_policy_counts,
+        authorization_granted: false, acquisition_authorized: false, export_authorized: false,
+      },
+      business_entity_source_policy_provenance: {
+        release_id: binding.business_entity_source_policy_provenance.release_id,
+        registration_sha256: binding.business_entity_source_policy_provenance.registration_sha256,
+        manifest_sha256: binding.business_entity_source_policy_provenance.manifest_sha256,
+        artifact_sha256: binding.business_entity_source_policy_provenance.artifact_sha256,
+        source_count: binding.business_entity_source_policy_provenance.source_count,
+        profile_count: binding.business_entity_source_policy_provenance.profile_count,
+        registry_release_id: binding.business_entity_source_policy_provenance.registry_release_id,
+        registry_manifest_sha256: binding.business_entity_source_policy_provenance.registry_manifest_sha256,
+        lifecycle_release_id: binding.business_entity_source_policy_provenance.lifecycle_release_id,
+        lifecycle_manifest_sha256: binding.business_entity_source_policy_provenance.lifecycle_manifest_sha256,
+        taxonomy_sha256: binding.business_entity_source_policy_provenance.taxonomy_sha256,
+        temporal_release_id: binding.business_entity_source_policy_provenance.temporal_release_id,
+        temporal_manifest_sha256: binding.business_entity_source_policy_provenance.temporal_manifest_sha256,
+        source_profile_counts_sha256: binding.business_entity_source_policy_provenance.source_profile_counts_sha256,
+        policy_files_verified: binding.business_entity_source_policy_provenance.policy_files_verified,
+        profile_policy_rows_verified: binding.business_entity_source_policy_provenance.profile_policy_rows_verified,
+        profile_export_policy_counts: binding.business_entity_source_policy_provenance.profile_export_policy_counts,
+        authorization_granted: false, acquisition_authorized: false, export_authorized: false,
       },
     },
   };
@@ -645,6 +728,10 @@ async function readObjectiveReadiness({ signal }) {
     const failure = new Error('Selected reporting-only site qualification is unavailable or invalid.'); failure.code = 'REPORTING_SITE_RELEASE_INVALID'; throw failure;
   });
   const reportingSites = await readReportingOnlySiteQualification({ signal });
+  const sourcePolicyProvenance = await readBusinessEntitySourcePolicyProvenance({ signal }).catch(error => {
+    if (signal?.aborted || error?.name === 'AbortError') throw error;
+    const failure = new Error('Selected source-policy provenance is unavailable or invalid.'); failure.code = 'SOURCE_POLICY_PROVENANCE_INVALID'; throw failure;
+  });
   check(reportingVerified.release_id === REPORTING_SITES.release_id && reportingVerified.manifest_sha256 === REPORTING_SITES.manifest_sha256
     && reportingVerified.artifact_sha256 === REPORTING_SITES.artifact_sha256 && reportingVerified.summary.site_count === REPORTING_SITES.record_count,
     'verified reporting-only site qualification release');
@@ -700,6 +787,24 @@ async function readObjectiveReadiness({ signal }) {
     source_count: lifecycle.summary.source_count, source_status_value_count: lifecycle.summary.source_status_value_count,
     review_status_counts: lifecycle.summary.review_status_counts, lifecycle_evidence_counts: lifecycle.summary.lifecycle_evidence_counts,
     exception_counts: lifecycle.summary.exception_counts, current_operation_verified_count: 0, active_business_eligible_count: 0,
+  };
+  const sourcePolicyBinding = {
+    registration_path: 'config/datasets/business-entity-source-policy-provenance.json',
+    registration_sha256: sourcePolicyProvenance.registration_sha256,
+    release_id: sourcePolicyProvenance.release_id,
+    manifest_path: `data/business-entity-source-policy-provenance/releases/${sourcePolicyProvenance.release_id}/manifest.json`,
+    manifest_sha256: sourcePolicyProvenance.manifest_sha256, artifact_path: 'source-policies.json',
+    artifact_sha256: sourcePolicyProvenance.artifact_sha256, source_count: sourcePolicyProvenance.summary.source_count,
+    profile_count: sourcePolicyProvenance.summary.profile_count, registry_release_id: sourcePolicyProvenance.registry_release_id,
+    registry_manifest_sha256: sourcePolicyProvenance.registry_manifest_sha256,
+    lifecycle_release_id: sourcePolicyProvenance.lifecycle_release_id, lifecycle_manifest_sha256: sourcePolicyProvenance.lifecycle_manifest_sha256,
+    taxonomy_sha256: sourcePolicyProvenance.taxonomy_sha256, temporal_release_id: sourcePolicyProvenance.temporal_release_id,
+    temporal_manifest_sha256: sourcePolicyProvenance.temporal_manifest_sha256,
+    profile_export_policy_counts: sourcePolicyProvenance.summary.profile_export_policy_counts,
+    source_profile_counts_sha256: hash(JSON.stringify(sourcePolicyProvenance.summary.source_profile_counts)),
+    policy_files_verified: sourcePolicyProvenance.rows.filter(row => /^[a-f0-9]{64}$/.test(row.policy_profile_sha256 ?? '')).length,
+    profile_policy_rows_verified: sourcePolicyProvenance.summary.profile_count,
+    authorization_granted: false, acquisition_authorized: false, export_authorized: false,
   };
   const geographyRelationshipBinding = geographyRelationship;
   const reportingSources = reportingSites.provenance.bindings.sources;
@@ -757,10 +862,11 @@ async function readObjectiveReadiness({ signal }) {
     broad_organization_projection: { release_id: broad.metadata.release_id, manifest_sha256: broad.source_lineage.program_manifest_sha256,
       source_lineage: broad.source_lineage, metadata: broad.metadata, authority: broad.authority },
     lifecycle_eligibility: lifecycleBinding,
+    business_entity_source_policy_provenance: sourcePolicyBinding,
     business_entity_geography_relationship: geographyRelationshipBinding,
     reporting_only_site_qualification: reportingBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.4.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.5.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,
@@ -790,6 +896,11 @@ async function readObjectiveReadiness({ signal }) {
         active_business_eligible_count: 0, current_operation_verified_count: 0, zip_present_count: 13010, zip_absent_count: 172,
         usps_unverified_count: 13182, point_assigned_count: 8942, point_assignment_ineligible_count: 4237,
         evidence: 'A separately retained reporting-only cohort is verified, but its sites are not matching profiles, active-eligible businesses, or USPS-verified ZIP assignments.' },
+      { requirement: 'business-entity-source-policy-provenance', status: 'achieved', source_count: sourcePolicyBinding.source_count,
+        profile_count: sourcePolicyBinding.profile_count, policy_files_verified: sourcePolicyBinding.policy_files_verified,
+        profile_policy_rows_verified: sourcePolicyBinding.profile_policy_rows_verified, authorization_granted: false,
+        acquisition_authorized: false, export_authorized: false,
+        evidence: 'All 15 source policy profiles and lifecycle taxonomy pins are hash-verified for 8,011,835 retained profiles. This is provenance integrity only; it grants no acquisition, use, or export authority.' },
     ],
     blockers: [
       { code: 'entity-resolution-benchmark-gate-not-passed' },

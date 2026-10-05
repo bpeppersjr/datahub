@@ -1,0 +1,19 @@
+{
+  "schema_version": "business-entity-source-policy-provenance-registration@1.0.0",
+  "dataset_id": "business-entity-source-policy-provenance",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "current_pointer_written": false,
+  "selected_release_id": "business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098",
+  "retained_releases": [
+    {
+      "release_id": "business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098",
+      "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098/manifest.json",
+      "manifest_sha256": "4706f9cb6bfaf9ff11b488c8bb692172ec46e2ea85847c07571e1a0e7efbce54",
+      "artifact_sha256": "be3ae723b0728ff161e0764233bfae7888222fc8f0b1768bad70635d5a378534",
+      "record_count": 15,
+      "selected": true
+    }
+  ]
+}

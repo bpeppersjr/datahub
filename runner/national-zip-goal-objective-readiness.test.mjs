@@ -8,7 +8,7 @@ import { readNationalZipGoalAcceptance, projectNationalZipObjectiveReadiness, NA
 import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 
 const codes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
-const ledger = [['geography','achieved'],['entity-geography-relationship','partial'],['postal-denominator','blocked'],['source-authorization-policy-and-provenance','partial'],['broad-state-coverage','blocked'],['industry-coverage','unmeasured'],['temporal-and-current-operation','blocked'],['lifecycle-eligibility','blocked'],['reconciliation-and-benchmark','blocked'],['all-business-completeness-denominator','unmeasured'],['reporting-only-site-qualification','partial']];
+const ledger = [['geography','achieved'],['entity-geography-relationship','partial'],['postal-denominator','blocked'],['source-authorization-policy-and-provenance','partial'],['broad-state-coverage','blocked'],['industry-coverage','unmeasured'],['temporal-and-current-operation','blocked'],['lifecycle-eligibility','blocked'],['reconciliation-and-benchmark','blocked'],['all-business-completeness-denominator','unmeasured'],['reporting-only-site-qualification','partial'],['business-entity-source-policy-provenance','achieved']];
 const actual = async () => projectNationalZipObjectiveReadiness(await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' }));
 
 function harness(method = 'GET', options = {}) {
@@ -19,11 +19,11 @@ function harness(method = 'GET', options = {}) {
   return { ...result, run: (url = new URL('http://local/api/business-map/national-objective-readiness'), deps = {}) => nationalZipGoalObjectiveReadinessHttp(request, response, url, json, deps), get: () => result };
 }
 
-test('strict projection exposes eleven ordered requirements, blockers, forty gaps, null completeness, and pinned lineage', async () => {
+test('strict projection exposes twelve ordered requirements, blockers, forty gaps, null completeness, and pinned lineage', async () => {
   const value = await actual();
   assert.equal(value.status, 'not-accepted'); assert.equal(value.acceptance.accepted, false);
   assert.deepEqual(value.requirements_ledger.map(row => [row.requirement, row.status]), ledger);
-  assert.equal(value.requirements_ledger.length, 11); assert.equal(value.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
+  assert.equal(value.requirements_ledger.length, 12); assert.equal(value.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   const reporting = value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification');
   assert.deepEqual([reporting.site_count, reporting.matching_profile_count, reporting.zip_present_count, reporting.zip_absent_count,
     reporting.active_business_eligible_count, reporting.current_operation_verified_count, reporting.usps_unverified_count], [13182, 0, 13010, 172, 0, 0, 13182]);
@@ -41,7 +41,7 @@ test('strict projection exposes eleven ordered requirements, blockers, forty gap
   assert.equal(value.claims.current_operations_verified, false); assert.equal(value.claims.all_business_completeness, false);
   assert.equal(value.claims.public_export_authorized, false); assert.equal(value.claims.network_requests, 0);
   for (const code of codes) assert.ok(value.acceptance.blockers.includes(code));
-  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification'].sort());
+  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification','business_entity_source_policy_provenance'].sort());
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);
@@ -53,6 +53,10 @@ test('strict projection exposes eleven ordered requirements, blockers, forty gap
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_inventory_sha256, 'ca92485cf7659fc8f4565fe81de5728c960de9667f9b5c605f66c9e07d24a5f5');
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_count, 100);
   assert.equal(value.lineage.reporting_only_site_qualification.record_count, 13182);
+  assert.equal(value.lineage.business_entity_source_policy_provenance.release_id, 'business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, 'dea750ba0c597b4792189f321cdba2d6f73e69664fcb901587ad0d43302e603f');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.source_count, 15);
+  assert.equal(value.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance').profile_policy_rows_verified, 8011835);
   assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba');
   assert.deepEqual(value.lineage.reporting_only_site_qualification.source_manifest_hashes, { MA: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' });
   assert.equal(value.lineage.reporting_only_site_qualification.source_bindings.MA.transformation_version, 'ma-childcare-normalization@1.0.0');
@@ -113,6 +117,9 @@ test('reader and strict projector failures are redacted as 503', async () => {
   const reportingInvalid = harness(); await reportingInvalid.run(undefined, { reader: async () => { const error = Error('private reporting path'); error.code = 'REPORTING_SITE_RELEASE_INVALID'; throw error; } });
   assert.equal(reportingInvalid.get().status, 503); assert.deepEqual(reportingInvalid.get().body, {
     error: 'National objective readiness evidence is unavailable or incompatible.', blocker_code: 'reporting-only-site-release-unavailable-or-invalid' });
+  const policyInvalid = harness(); await policyInvalid.run(undefined, { reader: async () => { const error = Error('private raw policy path'); error.code = 'SOURCE_POLICY_PROVENANCE_INVALID'; throw error; } });
+  assert.equal(policyInvalid.get().status, 503); assert.deepEqual(policyInvalid.get().body, {
+    error: 'National objective readiness evidence is unavailable or incompatible.', blocker_code: 'business-entity-source-policy-provenance-release-unavailable-or-invalid' });
   const invalid = harness(); await invalid.run(undefined, { reader: async () => ({}), projector: () => { throw Error('private'); } });
   assert.equal(invalid.get().status, 503); assert.doesNotMatch(JSON.stringify(invalid.get().body), /private/);
 });

@@ -10,6 +10,7 @@ import { APP_ROOT } from './paths.mjs';
 import { mnSelectionReadJson as readJson } from './mn-construction-retained-selection.mjs';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { readExactZipIndustryTemporalQualification } from './exact-zip-industry-temporal-qualification.mjs';
+import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
 
 export const BUSINESS_ENTITY_LIFECYCLE_VERSION = 'business-entity-lifecycle-eligibility@1.0.0';
 const DATASET = 'business-entity-lifecycle-eligibility';
@@ -95,6 +96,16 @@ export function classifyBusinessEntityLifecycle({ profile, taxonomy, semantic, q
   };
 }
 
+export function validateBusinessEntityProfilePolicy(profile, policyRow) {
+  check(profile?.source && policyRow && profile.source.source_id === policyRow.source_id
+    && profile.source.source_release_id === policyRow.source_release_id
+    && profile.source.policy_id === policyRow.policy_id
+    && profile.export_policy === policyRow.semantics?.export?.profile_export_policy
+    && policyRow.profile_count > 0 && SHA.test(policyRow.policy_profile_sha256),
+  'Profile source policy identity or export semantics differ from the selected policy-provenance row.');
+  return true;
+}
+
 async function readBindings(root, signal) {
   const taxonomyMeter = {}, registryMeter = {};
   const [taxonomyBytes, registryCatalog] = await Promise.all([
@@ -120,10 +131,15 @@ async function readBindings(root, signal) {
   check(profileArtifacts.length === 100 && profileArtifacts.reduce((n, item) => n + item.record_count, 0) === 8011835);
   const temporal = await readNationalBusinessTemporalClaimRows({ root, signal });
   const qualification = await readExactZipIndustryTemporalQualification({ root, zip5: '10001', signal });
+  const sourcePolicy = await readBusinessEntitySourcePolicyProvenance({ root, signal });
   check(temporal.rows.length === 30 && temporal.provenance.registry_release_id === registryMeta.release_id
     && temporal.provenance.registry_manifest_sha256 === registryMeta.manifest_sha256 && qualification.assessment_as_of === AS_OF
     && qualification.provenance?.release_id && qualification.provenance?.manifest_sha256 && qualification.provenance?.artifact_sha256);
   const temporalByProfile = new Map(temporal.rows.filter(row => row.profile_source_id).map(row => [row.profile_source_id, row]));
+  check(sourcePolicy.available && sourcePolicy.record_count === 15 && sourcePolicy.summary.profile_count === 8011835
+    && sourcePolicy.registry_release_id === registryMeta.release_id && sourcePolicy.registry_manifest_sha256 === registryMeta.manifest_sha256
+    && sourcePolicy.lifecycle_release_id === SELECTED_RELEASE_ID && sourcePolicy.lifecycle_manifest_sha256 === SELECTED_MANIFEST_SHA256
+    && sourcePolicy.taxonomy_sha256 === taxonomySha256, 'Selected source-policy provenance release/taxonomy bindings.');
   const qualificationBySource = new Map(qualification.rows.filter(row => row.source_key).map(row => [row.source_key, row]));
   const sourceById = new Map();
   for (const item of taxonomyBytes.sources) {
@@ -136,7 +152,13 @@ async function readBindings(root, signal) {
       && temporalQualification.source_status_term === semantic.source_status_term
       && semantic.classification === (item.lifecycle_evidence === 'source-defined-current' ? 'source-defined-current-membership'
         : item.lifecycle_evidence === 'non-active-reporting' ? 'non-active-reporting-membership' : semantic.classification));
-    sourceById.set(item.source_id, { taxonomy: item, semantic, qualification: temporalQualification });
+    const policy = sourcePolicy.source_by_id.get(item.source_id);
+    check(policy && policy.source_key === item.source_key && policy.source_release_id === item.source_release_id
+      && policy.profile_count === sourceCounts[item.source_id] && policy.lifecycle_policy_sha256 === item.policy_sha256
+      && policy.temporal_policy_sha256 === semantic.policy_sha256 && policy.policy_profile_path === semantic.policy_path
+      && policy.policy_profile_sha256 === semantic.policy_sha256,
+    `Source policy provenance differs from taxonomy/temporal lineage for ${item.source_id}.`);
+    sourceById.set(item.source_id, { taxonomy: item, semantic, qualification: temporalQualification, policy });
   }
   check(sourceById.size === 15 && Object.keys(sourceCounts).length === 15 && Object.values(sourceCounts).reduce((a, b) => a + b, 0) === 8011835);
   return {
@@ -145,6 +167,7 @@ async function readBindings(root, signal) {
     temporal: { release_id: temporal.provenance.release_id, manifest_sha256: temporal.provenance.manifest_sha256, artifact_sha256: temporal.provenance.artifact_sha256 },
     qualification: { release_id: qualification.provenance.release_id, manifest_sha256: qualification.provenance.manifest_sha256, artifact_sha256: qualification.provenance.artifact_sha256, assessment_as_of: qualification.assessment_as_of },
     source_by_id: sourceById,
+    source_policy_provenance: sourcePolicy,
   };
 }
 
@@ -202,6 +225,7 @@ export async function readBusinessEntityLifecycleEligibilityPartition({ root = A
       check(tax && row.taxonomy_source_key === tax.taxonomy.source_key && row.policy_sha256 === tax.taxonomy.policy_sha256
         && row.source_release_id === tax.taxonomy.source_release_id && row.source_status_sha256 === sha(stable(profile.source_status))
         && row.source_status_value === (profile.source_status?.value ?? null));
+      validateBusinessEntityProfilePolicy(profile, tax.policy);
       if (profile.source_status === null) check(tax.taxonomy.null_status_allowed === true);
       else check(tax.taxonomy.source_status_values.includes(profile.source_status?.value));
       const expected = classifyBusinessEntityLifecycle({ profile, taxonomy: tax.taxonomy, semantic: tax.semantic, qualification: tax.qualification });
@@ -374,6 +398,7 @@ async function consumeProfileShard(root, input, sourceArtifact, outputFile, sign
         && typeof normalized.source?.source_record_id === 'string' && typeof normalized.source?.policy_id === 'string');
       const zip2 = /zip2=(\d{2})\.jsonl\.gz$/.exec(sourceArtifact.path)?.[1];
       check(normalized.source.source_id in sourceCounts && zip2 && normalized.zip_code.slice(0, 2) === zip2);
+      validateBusinessEntityProfilePolicy(normalized, input.source_by_id.get(normalized.source.source_id)?.policy);
       const decision = decisionFor(normalized, input, counts); rows++; addSummary(counts.summary, decision);
       if (outputWriter) await outputWriter.append(decision);
       if (outputRows) { const actual = await outputRows.next(); check(!actual.done && stable(actual.value) === stable(decision), 'Lifecycle replay differs from its independently derived profile decision.'); }
@@ -471,7 +496,10 @@ async function verifyBusinessEntityLifecycleReleaseInternal({ root, release_id, 
   check(stable(counts.status_values) === stable(expectedStatusCounts(input.taxonomy)), 'Lifecycle replay status distribution differs from the closed taxonomy.');
   counts.summary.status_value_counts = Object.fromEntries(Object.entries(counts.status_values).sort(([a], [b]) => a.localeCompare(b)));
   check(stable(counts.summary) === stable(manifest.summary));
-  return { status: 'verified', release_id, manifest_sha256: expectedManifestSha256, summary: manifest.summary };
+  return { status: 'verified', release_id, manifest_sha256: expectedManifestSha256, summary: manifest.summary,
+    source_policy_provenance: { release_id: input.source_policy_provenance.release_id,
+      manifest_sha256: input.source_policy_provenance.manifest_sha256, artifact_sha256: input.source_policy_provenance.artifact_sha256,
+      record_count: input.source_policy_provenance.record_count } };
 }
 
 export async function verifyBusinessEntityLifecycleRelease({ root = APP_ROOT, release_id, expectedManifestSha256, signal } = {}) {

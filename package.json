@@ -223,6 +223,8 @@
     "source-temporal:conservation": "node scripts/audit-business-temporal-conservation.mjs",
     "business-entity-lifecycle:build": "node scripts/build-business-entity-lifecycle-eligibility.mjs",
     "business-entity-lifecycle:verify": "node scripts/verify-business-entity-lifecycle-eligibility.mjs",
+    "business-entity-source-policy:build": "node scripts/build-business-entity-source-policy-provenance.mjs",
+    "business-entity-source-policy:verify": "node scripts/verify-business-entity-source-policy-provenance.mjs",
     "business-entity-geography:build": "node scripts/build-business-entity-geography-relationship.mjs",
     "business-entity-geography:verify": "node scripts/verify-business-entity-geography-relationship.mjs",
     "zip-source-status:build": "node scripts/build-zip-source-status-index.mjs build",

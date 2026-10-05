@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
-import { businessEntityLifecycleInputs, classifyBusinessEntityLifecycle, readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
+import { businessEntityLifecycleInputs, classifyBusinessEntityLifecycle, readBusinessEntityLifecycleEligibilitySummary, validateBusinessEntityProfilePolicy } from './business-entity-lifecycle-eligibility.mjs';
 
 const taxonomy = JSON.parse(await readFile(path.join(APP_ROOT, 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json'), 'utf8'));
 const item = sourceId => taxonomy.sources.find(row => row.source_id === sourceId);
@@ -52,6 +52,16 @@ test('bounded lifecycle summary binds registration, selected manifest, inventory
     await writeFile(path.join(config, 'business-entity-lifecycle-eligibility.json'), JSON.stringify(registration));
     await assert.rejects(readBusinessEntityLifecycleEligibilitySummary({ root }), /incompatible/i);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('lifecycle profile verification binds exact policy identity and source export policy', async () => {
+  const input = await businessEntityLifecycleInputs();
+  const source = [...input.source_by_id.values()][0];
+  const profile = { source: { source_id: source.taxonomy.source_id, source_release_id: source.taxonomy.source_release_id, policy_id: source.policy.policy_id },
+    export_policy: source.policy.semantics.export.profile_export_policy };
+  assert.equal(validateBusinessEntityProfilePolicy(profile, source.policy), true);
+  assert.throws(() => validateBusinessEntityProfilePolicy({ ...profile, source: { ...profile.source, policy_id: 'unknown' } }, source.policy));
+  assert.throws(() => validateBusinessEntityProfilePolicy({ ...profile, export_policy: profile.export_policy === 'public' ? 'local-review-only' : 'public' }, source.policy));
 });
 
 test('every membership and review category remains non-operational and never active-business eligible', () => {

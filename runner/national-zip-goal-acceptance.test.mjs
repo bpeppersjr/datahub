@@ -128,11 +128,12 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.4.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.5.0');
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
     ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
     ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
+    ['business-entity-source-policy-provenance', 'achieved'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   const geoRow = readiness.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
@@ -152,6 +153,9 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(lifecycleRow.stale_count, 24230); assert.equal(lifecycleRow.unknown_or_contradictory_count, 635899);
   assert.deepEqual(readiness.bindings.lifecycle_eligibility.review_status_counts, { 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 });
   assert.deepEqual(readiness.bindings.lifecycle_eligibility.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 });
+  const policyRow = readiness.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance');
+  assert.deepEqual([policyRow.source_count, policyRow.profile_count, policyRow.policy_files_verified, policyRow.profile_policy_rows_verified,
+    policyRow.authorization_granted, policyRow.acquisition_authorized, policyRow.export_authorized], [15, 8011835, 15, 8011835, false, false, false]);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').profile_count, 8011835);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').eligible_count, 0);
