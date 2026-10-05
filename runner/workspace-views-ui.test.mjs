@@ -490,6 +490,7 @@ const crossSources = [
   ...Object.keys(profileDimensions),
   ...Object.keys(broadDimensions),
 ];
+function fixtureDisposition(cell_status,item){const lifecycle_status=item.review_qualification==="unmapped"?"unmapped":item.review_qualification==="unmeasured"?"unmeasured":item.review_qualification==="stale"?"stale":item.semantic_class==="source-defined-current"?(cell_status==="positive"?"source-defined-current-positive-within-review-window":"source-defined-current-without-positive-evidence"):(cell_status==="positive"?"non-active-reporting-positive":"non-active-reporting-without-positive-evidence");return{cell_status,lifecycle_status,label:`${cell_status.replaceAll("-"," ")} · ${lifecycle_status.replaceAll("-"," ")}`,current_operations_verified:false}}
 function crossView(zip = "00601", status = "available") {
   const hash = "c".repeat(64),
     sourceDate = "2026-08-09";
@@ -821,7 +822,7 @@ function crossView(zip = "00601", status = "available") {
       exactZipMatrixManifest.summary.reclassified_absent_source_row_cells,
     release_id: `national-exact-zip-industry-evidence-matrix-${hash}`,
     manifest_sha256: hash,
-    temporal_qualification:{schema_version:temporalQualificationArtifact.schema_version,zip5:zip,assessment_as_of:temporalQualificationArtifact.assessment_as_of,rows:temporalQualificationArtifact.rows,summary:temporalQualificationArtifact.summary,provenance:{release_id:temporalQualificationRegistration.retained_release.release_id,manifest_sha256:temporalQualificationRegistration.retained_release.manifest_sha256,artifact_sha256:temporalQualificationRegistration.retained_release.artifact_sha256,bindings:temporalQualificationRegistration.retained_release.bindings},claims:temporalQualificationArtifact.claims},
+    temporal_qualification:{schema_version:"exact-zip-industry-temporal-qualification-view@1.1.0",zip5:zip,assessment_as_of:temporalQualificationArtifact.assessment_as_of,rows:temporalQualificationArtifact.rows.map(item=>({...item,evidence_disposition:fixtureDisposition(row?.cells?.[item.dimension_id]?.status??"unavailable",item)})),summary:temporalQualificationArtifact.summary,provenance:{release_id:temporalQualificationRegistration.retained_release.release_id,manifest_sha256:temporalQualificationRegistration.retained_release.manifest_sha256,artifact_sha256:temporalQualificationRegistration.retained_release.artifact_sha256,bindings:temporalQualificationRegistration.retained_release.bindings},claims:temporalQualificationArtifact.claims},
     source_bytes_read: 4000,
     full_matrix_replay_performed: false,
     claims: {
@@ -940,6 +941,10 @@ test("cross-view renders thirty-nine temporal cells with source-native status an
   assert.match(value, /Coordinates are not eligible for governed geography/);
   assert.match(value, /observation, not refresh/);
   assert.match(value,/Governed semantic:/);
+  assert.match(value,/Evidence disposition:/);
+  assert.match(value,/publisher status/);
+  assert.match(value,/review due/);
+  assert.match(value,/This disposition does not verify current operation/);
   assert.match(value,/source-defined current is not verified current operation/);
   h.close();
   const na = crossView("00601", "not-applicable-no-same-code-zcta"),
@@ -2727,6 +2732,7 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, provenance: { ...matrix.temporal_qualification.provenance, release_id: "unregistered" } } },
     { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, rows: matrix.temporal_qualification.rows.slice(0,38) } },
     { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, rows: matrix.temporal_qualification.rows.map((row,index)=>index===0?{...row,semantic_class:"current-operation-verified"}:row) } },
+    { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, rows: matrix.temporal_qualification.rows.map((row,index)=>index===0?{...row,evidence_disposition:{...row.evidence_disposition,label:"verified current operation"}}:row) } },
     { ...matrix, temporal_qualification: { ...matrix.temporal_qualification, claims: { ...matrix.temporal_qualification.claims, current_operations_verified: true } } },
     {
       ...matrix,

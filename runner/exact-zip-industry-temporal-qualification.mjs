@@ -25,6 +25,17 @@ const MAP=Object.freeze({
 });
 const hash=b=>createHash('sha256').update(b).digest('hex'), check=(v,m='temporal qualification contract rejected')=>{if(!v)throw Error(m);};
 const canonical=v=>JSON.stringify(v);
+const CELL_STATUSES=new Set(['positive','measured-zero','outside-source-denominator','absent-from-retained-source-rows','unavailable']);
+export function classifyExactZipEvidenceDisposition({cell_status,semantic_class,review_qualification}){
+ check(CELL_STATUSES.has(cell_status)&&['source-defined-current','non-active-reporting','unmapped'].includes(semantic_class)&&['within-review-window','stale','unmeasured','unmapped'].includes(review_qualification),'evidence disposition inputs rejected');
+ let lifecycle_status;
+ if(semantic_class==='unmapped'||review_qualification==='unmapped'){check(semantic_class==='unmapped'&&review_qualification==='unmapped');lifecycle_status='unmapped'}
+ else if(review_qualification==='unmeasured')lifecycle_status='unmeasured';
+ else if(review_qualification==='stale')lifecycle_status='stale';
+ else if(semantic_class==='source-defined-current')lifecycle_status=cell_status==='positive'?'source-defined-current-positive-within-review-window':'source-defined-current-without-positive-evidence';
+ else lifecycle_status=cell_status==='positive'?'non-active-reporting-positive':'non-active-reporting-without-positive-evidence';
+ return {cell_status,lifecycle_status,label:`${cell_status.replaceAll('-',' ')} · ${lifecycle_status.replaceAll('-',' ')}`,current_operations_verified:false};
+}
 function reviewState(row){const c=row.review_clock;if(!c||c.source_reference_at===null||c.age_days===null||c.review_after_days===null)return 'unmeasured';check(Number.isSafeInteger(c.age_days)&&Number.isSafeInteger(c.review_after_days));return c.age_days>c.review_after_days?'stale':'within-review-window';}
 function dueAt(row){const c=row.review_clock;if(!c||!c.source_reference_at||!Number.isSafeInteger(c.review_after_days))return null;const d=new Date(c.source_reference_at);check(Number.isFinite(d.valueOf()));d.setUTCDate(d.getUTCDate()+c.review_after_days);return d.toISOString();}
 async function inputs(root,signal,zip5='10001'){
@@ -80,5 +91,6 @@ export async function readExactZipIndustryTemporalQualification({root=APP_ROOT,z
 }
 export async function readExactZipIndustryEvidenceWithTemporalQualification({root=APP_ROOT,zip5,signal}={}){
  const [industry,temporal_qualification]=await Promise.all([readExactZipIndustryEvidence({root,zip5}),readExactZipIndustryTemporalQualification({root,zip5,signal})]);
- signal?.throwIfAborted();return {...industry,temporal_qualification};
+ const rows=temporal_qualification.rows.map(row=>{const cell_status=industry.row?.cells?.[row.dimension_id]?.status??'unavailable';check(CELL_STATUSES.has(cell_status));return{...row,evidence_disposition:classifyExactZipEvidenceDisposition({cell_status,semantic_class:row.semantic_class,review_qualification:row.review_qualification})}});
+ signal?.throwIfAborted();return {...industry,temporal_qualification:{...temporal_qualification,schema_version:'exact-zip-industry-temporal-qualification-view@1.1.0',rows}};
 }

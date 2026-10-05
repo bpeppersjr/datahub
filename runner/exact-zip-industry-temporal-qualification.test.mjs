@@ -3,7 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {APP_ROOT} from './paths.mjs';
-import {readExactZipIndustryTemporalQualification} from './exact-zip-industry-temporal-qualification.mjs';
+import {classifyExactZipEvidenceDisposition,readExactZipIndustryEvidenceWithTemporalQualification,readExactZipIndustryTemporalQualification} from './exact-zip-industry-temporal-qualification.mjs';
+
+test('evidence disposition is conservative and exhaustive across cell states',()=>{
+ const statuses=['positive','measured-zero','outside-source-denominator','absent-from-retained-source-rows','unavailable'];
+ for(const cell_status of statuses)for(const [semantic_class,review_qualification,expected]of[['source-defined-current','within-review-window',cell_status==='positive'?'source-defined-current-positive-within-review-window':'source-defined-current-without-positive-evidence'],['non-active-reporting','within-review-window',cell_status==='positive'?'non-active-reporting-positive':'non-active-reporting-without-positive-evidence'],['source-defined-current','stale','stale'],['source-defined-current','unmeasured','unmeasured'],['unmapped','unmapped','unmapped']]){const value=classifyExactZipEvidenceDisposition({cell_status,semantic_class,review_qualification});assert.deepEqual(value,{cell_status,lifecycle_status:expected,label:`${cell_status.replaceAll('-',' ')} · ${expected.replaceAll('-',' ')}`,current_operations_verified:false});}
+ assert.throws(()=>classifyExactZipEvidenceDisposition({cell_status:'positive',semantic_class:'unmapped',review_qualification:'within-review-window'}));
+});
+
+test('exact ZIP view adds one joined disposition per dimension without current-operation uplift',async()=>{const view=await readExactZipIndustryEvidenceWithTemporalQualification({zip5:'10001'}),lifecycles=new Set(view.temporal_qualification.rows.map(row=>row.evidence_disposition.lifecycle_status));assert.equal(view.temporal_qualification.schema_version,'exact-zip-industry-temporal-qualification-view@1.1.0');assert.equal(view.temporal_qualification.rows.length,39);assert.ok(view.temporal_qualification.rows.every(row=>row.evidence_disposition.current_operations_verified===false&&row.current_operations_verified===false));assert.ok(lifecycles.has('source-defined-current-positive-within-review-window'));assert.ok(lifecycles.has('non-active-reporting-positive'));const unmapped=view.temporal_qualification.rows.find(row=>row.dimension_id==='cms_hospital_directory').evidence_disposition;assert.equal(unmapped.lifecycle_status,'unmapped');assert.equal(unmapped.cell_status,view.row.cells.cms_hospital_directory.status);});
 
 test('registered temporal qualification exhaustively binds 39 dimensions without current-operation uplift',async()=>{
  const view=await readExactZipIndustryTemporalQualification({zip5:'10000'}), rows=view.rows;
