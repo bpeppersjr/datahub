@@ -10,6 +10,7 @@ type View = {
   semantics: string;
   revision: number;
 };
+type Backlog = {schema_version:"state-access-maintenance-backlog@1.0.0";maintained_industries:string[];total_attention_cells:number;batch_limit:10;next_batch:Array<{state:string;industry:string;access_status:string;temporal_status:string;issue_codes:string[]}>;remaining_after_batch:number;claims:{acquisition_authorized:false;dispatch_performed:false;production_change:false;business_completeness:null}};
 
 export default function Administration() {
   const [view, setView] = useState<View | null>(null);
@@ -17,6 +18,7 @@ export default function Administration() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [backlog,setBacklog]=useState<Backlog|null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -25,6 +27,7 @@ export default function Administration() {
         if (!controller.signal.aborted) {
           setView(value);
           setSelected(value.maintainedIndustries);
+          void runnerJson<Backlog>("/api/administration/industry-backlog",{signal:controller.signal}).then(next=>!controller.signal.aborted&&setBacklog(next)).catch(()=>{});
         }
       })
       .catch(() => !controller.signal.aborted && setError(true));
@@ -43,6 +46,7 @@ export default function Administration() {
       setView(value);
       setSelected(value.maintainedIndustries);
       setMessage("Maintenance selection saved locally.");
+      try{setBacklog(await runnerJson<Backlog>("/api/administration/industry-backlog"));}catch{setBacklog(null);}
     } catch {
       setMessage("Unable to save maintenance selection. Existing settings were preserved.");
     } finally {
@@ -73,6 +77,7 @@ export default function Administration() {
         </div>
         <button className="primary-button" type="button" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save maintenance selection"}</button>
         {message && <p role="status">{message}</p>}
+        {backlog&&<section className="maintenance-backlog" aria-label="Maintained industry attention backlog"><h3>Next maintenance review batch</h3><p>{backlog.total_attention_cells} selected industry/state cells need access or temporal review. The first {backlog.next_batch.length} are shown; {backlog.remaining_after_batch} remain.</p>{backlog.next_batch.length?<ol>{backlog.next_batch.map(row=><li key={`${row.industry}:${row.state}`}><strong>{row.state} · {row.industry.replaceAll("-"," ")}</strong><span>{row.issue_codes.map(code=>code.replaceAll("-"," ")).join(" · ")}</span></li>)}</ol>:<p>No selected industry currently has an access or temporal-review item. An empty selection does not imply complete coverage.</p>}<p className="operations-note">This deterministic batch is planning evidence only. It does not authorize acquisition, dispatch workers, change production, or measure business completeness.</p></section>}
         <p className="operations-note">{view.semantics}</p>
       </>}
     </section>

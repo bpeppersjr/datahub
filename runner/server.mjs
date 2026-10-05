@@ -28,7 +28,7 @@ import { censusZbpIndustryHttp } from './census-zbp-industry-http.mjs';
 import { nationalGoalCompletionView } from './national-goal-completion-view.mjs';
 import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 import { broadOrganizationAdjacentEvidenceHttp } from './broad-organization-adjacent-evidence-http.mjs';
-import { stateAccessView, stateAccessIndustrySummary } from './state-access-view.mjs';
+import { stateAccessView, stateAccessIndustrySummary, stateAccessMaintenanceBacklog } from './state-access-view.mjs';
 import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.mjs';
@@ -1080,6 +1080,12 @@ const server = http.createServer(async (request, response) => {
       const value = industryMaintenance.view();
       response.setHeader('ETag', `"${value.revision}"`);
       json(response, 200, value);
+      return;
+    }
+
+    if (url.pathname === '/api/administration/industry-backlog' && request.method === 'GET') {
+      if ([...url.searchParams.keys()].length) throw Object.assign(new Error('Industry backlog does not accept options.'), { statusCode: 400 });
+      json(response, 200, await stateAccessMaintenanceBacklog({ maintainedIndustries: industryMaintenance.view().maintainedIndustries }));
       return;
     }
 

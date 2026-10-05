@@ -17,6 +17,11 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(server, /bodyJson\(request, 16 \* 1024\)/);
   assert.match(server, /statusCode: 428/);
   assert.match(server, /industryMaintenance\.update/);
+  assert.match(admin, /Next maintenance review batch/);
+  assert.match(admin, /planning evidence only/);
+  assert.match(admin, /does not authorize acquisition, dispatch workers, change production, or measure business completeness/);
+  assert.match(server, /\/api\/administration\/industry-backlog/);
+  assert.match(server, /stateAccessMaintenanceBacklog/);
   assert.doesNotMatch(server, /updateSettings\(\{ maintainedIndustries/);
 });
 
