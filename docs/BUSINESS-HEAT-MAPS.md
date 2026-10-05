@@ -2,9 +2,15 @@
 
 Co*Tive Collector's **Heatmap Builder** section is a read-only spatial view over the current governed national business coverage, Census geography, national registry, direct Census Nonemployer aggregates, and optional BEA regional-GDP releases. It does not publish a new data release or change a production pointer.
 
+## Nonadditive business-map aggregation contract v2
+
+`business-map-nonadditive-aggregation@2.0.0` supersedes scalar source-count totals in the map and state-summary APIs. Until entity resolution is applied and its benchmark gate passes, the map returns `unique_business_count`, `business_count`, observed business units, and observed physical sites as `null`; the aggregation status is `withheld-overlapping-source-units-entity-resolution-not-applied`. Cross-source business density, composition, peer alignment, and category/national additive ratios are also withheld. No current category selection is an explicitly typed, proven additive single-source selection.
+
+Instead, each geography retains per-dimension evidence components with a dimension ID, source ID, count unit, count, and the exact coverage-release lineage. The map heat value is the number of source components with evidence for the selected category (or all components for `all`), not a record, business, organization, establishment, or site total. State-summary category sums and cross-source shares are `null`. A nationwide share is shown only alongside the same dimension's component vector and is not an all-business share. Historical figures such as 19,652,490 and 7,923,937, where encountered in older summaries, are component sums only and must never be labeled as unique businesses, business units, or sites.
+
 ## Tennessee reporting backend preparation
 
-For exact coverage 2.9/registry 2.13 inputs, the backend adds Tennessee childcare to the category hierarchy. ZIP maps continue to count only source-ZIP evidence; state/national totals additionally include the disjoint ZIP-unavailable cohort by reported state. County totals add only its source points assigned to that county. Assignment labels disclose this distinction; percentages remain shares of collected evidence, not independently measured business completeness.
+For exact coverage 2.9/registry 2.13 inputs, the backend adds Tennessee childcare to the category hierarchy. ZIP maps retain source-ZIP evidence; state/county component vectors additionally retain the disjoint ZIP-unavailable cohort only at its governed reported-state or point-assigned county scope. These remain source rows, not deduplicated totals or completeness measures.
 
 The protected read-only endpoint `/api/business-map/state-names?state=47&category=childcare&limit=25` browses source-ZIP-unavailable names by state FIPS. It accepts an optional `query`, clamps `limit` to 1–100, and returns `scope: source-zip-unavailable`, a total, and bounded records with null ZIP, source status/recovery evidence and local-review policy. It is not a list of every business in the state. Existing ZIP name browsing remains separate. Adding the UI control does not promote Tennessee production data.
 
@@ -12,7 +18,7 @@ The protected read-only endpoint `/api/business-map/state-names?state=47&categor
 
 Select a state and an eligible business category. In the right-hand business-name panel, change **Address scope** to **ZIP unavailable in this state**. Results span that state, even while viewing one of its counties or ZCTAs; they are not county-filtered or assigned invented ZIPs. **Selected ZIP** restores the original ZIP-specific search. Changing the state, selected ZIP or category resets the scope and name filter. Organization-address-only categories do not expose name browsing.
 
-The name filter requests up to 25 records with a short debounce. Earlier responses cannot replace a newer scope/search, and old names are cleared immediately when the filter changes. Address line 2 is retained; unavailable ZIP is labeled explicitly and reported ZIP4 remains separate. Local-review restrictions and the source limitation are visible. A compatible publication with zero matches differs from unavailable evidence or a request error. State/national percentage explanations use the published assignment semantics, including ZIP-unavailable additions when supported; the percentage of all U.S. businesses collected remains unknown.
+The name filter requests up to 25 records with a short debounce. Earlier responses cannot replace a newer scope/search, and old names are cleared immediately when the filter changes. Address line 2 is retained; unavailable ZIP is labeled explicitly and reported ZIP4 remains separate. Local-review restrictions and the source limitation are visible. A compatible publication with zero matches differs from unavailable evidence or a request error. State/national evidence is displayed only as dimension-specific components; the percentage of all U.S. businesses collected remains unknown.
 
 Six non-browser component-handler tests cover scope requests, nullable postal display, ZIP4 separation, filtering, stale/unmounted responses, unsupported scopes, empty/unavailable/error states and right-panel state/key/percentage wiring. These are programmatic component checks, not browser interaction or visual QA.
 
@@ -40,23 +46,16 @@ These are analytical source groups, not inferred NAICS classifications. One real
 
 Business-name drill-down reads only the selected ZIP5 partition from the registry's governed location-profile layer. ZIP5 and ZIP+4 remain separate response fields. When the governed location profile has a point, the response projects it to separate nullable `latitude` and `longitude` values; it does not expose a business geometry. Categories containing organization-address assertions without physical-location profiles explain that names are unavailable rather than presenting an incomplete name list as complete. The all-category response also discloses that its names cover physical-location profiles only and exclude organization-address evidence that remains part of the map count. Record-level local-review restrictions remain visible.
 
-The persistent entity-summary section to the right of the map provides selected entity values and two state-alignment percentages for the active category:
-
-- **Within state**: the category's share of all relevant source-category evidence assigned to that state; and
-- **Across U.S.**: the state's share of that category across the displayed states.
-
-The summary also displays provisional observed business units, physical sites, selected-category evidence, Census employer establishments, Census nonemployer establishments and receipts, population, housing, density, and GDP status. State and county entities show direct reference-year Census Nonemployer aggregates. State and directly matched county entities show the reference-year BEA current-dollar GDP estimate when a verified governed release is present. ZIP entities state that neither official ZIP GDP nor Census Nonemployer values are available; no state or county value is allocated downward. Business-name records and their available latitude/longitude appear in this same section after a ZIP selection. Map hover uses an on-map business tooltip and does not replace the entity pinned in the right-hand summary.
-
-**Relative coverage alignment (proxy)** divides selected-category evidence per Census employer establishment by the applicable governed peer median. States compare with the 50-state-and-DC state set, counties compare with counties in the selected state, and ZIP/ZCTA rows compare with uniquely state-assigned ZCTA peers across the selected state. A value of 100% equals the peer median and values may exceed 100%. This is a relative alignment proxy, not a completeness percentage for the business universe.
+The persistent entity-summary section shows typed source components, demographic context, and GDP status. It explicitly says **Not additive—entity resolution not applied**; unique-business totals, observed-unit/site totals, business density, category shares, and peer alignment are not presented. State and county entities may show direct Census Nonemployer aggregates and matched BEA GDP context; no state or county value is allocated downward to ZIP.
 
 ## Population and demographic enhancers
 
 The map can color polygons by:
 
-- selected-category source evidence;
+- selected-category source-component presence (not a business count);
 - 2020 Census population;
 - 2020 Census housing units;
-- selected-category evidence per 1,000 people;
+- selected-category evidence per 1,000 people (withheld while inputs are nonadditive);
 - population density per square mile; or
 - the 2023 Census ZIP Business Patterns employer-establishment baseline;
 - Census Nonemployer establishments for directly published state/county geography; or
@@ -72,9 +71,9 @@ GDP comes from the governed BEA CAGDP1 release and is matched only by exact stat
 
 The view never multiplies a business, population, address, or establishment count by polygon-area weights. State and county category aggregates admit only a ZCTA with exactly one material jurisdiction intersection. Ambiguous cross-boundary ZCTAs and reported ZIP values without a usable ZCTA remain excluded from those aggregates, and every response reports the excluded record and evidence counts.
 
-State composition and nationwide-share percentages return `null` when their denominator is zero or unavailable. Numeric `0%` is reserved for a measured zero numerator over a positive denominator.
+Cross-source state composition and category/nationwide percentages are always `null` under contract v2; a component-specific share may be computed only within that exact evidence dimension and its same-source geography vector. Numeric zero counts remain component values and are not interpreted as zero businesses.
 
-The right-hand summary also shows the selected category's share of collected national evidence before a map entity is selected. Its numerator is the category's evidence count across the 50 states and D.C.; its denominator is the sum of all category evidence in that same scope. The API exposes both counts, `national_category_percent_of_collected_evidence`, and `national_percentage_basis`. Territory-inclusive requests explicitly change the scope label. Overlapping sources can represent the same business multiple times, so this composition percentage is never represented as the percentage of all U.S. businesses collected; that unknown completeness value remains `null`.
+The API retains source-component totals and same-component state shares with source dimension, unit, and release lineage. It withholds a scalar category total, an all-category total, and national all-category share because sources overlap. This evidence profile does not assert unique-business completeness.
 
 The Industries workspace also compares every reporting category in the verified goal-completion matrix side by side. For each category it shows national and selected-state counts of available, measured, unmeasured, and expected dataset cells. These are dataset-availability expectations from one immutable release, not percentages of businesses or claims that an industry is complete. An unmeasured cell remains unknown and stays in the expected denominator; `available / measured` must not be read as `available / expected`. The selected-state columns remain explicitly unavailable until a state is selected.
 

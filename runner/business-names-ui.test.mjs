@@ -80,15 +80,15 @@ test('unavailable evidence, valid empty result and request failures have differe
   }
 });
 
-test('right-side summary wires state/category/ZIP resets and uses published percentage semantics', () => {
+test('right-side summary wires state/category/ZIP resets and withholds cross-source percentage semantics', () => {
   const f = fixture(() => {});
-  const tree = f.summary({ feature: { properties: { level: 'county', state_fips: '47', name: 'County' } }, category: { id: 'childcare', business_name_drilldown: true }, selectedZip: '37201', stateFips: '26', stateSummary: {
-    available: true, states: [], national_category_counts: {}, national_all_category_evidence_count: 0, national_category_percent_of_collected_evidence: {}, assignment: { semantics: 'Includes disjoint source ZIP-unavailable evidence.' },
+  const tree = f.summary({ feature: { properties: { level: 'county', state_fips: '47', name: 'County', evidence_components: [], heat_value: 0 } }, category: { id: 'childcare', business_name_drilldown: true }, selectedZip: '37201', stateFips: '26', stateSummary: {
+    available: true, states: [], national_category_counts: {}, national_all_category_evidence_count: null, national_category_percent_of_collected_evidence: {}, national_percentage_basis: { geography_scope: '50 states and District of Columbia', unit: 'Withheld across overlapping source evidence components.' }, assignment: { semantics: 'Includes disjoint source ZIP-unavailable evidence.' },
   } });
   const drill = nodes(tree).find(node => typeof node.type === 'function' && node.type.name === 'BusinessNames');
   const retained = nodes(tree).find(node => typeof node.type === 'function' && node.type.name === 'RetainedChildcarePanel');
   assert.equal(retained.props.selectedZip, '37201'); assert.equal(retained.props.countySelected, true);
   assert.equal(retained.props.scopeUnavailable, true); assert.equal(retained.props.publisherState, undefined);
-  assert.equal(drill.props.stateFips, '47'); assert.equal(drill.key, '47:37201:childcare'); assert.match(text(tree), /Includes disjoint source ZIP-unavailable evidence/);
-  assert.match(text(tree), /percentage of all U.S. businesses collected is unknown/);
+  assert.equal(drill.props.stateFips, '47'); assert.equal(drill.key, '47:37201:childcare');
+  assert.match(text(tree), /Cross-source totals, business density, category composition, and peer alignment are withheld/);
 });

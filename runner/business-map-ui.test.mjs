@@ -48,6 +48,26 @@ test('map hover reconciles selected geoid against new response and uses source-p
   const empty = h.map({ ...props, data: { ...response(), features: [] } });
   assert.equal(nodes(empty).some(node => node.props?.className === 'map-tooltip'), false);
 });
+
+test('multi-source map UI reports component presence and withholds business totals and ratios', () => {
+  const h = harness([1, '42001']);
+  const data = response(2);
+  data.enhancer_id = 'business_count';
+  data.features[0].properties = {
+    ...data.features[0].properties,
+    aggregation_contract: 'business-map-nonadditive-aggregation@2.0.0',
+    aggregation_status: 'withheld-overlapping-source-units-entity-resolution-not-applied',
+    cross_source_additive: false, entity_resolution_applied: false, benchmark_gate_passed: false,
+    unique_business_count: null, business_count: null, observed_business_units: null, observed_physical_sites: null,
+    businesses_per_1000_people: null, relative_coverage_alignment_percent: null,
+  };
+  const rendered = text(h.map({ data, selectedGeoid: '42001', categoryLabel: 'All sources', enhancerLabel: 'Source component presence', onSelect: () => {} }));
+  assert.match(rendered, /Not additive—entity resolution not applied/);
+  assert.match(rendered, /number of source evidence components present, not businesses or sites/);
+  assert.doesNotMatch(rendered, /observed provisional business units|Selected-category evidence|businesses per 1,000|peer median/);
+  assert.match(source, /Unique businesses<\/span><strong>Not measured/);
+  assert.match(source, /Cross-source totals, business density, category composition, and peer alignment are withheld/);
+});
 test('selection change withholds previous map response before effects run', () => {
   const catalog = { available: true, categories: [], enhancers: [], category_groups: [], semantics: {} };
   const current = ['childcare', 'retained_childcare_county_points', 'counties', '42', '', '', ''];

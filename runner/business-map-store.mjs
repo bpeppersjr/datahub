@@ -137,13 +137,13 @@ const CATEGORY_DEFINITIONS = Object.freeze([
       "pa_business_registry_organization_reported_business_address_count",
       "il_business_registry_organization_records_office_address_count",
     ],
-    source_ids: [],
+    source_ids: ["ct-business-registry", "de-business-license-organization-addresses", "co-business-registry", "wa-lni-active-contractors", "or-business-registry", "ia-business-registry", "ny-business-registry", "fl-business-registry", "pa-business-registry", "il-business-registry"],
   },
 ]);
 
 const ENHANCERS = Object.freeze([
   { id: "retained_childcare_county_points", label: "Retained childcare county points (PA + MD)", kind: "source-candidate" },
-  { id: "business_count", label: "Observed business evidence", kind: "business" },
+  { id: "business_count", label: "Source component presence", kind: "business" },
   { id: "population_2020", label: "2020 Census population", kind: "population" },
   { id: "housing_units_2020", label: "2020 Census housing units", kind: "demographic" },
   { id: "businesses_per_1000_people", label: "Business evidence per 1,000 people", kind: "population-enhanced" },
@@ -155,7 +155,7 @@ const ENHANCERS = Object.freeze([
 
 // Authoritative map taxonomy without triggering geometry/coverage index loading.
 export function businessMapCategoryMetadata() {
-  return Object.freeze([{ id: "all", label: "All source categories", business_name_drilldown: true }, ...CATEGORY_DEFINITIONS.map(({ id, label, group_id, group_label, fields, source_ids }) => Object.freeze({ id, label, group_id, group_label, business_name_drilldown: source_ids.length > 0, evidence_fields: Object.freeze([...fields]), source_ids: Object.freeze([...source_ids]) }))].map(Object.freeze));
+  return Object.freeze([{ id: "all", label: "All source categories", business_name_drilldown: true }, ...CATEGORY_DEFINITIONS.map(({ id, label, group_id, group_label, fields, source_ids }) => Object.freeze({ id, label, group_id, group_label, business_name_drilldown: id !== "registrations-nonprofits" && source_ids.length > 0, evidence_fields: Object.freeze([...fields]), source_ids: Object.freeze([...source_ids]) }))].map(Object.freeze));
 }
 
 const CATEGORY_BY_ID = new Map(CATEGORY_DEFINITIONS.map((category) => [category.id, category]));
@@ -295,22 +295,63 @@ function nonemployerProperties(record, geographyType) {
   };
 }
 
-function countsFor(registryCoverage) {
-  const counts = {};
-  let all = 0;
-  for (const category of CATEGORY_DEFINITIONS) {
-    const count = category.fields.reduce((sum, field) => sum + number(registryCoverage?.[field]), 0);
-    counts[category.id] = count;
-    all += count;
-  }
-  counts.all = all;
-  return counts;
+const BUSINESS_MAP_AGGREGATION_CONTRACT = "business-map-nonadditive-aggregation@2.0.0";
+const COMPONENT_UNITS = Object.freeze({
+  snap_authorization_evidence_count: "retailer_authorization_records",
+  ny_retail_food_store_license_site_count: "retail_food_license_site_rows",
+  ca_abc_active_issued_license_site_count: "active_issued_license_site_rows",
+  nppes_primary_practice_location_count: "primary_practice_location_rows",
+  nppes_non_primary_practice_location_count: "nonprimary_practice_location_rows",
+  ma_childcare_center_site_count: "reported_center_rows",
+  nj_childcare_center_site_count: "reported_center_rows",
+  tn_childcare_center_site_count: "reported_center_rows",
+  fdic_current_location_count: "bank_location_rows",
+  ncua_reported_us_location_count: "credit_union_location_rows",
+  fsis_active_establishment_count: "active_establishment_rows",
+  epa_echo_active_facility_count: "active_facility_rows",
+  fmcsa_active_registration_principal_office_count: "active_registration_principal_office_rows",
+  irs_eo_organization_filing_address_count: "filing_address_rows",
+  ak_active_business_license_provisional_physical_site_count: "license_location_profiles",
+  la_active_business_registered_location_count: "registered_location_profiles",
+  tx_active_sales_tax_permitted_outlet_count: "sales_tax_outlet_profiles",
+  chicago_active_business_license_site_count: "license_location_profiles",
+  dc_basic_business_license_site_count: "license_location_profiles",
+  nyc_dcwp_active_license_site_count: "active_license_premise_profiles",
+  ct_business_registry_organization_reported_business_address_count: "reported_organization_address_rows",
+  de_business_license_organization_reported_business_address_count: "reported_organization_address_rows",
+  co_business_registry_organization_principal_office_address_count: "reported_principal_office_address_rows",
+  wa_lni_active_contractor_organization_mailing_address_count: "reported_mailing_address_rows",
+  or_business_registry_active_registration_principal_place_address_count: "reported_principal_place_address_rows",
+  ia_business_registry_organization_home_office_address_count: "reported_home_office_address_rows",
+  ny_business_registry_organization_reported_location_address_count: "reported_organization_location_rows",
+  fl_business_registry_organization_reported_principal_address_count: "reported_principal_address_rows",
+  pa_business_registry_organization_reported_business_address_count: "reported_business_address_rows",
+  il_business_registry_organization_records_office_address_count: "reported_records_office_address_rows",
+});
+const COMPONENT_SOURCES = Object.freeze(Object.fromEntries(CATEGORY_DEFINITIONS.flatMap(category => category.fields.map((field,index) => [field, category.source_ids.length === category.fields.length ? category.source_ids[index] : category.source_ids[0] ?? null]))));
+function componentEvidence(counts, coverageReleaseId) {
+  if (typeof coverageReleaseId !== "string" || !coverageReleaseId || CATEGORY_DEFINITIONS.some(category => !category.source_ids.length || (category.source_ids.length !== 1 && category.source_ids.length !== category.fields.length))) throw new Error("Business-map evidence component lineage is incomplete.");
+  for (const field of Object.keys(COMPONENT_SOURCES)) if (!COMPONENT_SOURCES[field] || !COMPONENT_UNITS[field] || !Number.isSafeInteger(counts[field] ?? 0) || (counts[field] ?? 0) < 0) throw new Error("Business-map evidence component unit, lineage, or count is invalid.");
+  return CATEGORY_DEFINITIONS.map(category => ({
+    category_id: category.id,
+    components: category.fields.map(field => ({
+      dimension_id: field,
+      source_id: COMPONENT_SOURCES[field],
+      coverage_release_id: coverageReleaseId,
+      unit: COMPONENT_UNITS[field],
+      count: counts[field] ?? 0,
+      scalar_additive_compatible: false,
+    })),
+  }));
+}
+function componentPresence(counts, categoryId = "all") {
+  const fields = categoryId === "all" ? CATEGORY_DEFINITIONS.flatMap(category => category.fields) : (CATEGORY_BY_ID.get(categoryId)?.fields ?? []);
+  return fields.filter(field => (counts[field] ?? 0) > 0).length;
 }
 
 function emptyAggregate() {
   return {
-    zip_unavailable_business_evidence: 0,
-    category_counts: Object.fromEntries(["all", ...CATEGORY_DEFINITIONS.map(({ id }) => id)].map((id) => [id, 0])),
+    component_counts: Object.fromEntries(CATEGORY_DEFINITIONS.flatMap(category => category.fields).map(field => [field, 0])),
     population_2020: 0,
     population_known_zcta_count: 0,
     housing_units_2020: 0,
@@ -326,7 +367,8 @@ function emptyAggregate() {
 }
 
 function addAggregate(target, zip) {
-  for (const [category, count] of Object.entries(zip.category_counts)) target.category_counts[category] += count;
+  for (const [dimension, count] of Object.entries(zip.component_counts)) target.component_counts[dimension] += count;
+  target.coverage_release_id ??= zip.coverage_release_id ?? null;
   if (zip.population_2020 !== null) target.population_2020 += zip.population_2020;
   target.population_known_zcta_count += zip.population_known_zcta_count;
   if (zip.housing_units_2020 !== null) target.housing_units_2020 += zip.housing_units_2020;
@@ -353,14 +395,14 @@ function aggregateMetricStatus(aggregate, knownCountField, metric) {
 }
 
 function valueFor(aggregate, categoryId, enhancerId, economic = {}) {
-  const businessCount = aggregate.category_counts[categoryId] ?? 0;
+  const businessCount = null;
   const population = completeZctaMetric(aggregate, "population_2020", "population_known_zcta_count");
   const housing = completeZctaMetric(aggregate, "housing_units_2020", "housing_known_zcta_count");
   const employers = completeZctaMetric(aggregate, "employer_establishments", "employer_known_zcta_count");
-  if (enhancerId === "business_count") return businessCount;
+  if (enhancerId === "business_count") return componentPresence(aggregate.component_counts, categoryId);
   if (enhancerId === "population_2020") return population;
   if (enhancerId === "housing_units_2020") return housing;
-  if (enhancerId === "businesses_per_1000_people") return population !== null && population > 0 ? (businessCount / population) * 1000 : null;
+  if (enhancerId === "businesses_per_1000_people") return businessCount !== null && population !== null && population > 0 ? (businessCount / population) * 1000 : null;
   if (enhancerId === "population_density") return population !== null && aggregate.area_land_m2 > 0 ? population / (aggregate.area_land_m2 / SQ_METERS_PER_SQ_MILE) : null;
   if (enhancerId === "nonemployer_establishments") return economic.nonemployer_establishments ?? null;
   if (enhancerId === "gdp_current_dollars") return economic.gdp_current_dollars ?? null;
@@ -379,9 +421,16 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       geoid,
       name: feature.properties?.NAME ?? feature.properties?.BASENAME ?? `ZCTA5 ${geoid}`,
       postal_abbreviation: feature.properties?.STUSAB ?? null,
+      aggregation_contract: BUSINESS_MAP_AGGREGATION_CONTRACT,
+      aggregation_status: "withheld-overlapping-source-units-entity-resolution-not-applied",
+      cross_source_additive: false,
+      entity_resolution_applied: false,
+      benchmark_gate_passed: false,
+      unique_business_count: null,
       category_id: categoryId,
-      business_count: aggregate.category_counts[categoryId] ?? 0,
-      zip_unavailable_business_evidence: aggregate.zip_unavailable_business_evidence ?? 0,
+      business_count: null,
+      evidence_components: componentEvidence(aggregate.component_counts, aggregate.coverage_release_id ?? null),
+      zip_unavailable_business_evidence: null,
       population_2020: population,
       population_status: aggregate.population_status ?? aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
       population_known_zcta_count: aggregate.population_known_zcta_count,
@@ -392,9 +441,9 @@ function decorate(feature, aggregate, categoryId, enhancerId, extra = {}) {
       employer_baseline_status: aggregate.employer_baseline_status ?? aggregateMetricStatus(aggregate, "employer_known_zcta_count", "employer-baseline"),
       employer_known_zcta_count: aggregate.employer_known_zcta_count,
       demographic_zcta_count: aggregate.zcta_count,
-      observed_business_units: aggregate.observed_business_units,
-      observed_physical_sites: aggregate.observed_physical_sites,
-      observed_organization_primary_locations: aggregate.observed_organization_primary_locations,
+      observed_business_units: null,
+      observed_physical_sites: null,
+      observed_organization_primary_locations: null,
       population_density: valueFor(aggregate, categoryId, "population_density"),
       businesses_per_1000_people: valueFor(aggregate, categoryId, "businesses_per_1000_people"),
       heat_value: valueFor(aggregate, categoryId, enhancerId, extra),
@@ -436,24 +485,12 @@ function percentage(numerator, denominator) {
     : null;
 }
 
-function median(values) {
-  const ordered = values.filter(Number.isFinite).sort((left, right) => left - right);
-  if (!ordered.length) return null;
-  const middle = Math.floor(ordered.length / 2);
-  return ordered.length % 2 ? ordered[middle] : (ordered[middle - 1] + ordered[middle]) / 2;
+function peerMedianForFeatures() {
+  return null;
 }
 
-function peerMedianForFeatures(features) {
-  return median(features
-    .filter((feature) => feature.properties.employer_establishments > 0)
-    .map((feature) => feature.properties.business_count / feature.properties.employer_establishments));
-}
-
-function peerMedianForAggregates(aggregates, categoryId) {
-  return median(aggregates
-    .map((aggregate) => ({ aggregate, employers: completeZctaMetric(aggregate, "employer_establishments", "employer_known_zcta_count") }))
-    .filter(({ employers }) => employers !== null && employers > 0)
-    .map(({ aggregate, employers }) => (aggregate.category_counts[categoryId] ?? 0) / employers));
+function peerMedianForAggregates() {
+  return null;
 }
 
 function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displayed peer geographies" } = {}) {
@@ -461,12 +498,8 @@ function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displ
   return {
     peerMedian: resolvedPeerMedian,
     features: features.map((feature) => {
-      const evidencePerEmployerEstablishment = feature.properties.employer_establishments !== null && feature.properties.employer_establishments > 0
-        ? feature.properties.business_count / feature.properties.employer_establishments
-        : null;
-      const relativeCoverageAlignmentPercent = resolvedPeerMedian && evidencePerEmployerEstablishment !== null
-        ? Number(((evidencePerEmployerEstablishment / resolvedPeerMedian) * 100).toFixed(2))
-        : null;
+      const evidencePerEmployerEstablishment = null;
+      const relativeCoverageAlignmentPercent = null;
       return {
         ...feature,
         properties: {
@@ -474,7 +507,7 @@ function addRelativeCoverageAlignment(features, { peerMedian, peerScope = "displ
           evidence_per_employer_establishment: evidencePerEmployerEstablishment,
           relative_coverage_alignment_percent: relativeCoverageAlignmentPercent,
           relative_coverage_alignment_peer_scope: peerScope,
-          relative_coverage_alignment_basis: `selected-category evidence per Census employer establishment versus the ${peerScope} median; 100 equals the median and this is not true business-universe completeness`,
+          relative_coverage_alignment_basis: "Withheld: overlapping source units cannot be compared as business totals before entity resolution.",
           gdp_current_dollars: feature.properties.gdp_current_dollars ?? null,
           gdp_reference_year: feature.properties.gdp_reference_year ?? null,
           gdp_status: feature.properties.gdp_status ?? "unavailable-no-governed-bea-gdp-release",
@@ -606,7 +639,8 @@ export function createBusinessMapStore({
       const employers = employerPublished ? finiteOrNull(row.employer_baseline.establishments) : null;
       const zip = {
         zip_code: code,
-        category_counts: countsFor(row.registry_coverage),
+        component_counts: Object.fromEntries(CATEGORY_DEFINITIONS.flatMap(category => category.fields).map(field => [field, number(row.registry_coverage?.[field])])),
+        coverage_release_id: coverage.manifest.release_id,
         population_2020: population,
         population_status: population === null ? "unavailable-census-zcta-population-not-published" : "available-direct-census-zcta-2020",
         population_known_zcta_count: population === null ? 0 : 1,
@@ -642,25 +676,25 @@ export function createBusinessMapStore({
       }
       if (!zip.has_zcta || stateIds.length === 0) {
         excluded.state.unmatched += 1;
-        excluded.state.unmatched_business_evidence += zip.category_counts.all;
+        excluded.state.unmatched_business_evidence += componentPresence(zip.component_counts);
       } else if (stateIds.length === 1) {
         const aggregate = stateAggregates.get(stateIds[0]) ?? emptyAggregate();
         addAggregate(aggregate, zip);
         stateAggregates.set(stateIds[0], aggregate);
       } else {
         excluded.state.ambiguous += 1;
-        excluded.state.ambiguous_business_evidence += zip.category_counts.all;
+        excluded.state.ambiguous_business_evidence += componentPresence(zip.component_counts);
       }
       if (!zip.has_zcta || countyIds.length === 0) {
         excluded.county.unmatched += 1;
-        excluded.county.unmatched_business_evidence += zip.category_counts.all;
+        excluded.county.unmatched_business_evidence += componentPresence(zip.component_counts);
       } else if (countyIds.length === 1) {
         const aggregate = countyAggregates.get(countyIds[0]) ?? emptyAggregate();
         addAggregate(aggregate, zip);
         countyAggregates.set(countyIds[0], aggregate);
       } else {
         excluded.county.ambiguous += 1;
-        excluded.county.ambiguous_business_evidence += zip.category_counts.all;
+        excluded.county.ambiguous_business_evidence += componentPresence(zip.component_counts);
       }
     });
     const totals = coverage.manifest.coverage?.tn_childcare_reporting;
@@ -680,11 +714,10 @@ export function createBusinessMapStore({
           validate(stats);
           if (isState && stats.records && states.get(id)?.postal_abbreviation !== "TN") throw new Error("TN reporting state differs.");
           const aggregate = aggregates.get(id) ?? emptyAggregate();
-          aggregate.category_counts.childcare += stats.without_zip;
-          aggregate.category_counts.all += stats.without_zip;
+          aggregate.component_counts.tn_childcare_center_site_count += stats.without_zip;
           aggregate.observed_business_units += stats.without_zip;
           aggregate.observed_physical_sites += stats.without_zip;
-          aggregate.zip_unavailable_business_evidence = stats.without_zip;
+          aggregate.coverage_release_id = coverage.manifest.release_id;
           aggregates.set(id, aggregate);
           if (isState) stateMissing += stats.without_zip; else countyMissing += stats.without_zip;
         }
@@ -754,9 +787,15 @@ export function createBusinessMapStore({
         group = { id: item.group_id, label: item.group_label, categories: [] };
         groups.push(group);
       }
-      group.categories.push({ id: item.id, label: item.label, business_name_drilldown: item.source_ids.length > 0, evidence_fields: item.fields, source_ids: item.source_ids });
+      group.categories.push({ id: item.id, label: item.label, business_name_drilldown: item.id !== "registrations-nonprofits" && item.source_ids.length > 0, evidence_fields: item.fields, source_ids: item.source_ids });
     }
     return {
+      aggregation_contract: BUSINESS_MAP_AGGREGATION_CONTRACT,
+      aggregation_status: "withheld-overlapping-source-units-entity-resolution-not-applied",
+      cross_source_additive: false,
+      entity_resolution_applied: false,
+      benchmark_gate_passed: false,
+      unique_business_count: null,
       available: true,
       coverage_release_id: index.coverage.manifest.release_id,
       registry_release_id: registryDependency?.release_id ?? null,
@@ -772,7 +811,7 @@ export function createBusinessMapStore({
       enhancers: ENHANCERS,
       interaction: { levels: ["states", "counties", "zips"], zoom_gesture: "Ctrl+wheel", business_names_available_at: "selected-five-digit-ZIP", zip_unavailable_business_names_available_at: "selected-state-reporting-only" },
       semantics: {
-        business_count: "Source-preserving evidence counts; categories are mutually exclusive source groups, but businesses are not deduplicated across sources.",
+        business_count: "Withheld: source units overlap and entity resolution is not applied. Heat value is the count of source evidence components present, not a business count.",
         jurisdiction_assignment: "ZIP evidence uses exactly one material ZCTA intersection, with no area allocation. Coverage 2.9 additionally retains disjoint TN ZIP-unavailable rows by reported state and unambiguous point-assigned county; it does not infer ZIPs.",
         population: "2020 Census ZCTA population and housing. State/county values sum only uniquely assigned material ZCTAs.",
         nonemployer: "Census Nonemployer Statistics are direct state/county annual aggregates. They are not current operating-status or completeness measures and are never allocated to ZIP/ZCTA geography.",
@@ -807,7 +846,7 @@ export function createBusinessMapStore({
       collection = await geoJson(index, "source/states.geojson", enhancerId === 'retained_childcare_county_points');
       features = collection.features.filter((feature) => index.states.get(String(feature.properties?.GEOID ?? ""))?.is_50_states_or_dc).map((feature) => {
         const geoid = String(feature.properties?.GEOID ?? "");
-        return decorate(feature, index.stateAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
+        return decorate(feature, { ...(index.stateAggregates.get(geoid) ?? emptyAggregate()), coverage_release_id: index.coverage.manifest.release_id }, categoryId, enhancerId, {
           level: "state",
           scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-state-plus-reported-state-zip-unavailable" : "unique-material-zcta-state",
           ...nonemployerProperties(index.stateCoverage.get(geoid), "state"),
@@ -818,8 +857,10 @@ export function createBusinessMapStore({
         assignment_semantics: index.compatibility.tennessee ? "unique-material-zcta-state-plus-disjoint-reported-state-zip-unavailable-no-area-allocation" : "unique-material-zcta-state-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
-        excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
-        excluded_unmatched_business_evidence: index.excluded.state.unmatched_business_evidence,
+        excluded_ambiguous_business_evidence: null,
+        excluded_unmatched_business_evidence: null,
+        excluded_ambiguous_source_component_presence: index.excluded.state.ambiguous_business_evidence,
+        excluded_unmatched_source_component_presence: index.excluded.state.unmatched_business_evidence,
         excluded_territory_state_equivalents: [...index.states.values()].filter((row) => !row.is_50_states_or_dc).length,
       };
       alignmentPeerScope = "50 states and District of Columbia peer";
@@ -828,7 +869,7 @@ export function createBusinessMapStore({
       collection = await geoJson(index, `source/counties/state=${state}.geojson`, enhancerId === 'retained_childcare_county_points');
       features = collection.features.map((feature) => {
         const geoid = String(feature.properties?.GEOID ?? "");
-        return decorate(feature, index.countyAggregates.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
+        return decorate(feature, { ...(index.countyAggregates.get(geoid) ?? emptyAggregate()), coverage_release_id: index.coverage.manifest.release_id }, categoryId, enhancerId, {
           level: "county",
           state_fips: state,
           scope_assignment: index.compatibility.tennessee ? "unique-material-zcta-county-plus-point-assigned-zip-unavailable" : "unique-material-zcta-county",
@@ -841,8 +882,10 @@ export function createBusinessMapStore({
         assignment_semantics: index.compatibility.tennessee ? "unique-material-zcta-county-plus-disjoint-point-assigned-zip-unavailable-no-area-allocation" : "unique-material-zcta-county-no-area-allocation",
         excluded_ambiguous_zcta_count: index.excluded.county.ambiguous,
         excluded_unmatched_zip_count: index.excluded.county.unmatched,
-        excluded_ambiguous_business_evidence: index.excluded.county.ambiguous_business_evidence,
-        excluded_unmatched_business_evidence: index.excluded.county.unmatched_business_evidence,
+        excluded_ambiguous_business_evidence: null,
+        excluded_unmatched_business_evidence: null,
+        excluded_ambiguous_source_component_presence: index.excluded.county.ambiguous_business_evidence,
+        excluded_unmatched_source_component_presence: index.excluded.county.unmatched_business_evidence,
       };
       alignmentPeerScope = `county peers within state ${state}`;
     } else if (level === "zips") {
@@ -858,7 +901,7 @@ export function createBusinessMapStore({
       }
       features = rawFeatures.map((feature) => {
         const geoid = String(feature.properties?.ZCTA5 ?? feature.properties?.GEOID ?? "");
-        return decorate(feature, index.zips.get(geoid) ?? emptyAggregate(), categoryId, enhancerId, {
+        return decorate(feature, { ...(index.zips.get(geoid) ?? emptyAggregate()), coverage_release_id: index.coverage.manifest.release_id }, categoryId, enhancerId, {
           level: "zip",
           state_fips: state,
           county_geoid: county,
@@ -907,6 +950,12 @@ export function createBusinessMapStore({
     const heatValues = features.map((feature) => feature.properties.heat_value).filter(Number.isFinite);
     return {
       available: true,
+      aggregation_contract: BUSINESS_MAP_AGGREGATION_CONTRACT,
+      aggregation_status: "withheld-overlapping-source-units-entity-resolution-not-applied",
+      cross_source_additive: false,
+      entity_resolution_applied: false,
+      benchmark_gate_passed: false,
+      unique_business_count: null,
       type: "FeatureCollection",
       level,
       category_id: categoryId,
@@ -924,7 +973,7 @@ export function createBusinessMapStore({
         demographic_filters: { min_population: populationFloor, min_housing_units: housingFloor },
         peer_median_evidence_per_employer_establishment: aligned.peerMedian,
         relative_coverage_alignment_peer_scope: alignmentPeerScope,
-        relative_coverage_alignment_semantics: `100% equals the selected-category evidence density of the ${alignmentPeerScope} median; values may exceed 100%. This is not measured completeness of the business universe.`,
+        relative_coverage_alignment_semantics: "Withheld: cross-source additive alignment cannot be calculated while entity resolution is not applied.",
         gdp_status: level === "zips"
           ? "unavailable-no-official-zip-gdp-do-not-allocate"
           : index.gdp
@@ -942,27 +991,31 @@ export function createBusinessMapStore({
     if (!index) return { available: false, states: [] };
     const stateRows = [...index.states.values()].filter((row) => includeTerritories || row.is_50_states_or_dc);
     const categoryIds = CATEGORY_DEFINITIONS.map(({ id }) => id);
-    const national = Object.fromEntries(categoryIds.map((id) => [id, 0]));
+    const dimensions = CATEGORY_DEFINITIONS.flatMap(category => category.fields);
+    const nationalComponents = Object.fromEntries(dimensions.map(id => [id, 0]));
     for (const row of stateRows) {
-      const counts = index.stateAggregates.get(row.geoid)?.category_counts ?? emptyAggregate().category_counts;
-      for (const id of categoryIds) national[id] += counts[id];
+      const counts = index.stateAggregates.get(row.geoid)?.component_counts ?? emptyAggregate().component_counts;
+      for (const id of dimensions) nationalComponents[id] += counts[id] ?? 0;
     }
-    const nationalTotal = categoryIds.reduce((sum, id) => sum + national[id], 0);
     const states = stateRows.map((row) => {
       const aggregate = index.stateAggregates.get(row.geoid) ?? emptyAggregate();
-      const stateTotal = categoryIds.reduce((sum, id) => sum + aggregate.category_counts[id], 0);
       const population = completeZctaMetric(aggregate, "population_2020", "population_known_zcta_count");
       const housing = completeZctaMetric(aggregate, "housing_units_2020", "housing_known_zcta_count");
+      const components = componentEvidence(aggregate.component_counts, index.coverage.manifest.release_id);
       return {
         state_fips: row.geoid,
         state_name: row.name,
         postal_abbreviation: row.postal_abbreviation,
         state_equivalent_kind: row.state_equivalent_kind,
-        category_counts: Object.fromEntries(categoryIds.map((id) => [id, aggregate.category_counts[id]])),
-        percent_of_state: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], stateTotal)])),
-        percent_of_category_nationwide: Object.fromEntries(categoryIds.map((id) => [id, percentage(aggregate.category_counts[id], national[id])])),
-        all_category_evidence_count: stateTotal,
-        zip_unavailable_business_evidence: aggregate.zip_unavailable_business_evidence ?? 0,
+        category_counts: Object.fromEntries(categoryIds.map((id) => [id, null])),
+        percent_of_state: Object.fromEntries(categoryIds.map((id) => [id, null])),
+        percent_of_category_nationwide: Object.fromEntries(categoryIds.map((id) => [id, null])),
+        evidence_components: components.map(category => ({ ...category, components: category.components.map(component => ({ ...component, share_of_national_evidence_component: percentage(component.count, nationalComponents[component.dimension_id]) })) })),
+        all_category_evidence_count: null,
+        zip_unavailable_business_evidence: null,
+        aggregation_status: "withheld-overlapping-source-units-entity-resolution-not-applied",
+        cross_source_additive: false,
+        unique_business_count: null,
         population_2020: population,
         population_status: aggregateMetricStatus(aggregate, "population_known_zcta_count", "population"),
         housing_units_2020: housing,
@@ -972,31 +1025,40 @@ export function createBusinessMapStore({
     });
     return {
       available: true,
+      aggregation_contract: BUSINESS_MAP_AGGREGATION_CONTRACT,
+      aggregation_status: "withheld-overlapping-source-units-entity-resolution-not-applied",
+      cross_source_additive: false,
+      entity_resolution_applied: false,
+      benchmark_gate_passed: false,
+      unique_business_count: null,
       coverage_release_id: index.coverage.manifest.release_id,
       geography_release_id: index.geography.manifest.release_id,
       categories: CATEGORY_DEFINITIONS.map(({ id, label }) => ({ id, label })),
-      national_category_counts: national,
-      national_all_category_evidence_count: nationalTotal,
-      national_category_percent_of_collected_evidence: Object.fromEntries(categoryIds.map((id) => [id, percentage(national[id], nationalTotal)])),
+      national_category_counts: Object.fromEntries(categoryIds.map((id) => [id, null])),
+      national_all_category_evidence_count: null,
+      national_category_percent_of_collected_evidence: Object.fromEntries(categoryIds.map((id) => [id, null])),
+      source_component_totals: componentEvidence(nationalComponents, index.coverage.manifest.release_id),
       national_percentage_basis: {
         geography_scope: includeTerritories ? "selected Census state equivalents including territories" : "50 states and District of Columbia",
-        numerator: "selected category source-evidence count assigned to included states",
-        denominator: "sum of all category source-evidence counts assigned to included states",
-        unit: "source-evidence records; overlapping sources may count the same business more than once",
+        numerator: null,
+        denominator: null,
+        unit: "Withheld across overlapping source evidence components.",
         universe_completeness_percent: null,
         universe_completeness_status: "unavailable-no-comparable-complete-business-universe",
       },
       states,
       assignment: {
         semantics: index.compatibility.tennessee ? "Direct ZIP evidence in ZCTAs with one material state intersection plus disjoint TN ZIP-unavailable evidence by reported state; no area allocation or inferred ZIP." : "Only direct ZIP evidence in ZCTAs with one material state intersection; no area allocation.",
-        percentage_semantics: "Category shares are null when their denominator is zero or unavailable; a numeric zero means a measured zero numerator over a positive denominator.",
+        percentage_semantics: "Cross-source category shares are withheld; only within-source component shares across the same vector are provided.",
         excluded_ambiguous_zcta_count: index.excluded.state.ambiguous,
         excluded_unmatched_zip_count: index.excluded.state.unmatched,
-        excluded_ambiguous_business_evidence: index.excluded.state.ambiguous_business_evidence,
-        excluded_unmatched_business_evidence: index.excluded.state.unmatched_business_evidence,
+        excluded_ambiguous_business_evidence: null,
+        excluded_unmatched_business_evidence: null,
+        excluded_ambiguous_source_component_presence: index.excluded.state.ambiguous_business_evidence,
+        excluded_unmatched_source_component_presence: index.excluded.state.unmatched_business_evidence,
       },
       complete_all_businesses: false,
-      entity_resolution_applied: false,
+      claims: { unique_business_count: null, current_operating_business_count: null, current_operations_verified: false, all_business_completeness_percent: null },
     };
   }
 
@@ -1009,7 +1071,7 @@ export function createBusinessMapStore({
     const cappedLimit = Math.max(1, Math.min(100, Number.isInteger(Number(limit)) ? Number(limit) : 25));
     const scopeFields = missingZipOnly ? { state_fips: state, scope: "source-zip-unavailable", zip_inferred: false, limit: cappedLimit } : {};
     const cleanQuery = String(query ?? "").trim().toLocaleLowerCase("en-US").slice(0, 120);
-    if (sourceIds.size === 0) {
+    if (sourceIds.size === 0 || selectedCategory.id === "registrations-nonprofits") {
       return { available: true, zip_code: zip, ...scopeFields, category_id: categoryId, total: 0, records: [], limitation: "This category has organization-address assertions but no physical-location profile name index." };
     }
     const index = await ensureIndex();

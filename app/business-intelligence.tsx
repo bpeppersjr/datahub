@@ -32,10 +32,17 @@ type MapProperties = {
   name: string;
   postal_abbreviation?: string | null;
   level: 'state' | 'county' | 'zip';
-  business_count: number;
-  observed_business_units: number;
-  observed_physical_sites: number;
-  observed_organization_primary_locations: number;
+  aggregation_contract: 'business-map-nonadditive-aggregation@2.0.0';
+  aggregation_status: 'withheld-overlapping-source-units-entity-resolution-not-applied';
+  cross_source_additive: false;
+  entity_resolution_applied: false;
+  benchmark_gate_passed: false;
+  unique_business_count: null;
+  evidence_components: Array<{ category_id: string; components: Array<{ dimension_id: string; source_id: string | null; coverage_release_id: string | null; unit: string; count: number; share_of_national_evidence_component?: number | null }> }>;
+  business_count: null;
+  observed_business_units: null;
+  observed_physical_sites: null;
+  observed_organization_primary_locations: null;
   population_2020: number | null;
   population_status: string;
   housing_units_2020: number | null;
@@ -100,8 +107,14 @@ type NameResponse = {
 type StateSummary = {
   available: boolean;
   categories: Array<{ id: string; label: string }>;
-  national_category_counts: Record<string, number>;
-  national_all_category_evidence_count: number;
+  aggregation_contract: 'business-map-nonadditive-aggregation@2.0.0';
+  aggregation_status: 'withheld-overlapping-source-units-entity-resolution-not-applied';
+  cross_source_additive: false;
+  entity_resolution_applied: false;
+  benchmark_gate_passed: false;
+  unique_business_count: null;
+  national_category_counts: Record<string, null>;
+  national_all_category_evidence_count: null;
   national_category_percent_of_collected_evidence: Record<string, number | null>;
   national_percentage_basis: { geography_scope: string; unit: string };
   assignment: Record<string, number | string>;
@@ -109,10 +122,11 @@ type StateSummary = {
     state_fips: string;
     state_name: string;
     postal_abbreviation: string;
-    category_counts: Record<string, number>;
+    category_counts: Record<string, null>;
     percent_of_state: Record<string, number | null>;
     percent_of_category_nationwide: Record<string, number | null>;
-    all_category_evidence_count: number;
+    all_category_evidence_count: null;
+    evidence_components: Array<{ category_id: string; components: Array<{ dimension_id: string; source_id: string | null; coverage_release_id: string | null; unit: string; count: number; share_of_national_evidence_component: number | null }> }>;
     population_2020: number | null;
     population_status: string;
     housing_units_2020: number | null;
@@ -389,12 +403,6 @@ function nonemployerNote(properties: MapProperties) {
   return 'No governed Census Nonemployer value';
 }
 
-function alignmentLabel(properties: MapProperties) {
-  if (properties.level === 'state') return 'Peer evidence alignment vs states';
-  if (properties.level === 'county') return 'Peer evidence alignment vs in-state counties';
-  return 'Peer evidence alignment vs in-state ZIP peers';
-}
-
 function populationLabel(properties: MapProperties) {
   return properties.level === 'zip' ? '2020 Census ZCTA population' : '2020 uniquely assigned ZCTA population';
 }
@@ -537,7 +545,7 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelec
               aria-pressed={selectedGeoid === feature.properties.geoid}
               aria-label={enhancerId === 'retained_childcare_county_points'
                 ? `${feature.properties.name}; ${count(feature.properties.heat_value)} assigned retained childcare source points; ${feature.properties.retained_childcare_county_status?.replaceAll('-', ' ')}; not verified business locations`
-                : `${feature.properties.name}; ${count(feature.properties.observed_business_units)} observed provisional business units; ${count(feature.properties.business_count)} selected-category evidence records; ${alignmentLabel(feature.properties)} ${percent(feature.properties.relative_coverage_alignment_percent)}`}
+              : `${feature.properties.name}; source component presence ${count(feature.properties.heat_value)}; Not additive—entity resolution not applied`}
               onClick={() => onSelect(feature)}
               onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(feature); } }}
               onMouseEnter={() => setHoveredGeoid(feature.properties.geoid)}
@@ -557,8 +565,9 @@ function FeatureMap({ data, selectedGeoid, categoryLabel, enhancerLabel, onSelec
           <b>{count(hovered.heat_value)} <small>assigned retained childcare source points</small></b>
           <small>{hovered.retained_childcare_county_status?.replaceAll('-', ' ')}. Business-location accuracy and completeness are unverified.</small>
           <dl><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}</dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}</dd></div></dl>
-        </> : <><b>{count(hovered.observed_business_units)} <small>observed provisional business units</small></b>
-        <dl><div><dt>Selected-category evidence</dt><dd>{count(hovered.business_count)}</dd></div><div><dt>Observed physical sites</dt><dd>{count(hovered.observed_physical_sites)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}<small>{employerNote(hovered)}</small></dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}<small>{demographicNote(hovered, 'population')}</small></dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}<small>{demographicNote(hovered, 'housing')}</small></dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div><div><dt>{alignmentLabel(hovered)}</dt><dd>{percent(hovered.relative_coverage_alignment_percent)}<small>100% = peer median</small></dd></div></dl>
+        </> : <><b>Not additive—entity resolution not applied</b>
+        <small>Heat indicates the number of source evidence components present, not businesses or sites.</small>
+        <dl><div><dt>Source component presence</dt><dd>{count(hovered.heat_value)}</dd></div><div><dt>Census employer units</dt><dd>{count(hovered.employer_establishments)}<small>{employerNote(hovered)}</small></dd></div><div><dt>{nonemployerLabel(hovered)}</dt><dd>{count(hovered.nonemployer_establishments)}<small>{nonemployerNote(hovered)}</small></dd></div><div><dt>{populationLabel(hovered)}</dt><dd>{count(hovered.population_2020)}<small>{demographicNote(hovered, 'population')}</small></dd></div><div><dt>{housingLabel(hovered)}</dt><dd>{count(hovered.housing_units_2020)}<small>{demographicNote(hovered, 'housing')}</small></dd></div><div><dt>{gdpLabel(hovered)}</dt><dd>{currency(hovered.gdp_current_dollars)}<small>{gdpNote(hovered)}</small></dd></div></dl>
         </>}
         <small>Heat: {enhancerLabel} · {enhancerId === 'gdp_current_dollars' ? currency(hovered.heat_value) : count(hovered.heat_value)}</small>
       </div>}
@@ -625,12 +634,8 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
   const selectedStateFips = properties?.level === 'state' ? properties.geoid : properties?.state_fips || stateFips;
   const state = stateSummary?.states.find((item) => item.state_fips === selectedStateFips);
   const categoryId = category?.id ?? 'all';
-  const nationalAll = stateSummary?.states.reduce((sum, item) => sum + item.all_category_evidence_count, 0) ?? 0;
-  const stateEvidence = state ? (categoryId === 'all' ? state.all_category_evidence_count : state.category_counts[categoryId]) : null;
-  const withinState = state ? (categoryId === 'all' ? (state.all_category_evidence_count > 0 ? 100 : null) : state.percent_of_state[categoryId]) : null;
-  const acrossNation = state ? (categoryId === 'all' ? (nationalAll > 0 ? (state.all_category_evidence_count / nationalAll) * 100 : null) : state.percent_of_category_nationwide[categoryId]) : null;
-  const nationalCategoryCount = categoryId === 'all' ? stateSummary?.national_all_category_evidence_count : stateSummary?.national_category_counts[categoryId];
-  const nationalCategoryShare = categoryId === 'all' ? (stateSummary && stateSummary.national_all_category_evidence_count > 0 ? 100 : null) : stateSummary?.national_category_percent_of_collected_evidence?.[categoryId];
+  const stateEvidenceComponents = state?.evidence_components.find(row => row.category_id === categoryId)?.components ?? [];
+  const selectedFeatureComponents = properties?.evidence_components.find(row => row.category_id === categoryId)?.components ?? [];
 
   return (
     <aside className="map-entity-summary" aria-live="polite">
@@ -642,30 +647,28 @@ function EntitySummary({ feature, category, stateSummary, stateFips, selectedZip
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedCountyPanel level={properties?.level} geoid={properties?.geoid} geographyHash={geographyHash} mapRevision={mapRevision} />}
       {(categoryId === 'all' || categoryId === 'childcare') && <RetainedChildcarePanel publisherState={state?.postal_abbreviation} selectedZip={selectedZip} countySelected={properties?.level === 'county' || properties?.level === 'zip'} scopeUnavailable={!!selectedStateFips && !state} />}
       {stateSummary?.available && <section className="state-alignment-card">
-        <div><span>National category share</span><strong>{category?.label ?? 'All source categories'}</strong></div>
-        <dl><div><dt>State-assigned category evidence</dt><dd>{count(nationalCategoryCount)}</dd></div><div><dt>State-assigned all-category evidence</dt><dd>{count(stateSummary.national_all_category_evidence_count)}</dd></div><div><dt>Share of state-assigned national evidence</dt><dd>{percent(nationalCategoryShare)}</dd></div></dl>
-        <p className="entity-method-note">{stateSummary.national_percentage_basis?.geography_scope ?? '50 states and District of Columbia'}. Category count ÷ all-category count. {stateSummary.assignment.semantics} Excludes {count(Number(stateSummary.assignment.excluded_ambiguous_business_evidence))} ambiguous and {count(Number(stateSummary.assignment.excluded_unmatched_business_evidence))} unmatched evidence records. Categories group source evidence and may overlap. The percentage of all U.S. businesses collected is unknown.</p>
+        <div><span>Source evidence components</span><strong>{state?.postal_abbreviation} · {category?.label ?? 'All source categories'}</strong></div>
+        <p className="entity-method-note">Not additive—entity resolution not applied. Component counts retain source units and are not unique business, unit, or site totals.</p>
+        <ul>{stateEvidenceComponents.map(component => <li key={component.dimension_id}>{component.dimension_id}: {count(component.count)} {component.unit} · {percent(component.share_of_national_evidence_component)} of same evidence component nationwide</li>)}</ul>
       </section>}
       <div className="entity-summary-heading"><span>Business summary by map entity</span><strong>{properties?.name ?? 'Select a map entity'}</strong><small>{properties ? `${properties.level==='zip'?'CENSUS ZCTA POLYGON':properties.level.toUpperCase()} · ${category?.label ?? 'All source categories'}` : 'State, county, or Census ZCTA polygon details appear here after selection.'}</small></div>
       {properties ? <>
         <div className="entity-stat-grid">
-          <div><span>Observed business units</span><strong>{count(properties.observed_business_units)}</strong><small>Provisional establishments</small></div>
-          <div><span>Observed physical sites</span><strong>{count(properties.observed_physical_sites)}</strong><small>Address-associated locations</small></div>
-          <div><span>Selected-category evidence</span><strong>{count(properties.business_count)}</strong><small>Source-preserving; not deduplicated</small></div>
+          <div><span>Unique businesses</span><strong>Not measured</strong><small>Not additive—entity resolution not applied</small></div>
+          <div><span>Source component presence</span><strong>{count(properties.heat_value)}</strong><small>Components present; not a record or business total</small></div>
           <div><span>Census employer units</span><strong>{count(properties.employer_establishments)}</strong><small>{employerNote(properties)}</small></div>
           <div><span>{nonemployerLabel(properties)}</span><strong>{count(properties.nonemployer_establishments)}</strong><small>{nonemployerNote(properties)}</small></div>
           <div><span>Nonemployer receipts</span><strong>{currencyFromThousands(properties.nonemployer_receipts_thousands_usd)}</strong><small>Annual Census aggregate; not named-business revenue</small></div>
           <div><span>{populationLabel(properties)}</span><strong>{count(properties.population_2020)}</strong><small>{demographicNote(properties, 'population')}</small></div>
           <div><span>{housingLabel(properties)}</span><strong>{count(properties.housing_units_2020)}</strong><small>{demographicNote(properties, 'housing')}</small></div>
-          <div><span>{alignmentLabel(properties)}</span><strong>{percent(properties.relative_coverage_alignment_percent)}</strong><small>100% equals the governed peer median</small></div>
           <div><span>{gdpLabel(properties)}</span><strong>{currency(properties.gdp_current_dollars)}</strong><small>{gdpNote(properties)}</small></div>
         </div>
-        <div className="entity-ratios"><span><b>{count(properties.businesses_per_1000_people)}</b> evidence / 1K people</span><span><b>{count(properties.population_density)}</b> people / sq. mile</span></div>
-        <p className="entity-method-note">Peer evidence alignment compares selected-category evidence per Census employer establishment with the median for {properties.relative_coverage_alignment_peer_scope}. Values can exceed 100%; it is not measured completeness of all businesses.</p>
+        <p className="entity-method-note">Cross-source totals, business density, category composition, and peer alignment are withheld because the selected evidence sources overlap and entity resolution is not applied.</p>
+        <ul>{selectedFeatureComponents.map(component => <li key={component.dimension_id}>{component.dimension_id}: {count(component.count)} {component.unit}</li>)}</ul>
       </> : <div className="entity-summary-empty">Select a map entity to pin its business evidence, employer and nonemployer Census baselines, GDP, and state-relative coverage summary here. Hover details remain on the map.</div>}
       {state && <section className="state-alignment-card">
         <div><span>State alignment</span><strong>{state.postal_abbreviation} · {state.state_name}</strong></div>
-        <dl><div><dt>Category evidence</dt><dd>{count(stateEvidence)}</dd></div><div><dt>Within state</dt><dd>{percent(withinState)}</dd></div><div><dt>Across displayed states</dt><dd>{percent(acrossNation)}</dd></div><div><dt>Assigned ZCTAs</dt><dd>{count(state.uniquely_assigned_zcta_count)}</dd></div></dl>
+        <dl><div><dt>Unique businesses</dt><dd>Not measured</dd></div><div><dt>Assigned ZCTAs</dt><dd>{count(state.uniquely_assigned_zcta_count)}</dd></div></dl>
       </section>}
       <BusinessNames key={`${selectedStateFips}:${selectedZip}:${categoryId}`} selectedZip={selectedZip} stateFips={selectedStateFips} stateName={state?.state_name ?? ''} categoryId={categoryId} canDrill={category?.business_name_drilldown ?? true} />
     </aside>

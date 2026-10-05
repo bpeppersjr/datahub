@@ -313,22 +313,24 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
   });
 }
 
-test("IRS tax-exempt category moves filing-address evidence without changing all-category totals", async context => {
+test("IRS filing-address evidence remains a typed component without cross-source totals", async context => {
   const without = await fixture(context), withIrs = await fixture(context, { irsCount: 17 });
   const before = await without.getFeatures({ level: "states", categoryId: "all" });
   const after = await withIrs.getFeatures({ level: "states", categoryId: "all" });
   const irs = await withIrs.getFeatures({ level: "states", categoryId: "tax-exempt-organizations" });
   const mixed = await withIrs.getFeatures({ level: "states", categoryId: "registrations-nonprofits" });
-  assert.equal(after.features[0].properties.business_count - before.features[0].properties.business_count, 17);
-  assert.equal(irs.features[0].properties.business_count, 17);
-  assert.equal(mixed.features[0].properties.business_count, 0);
+  assert.equal(after.features[0].properties.business_count, null);
+  assert.equal(before.features[0].properties.unique_business_count, null);
+  assert.equal(irs.features[0].properties.business_count, null);
+  assert.equal(irs.features[0].properties.aggregation_status, "withheld-overlapping-source-units-entity-resolution-not-applied");
+  assert.equal(irs.features[0].properties.evidence_components.find(row => row.category_id === "tax-exempt-organizations").components[0].count, 17);
+  assert.equal(mixed.features[0].properties.evidence_components.find(row => row.category_id === "registrations-nonprofits").components[0].count, 0);
   const catalog = await withIrs.getCatalog(), category = catalog.categories.find(row => row.id === "tax-exempt-organizations");
   assert.deepEqual(category.evidence_fields, ["irs_eo_organization_filing_address_count"]);
   assert.deepEqual(category.source_ids, ["irs-eo-bmf-organizations"]);
   assert.equal(catalog.categories.flatMap(row => row.evidence_fields ?? []).filter(field => field === "irs_eo_organization_filing_address_count").length, 1);
-  const legacyAllBeforeReassignment = 3 + 2 + 17; // SNAP + NPPES + IRS when IRS lived in registrations-nonprofits.
-  assert.equal(after.features[0].properties.business_count, legacyAllBeforeReassignment);
-  assert.equal(after.features[0].properties.business_count, catalog.categories.filter(row => row.id !== "all").reduce((sum, row) => sum + (row.id === "tax-exempt-organizations" ? 17 : row.id === "retail-consumer" ? 3 : row.id === "health-care" ? 2 : 0), 0));
+  assert.equal(after.features[0].properties.cross_source_additive, false);
+  assert.equal(after.features[0].properties.benchmark_gate_passed, false);
   assert.match(catalog.semantics.tax_exempt_organizations, /not verified physical sites, current operations/);
 });
 
@@ -351,9 +353,11 @@ test('Ohio coverage preserves TN origins and excludes OH from jurisdiction unit/
     const store = await fixture(context, { ohioOrigin: origin, tnRows, tnVersion: origin === 'fresh' ? '2.10.0' : '2.9.0' });
     const county = (await store.getFeatures({ level: 'counties', stateFips: '01', categoryId: 'childcare' })).features[0].properties;
     const expectedTn = tnRows?.filter(row => row.location.latitude !== null).length ?? 0;
-    assert.equal(county.observed_business_units, expectedTn);
-    assert.equal(county.observed_physical_sites, expectedTn);
-    assert.equal((await store.getStateSummary()).national_category_counts.childcare, tnRows?.length ?? 0);
+    assert.equal(county.observed_business_units, null);
+    assert.equal(county.observed_physical_sites, null);
+    assert.equal((await store.getStateSummary()).national_category_counts.childcare, null);
+    const tnComponent = county.evidence_components.find(row => row.category_id === "childcare").components.find(row => row.dimension_id === "tn_childcare_center_site_count");
+    assert.equal(tnComponent.count, expectedTn);
     if (tnRows) assert.equal((await store.listStateBusinessNames({ stateFips: '01' })).total, tnRows.length);
   }
   const overCount = await fixture(context, { ohioOrigin: null, ohioCount: 6 });
@@ -425,14 +429,16 @@ test("TN missing ZIP names and source evidence remain in state shares without in
     ];
     const store = await fixture(context, { tnRows, tnVersion: fresh ? "2.10.0" : "2.9.0" });
     const summary = await store.getStateSummary();
-    assert.equal(summary.national_category_counts.childcare, 3);
-    assert.equal(summary.national_all_category_evidence_count, 8);
-    assert.equal(summary.national_category_percent_of_collected_evidence.childcare, 37.5);
+    assert.equal(summary.aggregation_contract, "business-map-nonadditive-aggregation@2.0.0");
+    assert.equal(summary.national_category_counts.childcare, null);
+    assert.equal(summary.national_all_category_evidence_count, null);
+    assert.equal(summary.national_category_percent_of_collected_evidence.childcare, null);
     const state = (await store.getFeatures({ level: "states", categoryId: "childcare" })).features.find(r => r.properties.geoid === "01");
-    assert.equal(state.properties.business_count, 3);
-    assert.equal(state.properties.zip_unavailable_business_evidence, allMissing ? 3 : 2);
+    assert.equal(state.properties.business_count, null);
+    assert.equal(state.properties.zip_unavailable_business_evidence, null);
+    assert.equal(state.properties.evidence_components.find(row => row.category_id === "childcare").components.find(row => row.dimension_id === "tn_childcare_center_site_count").count, 3);
     const county = (await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "childcare" })).features[0];
-    assert.equal(county.properties.business_count, 2);
+    assert.equal(county.properties.business_count, null);
     const zipNames = await store.listBusinessNames({ zipCode: "12345", categoryId: "childcare" });
     assert.equal(zipNames.total, allMissing ? 0 : 1);
     const names = await store.listStateBusinessNames({ stateFips: "01", limit: 1 });
@@ -487,10 +493,16 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const states = await store.getFeatures({ level: "states", categoryId: "retail-consumer", enhancerId: "business_count" });
   assert.equal(states.features.length, 2);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.business_count, 3);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_business_units, 5);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_physical_sites, 5);
-  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_percent, 100);
+  assert.equal(states.aggregation_contract, "business-map-nonadditive-aggregation@2.0.0");
+  assert.equal(states.aggregation_status, "withheld-overlapping-source-units-entity-resolution-not-applied");
+  assert.equal(states.cross_source_additive, false);
+  assert.equal(states.entity_resolution_applied, false);
+  assert.equal(states.benchmark_gate_passed, false);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.business_count, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_business_units, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.observed_physical_sites, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_percent, null);
+  assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.heat_value, 1);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.relative_coverage_alignment_peer_scope, "50 states and District of Columbia peer");
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_current_dollars, 1_234_000_000);
   assert.equal(states.features.find((feature) => feature.properties.geoid === "01").properties.gdp_reference_year, 2024);
@@ -512,7 +524,7 @@ test("serves governed category, geography, demographic, and percentage views", a
   const nonemployerStates = await store.getFeatures({ level: "states", categoryId: "all", enhancerId: "nonemployer_establishments" });
   assert.equal(nonemployerStates.features.find((feature) => feature.properties.geoid === "01").properties.heat_value, 111);
   assert.equal(nonemployerStates.features.find((feature) => feature.properties.geoid === "02").properties.heat_value, null);
-  assert.match(states.meta.relative_coverage_alignment_semantics, /values may exceed 100%.*not measured completeness/);
+  assert.match(states.meta.relative_coverage_alignment_semantics, /Withheld/);
   assert.equal(states.meta.relative_coverage_alignment_peer_scope, "50 states and District of Columbia peer");
   assert.equal(states.meta.excluded_ambiguous_zcta_count, 1);
 
@@ -533,10 +545,10 @@ test("serves governed category, geography, demographic, and percentage views", a
   const counties = await store.getFeatures({ level: "counties", stateFips: "01", categoryId: "all", enhancerId: "businesses_per_1000_people" });
   const alphaCounty = counties.features.find((feature) => feature.properties.geoid === "01001");
   const emptyCounty = counties.features.find((feature) => feature.properties.geoid === "01003");
-  assert.equal(alphaCounty.properties.business_count, 5);
+  assert.equal(alphaCounty.properties.business_count, null);
   assert.equal(alphaCounty.properties.population_2020, 1000);
-  assert.equal(alphaCounty.properties.heat_value, 5);
-  assert.equal(alphaCounty.properties.relative_coverage_alignment_percent, 100);
+  assert.equal(alphaCounty.properties.heat_value, null);
+  assert.equal(alphaCounty.properties.relative_coverage_alignment_percent, null);
   assert.equal(alphaCounty.properties.relative_coverage_alignment_peer_scope, "county peers within state 01");
   assert.equal(alphaCounty.properties.gdp_current_dollars, 321_000_000);
   assert.equal(alphaCounty.properties.nonemployer_establishments, 44);
@@ -557,7 +569,7 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const zips = await store.getFeatures({ level: "zips", stateFips: "01", countyGeoid: "01001", categoryId: "health-care", enhancerId: "housing_units_2020" });
   assert.equal(zips.features.length, 2);
-  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12345").properties.business_count, 2);
+  assert.equal(zips.features.find((feature) => feature.properties.geoid === "12345").properties.business_count, null);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.scope_assignment, "direct-zcta-evidence-not-county-allocated");
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.population_2020, null);
   assert.equal(zips.features.find((feature) => feature.properties.geoid === "12346").properties.housing_units_2020, 0);
@@ -580,21 +592,51 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const summary = await store.getStateSummary({ includeTerritories: false });
   const alpha = summary.states.find((state) => state.state_fips === "01");
-  assert.equal(alpha.category_counts["retail-consumer"], 3);
-  assert.equal(alpha.percent_of_state["retail-consumer"], 60);
-  assert.equal(alpha.percent_of_category_nationwide["retail-consumer"], 100);
-  assert.equal(summary.national_all_category_evidence_count, 5);
-  assert.equal(summary.national_category_percent_of_collected_evidence["retail-consumer"], 60);
+  assert.equal(alpha.category_counts["retail-consumer"], null);
+  assert.equal(alpha.percent_of_state["retail-consumer"], null);
+  assert.equal(alpha.percent_of_category_nationwide["retail-consumer"], null);
+  assert.equal(summary.national_all_category_evidence_count, null);
+  assert.equal(summary.national_category_percent_of_collected_evidence["retail-consumer"], null);
+  const retailVector = alpha.evidence_components.find(row => row.category_id === "retail-consumer").components;
+  assert.deepEqual(retailVector.map(row => row.dimension_id), ["snap_authorization_evidence_count", "ny_retail_food_store_license_site_count", "ca_abc_active_issued_license_site_count"]);
+  assert(retailVector.every(row => row.unit && row.source_id && row.coverage_release_id === summary.coverage_release_id && Number.isSafeInteger(row.count) && row.scalar_additive_compatible === false));
+  assert.equal(retailVector.reduce((sum, row) => sum + row.count, 0), 3); // Conservation only across this typed vector; never emitted as a business total.
   assert.equal(summary.national_percentage_basis.geography_scope, "50 states and District of Columbia");
   assert.equal(summary.national_percentage_basis.universe_completeness_percent, null);
-  assert.match(summary.national_percentage_basis.unit, /same business more than once/);
+  assert.match(summary.national_percentage_basis.unit, /Withheld/);
   const beta = summary.states.find((state) => state.state_fips === "02");
   assert.equal(beta.percent_of_state["retail-consumer"], null);
-  assert.equal(beta.percent_of_category_nationwide["retail-consumer"], 0);
+  assert.equal(beta.percent_of_category_nationwide["retail-consumer"], null);
   assert.equal(alpha.percent_of_category_nationwide["registrations-nonprofits"], null);
   assert.equal(beta.percent_of_category_nationwide["registrations-nonprofits"], null);
-  assert.match(summary.assignment.percentage_semantics, /null when.*denominator is zero/);
+  assert.match(summary.assignment.percentage_semantics, /Cross-source category shares are withheld/);
   assert.equal(summary.assignment.excluded_ambiguous_zcta_count, 1);
+});
+
+test("all and category map selections withhold additive scalars while preserving component counts", async context => {
+  const store = await fixture(context);
+  for (const categoryId of ["all", "retail-consumer", "health-care", "tax-exempt-organizations"]) {
+    const view = await store.getFeatures({ level: "states", categoryId, enhancerId: "business_count" });
+    for (const feature of view.features) {
+      const p = feature.properties;
+      assert.equal(p.business_count, null);
+      assert.equal(p.unique_business_count, null);
+      assert.equal(p.observed_business_units, null);
+      assert.equal(p.observed_physical_sites, null);
+      assert.equal(p.businesses_per_1000_people, null);
+      assert.equal(p.relative_coverage_alignment_percent, null);
+      assert.equal(p.aggregation_status, "withheld-overlapping-source-units-entity-resolution-not-applied");
+      assert.equal(p.entity_resolution_applied, false);
+      assert.equal(p.benchmark_gate_passed, false);
+      assert(Number.isSafeInteger(p.heat_value));
+      assert(Array.isArray(p.evidence_components));
+    }
+  }
+  const summary = await store.getStateSummary();
+  for (const component of summary.source_component_totals.flatMap(row => row.components)) {
+    const sum = summary.states.reduce((total, state) => total + state.evidence_components.flatMap(row => row.components).find(row => row.dimension_id === component.dimension_id).count, 0);
+    assert.equal(component.count, sum);
+  }
 });
 
 test("childcare name drill-down includes reporting-only rows without promoting status or matching eligibility", async (context) => {
