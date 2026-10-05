@@ -14,4 +14,6 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Temporal review:/);
   assert.match(source,/Industry connectivity/);
   assert.match(source,/Industry summary/);
+  assert.match(source,/\{industries \? \(\s*<>\s*<OperationalMaintenanceIntent\/>\s*<ExactZipIndustryNationalSummary \/>\s*<h3>Industry connectivity<\/h3>/);
+  assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");
 });

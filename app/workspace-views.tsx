@@ -1928,6 +1928,7 @@ export function CoverageWorkspace({
       {industries ? (
         <>
           <OperationalMaintenanceIntent/>
+          <ExactZipIndustryNationalSummary />
           <h3>Industry connectivity</h3>
           {view?.available ? (
             connectivity
@@ -6494,7 +6495,6 @@ export function ZipEconomyWorkspace({
               contributions below are not GDP allocations, additive business
               totals or a completeness percentage.
             </p>
-            <ExactZipIndustryNationalSummary />
             <ExactZipIndustryEvidencePanel zip={zip} />
             <details>
               <summary>Selected segment contribution detail</summary>
