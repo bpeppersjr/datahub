@@ -5,12 +5,12 @@
 Example local-review export:
 
 ```powershell
-node scripts/compose-flat-business-export.mjs --category retail-consumer --state TX --field business_name,street,city,state,zip_code,zip4,latitude,longitude --policy-mode local-review
+node scripts/compose-flat-business-export.mjs --category retail-consumer --state TX --field business_name,street,city,state,zip_code,zip4,geocode --policy-mode local-review
 ```
 
 The default `public-only` mode emits only the explicitly recognized record policies `public`, `public-open-ny-terms`, and `public-factual-fields-with-source-limitations`. Any missing, unknown, restricted, or local-review policy is rejected. `--policy-mode local-review` must be explicitly supplied to include `local-review-only` records; it still rejects unknown or more restrictive policies. These files remain local artifacts and are never a public publication action.
 
-Category IDs and source IDs match `runner/business-map-store.mjs`. ZIP5 and ZIP+4 are separate columns, and latitude/longitude are emitted only as a valid pair. CSV values beginning with spreadsheet formula-control characters are prefixed with an apostrophe; ZIP strings retain leading zeroes. Selected columns always gain the mandatory row-provenance fields so every row remains traceable.
+Category IDs and source IDs match `runner/business-map-store.mjs`. ZIP5 and ZIP+4 are separate columns, and coordinates are emitted only as a validated `geocode` object or null. Combined ZIP+4 postal strings and raw `location`, `geometry`, or polygon fields are rejected. CSV values beginning with spreadsheet formula-control characters are prefixed with an apostrophe; ZIP strings retain leading zeroes. Selected columns always gain the mandatory row-provenance fields so every row remains traceable.
 
 The `tax-exempt-organizations` category selects only `irs-eo-bmf-organizations` profiles. Those filing-address records are local-review-only, so they are excluded in the default `public-only` mode and require an explicit `--policy-mode local-review` selection. This is not a claim of physical-site, current-operation, or all-nonprofit completeness.
 

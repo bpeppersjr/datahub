@@ -8,9 +8,10 @@ import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { CHILDCARE_GEOGRAPHIC_ARTIFACT_TYPE, validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { BUSINESS_LOCATION_PROFILE_VERSION, normalizeBusinessLocationProfile, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 
 export const ENTITY_RESOLUTION_SCHEMA_VERSION = "1.0.0";
-export const ENTITY_RESOLUTION_PROFILE_VERSION = "business-location-match-profile@1.0.0";
+export const ENTITY_RESOLUTION_PROFILE_VERSION = BUSINESS_LOCATION_PROFILE_VERSION;
 export const ENTITY_RESOLUTION_RULESET_VERSION = "business-entity-resolution@1.0.0";
 export const COMPATIBLE_REGISTRY_PUBLISHER_VERSIONS = Object.freeze([
   "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0",
@@ -180,7 +181,9 @@ export function createLocationMatchProfile(record, reconciled) {
   const organizationEntityId = reconciled.relationships?.find(
     (item) => item.relationship_type === "operates" && item.object_entity_id === establishment.entity_id,
   )?.subject_entity_id ?? null;
-  const location = assertionValues(assertions, site.entity_id, "site.location")[0] ?? null;
+  const locationAssertion = assertions.find((item) => item.subject_entity_id === site.entity_id && item.predicate === "site.location") ?? null;
+  if (locationAssertion && locationAssertion.value_type !== "geocode") throw new Error(`Location ${record.normalized_record_id} has a non-geocode coordinate assertion.`);
+  const geocode = locationAssertion?.value ?? null;
   const sourceStatus = assertionValues(assertions, establishment.entity_id, "establishment.source-status")[0] ?? null;
   const source = record.provenance;
   if (!source?.source_id || !source.source_release_id || !source.source_record_id || !source.ingest_run_id || !source.transformation_version || !source.policy_id) {
@@ -194,12 +197,21 @@ export function createLocationMatchProfile(record, reconciled) {
     site_entity_id: site.entity_id,
     establishment_entity_id: establishment.entity_id,
     organization_entity_id: organizationEntityId,
-    address,
+    address: {
+      street: address.street ?? null,
+      unit_or_additional: address.unit_or_additional ?? null,
+      city: address.city ?? null,
+      state: address.state ?? null,
+      zip_code: address.zip_code,
+      postal_code: address.postal_code ?? address.zip_code,
+      zip4: address.zip4 ?? null,
+      county_name: address.county_name ?? null,
+    },
     normalized_address: normalizedAddress,
     address_match_key_sha256: normalizedAddress.match_key ? sha256(normalizedAddress.match_key) : null,
     names,
     primary_name_match_key_sha256: names[0]?.strict ? sha256(names[0].strict) : null,
-    location,
+    geocode,
     external_identifiers: identifiers,
     source_status: sourceStatus,
     observed_at: record.observed_at,
@@ -316,12 +328,15 @@ function pairCandidates(profiles, maximumGroupSize) {
     .filter((group) => group.length <= maximumGroupSize);
 }
 
-export function resolveLocationProfiles(profiles, {
+export function resolveLocationProfiles(profileRows, {
   createdAt = new Date().toISOString(),
   reviewThreshold = 0.78,
   maximumReviewGroupSize = 50,
+  registryBinding = null,
 } = {}) {
-  if (!Array.isArray(profiles)) throw new Error("profiles must be an array.");
+  if (!Array.isArray(profileRows)) throw new Error("profiles must be an array.");
+  if (profileRows.some(profile => profile?.identity_matching_eligible === false || REPORTING_ONLY_CHILDCARE_SOURCES.has(profile?.source?.source_id))) throw new Error("Reporting-only source evidence cannot become a location match profile.");
+  const profiles = profileRows.map(profile => normalizeBusinessLocationProfile(profile, registryBinding));
   if (!Number.isFinite(reviewThreshold) || reviewThreshold <= 0 || reviewThreshold >= 1) throw new Error("reviewThreshold must be between zero and one.");
   if (!Number.isInteger(maximumReviewGroupSize) || maximumReviewGroupSize < 2) throw new Error("maximumReviewGroupSize must be at least two.");
   const profileIds = new Set();
@@ -658,7 +673,7 @@ export async function buildBusinessEntityResolution({
     if (profiles.length !== artifact.record_count || profiles.some((profile) => profile.zip_code.slice(0, 2) !== zip2 || registry.reportingSites.has(profile.site_entity_id) || registry.reportingEstablishments.has(profile.establishment_entity_id))) {
       throw new Error(`Registry profile partition ${artifact.path} failed record validation.`);
     }
-    const resolved = resolveLocationProfiles(profiles, { createdAt });
+    const resolved = resolveLocationProfiles(profiles, { createdAt, registryBinding: registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256) });
     for (const [key, value] of Object.entries(resolved.summary)) totals[key] += value;
     const buffer = gzipSync(jsonLines(resolved.decisions), { level: 9 });
     artifacts.push(await writeArtifact(stagingDirectory, `decisions/zip2=${zip2}.jsonl.gz`, buffer, {
@@ -944,7 +959,7 @@ export async function verifyBusinessEntityResolutionSourceReplay(resolutionManif
         || registry.reportingEstablishments.has(profile.establishment_entity_id))) {
       throw new Error(`Business entity-resolution source replay failed: registry profile partition ${profileArtifact.path} is invalid.`);
     }
-    const replay = resolveLocationProfiles(profiles, { createdAt: resolution.created_at });
+    const replay = resolveLocationProfiles(profiles, { createdAt: resolution.created_at, registryBinding: registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256) });
     const decisionPath = path.join(resolutionDirectory, decisionArtifact.path);
     await assertRegularContained(resolutionDirectory, decisionPath, `Resolution artifact ${decisionArtifact.path}`);
     const retained = await boundedReplayRead(decisionPath, decisionArtifact,options,true);

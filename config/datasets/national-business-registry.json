@@ -6,8 +6,37 @@
   "description": "Canonical organizations, brands, sites, establishments, services, relationships, and source assertions reconciled across authorized U.S. business data sources.",
   "entity_schema": "config/schemas/business-entity.schema.json",
   "assertion_schema": "config/schemas/business-assertion.schema.json",
+  "legacy_assertion_schema": "config/schemas/business-assertion-legacy-v1.schema.json",
   "relationship_schema": "config/schemas/business-relationship.schema.json",
   "location_match_profile_schema": "config/schemas/business-location-match-profile.schema.json",
+  "legacy_location_match_profile_schema": "config/schemas/business-location-match-profile-legacy-v1.schema.json",
+  "location_match_profile_contract": {
+    "current_version": "business-location-match-profile@1.1.0",
+    "current_coordinates": "geocode:{latitude,longitude}|null; point coordinate order is never inferred",
+    "postal_contract": "zip_code and postal_code are the same exact ZIP5; zip4 is a separate exact four-digit-or-null value",
+    "legacy_read_only_compatibility": {
+      "profile_version": "business-location-match-profile@1.0.0",
+      "dataset_id": "national-business-registry",
+      "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+      "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+      "normalized_projection": "geocode:{latitude,longitude}|null; immutable source bytes are not rewritten"
+    },
+    "legacy_assertion_geometry_read_only_compatibility": {
+      "value_type": "geometry",
+      "accepted_shape": "null|exact EPSG:4326 Point [longitude,latitude]|exact latitude/longitude pair",
+      "polygon_or_other_geometry_allowed": false,
+      "dataset_id": "national-business-registry",
+      "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+      "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+      "new_assertions_use": "geocode"
+    },
+    "audit_summary": {
+      "retained_profiles": 8011835,
+      "legacy_coordinate_assertions": 3724502,
+      "polygon_assertions": 0,
+      "claims_current_operation_or_coordinate_accuracy": false
+    }
+  },
   "required_foundations": ["us-census-geography", "census-zbp-baseline"],
   "spatial_zip_polygon_denominator": {
     "dataset_id": "us-census-geography",

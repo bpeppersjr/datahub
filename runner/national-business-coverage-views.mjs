@@ -13,6 +13,7 @@ import RBush from "rbush";
 import { geometryBounds } from "./census-geography.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
+import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 
 export const COVERAGE_VIEWS_SCHEMA_VERSION = "1.0.0";
 export const COVERAGE_VIEWS_TRANSFORMATION_VERSION = "national-business-coverage-views@2.8.0";
@@ -993,7 +994,9 @@ export async function buildNationalBusinessCoverageViews({
   let processedProfiles = 0;
   for (const artifact of geographicArtifacts) {
     const reportingOnly = artifact.reportingOnly === true;
-    for await (const profile of reportingOnly ? reportingRows : streamGzipJsonLines(artifactPath(registry, artifact))) {
+    const registryBinding = registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256);
+    for await (const sourceProfile of reportingOnly ? reportingRows : streamGzipJsonLines(artifactPath(registry, artifact))) {
+      const profile = reportingOnly ? sourceProfile : normalizeBusinessLocationProfile(sourceProfile, registryBinding);
       if (!reportingOnly) {
         if (reportingSiteIds.has(profile.site_entity_id)) throw new Error("Reporting-only site also appears in identity-matching profiles.");
         if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(profile.source?.source_id)
@@ -1020,13 +1023,13 @@ export async function buildNationalBusinessCoverageViews({
         profileSummary.reported_state_missing_or_unsupported_count += 1;
         source.reported_state_missing_or_unsupported_count += 1;
       }
-      const location = profile.location;
+      const location = reportingOnly ? normalizeCoordinateGeocode(profile.location ?? null) : profile.geocode;
       if (sourceId === OH_SOURCE) {
         // The source contract forbids assignment even when the point is valid.
         // Preserve availability evidence without calling point-in-polygon.
         profileSummary.coordinate_assignment_ineligible_count++;
         source.coordinate_assignment_ineligible_count = (source.coordinate_assignment_ineligible_count ?? 0) + 1;
-        const missing = location.latitude === null && location.longitude === null;
+        const missing = !location || (location.latitude === null && location.longitude === null);
         const key = missing ? "coordinate_missing_count" : "coordinate_present_valid_count";
         profileSummary[key]++; source[key]++;
         continue;

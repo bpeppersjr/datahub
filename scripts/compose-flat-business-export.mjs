@@ -15,6 +15,7 @@ import { validateChildcareGeographicEvidence } from "../runner/childcare-geograp
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "../runner/tn-childcare-geographic-evidence.mjs";
 import { flatfileReportingCompatibility } from '../runner/business-flatfile-compatibility.mjs';
 import { OH_SOURCE, loadOhioCoverageContext, validateOhChildcareGeographicEvidence, verifyOhChildcareGeographicMembership } from '../runner/oh-childcare-coverage-evidence.mjs';
+import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from '../runner/business-location-profile-contract.mjs';
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -38,7 +39,7 @@ export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "licensed-businesses": ["alaska-dcced-active-business-licenses", "los-angeles-office-of-finance-active-businesses", "texas-comptroller-active-sales-tax-permits", "city-of-chicago-bacp-current-active-business-licenses", "dc-dlcp-active-basic-business-licenses", "nyc-dcwp-issued-licenses-active-premises"],
 });
 export const AVAILABLE_EXPORT_FIELDS = Object.freeze([
-  "business_name", "profile_id", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "latitude", "longitude",
+  "business_name", "profile_id", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "geocode",
   "industry_categories", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "source_status_value",
   "source_status_scope", "source_status_observed_at", "observed_at", "policy_id", "export_policy", "transformation_version",
   "dataset_id", "source_dataset_release_id", "external_identifiers", "site_entity_id", "establishment_entity_id", "organization_entity_id",
@@ -51,15 +52,19 @@ const split = (v) => String(v).split(",").map((x) => x.trim()).filter(Boolean);
 const contained = (base, target) => { const rel = path.relative(base, target); return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel)); };
 const appPath = (v) => assertInsideApp(path.resolve(APP_ROOT, v));
 const state = (v) => /^[A-Z]{2}$/.test(String(v ?? "").trim().toUpperCase()) ? String(v).trim().toUpperCase() : null;
-const zip5 = (v) => String(v ?? "").match(/^(\d{5})(?:-?\d{4})?$/)?.[1] ?? null;
-const zip4 = (record) => { const direct = String(record.address?.zip4 ?? "").replace(/\D/g, ""); return /^\d{4}$/.test(direct) ? direct : String(record.address?.zip_code ?? "").match(/^\d{5}-?(\d{4})$/)?.[1] ?? null; };
-const coordinates = (record) => {
-  const rawLatitude = record.location?.coordinates?.[1] ?? record.location?.latitude;
-  const rawLongitude = record.location?.coordinates?.[0] ?? record.location?.longitude;
-  if (rawLatitude === null || rawLatitude === undefined || rawLatitude === "" || rawLongitude === null || rawLongitude === undefined || rawLongitude === "") return [null, null];
-  const latitude = Number(rawLatitude); const longitude = Number(rawLongitude);
-  return Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180 ? [latitude, longitude] : [null, null];
-};
+const zip5 = (v) => { if (v === null || v === undefined) return null; if (!/^\d{5}$/.test(String(v))) throw new Error("Normalized export requires exact ZIP5; combined or malformed postal values are rejected."); return String(v); };
+const zip4 = (record) => { const value = record.address?.zip4 ?? null; if (value !== null && !/^\d{4}$/.test(String(value))) throw new Error("Normalized export requires a separate exact four-digit ZIP4 value or null."); return value === null ? null : String(value); };
+function normalizedGeocode(record) {
+  if (record.geocode === null || record.geocode === undefined) {
+    if (!Object.hasOwn(record, "location")) return null;
+    if (record.identity_matching_eligible !== false || !["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", "tn-dhs-active-childcare-centers", "oh-dcy-publisher-open-childcare-centers"].includes(record.source?.source_id)) throw new Error("Unversioned legacy location is not eligible for export normalization.");
+    return normalizeCoordinateGeocode(record.location);
+  }
+  if (!record.geocode || Array.isArray(record.geocode) || Object.keys(record.geocode).sort().join(",") !== "latitude,longitude"
+    || !Number.isFinite(record.geocode.latitude) || Math.abs(record.geocode.latitude) > 90
+    || !Number.isFinite(record.geocode.longitude) || Math.abs(record.geocode.longitude) > 180) throw new Error("Profile geocode is invalid.");
+  return record.geocode;
+}
 const categoriesFor = (id) => Object.entries(BUSINESS_FLATFILE_CATEGORIES).filter(([, ids]) => ids.includes(id)).map(([category]) => category);
 const csv = (v) => { const isString = typeof v === "string"; let text = v == null ? "" : isString ? v : JSON.stringify(v); if (isString && /^[=+\-@\t\r]/.test(text)) text = `'${text}`; return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text; };
 
@@ -111,12 +116,13 @@ async function governedArtifact(source, artifact, signal, boundedReporting = fal
   return file;
 }
 function projection(record, source, rowCategories) {
-  const [latitude, longitude] = coordinates(record);
+  const normalizedZip5 = zip5(record.address?.zip_code ?? record.zip_code ?? null);
+  if (record.address && Object.hasOwn(record.address, "postal_code") && record.address.postal_code !== (record.address.zip_code ?? null)) throw new Error("Normalized export requires postal_code to equal exact ZIP5.");
   return {
     business_name: record.names?.find((n) => String(n?.raw ?? "").trim())?.raw?.trim() ?? null, profile_id: record.profile_id ?? null,
     street: record.address?.street ?? null, unit_or_additional: record.address?.unit_or_additional ?? record.address?.street2 ?? null, city: record.address?.city ?? null,
-    state: state(record.address?.state), zip_code: zip5(record.address?.zip_code), zip4: zip4(record),
-    latitude, longitude,
+    state: state(record.address?.state), zip_code: normalizedZip5, zip4: zip4(record),
+    geocode: normalizedGeocode(record),
     industry_categories: rowCategories, source_id: record.source?.source_id ?? null, source_release_id: record.source?.source_release_id ?? null,
     source_record_id: record.source?.source_record_id ?? null, ingest_run_id: record.source?.ingest_run_id ?? null,
     source_status_value: record.source_status?.value ?? null, source_status_scope: record.source_status?.scope ?? null,
@@ -183,8 +189,12 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
         const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
         let artifactRows = 0;
         for await (const line of profileLines(file, signal, boundedReporting ? artifact : undefined)) {
-          if (!line.trim()) continue; read += 1; const record = JSON.parse(line);
+          if (!line.trim()) continue; read += 1; let record = JSON.parse(line);
           artifactRows++;
+          if (artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip") {
+            if (BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || record.identity_matching_eligible === false) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
+            record = normalizeBusinessLocationProfile(record, registryProfileCompatibilityBinding(source.manifest, source.manifestHash.sha256));
+          }
           if ((BUSINESS_FLATFILE_CATEGORIES.childcare.includes(record.source?.source_id) || record.source?.source_id === OH_SOURCE || /^(site|establishment):(tn|oh)_childcare_/.test(record.site_entity_id) || /^(site|establishment):(tn|oh)_childcare_/.test(record.establishment_entity_id)) && artifact.artifact_type !== REPORTING_TYPE) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
           if (record.source?.source_id === TN_SOURCE) {
             if (!tnEnabled || artifact.artifact_type !== REPORTING_TYPE) throw new Error("TN export requires an exact supported registry reporting version.");

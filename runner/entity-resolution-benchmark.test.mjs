@@ -236,6 +236,8 @@ test("builds and independently verifies a deterministic enriched benchmark sampl
   const verified = await verifyEntityResolutionBenchmarkSample(path.join(benchmark.releaseDirectory, "manifest.json"));
   assert.equal(verified.candidates.length, 1152);
   assert(verified.candidates.every((candidate) => candidate.left_profile.source && candidate.right_profile.source));
+  assert(verified.candidates.every((candidate) => [candidate.left_profile, candidate.right_profile].every((profile) =>
+    Object.hasOwn(profile, "geocode") && !Object.hasOwn(profile, "location") && !Object.hasOwn(profile, "geometry"))));
 
   {
     const larger=await buildEntityResolutionBenchmarkSample({outputRoot:path.join(root,"larger-sample"),resolutionPointer:resolution.pointerPath,registryPointer,sampleSizePerStratum:385,logger(){}});

@@ -9,8 +9,25 @@ import { BUSINESS_FLATFILE_CATEGORIES, composeFlatBusinessExport, parseArguments
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
+import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-contract.mjs";
 
 const digest = (buffer) => createHash("sha256").update(buffer).digest("hex");
+function makeProfile({ id, name, street = null, city = null, state = null, zip, zip4 = null, geocode = null, sourceId, releaseId, recordId, runId, policy, exportPolicy }) {
+  const complete = Boolean(street && city && state);
+  const normalizedKey = complete ? `street|${street.toUpperCase()}||${city.toUpperCase()}|${state}|${zip}` : null;
+  return {
+    schema_version: "1.0.0", profile_version: BUSINESS_LOCATION_PROFILE_VERSION,
+    profile_id: `location-profile:${id.padStart(32, "0").slice(-32)}`, zip_code: zip,
+    site_entity_id: `site:${recordId}`, establishment_entity_id: `establishment:${recordId}`, organization_entity_id: null,
+    address: { street, unit_or_additional: null, city, state, zip_code: zip, postal_code: zip, zip4, county_name: null },
+    normalized_address: { kind: complete ? "street" : "unknown", street: complete ? street.toUpperCase() : null, unit: null, city: complete ? city.toUpperCase() : null, state, zip_code: zip, complete, match_key: normalizedKey },
+    address_match_key_sha256: normalizedKey ? digest(Buffer.from(normalizedKey)) : null, names: [{ raw: name }],
+    primary_name_match_key_sha256: null, geocode, external_identifiers: [], source_status: null,
+    observed_at: "2026-01-01T00:00:00.000Z",
+    source: { source_id: sourceId, source_release_id: releaseId, source_record_id: recordId, ingest_run_id: runId, transformation_version: "v1", policy_id: policy },
+    export_policy: exportPolicy,
+  };
+}
 
 async function fixture(t) {
   const name = `flatfile-test-${randomUUID()}`;
@@ -19,9 +36,9 @@ async function fixture(t) {
   await mkdir(path.join(release, "resolution", "location-profiles"), { recursive: true });
   t.after(() => rm(root, { recursive: true, force: true }));
   const rows = [
-    { names: [{ raw: "Public Store" }], address: { street: "1 Main", city: "Austin", state: "TX", zip_code: "78701-1234" }, location: { coordinates: [-97.74, 30.27] }, source: { source_id: "usda-snap-current-retailers", source_release_id: "s1", source_record_id: "r1", ingest_run_id: "i1", policy_id: "p1", transformation_version: "v1" }, export_policy: "public", observed_at: "2026-01-01T00:00:00Z" },
-    { names: [{ raw: "=Review Store" }], address: { state: "WA", zip_code: "98101", zip4: "5678" }, location: { latitude: 47.6, longitude: -122.3 }, source: { source_id: "texas-comptroller-active-sales-tax-permits", source_release_id: "s2", source_record_id: "r2", ingest_run_id: "i2", policy_id: "p2", transformation_version: "v1" }, export_policy: "local-review-only" },
-    { names: [{ raw: "Bad Coordinates" }], address: { state: "WA", zip_code: "00123" }, location: { latitude: null, longitude: "" }, source: { source_id: "texas-comptroller-active-sales-tax-permits", source_release_id: "s2", source_record_id: "r3", ingest_run_id: "i2", policy_id: "p2", transformation_version: "v1" }, export_policy: "local-review-only" },
+    makeProfile({ id: "1", name: "Public Store", street: "1 Main", city: "Austin", state: "TX", zip: "78701", zip4: "1234", geocode: { latitude: 30.27, longitude: -97.74 }, sourceId: "usda-snap-current-retailers", releaseId: "s1", recordId: "r1", runId: "i1", policy: "p1", exportPolicy: "public" }),
+    makeProfile({ id: "2", name: "=Review Store", state: "WA", zip: "98101", zip4: "5678", geocode: { latitude: 47.6, longitude: -122.3 }, sourceId: "texas-comptroller-active-sales-tax-permits", releaseId: "s2", recordId: "r2", runId: "i2", policy: "p2", exportPolicy: "local-review-only" }),
+    makeProfile({ id: "3", name: "Bad Coordinates", state: "WA", zip: "00123", geocode: null, sourceId: "texas-comptroller-active-sales-tax-permits", releaseId: "s2", recordId: "r3", runId: "i2", policy: "p2", exportPolicy: "local-review-only" }),
   ];
   const zipped = gzipSync(`${rows.map(JSON.stringify).join("\n")}\n`);
   const relativeArtifact = "resolution/location-profiles/zip2=00.jsonl.gz";
@@ -43,9 +60,8 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   const item = await fixture(t), release = path.join(item.root, "release"), artifactPath = path.join(release, "resolution/location-profiles/zip2=00.jsonl.gz");
   const manifestPath = path.join(release, "manifest.json"), manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const existing = gunzipSync(await readFile(artifactPath)).toString("utf8").trim().split(/\r?\n/).map(JSON.parse);
-  const irs = { names: [{ raw: "Fixture Tax-Exempt Organization" }], address: { street: "9 Main St", city: "Austin", state: "TX", zip_code: "78702", zip4: "0042" }, location: null,
-    source: { source_id: "irs-eo-bmf-organizations", source_release_id: "irs-fixture-release", source_record_id: "12-3456789", ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "1.0.0" },
-    export_policy: "local-review-only", observed_at: "2026-08-11T00:00:00Z", evidence: { source_release_id: "irs-fixture-release", verification: "fixture-only" } };
+  const irs = makeProfile({ id: "4", name: "Fixture Tax-Exempt Organization", street: "9 Main St", city: "Austin", state: "TX", zip: "78702", zip4: "0042", geocode: null,
+    sourceId: "irs-eo-bmf-organizations", releaseId: "irs-fixture-release", recordId: "12-3456789", runId: "irs-fixture-run", policy: "irs-eo-bmf", exportPolicy: "local-review-only" });
   const bytes = gzipSync(`${[...existing, irs].map(JSON.stringify).join("\n")}\n`);
   await writeFile(artifactPath, bytes);
   manifest.artifacts[0].bytes = bytes.length; manifest.artifacts[0].sha256 = digest(bytes);
@@ -59,8 +75,8 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   const rows = (await readFile(path.join(allowed.outputDirectory, "records.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
   assert.equal(rows.length, 1);
   assert.deepEqual(rows[0], { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
-    source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: irs.evidence,
-    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "1.0.0", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });
+    source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: null,
+    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });
   assert.equal(allowed.manifest.filters.categories[0], "tax-exempt-organizations");
   assert.equal(allowed.manifest.export_policy, "local-review-only");
 });
@@ -72,14 +88,14 @@ test("reporting-only childcare is exported only in local-review mode with split 
   await writeFile(path.join(release, "childcare.jsonl.gz"), bytes);
   manifest.artifacts.push({ path: "childcare.jsonl.gz", artifact_type: "business-reporting-location-evidence-jsonl-gzip", bytes: bytes.length, sha256: digest(bytes) });
   await writeFile(manifestPath, JSON.stringify(manifest));
-  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--category", "childcare", "--format", "jsonl", "--field", "business_name,zip_code,zip4,latitude,longitude,source_status,source_evidence,identity_matching_eligible"];
+  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--category", "childcare", "--format", "jsonl", "--field", "business_name,zip_code,zip4,geocode,source_status,source_evidence,identity_matching_eligible"];
   const denied = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-public"]);
   assert.equal(denied.summary.counts.rows_written, 0);
   assert.equal(denied.summary.counts.policy_rejected, 1);
   const local = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-local", "--policy-mode", "local-review"]);
   assert.equal(local.summary.counts.rows_written, 1);
   const actual = JSON.parse((await readFile(path.join(local.outputDirectory, "records.jsonl"), "utf8")).trim());
-  assert.deepEqual([actual.business_name, actual.zip_code, actual.zip4, actual.latitude, actual.longitude], ["Fixture Childcare", "02536", "5023", 41.57, -70.6]);
+  assert.deepEqual([actual.business_name, actual.zip_code, actual.zip4, actual.geocode], ["Fixture Childcare", "02536", "5023", { latitude: 41.57, longitude: -70.6 }]);
   assert.equal(actual.identity_matching_eligible, false);
   assert.deepEqual(actual.source_status, row.source_status);
   assert.deepEqual(actual.source_evidence, row.evidence);
@@ -133,7 +149,8 @@ test("TN exports conserve mixed and all-null ZIP cohorts under explicit local re
     for (const row of exported) {
       const source = rows.find(r => r.source.source_record_id === row.source_record_id);
       assert.deepEqual(row.source_evidence, source.evidence); assert.deepEqual(row.source_status, source.source_status); assert.equal(row.identity_matching_eligible, false);
-      assert.equal(row.latitude, source.location.latitude); assert.equal(row.longitude, source.location.longitude);
+      const expectedGeocode = source.location.latitude === null && source.location.longitude === null ? null : source.location;
+      assert.deepEqual(row.geocode, expectedGeocode);
     }
     assert.equal(exported.find(row => row.source_record_id === rows[fresh ? 1 : 0].source.source_record_id).unit_or_additional, fresh ? "Suite 200" : "Suite 4");
     if (!allMissing) assert.equal(exported.find(row => row.zip_code !== null).zip4, "0123");
@@ -175,16 +192,18 @@ test("cancellation removes an incomplete export without publishing a manifest", 
 
 test("streams governed CSV/JSONL exports with policy filtering and provenance", async (t) => {
   const item = await fixture(t);
-  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--field", "business_name,state,zip_code,zip4,latitude,longitude,source_id,dataset_id,source_dataset_release_id,export_policy"];
+  const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--field", "business_name,state,zip_code,zip4,geocode,source_id,dataset_id,source_dataset_release_id,export_policy"];
   const publicResult = await composeFlatBusinessExport([...common, "--output-prefix", "public", "--format", "both"], { runId: "public-run" });
   assert.equal(publicResult.summary.counts.rows_written, 1);
   assert.equal(publicResult.summary.counts.policy_rejected, 2);
   const csv = await readFile(path.join(publicResult.outputDirectory, "records.csv"), "utf8");
-  assert.match(csv, /Public Store,TX,78701,1234,30.27,-97.74/);
+  assert.match(csv, /Public Store,TX,78701,1234,"\{""latitude"":30\.27,""longitude"":-97\.74\}"/);
   assert.doesNotMatch(csv, /Review Store/);
   const jsonl = JSON.parse((await readFile(path.join(publicResult.outputDirectory, "records.jsonl"), "utf8")).trim());
   assert.equal(jsonl.dataset_id, "national-business-registry");
   assert.equal(jsonl.source_dataset_release_id, "fixture-1");
+  assert.deepEqual(jsonl.geocode, { latitude: 30.27, longitude: -97.74 });
+  for (const field of ["location", "geometry", "latitude", "longitude"]) assert.equal(Object.hasOwn(jsonl, field), false);
   assert.equal(publicResult.manifest.export_policy, "public-policy-filtered");
   assert.equal(publicResult.manifest.source_lineage[0].artifacts[0].sha256.length, 64);
   assert.ok((await stat(publicResult.manifestPath)).mtimeMs >= (await stat(publicResult.summaryPath)).mtimeMs);
@@ -193,11 +212,28 @@ test("streams governed CSV/JSONL exports with policy filtering and provenance", 
   assert.equal(reviewResult.summary.counts.rows_written, 2);
   assert.equal(reviewResult.manifest.export_policy, "local-review-only");
   const reviewText = await readFile(path.join(reviewResult.outputDirectory, "records.jsonl"), "utf8"); const review = JSON.parse(reviewText.trim().split("\n")[0]);
-  assert.deepEqual([review.zip_code, review.zip4, review.latitude, review.longitude], ["98101", "5678", 47.6, -122.3]);
+  assert.deepEqual([review.zip_code, review.zip4, review.geocode], ["98101", "5678", { latitude: 47.6, longitude: -122.3 }]);
   const reviewCsvResult = await composeFlatBusinessExport([...common, "--output-prefix", "review-csv", "--format", "csv", "--policy-mode", "local-review", "--state", "WA"], { runId: "review-csv-run" });
   const reviewCsv = await readFile(path.join(reviewCsvResult.outputDirectory, "records.csv"), "utf8");
   assert.match(reviewCsv, /'=Review Store/);
   assert.match(reviewCsv, /Bad Coordinates,WA,00123,,/);
+});
+
+test("flat export rejects combined ZIP+4 rather than extracting or inferring a ZIP5", async (t) => {
+  const item = await fixture(t);
+  const profilePath = path.join(item.root, "release", "resolution", "location-profiles", "zip2=00.jsonl.gz");
+  const rows = gunzipSync(await readFile(profilePath)).toString("utf8").trim().split("\n").map(JSON.parse);
+  rows[0].address.zip_code = "78701-1234";
+  rows[0].address.postal_code = "78701-1234";
+  const zipped = gzipSync(`${rows.map(JSON.stringify).join("\n")}\n`);
+  await writeFile(profilePath, zipped);
+  const manifestPath = path.join(item.root, "release", "manifest.json"), manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  manifest.artifacts[0].bytes = zipped.length; manifest.artifacts[0].sha256 = digest(zipped);
+  await writeFile(manifestPath, JSON.stringify(manifest));
+  await assert.rejects(composeFlatBusinessExport([
+    "--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--output-prefix", "combined-zip-rejected",
+    "--category", "retail-consumer", "--state", "TX", "--field", "business_name,zip_code,zip4,geocode",
+  ]), /exact ZIP5/);
 });
 
 test("rejects a source artifact whose governed hash is wrong and removes partial output", async (t) => {
@@ -212,19 +248,9 @@ test("repeated output backpressure completes without listener warnings and prese
   const release = path.join(item.root, "release");
   const artifactPath = path.join(release, "resolution", "location-profiles", "zip2=00.jsonl.gz");
   const payload = "x".repeat(64 * 1024);
-  const rows = Array.from({ length: 100 }, (_, index) => ({
-    names: [{ raw: `Store ${String(index).padStart(3, "0")} ${payload}` }],
-    address: { state: "TX", zip_code: "00123" },
-    source: {
-      source_id: "usda-snap-current-retailers",
-      source_release_id: "large-source-1",
-      source_record_id: `large-${index}`,
-      ingest_run_id: "large-ingest-1",
-      policy_id: "public-test-policy",
-      transformation_version: "v1",
-    },
-    export_policy: "public",
-  }));
+  const rows = Array.from({ length: 100 }, (_, index) => makeProfile({ id: String(index.toString(16).padStart(2, "0")), name: `Store ${String(index).padStart(3, "0")} ${payload}`,
+    state: "TX", zip: "00123", geocode: null, sourceId: "usda-snap-current-retailers", releaseId: "large-source-1", recordId: `large-${index}`,
+    runId: "large-ingest-1", policy: "public-test-policy", exportPolicy: "public" }));
   const zipped = gzipSync(`${rows.map(JSON.stringify).join("\n")}\n`);
   await writeFile(artifactPath, zipped);
   const manifestPath = path.join(release, "manifest.json");

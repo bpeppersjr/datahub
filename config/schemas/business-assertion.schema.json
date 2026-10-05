@@ -23,7 +23,7 @@
     "subject_entity_id": { "type": "string", "minLength": 1 },
     "predicate": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
     "value": {},
-    "value_type": { "enum": ["string", "number", "boolean", "date", "datetime", "identifier", "address", "geometry", "object", "null"] },
+    "value_type": { "enum": ["string", "number", "boolean", "date", "datetime", "identifier", "address", "geocode", "object", "null"] },
     "assertion_status": { "enum": ["active", "superseded", "disputed", "retracted", "expired"] },
     "valid_from": { "type": ["string", "null"], "format": "date-time" },
     "valid_to": { "type": ["string", "null"], "format": "date-time" },
@@ -48,6 +48,16 @@
     }
   },
   "allOf": [
+    {
+      "if": { "properties": { "value_type": { "const": "geocode" } }, "required": ["value_type"] },
+      "then": { "properties": { "value": { "oneOf": [
+        { "type": "null" },
+        { "type": "object", "additionalProperties": false, "required": ["latitude", "longitude"], "properties": {
+          "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+          "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+        } }
+      ] } } }
+    },
     {
       "if": {
         "properties": { "value_type": { "const": "address" } },

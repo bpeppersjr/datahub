@@ -8,6 +8,7 @@ import { createInterface } from "node:readline";
 import { createGunzip, createGzip } from "node:zlib";
 import { isDeepStrictEqual } from "node:util";
 import { createLocationMatchProfile } from "./business-entity-resolution.mjs";
+import { normalizeBusinessLocationProfile, registryProfileCompatibilityBinding, validateLegacyGeometryAssertion } from "./business-location-profile-contract.mjs";
 import { assertNormalizedUsPostalFields } from "./normalized-us-postal-code.mjs";
 import { loadMaChildcareRegistryInput } from "./ma-childcare-registry-input.mjs";
 import { loadNjChildcareRegistryInput } from "./nj-childcare-registry-input.mjs";
@@ -158,6 +159,35 @@ function assertion(record, subjectEntityId, predicate, value, valueType, sourceF
   };
 }
 
+function geocodeAssertionValue(value) {
+  if (value === null || value === undefined) return null;
+  const sourcePoint = value?.type === "Point";
+  const pointMetadata = ["coordinate_reference_system", "coordinate_scope", "plausibility", "source_coordinate", "source_crs", "output_crs", "transformation", "independently_verified"];
+  const pairMetadata = ["coordinate_scope", "plausibility", "precision", "independently_verified", "premise_coordinate_claim_permitted"];
+  const keys = Object.keys(value ?? {}).sort();
+  const pointKeysValid = sourcePoint && ["coordinates", "type"].every(key => Object.hasOwn(value, key))
+    && keys.every(key => ["coordinates", "type", ...pointMetadata].includes(key))
+    && (!Object.hasOwn(value, "coordinate_reference_system") || value.coordinate_reference_system === "EPSG:4326");
+  const pairKeysValid = !sourcePoint && ["latitude", "longitude"].every(key => Object.hasOwn(value, key))
+    && keys.every(key => ["latitude", "longitude", ...pairMetadata].includes(key));
+  if (!pointKeysValid && !pairKeysValid) throw new Error("Geocode must be a source Point or explicit latitude/longitude pair with recognized source qualifiers only.");
+  if (sourcePoint && value.coordinates === null) return null;
+  const isPoint = sourcePoint && Array.isArray(value.coordinates) && value.coordinates.length === 2;
+  if (sourcePoint && !isPoint) throw new Error("Point geocode must contain exactly [longitude, latitude].");
+  const rawLongitude = isPoint ? value.coordinates[0] : value?.longitude;
+  const rawLatitude = isPoint ? value.coordinates[1] : value?.latitude;
+  const absent = raw => raw === null || raw === undefined || raw === "";
+  if (absent(rawLatitude) && absent(rawLongitude)) return null;
+  if (absent(rawLatitude) || absent(rawLongitude)) throw new Error("Geocode coordinates must be both present or both null.");
+  const coordinate = raw => typeof raw === "number" ? raw
+    : typeof raw === "string" && /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw.trim()) ? Number(raw.trim()) : NaN;
+  const latitude = coordinate(rawLatitude), longitude = coordinate(rawLongitude);
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    throw new Error("Coordinate assertion must contain a valid longitude/latitude pair in EPSG:4326.");
+  }
+  return { latitude, longitude };
+}
+
 function relationship(record, relationshipType, subjectEntityId, objectEntityId) {
   return {
     schema_version: REGISTRY_SCHEMA_VERSION,
@@ -204,7 +234,7 @@ export function reconcileSnapRecord(record) {
   ];
   const assertions = [
     assertion(record, siteId, "site.address", record.address, "address", "Store_Street_Address|Additonal_Address|City|State|Zip_Code|Zip4|County"),
-    assertion(record, siteId, "site.location", record.location, "geometry", "Latitude|Longitude"),
+    assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "Latitude|Longitude"),
     assertion(record, siteId, "site.zip-code", record.address.zip_code, "string", "Zip_Code"),
     assertion(record, siteId, "site.zcta", {
       match_status: record.geography?.zcta_match_status ?? null,
@@ -357,7 +387,7 @@ export function reconcileFdicInstitution(record) {
     assertions.push(assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", identifier.source_field));
   }
   if (record.headquarters?.address) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-address", record.headquarters.address, "address", "ADDRESS|ADDRESS2|CITY|STALP|ZIP|COUNTY|STCNTY"));
-  if (record.headquarters?.location) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-location", record.headquarters.location, "geometry", "LATITUDE|LONGITUDE"));
+  if (record.headquarters?.location) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-location", geocodeAssertionValue(record.headquarters.location), "geocode", "LATITUDE|LONGITUDE"));
   if (record.headquarters?.geography) assertions.push(assertion(record, organizationId, "organization.reported-headquarters-zcta", record.headquarters.geography, "object", "ZIP"));
   if (record.website) assertions.push(assertion(record, organizationId, "organization.reported-website", record.website, "string", "WEBADDR"));
   if (record.institution_class) assertions.push(assertion(record, organizationId, "organization.fdic-institution-class", record.institution_class, "object", "BKCLASS|CHRTAGNT|REGAGNT"));
@@ -384,7 +414,7 @@ export function reconcileFdicLocation(record) {
     assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", null),
     assertion(record, establishmentId, "establishment.fdic-main-office", record.main_office, "boolean", "MAINOFF"),
   ];
-  if (record.location) assertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "LATITUDE|LONGITUDE"));
+  if (record.location) assertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "LATITUDE|LONGITUDE"));
   for (const identifier of record.external_identifiers ?? []) {
     assertions.push(assertion(record, establishmentId, "establishment.external-identifier", identifier, "identifier", identifier.source_field));
   }
@@ -479,7 +509,7 @@ export function reconcileFsisEstablishment(record) {
   const assertions = [
     assertion(record, siteId, "site.address", record.address, "address", "street|city|state|zip|county|fips_code"),
     assertion(record, siteId, "site.zip-code", zipCode, "string", "zip"),
-    assertion(record, siteId, "site.location", record.location, "geometry", "latitude|longitude"),
+    assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "latitude|longitude"),
     assertion(record, siteId, "site.zcta", record.geography, "object", "zip"),
     assertion(record, establishmentId, "establishment.name", record.name, "string", "establishment_name"),
     assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", null),
@@ -526,7 +556,7 @@ export function reconcileLaActiveBusinessLocation(record) {
     assertion(record, establishmentId, "establishment.self-reported-naics", record.industry_profile, "object", "naics|primary_naics_description"),
     assertion(record, establishmentId, "establishment.la-registration-profile", record.registration_profile, "object", "council_district|location_start_date|location_end_date"),
   ];
-  if (record.location) assertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "location_1"));
+  if (record.location) assertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "location_1"));
   for (const name of record.other_names ?? []) {
     assertions.push(assertion(record, establishmentId, "establishment.other-name", { name, name_type: "la-office-of-finance-reported-dba" }, "object", "dba_name"));
   }
@@ -621,7 +651,7 @@ export function reconcileChicagoActiveBusinessLicenseSite(record) {
     assertion(record, establishmentId, "establishment.external-identifier", record.external_identifiers[1], "identifier", "account_number|site_number"),
     assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "license_status|expiration_date"),
   ];
-  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "latitude|longitude"));
+  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "latitude|longitude"));
   for (const name of record.doing_business_as_names ?? []) {
     if (name !== establishmentName) locationAssertions.push(assertion(record, establishmentId, "establishment.other-name", { name, name_type: "chicago-bacp-reported-dba" }, "object", "doing_business_as_name"));
   }
@@ -680,7 +710,7 @@ export function reconcileDcBasicBusinessLicenseSite(record) {
     assertion(record, establishmentId, "establishment.external-identifier", customerIdentifier, "identifier", "CUSTOMERNUMBER"),
     assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "LICENSESTATUS|LICENSETYPE|DATAREFRESHEDON"),
   ];
-  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "XCOORD|YCOORD"));
+  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "XCOORD|YCOORD"));
   for (const name of record.trade_names ?? []) {
     if (name !== establishmentName) locationAssertions.push(assertion(record, establishmentId, "establishment.other-name", { name, name_type: "dc-dlcp-reported-trade-name" }, "object", "ENTITY_NAME"));
   }
@@ -826,14 +856,14 @@ export function reconcileNyRetailFoodStoreLicense(record) {
       assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "license_number|operation_type"),
       assertion(record, establishmentId, "establishment.ny-retail-food-store-license-profile", record.retail_food_store_license_profile, "object", "license_number|operation_type|estab_type|square_footage|county"),
     );
-    if (record.reported_coordinate) locationAssertions.push(assertion(record, siteId, "site.location", record.reported_coordinate, "geometry", "georeference"));
+    if (record.reported_coordinate) locationAssertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.reported_coordinate), "geocode", "georeference"));
     relationships.push(relationship(record, "operates", organizationId, establishmentId), relationship(record, "located_at", establishmentId, siteId));
   } else {
     organizationAssertions.push(
       assertion(record, organizationId, "organization.reported-licensed-physical-address", record.physical_address, "address", "street_number|street_name|address_line_2|address_line_3|city|state|zip_code|county"),
       assertion(record, organizationId, "organization.ny-retail-food-store-license-profile", record.retail_food_store_license_profile, "object", "license_number|operation_type|estab_type|square_footage|county"),
     );
-    if (record.reported_coordinate) organizationAssertions.push(assertion(record, organizationId, "organization.reported-address-coordinate", record.reported_coordinate, "geometry", "georeference"));
+    if (record.reported_coordinate) organizationAssertions.push(assertion(record, organizationId, "organization.reported-address-coordinate", geocodeAssertionValue(record.reported_coordinate), "geocode", "georeference"));
   }
   return { licenseNumber, zipCode, hasSite, entities, organizationAssertions, locationAssertions, relationships };
 }
@@ -866,7 +896,7 @@ export function reconcileNycDcwpActiveLicenseSite(record) {
     assertion(record, establishmentId, "establishment.external-identifier", record.external_identifiers[0], "identifier", "business_unique_id"),
     assertion(record, establishmentId, "establishment.source-status", record.source_status, "object", "license_status|license_type"),
   ];
-  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", record.location, "geometry", "latitude|longitude"));
+  if (record.location) locationAssertions.push(assertion(record, siteId, "site.location", geocodeAssertionValue(record.location), "geocode", "latitude|longitude"));
   for (const name of record.doing_business_as_names ?? []) {
     if (name !== establishmentName) locationAssertions.push(assertion(record, establishmentId, "establishment.other-name", { name, name_type: "nyc-dcwp-reported-dba" }, "object", "dba_trade_name"));
   }
@@ -1005,7 +1035,7 @@ export function reconcileCtBusinessOrganization(record) {
     assertion(record, organizationId, "organization.ct-registration-status", record.source_status, "object", "status|sub_status|create_dt"),
     assertion(record, organizationId, "organization.ct-registration-profile", record.registration_profile, "object", "business_type|citizenship|country_formation|formation_place|state_or_territory_formation|date_registration|began_transacting_in_ct|annual_report_due_date|dissolution_date|naics_code|naics_sub_code"),
   ];
-  if (record.reported_address_coordinate) assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", record.reported_address_coordinate, "geometry", "geo_location"));
+  if (record.reported_address_coordinate) assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", geocodeAssertionValue(record.reported_address_coordinate), "geocode", "geo_location"));
   if (zipCode) {
     assertions.push(assertion(record, organizationId, "organization.reported-business-zip-code", zipCode, "string", "billingpostalcode"));
     assertions.push(assertion(record, organizationId, "organization.reported-business-zcta", record.geography, "object", "billingpostalcode"));
@@ -1041,7 +1071,7 @@ export function reconcileDeBusinessLicense(record) {
     assertion(record, organizationId, "organization.de-current-license-status", record.source_status, "object", "current_license_valid_from|current_license_valid_to"),
     assertion(record, organizationId, "organization.de-current-license-profile", record.license_profile, "object", "license_number|category|current_license_valid_from|current_license_valid_to"),
   ];
-  if (record.reported_address_coordinate) assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", record.reported_address_coordinate, "geometry", "geocoded_location"));
+  if (record.reported_address_coordinate) assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", geocodeAssertionValue(record.reported_address_coordinate), "geocode", "geocoded_location"));
   if (zipCode) {
     assertions.push(assertion(record, organizationId, "organization.reported-business-zip-code", zipCode, "string", "zip"));
     assertions.push(assertion(record, organizationId, "organization.reported-business-zcta", record.geography, "object", "zip"));
@@ -1261,12 +1291,13 @@ export function reconcileIaBusinessEntity(record) {
     }, "object", "corporation_type|effective_date"),
   ];
   if (address.coordinate_status === "source-geocoded-coordinate-pair") {
-    assertions.push(assertion(record, organizationId, "organization.home-office-address-coordinate", {
-      latitude: address.latitude,
-      longitude: address.longitude,
-      coordinate_status: address.coordinate_status,
-      coordinate_scope: address.coordinate_scope,
-    }, "geometry", "ho_latitude|ho_longitude"));
+    assertions.push(
+      assertion(record, organizationId, "organization.home-office-address-coordinate", geocodeAssertionValue({ latitude: address.latitude, longitude: address.longitude }), "geocode", "ho_latitude|ho_longitude"),
+      assertion(record, organizationId, "organization.home-office-address-coordinate-qualifier", {
+        coordinate_status: address.coordinate_status,
+        coordinate_scope: address.coordinate_scope,
+      }, "object", "ho_latitude|ho_longitude"),
+    );
   }
   if (zipCode) {
     assertions.push(assertion(record, organizationId, "organization.home-office-zip-code", zipCode, "string", "ho_zip"));
@@ -1380,7 +1411,7 @@ export function reconcilePaBusinessOrganization(record) {
     assertion(record, organizationId, "organization.pa-registration-profile", record.registration_profile, "object", "typeofbusinessregistration|shortcountyname|county_code"),
   ];
   if (record.reported_address_coordinate) {
-    assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", record.reported_address_coordinate, "geometry", "georeferenced_latitude__longitude"));
+    assertions.push(assertion(record, organizationId, "organization.reported-business-address-coordinate", geocodeAssertionValue(record.reported_address_coordinate), "geocode", "georeferenced_latitude__longitude"));
   }
   for (const identifier of record.external_identifiers ?? []) assertions.push(assertion(record, organizationId, "organization.external-identifier", identifier, "identifier", identifier.source_field));
   if (zipCode) {
@@ -5512,7 +5543,12 @@ export class ExactPartitionedSet {
 export async function verifyNationalBusinessRegistry(manifestPath) {
   const absoluteManifestPath = path.resolve(manifestPath);
   const releaseDirectory = path.dirname(absoluteManifestPath);
-  const manifest = JSON.parse(await readFile(absoluteManifestPath, "utf8"));
+  const manifestBytes = await readFile(absoluteManifestPath);
+  const manifest = JSON.parse(manifestBytes.toString("utf8"));
+  const registryProfileBinding = registryProfileCompatibilityBinding(manifest, digest(manifestBytes));
+  const legacyGeometryAssertionsAllowed = registryProfileBinding.dataset_id === "national-business-registry"
+    && registryProfileBinding.release_id === "national-business-registry-20260911-022652067Z-1ec656c3"
+    && registryProfileBinding.manifest_sha256 === "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76";
   const failures = [];
   try {
     const cmsNursingAdmission = Object.hasOwn(manifest, 'cms_nursing_home_directory_reporting')
@@ -5755,7 +5791,8 @@ if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.
     try {
       const zip2 = artifact.path.match(/zip2=(\d{2})/)?.[1];
       if (!zip2) throw new Error("missing ZIP2 partition");
-      const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (profile) => {
+      const count = await forEachGzipRecord(path.join(releaseDirectory, artifact.path), (sourceProfile) => {
+        const profile = normalizeBusinessLocationProfile(sourceProfile, registryProfileBinding);
         const matchKey = profile.normalized_address?.match_key;
         if (separatedPostalFieldsRequired) {
           assertNormalizedUsPostalFields(profile.address, `${profile.profile_id ?? "<unknown>"}.address`);
@@ -5767,8 +5804,7 @@ if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.
         if (reportingEvidenceSupported && (profileSiteIds.has(profile.site_entity_id) || reportingRows.has(profile.site_entity_id)
           || tnEntities.has(profile.establishment_entity_id) || isOhEntity(profile.establishment_entity_id) || isOhEntity(profile.site_entity_id) || childcareSourceIds.has(profile.source?.source_id))) throw new Error("matching and reporting-only site partitions are not disjoint");
         if (reportingEvidenceSupported) profileSiteIds.add(profile.site_entity_id);
-        if (profile.schema_version !== "1.0.0" || profile.profile_version !== "business-location-match-profile@1.0.0"
-          || profile.zip_code?.slice(0, 2) !== zip2 || !hasEntityId(profile.site_entity_id)
+        if (profile.zip_code?.slice(0, 2) !== zip2 || !hasEntityId(profile.site_entity_id)
           || !hasEntityId(profile.establishment_entity_id)
           || profile.normalized_address?.complete !== Boolean(matchKey) || profile.normalized_address?.zip_code !== profile.zip_code
           || (matchKey ? profile.address_match_key_sha256 !== digest(matchKey) : profile.address_match_key_sha256 !== null)
@@ -5853,6 +5889,11 @@ if (["1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "2.
         if (!hasEntityId(record.subject_entity_id)) throw new Error(`missing assertion subject ${record.subject_entity_id}`);
         if (!validateProvenance(record.source) || !["public", "public-open-ny-terms", "public-factual-fields-with-source-limitations", "local-review-only"].includes(record.export_policy)) throw new Error(`invalid provenance or policy for ${record.assertion_id}`);
         if (!record.observed_at || !record.first_seen || !record.last_seen) throw new Error(`missing temporal scope for ${record.assertion_id}`);
+        if (record.value_type === "geometry") {
+          if (!legacyGeometryAssertionsAllowed) throw new Error("legacy geometry assertions require the exact retained registry compatibility binding");
+          try { validateLegacyGeometryAssertion(record.value, registryProfileBinding); } catch { throw new Error("legacy geometry assertion is not an exact point geocode"); }
+        }
+        if (record.value_type === "geocode" && !isDeepStrictEqual(geocodeAssertionValue(record.value), record.value)) throw new Error("geocode assertion is not a canonical bounded latitude/longitude pair");
         verifyOhCanonical(record, "assertions", artifact.path);
         if (artifact.path.includes("unassigned") && !(tnReportingSupported && tnEntities.has(record.subject_entity_id)) && !(ohReportingSupported && isOhEntity(record.subject_entity_id))) throw new Error("unassigned assertion must be supported reporting member");
         if (tnEntities.has(record.subject_entity_id) && record.source.source_id !== TN_CHILDCARE_DATASET) throw new Error("TN assertion source does not own subject");

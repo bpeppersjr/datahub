@@ -2580,6 +2580,9 @@ test("reconciles FSIS sites and establishments without inferring an organization
   assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["located_at"]);
   assert.equal(result.assertions.find((item) => item.predicate === "establishment.source-status").value.value, "listed-in-fsis-active-mpi-directory-as-of-release");
   assert(result.assertions.some((item) => item.predicate === "establishment.fsis-activities"));
+  const coordinate = result.assertions.find((item) => item.predicate === "site.location");
+  if (coordinate) assert.equal(coordinate.value_type, "geocode");
+  assert(!result.assertions.some((item) => item.value_type === "geometry"));
   assert(result.assertions.some((item) => item.predicate === "establishment.other-name"));
   assert(!result.assertions.some((item) => item.predicate.includes("organization") || item.predicate.includes("owner") || item.predicate.includes("open")));
 });

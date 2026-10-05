@@ -9,12 +9,28 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createBusinessMapStore } from "./business-map-store.mjs";
+import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-contract.mjs";
 import { childcareReportingRow } from "./fixtures/childcare-reporting-row.mjs";
 import { createTnChildcareReportingFixture } from "./fixtures/tn-childcare-reporting.mjs";
 import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-reporting.mjs";
 
 function json(value) {
   return `${JSON.stringify(value)}\n`;
+}
+
+function profile({ id, sourceId, name, zipCode = "12345", zip4 = null, street = "1 Main St", city = "Alpha", state = "AA", geocode = null, exportPolicy = "public" }) {
+  const digest = createHash("sha256").update(`${sourceId}:${id}`).digest("hex");
+  return {
+    schema_version: "1.0.0", profile_version: BUSINESS_LOCATION_PROFILE_VERSION,
+    profile_id: `location-profile:${digest.slice(0, 32)}`, zip_code: zipCode,
+    site_entity_id: `site:${sourceId}_${id}`, establishment_entity_id: `establishment:${sourceId}_${id}`, organization_entity_id: null,
+    address: { street, unit_or_additional: null, city, state, zip_code: zipCode, postal_code: zipCode, zip4, county_name: null },
+    normalized_address: { kind: "unknown", street: null, unit: null, city: null, state: null, zip_code: zipCode, complete: false, match_key: null },
+    address_match_key_sha256: null, names: name ? [{ raw: name }] : [], primary_name_match_key_sha256: null, geocode,
+    external_identifiers: [], source_status: null, observed_at: "2026-09-01T00:00:00.000Z",
+    source: { source_id: sourceId, source_release_id: `${sourceId}-release`, source_record_id: id, ingest_run_id: `${sourceId}-run`, transformation_version: `${sourceId}@1.0.0`, policy_id: `${sourceId}-policy` },
+    export_policy: exportPolicy,
+  };
 }
 
 function polygon(west, south, east, north) {
@@ -192,8 +208,8 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
   await writeFile(path.join(geographyRoot, "current.json"), json({ dataset_id: "us-census-geography", release_id: "geography-1", manifest: "releases/geography-1/manifest.json" }));
 
   const profiles = [
-    { zip_code: "12345", names: [{ raw: "Main Street Market" }], address: { street: "1 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: "6789" }, location: { type: "Point", coordinates: [-86.1234, 32.5678] }, source: { source_id: "usda-snap-current-retailers" }, observed_at: "2026-01-01T00:00:00.000Z", export_policy: "public" },
-    { zip_code: "12345", names: [{ raw: "Alpha Clinic" }], address: { street: "2 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: { latitude: " ", longitude: false }, source: { source_id: "cms-nppes-monthly-v2" }, observed_at: "2026-01-02T00:00:00.000Z", export_policy: "public" },
+    profile({ id: "snap-1", sourceId: "usda-snap-current-retailers", name: "Main Street Market", zip4: "6789", geocode: { latitude: 32.5678, longitude: -86.1234 } }),
+    profile({ id: "nppes-1", sourceId: "cms-nppes-monthly-v2", name: "Alpha Clinic", street: "2 Main St" }),
   ];
   if (irsProfile) profiles.push(irsProfile);
   const profilePath = path.join(registryRelease, "resolution", "location-profiles", "zip2=12.jsonl.gz");
@@ -335,14 +351,14 @@ test("IRS filing-address evidence remains a typed component without cross-source
 });
 
 test("IRS category filters the exact registry profile source and rejects public-policy escalation", async context => {
-  const profile = { zip_code: "12345", names: [{ raw: "Fixture Exempt Organization" }], address: { street: "3 Main St", city: "Alpha", state: "AA", zip_code: "12345", zip4: null }, location: null, source: { source_id: "irs-eo-bmf-organizations", source_release_id: "irs-fixture", source_record_id: "12-3456789" }, observed_at: "2026-08-11T00:00:00.000Z", export_policy: "local-review-only" };
-  const store = await fixture(context, { irsCount: 1, irsProfile: profile });
+  const irsProfile = profile({ id: "12-3456789", sourceId: "irs-eo-bmf-organizations", name: "Fixture Exempt Organization", street: "3 Main St", exportPolicy: "local-review-only" });
+  const store = await fixture(context, { irsCount: 1, irsProfile });
   const names = await store.listBusinessNames({ zipCode: "12345", categoryId: "tax-exempt-organizations" });
   assert.equal(names.total, 1); assert.equal(names.records[0].business_name, "Fixture Exempt Organization");
   assert.equal(names.records[0].source_id, "irs-eo-bmf-organizations"); assert.equal(names.records[0].export_policy, "local-review-only"); assert.equal(names.local_review_only, true);
   const unrelated = await store.listBusinessNames({ zipCode: "12345", categoryId: "retail-consumer" });
   assert.equal(unrelated.records.some(row => row.source_id === "irs-eo-bmf-organizations"), false);
-  const escalated = await fixture(context, { irsCount: 1, irsProfile: { ...profile, export_policy: "public" } });
+  const escalated = await fixture(context, { irsCount: 1, irsProfile: { ...irsProfile, export_policy: "public" } });
   await assert.rejects(escalated.listBusinessNames({ zipCode: "12345", categoryId: "tax-exempt-organizations" }), /local-review-only/);
 });
 
@@ -692,11 +708,11 @@ test("drills from category to real ZIP business names without joining ZIP+4", as
     geocode: { latitude: 32.5678, longitude: -86.1234 },
     category_id: "retail-consumer",
     source_id: "usda-snap-current-retailers",
-    source_release_id: null,
-    source_record_id: null,
-    transformation_version: null,
-    policy_id: null,
-    observed_at: "2026-01-01T00:00:00.000Z",
+    source_release_id: "usda-snap-current-retailers-release",
+    source_record_id: "snap-1",
+    transformation_version: "usda-snap-current-retailers@1.0.0",
+    policy_id: "usda-snap-current-retailers-policy",
+    observed_at: "2026-09-01T00:00:00.000Z",
     export_policy: "public",
   });
   assert(!Object.hasOwn(names.records[0].address, "postal_code"));

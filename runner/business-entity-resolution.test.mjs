@@ -441,9 +441,12 @@ test("source replay rejects semantically invalid identities even when canonical 
       ];
       extra.forEach((item, index) => {
         item.profile_id = `location-profile:${sha256(`${mode}-${index}`).slice(0, 32)}`;
-        if (mode === "duplicate-decision") { item.zip_code = "61601"; item.normalized_address.zip_code = "61601"; }
       });
       altered.push(...extra);
+    }
+    if (mode === "malformed-profile" || mode === "numeric-profile") {
+      assert.throws(() => resolveLocationProfiles(altered, { createdAt: result.manifest.created_at }), /identity or ZIP|versioned contract/);
+      continue;
     }
     await writeFixtureRegistry(registryRoot, altered);
     const registryManifestPath = path.join(registryRoot, JSON.parse(await readFile(registryPointer)).manifest);
@@ -454,11 +457,18 @@ test("source replay rejects semantically invalid identities even when canonical 
       const zip2 = artifact.path.match(/zip2=(\d{2})/)[1];
       const profiles = altered.filter(item => item.zip_code.startsWith(zip2));
       const replay = resolveLocationProfiles(profiles, { createdAt: result.manifest.created_at });
-      allDecisions.push(...replay.decisions);
       for (const [key, value] of Object.entries(replay.summary)) totals[key] += value;
-      const bytes = gzipSync(replay.decisions.map(JSON.stringify).join("\n") + (replay.decisions.length ? "\n" : ""));
+      const decisions = [...replay.decisions];
+      if (mode === "duplicate-decision" && decisions.length && !allDecisions.length) {
+        const duplicate = structuredClone(decisions[0]);
+        decisions.push(duplicate);
+        totals[duplicate.decision_type === "review-candidate" ? "review_candidate_decisions"
+          : duplicate.entity_type === "physical_site" ? "site_alias_decisions" : "establishment_alias_decisions"] += 1;
+      }
+      allDecisions.push(...decisions);
+      const bytes = gzipSync(decisions.map(JSON.stringify).join("\n") + (decisions.length ? "\n" : ""));
       await writeFile(path.join(result.releaseDirectory, artifact.path), bytes);
-      Object.assign(artifact, { bytes: bytes.length, sha256: sha256(bytes), record_count: replay.decisions.length, source_profile_count: profiles.length });
+      Object.assign(artifact, { bytes: bytes.length, sha256: sha256(bytes), record_count: decisions.length, source_profile_count: profiles.length });
     }
     if (mode === "duplicate-decision") assert.ok(new Set(allDecisions.map(item => item.decision_id)).size < allDecisions.length);
     if (mode === "duplicate-subject") {

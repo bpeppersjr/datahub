@@ -11,6 +11,7 @@ import { createFreshTnReportingRows } from "./fixtures/tn-childcare-fresh-report
 import { gatedTransport as ohioTransport } from "./fixtures/oh-childcare-gated-transport.mjs";
 import { runOhChildcareAppJobWithTransport } from "./oh-childcare-app.mjs";
 import { loadOhChildcareGeographicInput } from "./oh-childcare-geographic-evidence.mjs";
+import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-contract.mjs";
 import {
   assignPointToCounty,
   buildNationalBusinessCoverageViews,
@@ -380,8 +381,25 @@ test("publishes and verifies governed national through ZIP coverage views", asyn
       source: { source_id: "new-york-agriculture-markets-retail-food-stores" },
     },
   ];
+  const currentProfiles = profiles.map((row, index) => {
+    const sourceId = row.source.source_id, suffix = String(index + 1), zipCode = "12345";
+    const geocode = row.location && typeof row.location.latitude === "number" && typeof row.location.longitude === "number"
+      ? { latitude: row.location.latitude, longitude: row.location.longitude }
+      : row.location?.type === "Point" ? { latitude: row.location.coordinates[1], longitude: row.location.coordinates[0] } : null;
+    return {
+      schema_version: "1.0.0", profile_version: BUSINESS_LOCATION_PROFILE_VERSION,
+      profile_id: `location-profile:${String(index + 1).padStart(32, "0")}`, zip_code: zipCode,
+      site_entity_id: `site:${sourceId.replaceAll("-", "_")}_${suffix}`, establishment_entity_id: `establishment:${sourceId.replaceAll("-", "_")}_${suffix}`, organization_entity_id: null,
+      address: { street: null, unit_or_additional: null, city: null, state: "AA", zip_code: zipCode, postal_code: zipCode, zip4: null, county_name: null },
+      normalized_address: { kind: "unknown", street: null, unit: null, city: null, state: "AA", zip_code: zipCode, complete: false, match_key: null },
+      address_match_key_sha256: null, names: [], primary_name_match_key_sha256: null, geocode,
+      external_identifiers: [], source_status: null, observed_at: row.observed_at,
+      source: { source_id: sourceId, source_release_id: `${sourceId}-release`, source_record_id: suffix, ingest_run_id: "fixture-run", transformation_version: "fixture@1.0.0", policy_id: "fixture-policy" },
+      export_policy: "local-review-only",
+    };
+  });
   for (let partition = 0; partition < 100; partition += 1) {
-    const rows = partition === 12 ? profiles : [];
+    const rows = partition === 12 ? currentProfiles : [];
     registryArtifacts.push(await writeArtifact(
       registryRelease,
       `resolution/location-profiles/zip2=${String(partition).padStart(2, "0")}.jsonl.gz`,

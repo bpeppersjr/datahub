@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/business-assertion-legacy-v1.schema.json",
+  "title": "Bounded legacy geocode assertion compatibility input",
+  "description": "Read-only compatibility for exact EPSG:4326 Point geocodes in the pinned national business registry release. This schema never authorizes polygon geometry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "assertion_id", "subject_entity_id", "predicate", "value", "assertion_status", "observed_at", "first_seen", "last_seen", "source", "export_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "assertion_id": { "type": "string", "minLength": 1 },
+    "subject_entity_id": { "type": "string", "minLength": 1 },
+    "predicate": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]+$" },
+    "value": {},
+    "value_type": { "enum": ["string", "number", "boolean", "date", "datetime", "identifier", "address", "geocode", "geometry", "object", "null"] },
+    "assertion_status": { "enum": ["active", "superseded", "disputed", "retracted", "expired"] },
+    "valid_from": { "type": ["string", "null"], "format": "date-time" },
+    "valid_to": { "type": ["string", "null"], "format": "date-time" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "first_seen": { "type": "string", "format": "date-time" },
+    "last_seen": { "type": "string", "format": "date-time" },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "export_policy": { "enum": ["public", "public-open-ny-terms", "derived-only", "restricted", "internal", "local-review-only"] },
+    "source": { "type": "object", "additionalProperties": false, "required": ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "transformation_version", "policy_id"], "properties": {
+      "source_id": { "type": "string", "minLength": 1 }, "source_release_id": { "type": "string", "minLength": 1 },
+      "source_record_id": { "type": "string", "minLength": 1 }, "ingest_run_id": { "type": "string", "minLength": 1 },
+      "transformation_version": { "type": "string", "minLength": 1 }, "policy_id": { "type": "string", "minLength": 1 },
+      "source_field": { "type": ["string", "null"] }
+    } }
+  },
+  "allOf": [
+    { "if": { "properties": { "value_type": { "const": "geocode" } }, "required": ["value_type"] },
+      "then": { "properties": { "value": { "oneOf": [ { "type": "null" }, { "type": "object", "additionalProperties": false,
+        "required": ["latitude", "longitude"], "properties": { "latitude": { "type": "number", "minimum": -90, "maximum": 90 }, "longitude": { "type": "number", "minimum": -180, "maximum": 180 } } } ] } } } },
+    { "if": { "properties": { "value_type": { "const": "geometry" } }, "required": ["value_type"] },
+      "then": { "properties": { "value": { "oneOf": [ { "type": "null" },
+        { "type": "object", "additionalProperties": false, "required": ["type", "coordinates", "coordinate_reference_system"], "properties": {
+          "type": { "const": "Point" }, "coordinates": { "type": "array", "prefixItems": [{ "type": "number", "minimum": -180, "maximum": 180 }, { "type": "number", "minimum": -90, "maximum": 90 }], "minItems": 2, "maxItems": 2 }, "coordinate_reference_system": { "const": "EPSG:4326" }
+        } },
+        { "type": "object", "additionalProperties": false, "required": ["latitude", "longitude"], "properties": {
+          "latitude": { "type": ["number", "null"], "minimum": -90, "maximum": 90 }, "longitude": { "type": ["number", "null"], "minimum": -180, "maximum": 180 }
+        } } ] } } } }
+  ]
+}

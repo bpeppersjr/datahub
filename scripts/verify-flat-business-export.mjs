@@ -29,9 +29,11 @@ try {
         for (const field of manifest.fields) if (!Object.hasOwn(row, field)) throw new Error(`Missing selected field: ${field}`);
         if (row.zip_code != null && !/^\d{5}$/.test(row.zip_code)) throw new Error("Invalid ZIP5 output.");
         if (row.zip4 != null && !/^\d{4}$/.test(row.zip4)) throw new Error("Invalid separate ZIP4 output.");
-        if (Object.hasOwn(row, "latitude") && Object.hasOwn(row, "longitude")) {
-          if ((row.latitude == null) !== (row.longitude == null)) throw new Error("Unpaired coordinates.");
-          if (row.latitude != null && (!Number.isFinite(row.latitude) || Math.abs(row.latitude) > 90 || !Number.isFinite(row.longitude) || Math.abs(row.longitude) > 180)) throw new Error("Invalid coordinates.");
+        if (Object.hasOwn(row, "location") || Object.hasOwn(row, "geometry")) throw new Error("Raw location or geometry fields are forbidden in normalized export.");
+        if (Object.hasOwn(row, "geocode") && row.geocode !== null) {
+          if (!row.geocode || Array.isArray(row.geocode) || Object.keys(row.geocode).sort().join(",") !== "latitude,longitude"
+            || !Number.isFinite(row.geocode.latitude) || Math.abs(row.geocode.latitude) > 90
+            || !Number.isFinite(row.geocode.longitude) || Math.abs(row.geocode.longitude) > 180) throw new Error("Invalid geocode output.");
         }
         jsonlRows += 1;
       }
@@ -41,6 +43,11 @@ try {
       csvRows = 0;
       for await (const row of createReadStream(file).pipe(parse({ columns: true }))) {
         for (const field of manifest.fields) if (!Object.hasOwn(row, field)) throw new Error(`Missing CSV field: ${field}`);
+        if (Object.hasOwn(row, "location") || Object.hasOwn(row, "geometry") || Object.hasOwn(row, "latitude") || Object.hasOwn(row, "longitude")) throw new Error("Raw location/geometry or flattened coordinate fields are forbidden in normalized CSV output.");
+        if (row.geocode) {
+          const geocode = JSON.parse(row.geocode);
+          if (!geocode || Object.keys(geocode).sort().join(",") !== "latitude,longitude" || !Number.isFinite(geocode.latitude) || Math.abs(geocode.latitude) > 90 || !Number.isFinite(geocode.longitude) || Math.abs(geocode.longitude) > 180) throw new Error("Invalid CSV geocode output.");
+        }
         csvRows += 1;
       }
       if (csvRows !== artifact.records) throw new Error("CSV row count mismatch.");

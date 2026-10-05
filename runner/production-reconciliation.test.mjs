@@ -47,7 +47,7 @@ async function fixture(t) {
   for (const [directory, dataset] of [['data/geography', 'us-census-geography'], ['data/zcta-jurisdiction-crosswalk', 'us-census-zcta-jurisdiction-crosswalk'], ['data/business-baselines/census-nonemployer', 'census-nonemployer-baseline'], ['data/business-baselines/census-zbp', 'census-zbp-baseline']]) await release(root, directory, dataset, `fixture-${dataset}`);
   for (const [key, directory] of Object.entries(outputs)) await release(root, directory, datasets[key], `previous-${key}`);
   for (const script of scripts) { const file = path.join(root, 'scripts', `${script}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture exits zero but emits no release.\n'); }
-  for (const implementation of ['business-registry', 'business-entity-resolution', 'entity-resolution-benchmark', 'national-business-coverage-views','childcare-geographic-evidence','normalized-us-postal-code','tn-childcare-fresh-registry-input','tn-childcare-release','cms-retained-directory-coverage-catalog','cms-hospital-reporting-input','cms-nursing-home-reporting-input','state-access-ledger']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
+  for (const implementation of ['business-registry', 'business-entity-resolution', 'business-location-profile-contract', 'entity-resolution-benchmark', 'national-business-coverage-views','childcare-geographic-evidence','normalized-us-postal-code','tn-childcare-fresh-registry-input','tn-childcare-release','cms-retained-directory-coverage-catalog','cms-hospital-reporting-input','cms-nursing-home-reporting-input','state-access-ledger']) { const file = path.join(root, 'runner', `${implementation}.mjs`); await mkdir(path.dirname(file), { recursive: true }); await writeFile(file, '// Fixture implementation.\n'); }
   const readinessInspector = async (options) => {
     assert.equal(options.useCandidatePointers, false);
     const sources = [];
@@ -652,7 +652,7 @@ test('production enrolls recovered Tennessee with MA/NJ and pins seven retained 
     assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,3);
     const tn=plan.optionalSourcePins.find(p=>p.sourceKey==='tnChildcare');assert.equal(tn.artifacts.length,7);assert.equal(tn.configurationPins.length,2);
     assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--tn-childcare')+1],tn.manifestPath);
-    const pins=plan.implementationPins.map(p=>p.path);assert.equal(new Set(pins).size,pins.length);assert.equal(pins.length,34);
+    const pins=plan.implementationPins.map(p=>p.path);assert.equal(new Set(pins).size,pins.length);assert.equal(pins.length,35);
     // Check the declared roster against actual relative stage imports, including
     // unselected source code. This is not runtime/package or dynamic-import proof.
     const closure=new Set(),visit=async(relative)=>{
@@ -680,7 +680,7 @@ test('production pins one verified fresh Tennessee release and executes the reta
   const plan=await planProductionReconciliation({...f,tnFreshChildcare,runId:'tn-fresh-handoff'}), pin=plan.optionalSourcePins[0];
   assert.equal(plan.sourcePins.length,25);assert.equal(plan.optionalSourcePins.length,1);assert.equal(pin.sourceKey,'tnFreshChildcare');assert.equal(pin.artifacts.length,5);
   assert.equal(plan.stages.length,8);assert.equal(plan.stages[0].args[plan.stages[0].args.indexOf('--tn-fresh-childcare')+1],pin.manifestPath);
-  assert.equal(plan.stages[0].args.includes('--tn-childcare'),false);assert.equal(plan.implementationPins.length,34);
+  assert.equal(plan.stages[0].args.includes('--tn-childcare'),false);assert.equal(plan.implementationPins.length,35);
   const artifact=path.join(f.root,pin.artifacts[0].path), clean=await readFile(artifact);await writeFile(artifact,'changed');
   await assert.rejects(runProductionReconciliation(plan,{...f,executor:()=>assert.fail('Must not launch on changed input')}));await writeFile(artifact,clean);
   const result=await runProductionReconciliation(plan,{...f,executor:(s,c)=>executeFixture(f,s,c)});

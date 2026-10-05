@@ -8,6 +8,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { validateChildcareGeographicEvidence } from "./childcare-geographic-evidence.mjs";
 import { validateTnChildcareGeographicEvidence, validateFreshTnChildcareGeographicEvidence } from "./tn-childcare-geographic-evidence.mjs";
 import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
+import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const IRS_EO_SOURCE = "irs-eo-bmf-organizations";
@@ -210,23 +211,6 @@ function finiteOrNull(value) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function coordinateOrNull(value) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value !== "string" || !value.trim() || !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim())) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function geocodeForLocation(location) {
-  const coordinates = location?.type === "Point" && Array.isArray(location.coordinates)
-    ? location.coordinates
-    : [location?.longitude, location?.latitude];
-  const longitude = coordinateOrNull(coordinates[0]);
-  const latitude = coordinateOrNull(coordinates[1]);
-  if (latitude === null || longitude === null || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
-  return { latitude, longitude };
 }
 
 function gdpProperties(release, record, geographyType) {
@@ -1112,7 +1096,11 @@ export function createBusinessMapStore({
     try {
     for await (const line of file.rows ?? lines) {
       if (!line) continue;
-      const row = file.reporting ? line : JSON.parse(line);
+      const parsedRow = file.reporting ? line : JSON.parse(line);
+      if (!file.reporting && (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(parsedRow.source?.source_id)
+        || parsedRow.identity_matching_eligible === false)) throw new Error("Reporting-only childcare cannot appear in matching-profile artifacts.");
+      const row = file.reporting ? parsedRow : normalizeBusinessLocationProfile(parsedRow,
+        registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256));
       if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
         if (row.source?.source_id === OH_SOURCE) {
@@ -1170,7 +1158,7 @@ export function createBusinessMapStore({
         if (records.length < cappedLimit) records.push({
           business_name: businessName,
           address,
-          geocode: geocodeForLocation(row.location),
+          geocode: file.reporting ? normalizeCoordinateGeocode(row.location ?? null) : row.geocode,
           category_id: categoryId === "all" ? categoryBySource.get(sourceId) ?? "all" : categoryId,
           source_id: sourceId,
           source_release_id: row.source?.source_release_id ?? null,

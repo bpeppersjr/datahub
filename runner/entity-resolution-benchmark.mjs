@@ -12,6 +12,7 @@ import {
   verifyBusinessEntityResolution,
   verifyBusinessEntityResolutionSourceReplay,
 } from "./business-entity-resolution.mjs";
+import { normalizeBusinessLocationProfile, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 
 export const BENCHMARK_SCHEMA_VERSION = "1.0.0";
 export const BENCHMARK_SAMPLING_VERSION = "business-entity-resolution-benchmark-sampling@1.0.0";
@@ -133,7 +134,7 @@ export async function verifyEntityResolutionBenchmarkSourceReplay(benchmarkManif
     });
   }
   if (profiles.size !== wanted.size) fail("selected registry profiles are missing");
-  const dependencies = { resolution: { manifest: resolution.value }, registry: { manifest: registry.value } };
+  const dependencies = { resolution: { manifest: resolution.value }, registry: { manifest: registry.value, manifestSha256: registry.hash } };
   const candidates = selected.map(row => enrichCandidate(row, profiles, dependencies)).sort((a,b) => a.stratum.localeCompare(b.stratum) || comparePriority(a,b));
   const templates = candidates.map(labelTemplate);
   const summary = { candidate_universe: universe, sampled_candidates: Object.fromEntries(STRATA.map(stratum => [stratum, candidates.filter(row => row.stratum === stratum).length])), total_sampled_candidates: candidates.length, unique_profiles_in_review_packet: wanted.size, submitted_labels: 0, benchmark_gate_passed: false };
@@ -446,21 +447,22 @@ async function collectProfiles(registry, profileIds, logger = () => {}) {
   return selected;
 }
 
-function reviewProfile(profile) {
+function reviewProfile(profile, registryBinding) {
+  const normalized = normalizeBusinessLocationProfile(profile, registryBinding);
   return {
-    profile_id: profile.profile_id,
-    site_entity_id: profile.site_entity_id,
-    establishment_entity_id: profile.establishment_entity_id,
-    organization_entity_id: profile.organization_entity_id,
-    address: profile.address,
-    normalized_address: profile.normalized_address,
-    names: profile.names,
-    location: profile.location,
-    external_identifiers: profile.external_identifiers,
-    source_status: profile.source_status,
-    observed_at: profile.observed_at,
-    source: profile.source,
-    export_policy: profile.export_policy,
+    profile_id: normalized.profile_id,
+    site_entity_id: normalized.site_entity_id,
+    establishment_entity_id: normalized.establishment_entity_id,
+    organization_entity_id: normalized.organization_entity_id,
+    address: normalized.address,
+    normalized_address: normalized.normalized_address,
+    names: normalized.names,
+    geocode: normalized.geocode,
+    external_identifiers: normalized.external_identifiers,
+    source_status: normalized.source_status,
+    observed_at: normalized.observed_at,
+    source: normalized.source,
+    export_policy: normalized.export_policy,
   };
 }
 
@@ -470,13 +472,14 @@ function enrichCandidate(candidate, profiles, dependencies) {
   const sourcePair = [left, right].map(
     (profile) => `${profile.source.source_id}|${profile.source.source_release_id}`,
   ).sort();
+  const registryBinding = registryProfileCompatibilityBinding(dependencies.registry.manifest, dependencies.registry.manifestSha256);
   return {
     ...candidate,
     resolution_release_id: dependencies.resolution.manifest.release_id,
     registry_release_id: dependencies.registry.manifest.release_id,
     source_pair: sourcePair,
-    left_profile: reviewProfile(left),
-    right_profile: reviewProfile(right),
+    left_profile: reviewProfile(left, registryBinding),
+    right_profile: reviewProfile(right, registryBinding),
     label_question: candidate.entity_type === "physical_site"
       ? "Do both source records refer to the same real-world physical site at the observation times shown?"
       : "Do both source records refer to the same operating establishment at the same site, rather than merely co-located activities?",

@@ -9,6 +9,7 @@ import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import { pathToFileURL } from "node:url";
 import { APP_ROOT } from "./paths.mjs";
+import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-contract.mjs";
 import { RETAINED_BUSINESS_REFRESH_DESCRIPTORS } from "./retained-business-refresh-readiness.mjs";
 import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS } from "./governed-source-refresh-registry.mjs";
 import {
@@ -23,6 +24,20 @@ import {
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const token = "managed-api-fixture-token-that-is-long-enough-2026";
+function makeExportProfile({ id, name, street, city, state, zip, zip4 = null, geocode, sourceId, releaseId, recordId, runId, policyId, exportPolicy }) {
+  const matchKey = `street|${street.toUpperCase()}||${city.toUpperCase()}|${state}|${zip}`;
+  return {
+    schema_version: "1.0.0", profile_version: BUSINESS_LOCATION_PROFILE_VERSION,
+    profile_id: `location-profile:${id.padStart(32, "0")}`, zip_code: zip,
+    site_entity_id: `site:${recordId}`, establishment_entity_id: `establishment:${recordId}`, organization_entity_id: null,
+    address: { street, unit_or_additional: null, city, state, zip_code: zip, postal_code: zip, zip4, county_name: null },
+    normalized_address: { kind: "street", street: street.toUpperCase(), unit: null, city: city.toUpperCase(), state, zip_code: zip, complete: true, match_key: matchKey },
+    address_match_key_sha256: sha256(matchKey), names: [{ raw: name }], primary_name_match_key_sha256: null,
+    geocode, external_identifiers: [], source_status: null, observed_at: "2026-09-01T00:00:00.000Z",
+    source: { source_id: sourceId, source_release_id: releaseId, source_record_id: recordId, ingest_run_id: runId, transformation_version: "v1", policy_id: policyId },
+    export_policy: exportPolicy,
+  };
+}
 const timeout = (milliseconds, callback) => new Promise((resolve, reject) => {
   const timer = setTimeout(callback ? () => reject(callback()) : resolve, milliseconds);
   timer.unref();
@@ -70,7 +85,7 @@ async function makeFixture(t) {
     await copyFile(path.join(sourceRoot, ...pointer.manifest.split("/")), path.join(fixtureRoot, ...pointer.manifest.split("/")));
   }
   for (const file of ["compose-flat-business-export.mjs", "run-dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
-  for (const file of ["paths.mjs", "cli-cancellation.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
+  for (const file of ["paths.mjs", "cli-cancellation.mjs", "business-location-profile-contract.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
     "business-flatfile-compatibility.mjs", "oh-childcare-coverage-evidence.mjs", "oh-childcare-geographic-evidence.mjs", "oh-childcare-registry-adapter.mjs",
     "oh-childcare-registry-input.mjs", "oh-childcare-app.mjs", "oh-childcare-source-use.mjs", "oh-childcare-preflight.mjs", "oh-childcare-acquired-release.mjs",
@@ -102,8 +117,8 @@ async function makeFixture(t) {
   const release = path.join(root, "data", "business-registry", "release");
   await mkdir(path.join(release, "resolution", "location-profiles"), { recursive: true });
   const rows = [
-    { names: [{ raw: "Review Store" }], address: { street: "1 Main", city: "Austin", state: "TX", zip_code: "78701-1234" }, location: { coordinates: [-97.74, 30.27] }, source: { source_id: "usda-snap-current-retailers", source_release_id: "s1", source_record_id: "r1", ingest_run_id: "i1", policy_id: "p1", transformation_version: "v1" }, export_policy: "local-review-only" },
-    { names: [{ raw: "Second Store" }], address: { city: "Seattle", state: "WA", zip_code: "98101", zip4: "5678" }, location: { latitude: 47.6, longitude: -122.3 }, source: { source_id: "texas-comptroller-active-sales-tax-permits", source_release_id: "s2", source_record_id: "r2", ingest_run_id: "i2", policy_id: "p2", transformation_version: "v1" }, export_policy: "local-review-only" },
+    makeExportProfile({ id: "1", name: "Review Store", street: "1 Main", city: "Austin", state: "TX", zip: "78701", zip4: "1234", geocode: { latitude: 30.27, longitude: -97.74 }, sourceId: "usda-snap-current-retailers", releaseId: "s1", recordId: "r1", runId: "i1", policyId: "p1", exportPolicy: "local-review-only" }),
+    makeExportProfile({ id: "2", name: "Second Store", street: "2 Pike", city: "Seattle", state: "WA", zip: "98101", zip4: "5678", geocode: { latitude: 47.6, longitude: -122.3 }, sourceId: "texas-comptroller-active-sales-tax-permits", releaseId: "s2", recordId: "r2", runId: "i2", policyId: "p2", exportPolicy: "local-review-only" }),
   ];
   const zipped = gzipSync(`${rows.map(JSON.stringify).join("\n")}\n`);
   const artifact = "resolution/location-profiles/zip2=00.jsonl.gz";
