@@ -1900,6 +1900,44 @@ test("state heat map is driven only by scoped matrix availability and distinguis
   assert.equal(selected, "DC");
   h.close();
 });
+test("state heat map evidence semantics preserve keyboard selection and avoid completion claims", async () => {
+  const mapCode = await readFile(
+    new URL("../app/business-intelligence.tsx", import.meta.url),
+    "utf8",
+  );
+  const h = harness(
+    async () => ({
+      available: true,
+      features: [{
+        geometry: { type: "Polygon", coordinates: [[[-77, 39], [-76, 39], [-76, 40], [-77, 39]]] },
+        properties: { geoid: "24", postal_abbreviation: "MD", name: "Maryland" },
+      }],
+    }),
+    mapCode,
+  );
+  let selected = "";
+  const props = {
+    rows: [{ code: "MD", name: "Maryland", available: 385, measured: 468, unmeasured: 0, denominator: 468, percent: 82.3 }],
+    selected: "",
+    categoryLabel: "healthcare organizations",
+    onSelect: (code) => (selected = code),
+    measure: "expected",
+    semantics: "positive-retained-source-evidence",
+  };
+  h.render("StateAvailabilityChoropleth", props);
+  await flush();
+  const tree = h.render("StateAvailabilityChoropleth", props),
+    statePath = nodes(tree).find((node) => node.type === "path" && node.props.role === "button"),
+    value = text(tree);
+  assert.match(statePath.props["aria-label"], /82\.3% positive retained source evidence — 385 of 468 state-assigned exact-ZIP cohort members/);
+  assert.match(nodes(tree).find((node) => node.type === "svg").props["aria-label"], /positive retained source-evidence ZIP share/);
+  assert.equal(nodes(tree).find((node) => node.props?.["aria-label"] === "Positive retained source-evidence ZIP share legend")?.type, "div");
+  assert.match(value, /This is not completion, business share, or current-operation coverage/);
+  assert.doesNotMatch(value, /Measured zero available|Unknown \/ unmeasured/);
+  statePath.props.onKeyDown({ key: " ", preventDefault() {} });
+  assert.equal(selected, "MD");
+  h.close();
+});
 test("six primary tab cards expose their work areas and arrow Home End keyboard navigation", () => {
   let selected;
   const h = harness(() => assert.fail()),

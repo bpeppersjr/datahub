@@ -1849,19 +1849,16 @@ export function CoverageWorkspace({
         </p>
       </div>
       <p className="scope-note">
-        Overview uses the governed nationwide-required dataset denominator
-        across all reporting industries and the broad-jurisdiction requirement.
-        State completion = available expected dataset cells ÷ all expected cells
-        for that state. Unknown cells remain in the denominator; measured zero,
-        unknown, and not applicable are distinct. This is not all-business or
-        GDP completeness.
+        {!industries && mapMode === "exact-zip-evidence"
+          ? "Exact-ZIP source evidence = positive retained source-evidence ZIP keys ÷ governed state-assigned same-code Census ZCTA cohort keys for the selected source dimension. It is not business completeness, business share, current-operation coverage, or a USPS ZIP-to-state assignment."
+          : "Overview uses the governed nationwide-required dataset denominator across all reporting industries and the broad-jurisdiction requirement. State completion = available expected dataset cells ÷ all expected cells for that state. Unknown cells remain in the denominator; measured zero, unknown, and not applicable are distinct. This is not all-business or GDP completeness."}
       </p>
       {industries && <p className="industry-evidence-boundary"><strong>Industry status reports evidence actually retained.</strong> It does not require an all-business denominator, complete geocoding, or nationwide industry completeness. Missing and unmeasured evidence remains unknown rather than zero.</p>}
       {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
       {!industries && mapMode === "availability" && <StateExactZipEvidencePanel state={state} />}
       <div className="workspace-filters">
         {!industries && <label>Map mode <select aria-label="State map mode" value={mapMode} onChange={event=>setMapMode(event.target.value==="exact-zip-evidence"?"exact-zip-evidence":"availability")}><option value="availability">Dataset availability</option><option value="exact-zip-evidence">Exact-ZIP source evidence</option></select></label>}
-        <label>
+        {(industries || mapMode === "availability") && <label>
           {industries ? "Reporting industry" : "Coverage category"}{" "}
           <select
             aria-label={industries ? "Reporting industry" : "Coverage category"}
@@ -1877,7 +1874,7 @@ export function CoverageWorkspace({
               </option>
             ))}
           </select>
-        </label>
+        </label>}
         <label>
           State{" "}
           <select
