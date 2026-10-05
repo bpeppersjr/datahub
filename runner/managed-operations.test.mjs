@@ -239,7 +239,7 @@ test("shutdown during selection validation prevents a later child launch", async
   assert.equal(executions, 0);
 });
 
-test("export artifacts are manifest-declared, contained, and rehashed", async (t) => {
+test("synthetic flat export without registered v1.1 lineage is withheld", async (t) => {
   const executor = async ({ args }) => {
     const output = path.resolve(APP_ROOT, args[args.indexOf("--output") + 1], args[args.indexOf("--output-prefix") + 1]); await mkdir(output, { recursive: true });
     const records = "business_name\nShop\n"; const summary = JSON.stringify({ counts: { rows_written: 1 } });
@@ -248,9 +248,35 @@ test("export artifacts are manifest-declared, contained, and rehashed", async (t
     await writeFile(path.join(output, "manifest.json"), JSON.stringify(manifest)); return { code: 0 };
   };
   const service = await fixture(t, { executor }); const started = await service.startExport({ format: "csv" }); const done = await finished(service, started.id);
-  assert.equal(done.status, "SUCCEEDED"); assert.deepEqual(done.artifacts.map((x) => x.name).sort(), ["manifest.json", "records.csv", "summary.json"]);
-  assert.equal((await service.artifact(started.id, "records.csv")).bytes, Buffer.byteLength("business_name\nShop\n"));
-  assert.equal(await service.artifact(started.id, "../receipt.json"), null); assert.equal(await service.artifact(started.id, "receipt.json"), null);
-  await writeFile(path.join(service.root, started.id, "output", "export", "records.csv"), "tampered"); await assert.rejects(service.artifact(started.id, "records.csv"), /integrity/);
+  assert.equal(done.status, "FAILED"); assert.deepEqual(done.artifacts, []);
+  assert.equal(done.result.artifactIntegrityVerified, false); assert.equal(await service.artifact(started.id, "manifest.json"), null);
+  await service.close();
+});
+
+test("verified v1.1 managed export exposes its manifest as a hashed download", async t => {
+  const executor = async ({ args }) => {
+    const output = path.resolve(APP_ROOT, args[args.indexOf("--output") + 1], args[args.indexOf("--output-prefix") + 1]); await mkdir(output, { recursive: true });
+    const records = '{"cohort_kind":"matching-profile"}\\n', csv = 'cohort_kind\\nmatching-profile\\n';
+    const summary = JSON.stringify({ counts: { rows_written: 1 } });
+    await writeFile(path.join(output, "records.jsonl"), records); await writeFile(path.join(output, "records.csv"), csv); await writeFile(path.join(output, "summary.json"), summary);
+    const manifest = { dataset_id: "flat-business-export", release_id: "fixture", status: "published-local", policy_mode: "local-review",
+      summary: { counts: { rows_written: 1 } }, artifacts: ["records.jsonl", "records.csv", "summary.json"].map(name => ({ path: name })) };
+    await writeFile(path.join(output, "manifest.json"), JSON.stringify(manifest)); return { code: 0 };
+  };
+  const verifier = async (manifestPath, { expectedManifestSha256 } = {}) => {
+    const manifestBytes = await readFile(manifestPath), manifestSha256 = sha(manifestBytes);
+    if (expectedManifestSha256 && expectedManifestSha256 !== manifestSha256) throw Error("manifest digest mismatch");
+    const directory = path.dirname(manifestPath), artifacts = [];
+    for (const name of ["records.jsonl", "records.csv", "summary.json"]) { const bytes = await readFile(path.join(directory, name)); artifacts.push({ path: name, bytes: bytes.length, sha256: sha(bytes) }); }
+    return { verified: true, manifest_sha256: manifestSha256, artifacts };
+  };
+  const service = await fixture(t, { executor, flatBusinessVerifier: verifier });
+  const started = await service.startExport({ format: "both", policyMode: "local-review", outputPrefix: "v11-manifest" });
+  const done = await finished(service, started.id); assert.equal(done.status, "SUCCEEDED");
+  const descriptor = done.artifacts.find(item => item.name === "manifest.json"); assert.ok(descriptor);
+  assert.equal(descriptor.sha256, done.result.manifestSha256);
+  const downloaded = await service.artifact(started.id, "manifest.json"); assert.ok(downloaded);
+  assert.equal(downloaded.sha256, done.result.manifestSha256); assert.equal(downloaded.bytes, descriptor.bytes);
+  await writeFile(downloaded.path, "tampered"); await assert.rejects(service.artifact(started.id, "manifest.json"), /independently verified/);
   await service.close();
 });

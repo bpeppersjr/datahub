@@ -112,6 +112,7 @@ export class ManagedOperations {
   constructor(options = {}) {
     this.root = assertInsideApp(path.resolve(APP_ROOT, options.root ?? "data/managed-operations"));
     this.executor = options.executor ?? executeManagedChild; this.verifyChildReceipts = !options.executor;
+    this.flatBusinessVerifier = options.flatBusinessVerifier ?? verifyFlatBusinessExport;
     this.credentialVerifier = options.credentialVerifier ?? verifyMnCredentialFlatForOperation;
     this.organizationZipExporter = options.organizationZipExporter ?? exportOrganizationZipEvidence;
     this.organizationZipVerifier = options.organizationZipVerifier ?? verifyOrganizationZipEvidenceExport;
@@ -447,7 +448,7 @@ export class ManagedOperations {
     }
     if(record.kind==='export') {
       if(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true)return null;
-      try { await verifyFlatBusinessExport(path.join(this.root,id,'output',record.details.outputPrefix,'manifest.json'),{root:APP_ROOT,expectedManifestSha256:record.result.manifestSha256}); }
+      try { await this.flatBusinessVerifier(path.join(this.root,id,'output',record.details.outputPrefix,'manifest.json'),{root:APP_ROOT,expectedManifestSha256:record.result.manifestSha256}); }
       catch { record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Flat business export could not be independently verified.'); }
     }
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
@@ -667,8 +668,12 @@ export class ManagedOperations {
     const exportDirectory = path.join(directory, "output", record.details.outputPrefix); const manifest = JSON.parse(await readFile(path.join(exportDirectory, "manifest.json"), "utf8"));
     if (!contained(await realpath(directory), await realpath(exportDirectory))) throw new Error("Export output escapes its operation directory.");
     if(record.kind==='export') {
-      const verification=await verifyFlatBusinessExport(path.join(exportDirectory,'manifest.json'),{root:APP_ROOT});
-      record.artifacts=verification.artifacts.map(item=>({name:item.path,relativePath:path.relative(path.join(this.root,record.id),path.join(exportDirectory,item.path)),bytes:item.bytes,sha256:item.sha256}));
+      const manifestPath=path.join(exportDirectory,'manifest.json');
+      const verification=await this.flatBusinessVerifier(manifestPath,{root:APP_ROOT});
+      const manifestIntegrity=await hashFile(manifestPath);
+      if(manifestIntegrity.sha256!==verification.manifest_sha256)throw new Error('Flat business export manifest digest changed after verification.');
+      record.artifacts=[...verification.artifacts.map(item=>({name:item.path,relativePath:path.relative(path.join(this.root,record.id),path.join(exportDirectory,item.path)),bytes:item.bytes,sha256:item.sha256})),
+        {name:'manifest.json',relativePath:path.relative(path.join(this.root,record.id),manifestPath),...manifestIntegrity}];
       record.result={rowsWritten:manifest.summary.counts.rows_written,policyMode:manifest.policy_mode,localReviewOnly:manifest.policy_mode==='local-review',
         artifactIntegrityVerified:true,inspectionRequired:false,manifestSha256:verification.manifest_sha256,artifactSha256s:Object.fromEntries(verification.artifacts.map(item=>[item.path,item.sha256])),
         recordUnit:manifest.record_unit,aggregationClaims:manifest.aggregation_claims};
