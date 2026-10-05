@@ -2856,7 +2856,12 @@ test("reconciles a New York retail-food license into organization and conditiona
   assert.deepEqual(result.relationships.map((item) => item.relationship_type), ["operates", "located_at"]);
   assert(result.organizationAssertions.some((item) => item.predicate === "organization.source-reported-name"));
   assert(result.locationAssertions.some((item) => item.predicate === "establishment.ny-retail-food-store-license-profile"));
-  assert(result.locationAssertions.some((item) => item.predicate === "site.location"));
+  const location = result.locationAssertions.find((item) => item.predicate === "site.location");
+  assert.deepEqual(location.value, {
+    latitude: 42.61512,
+    longitude: -73.85206,
+    premise_coordinate_claim_permitted: false,
+  });
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
   const profile = createLocationMatchProfile(record, result);
   assert.equal(profile.normalized_address.match_key, "street|624 DELAWARE AVE||DELMAR|NY|12054");

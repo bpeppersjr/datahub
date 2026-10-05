@@ -162,7 +162,7 @@ function assertion(record, subjectEntityId, predicate, value, valueType, sourceF
 function geocodeAssertionValue(value) {
   if (value === null || value === undefined) return null;
   const sourcePoint = value?.type === "Point";
-  const pointMetadata = ["coordinate_reference_system", "coordinate_scope", "plausibility", "source_coordinate", "source_crs", "output_crs", "transformation", "independently_verified"];
+  const pointMetadata = ["coordinate_reference_system", "coordinate_scope", "plausibility", "source_coordinate", "source_crs", "output_crs", "transformation", "independently_verified", "premise_coordinate_claim_permitted"];
   const pairMetadata = ["coordinate_scope", "plausibility", "precision", "independently_verified", "premise_coordinate_claim_permitted"];
   const keys = Object.keys(value ?? {}).sort();
   const pointKeysValid = sourcePoint && ["coordinates", "type"].every(key => Object.hasOwn(value, key))
@@ -185,7 +185,14 @@ function geocodeAssertionValue(value) {
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     throw new Error("Coordinate assertion must contain a valid longitude/latitude pair in EPSG:4326.");
   }
-  return { latitude, longitude };
+  const result = { latitude, longitude };
+  if (Object.hasOwn(value, "premise_coordinate_claim_permitted")) {
+    if (typeof value.premise_coordinate_claim_permitted !== "boolean") {
+      throw new Error("Geocode premise-coordinate claim permission must be boolean when supplied.");
+    }
+    result.premise_coordinate_claim_permitted = value.premise_coordinate_claim_permitted;
+  }
+  return result;
 }
 
 function relationship(record, relationshipType, subjectEntityId, objectEntityId) {
