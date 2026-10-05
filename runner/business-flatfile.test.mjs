@@ -104,7 +104,7 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   assert.equal(geography.claims.current_operation_verified, false);
   assert.deepEqual(rowWithoutLifecycle, { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
     source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: null,
-    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1" });
+    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1", reporting_site_qualification: null });
   assert.equal(allowed.manifest.filters.categories[0], "tax-exempt-organizations");
   assert.equal(allowed.manifest.export_policy, "local-review-only");
 });
@@ -114,17 +114,31 @@ test("reporting-only childcare is exported only in local-review mode with split 
   const manifestPath = path.join(release, "manifest.json"), manifest = JSON.parse(await readFile(manifestPath));
   const row = childcareReportingRow(), bytes = gzipSync(`${JSON.stringify(row)}\n`);
   await writeFile(path.join(release, "childcare.jsonl.gz"), bytes);
+  manifest.release_id = 'national-business-registry-20260911-022652067Z-1ec656c3';
+  await writeFile(path.join(item.root, 'current.json'), JSON.stringify({ dataset_id: 'national-business-registry', release_id: manifest.release_id, manifest: 'release/manifest.json' }));
   manifest.artifacts.push({ path: "childcare.jsonl.gz", artifact_type: "business-reporting-location-evidence-jsonl-gzip", bytes: bytes.length, sha256: digest(bytes) });
   await writeFile(manifestPath, JSON.stringify(manifest));
   const common = ["--source", item.pointer, "--output", path.relative(APP_ROOT, item.root), "--category", "childcare", "--format", "jsonl", "--field", "business_name,zip_code,zip4,geocode,source_status,source_evidence,identity_matching_eligible"];
-  const denied = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-public"]);
+  const testDecision = { site_entity_id: row.site_entity_id, establishment_entity_id: row.establishment_entity_id,
+    source: { source_id: row.source.source_id, source_release_id: row.source.source_release_id, row_observed_at: row.observed_at },
+    lifecycle: { lifecycle_evidence: 'non-active-reporting', current_operation_verified: false, active_business_eligible: false },
+    geography: { postal: { zip_code: row.zip_code, zip4: row.address.zip4, usps_operational_assignment: null, usps_deliverability: null },
+      code_correspondence: { membership: false, zcta_geoid: null }, point_assignment: { status: 'assigned-single-county', county_geoid: 'fixture-county', state_fips: '25', zcta_geoid: null },
+      claims: { current_operation_verified: false, postal_validity_verified: false, entity_polygon_present: false } } };
+  const reportingQualificationReader = async () => ({ byRecord: new Map([[row.source.source_record_id, testDecision]]),
+    provenance: { dataset_id: 'reporting-only-site-qualification', release_id: 'fixture-reporting-release', manifest_sha256: 'f'.repeat(64), artifact_sha256: 'e'.repeat(64) } });
+  const denied = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-public"], { reportingQualificationReader });
   assert.equal(denied.summary.counts.rows_written, 0);
   assert.equal(denied.summary.counts.policy_rejected, 1);
-  const local = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-local", "--policy-mode", "local-review"]);
+  const local = await composeFlatBusinessExport([...common, "--output-prefix", "childcare-local", "--policy-mode", "local-review"], { reportingQualificationReader });
   assert.equal(local.summary.counts.rows_written, 1);
   const actual = JSON.parse((await readFile(path.join(local.outputDirectory, "records.jsonl"), "utf8")).trim());
   assert.deepEqual([actual.business_name, actual.zip_code, actual.zip4, actual.geocode], ["Fixture Childcare", "02536", "5023", { latitude: 41.57, longitude: -70.6 }]);
   assert.equal(actual.identity_matching_eligible, false);
+  assert.equal(actual.reporting_site_qualification.site_entity_id, row.site_entity_id);
+  assert.equal(actual.lifecycle_eligibility.lifecycle_evidence, 'non-active-reporting');
+  assert.equal(actual.geography_relationship.postal.usps_operational_assignment, null);
+  assert.equal(local.manifest.source_lineage[0].reporting_only_site_qualification_release.release_id, 'fixture-reporting-release');
   assert.deepEqual(actual.source_status, row.source_status);
   assert.deepEqual(actual.source_evidence, row.evidence);
   row.export_policy = "public";

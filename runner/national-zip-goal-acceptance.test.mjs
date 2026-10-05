@@ -128,11 +128,11 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.2.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.3.0');
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
     ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
-    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   const geoRow = readiness.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
@@ -144,7 +144,7 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(geoRow.same_code_zcta_is_membership, false); assert.equal(geoRow.entity_polygons_present, false);
   assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
     'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
-    'entity-geography-relationship-not-complete',
+    'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete',
     'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']);
   assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
   const lifecycleRow = readiness.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility');
@@ -158,7 +158,7 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-stale-records-present').count, 24230);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unknown-or-contradictory').count, 635899);
   for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
-    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established',
     'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
   for (const [name, binding] of Object.entries(readiness.bindings)) {
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
@@ -169,6 +169,7 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
   assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
+  assert.equal(readiness.bindings.reporting_only_site_qualification.record_count, 13182);
   assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae');
   assert.equal(readiness.bindings.lifecycle_eligibility.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
   assert.equal(readiness.bindings.lifecycle_eligibility.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');

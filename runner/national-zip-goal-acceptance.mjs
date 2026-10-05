@@ -10,8 +10,32 @@ import { readNationalBusinessTemporalClaimRows } from './national-business-tempo
 import { readNewestNationalGoalCompletionMatrix } from './national-goal-completion-view.mjs';
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
+import { readReportingOnlySiteQualification, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
 
-export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.4.0';
+export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.5.0';
+const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
+  registration_sha256: 'fadb6144c6d325685950b374677e14b7f897a3c5c916f59695d089691027aa1f',
+  release_id: 'reporting-only-site-qualification-b9a3ce44ffa33ec048794d7db22e3147ebb1626a2f6e990d4a203072cb381e0c',
+  manifest_sha256: 'e66fd91f1c77c49a788aab02261d1d6eea4259c0dda3b362277b6d4807bf993b',
+  artifact_sha256: 'bc6a9216936389cdb0736af7b6d7d6bf7ed68ed1b77caac2e32a25685cc2abbb', record_count: 13182 });
+const REPORTING_SOURCE_PINS = Object.freeze({
+  MA: { source_id: 'ma-licensed-center-based-childcare', release_id: 'ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6',
+    source_release_id: 'ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5', manifest_path: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifest_sha256: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc',
+    policy_id: 'massgis-eec-childcare-local-review', policy_profile: 'massgis-eec-childcare-local-review@1.0.0', policy_sha256: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
+    transformation_version: 'ma-childcare-normalization@1.0.0', observed_at: '2026-09-07T19:10:25.331Z' },
+  NJ: { source_id: 'nj-licensed-childcare-centers', release_id: 'nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812',
+    source_release_id: 'nj-childcare-a9ed3d970922f919cee26a93310677b81a8319ae6ce960d83b34f607fec34f69', manifest_path: 'data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json', manifest_sha256: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e',
+    policy_id: 'njdep-childcare-local-review', policy_profile: 'njdep-childcare-local-review@1.0.0', policy_sha256: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410',
+    transformation_version: 'nj-childcare-normalization@1.0.1', observed_at: '2026-09-07T20:05:27.313Z' },
+  TN: { source_id: 'tn-dhs-active-childcare-centers', release_id: 'tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801',
+    source_release_id: 'tn-childcare-a142397a0b6418ee017226d981d89314c54f17cd2ee03decd3337065260bb2c7', manifest_path: 'data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json', manifest_sha256: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d',
+    policy_id: 'tn-childcare-local-review', policy_profile: 'tn-childcare-local-review@1.0.0', policy_sha256: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b',
+    transformation_version: 'tn-childcare-normalization@1.0.1', observed_at: '2026-09-08T00:36:36.628Z' },
+  OH: { source_id: 'oh-dcy-publisher-open-childcare-centers', release_id: 'oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee',
+    source_release_id: 'oh-childcare-2c38df58d6d977c7e93a26d6b1e730e7850ec893b6f5a947b76d5060e1cc6e4b', manifest_path: 'data/industry-segments/runs/bd35c825-a6d0-4922-8508-7954ce00f5d5/state-oh-childcare-OH/normalized/releases/oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee/manifest.json', manifest_sha256: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171',
+    policy_id: 'oh-childcare-local-review', policy_profile: 'oh-childcare-local-review@1.0.0', policy_sha256: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98',
+    transformation_version: 'oh-childcare-normalization@1.0.0', observed_at: '2026-09-08T08:31:19.971Z' },
+});
 export const NATIONAL_ZIP_GOAL_CLAIMS = Object.freeze(['report-only', 'complete-selected-census-zcta-denominator', 'source-reported-zip-membership', 'complete-current-usps-area-district-assignment-set', 'every-valid-usps-zip', 'every-active-business-by-valid-zip']);
 const fail = message => { throw Error(`National ZIP goal acceptance rejected: ${message}.`); };
 const check = (value, message) => { if (!value) fail(message); };
@@ -121,6 +145,58 @@ function validateGeographyRelationshipBinding(value) {
   return true;
 }
 
+function validateReportingOnlySiteBinding(value) {
+  check(value?.registration_path === REPORTING_SITES.registration_path
+    && value.registration_sha256 === REPORTING_SITES.registration_sha256
+    && value.release_id === REPORTING_SITES.release_id && value.manifest_sha256 === REPORTING_SITES.manifest_sha256
+    && value.artifact_sha256 === REPORTING_SITES.artifact_sha256 && value.record_count === REPORTING_SITES.record_count
+    && value.matching_profile_count === 0 && value.cohort_kind === 'reporting-only'
+    && value.registry_release_id === 'national-business-registry-20260911-022652067Z-1ec656c3'
+    && value.registry_manifest_sha256 === 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'
+    && value.reporting_artifact_inventory_sha256 === 'e060dd4979babd4ce4824edbf7e3469cd6447e2513c368615111da16259cf1c5'
+    && value.temporal_release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
+    && value.temporal_manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05'
+    && value.temporal_artifact_sha256 === 'd7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0'
+    && value.temporal_registration_sha256 === '65e7c8e5a3f32ee1a71f816f4aeb449c43925c924926ec6a1d777a727e19d738'
+    && value.zip_temporal_qualification_release_id === 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503'
+    && value.zip_temporal_qualification_manifest_sha256 === '771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e'
+    && value.zip_temporal_qualification_artifact_sha256 === '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed'
+    && value.assessment_as_of === '2026-10-02T16:30:00.000Z'
+    && value.geography_release_id === 'us-census-geography-20260830-132803990Z-3629abc0'
+    && value.geography_manifest_sha256 === '5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b'
+    && value.zcta_index_sha256 === '41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6'
+    && value.county_geometry_inventory_sha256 === '993e450f60492f7c651020e7135caf6d92b5f30a5a54d2adee8ad2fe9d9c38ae'
+    && value.point_assignment_release_id === 'national-business-coverage-views-20260911-040908332Z-f01c882a'
+    && value.point_assignment_manifest_sha256 === 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6'
+    && value.summary?.site_count === 13182 && value.summary.matching_profile_count === 0
+    && same(value.summary.by_source, { MA: 3007, NJ: 4075, TN: 1863, OH: 4237 })
+    && same(value.summary.zip, { present: 13010, absent: 172, 'missing-source-zip': 27, 'invalid-source-zip-placeholder': 145 })
+    && value.summary.point_assignment?.['assigned-single-county'] === 8942
+    && value.summary.point_assignment?.['assignment-ineligible-by-source-policy'] === 4237
+    && value.summary.point_assignment?.['missing-geocode'] === 3
+    && value.summary.temporal_review_unmeasured === 13182
+    && value.summary.physical_site_denominator?.matching_profiles === 8011835
+    && value.summary.physical_site_denominator?.reporting_only_sites === 13182
+    && value.summary.physical_site_denominator?.combined_retained_site_evidence === 8025017
+    && value.active_business_eligible_count === 0 && value.active_business_verified_count === 0
+    && value.current_operation_verified_count === 0 && value.identity_matching_eligible_count === 0
+    && value.usps_unverified_count === 13182 && value.usps_operational_assignment_verified === false
+    && value.usps_deliverability_verified === false && value.zcta_correspondence_is_membership === false
+    && value.entity_polygons_present === false && value.export_policy === 'local-review-only'
+    && Array.isArray(value.source_artifacts) && value.source_artifacts.length === 10
+    && value.source_artifacts.every(item => SHA.test(item.sha256) && count(item.record_count) && item.export_policy === 'local-review-only')
+    && same(value.source_manifest_hashes, { MA: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc',
+      NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e',
+      TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d',
+      OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' })
+    && same(value.source_policy_hashes, { MA: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201',
+      NJ: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410',
+      TN: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b',
+      OH: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98' })
+    && same(value.source_bindings, REPORTING_SOURCE_PINS),
+  'reporting-only site qualification registration/release/summary binding');
+}
+
 function entityGeographyRequirementComplete(value) {
   const point = value?.point_assignment_counts, postal = value?.postal_counts;
   return value?.profile_count > 0 && value.profile_count === value.registry_profile_count
@@ -201,11 +277,12 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
   validateGeographyRelationshipBinding(geographyRelationship);
+  validateReportingOnlySiteBinding(value.bindings?.reporting_only_site_qualification);
   const ledger = value.requirements_ledger, expectedLedger = {
     geography: 'achieved', 'entity-geography-relationship': entityGeographyRequirementComplete(geographyRelationship) ? 'achieved' : 'partial', 'postal-denominator': 'blocked', 'source-authorization-policy-and-provenance': 'partial',
     'broad-state-coverage': 'blocked', 'industry-coverage': 'unmeasured', 'temporal-and-current-operation': 'blocked',
     'lifecycle-eligibility': 'blocked',
-    'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'unmeasured',
+    'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'unmeasured', 'reporting-only-site-qualification': 'partial',
   };
   check(Array.isArray(ledger) && ledger.length === Object.keys(expectedLedger).length
     && ledger.every(row => row && expectedLedger[row.requirement] === row.status && typeof row.evidence === 'string' && row.evidence.length > 0)
@@ -216,11 +293,18 @@ function validateGoalReadinessBindings(value) {
     && ledger.find(row => row.requirement === 'entity-geography-relationship')?.point_assignment_counts?.['assigned-single-county'] === 372079
     && ledger.find(row => row.requirement === 'entity-geography-relationship')?.postal_counts?.['explicit-placeholder'] === 1
     && ledger.find(row => row.requirement === 'entity-geography-relationship')?.usps_unverified_profile_count === 8011835
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.site_count === 13182
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_count === 0
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011835
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8025017
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_absent_count === 172
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.active_business_eligible_count === 0
     && value.acceptance_uplift === false && value.claims?.acceptance === false && value.claims?.report_only === true
     && value.claims?.network_requests === 0 && value.claims?.writes === 0 && value.claims?.pointers_changed === false,
     'objective readiness authority/coverage boundary');
   const blockerCodes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
     'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'reporting-only-sites-not-eligible-or-verified',
     ...(!entityGeographyRequirementComplete(geographyRelationship) ? ['entity-geography-relationship-not-complete'] : []),
     'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
   check(Array.isArray(value.blockers) && value.blockers.length === blockerCodes.length
@@ -230,6 +314,8 @@ function validateGoalReadinessBindings(value) {
     && value.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.eligible_count === 0
     && value.blockers.find(item => item.code === 'lifecycle-stale-records-present')?.count === 24230
     && value.blockers.find(item => item.code === 'lifecycle-unknown-or-contradictory')?.count === 635899,
+    'closed objective blockers/count');
+  check(value.blockers.find(item => item.code === 'reporting-only-sites-not-eligible-or-verified')?.count === 13182,
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
@@ -247,6 +333,7 @@ export function projectNationalZipObjectiveReadiness(report) {
   const binding = readiness.bindings;
   const expectedBlockers = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
     'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'reporting-only-sites-not-eligible-or-verified',
     ...(!entityGeographyRequirementComplete(binding.business_entity_geography_relationship) ? ['entity-geography-relationship-not-complete'] : []),
     'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
   const acceptanceBlockers = ['authoritative-current-usps-denominator-unavailable', 'complete-current-delivery-zip-registry-not-established',
@@ -254,7 +341,7 @@ export function projectNationalZipObjectiveReadiness(report) {
   check(same(report.acceptance.blockers, acceptanceBlockers)
     && same(readiness.blockers.map(item => item.code), expectedBlockers)
     && readiness.blockers.every(item => same(Object.keys(item).sort(), item.code === 'broad-jurisdiction-source-gaps' || item.code === 'lifecycle-stale-records-present'
-      || item.code === 'lifecycle-unknown-or-contradictory' ? ['code', 'count']
+      || item.code === 'lifecycle-unknown-or-contradictory' || item.code === 'reporting-only-sites-not-eligible-or-verified' ? ['code', 'count']
       : item.code === 'lifecycle-active-eligibility-not-established' ? ['code', 'eligible_count', 'profile_count', 'verified_current_operation_count'] : ['code']))
     && readiness.blockers.find(item => item.code === 'broad-jurisdiction-source-gaps')?.count === 40
     && readiness.blockers.find(item => item.code === 'lifecycle-active-eligibility-not-established')?.profile_count === 8011835
@@ -285,12 +372,22 @@ export function projectNationalZipObjectiveReadiness(report) {
     ...(row.usps_deliverability_verified === undefined ? {} : { usps_deliverability_verified: row.usps_deliverability_verified }),
     ...(row.same_code_zcta_is_membership === undefined ? {} : { same_code_zcta_is_membership: row.same_code_zcta_is_membership }),
     ...(row.entity_polygons_present === undefined ? {} : { entity_polygons_present: row.entity_polygons_present }),
+    ...(row.site_count === undefined ? {} : { site_count: row.site_count }),
+    ...(row.matching_profile_count === undefined ? {} : { matching_profile_count: row.matching_profile_count }),
+    ...(row.current_operation_verified_count === undefined ? {} : { current_operation_verified_count: row.current_operation_verified_count }),
+    ...(row.zip_present_count === undefined ? {} : { zip_present_count: row.zip_present_count }),
+    ...(row.zip_absent_count === undefined ? {} : { zip_absent_count: row.zip_absent_count }),
+    ...(row.usps_unverified_count === undefined ? {} : { usps_unverified_count: row.usps_unverified_count }),
+    ...(row.point_assigned_count === undefined ? {} : { point_assigned_count: row.point_assigned_count }),
+    ...(row.point_assignment_ineligible_count === undefined ? {} : { point_assignment_ineligible_count: row.point_assignment_ineligible_count }),
+    ...(row.matching_profile_denominator === undefined ? {} : { matching_profile_denominator: row.matching_profile_denominator }),
+    ...(row.combined_retained_site_evidence_count === undefined ? {} : { combined_retained_site_evidence_count: row.combined_retained_site_evidence_count }),
     evidence: row.evidence,
   }));
   const expectedRequirements = [
     ['geography', 'achieved'], ['entity-geography-relationship', entityGeographyRequirementComplete(binding.business_entity_geography_relationship) ? 'achieved' : 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
-    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
   ];
   check(same(requirements_ledger.map(row => [row.requirement, row.status]), expectedRequirements)
     && requirements_ledger.every(row => typeof row.evidence === 'string' && row.evidence.length > 0
@@ -298,6 +395,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         ? ['current_gap_count', 'evidence', 'jurisdiction_count', 'requirement', 'status']
         : row.requirement === 'entity-geography-relationship' ? ['entity_polygons_present', 'evidence', 'point_assignment_counts', 'postal_counts', 'profile_count', 'registry_profile_count', 'reported_state_conflict_count', 'requirement', 'same_code_zcta_is_membership', 'status', 'usps_deliverability_verified', 'usps_operational_assignment_verified', 'usps_unverified_profile_count']
         : row.requirement === 'lifecycle-eligibility' ? ['active_business_eligible_count', 'evidence', 'profile_count', 'registry_profile_count', 'requirement', 'stale_count', 'status', 'unknown_or_contradictory_count', 'verified_current_operation_count']
+        : row.requirement === 'reporting-only-site-qualification' ? ['active_business_eligible_count', 'combined_retained_site_evidence_count', 'current_operation_verified_count', 'evidence', 'matching_profile_count', 'matching_profile_denominator', 'point_assigned_count', 'point_assignment_ineligible_count', 'requirement', 'site_count', 'status', 'usps_unverified_count', 'zip_absent_count', 'zip_present_count']
         : ['evidence', 'requirement', 'status']))
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.current_gap_count === 40
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51
@@ -317,9 +415,19 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.usps_deliverability_verified === false
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.same_code_zcta_is_membership === false
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.entity_polygons_present === false,
-  'closed ten-row objective readiness ledger');
+    'closed eleven-row objective readiness ledger');
+  check(requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.site_count === 13182
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_count === 0
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011835
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8025017
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.active_business_eligible_count === 0
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.current_operation_verified_count === 0
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_present_count === 13010
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_absent_count === 172
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.usps_unverified_count === 13182,
+  'reporting-only site readiness counts');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.2.0',
+    schema_version: 'national-zip-objective-readiness-api@1.3.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -364,6 +472,38 @@ export function projectNationalZipObjectiveReadiness(report) {
         usps_unverified_profile_count: binding.business_entity_geography_relationship.profile_count,
         claims: binding.business_entity_geography_relationship.claims,
         semantics: binding.business_entity_geography_relationship.semantics,
+      },
+      reporting_only_site_qualification: {
+        release_id: binding.reporting_only_site_qualification.release_id,
+        registration_sha256: binding.reporting_only_site_qualification.registration_sha256,
+        manifest_sha256: binding.reporting_only_site_qualification.manifest_sha256,
+        artifact_sha256: binding.reporting_only_site_qualification.artifact_sha256,
+        record_count: binding.reporting_only_site_qualification.record_count,
+        registry_release_id: binding.reporting_only_site_qualification.registry_release_id,
+        registry_manifest_sha256: binding.reporting_only_site_qualification.registry_manifest_sha256,
+        reporting_artifact_inventory_sha256: binding.reporting_only_site_qualification.reporting_artifact_inventory_sha256,
+        source_manifest_hashes: binding.reporting_only_site_qualification.source_manifest_hashes,
+        source_policy_hashes: binding.reporting_only_site_qualification.source_policy_hashes,
+        source_bindings: binding.reporting_only_site_qualification.source_bindings,
+        temporal_release_id: binding.reporting_only_site_qualification.temporal_release_id,
+        temporal_manifest_sha256: binding.reporting_only_site_qualification.temporal_manifest_sha256,
+        temporal_artifact_sha256: binding.reporting_only_site_qualification.temporal_artifact_sha256,
+        temporal_registration_sha256: binding.reporting_only_site_qualification.temporal_registration_sha256,
+        zip_temporal_qualification_release_id: binding.reporting_only_site_qualification.zip_temporal_qualification_release_id,
+        zip_temporal_qualification_manifest_sha256: binding.reporting_only_site_qualification.zip_temporal_qualification_manifest_sha256,
+        zip_temporal_qualification_artifact_sha256: binding.reporting_only_site_qualification.zip_temporal_qualification_artifact_sha256,
+        assessment_as_of: binding.reporting_only_site_qualification.assessment_as_of,
+        geography_release_id: binding.reporting_only_site_qualification.geography_release_id,
+        geography_manifest_sha256: binding.reporting_only_site_qualification.geography_manifest_sha256,
+        zcta_index_sha256: binding.reporting_only_site_qualification.zcta_index_sha256,
+        county_geometry_inventory_sha256: binding.reporting_only_site_qualification.county_geometry_inventory_sha256,
+        point_assignment_release_id: binding.reporting_only_site_qualification.point_assignment_release_id,
+        point_assignment_manifest_sha256: binding.reporting_only_site_qualification.point_assignment_manifest_sha256,
+        summary: binding.reporting_only_site_qualification.summary,
+        active_business_eligible_count: binding.reporting_only_site_qualification.active_business_eligible_count,
+        current_operation_verified_count: binding.reporting_only_site_qualification.current_operation_verified_count,
+        usps_unverified_count: binding.reporting_only_site_qualification.usps_unverified_count,
+        export_policy: binding.reporting_only_site_qualification.export_policy,
       },
     },
   };
@@ -491,6 +631,14 @@ async function readObjectiveReadiness({ signal }) {
     }),
   ]);
   const geographyRelationship = await readVerifiedBusinessEntityGeographyBinding({ signal });
+  const reportingVerified = await verifyReportingOnlySiteQualification({ signal }).catch(error => {
+    if (signal?.aborted || error?.name === 'AbortError') throw error;
+    const failure = new Error('Selected reporting-only site qualification is unavailable or invalid.'); failure.code = 'REPORTING_SITE_RELEASE_INVALID'; throw failure;
+  });
+  const reportingSites = await readReportingOnlySiteQualification({ signal });
+  check(reportingVerified.release_id === REPORTING_SITES.release_id && reportingVerified.manifest_sha256 === REPORTING_SITES.manifest_sha256
+    && reportingVerified.artifact_sha256 === REPORTING_SITES.artifact_sha256 && reportingVerified.summary.site_count === REPORTING_SITES.record_count,
+    'verified reporting-only site qualification release');
   const industryRegistration = await snapshot('config/datasets/national-exact-zip-industry-evidence-matrix.json', signal);
   const industryPin = industryRegistration.value.retained_release;
   check(industryRegistration.value.dataset_id === 'national-exact-zip-industry-evidence-matrix' && industryRegistration.value.runtime_pointer === null
@@ -545,6 +693,40 @@ async function readObjectiveReadiness({ signal }) {
     exception_counts: lifecycle.summary.exception_counts, current_operation_verified_count: 0, active_business_eligible_count: 0,
   };
   const geographyRelationshipBinding = geographyRelationship;
+  const reportingSources = reportingSites.provenance.bindings.sources;
+  const reportingBinding = {
+    registration_path: REPORTING_SITES.registration_path, registration_sha256: reportingSites.provenance.registration_sha256,
+    release_id: reportingSites.provenance.release_id, manifest_sha256: reportingSites.provenance.manifest_sha256,
+    artifact_sha256: reportingSites.provenance.artifact_sha256, record_count: reportingSites.provenance.record_count,
+    cohort_kind: 'reporting-only', matching_profile_count: reportingSites.summary.matching_profile_count,
+    registry_release_id: reportingSites.provenance.bindings.registry.release_id,
+    registry_manifest_sha256: reportingSites.provenance.bindings.registry.manifest_sha256,
+    reporting_artifact_inventory_sha256: reportingSites.provenance.bindings.registry.reporting_artifact_inventory_sha256,
+    source_artifacts: reportingSites.provenance.bindings.registry.reporting_artifacts,
+    source_manifest_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.manifest_sha256])),
+    source_policy_hashes: Object.fromEntries(Object.entries(reportingSources).map(([state, source]) => [state, source.policy_sha256])),
+    source_bindings: reportingSources,
+    temporal_release_id: reportingSites.provenance.bindings.temporal.release_id,
+    temporal_manifest_sha256: reportingSites.provenance.bindings.temporal.manifest_sha256,
+    temporal_artifact_sha256: reportingSites.provenance.bindings.temporal.artifact_sha256,
+    temporal_registration_sha256: reportingSites.provenance.bindings.temporal.registration_sha256,
+    zip_temporal_qualification_release_id: reportingSites.provenance.bindings.zip_temporal_qualification.release_id,
+    zip_temporal_qualification_manifest_sha256: reportingSites.provenance.bindings.zip_temporal_qualification.manifest_sha256,
+    zip_temporal_qualification_artifact_sha256: reportingSites.provenance.bindings.zip_temporal_qualification.artifact_sha256,
+    assessment_as_of: reportingSites.provenance.bindings.zip_temporal_qualification.assessment_as_of,
+    geography_release_id: reportingSites.provenance.bindings.geography.release_id,
+    geography_manifest_sha256: reportingSites.provenance.bindings.geography.manifest_sha256,
+    zcta_index_sha256: reportingSites.provenance.bindings.geography.zcta_index_sha256,
+    county_geometry_inventory_sha256: reportingSites.provenance.bindings.geography.county_geometry_inventory_sha256,
+    point_assignment_release_id: reportingSites.provenance.bindings.geography.point_assignment_release_id,
+    point_assignment_manifest_sha256: reportingSites.provenance.bindings.geography.point_assignment_manifest_sha256,
+    summary: reportingSites.summary, active_business_eligible_count: 0, active_business_verified_count: 0,
+    current_operation_verified_count: 0, identity_matching_eligible_count: 0, usps_unverified_count: 13182,
+    usps_operational_assignment_verified: false, usps_deliverability_verified: false,
+    zcta_correspondence_is_membership: false, entity_polygons_present: false, export_policy: 'local-review-only',
+  };
+  check(reportingSites.provenance.registration_sha256 === REPORTING_SITES.registration_sha256, 'reporting-only registration hash');
+  validateReportingOnlySiteBinding(reportingBinding);
   const bindings = {
     zip_entity_resolution: { registration_path: 'config/datasets/zip-entity-resolution-evidence.json', registration_sha256: entity.registration_sha256,
       release_id: 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564',
@@ -566,8 +748,9 @@ async function readObjectiveReadiness({ signal }) {
       source_lineage: broad.source_lineage, metadata: broad.metadata, authority: broad.authority },
     lifecycle_eligibility: lifecycleBinding,
     business_entity_geography_relationship: geographyRelationshipBinding,
+    reporting_only_site_qualification: reportingBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.2.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.3.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,
@@ -592,6 +775,11 @@ async function readObjectiveReadiness({ signal }) {
         evidence: 'Retained lifecycle evidence is conservative: stale, unknown, and contradictory profiles remain ineligible; no row independently verifies current operation.' },
       { requirement: 'reconciliation-and-benchmark', status: 'blocked', benchmark_gate_passed: false, entity_resolution_applied: false, evidence: 'ZIP linkage evidence is aggregate and unapplied; benchmark gate is not passed.' },
       { requirement: 'all-business-completeness-denominator', status: 'unmeasured', all_business_completion_percent: null, active_business_count: null, evidence: 'No verified national all-business denominator exists.' },
+      { requirement: 'reporting-only-site-qualification', status: 'partial', site_count: 13182, matching_profile_count: 0,
+        matching_profile_denominator: 8011835, combined_retained_site_evidence_count: 8025017,
+        active_business_eligible_count: 0, current_operation_verified_count: 0, zip_present_count: 13010, zip_absent_count: 172,
+        usps_unverified_count: 13182, point_assigned_count: 8942, point_assignment_ineligible_count: 4237,
+        evidence: 'A separately retained reporting-only cohort is verified, but its sites are not matching profiles, active-eligible businesses, or USPS-verified ZIP assignments.' },
     ],
     blockers: [
       { code: 'entity-resolution-benchmark-gate-not-passed' },
@@ -599,6 +787,7 @@ async function readObjectiveReadiness({ signal }) {
       { code: 'nationwide-industry-universe-unmeasured' },
       { code: 'broad-jurisdiction-source-gaps', count: broadStateGapCount },
       { code: 'current-operation-not-independently-verified' },
+      { code: 'reporting-only-sites-not-eligible-or-verified', count: 13182 },
       ...(!entityGeographyRequirementComplete(geographyRelationshipBinding) ? [{ code: 'entity-geography-relationship-not-complete' }] : []),
       ...(!lifecycleActiveEligibilityEstablished(lifecycleBinding) ? [{ code: 'lifecycle-active-eligibility-not-established', profile_count: lifecycleBinding.profile_count,
         eligible_count: lifecycleBinding.active_business_eligible_count, verified_current_operation_count: lifecycleBinding.current_operation_verified_count }] : []),

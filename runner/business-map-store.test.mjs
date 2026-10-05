@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createGzip, gzipSync } from "node:zlib";
+import { createGzip, gzipSync, gunzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
@@ -321,6 +321,21 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
     await writeFile(coverageFile, json(coverage));
   }
   capturePaths?.({ coverageRelease, registryRelease, geographyRelease });
+  const registryManifest = JSON.parse(await readFile(path.join(registryRelease, 'manifest.json'), 'utf8'));
+  const reportingDecisionRows = [];
+  for (const artifact of registryManifest.artifacts.filter(item => item.artifact_type === 'business-reporting-location-evidence-jsonl-gzip')) {
+    const bytes = await readFile(path.join(registryRelease, artifact.path));
+    reportingDecisionRows.push(...gunzipSync(bytes).toString('utf8').trim().split(/\r?\n/).filter(Boolean).map(JSON.parse));
+  }
+  const reportingQualification = { provenance: { release_id: 'fixture-reporting-site-release', manifest_sha256: 'f'.repeat(64), artifact_sha256: 'e'.repeat(64) },
+    byRecord: new Map(reportingDecisionRows.map(row => [row.source.source_record_id, {
+      site_entity_id: row.site_entity_id, establishment_entity_id: row.establishment_entity_id,
+      source: { source_id: row.source.source_id, source_release_id: row.source.source_release_id, row_observed_at: row.observed_at },
+      lifecycle: { lifecycle_evidence: 'unknown', current_operation_verified: false, active_business_eligible: false, reason_codes: ['source-status-unverified'] },
+      geography: { postal: { zip_code: row.zip_code ?? null, zip4: row.address?.zip4 ?? null, usps_operational_assignment: null, usps_deliverability: null },
+        code_correspondence: { membership: false, zcta_geoid: null }, point_assignment: { status: row.location?.latitude == null ? 'missing-geocode' : 'assignment-ineligible-by-source-policy', county_geoid: null, state_fips: null, zcta_geoid: null },
+        claims: { current_operation_verified: false, postal_validity_verified: false, entity_polygon_present: false } },
+    }])) };
   return createBusinessMapStore({
     coveragePointerPath: path.join(coverageRoot, "current.json"),
     geographyPointerPath: path.join(geographyRoot, "current.json"),
@@ -342,6 +357,7 @@ async function fixture(context, { withGdp = true, gdpGeographyReleaseId = "geogr
       claims: { current_operation_verified: false, postal_validity_verified: false, entity_polygon_present: false } }; },
       async finish() {}, async close() {},
     }),
+    reportingQualificationReader: async () => reportingQualification,
   });
 }
 

@@ -261,6 +261,15 @@ export async function inspectBusinessEntityGeographyRelationshipInputs({ root = 
   return { inputs_verified: true, pins: input.pins, source_partitions: input.profiles.length, source_profiles: input.profiles.reduce((n, item) => n + item.record_count, 0), zcta_count: input.zctaRows.size, county_count: input.countyIndexRows.length, audited_zip_count: input.zipClasses.size };
 }
 
+export async function loadReportingSiteGeographyContext({ root = APP_ROOT, signal } = {}) {
+  const input = await readInputs(path.resolve(root), signal);
+  return {
+    zctaCodes: new Set(input.zctaRows.keys()), countyIndex: input.countyIndex,
+    stateFipsByAbbreviation: input.stateFipsByAbbreviation, zipClasses: input.zipClasses,
+    pins: input.pins,
+  };
+}
+
 function emptyCounts() { return { profiles: 0, postal: { 'same-code-zcta-candidate': 0, 'outside-zcta': 0, 'explicit-placeholder': 0, missing: 0 }, point: { 'assigned-single-county': 0, unmatched: 0, ambiguous: 0, conflict: 0, 'missing-geocode': 0, 'invalid-coordinate': 0, 'unassignable-legacy-coordinate-crs-unproven': 0, 'unassignable-coordinate-not-premise-point': 0 }, reported_state_conflict: 0, source_counts: {}, state_point_counts: {}, county_point_counts: {}, state_point_source_counts: {}, county_point_source_counts: {} }; }
 function addCounts(c, row) {
   c.profiles++; c.postal[row.postal.classification]++;

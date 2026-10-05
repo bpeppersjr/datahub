@@ -11,6 +11,7 @@ import { mapReportingCompatibility } from "./business-map-compatibility.mjs";
 import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryProfileCompatibilityBinding } from "./business-location-profile-contract.mjs";
 import { readBusinessEntityLifecycleEligibilityPartition } from "./business-entity-lifecycle-eligibility.mjs";
 import { businessEntityGeographyRelationshipMatchesRegistry, normalizeRetainedGeographyProfile, readBusinessEntityGeographyRelationshipPartition, readBusinessEntityGeographyRelationshipSummary } from "./business-entity-geography-relationship.mjs";
+import { readReportingOnlySiteQualification } from "./reporting-only-site-qualification.mjs";
 
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const IRS_EO_SOURCE = "irs-eo-bmf-organizations";
@@ -510,6 +511,7 @@ export function createBusinessMapStore({
   gdpPointerPath = DEFAULT_GDP_POINTER,
   lifecyclePartitionReader = readBusinessEntityLifecycleEligibilityPartition,
   geographyRelationshipPartitionReader = readBusinessEntityGeographyRelationshipPartition,
+  reportingQualificationReader = readReportingOnlySiteQualification,
 } = {}) {
   let indexKey = null;
   let indexPromise = null;
@@ -1102,6 +1104,7 @@ export function createBusinessMapStore({
     if (reportingArtifact) {
       files.push({ rows: await readReportingRows(registry, reportingArtifact), reporting: true });
     }
+    const reportingQualification = files.some(file => file.reporting) ? await reportingQualificationReader() : null;
     const lifecycleJoiner = !missingZipOnly && files.some(file => !file.reporting)
       ? await lifecyclePartitionReader({ zip2: zip.slice(0, 2) }) : null;
     const geographyJoiner = !missingZipOnly && files.some(file => !file.reporting)
@@ -1132,8 +1135,14 @@ export function createBusinessMapStore({
       const row = file.reporting ? parsedRow : businessEntityGeographyRelationshipMatchesRegistry(registry.manifest, registry.manifestSha256)
         ? normalizeRetainedGeographyProfile(parsedRow, registry.manifest, registry.manifestSha256)
         : normalizeBusinessLocationProfile(parsedRow, registryProfileCompatibilityBinding(registry.manifest, registry.manifestSha256));
-      const lifecycleEligibility = file.reporting ? null : await lifecycleJoiner.nextFor(row);
-      const geographyRelationship = file.reporting ? null : await geographyJoiner.nextFor(row);
+      const reportingDecision = file.reporting ? reportingQualification?.byRecord?.get(row.source?.source_record_id) : null;
+      if (file.reporting && (!reportingDecision || reportingDecision.site_entity_id !== row.site_entity_id
+        || reportingDecision.establishment_entity_id !== row.establishment_entity_id
+        || reportingDecision.source.source_id !== row.source.source_id || reportingDecision.source.source_release_id !== row.source.source_release_id
+        || reportingDecision.source.row_observed_at !== row.observed_at || reportingDecision.geography.postal.zip_code !== row.zip_code
+        || reportingDecision.geography.postal.zip4 !== (row.address?.zip4 ?? null))) throw new Error("Reporting-only site qualification row does not match retained source evidence.");
+      const lifecycleEligibility = file.reporting ? reportingDecision.lifecycle : await lifecycleJoiner.nextFor(row);
+      const geographyRelationship = file.reporting ? reportingDecision.geography : await geographyJoiner.nextFor(row);
       if (["ma-licensed-center-based-childcare", "nj-licensed-childcare-centers", TN_SOURCE, OH_SOURCE].includes(row.source?.source_id) && !file.reporting) throw new Error("Childcare source cannot appear in matching-profile artifacts.");
       if (file.reporting) {
         if (row.source?.source_id === OH_SOURCE) {
@@ -1202,7 +1211,9 @@ export function createBusinessMapStore({
           export_policy: sourceId === IRS_EO_SOURCE ? "local-review-only" : (row.export_policy ?? "local-review-only"),
           lifecycle_eligibility: lifecycleEligibility,
           geography_relationship: geographyRelationship,
-          ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence } : {}),
+          ...(file.reporting ? { identity_matching_eligible: false, source_status: row.source_status, source_evidence: row.evidence,
+            cohort_kind: 'reporting-only', reporting_only_site_qualification: reportingDecision,
+            reporting_only_site_qualification_release: reportingQualification.provenance } : {}),
           ...(sourceId === OH_SOURCE ? { governed_geographic_assignment_eligible: false } : {}),
         });
       }
@@ -1221,6 +1232,7 @@ export function createBusinessMapStore({
       records,
       ...(lifecycleJoiner ? { lifecycle_release: lifecycleJoiner.provenance } : {}),
       ...(geographyJoiner ? { geography_relationship_release: geographyJoiner.provenance } : {}),
+      ...(reportingQualification ? { reporting_only_site_qualification_release: reportingQualification.provenance } : {}),
       limitation: categoryId === "all"
         ? "Business names include governed location profiles and reporting-only childcare evidence; organization-address evidence included in the map count is excluded from this name list. Ohio reported names are not included in geographic category counts."
         : categoryId === "childcare" && index.compatibility.ohio

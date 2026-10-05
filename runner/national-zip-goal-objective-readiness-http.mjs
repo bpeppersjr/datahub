@@ -40,7 +40,8 @@ export async function nationalZipGoalObjectiveReadinessHttp(request, response, u
   } catch (error) {
     if (!disconnected && !response.destroyed && !response.writableEnded)
       json(response, 503, { error: 'National objective readiness evidence is unavailable or incompatible.',
-        ...(error?.code === 'LIFECYCLE_RELEASE_INVALID' ? { blocker_code: 'lifecycle-release-unavailable-or-invalid' } : {}) });
+        ...(error?.code === 'LIFECYCLE_RELEASE_INVALID' ? { blocker_code: 'lifecycle-release-unavailable-or-invalid' }
+          : error?.code === 'REPORTING_SITE_RELEASE_INVALID' ? { blocker_code: 'reporting-only-site-release-unavailable-or-invalid' } : {}) });
   } finally {
     clearTimeout(timer);
     controller.signal.removeEventListener('abort', rejectAbort);

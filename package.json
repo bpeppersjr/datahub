@@ -77,6 +77,8 @@
     "zcta-crosswalk:verify": "node scripts/verify-zcta-jurisdiction-crosswalk.mjs",
     "coverage-views:build": "node scripts/build-national-business-coverage-views.mjs",
     "coverage-views:verify": "node scripts/verify-national-business-coverage-views.mjs",
+    "reporting-only-site:build": "node scripts/build-reporting-only-site-qualification.mjs",
+    "reporting-only-site:verify": "node scripts/verify-reporting-only-site-qualification.mjs",
     "cms:retained-directory-coverage:build": "node scripts/build-cms-retained-directory-coverage-catalog.mjs",
     "cms:retained-directory-coverage:verify": "node scripts/verify-cms-retained-directory-coverage-catalog.mjs",
     "cms:retained-directory-zip:build": "node scripts/build-cms-retained-directory-zip-evidence.mjs",
