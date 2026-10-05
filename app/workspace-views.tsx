@@ -16,6 +16,7 @@ import ZipSourceNativeStatus, {
   type SourceNativeStatusView,
 } from "./zip-source-native-status";
 import childcareRegistration from "../config/datasets/retained-childcare-zip-evidence.json";
+import CensusZctaResidualLayer from "./census-zcta-residual-layer";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
 
 export const workspaceTabs = [
@@ -2226,6 +2227,7 @@ export function CoverageWorkspace({
         )}
         <RetainedCountyWorkspace stateCode={state} />
       </details>
+      {!industries&&<CensusZctaResidualLayer state={state}/>}
     </section>
   );
 }

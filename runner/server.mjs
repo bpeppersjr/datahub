@@ -71,6 +71,7 @@ import { documentOnlyInquiryProposalRegistryHttp } from './document-only-inquiry
 import { loadDocumentOnlyInquiryProposalRegistryView } from './document-only-inquiry-proposal-registry-view.mjs';
 import { nationalGeographyGoalStatusHttp } from './national-geography-goal-status-http.mjs';
 import { createIndustryMaintenanceStore } from './maintenance-settings.mjs';
+import { readCensusZctaResidualView } from './census-zcta-residual-geography.mjs';
 import { loadNationalGeographyGoalStatusView } from './national-geography-goal-status-view.mjs';
 import { reportedOrganizationZipEvidenceStatusHttp } from './reported-organization-zip-evidence-status-http.mjs';
 import { loadReportedOrganizationZipEvidenceStatusView } from './reported-organization-zip-evidence-status.mjs';
@@ -779,6 +780,10 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/business-map/state-access-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'State-access industry summary does not accept options.'});return;}
       json(response,200,await stateAccessIndustrySummary());return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/census-zcta-residual'){
+      if([...url.searchParams.keys()].some(key=>key!=='state')||url.searchParams.getAll('state').length>1){json(response,400,{error:'Unsupported or repeated residual-layer option.'});return;}
+      json(response,200,await readCensusZctaResidualView({state:url.searchParams.get('state')??undefined}));return;
     }
     if (url.pathname === '/api/business-map/nonemployer-county-heatmap') {
       const [{ nonemployerCountyHeatmapView }, { censusNonemployerCountyHeatmapHttp }] = await Promise.all([
