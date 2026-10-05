@@ -84,13 +84,13 @@ async function makeFixture(t) {
     await copyFile(path.join(sourceRoot, "current.json"), path.join(fixtureRoot, "current.json"));
     await copyFile(path.join(sourceRoot, ...pointer.manifest.split("/")), path.join(fixtureRoot, ...pointer.manifest.split("/")));
   }
-  for (const file of ["compose-flat-business-export.mjs", "run-dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
+  for (const file of ["compose-flat-business-export.mjs", "verify-flat-business-export.mjs", "run-dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "scripts", file), path.join(root, "scripts", file));
   for (const file of ["paths.mjs", "cli-cancellation.mjs", "business-location-profile-contract.mjs", "childcare-geographic-evidence.mjs", "normalized-us-postal-code.mjs",
     "tn-childcare-geographic-evidence.mjs", "tn-childcare-normalization.mjs", "tn-childcare-registry-adapter.mjs", "tn-childcare-preflight.mjs", "source-http-guards.mjs",
     "business-flatfile-compatibility.mjs", "oh-childcare-coverage-evidence.mjs", "oh-childcare-geographic-evidence.mjs", "oh-childcare-registry-adapter.mjs",
     "oh-childcare-registry-input.mjs", "oh-childcare-app.mjs", "oh-childcare-source-use.mjs", "oh-childcare-preflight.mjs", "oh-childcare-acquired-release.mjs",
     "oh-childcare-transport.mjs", "oh-childcare-acquisition.mjs", "oh-childcare-release.mjs", "oh-childcare-normalization.mjs",
-    "dc-corporate-registration.mjs", "dc-corporate-registration-app.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
+    "dc-corporate-registration.mjs", "dc-corporate-registration-app.mjs", "flat-business-export-governance.mjs"]) await copyFile(path.join(APP_ROOT, "runner", file), path.join(root, "runner", file));
   // This managed-API fixture uses a synthetic registry release, so it cannot
   // satisfy the registered production lifecycle lineage. Keep the child import
   // isolated with an explicit test-only unknown projection; production runners
@@ -107,6 +107,17 @@ export async function readBusinessEntityLifecycleEligibilityPartition() {
     async finish() {}, async close() {},
   };
 }
+`);
+  await writeFile(path.join(root, "runner", "business-entity-geography-relationship.mjs"), `
+export function businessEntityGeographyRelationshipMatchesRegistry(){return false;}
+export function normalizeRetainedGeographyProfile(row){return row;}
+export async function readBusinessEntityGeographyRelationshipPartition(){throw new Error('fixture geography unavailable');}
+`);
+  await writeFile(path.join(root, "runner", "reporting-only-site-qualification.mjs"), `export async function readReportingOnlySiteQualification(){throw new Error('fixture reporting qualification unavailable');}\n`);
+  await writeFile(path.join(root, "runner", "flat-business-export-governance.mjs"), `
+const rows=[{source_id:'usda-snap-current-retailers',source_release_id:'s1',policy_id:'p1',policy_profile_sha256:'${'a'.repeat(64)}'},
+{source_id:'texas-comptroller-active-sales-tax-permits',source_release_id:'s2',policy_id:'p2',policy_profile_sha256:'${'b'.repeat(64)}'}];
+export async function readFlatBusinessExportGovernance(){return{lineage:{registry:{release_id:'fixture-1',manifest_sha256:'${'c'.repeat(64)}'},lifecycle:{release_id:'fixture-lifecycle-release',manifest_sha256:'${'d'.repeat(64)}'},entity_geography:{release_id:'fixture-geography-release',manifest_sha256:'${'e'.repeat(64)}'},reporting_only_qualification:{release_id:'fixture-reporting-release',manifest_sha256:'${'f'.repeat(64)}',policy_sources:{}},source_policy_provenance:{release_id:'fixture-policy-release',manifest_sha256:'${'1'.repeat(64)}',source_rows:rows}},registryArtifacts:[],sourcePolicyById:new Map(rows.map(row=>[row.source_id,row])),reportingByRecord:new Map()};}
 `);
   await mkdir(path.join(root, "docs/states"), { recursive: true });
   await copyFile(path.join(APP_ROOT, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"), path.join(root, "docs/states/OH-CHILDCARE-USE-DECISION-2026-09-08.json"));
@@ -215,7 +226,7 @@ test('production status HTTP API is authenticated, projected and strictly read-o
   assert.deepEqual(await readFile(file),before);
 });
 
-test("managed operation HTTP API authenticates, validates, exports, and downloads governed artifacts", { timeout: 20_000 }, async (t) => {
+test("managed operation HTTP API fails closed when export lineage cannot be independently verified", { timeout: 20_000 }, async (t) => {
   const fixture = await makeFixture(t);
 
   const unauthorized = await request(fixture.base, "/api/data-operations/catalog", { authenticated: false });
@@ -299,24 +310,17 @@ test("managed operation HTTP API authenticates, validates, exports, and download
   const start = await request(fixture.base, "/api/data-operations/exports", { method: "POST", body: { format: "both", policyMode: "local-review", fields: ["business_name", "state", "zip_code"], outputPrefix: "exported2" } });
   assert.equal(start.status, 202);
   const operation = await waitForOperation(fixture.base, (await start.json()).id);
-  assert.equal(operation.status, "SUCCEEDED", operation.error);
-  assert.equal(operation.result.rowsWritten, 2);
-  assert.equal(operation.result.localReviewOnly, true);
-
-  for (const declared of operation.artifacts) {
-    const denied = await request(fixture.base, `/api/data-operations/operations/${operation.id}/artifacts/${declared.name}`, { authenticated: false });
-    assert.equal(denied.status, 401);
-    const response = await request(fixture.base, `/api/data-operations/operations/${operation.id}/artifacts/${declared.name}`);
-    assert.equal(response.status, 200);
-    const bytes = Buffer.from(await response.arrayBuffer());
-    assert.equal(bytes.length, declared.bytes);
-    const disk = await readFile(path.join(fixture.root, "data", "managed-operations", operation.id, "output", "exported2", declared.name));
-    assert.equal(sha256(bytes), sha256(disk));
-  }
+  assert.equal(operation.status, "FAILED");
+  assert.equal(operation.result?.artifactIntegrityVerified, false);
+  assert.equal(operation.result?.inspectionRequired, true);
+  assert.equal(operation.result?.manifestSha256, null);
+  assert.deepEqual(operation.artifacts, []);
+  const refused = await request(fixture.base, `/api/data-operations/operations/${operation.id}/artifacts/records.jsonl`);
+  assert.equal(refused.status, 404);
 
   const history = await request(fixture.base, "/api/data-operations/operations");
   assert.equal(history.status, 200);
-  assert.ok((await history.json()).some((item) => item.id === operation.id && item.status === "SUCCEEDED"));
+  assert.ok((await history.json()).some((item) => item.id === operation.id && item.status === "FAILED" && item.artifacts.length === 0));
 });
 
 test("managed refresh schedule API creates disabled schedules without launching collection", { timeout: 20_000 }, async (t) => {

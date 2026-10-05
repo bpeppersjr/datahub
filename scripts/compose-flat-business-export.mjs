@@ -19,6 +19,7 @@ import { normalizeBusinessLocationProfile, normalizeCoordinateGeocode, registryP
 import { readBusinessEntityLifecycleEligibilityPartition } from '../runner/business-entity-lifecycle-eligibility.mjs';
 import { businessEntityGeographyRelationshipMatchesRegistry, normalizeRetainedGeographyProfile, readBusinessEntityGeographyRelationshipPartition } from '../runner/business-entity-geography-relationship.mjs';
 import { readReportingOnlySiteQualification } from '../runner/reporting-only-site-qualification.mjs';
+import { readFlatBusinessExportGovernance } from '../runner/flat-business-export-governance.mjs';
 
 const DEFAULT_SOURCE = "data/business-registry/current.json";
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
@@ -26,7 +27,7 @@ const REPORTING_TYPE = "business-reporting-location-evidence-jsonl-gzip";
 const DEFAULT_OUTPUT = "data/exports/flat-business/builds";
 const PUBLIC_POLICIES = new Set(["public", "public-open-ny-terms", "public-factual-fields-with-source-limitations"]);
 const LOCAL_POLICIES = new Set([...PUBLIC_POLICIES, "local-review-only"]);
-const REQUIRED_PROVENANCE_FIELDS = ["source_id", "source_release_id", "source_record_id", "ingest_run_id", "policy_id", "export_policy", "transformation_version", "dataset_id", "source_dataset_release_id", "lifecycle_eligibility", "geography_relationship", "reporting_site_qualification"];
+const REQUIRED_PROVENANCE_FIELDS = ["cohort_kind", "source_artifact_path", "source_policy_provenance", "profile_id", "lifecycle_eligibility", "geography_relationship", "reporting_site_qualification", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "policy_id", "export_policy", "transformation_version", "dataset_id", "source_dataset_release_id", "site_entity_id", "establishment_entity_id", "organization_entity_id", "source_status", "source_evidence", "state", "zip_code", "zip4", "geocode"];
 
 // Export categories include independently verified reporting-only Ohio rows.
 // This does not change the map's source adoption or geographic assignment rules.
@@ -42,7 +43,7 @@ export const BUSINESS_FLATFILE_CATEGORIES = Object.freeze({
   "licensed-businesses": ["alaska-dcced-active-business-licenses", "los-angeles-office-of-finance-active-businesses", "texas-comptroller-active-sales-tax-permits", "city-of-chicago-bacp-current-active-business-licenses", "dc-dlcp-active-basic-business-licenses", "nyc-dcwp-issued-licenses-active-premises"],
 });
 export const AVAILABLE_EXPORT_FIELDS = Object.freeze([
-  "business_name", "profile_id", "lifecycle_eligibility", "geography_relationship", "reporting_site_qualification", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "geocode",
+  "business_name", "cohort_kind", "source_artifact_path", "source_policy_provenance", "profile_id", "lifecycle_eligibility", "geography_relationship", "reporting_site_qualification", "street", "unit_or_additional", "city", "state", "zip_code", "zip4", "geocode",
   "industry_categories", "source_id", "source_release_id", "source_record_id", "ingest_run_id", "source_status_value",
   "source_status_scope", "source_status_observed_at", "observed_at", "policy_id", "export_policy", "transformation_version",
   "dataset_id", "source_dataset_release_id", "external_identifiers", "site_entity_id", "establishment_entity_id", "organization_entity_id",
@@ -70,6 +71,7 @@ function normalizedGeocode(record) {
 }
 const categoriesFor = (id) => Object.entries(BUSINESS_FLATFILE_CATEGORIES).filter(([, ids]) => ids.includes(id)).map(([category]) => category);
 const csv = (v) => { const isString = typeof v === "string"; let text = v == null ? "" : isString ? v : JSON.stringify(v); if (isString && /^[=+\-@\t\r]/.test(text)) text = `'${text}`; return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text; };
+function countQualification(counts, key, value) { const label = typeof value === 'string' && value ? value : 'unmeasured-or-missing'; const entry = `${key}|${label}`; counts[entry] = (counts[entry] ?? 0) + 1; }
 
 export function parseArguments(argv = process.argv.slice(2)) {
   const out = { sources: [], categories: [], sourceIds: [], states: [], fields: [], format: "both", policyMode: "public-only", output: DEFAULT_OUTPUT, outputPrefix: null, help: false };
@@ -118,11 +120,13 @@ async function governedArtifact(source, artifact, signal, boundedReporting = fal
   if (actual.bytes !== artifact.bytes || actual.sha256 !== artifact.sha256) throw new Error(`Artifact checksum mismatch: ${artifact.path}`);
   return file;
 }
-function projection(record, source, rowCategories, lifecycleEligibility = null, geographyRelationship = null, reportingSiteQualification = null) {
+function projection(record, source, sourceArtifactPath, cohortKind, rowCategories, lifecycleEligibility = null, geographyRelationship = null, reportingSiteQualification = null, policyProvenance = null) {
   const normalizedZip5 = zip5(record.address?.zip_code ?? record.zip_code ?? null);
   if (record.address && Object.hasOwn(record.address, "postal_code") && record.address.postal_code !== (record.address.zip_code ?? null)) throw new Error("Normalized export requires postal_code to equal exact ZIP5.");
   return {
-    business_name: record.names?.find((n) => String(n?.raw ?? "").trim())?.raw?.trim() ?? null, profile_id: record.profile_id ?? null,
+    business_name: record.names?.find((n) => String(n?.raw ?? "").trim())?.raw?.trim() ?? null,
+    cohort_kind: cohortKind, source_artifact_path: sourceArtifactPath, source_policy_provenance: policyProvenance,
+    profile_id: record.profile_id ?? null,
     lifecycle_eligibility: lifecycleEligibility,
     geography_relationship: geographyRelationship,
     reporting_site_qualification: reportingSiteQualification,
@@ -173,8 +177,11 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
   const lifecyclePartitionReader = options.lifecyclePartitionReader ?? readBusinessEntityLifecycleEligibilityPartition;
   const geographyRelationshipPartitionReader = options.geographyRelationshipPartitionReader ?? readBusinessEntityGeographyRelationshipPartition;
   const reportingQualificationReader = options.reportingQualificationReader ?? readReportingOnlySiteQualification;
+  const governanceReader = options.governanceReader ?? readFlatBusinessExportGovernance;
+  const governance = await governanceReader({ signal });
   signal?.throwIfAborted();
   const args = parseArguments(argv); if (args.help) return { usage: usage() };
+  if (args.sources.length !== 1) throw new Error('Flat business export v1.1 accepts exactly one selected registry pointer or manifest.');
   const runId = options.runId ?? randomUUID(); const root = appPath(args.output);
   const prefix = args.outputPrefix ?? `flat-business-${new Date().toISOString().replace(/\D/g, "").slice(0, 14)}-${runId.slice(0, 8)}`;
   const outputDirectory = assertInsideApp(path.join(root, prefix)); await mkdir(root, { recursive: true }); await mkdir(outputDirectory, { recursive: false });
@@ -182,7 +189,8 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
   const csvStream = args.format !== "jsonl" ? createWriteStream(csvPath, { encoding: "utf8", flags: "wx" }) : null;
   const jsonlStream = args.format !== "csv" ? createWriteStream(jsonlPath, { encoding: "utf8", flags: "wx" }) : null;
   const selectedSources = new Set(args.sourceIds); for (const category of args.categories) for (const id of BUSINESS_FLATFILE_CATEGORIES[category]) selectedSources.add(id);
-  const states = new Set(args.states); const policies = {}; const sourceCounts = {}; const lineage = []; let read = 0; let written = 0; let filtered = 0; let policyRejected = 0;
+  const states = new Set(args.states); const policies = {}; const sourceCounts = {}; const cohortCounts = { "matching-profile": 0, "reporting-only": 0 };
+  const qualificationCounts = { lifecycle_evidence: {}, temporal_review_status: {}, postal_relationship: {}, point_assignment: {} }; const lineage = []; let read = 0; let written = 0; let filtered = 0; let policyRejected = 0;
   try {
     if (csvStream) await put(csvStream, `${args.fields.join(",")}\n`);
     for (const input of [...args.sources].sort()) {
@@ -199,7 +207,7 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
       if (reportingQualification) sourceLineage.reporting_only_site_qualification_release = reportingQualification.provenance;
       for (const artifact of [...artifacts].sort((a, b) => a.path.localeCompare(b.path))) {
         const boundedReporting = (tnEnabled || ohEnabled) && artifact.artifact_type === REPORTING_TYPE;
-        const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, bytes: artifact.bytes, sha256: artifact.sha256 });
+        const file = await governedArtifact(source, artifact, signal, boundedReporting); sourceLineage.artifacts.push({ path: artifact.path, artifact_type: artifact.artifact_type, bytes: artifact.bytes, sha256: artifact.sha256 });
         const profilePartition = artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip";
         const zip2 = profilePartition ? /zip2=(\d{2})\.jsonl\.gz$/.exec(artifact.path)?.[1] : null;
         const lifecycleJoiner = profilePartition && zip2 ? await lifecyclePartitionReader({ zip2, signal }) : null;
@@ -252,9 +260,23 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
           const policy = typeof record.export_policy === "string" ? record.export_policy : "missing"; policies[policy] = (policies[policy] ?? 0) + 1;
           const permitted = args.policyMode === "public-only" ? PUBLIC_POLICIES : LOCAL_POLICIES;
           if (!permitted.has(policy)) { policyRejected += 1; continue; }
-          const full = projection(record, source, rowCategories.length ? rowCategories : ["uncategorized"], lifecycleEligibility, geographyRelationship, reportingSiteQualification); const row = Object.fromEntries(args.fields.map((field) => [field, full[field]]));
+          const cohortKind = artifact.artifact_type === REPORTING_TYPE ? "reporting-only" : artifact.artifact_type === "entity-resolution-location-profile-jsonl-gzip" ? "matching-profile" : null;
+          if (!cohortKind) throw new Error("Flat export artifact has no explicitly supported cohort kind.");
+          const reportingPolicy = Object.values(governance.lineage.reporting_only_qualification.policy_sources).find(row => row.source_id === sourceId);
+          const sourcePolicy = cohortKind === "reporting-only"
+            ? reportingSiteQualification?.source ?? (reportingPolicy ? { ...reportingPolicy, source_id: reportingPolicy.source_id,
+              source_release_id: reportingPolicy.source_release_id, policy_id: reportingPolicy.policy_id,
+              policy_profile_sha256: reportingPolicy.policy_sha256 } : null)
+            : governance.sourcePolicyById.get(sourceId) ?? null;
+          if (!sourcePolicy) throw new Error("Flat export row lacks pinned source-policy provenance.");
+          const qualificationKey = `${cohortKind}|${sourceId}`;
+          countQualification(qualificationCounts.lifecycle_evidence, qualificationKey, lifecycleEligibility?.lifecycle_evidence);
+          countQualification(qualificationCounts.temporal_review_status, qualificationKey, lifecycleEligibility?.review_status);
+          countQualification(qualificationCounts.postal_relationship, qualificationKey, geographyRelationship?.postal?.classification ?? geographyRelationship?.geography?.postal?.classification);
+          countQualification(qualificationCounts.point_assignment, qualificationKey, geographyRelationship?.point_assignment?.status ?? geographyRelationship?.geography?.point_assignment?.status);
+          const full = projection(record, source, artifact.path, cohortKind, rowCategories.length ? rowCategories : ["uncategorized"], lifecycleEligibility, geographyRelationship, reportingSiteQualification, sourcePolicy); const row = Object.fromEntries(args.fields.map((field) => [field, full[field]]));
           if (csvStream) await put(csvStream, `${args.fields.map((field) => csv(row[field])).join(",")}\n`); if (jsonlStream) await put(jsonlStream, `${JSON.stringify(row)}\n`);
-          written += 1; sourceCounts[sourceId] = (sourceCounts[sourceId] ?? 0) + 1;
+          written += 1; cohortCounts[cohortKind]++; sourceCounts[sourceId] = (sourceCounts[sourceId] ?? 0) + 1;
         }
         if (lifecycleJoiner) await lifecycleJoiner.finish();
         if (geographyJoiner) await geographyJoiner.finish();
@@ -273,9 +295,12 @@ export async function composeFlatBusinessExport(argv = process.argv.slice(2), op
     }
     await Promise.all([csvStream && close(csvStream), jsonlStream && close(jsonlStream)].filter(Boolean));
     const artifacts = []; for (const [file, type] of [[csvStream && csvPath, "flat-business-csv"], [jsonlStream && jsonlPath, "flat-business-jsonl"]]) if (file) artifacts.push({ path: path.basename(file), artifact_type: type, records: written, ...(await hashFile(file, signal)) });
-    const generatedAt = new Date().toISOString(); const summary = { schema_version: "1.0.0", run_id: runId, generated_at: generatedAt, policy_mode: args.policyMode, local_review_only: args.policyMode === "local-review", counts: { source_rows_read: read, rows_written: written, filter_rejected: filtered, policy_rejected: policyRejected }, source_counts: sourceCounts, encountered_export_policies: policies };
+    const generatedAt = new Date().toISOString();
+    const filters = { categories: args.categories, source_ids: args.sourceIds, states: args.states };
+    const aggregationClaims = { cross_source_additive: false, entity_resolution_applied: false, current_operation_verified: false, active_business_eligible: false, unique_business_count: null, usps_validity: "unverified" };
+    const summary = { schema_version: "flat-business-export-summary@1.1.0", run_id: runId, generated_at: generatedAt, policy_mode: args.policyMode, local_review_only: args.policyMode === "local-review", record_unit: "source-profile-or-reporting-site-evidence-row", aggregation_claims: aggregationClaims, filters, counts: { source_rows_read: read, rows_written: written, filter_rejected: filtered, policy_rejected: policyRejected }, source_counts: sourceCounts, cohort_counts: cohortCounts, qualification_counts: qualificationCounts, encountered_export_policies: policies };
     const summaryPath = path.join(outputDirectory, "summary.json"); await atomicJson(summaryPath, summary); artifacts.push({ path: "summary.json", artifact_type: "flat-business-summary", ...(await hashFile(summaryPath)) });
-    const manifest = { schema_version: "1.0.0", dataset_id: "flat-business-export", release_id: runId, status: "published-local", generated_at: generatedAt, policy_mode: args.policyMode, export_policy: args.policyMode === "local-review" ? "local-review-only" : "public-policy-filtered", fields: args.fields, filters: { categories: args.categories, source_ids: args.sourceIds, states: args.states }, source_lineage: lineage, artifacts };
+    const manifest = { schema_version: "flat-business-export@1.1.0", dataset_id: "flat-business-export", release_id: runId, status: "published-local", generated_at: generatedAt, policy_mode: args.policyMode, export_policy: args.policyMode === "local-review" ? "local-review-only" : "public-policy-filtered", record_unit: "source-profile-or-reporting-site-evidence-row", aggregation_claims: aggregationClaims, fields: args.fields, filters, governance_lineage: governance.lineage, source_lineage: lineage, summary, summary_path: "summary.json", artifacts };
     signal?.throwIfAborted();
     const manifestPath = path.join(outputDirectory, "manifest.json"); await atomicJson(manifestPath, manifest); // publication marker, written last
     return { outputDirectory, summaryPath, manifestPath, summary, manifest };

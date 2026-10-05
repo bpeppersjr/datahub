@@ -10,6 +10,7 @@ import { APP_ROOT, assertInsideApp, relativeToApp } from "./paths.mjs";
 import { buildIndustryPlan, industryPlanFingerprint, loadIndustryConfig, industrySourceCatalog } from "./industry-segments.mjs";
 import { verifyRetainedPlan } from './industry-retained-inputs.mjs';
 import { AVAILABLE_EXPORT_FIELDS, BUSINESS_FLATFILE_CATEGORIES, parseArguments } from "../scripts/compose-flat-business-export.mjs";
+import { verifyFlatBusinessExport } from '../scripts/verify-flat-business-export.mjs';
 import { COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, EXPORT_CANCEL_GRACE_MS, COLLECTION_CANCEL_WARNING } from "./collection-cancellation.mjs";
 import { assertSourcePrerequisiteAllowed, getSourcePrerequisiteGates } from "./source-acquisition-gates.mjs";
 import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from "./overture-us-places.mjs";
@@ -70,7 +71,7 @@ const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const publicOperation = (record) => ({
   id: record.id, kind: record.kind, status: record.status, createdAt: record.createdAt,
   finishedAt: record.finishedAt ?? null, error: record.error ?? null,
-  artifacts: PRIVATE_EVIDENCE.includes(record.kind) || ['credential-export','organization-zip-export'].includes(record.kind)&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes }) => ({ name, bytes })),
+  artifacts: PRIVATE_EVIDENCE.includes(record.kind) || ['credential-export','organization-zip-export','export'].includes(record.kind)&&(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true) ? [] : (record.artifacts ?? []).map(({ name, bytes, sha256 }) => ({ name, bytes, ...(sha256 ? { sha256 } : {}) })),
   result: record.kind==='source-adoption' ? publicAdoptionResult(record) : record.kind==='credential-export' ? publicCredentialResult(record) : record.kind==='organization-zip-export' ? publicOrganizationZipExportResult(record) : ["source-acquisition", "source-normalization"].includes(record.kind) && record.status !== "SUCCEEDED"
     ? { ...(record.result ?? {}), [record.kind === "source-acquisition" ? "snapshotReady" : "normalizationReady"]: false, inspectionRequired: true } : record.result ?? {},
 });
@@ -444,12 +445,17 @@ export class ManagedOperations {
       try { await this.#verifyOrganizationZipExport(record, record.result.descriptor); }
       catch { record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Organization ZIP export artifact could not be independently verified.'); }
     }
+    if(record.kind==='export') {
+      if(record.status!=='SUCCEEDED'||record.result?.artifactIntegrityVerified!==true)return null;
+      try { await verifyFlatBusinessExport(path.join(this.root,id,'output',record.details.outputPrefix,'manifest.json'),{root:APP_ROOT,expectedManifestSha256:record.result.manifestSha256}); }
+      catch { record.artifacts=[];record.result.artifactIntegrityVerified=false;record.result.inspectionRequired=true;await this.#persist(record);throw new Error('Flat business export could not be independently verified.'); }
+    }
     const declared = (record.artifacts ?? []).find((item) => item.name === filename); if (!declared) return null;
     const file = path.resolve(this.root, id, declared.relativePath); const base = await realpath(path.resolve(this.root, id));
     if (!contained(await realpath(this.root), base) || !contained(base, await realpath(file))) return null;
     const info = await stat(file); if (!info.isFile()) return null;
     const actual = await hashFile(file); if (actual.bytes !== declared.bytes || actual.sha256 !== declared.sha256) throw new Error("Artifact integrity check failed.");
-    return { path: file, name: filename, ...actual, contentType: filename.endsWith(".json") ? "application/json" : filename.endsWith(".csv") ? "text/csv" : "application/x-ndjson" };
+    return { path: file, name: filename, ...actual, ...(record.kind==='export'?{manifestSha256:record.result.manifestSha256}:{}), contentType: filename.endsWith(".json") ? "application/json" : filename.endsWith(".csv") ? "text/csv" : "application/x-ndjson" };
   }
   async close() { await this.ready; this.closed = true; while (this.reserved) await new Promise((resolve) => setTimeout(resolve, 5)); for (const controller of this.running.values()) controller.abort(); await Promise.allSettled([...this.running.values()].map((controller) => controller.done)); }
   #selection(input) { return { industries: this.#strings(input.industries, "industries"), states: this.#strings(input.states, "states").map((x) => x.toUpperCase()), ...(Object.hasOwn(input,"sourceIds") ? {sourceIds: input.sourceIds === undefined ? null : input.sourceIds} : {}), ...(Object.hasOwn(input,'retainedInputs') ? {retainedInputs: input.retainedInputs === undefined ? null : input.retainedInputs} : {}) }; }
@@ -652,6 +658,7 @@ export class ManagedOperations {
     if (record.kind === "source-normalization" && record.status !== "SUCCEEDED") record.result.normalizationReady = false;
     if(record.kind==='source-adoption'&&record.status!=='SUCCEEDED'){record.artifacts=[];record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:false,inspectionRequired:true,newAcquisitionPerformed:false};}
     if(record.kind==='credential-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={recordUnit:'publisher-business-credential-row',credentialRowsWritten:null,artifactIntegrityVerified:false,inspectionRequired:true,policyMode:'local-review-only',cancellationRequested:controller.signal.aborted};record.error='Credential export did not finish with verified output. Preserve its operation directory for inspection; no automatic retry.';}
+    if(record.kind==='export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={rowsWritten:null,recordUnit:'source-profile-or-reporting-site-evidence-row',artifactIntegrityVerified:false,inspectionRequired:true,manifestSha256:null,artifactSha256s:{},cancellationRequested:controller.signal.aborted};record.error='Flat business export did not pass independent lineage verification. No artifact is downloadable.';}
     if(record.kind==='organization-zip-export'&&record.status!=='SUCCEEDED') {record.artifacts=[];record.result={zip5:record.details.zip5,publisherState:record.details.publisherState,format:record.details.format,policyMode:record.details.policyMode,rowCount:null,artifactIntegrityVerified:false,inspectionRequired:true};record.error='Organization ZIP export did not finish with verified output. No artifact is downloadable.';}
     if(record.status!=='UNKNOWN'){record.finishedAt = this.now(); delete record.owner;} await this.#persist(record);
   }
@@ -659,6 +666,14 @@ export class ManagedOperations {
     if (record.kind === "collection") { record.result = { runId: record.id, plan: { taskCount: record.details.plan.taskCount, gaps: record.details.plan.gaps, warnings: record.details.plan.warnings } }; return; }
     const exportDirectory = path.join(directory, "output", record.details.outputPrefix); const manifest = JSON.parse(await readFile(path.join(exportDirectory, "manifest.json"), "utf8"));
     if (!contained(await realpath(directory), await realpath(exportDirectory))) throw new Error("Export output escapes its operation directory.");
+    if(record.kind==='export') {
+      const verification=await verifyFlatBusinessExport(path.join(exportDirectory,'manifest.json'),{root:APP_ROOT});
+      record.artifacts=verification.artifacts.map(item=>({name:item.path,relativePath:path.relative(path.join(this.root,record.id),path.join(exportDirectory,item.path)),bytes:item.bytes,sha256:item.sha256}));
+      record.result={rowsWritten:manifest.summary.counts.rows_written,policyMode:manifest.policy_mode,localReviewOnly:manifest.policy_mode==='local-review',
+        artifactIntegrityVerified:true,inspectionRequired:false,manifestSha256:verification.manifest_sha256,artifactSha256s:Object.fromEntries(verification.artifacts.map(item=>[item.path,item.sha256])),
+        recordUnit:manifest.record_unit,aggregationClaims:manifest.aggregation_claims};
+      return;
+    }
     if (manifest.dataset_id !== "flat-business-export" || !String(manifest.status ?? "").startsWith("published") || !Array.isArray(manifest.artifacts)) throw new Error("Export did not publish a valid manifest.");
     const declared = [...manifest.artifacts, { path: "manifest.json" }]; const artifacts = [];
     for (const item of declared) { if (!safeId(item.path) || item.path.includes("..")) throw new Error("Export manifest contains an invalid artifact path."); const file = path.resolve(exportDirectory, item.path); if (!contained(await realpath(exportDirectory), await realpath(file))) throw new Error("Export artifact escapes its release directory."); const actual = await hashFile(file); if (item.path !== "manifest.json" && (!Number.isSafeInteger(item.bytes) || !/^[a-f0-9]{64}$/.test(item.sha256) || actual.sha256 !== item.sha256 || actual.bytes !== item.bytes)) throw new Error("Export artifact integrity check failed."); artifacts.push({ name: item.path, relativePath: relativeToApp(file).slice(relativeToApp(directory).length + 1), ...actual }); }

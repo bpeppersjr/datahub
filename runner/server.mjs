@@ -575,6 +575,8 @@ const server = http.createServer(async (request, response) => {
           'Content-Type': artifact.contentType,
           'Content-Length': artifact.bytes,
           'Content-Disposition': `attachment; filename="${artifact.name.replace(/[^a-zA-Z0-9._-]/g, '_')}"`,
+          'X-Artifact-SHA256': artifact.sha256,
+          ...(artifact.manifestSha256 ? { 'X-Manifest-SHA256': artifact.manifestSha256 } : {}),
         });
         try { await pipeline(createReadStream(artifact.path), response); }
         catch { response.destroy(); }

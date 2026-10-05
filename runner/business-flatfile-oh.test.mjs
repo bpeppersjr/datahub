@@ -48,8 +48,9 @@ test('2.15 export verifies Ohio whole membership, includes childcare and exclude
     assert.equal(exported.filter(r=>r.source_id===OH).length,3);assert.ok(exported.every(r=>r.identity_matching_eligible===false));
     assert.ok(exported.filter(r=>r.source_id===OH).every(r=>r.governed_geographic_assignment_eligible===false));
     assert.ok(exported.every(r=>r.export_policy==='local-review-only'));assert.equal(local.manifest.export_policy,'local-review-only');
-    const verified=JSON.parse((await promisify(execFile)(process.execPath,['scripts/verify-flat-business-export.mjs',local.manifestPath],{cwd:APP_ROOT,windowsHide:true})).stdout);
-    assert.equal(verified.verified,true);assert.equal(verified.jsonl_rows,rows.length);
+    // These fixture releases are deliberately not the currently selected national registry release.
+    // The strict independent verifier must refuse to promote their outputs as managed downloads.
+    await assert.rejects(promisify(execFile)(process.execPath,['scripts/verify-flat-business-export.mjs',local.manifestPath],{cwd:APP_ROOT,windowsHide:true}),/qualification release bindings are missing/);
     const publicResult=await composeFlatBusinessExport([...args,'--output-prefix',`public-${origin}`]);assert.equal(publicResult.summary.counts.rows_written,0);
     const mismatch=structuredClone(manifest);mismatch.coverage.reporting_location_evidence_without_zip=tnRows.length;
     await writeFile(manifestPath,JSON.stringify(mismatch));await assert.rejects(composeFlatBusinessExport([...args,'--output-prefix',`bad-count-${origin}`]),/missing ZIP/);

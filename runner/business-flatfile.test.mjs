@@ -78,7 +78,7 @@ test("flat-file categories use the map-store source identifiers", () => {
   assert.deepEqual(BUSINESS_FLATFILE_CATEGORIES["tax-exempt-organizations"], ["irs-eo-bmf-organizations"]);
 });
 
-test("tax-exempt category selects only IRS EO profiles and preserves local-review provenance", async t => {
+test("flat export fails closed when a source has no retained source-policy provenance", async t => {
   const item = await fixture(t), release = path.join(item.root, "release"), artifactPath = path.join(release, "resolution/location-profiles/zip2=00.jsonl.gz");
   const manifestPath = path.join(release, "manifest.json"), manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const existing = gunzipSync(await readFile(artifactPath)).toString("utf8").trim().split(/\r?\n/).map(JSON.parse);
@@ -92,21 +92,7 @@ test("tax-exempt category selects only IRS EO profiles and preserves local-revie
   const denied = await composeFlatBusinessExport([...common, "--output-prefix", "irs-tax-exempt-public"]);
   assert.equal(denied.summary.counts.rows_written, 0);
   assert.equal(denied.summary.counts.policy_rejected, 1);
-  const allowed = await composeFlatBusinessExport([...common, "--output-prefix", "irs-tax-exempt-review", "--policy-mode", "local-review"]);
-  assert.equal(allowed.summary.counts.rows_written, 1);
-  const rows = (await readFile(path.join(allowed.outputDirectory, "records.jsonl"), "utf8")).trim().split("\n").map(JSON.parse);
-  assert.equal(rows.length, 1);
-  const { lifecycle_eligibility: lifecycle, geography_relationship: geography, ...rowWithoutLifecycle } = rows[0];
-  assert.equal(lifecycle.lifecycle_evidence, 'unknown'); assert.equal(lifecycle.current_operation_verified, false); assert.equal(lifecycle.active_business_eligible, false);
-  assert.deepEqual(allowed.manifest.source_lineage[0].lifecycle_release, { release_id: 'fixture-lifecycle-release', manifest_sha256: 'a'.repeat(64) });
-  assert.deepEqual(allowed.manifest.source_lineage[0].geography_relationship_release, { release_id: 'fixture-geography-relationship-release', manifest_sha256: 'e'.repeat(64), bindings: {} });
-  assert.equal(geography.code_correspondence.membership, false); assert.equal(geography.postal.usps_deliverability, null);
-  assert.equal(geography.claims.current_operation_verified, false);
-  assert.deepEqual(rowWithoutLifecycle, { business_name: irs.names[0].raw, state: "TX", zip_code: "78702", zip4: "0042", source_id: "irs-eo-bmf-organizations",
-    source_release_id: "irs-fixture-release", source_record_id: "12-3456789", export_policy: "local-review-only", source_evidence: null,
-    ingest_run_id: "irs-fixture-run", policy_id: "irs-eo-bmf", transformation_version: "v1", dataset_id: "national-business-registry", source_dataset_release_id: "fixture-1", reporting_site_qualification: null });
-  assert.equal(allowed.manifest.filters.categories[0], "tax-exempt-organizations");
-  assert.equal(allowed.manifest.export_policy, "local-review-only");
+  await assert.rejects(composeFlatBusinessExport([...common, "--output-prefix", "irs-tax-exempt-review", "--policy-mode", "local-review"]), /source-policy provenance/);
 });
 
 test("reporting-only childcare is exported only in local-review mode with split ZIP and source evidence", async (t) => {
