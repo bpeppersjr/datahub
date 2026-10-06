@@ -1,0 +1,38 @@
+{
+  "schema_version": "2.1.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-aggregate-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v2-1/releases/national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3/manifest.json",
+    "manifest_sha256": "2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4",
+    "manifest_bytes": 21199,
+    "zip5_rows": 48194,
+    "dimension_count": 42,
+    "industry_cells": 2024148,
+    "artifact_count": 102,
+    "max_prefix_artifact_bytes": 14848000,
+    "out_of_cohort_gap_sha256": "89c0713cb842735f9fcf9a0906e85493627e59a5d27114051b50dbb950f63e10",
+    "missing_zip_gap_sha256": "add1186bbe5088b4984536cdd064b3820d7f6bf1752c6ad8fc7840e7eee254db"
+  },
+  "claims": {
+    "confirmed_pharmacy_locations": false,
+    "current_operations_verified": false,
+    "physical_sites": false,
+    "unique_business_count": null,
+    "all_pharmacy_completeness_percent": null,
+    "additive_to_primary_pharmacy_counts": false,
+    "geocode_created": false,
+    "zip4_joined_to_zip5": false,
+    "usps_validity": null,
+    "nonadditive": true,
+    "record_level_export_policy": "local-aggregate-review-required",
+    "public_export_authorized": false,
+    "production_enrollment": false,
+    "network_requests": 0,
+    "current_pointer_written": false
+  },
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}

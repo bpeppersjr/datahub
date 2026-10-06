@@ -2246,14 +2246,14 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
   const h = harness(() => assert.fail()),
     sha = "a".repeat(64),
     view = {
-      schema_version: "national-business-temporal-claim-matrix-view@1.0.0",
+      schema_version: "national-business-temporal-claim-matrix-view@1.1.0",
       available: true,
-      scope: "retained-source-classification-only",
+      scope: "effective-profile-classification-with-source-cohort-provenance",
       summary: {
         source_count: 30,
-        source_defined_current_membership_sources: 22,
-        non_active_directory_registration_reporting_sources: 7,
-        annual_aggregate_sources: 1,
+        source_cohort_counts:{source_defined_current_membership:22,non_active_reporting_membership:7,annual_aggregate:1},
+        effective_profile_source_counts:{source_defined_current_membership:21,non_active_reporting_membership:7,annual_aggregate:1,unknown_source_status:1},
+        lifecycle_bound_sources:15,classification_matches:14,classification_mismatches:1,mismatch_profiles:633232,
         broad_state_dc_source_defined_active: 11,
         broad_state_dc_total: 51,
         broad_state_dc_gaps: 40,
@@ -2262,23 +2262,18 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
         active_business_count: null,
         completeness_percentage: null,
       },
+      mismatch:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",source_release_id:"la-release",source_cohort_classification:"source-defined-current-membership",effective_profile_classification:"unknown-source-status",lifecycle_evidence:"unknown",profile_count:633232,current_operations_verified:false},
       provenance: {
-        release_id: `national-business-temporal-claim-matrix-${sha}`,
-        manifest_sha256: sha,
-        artifact_sha256: sha,
-        created_at: "2026-10-03T00:00:00.000Z",
-        registry_release_id: "registry-r1",
-        registry_manifest_sha256: sha,
-        coverage_release_id: "coverage-r1",
-        coverage_manifest_sha256: sha,
+        temporal:{release_id: `national-business-temporal-claim-matrix-${sha}`,manifest_sha256:sha,artifact_sha256:sha,created_at:"2026-10-03T00:00:00.000Z",registry_release_id:"registry-r1",registry_manifest_sha256:sha,coverage_release_id:"coverage-r1",coverage_manifest_sha256:sha},
+        reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation.json",registration_sha256:"5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad",schema_version:"national-business-temporal-lifecycle-reconciliation@1.0.0",status:"one-bounded-profile-classification-conflict",lifecycle_release_id:"lifecycle-r1",lifecycle_manifest_sha256:sha,taxonomy_path:"config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",taxonomy_sha256:sha,los_angeles_pointer_sha256:sha,los_angeles_manifest_sha256:sha},
       },
       claims: {
         network_requests: 0,
         current_pointer_written: false,
         production_enrollment: false,
         current_operations_verified: false,
-        active_business_count: false,
-        completeness_inferred: false,
+        active_business_count: null,
+        completeness_percentage: null,
       },
     };
   assert.equal(h.render("validTemporalMatrix", view), true);
@@ -2286,18 +2281,23 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
     h.render("TemporalCoverageSummary", { view, error: false }),
   );
   assert.match(value, /Source classifications30/);
-  assert.match(value, /Source-defined current-membership cohorts22/);
+  assert.match(value, /Effective source-defined current-membership sources21/);
+  assert.match(value, /Effective unknown-status sources1/);
+  assert.match(value, /Publisher-labelled current cohorts22/);
+  assert.match(value, /633,232 profiles have null source status and remain unknown/);
   assert.match(value, /Broad state\/DC sources11 \/ 51/);
   assert.match(value, /Broad state\/DC gaps40/);
   assert.match(value, /Verified-current-complete jurisdictions0 \/ 51/);
   assert.match(value, /Active-business countUnknown/);
   assert.match(value, /All-business completenessUnknown/);
-  assert.match(value, /does not independently verify current operation/);
+  assert.match(value, /do not independently verify current operation/);
   assert.match(value, new RegExp(sha));
   for (const malformed of [
     { ...view, summary: { ...view.summary, active_business_count: 1 } },
     { ...view, claims: { ...view.claims, current_operations_verified: true } },
-    { ...view, provenance: { ...view.provenance, manifest_sha256: "bad" } },
+    { ...view, provenance: { ...view.provenance, reconciliation:{...view.provenance.reconciliation,registration_sha256:"bad"} } },
+    { ...view, summary:{...view.summary,effective_profile_source_counts:{...view.summary.effective_profile_source_counts,source_defined_current_membership:22}}},
+    { ...view, unexpected:true },
     null,
   ])
     assert.equal(h.render("validTemporalMatrix", malformed), false);

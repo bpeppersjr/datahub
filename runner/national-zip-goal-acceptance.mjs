@@ -7,6 +7,7 @@ import { mnSelectionReadJson as readJson, mnSelectionReadLines as readLines } fr
 import { readZipEntityResolutionEvidence, RELEASE as ZIP_ENTITY_RELEASE, RELEASE_SHA256 as ZIP_ENTITY_MANIFEST_SHA } from './zip-entity-resolution-evidence.mjs';
 import { readExactZipIndustryEvidenceV19, VERSION as ZIP_INDUSTRY_VERSION } from './national-exact-zip-industry-evidence-matrix-v1-9.mjs';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
+import { verifyNationalBusinessTemporalLifecycleReconciliation } from './national-business-temporal-lifecycle-reconciliation.mjs';
 import { readNewestNationalGoalCompletionMatrix } from './national-goal-completion-view.mjs';
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
@@ -219,7 +220,7 @@ function entityGeographyRequirementComplete(value) {
 
 function validateGoalReadinessBindings(value) {
   const entity = value?.bindings?.zip_entity_resolution, industry = value?.bindings?.zip_industry_matrix,
-    temporal = value?.bindings?.temporal_claim_matrix, goal = value?.bindings?.goal_completion_matrix,
+    temporal = value?.bindings?.temporal_claim_matrix, temporalReconciliation=value?.bindings?.temporal_lifecycle_reconciliation, goal = value?.bindings?.goal_completion_matrix,
     broad = value?.bindings?.broad_organization_projection, lifecycle = value?.bindings?.lifecycle_eligibility,
     geographyRelationship = value?.bindings?.business_entity_geography_relationship,
     sourcePolicy = value?.bindings?.business_entity_source_policy_provenance;
@@ -245,6 +246,15 @@ function validateGoalReadinessBindings(value) {
     && temporal?.summary?.broad_state_dc_gaps === 40
     && temporal?.summary?.active_business_count === null
     && temporal?.claims?.current_operations_verified === false, 'temporal claim matrix semantic boundary');
+  check(temporalReconciliation?.registration_path==='config/datasets/national-business-temporal-lifecycle-reconciliation.json'
+    &&temporalReconciliation.registration_sha256==='5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad'
+    &&temporalReconciliation.schema_version==='national-business-temporal-lifecycle-reconciliation@1.0.0'
+    &&temporalReconciliation.status==='one-bounded-profile-classification-conflict'
+    &&temporalReconciliation.temporal_release_id===temporal.release_id&&temporalReconciliation.temporal_manifest_sha256===temporal.manifest_sha256
+    &&same(temporalReconciliation.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1})
+    &&temporalReconciliation.classification_mismatches===1&&temporalReconciliation.mismatch_profiles===633232
+    &&temporalReconciliation.los_angeles_effective_classification==='unknown-source-status'&&temporalReconciliation.current_operations_verified===false
+    &&temporalReconciliation.active_business_count===null&&temporalReconciliation.completeness_percentage===null,'temporal lifecycle reconciliation binding');
   check(goal?.schema_version === 'national-goal-completion-matrix@1.3.0' && /^national-goal-completion-\d{14}-[a-f0-9]{8}$/.test(goal.release_id ?? '')
     && goal?.jurisdiction_count === 51 && goal?.broad_layer_gaps === 40 && goal?.all_business_completion_percent === null
     && SHA.test(goal.manifest_sha256 ?? '') && SHA.test(goal.report_sha256 ?? '') && goal.manifest_path.endsWith(`/${goal.release_id}/manifest.json`),
@@ -426,6 +436,13 @@ export function projectNationalZipObjectiveReadiness(report) {
     ...(row.authorization_granted === undefined ? {} : { authorization_granted: row.authorization_granted }),
     ...(row.acquisition_authorized === undefined ? {} : { acquisition_authorized: row.acquisition_authorized }),
     ...(row.export_authorized === undefined ? {} : { export_authorized: row.export_authorized }),
+    ...(row.effective_source_defined_current_membership_sources === undefined ? {} : { effective_source_defined_current_membership_sources: row.effective_source_defined_current_membership_sources }),
+    ...(row.effective_non_active_reporting_sources === undefined ? {} : { effective_non_active_reporting_sources: row.effective_non_active_reporting_sources }),
+    ...(row.effective_annual_aggregate_sources === undefined ? {} : { effective_annual_aggregate_sources: row.effective_annual_aggregate_sources }),
+    ...(row.effective_unknown_status_sources === undefined ? {} : { effective_unknown_status_sources: row.effective_unknown_status_sources }),
+    ...(row.source_cohort_current_membership_sources === undefined ? {} : { source_cohort_current_membership_sources: row.source_cohort_current_membership_sources }),
+    ...(row.mismatch_profiles === undefined ? {} : { mismatch_profiles: row.mismatch_profiles }),
+    ...(row.verified_current_complete_jurisdictions === undefined ? {} : { verified_current_complete_jurisdictions: row.verified_current_complete_jurisdictions }),
     evidence: row.evidence,
   }));
   const expectedRequirements = [
@@ -442,6 +459,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         : row.requirement === 'lifecycle-eligibility' ? ['active_business_eligible_count', 'evidence', 'profile_count', 'registry_profile_count', 'requirement', 'stale_count', 'status', 'unknown_or_contradictory_count', 'verified_current_operation_count']
         : row.requirement === 'reporting-only-site-qualification' ? ['active_business_eligible_count', 'combined_retained_site_evidence_count', 'current_operation_verified_count', 'evidence', 'matching_profile_count', 'matching_profile_denominator', 'point_assigned_count', 'point_assignment_ineligible_count', 'requirement', 'site_count', 'status', 'usps_unverified_count', 'zip_absent_count', 'zip_present_count']
         : row.requirement === 'business-entity-source-policy-provenance' ? ['acquisition_authorized', 'authorization_granted', 'evidence', 'export_authorized', 'policy_files_verified', 'profile_count', 'profile_policy_rows_verified', 'requirement', 'source_count', 'status']
+        : row.requirement === 'temporal-and-current-operation' ? ['effective_annual_aggregate_sources','effective_non_active_reporting_sources','effective_source_defined_current_membership_sources','effective_unknown_status_sources','evidence','mismatch_profiles','requirement','source_cohort_current_membership_sources','status','verified_current_complete_jurisdictions']
         : ['evidence', 'requirement', 'status']))
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.current_gap_count === 40
     && requirements_ledger.find(row => row.requirement === 'broad-state-coverage')?.jurisdiction_count === 51
@@ -451,6 +469,12 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.stale_count === 24230
     && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.unknown_or_contradictory_count === 635899
     && requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility')?.verified_current_operation_count === 0
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.effective_source_defined_current_membership_sources === 21
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.effective_non_active_reporting_sources === 7
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.effective_annual_aggregate_sources === 1
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.effective_unknown_status_sources === 1
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.source_cohort_current_membership_sources === 22
+    && requirements_ledger.find(row => row.requirement === 'temporal-and-current-operation')?.mismatch_profiles === 633232
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.profile_count === 8011835
     && requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.registry_profile_count === 8011835
     && same(requirements_ledger.find(row => row.requirement === 'entity-geography-relationship')?.postal_counts, GEO_POSTAL_COUNTS)
@@ -481,7 +505,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.export_authorized === false,
   'source-policy provenance integrity-only requirement');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.5.0',
+    schema_version: 'national-zip-objective-readiness-api@1.6.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -498,6 +522,9 @@ export function projectNationalZipObjectiveReadiness(report) {
         registration_sha256: binding.zip_industry_matrix.registration_sha256 },
       temporal_claim_matrix: { release_id: binding.temporal_claim_matrix.release_id, manifest_sha256: binding.temporal_claim_matrix.manifest_sha256,
         registration_sha256: binding.temporal_claim_matrix.registration_sha256 },
+      temporal_lifecycle_reconciliation: {release_id:'national-business-temporal-lifecycle-reconciliation@1.0.0',manifest_sha256:binding.temporal_lifecycle_reconciliation.lifecycle_manifest_sha256,
+        registration_sha256:binding.temporal_lifecycle_reconciliation.registration_sha256,temporal_manifest_sha256:binding.temporal_lifecycle_reconciliation.temporal_manifest_sha256,
+        taxonomy_sha256:binding.temporal_lifecycle_reconciliation.taxonomy_sha256},
       goal_completion_matrix: { release_id: binding.goal_completion_matrix.release_id, manifest_sha256: binding.goal_completion_matrix.manifest_sha256,
         report_sha256: binding.goal_completion_matrix.report_sha256 },
       broad_organization_projection: {
@@ -714,10 +741,11 @@ async function readVerifiedBusinessEntityGeographyBinding({ root = APP_ROOT, sig
 async function readObjectiveReadiness({ signal }) {
   signal?.throwIfAborted();
   const sampleZip = '00501';
-  const [entity, industry, temporal, loadedGoal, broad, lifecycle] = await Promise.all([
+  const [entity, industry, temporal, temporalReconciliation, loadedGoal, broad, lifecycle] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
     readExactZipIndustryEvidenceV19({ zip5: sampleZip, signal }),
     readNationalBusinessTemporalClaimRows({ signal }),
+    verifyNationalBusinessTemporalLifecycleReconciliation({ signal }),
     readNewestNationalGoalCompletionMatrix(),
     loadBroadOrganizationAuthorizationProgramManagementView(),
     readBusinessEntityLifecycleEligibilitySummary({ signal }).catch(error => {
@@ -774,6 +802,19 @@ async function readObjectiveReadiness({ signal }) {
   check(temporalClassCounts['source-defined-current-membership'] === 22
     && temporalClassCounts['non-active-reporting-membership'] === 7 && temporalClassCounts['annual-aggregate'] === 1,
     'temporal classification roster widened');
+  check(temporalReconciliation.verified===true&&temporalReconciliation.registration.sha256==='5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad'
+    &&temporalReconciliation.provenance.temporal.release_id===temporal.provenance.release_id&&temporalReconciliation.provenance.temporal.manifest_sha256===temporal.provenance.manifest_sha256
+    &&same(temporalReconciliation.summary.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1})
+    &&temporalReconciliation.summary.classification_mismatches===1&&temporalReconciliation.summary.mismatch_profiles===633232
+    &&temporalReconciliation.mismatch.source_key==='la_active_business_location_accounts'&&temporalReconciliation.mismatch.effective_profile_classification==='unknown-source-status'
+    &&temporalReconciliation.mismatch.current_operations_verified===false,'temporal lifecycle reconciliation authority');
+  const temporalReconciliationBinding={release_id:'national-business-temporal-lifecycle-reconciliation@1.0.0',manifest_sha256:temporalReconciliation.provenance.lifecycle.manifest_sha256,registration_path:temporalReconciliation.registration.path,registration_sha256:temporalReconciliation.registration.sha256,
+    schema_version:temporalReconciliation.schema_version,status:temporalReconciliation.status,temporal_release_id:temporalReconciliation.provenance.temporal.release_id,
+    temporal_manifest_sha256:temporalReconciliation.provenance.temporal.manifest_sha256,temporal_artifact_sha256:temporalReconciliation.provenance.temporal.artifact_sha256,
+    lifecycle_release_id:temporalReconciliation.provenance.lifecycle.release_id,lifecycle_manifest_sha256:temporalReconciliation.provenance.lifecycle.manifest_sha256,
+    taxonomy_sha256:temporalReconciliation.provenance.taxonomy.sha256,effective_classification_counts:temporalReconciliation.summary.effective_classification_counts,
+    classification_mismatches:1,mismatch_profiles:633232,los_angeles_effective_classification:'unknown-source-status',current_operations_verified:false,
+    active_business_count:null,completeness_percentage:null};
   const lifecycleBinding = {
     registration_path: lifecycle.registration_path, registration_sha256: lifecycle.registration_sha256,
     release_id: lifecycle.release_id, manifest_path: lifecycle.manifest_path, manifest_sha256: lifecycle.manifest_sha256,
@@ -858,6 +899,7 @@ async function readObjectiveReadiness({ signal }) {
       release_id: temporal.provenance.release_id, manifest_path: selected[0].manifest_path, manifest_sha256: temporal.provenance.manifest_sha256, rows: temporal.rows.length,
       classification_counts: temporalClassCounts, summary: temporal.summary, claims: temporal.claims,
       semantic_rows_sha256: hash(JSON.stringify(temporal.rows)) },
+    temporal_lifecycle_reconciliation: temporalReconciliationBinding,
     goal_completion_matrix: { release_id: loadedGoal.report.release_id, manifest_path: goalManifestRel, manifest_sha256: goalManifest.evidence.sha256,
       report_sha256: goalManifest.value.artifacts?.[0]?.sha256, schema_version: loadedGoal.report.schema_version,
       jurisdiction_count: loadedGoal.report.jurisdictions.length, broad_layer_gaps: broadStateGapCount,
@@ -869,7 +911,7 @@ async function readObjectiveReadiness({ signal }) {
     business_entity_geography_relationship: geographyRelationshipBinding,
     reporting_only_site_qualification: reportingBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.5.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.6.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,
@@ -884,7 +926,7 @@ async function readObjectiveReadiness({ signal }) {
       { requirement: 'source-authorization-policy-and-provenance', status: 'partial', evidence: 'Selected retained releases and policy bindings are verified; operational/source use authority and complete source authorization remain unestablished.' },
       { requirement: 'broad-state-coverage', status: 'blocked', current_gap_count: broadStateGapCount, jurisdiction_count: 51, evidence: 'The newest verified goal matrix has unresolved broad-layer jurisdictions.' },
       { requirement: 'industry-coverage', status: 'unmeasured', zip5_rows: industryPin.zip5_rows, industry_cells: industryPin.industry_cells, evidence: 'ZIP industry dimensions exist, but the nationwide industry universe/denominator is not measured.' },
-      { requirement: 'temporal-and-current-operation', status: 'blocked', source_defined_current_membership_sources: 22, non_active_reporting_sources: 7, annual_aggregate_sources: 1, verified_current_complete_jurisdictions: 0, evidence: 'Source classifications and reference clocks do not independently verify current operation.' },
+      { requirement: 'temporal-and-current-operation', status: 'blocked', effective_source_defined_current_membership_sources: 21, effective_non_active_reporting_sources: 7, effective_annual_aggregate_sources: 1, effective_unknown_status_sources: 1, source_cohort_current_membership_sources: 22, mismatch_profiles: 633232, verified_current_complete_jurisdictions: 0, evidence: 'Lifecycle reconciliation is authoritative for effective status; the retained source cohort labels and reference clocks do not independently verify current operation.' },
       { requirement: 'lifecycle-eligibility', status: lifecycleActiveEligibilityEstablished(lifecycleBinding) ? 'achieved' : 'blocked', profile_count: lifecycleBinding.profile_count,
         registry_profile_count: lifecycleBinding.registry_profile_count,
         active_business_eligible_count: lifecycleBinding.active_business_eligible_count,

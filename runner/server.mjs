@@ -44,9 +44,9 @@ import { readZctaDemographicReadiness } from './zcta-demographic-readiness-reade
 import { zctaDemographicReadinessHttp } from './zcta-demographic-readiness-http.mjs';
 import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet.mjs';
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV21 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v2-1.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
-import { readExactZipIndustrySummary } from './exact-zip-industry-summary.mjs';
+import { readExactZipIndustrySummaryV21 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v2-1.mjs';
 import { readMnConstructionExactZipEvidenceStatus } from './mn-construction-exact-zip-evidence.mjs';
 import { mnConstructionExactZipEvidenceStatusHttp } from './mn-construction-exact-zip-evidence-http.mjs';
 import { readAdjacentExactZipEvidenceCatalog } from './adjacent-exact-zip-evidence-catalog.mjs';

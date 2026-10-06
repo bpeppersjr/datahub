@@ -41,7 +41,9 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.claims.current_operations_verified, false); assert.equal(value.claims.all_business_completeness, false);
   assert.equal(value.claims.public_export_authorized, false); assert.equal(value.claims.network_requests, 0);
   for (const code of codes) assert.ok(value.acceptance.blockers.includes(code));
-  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification','business_entity_source_policy_provenance'].sort());
+  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','temporal_lifecycle_reconciliation','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification','business_entity_source_policy_provenance'].sort());
+  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.6.0');
+  assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);

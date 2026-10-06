@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "exact-zip-industry-temporal-qualification-v2-1",
+  "status": "registered-runtime-projection-local-review-only",
+  "matrix_release_id": "national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3",
+  "matrix_manifest_sha256": "2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4",
+  "predecessor_qualification_release_id": "exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee",
+  "predecessor_qualification_manifest_sha256": "c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409",
+  "dimension_count": 42,
+  "production_enrollment": false,
+  "claims": {
+    "current_operations_verified": false,
+    "active_business_count": null,
+    "all_business_denominator": null,
+    "all_business_completion_percent": null,
+    "additive": false,
+    "network_requests": 0
+  }
+}

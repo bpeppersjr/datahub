@@ -25,6 +25,8 @@
     "exact-zip-industry-matrix:v1.9:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v1-9.mjs data/national-exact-zip-industry-evidence-matrix-v1-9/releases/national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003/manifest.json",
     "exact-zip-industry-matrix:v2.0:build": "node scripts/build-national-exact-zip-industry-evidence-matrix-v2-0.mjs",
     "exact-zip-industry-matrix:v2.0:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v2-0.mjs",
+    "exact-zip-industry-matrix:v2.1:build": "node scripts/build-national-exact-zip-industry-evidence-matrix-v2-1.mjs",
+    "exact-zip-industry-matrix:v2.1:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v2-1.mjs",
     "reconciliation:plan": "node scripts/reconcile-business-candidates.mjs plan",
     "reconciliation:run": "node scripts/reconcile-business-candidates.mjs run",
     "reconciliation:production:plan": "node scripts/reconcile-business-production.mjs plan",

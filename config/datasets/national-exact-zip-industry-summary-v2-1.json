@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "national-exact-zip-industry-summary-v2-1",
+  "status": "registered-runtime-projection-local-review-only",
+  "matrix_release_id": "national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3",
+  "matrix_manifest_sha256": "2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4",
+  "dimension_count": 42,
+  "industry_cells": 2024148,
+  "runtime_pointer": null,
+  "production_enrollment": false
+}

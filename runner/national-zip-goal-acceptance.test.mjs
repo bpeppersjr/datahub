@@ -131,7 +131,7 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.5.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.6.0');
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
     ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
@@ -139,6 +139,7 @@ test('active-business acceptance binds exact governance releases and stays block
     ['business-entity-source-policy-provenance', 'achieved'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
+  assert.deepEqual(readiness.requirements_ledger.find(row=>row.requirement==='temporal-and-current-operation'),{requirement:'temporal-and-current-operation',status:'blocked',effective_source_defined_current_membership_sources:21,effective_non_active_reporting_sources:7,effective_annual_aggregate_sources:1,effective_unknown_status_sources:1,source_cohort_current_membership_sources:22,mismatch_profiles:633232,verified_current_complete_jurisdictions:0,evidence:'Lifecycle reconciliation is authoritative for effective status; the retained source cohort labels and reference clocks do not independently verify current operation.'});
   const geoRow = readiness.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
   assert.equal(geoRow.profile_count, 8011835); assert.equal(geoRow.registry_profile_count, 8011835);
   assert.deepEqual(geoRow.postal_counts, { 'same-code-zcta-candidate': 7963395, 'outside-zcta': 48439, 'explicit-placeholder': 1, missing: 0 });
@@ -174,6 +175,8 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
   assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, 'aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1');
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
+  assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
+  assert.deepEqual(readiness.bindings.temporal_lifecycle_reconciliation.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});
   assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
   assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
   assert.equal(readiness.bindings.reporting_only_site_qualification.record_count, 13182);
@@ -190,6 +193,9 @@ test('active-business acceptance binds exact governance releases and stays block
     value => { value.bindings.zip_entity_resolution.manifest_sha256 = '0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.release_id = 'self-consistent-unverified-release'; },
     value => { value.bindings.temporal_claim_matrix.summary.broad_state_dc_gaps = 0; },
+    value => { value.bindings.temporal_lifecycle_reconciliation.effective_classification_counts['source-defined-current-membership']=22; },
+    value => { value.bindings.temporal_lifecycle_reconciliation.registration_sha256='0'.repeat(64); },
+    value => { value.bindings.temporal_lifecycle_reconciliation.current_operations_verified=true; },
     value => { value.requirements_ledger.find(row => row.requirement === 'industry-coverage').status = 'achieved'; },
     value => { value.bindings.broad_organization_projection.metadata.gate_readiness.taxonomy_exhaustive = false; },
     value => { value.bindings.lifecycle_eligibility.taxonomy_sha256 = '0'.repeat(64); },
