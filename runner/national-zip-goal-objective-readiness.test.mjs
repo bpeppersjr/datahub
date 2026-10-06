@@ -45,6 +45,11 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.6.0');
   assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
+  assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-a24fa3582a27a13748b006350b10ae83053eadba419b15f08e5301a8ba76656d');
+  assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'59c58a7651ffde6f521f97fc3b197d7541f142e546b1653370d262ff5235e6b3');
+  assert.equal(value.lineage.zip_industry_matrix.temporal_qualification_registration_sha256,'9fff2aa368f308580d1d1cec99c4715d8aa1a976f818d0aec79ae52cca77572c');
+  assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'2d708042570d3250f976feda50e28515b997d44f04a558e300b43c6ce9085a10');
+  assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[43,2072342]);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);
   assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011835);

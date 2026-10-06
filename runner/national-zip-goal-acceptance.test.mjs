@@ -173,7 +173,16 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, 'aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1');
+  assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-a24fa3582a27a13748b006350b10ae83053eadba419b15f08e5301a8ba76656d');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'45c92f5897c3efd1d42fb4aece58d0292e9da7c134e064f619505e3dd99de3bf');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '59c58a7651ffde6f521f97fc3b197d7541f142e546b1653370d262ff5235e6b3');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,43,2072342]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'9fff2aa368f308580d1d1cec99c4715d8aa1a976f818d0aec79ae52cca77572c');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2072342);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'2d708042570d3250f976feda50e28515b997d44f04a558e300b43c6ce9085a10');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2072342);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2072342);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
   assert.deepEqual(readiness.bindings.temporal_lifecycle_reconciliation.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});
@@ -192,6 +201,11 @@ test('active-business acceptance binds exact governance releases and stays block
   const invalids = [
     value => { value.bindings.zip_entity_resolution.manifest_sha256 = '0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.release_id = 'self-consistent-unverified-release'; },
+    value => { value.bindings.zip_industry_matrix.dimension_count = 42; },
+    value => { value.bindings.zip_industry_matrix.temporal_qualification.registration_sha256='0'.repeat(64); },
+    value => { value.bindings.zip_industry_matrix.temporal_qualification.current_operations_verified=true; },
+    value => { value.bindings.zip_industry_matrix.national_summary.raw_status_cell_total--; },
+    value => { value.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately=false; },
     value => { value.bindings.temporal_claim_matrix.summary.broad_state_dc_gaps = 0; },
     value => { value.bindings.temporal_lifecycle_reconciliation.effective_classification_counts['source-defined-current-membership']=22; },
     value => { value.bindings.temporal_lifecycle_reconciliation.registration_sha256='0'.repeat(64); },
