@@ -1,0 +1,15 @@
+{
+  "schema_version": "national-exact-zip-industry-evidence-gap@2.0.0",
+  "gap_type": "positive-source-zip-outside-governed-cohort",
+  "dimension_id": "mn_residential_construction_credential_reported_address_rows",
+  "zip5": "55262",
+  "count": 1,
+  "measure": "publisher_business_credential_rows",
+  "category_counts": {
+    "residential-building-contractor": 1
+  },
+  "source_reported_address_state": "MN",
+  "usps_validity": null,
+  "state_assignment": null,
+  "claim": "format-shaped source ZIP outside governed cohort; source-reported state is not assignment; not classified as invalid USPS"
+}

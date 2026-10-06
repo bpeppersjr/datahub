@@ -1,0 +1,13 @@
+{
+  "schema_version": "national-exact-zip-industry-evidence-gap@2.0.0",
+  "gap_type": "missing-source-zip",
+  "dimension_id": "mn_residential_construction_credential_reported_address_rows",
+  "count": 1,
+  "measure": "publisher_business_credential_rows",
+  "zip5": null,
+  "source_category": "residential-building-contractor",
+  "source_reported_address_state": "WI",
+  "usps_validity": null,
+  "state_assignment": null,
+  "claim": "retained source row without ZIP; source-reported state is not assignment; ZIP not inferred"
+}
