@@ -183,7 +183,9 @@ export function createLocationMatchProfile(record, reconciled) {
   )?.subject_entity_id ?? null;
   const locationAssertion = assertions.find((item) => item.subject_entity_id === site.entity_id && item.predicate === "site.location") ?? null;
   if (locationAssertion && locationAssertion.value_type !== "geocode") throw new Error(`Location ${record.normalized_record_id} has a non-geocode coordinate assertion.`);
-  const geocode = locationAssertion?.value ?? null;
+  const geocode = locationAssertion?.value
+    ? { latitude: locationAssertion.value.latitude, longitude: locationAssertion.value.longitude }
+    : null;
   const sourceStatus = assertionValues(assertions, establishment.entity_id, "establishment.source-status")[0] ?? null;
   const source = record.provenance;
   if (!source?.source_id || !source.source_release_id || !source.source_record_id || !source.ingest_run_id || !source.transformation_version || !source.policy_id) {

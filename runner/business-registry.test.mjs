@@ -2865,6 +2865,7 @@ test("reconciles a New York retail-food license into organization and conditiona
   assert([...result.organizationAssertions, ...result.locationAssertions].every((item) => item.export_policy === "local-review-only"));
   const profile = createLocationMatchProfile(record, result);
   assert.equal(profile.normalized_address.match_key, "street|624 DELAWARE AVE||DELMAR|NY|12054");
+  assert.deepEqual(profile.geocode, { latitude: 42.61512, longitude: -73.85206 });
 });
 
 test("reconciles grouped NYC DCWP active premise licenses into one organization, site, and establishment", () => {
