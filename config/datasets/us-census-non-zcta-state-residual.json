@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "us-census-non-zcta-state-residual",
+  "status": "registered-pointer-free-local-review-readiness",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "us-census-non-zcta-state-residual-readiness-dd776c8cdfc9f79e3c8d418245f2f2c46645948e",
+    "manifest": "data/us-census-non-zcta-state-residual/releases/us-census-non-zcta-state-residual-readiness-dd776c8cdfc9f79e3c8d418245f2f2c46645948e/manifest.json",
+    "manifest_sha256": "fc9399c8999b343190c73c37271bd5be25e79f0a1954c6cb7c21a6d933221e40",
+    "manifest_bytes": 1137,
+    "artifact_sha256": "5509cbfd6750553e231e1a76cfe812fbfa2abbbf6bdeb8e8f3f35474b80aa185",
+    "artifact_bytes": 3679
+  },
+  "claims": {
+    "optional_context_only": true,
+    "existing_map_blocked": false,
+    "network_requests": 0,
+    "production_enrollment": false,
+    "current_pointer_written": false,
+    "residual_polygon_published": false,
+    "zip_or_postal_geography": false,
+    "usps_operation": false,
+    "park_status": null,
+    "tribal_or_native_status": null,
+    "private_land_status": null,
+    "population": null,
+    "business_geography": null,
+    "business_gap": null,
+    "zip_completion": false
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema_version": "mn-construction-exact-zip-evidence-registration@1.0.0",
+  "dataset_id": "mn-construction-exact-zip-evidence",
+  "status": "registered-local-review-only-projection",
+  "selection_path": "config/mn-credential-registry-selection.json",
+  "selection_sha256": "bda3ff50d5ec3ad4d66fa2c3dae0594fe96274f8698c4406d94e7ba002368154",
+  "policy_path": "config/source-policies/mn-construction-internal-acquisition.json",
+  "policy_sha256": "ff354c9d84db2bb1964a076d035982e251062cc04232f5dc539c7ffb3700c753",
+  "source_release_id": "30cd9c0e-0a8d-467c-b416-150453e1513f",
+  "source_manifest_sha256": "558182417940580140fbc4640e80ac177b6a9c1886a435f06ae8130b1f258b75",
+  "source_artifact_sha256": "286e5c798bb39671291d3db8e20c48f6f9778f17e62aa2a0f1312ca574654edb",
+  "source_reference_at": "2026-09-08T13:11:41.678Z",
+  "dimension_id": "mn_residential_construction_credential_reported_address_rows",
+  "measure": "publisher_business_credential_rows",
+  "export_policy": "local-review-only",
+  "production_enrollment": false,
+  "matrix_admission_performed": false,
+  "claims": {
+    "unique_business_count": null,
+    "physical_site_count": null,
+    "current_operations_verified": false,
+    "all_business_completeness_percent": null,
+    "geographic_assignment_performed": false,
+    "geocode_created": false,
+    "zip4_aggregated": false,
+    "network_requests": 0,
+    "acquisition_performed": false,
+    "current_pointer_written": false
+  }
+}

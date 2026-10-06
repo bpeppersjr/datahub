@@ -1,0 +1,111 @@
+{
+  "schema_version": "us-census-non-zcta-state-residual-readiness@1.0.0",
+  "dataset_id": "us-census-non-zcta-state-residual",
+  "status": "readiness-only-overlay-engine-required",
+  "created_at": "2026-10-06T00:00:00.000Z",
+  "publication_mode": "pointer-free-local-review-only",
+  "upstream": {
+    "pointer": {
+      "path": "data/geography/current.json",
+      "sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+      "release_id": "us-census-geography-20260830-132803990Z-3629abc0"
+    },
+    "manifest": {
+      "path": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+      "sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+      "bytes": 16106
+    },
+    "artifacts": {
+      "state_index": {
+        "path": "derived/index/states.jsonl",
+        "sha256": "1be852f9ad38113b0be04e6936b1de402bf3718837c452b8496f926d1edde806",
+        "bytes": 28228,
+        "record_count": 56
+      },
+      "zcta_index": {
+        "path": "derived/index/zctas.jsonl",
+        "sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6",
+        "bytes": 17260829,
+        "record_count": 33791
+      },
+      "state_geometry": {
+        "path": "source/states.geojson",
+        "sha256": "5a285e53f248e8aae71ca5c597aea443754127f4aacdc36afdfb12c084bb8b6d",
+        "bytes": 4668640,
+        "feature_count": 56
+      },
+      "zcta_geometry_partitions": {
+        "count": 10,
+        "total_declared_bytes": 273228711,
+        "descriptor_digest": "2772056e5315b5e73a725f8cec102360839a2eb4a9bbf6ba8390f2160d638a4e"
+      }
+    }
+  },
+  "inventory": {
+    "state_equivalents": 56,
+    "zcta_features": 33791,
+    "zcta_geometry_partitions": 10,
+    "planned_max_orientation_sectors": 280,
+    "orientation_sector_semantics": "nonofficial-display-aid-only"
+  },
+  "capability": {
+    "deterministic_geos_class_overlay_available": false,
+    "validity_repair_available": false,
+    "precision_grid_available": false,
+    "tiled_overlay_available": false,
+    "polygon_release_ready": false,
+    "required_capability": "GEOS-class tiled overlay with validity repair and precision grid"
+  },
+  "measured_blockers": [
+    {
+      "scope": "District of Columbia",
+      "result": "polygon-clipping-ring-construction-failure",
+      "elapsed_ms": 713
+    },
+    {
+      "scope": "Rhode Island",
+      "result": "polygon-clipping-ring-construction-failure",
+      "elapsed_ms": 1075
+    },
+    {
+      "scope": "California",
+      "result": "national-style-overlay-exceeded-bound",
+      "elapsed_ms": 90000
+    },
+    {
+      "scope": "California sector-first 256 candidates",
+      "result": "exceeded-2.8-GB-and-time-bound",
+      "elapsed_ms": 27000
+    },
+    {
+      "scope": "Alaska and Hawaii",
+      "result": "antimeridian-and-distant-multipart-require-robust-projected-tiling",
+      "elapsed_ms": null
+    }
+  ],
+  "conservation": {
+    "upstream_state_equivalents": 56,
+    "accounted_state_equivalents": 56,
+    "upstream_zcta_features": 33791,
+    "accounted_zcta_features": 33791,
+    "polygon_features_published": 0,
+    "residual_area_published_m2": null
+  },
+  "claims": {
+    "optional_context_only": true,
+    "existing_map_blocked": false,
+    "network_requests": 0,
+    "production_enrollment": false,
+    "current_pointer_written": false,
+    "residual_polygon_published": false,
+    "zip_or_postal_geography": false,
+    "usps_operation": false,
+    "park_status": null,
+    "tribal_or_native_status": null,
+    "private_land_status": null,
+    "population": null,
+    "business_geography": null,
+    "business_gap": null,
+    "zip_completion": false
+  }
+}

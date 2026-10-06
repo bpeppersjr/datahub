@@ -117,9 +117,16 @@ function manifestBody({ artifacts, summary, predecessor, wa }) {
     publication_mode: 'pointer-free', claims: claims(), bindings: { predecessor, wa }, summary, artifacts };
 }
 
-async function writeOwned(file, bytes) {
+async function writeOwned(file, bytes, signal) {
   const handle = await open(file, 'wx');
-  try { await handle.writeFile(bytes); await handle.sync(); } finally { await handle.close(); }
+  try {
+    const value = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+    for (let offset = 0; offset < value.length; offset += 256 * 1024) {
+      signal?.throwIfAborted(); const length = Math.min(256 * 1024, value.length - offset);
+      await handle.write(value, offset, length, offset);
+    }
+    signal?.throwIfAborted(); await handle.sync();
+  } finally { await handle.close(); }
 }
 
 async function acquire(file) {
@@ -194,14 +201,15 @@ async function engine({ root, outputRoot, signal, predecessor, wa, expected, aft
       check(exactKeys(descriptor, ['bytes', 'path', 'record_count', 'sha256']) && PREFIX.test(descriptor.path), 'prefix descriptor');
       const input = await stableBytes(root, path.join(predecessor.directory, descriptor.path));
       check(input.sha256 === descriptor.sha256 && input.bytes.length === descriptor.bytes, 'predecessor artifact pin');
-      const prior = JSON.parse(input.bytes); check(Array.isArray(prior) && prior.length === descriptor.record_count, 'predecessor artifact count');
+      signal?.throwIfAborted(); const prior = JSON.parse(input.bytes); signal?.throwIfAborted();
+      check(Array.isArray(prior) && prior.length === descriptor.record_count, 'predecessor artifact count');
       const rows = [];
       for (const [index, row] of prior.entries()) { if (index % 256 === 0) signal?.throwIfAborted(); rows.push(successor(row, waMap)); }
       for (const row of rows) { const cell = row.cells[WA.id]; summary.zip5_rows += 1;
         if (cell.status === 'positive') { summary.wa_positive_zip5_rows += 1; summary.wa_eligible_mailing_address_rows += cell.count; }
         else summary.wa_absent_zip5_rows += 1; }
-      const bytes = Buffer.from(`${JSON.stringify(rows)}\n`);
-      await writeOwned(path.join(staging, descriptor.path), bytes); owned.add(descriptor.path);
+      signal?.throwIfAborted(); const bytes = Buffer.from(`${JSON.stringify(rows)}\n`); signal?.throwIfAborted();
+      owned.add(descriptor.path); await writeOwned(path.join(staging, descriptor.path), bytes, signal); signal?.throwIfAborted();
       artifacts.push({ path: descriptor.path, bytes: bytes.length, sha256: sha256(bytes), record_count: rows.length });
     }
     summary.industry_cells = summary.zip5_rows * 40;
@@ -218,7 +226,7 @@ async function engine({ root, outputRoot, signal, predecessor, wa, expected, aft
     const manifest = { release_id: releaseId, ...body };
     const manifestPath = path.join(staging, 'manifest.json');
     if (manifestWriter) await manifestWriter(manifestPath, manifest);
-    else await writeOwned(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    else await writeOwned(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, signal);
     owned.add('manifest.json');
     await inspectRelease(root, staging, manifest);
     const releases = await safeDirectory(root, path.join(outputRoot, 'releases'), { create: true });
@@ -327,7 +335,6 @@ export async function buildNationalExactZipIndustryEvidenceMatrixV19({ root = AP
   return engine({ root, outputRoot, signal, ...inputs, expected: NATIONAL_EXPECTED,
     recheckWa: () => projectWaLniExactZipDimension({ root, signal }) });
 }
-export const buildNationalExactZipIndustryEvidenceMatrixV19WithTestInputs = engine;
 
 async function verifyEngine(manifestPath, { root, signal, inputLoader, expected }) {
   root = await realpath(root);
@@ -370,4 +377,4 @@ async function verifyEngine(manifestPath, { root, signal, inputLoader, expected 
 export function verifyNationalExactZipIndustryEvidenceMatrixV19(manifestPath, { root = APP_ROOT, signal } = {}) {
   return verifyEngine(manifestPath, { root, signal, inputLoader: nativeInputs, expected: NATIONAL_EXPECTED });
 }
-export const verifyNationalExactZipIndustryEvidenceMatrixV19WithTestInputs = verifyEngine;
+if (process.env.NODE_TEST_CONTEXT) globalThis[Symbol.for('cotive.exactZipV19.testHarness')] = Object.freeze({ build: engine, verify: verifyEngine });
