@@ -117,6 +117,9 @@ test('current retained ZIP membership check binds evidence without accepting eve
   assert.equal(report.source_reported_zip_membership.zip_union_count, 48194);
   assert.equal(report.source_reported_zip_membership.with_record_level_source_contribution, 47995);
   assert.equal(report.source_reported_zip_membership.denominator_only_count, 199);
+  assert.equal(report.source_reported_zip_membership.outside_selected_zcta_count, 14403);
+  assert.equal(report.source_reported_zip_membership.source_contributed_outside_selected_zcta_count, 14361);
+  assert.equal(report.source_reported_zip_membership.denominator_only_outside_selected_zcta_count, 41);
   assert.equal(report.authoritative_current_operational_usps_zip_denominator.denominator, null);
   assert.equal(report.authoritative_current_operational_usps_zip_denominator.candidate_production_admission, false);
   assert.equal(Object.keys(report.bindings).length, 9);

@@ -245,6 +245,7 @@
     "zip-source-status:verify": "node scripts/build-zip-source-status-index.mjs verify",
     "postal-migration:candidates": "node scripts/check-normalized-us-postal-migration.mjs --candidates --allow-pending",
     "postal-migration:check": "node scripts/check-normalized-us-postal-migration.mjs",
+    "registry:source-freshness:verify": "node scripts/verify-national-business-registry-source-freshness-audit.mjs",
     "postal-cutover:plan": "node scripts/cutover-normalized-us-postal-migration.mjs plan",
     "postal-cutover:execute": "node scripts/cutover-normalized-us-postal-migration.mjs execute",
     "postal-cutover:status": "node scripts/cutover-normalized-us-postal-migration.mjs status",

@@ -5,7 +5,7 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import { APP_ROOT } from "./paths.mjs";
 
-export const ZIP_BUSINESS_ALIGNMENT_SCHEMA = "national-zip-business-evidence-alignment@1.0.0";
+export const ZIP_BUSINESS_ALIGNMENT_SCHEMA = "national-zip-business-evidence-alignment@1.1.0";
 const DATASET = "national-zip-business-evidence-alignment";
 const RELEASE_ID = /^national-zip-business-alignment-\d{14}-[a-f0-9]{8}$/;
 const ZIP_SUMMARY_RELEASE_ID = /^national-zip-coverage-\d{14}-[a-f0-9]{8}$/;
@@ -66,6 +66,10 @@ export async function buildNationalZipBusinessEvidenceAlignment({ root = APP_ROO
   const enrollmentDoc = suppliedEnrollment ? null : await jsonDocument(enrollmentPath, root, "alignment enrollment");
   const enrollment = suppliedEnrollment ?? enrollmentDoc.value;
   check(enrollment?.schema_version === "national-zip-business-evidence-alignment-enrollment@1.0.0", "Alignment enrollment is invalid.");
+  const expectedReconciliation = enrollment.denominator_reconciliation_expected;
+  check(expectedReconciliation && Object.keys(expectedReconciliation).sort().join("|") === ["registry_denominator_only","zbp_published","zbp_not_published","zbp_published_zcta","zbp_published_non_zcta","published_establishments","zbp_published_member_set_sha256","zbp_not_published_member_set_sha256","zbp_published_zcta_member_set_sha256","zbp_published_non_zcta_member_set_sha256"].sort().join("|")
+    && Object.entries(expectedReconciliation).every(([key, value]) => key.endsWith("sha256") ? /^[a-f0-9]{64}$/.test(value) : Number.isSafeInteger(value) && value >= 0),
+  "Denominator reconciliation expectation is invalid.");
   const zipManifest = await jsonDocument(enrollment.zip_summary_manifest_path, root, "ZIP summary manifest");
   check(zipManifest.sha256 === enrollment.zip_summary_manifest_sha256 && zipManifest.value.schema_version === "national-zip-coverage-summary@1.0.0"
     && zipManifest.value.dataset_id === "national-zip-coverage-summary" && zipManifest.value.status === "published-local-derived-report"
@@ -128,6 +132,7 @@ export async function buildNationalZipBusinessEvidenceAlignment({ root = APP_ROO
   });
   const all = [], source = [], denominator = [], published = [], notPublished = [], outside = [], zcta = [], noZcta = [];
   const cross = { zcta_published: [], zcta_not_published: [], zcta_outside_union: [], non_zcta_published: [], non_zcta_not_published: [], non_zcta_outside_union: [] };
+  const denominatorCross = { zbp_published_zcta: [], zbp_published_non_zcta: [], zbp_not_published_zcta: [] }; let denominatorPublishedEstablishments = 0;
   const seen = new Set();
   const coverageArtifact = await streamRows(root, coverage.manifest, "zip-coverage-view-jsonl", row => {
     const zip = row.zip_code; check(/^\d{5}$/.test(zip) && !seen.has(zip), "Coverage ZIP evidence is invalid or duplicated."); seen.add(zip); all.push(zip);
@@ -164,6 +169,11 @@ export async function buildNationalZipBusinessEvidenceAlignment({ root = APP_ROO
     check((zbpRow?.coverage_status ?? row.baseline_coverage_status) === row.baseline_coverage_status,
       "Coverage baseline status differs from retained ZBP evidence.");
     cross[`${hasZcta ? "zcta" : "non_zcta"}_${baselineClass}`].push(zip);
+    if (!sourceRow) {
+      check(baselineClass !== "outside_union" && !(baselineClass === "not_published" && !hasZcta), "Registry denominator-only ZIP has an unresolved ZBP/ZCTA cross-class.");
+      if (baselineClass === "published") { denominatorCross[hasZcta ? "zbp_published_zcta" : "zbp_published_non_zcta"].push(zip); denominatorPublishedEstablishments += row.employer_baseline.establishments; }
+      else denominatorCross.zbp_not_published_zcta.push(zip);
+    }
   });
   check(coverageArtifact.export_policy === "local-review-only", "Coverage ZIP artifact is not local-review-only.");
   check(zbp.manifest.value.reference_year === 2023 && zbpArtifact.record_count === zbp.manifest.value.coverage?.union_zip_codes,
@@ -175,6 +185,20 @@ export async function buildNationalZipBusinessEvidenceAlignment({ root = APP_ROO
   "Coverage contribution member sets differ from the governed ZIP summary.");
   check(digest(zcta) === zipSummary.value.census_zcta.same_code_governed_zcta_members.member_set_sha256
     && zbpMembers.length === zbpArtifact.record_count && [...zbpMembers].every(zip => seen.has(zip)), "Census ZIP/ZCTA evidence does not conserve.");
+  const denominatorPublished = [...denominatorCross.zbp_published_zcta, ...denominatorCross.zbp_published_non_zcta], denominatorNotPublished = denominatorCross.zbp_not_published_zcta;
+  check(denominator.length === expectedReconciliation.registry_denominator_only
+    && denominatorPublished.length === expectedReconciliation.zbp_published
+    && denominatorNotPublished.length === expectedReconciliation.zbp_not_published
+    && denominatorCross.zbp_published_zcta.length === expectedReconciliation.zbp_published_zcta
+    && denominatorCross.zbp_published_non_zcta.length === expectedReconciliation.zbp_published_non_zcta
+    && denominatorPublishedEstablishments === expectedReconciliation.published_establishments
+    && digest(denominatorPublished) === expectedReconciliation.zbp_published_member_set_sha256
+    && digest(denominatorNotPublished) === expectedReconciliation.zbp_not_published_member_set_sha256
+    && digest(denominatorCross.zbp_published_zcta) === expectedReconciliation.zbp_published_zcta_member_set_sha256
+    && digest(denominatorCross.zbp_published_non_zcta) === expectedReconciliation.zbp_published_non_zcta_member_set_sha256
+    && denominator.length === denominatorPublished.length + denominatorNotPublished.length
+    && denominatorPublished.length === denominatorCross.zbp_published_zcta.length + denominatorCross.zbp_published_non_zcta.length,
+  "Registry denominator-only ZBP reconciliation differs from the enrolled exact contract.");
   const result = { schema_version: ZIP_BUSINESS_ALIGNMENT_SCHEMA, dataset_id: DATASET, release_id: releaseId, created_at: createdAt,
     bindings: { enrollment_sha256: enrollmentDoc?.sha256 ?? hash(stable(enrollment)), zip_summary_release_id: zipSummary.value.release_id,
       zip_summary_manifest_path: path.relative(root, zipManifest.path).replaceAll("\\", "/"), zip_summary_manifest_sha256: zipManifest.sha256,
@@ -202,6 +226,11 @@ export async function buildNationalZipBusinessEvidenceAlignment({ root = APP_ROO
       census_zcta_member_set_sha256: evidence(geographyZctas).member_set_sha256 },
     zip_member_alignment: { exact_match: true, governed_zip_summary: evidence(all), selected_business_coverage: evidence(all) },
     registry_coverage: { record_level_source_contribution: evidence(source), denominator_only_no_record_level_contribution: evidence(denominator), conservation: { classified: source.length + denominator.length, total: all.length, status: "passed" } },
+    registry_denominator_only_evidence_reconciliation: { semantics: "Registry denominator-only classification is preserved; Census ZBP evidence is historical employer-establishment evidence, not USPS validity or current active-business proof",
+      registry_denominator_only: evidence(denominator), census_zbp_2023_published_measured_positive: { ...evidence(denominatorPublished), establishment_sum: denominatorPublishedEstablishments },
+      census_zbp_2023_not_published_for_zip: evidence(denominatorNotPublished), zcta_cross_classes: Object.fromEntries(Object.entries(denominatorCross).map(([key, values]) => [key, evidence(values)])),
+      conservation: { registry_denominator_only: denominator.length, evidence_classified: denominatorPublished.length + denominatorNotPublished.length, status: "passed" },
+      claim_boundary: { registry_denominator_only_classification_preserved: true, usps_validity: null, current_operation_verified: false, active_business_completion_percentage: null } },
     employer_baseline: { semantics: "2023 Census employer establishments; historical aggregate, not current named active businesses", published: evidence(published), not_published_for_zip: evidence(notPublished), outside_zbp_zcta_union: evidence(outside), conservation: { classified: published.length + notPublished.length + outside.length, total: all.length, status: "passed" } },
     census_zcta_cross_classes: { classes: Object.fromEntries(Object.entries(cross).map(([key, values]) => [key, evidence(values)])),
       conservation: { classified: Object.values(cross).reduce((sum, values) => sum + values.length, 0), total: all.length, status: "passed" } },

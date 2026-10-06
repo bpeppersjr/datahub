@@ -1094,6 +1094,8 @@ function evaluate({ registry, coverage, geography, candidate, zctaMembers, zipMe
     source_reported_zip_membership: { zip_union_count: zipMembers.size, zip_union_member_set_sha256: memberHash(zipMembers),
       with_record_level_source_contribution: contributionMembers.size, contribution_member_set_sha256: memberHash(contributionMembers),
       denominator_only_count: zipMembers.size - contributionMembers.size, outside_selected_zcta_count: zipMembers.size - zctaMembers.size,
+      source_contributed_outside_selected_zcta_count: [...contributionMembers].filter(zip => zip !== '00000' && !zctaMembers.has(zip)).length,
+      denominator_only_outside_selected_zcta_count: [...zipMembers].filter(zip => !contributionMembers.has(zip) && !zctaMembers.has(zip)).length,
       includes_explicit_00000_placeholder: zipMembers.has('00000'), operational_zip_validity_verified: false,
       scope: 'retained five-digit source/denominator union; source contribution is not USPS validity or active-business proof' },
     authoritative_current_operational_usps_zip_denominator: { denominator, candidate_production_admission: candidate.production_admission,

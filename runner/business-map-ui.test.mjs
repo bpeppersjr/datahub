@@ -101,6 +101,16 @@ test('Heatmap ZIP summary keeps registry ZIP5, Census ZCTA, USPS assignments, an
   assert.doesNotMatch(rendered, /business completion[^.]*100%/i);
 });
 
+test('accepted report-only ZIP objective renders authoritative conservation and null claim boundaries',()=>{
+  const objective={schema_version:'national-zip-report-only-objective-view@1.0.0',status:'accepted-report-only',accepted:true,
+    zip_membership:{total:48194,source_contributed:47995,denominator_only:199},outside_selected_zcta:{total:14403,source_reported:14361,denominator_only:41,explicit_00000:1},
+    usps_operational_denominator:{value:null,candidate_admission_status:'not-admitted'},claims:{all_business_completion_percent:null,current_operating_business_count:null,current_operation_verified:false},
+    provenance:{acceptance_schema_version:'national-zip-goal-acceptance@1.7.0',registry_manifest:{sha256:'d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'},coverage_manifest:{sha256:'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6'},geography_manifest:{sha256:'5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b'},registry_zip_membership:{sha256:'2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e'},zcta_index:{sha256:'41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6'},usps_candidate_catalog:{sha256:'01f633315d96037140bbc52476a666f287ceb662c692bbd401e811ea6752f7f6'}}};
+  const values=[];values[0]={available:true,coverage_release_id:'coverage',categories:[],enhancers:[],category_groups:[],semantics:{}};values[23]=objective;
+  const card=nodes(harness(values).page()).find(node=>node.props?.['data-testid']==='report-only-zip-objective');assert.ok(card);const rendered=text(card);
+  for(const phrase of ['Accepted · report-only','48,194 retained ZIP5 keys = 47,995 source-contributed + 199 denominator-only','14,403 outside selected Census ZCTA = 14,361 source-reported + 41 denominator-only + 1 explicit 00000','null · candidate not-admitted','All-business completionnull','Current-operating-business countnull','broader not-accepted active-business objective'])assert.ok(rendered.includes(phrase),phrase);
+});
+
 test('all-state goal matrix renders freshness and authorization counts without implying completeness', () => {
   const view = { available: true, status: 'verified-immutable-release', release_id: 'matrix', category: 'retail-consumer', all_business_completion_percent: null,
     broad_layer_gaps: 1, denominator: { version: 'fixture' }, selected: null,

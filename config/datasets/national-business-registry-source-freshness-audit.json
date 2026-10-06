@@ -1,0 +1,40 @@
+{
+  "dataset_id": "national-business-registry-source-freshness-audit",
+  "schema_version": "1.0.0",
+  "status": "registered-pointer-free-local-audit",
+  "registry": {
+    "pointer_path": "data/business-registry/current.json",
+    "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
+    "manifest_path": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
+    "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+    "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+    "dependency_count": 85
+  },
+  "migration": {
+    "definition_path": "config/migrations/normalized-us-postal-fields-v1.json",
+    "definition_file_sha256": "2f3aaf19c64e9d1032c8d785c93aead47128e7bb7ac87930b52abfa4a560713b",
+    "frozen_candidate_readiness_sha256": "bf6bcf0a063328d8dba9e61bfc41a2a3ae81a273486a32da3b8f9fa2ad5002aa",
+    "source_count": 25
+  },
+  "expected_summary": {
+    "ready_sources": 25,
+    "exact_registry_dependency_matches": 25,
+    "different_bindings": 0,
+    "missing_bindings": 0,
+    "duplicate_bindings": 0,
+    "production_candidate_pointer_byte_matches": 25
+  },
+  "claims": {
+    "network_requests": 0,
+    "download_performed": false,
+    "registry_build_performed": false,
+    "pointer_mutation_performed": false,
+    "production_action_performed": false,
+    "candidate_action_performed": false,
+    "freshness_advanced": false,
+    "completeness_evidence": false,
+    "current_operation_evidence": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/NATIONAL-BUSINESS-REGISTRY-SOURCE-FRESHNESS-AUDIT.md"
+}

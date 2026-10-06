@@ -211,6 +211,32 @@ type ZipQualitySummary = {
   usps_operational_status: null;
   usps_evidence_status: 'unverified';
 };
+type NationalZipReportOnlyObjective = {
+  schema_version: 'national-zip-report-only-objective-view@1.0.0'; status: 'accepted-report-only'; accepted: true;
+  zip_membership: { total: 48194; source_contributed: 47995; denominator_only: 199 };
+  outside_selected_zcta: { total: 14403; source_reported: 14361; denominator_only: 41; explicit_00000: 1 };
+  usps_operational_denominator: { value: null; candidate_admission_status: 'not-admitted' };
+  claims: { all_business_completion_percent: null; current_operating_business_count: null; current_operation_verified: false };
+  provenance: Record<string, unknown>;
+};
+const REPORT_ONLY_PINS: Record<string,string> = {
+  registry_manifest:'d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76',coverage_manifest:'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6',
+  geography_manifest:'5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b',registry_zip_membership:'2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e',
+  zcta_index:'41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6',usps_candidate_catalog:'01f633315d96037140bbc52476a666f287ceb662c692bbd401e811ea6752f7f6'};
+function validNationalZipReportOnlyObjective(input:unknown):input is NationalZipReportOnlyObjective {
+  if(!input||typeof input!=='object'||Array.isArray(input))return false;const v=input as NationalZipReportOnlyObjective;
+  const keys=(x:unknown,w:string[])=>!!x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).sort().join('|')===[...w].sort().join('|');
+  if(!keys(v,['schema_version','status','accepted','zip_membership','outside_selected_zcta','usps_operational_denominator','claims','provenance'])
+    ||v.schema_version!=='national-zip-report-only-objective-view@1.0.0'||v.status!=='accepted-report-only'||v.accepted!==true
+    ||!keys(v.zip_membership,['total','source_contributed','denominator_only'])||v.zip_membership.total!==48194||v.zip_membership.source_contributed!==47995||v.zip_membership.denominator_only!==199
+    ||v.zip_membership.source_contributed+v.zip_membership.denominator_only!==v.zip_membership.total
+    ||!keys(v.outside_selected_zcta,['total','source_reported','denominator_only','explicit_00000'])||v.outside_selected_zcta.total!==14403||v.outside_selected_zcta.source_reported!==14361||v.outside_selected_zcta.denominator_only!==41||v.outside_selected_zcta.explicit_00000!==1
+    ||v.outside_selected_zcta.source_reported+v.outside_selected_zcta.denominator_only+v.outside_selected_zcta.explicit_00000!==v.outside_selected_zcta.total
+    ||!keys(v.usps_operational_denominator,['value','candidate_admission_status'])||v.usps_operational_denominator.value!==null||v.usps_operational_denominator.candidate_admission_status!=='not-admitted'
+    ||!keys(v.claims,['all_business_completion_percent','current_operating_business_count','current_operation_verified'])||v.claims.all_business_completion_percent!==null||v.claims.current_operating_business_count!==null||v.claims.current_operation_verified!==false
+    ||!keys(v.provenance,['acceptance_schema_version',...Object.keys(REPORT_ONLY_PINS)])||(v.provenance as Record<string,unknown>).acceptance_schema_version!=='national-zip-goal-acceptance@1.7.0')return false;
+  return Object.entries(REPORT_ONLY_PINS).every(([key,sha256])=>keys((v.provenance as Record<string,unknown>)[key],['sha256'])&&((v.provenance as Record<string,{sha256:string}>)[key].sha256===sha256));
+}
 type ZipContribution = { source_id: string; source_release_id: string | null; source_through_date?: string; source_date?: string; source_month?: string; reference_year?: number; positive_counts: Record<string, number> };
 type ZipEntityResolutionEvidence = {
   status: 'retained-linkage-evidence' | 'no-retained-linkage-decisions';
@@ -772,6 +798,8 @@ function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer
   const [countyName, setCountyName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reportOnlyObjective, setReportOnlyObjective] = useState<NationalZipReportOnlyObjective | null>(null);
+  const [reportOnlyUnavailable, setReportOnlyUnavailable] = useState(false);
   const selectionKey = JSON.stringify([categoryId, enhancerId, level, stateFips, countyGeoid, minPopulation, minHousingUnits]);
   const data = dataSelection === selectionKey ? savedData : null;
 
@@ -786,6 +814,7 @@ function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer
     void request<Catalog>('/api/business-map/catalog').then(setCatalog).catch((reason) => setError(reason instanceof Error ? reason.message : 'Unable to load map catalog.'));
     void request<StateSummary>('/api/business-map/state-summary?include_territories=false').then(setStateSummary).catch(() => setStateSummary(null));
     void request<ZipQualitySummary>('/api/business-map/zip-quality').then(setZipQuality).catch(() => setZipQuality(null));
+    void request<unknown>('/api/business-map/national-zip-report-only-objective').then(value=>{const valid=validNationalZipReportOnlyObjective(value);setReportOnlyObjective(valid?value:null);setReportOnlyUnavailable(!valid)}).catch(()=>{setReportOnlyObjective(null);setReportOnlyUnavailable(true)});
   }, []);
 
   useEffect(() => {
@@ -871,6 +900,13 @@ function BusinessEvidenceMap({defaultEnhancer='business_count'}:{defaultEnhancer
           {data && <FeatureMap key={`${data.level}:${data.category_id}:${data.enhancer_id}:${String(data.meta.state_fips ?? '')}:${String(data.meta.county_geoid ?? '')}:${selectedZip}`} data={data} selectedGeoid={selectedFeature?.properties.geoid ?? ''} categoryLabel={activeCategory?.label ?? 'All source categories'} enhancerLabel={activeEnhancer?.label ?? 'Observed business evidence'} onSelect={choose} />}
           {data && <div className="map-stats"><span><strong>{count(data.meta.feature_count as number)}</strong> map entities</span><span><strong>{count(data.meta.filtered_out_feature_count as number)}</strong> filtered out</span><span><strong>{enhancerId === 'gdp_current_dollars' ? currency(data.meta.heat_max as number | null) : count(data.meta.heat_max as number)}</strong> high value</span><span><strong>{count(data.meta.cross_boundary_zctas as number)}</strong> cross-boundary ZCTAs</span>{level !== 'zips' && <span>Point-assigned profile evidence by source (not additive): {Object.entries((data.meta.point_assigned_source_profile_evidence_rows_by_source ?? {}) as Record<string, number>).map(([source, value]) => `${source}: ${count(value)}`).join(' · ')}</span>}</div>}
           <p className="map-method-note">{catalog.semantics.business_count} {level === 'zips' ? 'Displayed Census ZCTA polygons materially intersect the selected county; source-reported ZIP5 values are address fields, not polygon boundaries, and are not allocated to that county.' : catalog.semantics.jurisdiction_assignment} ZIP+4 remains a separate, non-geometric field.</p>
+          <section className="state-alignment-card" aria-label="Accepted national report-only ZIP objective" data-testid="report-only-zip-objective">
+            <div><span>National ZIP objective</span><strong>{reportOnlyObjective?'Accepted · report-only':reportOnlyUnavailable?'Unavailable':'Verifying…'}</strong></div>
+            {reportOnlyObjective?<><p><strong>{count(reportOnlyObjective.zip_membership.total)}</strong> retained ZIP5 keys = {count(reportOnlyObjective.zip_membership.source_contributed)} source-contributed + {count(reportOnlyObjective.zip_membership.denominator_only)} denominator-only.</p>
+              <p><strong>{count(reportOnlyObjective.outside_selected_zcta.total)}</strong> outside selected Census ZCTA = {count(reportOnlyObjective.outside_selected_zcta.source_reported)} source-reported + {count(reportOnlyObjective.outside_selected_zcta.denominator_only)} denominator-only + {count(reportOnlyObjective.outside_selected_zcta.explicit_00000)} explicit <code>00000</code>.</p>
+              <dl><div><dt>USPS operational denominator</dt><dd>null · candidate {reportOnlyObjective.usps_operational_denominator.candidate_admission_status}</dd></div><div><dt>All-business completion</dt><dd>null</dd></div><div><dt>Current-operating-business count</dt><dd>null</dd></div></dl>
+              <p className="entity-method-note">This accepted claim verifies retained report membership only. It is distinct from—and does not satisfy—the broader not-accepted active-business objective. It does not establish USPS validity, deliverability, all-business completeness, or independently verified current operation.</p></>:reportOnlyUnavailable?<p role="alert">Accepted report-only objective evidence could not be verified; no cached count or inferred status is shown.</p>:<p role="status">Verifying the accepted report-only objective…</p>}
+          </section>
           {zipQuality && <p className="map-method-note" data-testid="zip-quality-note">
             Registry ZIP5 total: {count(zipQuality.national_zip_coverage.registry_zip5.members.count)} · same-code Census ZCTA members: {count(zipQuality.national_zip_coverage.census_zcta.same_code_governed_zcta_members.count)} · source-contributed ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.record_level_source_contribution.count)} · denominator-only ZIP5: {count(zipQuality.national_zip_coverage.registry_zip5.denominator_only_no_record_level_contribution.count)}. USPS governed assignment denominator: {zipQuality.national_zip_coverage.usps_assignment.complete_current_assignment_denominator_verified ? 'verified' : 'not verified'}{zipQuality.national_zip_coverage.usps_assignment.assignment_members ? ` (${count(zipQuality.national_zip_coverage.usps_assignment.assignment_members.count)} governed assignments)` : ''}. Active-business completion remains unknown (null); no percentage is claimed. Registry ZIP5 keys and Census ZCTAs are distinct measures; a ZCTA is not a USPS boundary, and ZIP totals do not measure business coverage.
             {' '}ZIP quality classes: {count(zipQuality.classification.classes.valid_format_same_code_governed_zcta.count)} same-code Census ZCTA members · {count(zipQuality.classification.classes.valid_format_source_reported_no_same_code_zcta.count)} source-reported ZIP5 without same-code ZCTA · {count(zipQuality.classification.classes.valid_format_denominator_only_no_same_code_zcta.count)} denominator-only without ZCTA · {count(zipQuality.classification.classes.explicit_placeholder.count)} explicit placeholder (`00000`). USPS operational status is {zipQuality.usps_operational_status === null ? 'not asserted' : 'asserted'}; evidence remains {zipQuality.usps_evidence_status}. Other low-number ZIP5 values are not treated as placeholders without governed proof.

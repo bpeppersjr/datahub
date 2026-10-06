@@ -1,5 +1,17 @@
 {
   "schema_version": "national-zip-business-evidence-alignment-enrollment@1.0.0",
+  "denominator_reconciliation_expected": {
+    "registry_denominator_only": 199,
+    "zbp_published": 57,
+    "zbp_not_published": 142,
+    "zbp_published_zcta": 16,
+    "zbp_published_non_zcta": 41,
+    "published_establishments": 281,
+    "zbp_published_member_set_sha256": "da00963779c4fb6b5011caef4a5b63bf78f71348de2878bfc0dc50f7f32a22cd",
+    "zbp_not_published_member_set_sha256": "bb87bfa49399d8cc3dab3003638abe523112ada28c91320372d7dc40f0501fc8",
+    "zbp_published_zcta_member_set_sha256": "01f057346a1764668f7553d937416cf7306096cc12b48d8bd28d24d5aa56830e",
+    "zbp_published_non_zcta_member_set_sha256": "8cf7668ba58ffd7892f3a3f33ef9d5c09459e5c8eb0420101e7505118ca40b61"
+  },
   "zip_summary_manifest_path": "data/national-zip-coverage-summary/releases/national-zip-coverage-20260923121929-ffe55c41/manifest.json",
   "zip_summary_manifest_sha256": "68a798db3acc507d7634bdfe97b11fab61d4bff21585d19518828e96502d8e3b",
   "zip_summary_artifact_sha256": "772e48a2261f89e8e401de467fc8cd2e60734fa3542dfc7071320c5bf901893a",
