@@ -132,6 +132,7 @@
     "exact-zip-industry-matrix:build": "node scripts/build-national-exact-zip-industry-evidence-matrix.mjs",
     "exact-zip-industry-matrix:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix.mjs",
     "mn-construction-exact-zip:verify": "node scripts/verify-mn-construction-exact-zip-evidence.mjs",
+    "pharmacy:nonprimary-exact-zip:verify": "node scripts/verify-cms-nppes-pharmacy-nonprimary-exact-zip-evidence.mjs",
     "exact-zip-industry-temporal-qualification:build": "node scripts/build-exact-zip-industry-temporal-qualification.mjs",
     "exact-zip-industry-temporal-qualification:verify": "node scripts/verify-exact-zip-industry-temporal-qualification.mjs",
     "state-exact-zip:build": "node scripts/build-state-exact-zip-industry-evidence-disposition.mjs",

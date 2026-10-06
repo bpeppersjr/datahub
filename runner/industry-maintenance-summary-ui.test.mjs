@@ -28,6 +28,6 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Tribal or Native territory.*No classification is inferred/);
   assert.match(source,/State plus cardinal\/central fallback partitions remain unavailable until the governed residual layer passes topology verification/);
   assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus \/>\s*<h3>Industry connectivity<\/h3>/);
-  assert.match(source,/function GovernedIndustryStatus\(\).*<OperationalMaintenanceIntent\/><GovernedCoverageStates\/><MnConstructionEvidenceStatusBlock\/><ExactZipIndustryNationalSummary \/>/);
+  assert.match(source,/function GovernedIndustryStatus\(\).*<OperationalMaintenanceIntent\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
   assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");
 });

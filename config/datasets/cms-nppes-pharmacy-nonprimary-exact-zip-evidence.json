@@ -1,0 +1,17 @@
+{
+  "schema_version": "cms-nppes-pharmacy-nonprimary-exact-zip-registration@1.0.0",
+  "dataset_id": "cms-nppes-pharmacy-nonprimary-exact-zip-evidence",
+  "status": "registered-local-aggregate-review-only",
+  "pointer_path": "data/business-sources/cms-nppes-pharmacy-nonprimary-addresses/current.json",
+  "pointer_sha256": "0d61b892e84fe79efc8cd56a2ac573c151af1045e1501b3f26a7f26ebe7993c8",
+  "source_release_id": "cms-nppes-pharmacy-nonprimary-addresses-20260922-225434542Z-59f8001a",
+  "source_manifest_sha256": "1fe86278102ff9dd29cf072208598ca6a7c52956ef6310890ab74af6e97ffab8",
+  "policy_path": "config/source-policies/national-pharmacy-industry-coverage.json",
+  "policy_sha256": "cf65965a90b1177d0976fe3872e4d50a7a8d922148965f9a23851776830c1df6",
+  "dimension_id": "cms_nppes_pharmacy_nonprimary_reported_address_rows",
+  "measure": "reported_nonprimary_practice_address_rows",
+  "source_reference_date": "2026-08-09",
+  "export_policy": "local-aggregate-review-required",
+  "production_enrollment": false,
+  "matrix_admission_performed": false
+}

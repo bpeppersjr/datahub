@@ -46,6 +46,8 @@ import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http
 import { readExactZipIndustrySummary } from './exact-zip-industry-summary.mjs';
 import { readMnConstructionExactZipEvidenceStatus } from './mn-construction-exact-zip-evidence.mjs';
 import { mnConstructionExactZipEvidenceStatusHttp } from './mn-construction-exact-zip-evidence-http.mjs';
+import { readAdjacentExactZipEvidenceCatalog } from './adjacent-exact-zip-evidence-catalog.mjs';
+import { adjacentExactZipEvidenceCatalogHttp } from './adjacent-exact-zip-evidence-catalog-http.mjs';
 import { readStateExactZipIndustryEvidenceDisposition, readStateExactZipIndustryEvidenceProjection } from './state-exact-zip-industry-evidence-disposition.mjs';
 import { stateExactZipEvidenceHttp } from './state-exact-zip-evidence-http.mjs';
 import { stateExactZipEvidenceMapHttp } from './state-exact-zip-evidence-map-http.mjs';
@@ -837,6 +839,9 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/mn-construction-exact-zip-evidence-status'){
       await mnConstructionExactZipEvidenceStatusHttp(request,response,url,readMnConstructionExactZipEvidenceStatus,json);return;
+    }
+    if(url.pathname==='/api/business-map/adjacent-exact-zip-evidence-catalog'){
+      await adjacentExactZipEvidenceCatalogHttp(request,response,url,readAdjacentExactZipEvidenceCatalog,json);return;
     }
     if(url.pathname==='/api/business-map/state-exact-zip-industry-evidence'){
       await stateExactZipEvidenceHttp(request,response,url,readStateExactZipIndustryEvidenceDisposition,json);return;

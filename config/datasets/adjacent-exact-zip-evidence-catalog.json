@@ -1,0 +1,60 @@
+{
+  "schema_version": "adjacent-exact-zip-evidence-catalog@1.0.0",
+  "dataset_id": "adjacent-exact-zip-evidence-catalog",
+  "status": "registered-local-review-only-catalog",
+  "entries": [
+    {
+      "id": "mn-residential-construction-credentials",
+      "label": "Minnesota residential construction credential evidence",
+      "jurisdiction": "MN",
+      "verifier_id": "mn-construction-exact-zip-evidence@1.0.0",
+      "registration_path": "config/datasets/mn-construction-exact-zip-evidence.json",
+      "registration_sha256": "ddca5c90f8aab95686f3f63a81e3ca93090db6fbd4c92a80d935b02ee5e8ce3d",
+      "dimension_id": "mn_residential_construction_credential_reported_address_rows",
+      "record_unit": "publisher-business-credential-row",
+      "export_policy": "local-review-only",
+      "temporal_status": "publisher-issued-at-observation-current-operation-unverified",
+      "source_reference_at": "2026-09-08T13:11:41.678Z",
+      "expected_counts": {
+        "source_rows": 11456,
+        "zip5_bearing_rows": 11455,
+        "missing_zip5_rows": 1,
+        "zip4_rows": 0,
+        "positive_zip5_keys": 961,
+        "projected_rows": 11455
+      }
+    },
+    {
+      "id": "national-pharmacy-nonprimary-addresses",
+      "label": "National pharmacy non-primary practice-address evidence",
+      "jurisdiction": "US",
+      "verifier_id": "cms-nppes-pharmacy-nonprimary-exact-zip-evidence@1.0.0",
+      "registration_path": "config/datasets/cms-nppes-pharmacy-nonprimary-exact-zip-evidence.json",
+      "registration_sha256": "f6be0ec358548fc301198784ac2e2f7cfec99c0744670bba13cd2f191e1f6470",
+      "dimension_id": "cms_nppes_pharmacy_nonprimary_reported_address_rows",
+      "record_unit": "reported-nonprimary-practice-address-row",
+      "export_policy": "local-aggregate-review-required",
+      "temporal_status": "source-referenced-current-operation-unverified",
+      "source_reference_at": "2026-08-09T00:00:00.000Z",
+      "expected_counts": {
+        "source_rows": 420,
+        "zip5_bearing_rows": 420,
+        "missing_zip5_rows": 0,
+        "zip4_rows": 369,
+        "positive_zip5_keys": 377,
+        "projected_rows": 420
+      }
+    }
+  ],
+  "claims": {
+    "business_count": false,
+    "physical_site_count": false,
+    "all_business_completeness": false,
+    "geocoding_performed": false,
+    "current_operations_verified": false,
+    "matrix_admission_performed": false,
+    "additive_across_entries": false,
+    "network_requests": 0,
+    "production_enrollment": false
+  }
+}
