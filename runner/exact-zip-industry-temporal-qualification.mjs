@@ -8,6 +8,7 @@ import {readNationalBusinessTemporalClaimRows} from './national-business-tempora
 import {readZipEvidenceQualification} from './zip-evidence-qualification-reader.mjs';
 
 export const VERSION='exact-zip-industry-temporal-qualification@1.0.0';
+export const WA_LNI_EXACT_ZIP_TEMPORAL_MAPPING=Object.freeze({dimension_id:'wa_lni_active_contractor_organization_mailing_addresses',source_key:'wa_lni_active_contractor_organizations',semantic_class:'source-defined-current',source_status_term:'ACTIVE contractor license',current_operations_verified:false});
 const DATASET='exact-zip-industry-temporal-qualification', SHA=/^[a-f0-9]{64}$/;
 const MATRIX_ID='national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6';
 const MATRIX_SHA='743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe';

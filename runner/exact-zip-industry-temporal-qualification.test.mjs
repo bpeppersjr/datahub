@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {APP_ROOT} from './paths.mjs';
-import {classifyExactZipEvidenceDisposition,readExactZipIndustryEvidenceWithTemporalQualification,readExactZipIndustryTemporalQualification} from './exact-zip-industry-temporal-qualification.mjs';
+import {classifyExactZipEvidenceDisposition,readExactZipIndustryEvidenceWithTemporalQualification,readExactZipIndustryTemporalQualification,WA_LNI_EXACT_ZIP_TEMPORAL_MAPPING} from './exact-zip-industry-temporal-qualification.mjs';
+
+test('WA L&I successor mapping preserves source-defined ACTIVE without current-operation uplift',()=>{assert.deepEqual(WA_LNI_EXACT_ZIP_TEMPORAL_MAPPING,{dimension_id:'wa_lni_active_contractor_organization_mailing_addresses',source_key:'wa_lni_active_contractor_organizations',semantic_class:'source-defined-current',source_status_term:'ACTIVE contractor license',current_operations_verified:false});});
 
 test('evidence disposition is conservative and exhaustive across cell states',()=>{
  const statuses=['positive','measured-zero','outside-source-denominator','absent-from-retained-source-rows','unavailable'];

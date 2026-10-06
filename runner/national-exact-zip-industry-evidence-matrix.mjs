@@ -239,6 +239,33 @@ const ZIP_STATUS_DIMENSIONS = [
     expected_zips: 2156,
   },
 ];
+export const WA_LNI_EXACT_ZIP_DIMENSION = Object.freeze({
+  id: "wa_lni_active_contractor_organization_mailing_addresses",
+  source_id: "wa_lni_active_contractor_organizations",
+  pointer_path: "data/business-sources/wa-lni-active-contractor-organizations/current.json",
+  pointer_sha256: "91b4c1ad883790f4a45c9f32e65eef23f837b1dbfbdd7e02deb4f0b71918514c",
+  manifest_path: "data/business-sources/wa-lni-active-contractor-organizations/releases/wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283/manifest.json",
+  manifest_sha256: "3b7097aa58fbb4f1987cd535f4f838cc4d99e69bd76f4a7edc403d37c4bc680d",
+  release_id: "wa-lni-active-contractor-licenses-20260907-135045275Z-4c8b3283",
+  source_release_id: "wa-lni-active-contractor-licenses-2026-09-07-24c7059d65e4d084",
+  artifact_path: "derived/zip-coverage.jsonl",
+  artifact_sha256: "3bf7cbc3deea1a57166c4ae1a22906b061d0cf2b61a01bb1556804c8a5a60b08",
+  artifact_bytes: 48406267,
+  artifact_rows: 37845,
+  accepted_mailing_address_rows: 74030,
+  missing_or_ineligible_mailing_address_rows: 111,
+  source_zip_codes: 3113,
+  source_policy_path: "config/source-policies/wa-lni-active-contractor-licenses.json",
+  source_policy_sha256: "6bf8a512bc9792758dde417f265122719ca91123aed7a439ff97c36aebb25742",
+});
+export async function projectWaLniExactZipDimension({root=APP_ROOT}={}){
+  root=path.resolve(root);const d=WA_LNI_EXACT_ZIP_DIMENSION,pointer=await readPinned(root,d.pointer_path,d.pointer_sha256,10000),manifestRead=await readPinned(root,d.manifest_path,d.manifest_sha256,2_000_000),manifest=manifestRead.value,policy=await readPinned(root,d.source_policy_path,d.source_policy_sha256,100000),artifact=await lines(root,path.posix.join(path.posix.dirname(d.manifest_path),d.artifact_path),d.artifact_sha256,50_000_000);
+  check(pointer.value.release_id===d.release_id&&manifest.release_id===d.release_id&&manifest.source_release_id===d.source_release_id&&manifest.status==='published'&&manifest.coverage.eligible_reported_us_mailing_addresses===d.accepted_mailing_address_rows&&manifest.coverage.reported_mailing_addresses-manifest.coverage.eligible_reported_us_mailing_addresses===d.missing_or_ineligible_mailing_address_rows&&manifest.coverage.source_zip_codes===d.source_zip_codes&&manifest.coverage.physical_sites===null&&manifest.coverage.establishments===null&&artifact.bytes===d.artifact_bytes&&artifact.rows.length===d.artifact_rows&&policy.value.field_export_policy.normalized_record_level_organizations_names_mailing_addresses_and_license_activities==='local-review-only','WA L&I exact-ZIP candidate pins/policy');
+  const rows=[];let eligible=0;
+  for(const row of artifact.rows){const s=row.wa_lni_active_contractor_license_snapshot,n=s?.active_contractor_organization_mailing_address_count;check(/^\d{5}$/.test(row.zip_code)&&Number.isSafeInteger(n)&&n>=0&&s.source_release_id===d.source_release_id&&s.physical_site_count===null&&s.physical_site_inference_permitted===false&&s.record_level_distribution==='local-review-only','WA L&I exact-ZIP candidate row');if(n>0){rows.push({zip5:row.zip_code,zip4:null,count:n,status:'positive'});eligible+=n;}}
+  check(rows.length===d.source_zip_codes&&eligible===d.accepted_mailing_address_rows,'WA L&I exact-ZIP candidate conservation');
+  return {dimension_id:d.id,source_id:d.source_id,rows,summary:{eligible_mailing_address_rows:eligible,positive_zip5_rows:rows.length,missing_or_ineligible_mailing_address_rows:d.missing_or_ineligible_mailing_address_rows},claims:{wa_broad_jurisdiction_gap_complete:false,physical_site_inference_permitted:false,establishment_inference_permitted:false,current_operations_verified:false,all_business_completeness_percent:null,nonadditive:true,record_level_export_policy:'local-review-only',aggregate_export_policy:'public-under-pddl-with-attribution-and-semantic-limitations',zip4_joined_to_zip5:false,production_enrollment:false,network_requests:0},bindings:{pointer_sha256:d.pointer_sha256,manifest_sha256:d.manifest_sha256,artifact_sha256:d.artifact_sha256,source_policy_sha256:d.source_policy_sha256,release_id:d.release_id,source_release_id:d.source_release_id}};
+}
 const SOURCES = [
   {
     id: "healthcare_organizations",

@@ -9,8 +9,17 @@ import {
   verifyExactZipIndustryEvidenceMatrix,
   projectOutOfCohortSourceZipGaps,
   validateRetainedChildcareReportingContract,
+  projectWaLniExactZipDimension,
+  WA_LNI_EXACT_ZIP_DIMENSION,
 } from "./national-exact-zip-industry-evidence-matrix.mjs";
 import fs from "node:fs/promises";
+test("WA L&I candidate dimension is exactly pinned, conserved, and preserves non-claims",async()=>{
+  const value=await projectWaLniExactZipDimension({root:APP_ROOT});
+  assert.equal(value.dimension_id,"wa_lni_active_contractor_organization_mailing_addresses");assert.equal(value.rows.length,3113);assert.equal(value.summary.eligible_mailing_address_rows,74030);assert.equal(value.summary.missing_or_ineligible_mailing_address_rows,111);
+  assert.ok(value.rows.every(row=>/^\d{5}$/.test(row.zip5)&&row.zip4===null&&row.count>0&&row.status==='positive'));
+  assert.deepEqual(value.claims,{wa_broad_jurisdiction_gap_complete:false,physical_site_inference_permitted:false,establishment_inference_permitted:false,current_operations_verified:false,all_business_completeness_percent:null,nonadditive:true,record_level_export_policy:'local-review-only',aggregate_export_policy:'public-under-pddl-with-attribution-and-semantic-limitations',zip4_joined_to_zip5:false,production_enrollment:false,network_requests:0});
+  assert.equal(value.bindings.manifest_sha256,WA_LNI_EXACT_ZIP_DIMENSION.manifest_sha256);
+});
 test("bounded MA/NJ/TN/OH reporting contract replays only the four pinned manifests and ten ZIP2 artifacts", async () => {
   const fixture = await validateRetainedChildcareReportingContract(APP_ROOT);
   assert.equal(fixture.summary.reported_center_rows, 13182);
