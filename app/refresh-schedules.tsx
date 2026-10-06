@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { runnerJson } from './runner-client';
 
-type Catalog = { industries: Array<{ id: string; label?: string }>; states: string[] };
+type CollectionSource = { id:string; scope:'national'|'state'; states:string[]|'all'; industries:string[]; manualSelectionRequired:boolean };
+type AutomaticRefreshSource = { sourceId:string; script:string; automaticRefreshAuthorized:boolean; reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED'|'GOVERNED_SOURCE_HOLD'|'MANUAL_SELECTION_REQUIRED'; governedSourceId:string|null };
+type Catalog = { industries: Array<{ id: string; label?: string }>; states: string[]; collectionSources?:CollectionSource[]; automaticRefreshSources?:AutomaticRefreshSource[] };
 type Schedule = {
   id: string; industries: string[]; states: string[]; intervalHours: number;
   enabled: boolean; status: string; nextDueAt: string | null; reason: string | null;
@@ -12,6 +14,17 @@ type Schedule = {
 const endpoint = '/api/data-operations/schedules';
 const readable = (value: string) => value.replaceAll('_', ' ').replaceAll('-', ' ');
 const selected = (element: HTMLSelectElement) => Array.from(element.selectedOptions, (option) => option.value);
+const exact=(value:object,keys:string[])=>Object.keys(value).sort().join('|')===[...keys].sort().join('|');
+const reasonText:Record<AutomaticRefreshSource['reasonCode'],string>={AUTOMATIC_REFRESH_NOT_REVIEWED:'Automatic refresh has not been reviewed',GOVERNED_SOURCE_HOLD:'Governed source remains on HOLD',MANUAL_SELECTION_REQUIRED:'Manual source selection is required'};
+
+export function automaticRefreshScope(catalog:Catalog|null,industries:string[],states:string[]){
+  const sources=catalog?.collectionSources,decisions=catalog?.automaticRefreshSources;
+  if(!catalog||!Array.isArray(sources)||!Array.isArray(decisions)||new Set(sources.map(item=>item.id)).size!==sources.length||new Set(decisions.map(item=>item.sourceId)).size!==decisions.length||sources.length!==decisions.length)return{valid:false,sources:[] as Array<CollectionSource&AutomaticRefreshSource>,authorized:0,blocked:0};
+  const sourceIds=new Set(sources.map(item=>item.id)),decisionIds=new Set(decisions.map(item=>item.sourceId));
+  if(sources.some(item=>!item||!exact(item,['id','scope','states','industries','manualSelectionRequired'])||typeof item.id!=='string'||!['national','state'].includes(item.scope)||!Array.isArray(item.industries)||item.industries.some(id=>typeof id!=='string')||item.states!=='all'&&!Array.isArray(item.states)||typeof item.manualSelectionRequired!=='boolean')||decisions.some(item=>!item||!exact(item,['sourceId','script','automaticRefreshAuthorized','reasonCode','governedSourceId'])||typeof item.sourceId!=='string'||typeof item.script!=='string'||item.automaticRefreshAuthorized!==false||!(item.reasonCode in reasonText)||item.governedSourceId!==null&&typeof item.governedSourceId!=='string')||[...sourceIds].some(id=>!decisionIds.has(id)))return{valid:false,sources:[] as Array<CollectionSource&AutomaticRefreshSource>,authorized:0,blocked:0};
+  const byId=new Map(decisions.map(item=>[item.sourceId,item])),scoped=sources.filter(item=>item.industries.some(id=>industries.includes(id))&&(item.states==='all'||!states.length||states.some(state=>item.states.includes(state)))).map(item=>({...item,...byId.get(item.id)!}));
+  return{valid:true,sources:scoped,authorized:scoped.filter(item=>item.automaticRefreshAuthorized).length,blocked:scoped.filter(item=>!item.automaticRefreshAuthorized).length};
+}
 
 export const administrationScheduleDefault = (catalog: Catalog | null, maintained: string[]) => {
   const allowed = new Set(catalog?.industries.map((item) => item.id) ?? []);
@@ -73,7 +86,9 @@ export default function RefreshSchedules({ catalog, administrationIndustries = n
   };
   const hours = Number(interval);
   const unavailable = busy || !loaded || !!connectionError;
-  const valid = industries.length > 0 && states.length > 0 && Number.isInteger(hours) && hours >= 24 && hours <= 8760;
+  const authorization=automaticRefreshScope(catalog,industries,states);
+  const authorizedScope=authorization.valid&&authorization.sources.length>0&&authorization.authorized>0&&authorization.blocked===0;
+  const valid = industries.length > 0 && states.length > 0 && Number.isInteger(hours) && hours >= 24 && hours <= 8760 && authorizedScope;
 
   return <section className="operations-history refresh-schedules" aria-labelledby="refresh-title">
     <h3 id="refresh-title">Automatic industry refreshes</h3>
@@ -94,6 +109,10 @@ export default function RefreshSchedules({ catalog, administrationIndustries = n
       <div className="operations-actions"><button type="button" className="ghost-button" disabled={unavailable || !catalog || administrationIndustries === null} onClick={() => { if (catalog && administrationIndustries !== null) { setIndustries(administrationScheduleDefault(catalog, administrationIndustries)); setNotice('Restored the persisted Administration industry selection. No schedule was created or enabled.'); } }}>Use Administration selection</button></div>
       <p className="operations-note">{administrationUnavailable ? 'Administration maintenance selection is unavailable; no schedule industry was inferred.' : administrationIndustries === null ? 'Loading the persisted Administration maintenance selection…' : `Administration default: ${administrationIndustries.length ? administrationIndustries.map(readable).join(', ') : 'none selected'}. This only initializes this form and grants no source authorization.`}</p>
       <p className="operations-note">Choose at least one industry and state. Hold Ctrl or Command to select several. The interval is measured from a successful refresh; missed intervals do not create a backlog. Source policies and request limits still apply.</p>
+      <section aria-live="polite" aria-label="Automatic refresh source authorization decisions">
+        <h4>Automatic source authorization</h4>
+        {!authorization.valid?<p role="alert">Automatic-refresh authorization evidence is unavailable or incompatible. Schedule creation is disabled; no authorization is inferred.</p>:!industries.length||!states.length?<p>Select at least one industry and publisher state to review every matching source decision.</p>:!authorization.sources.length?<p role="alert">No configured source matches this industry/state scope. Schedule creation is disabled.</p>:<><p><strong>{authorization.authorized} authorized</strong> · <strong>{authorization.blocked} unauthorized</strong> sources in this scope.</p><ul>{authorization.sources.map(source=><li key={source.id}><strong>{readable(source.id)}</strong> — {source.automaticRefreshAuthorized?'Authorized for automatic refresh':reasonText[source.reasonCode]}<small>{source.scope==='national'?'National source; selected states do not limit acquisition':`Publisher states: ${source.states==='all'?'all':source.states.join(', ')}`} · {source.manualSelectionRequired?'manual-only source':source.governedSourceId?`governed source ${source.governedSourceId}`:'no governed source binding'}</small></li>)}</ul>{authorization.blocked>0&&<p role="alert">This scope includes held, unreviewed, or manual-only sources. Automatic schedule creation remains disabled. Manual collection remains available above and keeps its separate source gates.</p>}{authorization.authorized===0&&<p className="operations-note">No source in this scope is authorized for automatic refresh.</p>}</>}
+      </section>
       <button type="submit" className="primary-button" disabled={!catalog || unavailable || !valid}>Create disabled schedule</button>
     </form>
     {!loaded && !connectionError && <p className="operations-note">Loading refresh schedules…</p>}

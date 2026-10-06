@@ -48,11 +48,11 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.6.0');
   assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
-assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-33ab3fa11f8d1782c945359f4d88e1cbab808f109f6f7a29cd1f5b46cc79e6c6');
-  assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'447ebb5a78205557c539f54c726d832052aa43eb72c2072c75296b9cabedafca');
-  assert.equal(value.lineage.zip_industry_matrix.temporal_qualification_registration_sha256,'f0c3568619bedc9455c43d46836b3590e8427be8b7e38bc1453d92000a240df5');
-  assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'cc1858f134f61a21970e73a98339b2311bea06d3e43e9ebbe99e19e86847bfc4');
-  assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[48,2313312]);
+assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-704e9357eaf4b19b6d2b59951f3fcc0536c050305ac19e61582037379129646d');
+  assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'12efcccb28edc6ccb066cb32f4e4274361562e1964044b427686121ceae12cab');
+  assert.equal(value.lineage.zip_industry_matrix.temporal_qualification_registration_sha256,'2d79609e50ff1d1c87675d10a4b57e2f185b2dc332e6c04396b65b6753eef6ea');
+  assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'d2377d8247e682952d22d539d92ac4a84e226fc5e5d1da4d30cbaf55cc3e906b');
+  assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[49,2361506]);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);
   assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011835);
