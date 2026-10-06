@@ -173,27 +173,29 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-704e9357eaf4b19b6d2b59951f3fcc0536c050305ac19e61582037379129646d');
-  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'3559db2cab678e42fd304eb5e9e4c8ba30737763fa4b621bf4fd30673a205701');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '12efcccb28edc6ccb066cb32f4e4274361562e1964044b427686121ceae12cab');
-  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,49,2361506]);
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'2d79609e50ff1d1c87675d10a4b57e2f185b2dc332e6c04396b65b6753eef6ea');
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2361506);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'d2377d8247e682952d22d539d92ac4a84e226fc5e5d1da4d30cbaf55cc3e906b');
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2361506);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2361506);
+assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,50,2409700]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2409700);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2409700);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2409700);
   assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
   assert.equal(readiness.bindings.zip_industry_matrix.recursive_lineage_verified,true);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_membership,'Alaska-issued source-defined Active business license');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_membership,'City of Chicago source-defined current active business-license view');
   assert.equal(readiness.bindings.zip_industry_matrix.claims.lifecycle_status,'source-defined-current-membership');
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_jurisdiction,'Alaska');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.municipal_scope,'City of Chicago');
   assert.equal(readiness.bindings.zip_industry_matrix.claims.reported_address_jurisdiction_may_differ,true);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_ak_license_location_profiles,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.address_jurisdiction_inferred,false);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_chicago_license_location_profiles,true);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.unique_business_count,null);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.source_coordinates_available,false);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_selected_official_view_snapshot,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.source_coordinates_available,true);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.site_occupancy_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.public_access_verified,false);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.aggregate_export_policy,'local-aggregate-review-required');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.aggregate_export_policy,'public-with-provenance-and-semantic-limitations');
   assert.equal(readiness.bindings.zip_industry_matrix.claims.current_operations_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.continuous_operation_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_all_businesses,false);
@@ -220,9 +222,10 @@ assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-z
     value => { value.bindings.zip_industry_matrix.recursive_lineage_verified = false; },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.registration_sha256='0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.current_operations_verified=true; },
-    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_ak_license_location_profiles=false; },
+    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_chicago_license_location_profiles=false; },
     value => { value.bindings.zip_industry_matrix.claims.reported_address_jurisdiction_may_differ=false; },
-    value => { value.bindings.zip_industry_matrix.claims.source_coordinates_available=true; },
+    value => { value.bindings.zip_industry_matrix.claims.address_jurisdiction_inferred=true; },
+    value => { value.bindings.zip_industry_matrix.claims.complete_selected_official_view_snapshot=false; },
     value => { value.bindings.zip_industry_matrix.claims.site_occupancy_verified=true; },
     value => { value.bindings.zip_industry_matrix.claims.public_access_verified=true; },
     value => { value.bindings.zip_industry_matrix.claims.current_operations_verified=true; },

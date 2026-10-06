@@ -44,15 +44,15 @@ import { readZctaDemographicReadiness } from './zcta-demographic-readiness-reade
 import { zctaDemographicReadinessHttp } from './zcta-demographic-readiness-http.mjs';
 import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet.mjs';
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualificationV28 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v2-8.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV29 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v2-9.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
-import { readExactZipIndustrySummaryV28 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v2-8.mjs';
+import { readExactZipIndustrySummaryV29 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v2-9.mjs';
 import { readMnConstructionExactZipEvidenceStatus } from './mn-construction-exact-zip-evidence.mjs';
 import { mnConstructionExactZipEvidenceStatusHttp } from './mn-construction-exact-zip-evidence-http.mjs';
 import { readAdjacentExactZipEvidenceCatalog } from './adjacent-exact-zip-evidence-catalog.mjs';
 import { adjacentExactZipEvidenceCatalogHttp } from './adjacent-exact-zip-evidence-catalog-http.mjs';
 import { readStateExactZipIndustryEvidenceDisposition } from './state-exact-zip-industry-evidence-disposition.mjs';
-import { readStateExactZipIndustryEvidenceProjectionV28 } from './state-exact-zip-industry-evidence-map-v2-8.mjs';
+import { readStateExactZipIndustryEvidenceProjectionV29 } from './state-exact-zip-industry-evidence-map-v2-9.mjs';
 import { stateExactZipEvidenceHttp } from './state-exact-zip-evidence-http.mjs';
 import { stateExactZipEvidenceMapHttp } from './state-exact-zip-evidence-map-http.mjs';
 import { readZipIndustryDemographicCrossView } from './zip-industry-demographic-cross-view.mjs';
@@ -857,7 +857,7 @@ const server = http.createServer(async (request, response) => {
       await stateExactZipEvidenceHttp(request,response,url,readStateExactZipIndustryEvidenceDisposition,json);return;
     }
     if(url.pathname==='/api/business-map/state-exact-zip-industry-evidence-map'){
-      await stateExactZipEvidenceMapHttp(request,response,url,readStateExactZipIndustryEvidenceProjectionV28,json);return;
+      await stateExactZipEvidenceMapHttp(request,response,url,readStateExactZipIndustryEvidenceProjectionV29,json);return;
     }
     if (url.pathname === '/api/business-map/zip-industry-demographic-cross-view') {
       await zipIndustryDemographicCrossViewHttp(request,response,url,readZipIndustryDemographicCrossView,json);

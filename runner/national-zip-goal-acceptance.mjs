@@ -5,10 +5,10 @@ import { isDeepStrictEqual as same } from 'node:util';
 import { APP_ROOT } from './paths.mjs';
 import { mnSelectionReadJson as readJson, mnSelectionReadLines as readLines } from './mn-construction-retained-selection.mjs';
 import { readZipEntityResolutionEvidence, RELEASE as ZIP_ENTITY_RELEASE, RELEASE_SHA256 as ZIP_ENTITY_MANIFEST_SHA } from './zip-entity-resolution-evidence.mjs';
-import { readExactZipIndustryEvidenceV28 } from './national-exact-zip-industry-evidence-matrix-v2-8-reader.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualificationV28 } from './exact-zip-industry-temporal-qualification-v2-8.mjs';
-import { readExactZipIndustrySummaryV28 } from './exact-zip-industry-summary-v2-8.mjs';
-const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@2.8.0';
+import { readExactZipIndustryEvidenceV29 } from './national-exact-zip-industry-evidence-matrix-v2-9-reader.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV29 } from './exact-zip-industry-temporal-qualification-v2-9.mjs';
+import { readExactZipIndustrySummaryV29 } from './exact-zip-industry-summary-v2-9.mjs';
+const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@2.9.0';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliation } from './national-business-temporal-lifecycle-reconciliation.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from './national-business-temporal-lifecycle-reconciliation-v1-1.mjs';
@@ -236,31 +236,33 @@ function validateGoalReadinessBindings(value) {
     && entity.registration_sha256 === 'a99311cfc37b523a9a924555cceb21ab184c65d4192ad9dbe30a428e5da34c39'
     && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba', 'ZIP entity-resolution evidence pin/semantics');
   check(industry?.version === ZIP_INDUSTRY_VERSION
-    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-704e9357eaf4b19b6d2b59951f3fcc0536c050305ac19e61582037379129646d'
-    && industry.registration_sha256 === '3559db2cab678e42fd304eb5e9e4c8ba30737763fa4b621bf4fd30673a205701'
-    && industry.manifest_sha256 === '12efcccb28edc6ccb066cb32f4e4274361562e1964044b427686121ceae12cab'
+    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7'
+    && industry.registration_sha256 === '694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba'
+    && industry.manifest_sha256 === '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975'
     && industry?.claims?.current_operations_verified === false
-    && industry?.claims?.publisher_membership === 'Alaska-issued source-defined Active business license'
+    && industry?.claims?.publisher_membership === 'City of Chicago source-defined current active business-license view'
     && industry?.claims?.lifecycle_status === 'source-defined-current-membership'
-    && industry?.claims?.publisher_jurisdiction === 'Alaska'
+    && industry?.claims?.municipal_scope === 'City of Chicago'
     && industry?.claims?.reported_address_jurisdiction_may_differ === true
+    && industry?.claims?.address_jurisdiction_inferred === false
     && industry?.claims?.continuous_operation_verified === false
     && industry?.claims?.site_occupancy_verified === false
     && industry?.claims?.public_access_verified === false
     && industry?.claims?.complete_all_businesses === false
     && industry?.claims?.unique_business_count === null
-    && industry?.claims?.source_coordinates_available === false
-    && industry?.claims?.nonadditive_with_ak_license_location_profiles === true
+    && industry?.claims?.complete_selected_official_view_snapshot === true
+    && industry?.claims?.source_coordinates_available === true
+    && industry?.claims?.nonadditive_with_chicago_license_location_profiles === true
     && industry?.claims?.record_export_policy === 'local-review-only'
-    && industry?.claims?.aggregate_export_policy === 'local-aggregate-review-required'
+    && industry?.claims?.aggregate_export_policy === 'public-with-provenance-and-semantic-limitations'
     && industry?.claims?.usps_validity === null&&industry?.claims?.zcta_is_zip_geometry===false
     && industry?.claims?.production_enrollment === false
-    && industry?.zip5_rows===48194&&industry?.dimension_count===49&&industry?.industry_cells === 2361506&&industry?.recursive_lineage_verified===true
-    &&industry.temporal_qualification?.registration_sha256==='2d79609e50ff1d1c87675d10a4b57e2f185b2dc332e6c04396b65b6753eef6ea'
-    &&industry.temporal_qualification.dimension_count===49&&industry.temporal_qualification.qualification_cell_total===2361506&&industry.temporal_qualification.current_operations_verified===false
-    &&industry.national_summary?.registration_sha256==='d2377d8247e682952d22d539d92ac4a84e226fc5e5d1da4d30cbaf55cc3e906b'
-    &&industry.national_summary.dimension_count===49&&industry.national_summary.industry_cells===2361506
-    &&industry.national_summary.raw_status_cell_total===2361506&&industry.national_summary.derived_evidence_cell_total===2361506
+    && industry?.zip5_rows===48194&&industry?.dimension_count===50&&industry?.industry_cells === 2409700&&industry?.recursive_lineage_verified===true
+    &&industry.temporal_qualification?.registration_sha256==='81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd'
+    &&industry.temporal_qualification.dimension_count===50&&industry.temporal_qualification.qualification_cell_total===2409700&&industry.temporal_qualification.current_operations_verified===false
+    &&industry.national_summary?.registration_sha256==='07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e'
+    &&industry.national_summary.dimension_count===50&&industry.national_summary.industry_cells===2409700
+    &&industry.national_summary.raw_status_cell_total===2409700&&industry.national_summary.derived_evidence_cell_total===2409700
     &&industry.national_summary.raw_status_preserved_separately===true
     &&industry.national_summary.current_operations_verified===false, 'ZIP industry matrix semantic boundary');
   check(temporal?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
@@ -325,11 +327,11 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
-  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-62ad90b4ae761c62925b247007f52dfe0872fcb908022839911f26e1d1db82fa'
+  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-86c0f274be2e5c350c36aabdd301cde101826aebc705dd1cd995f0c8b42c5649'
     && sourcePolicy.registration_path === 'config/datasets/business-entity-source-policy-provenance.json'
-    && sourcePolicy.registration_sha256 === 'f26841a676fe6bb808bbfad6fcd46cca9c8979433f62805651129d0a32b2fcc2'
-    && sourcePolicy.manifest_sha256 === '5db207e18512b9a805b6bdf954be9c818db8d5c1b585a144fa90fb0a20cbc9ac'
-    && sourcePolicy.artifact_sha256 === '66a14e200366041c44a1c5ba6d5dd5f955d868d817fd29daba7cb364973bb82d'
+    && sourcePolicy.registration_sha256 === '6c98e38b8c8605f5b3974c84cc5ce7dbc6c26886af184ccf8a7890ea6732fcb1'
+    && sourcePolicy.manifest_sha256 === '8da166fa132f61213d8544ac50387b01f3bd94242198b50469c53ec236e733ca'
+    && sourcePolicy.artifact_sha256 === '51113c1bc69589ebfbccd328d87f434216909bb719ae06cfae167aab74b8de25'
     && sourcePolicy.source_count === 15 && sourcePolicy.profile_count === 8011835
     && sourcePolicy.registry_release_id === lifecycle.registry_release_id
     && sourcePolicy.registry_manifest_sha256 === lifecycle.registry_manifest_sha256
@@ -391,7 +393,7 @@ function validateGoalReadinessBindings(value) {
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
-  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-62ad90b4ae761c62925b247007f52dfe0872fcb908022839911f26e1d1db82fa',
+  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-86c0f274be2e5c350c36aabdd301cde101826aebc705dd1cd995f0c8b42c5649',
     'source-policy inventory binding absent');
   return true;
 }
@@ -773,9 +775,9 @@ async function readObjectiveReadiness({ signal }) {
   const sampleZip = '00501';
   const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, coRegistrationStatusPosture, loadedGoal, broad, lifecycle] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceV28({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceWithTemporalQualificationV28({zip5:sampleZip,signal}),
-    readExactZipIndustrySummaryV28({signal}),
+    readExactZipIndustryEvidenceV29({ zip5: sampleZip, signal }),
+    readExactZipIndustryEvidenceWithTemporalQualificationV29({zip5:sampleZip,signal}),
+    readExactZipIndustrySummaryV29({signal}),
     readNationalBusinessTemporalClaimRows({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliation({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliationV11({ signal }),
@@ -802,23 +804,23 @@ async function readObjectiveReadiness({ signal }) {
     && reportingVerified.artifact_sha256 === REPORTING_SITES.artifact_sha256 && reportingVerified.summary.site_count === REPORTING_SITES.record_count,
     'verified reporting-only site qualification release');
   const [industryRegistration,industryTemporalRegistration,industrySummaryRegistration]=await Promise.all([
-    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v2-8.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v2-8.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v2-8.json',signal)]);
+    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v2-9.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v2-9.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v2-9.json',signal)]);
   const industryPin = industryRegistration.value.retained_release;
   check(industryRegistration.value.dataset_id === 'national-exact-zip-industry-evidence-matrix' && industryRegistration.value.runtime_pointer === null
     && industryRegistration.value.production_enrollment === false && industryPin?.release_id === industry.release_id
-    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===49
-    && industryPin?.industry_cells === 2361506&&industryRegistration.evidence.sha256==='3559db2cab678e42fd304eb5e9e4c8ba30737763fa4b621bf4fd30673a205701', 'registered industry-matrix release binding');
-  check(industryTemporalRegistration.evidence.sha256==='2d79609e50ff1d1c87675d10a4b57e2f185b2dc332e6c04396b65b6753eef6ea'
+    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===50
+    && industryPin?.industry_cells === 2409700&&industryRegistration.evidence.sha256==='694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba', 'registered industry-matrix release binding');
+  check(industryTemporalRegistration.evidence.sha256==='81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd'
     &&industryTemporalRegistration.value.matrix_release_id===industry.release_id&&industryTemporalRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industryTemporal.temporal_qualification.rows.length===49&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2361506
+    &&industryTemporal.temporal_qualification.rows.length===50&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2409700
     &&industryTemporal.temporal_qualification.claims.current_operations_verified===false&&industryTemporal.temporal_qualification.claims.active_business_count===null
-    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v2.8 temporal qualification binding');
-  check(industrySummaryRegistration.evidence.sha256==='d2377d8247e682952d22d539d92ac4a84e226fc5e5d1da4d30cbaf55cc3e906b'
+    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v2.9 temporal qualification binding');
+  check(industrySummaryRegistration.evidence.sha256==='07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e'
     &&industrySummaryRegistration.value.matrix_release_id===industry.release_id&&industrySummaryRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@2.8.0'&&industrySummary.release_id===industry.release_id
-    &&industrySummary.source_dimensions===49&&industrySummary.industry_cells===2361506
-    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2361506
-    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2361506
+    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@2.9.0'&&industrySummary.release_id===industry.release_id
+    &&industrySummary.source_dimensions===50&&industrySummary.industry_cells===2409700
+    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2409700
+    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2409700
     &&industrySummary.zbp_dispositions.every(row=>row.raw_status!==row.evidence_state)&&industrySummary.claims.current_operation_verified===false
     &&industrySummary.claims.all_business_completeness===false
     &&industry.recursive_lineage_verified===true
@@ -827,12 +829,13 @@ async function readObjectiveReadiness({ signal }) {
     &&['ca_abc_active_issued_license_physical_sites','dc_active_basic_business_license_physical_sites','tx_active_sales_tax_permitted_outlet_physical_sites']
       .every(id=>industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id===id&&row.semantic_class==='publisher-active-snapshot'&&row.current_operations_verified===false&&row.continuous_operation_verified===false))
     &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='la_publisher_active_listing_location_account_sites'&&row.semantic_class==='unknown-source-status'&&row.municipal_scope==='City of Los Angeles'&&row.current_operations_verified===false&&row.continuous_operation_verified===false)
-    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='ak_active_business_license_conditional_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='Alaska'&&row.reported_address_jurisdiction_may_differ===true&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.coordinates_available===false&&row.evidence_disposition?.additive===false),
-  'v2.8 national summary binding');
+    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='ak_active_business_license_conditional_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='Alaska'&&row.reported_address_jurisdiction_may_differ===true&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.coordinates_available===false&&row.evidence_disposition?.additive===false)
+    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='chicago_current_active_business_license_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='City of Chicago'&&row.reported_address_jurisdiction_may_differ===true&&row.address_jurisdiction_inferred===false&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.unique_business_count===null&&row.record_export_policy==='local-review-only'&&row.evidence_disposition?.additive===false),
+  'v2.9 national summary binding');
   check(entity.available && entity.registration_sha256 && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'
     && entity.evidence?.entity_resolution_applied === false && entity.evidence?.benchmark_gate_passed === false, 'registered ZIP entity-resolution evidence');
-  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-704e9357eaf4b19b6d2b59951f3fcc0536c050305ac19e61582037379129646d'
-    && industry.manifest_sha256 === '12efcccb28edc6ccb066cb32f4e4274361562e1964044b427686121ceae12cab'
+  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7'
+    && industry.manifest_sha256 === '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975'
     && industry.claims?.network_requests === 0 && industry.claims?.production_enrollment === false, 'registered ZIP industry matrix');
   check(temporal.rows.length === 30 && temporal.provenance?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
     && temporal.provenance?.manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05', 'selected temporal claim release');
@@ -950,11 +953,11 @@ async function readObjectiveReadiness({ signal }) {
       manifest_path: 'data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564/manifest.json',
       manifest_sha256: entity.manifest_sha256, source_release_id: ZIP_ENTITY_RELEASE, source_manifest_sha256: ZIP_ENTITY_MANIFEST_SHA,
       claims: { entity_resolution_applied: entity.evidence.entity_resolution_applied, benchmark_gate_passed: entity.evidence.benchmark_gate_passed } },
-    zip_industry_matrix: { registration_path: 'config/datasets/national-exact-zip-industry-evidence-matrix-v2-8.json', registration_sha256: industryRegistration.evidence.sha256,
+    zip_industry_matrix: { registration_path: 'config/datasets/national-exact-zip-industry-evidence-matrix-v2-9.json', registration_sha256: industryRegistration.evidence.sha256,
       release_id: industry.release_id, manifest_path: industryPin.manifest, manifest_sha256: industry.manifest_sha256, version: industry.schema_version,
       zip5_rows: industryPin.zip5_rows,dimension_count:industryPin.dimension_count, industry_cells: industryPin.industry_cells, recursive_lineage_verified:industry.recursive_lineage_verified, claims: industry.claims,
-      temporal_qualification:{registration_path:'config/datasets/exact-zip-industry-temporal-qualification-v2-8.json',registration_sha256:industryTemporalRegistration.evidence.sha256,schema_version:industryTemporal.temporal_qualification.schema_version,dimension_count:industryTemporal.temporal_qualification.rows.length,qualification_cell_total:industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows,current_operations_verified:false,active_business_count:null,all_business_completion_percent:null},
-      national_summary:{registration_path:'config/datasets/national-exact-zip-industry-summary-v2-8.json',registration_sha256:industrySummaryRegistration.evidence.sha256,schema_version:industrySummary.schema_version,dimension_count:industrySummary.source_dimensions,industry_cells:industrySummary.industry_cells,raw_status_cell_total:Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0),derived_evidence_cell_total:Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0),raw_status_preserved_separately:true,current_operations_verified:false,all_business_completeness:false} },
+      temporal_qualification:{registration_path:'config/datasets/exact-zip-industry-temporal-qualification-v2-9.json',registration_sha256:industryTemporalRegistration.evidence.sha256,schema_version:industryTemporal.temporal_qualification.schema_version,dimension_count:industryTemporal.temporal_qualification.rows.length,qualification_cell_total:industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows,current_operations_verified:false,active_business_count:null,all_business_completion_percent:null},
+      national_summary:{registration_path:'config/datasets/national-exact-zip-industry-summary-v2-9.json',registration_sha256:industrySummaryRegistration.evidence.sha256,schema_version:industrySummary.schema_version,dimension_count:industrySummary.source_dimensions,industry_cells:industrySummary.industry_cells,raw_status_cell_total:Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0),derived_evidence_cell_total:Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0),raw_status_preserved_separately:true,current_operations_verified:false,all_business_completeness:false} },
     temporal_claim_matrix: { registration_path: 'config/datasets/national-business-temporal-claim-matrix.json', registration_sha256: temporalRegistration.evidence.sha256,
       release_id: temporal.provenance.release_id, manifest_path: selected[0].manifest_path, manifest_sha256: temporal.provenance.manifest_sha256, rows: temporal.rows.length,
       classification_counts: temporalClassCounts, summary: temporal.summary, claims: temporal.claims,

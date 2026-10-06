@@ -1,0 +1,35 @@
+{
+  "schema_version": "2.9.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-2ed2a1ffc829e9a1c5f9cf19e944047ee8bebaa0b5584e0097362987db019e91",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v2-9/releases/state-exact-zip-industry-evidence-disposition-2ed2a1ffc829e9a1c5f9cf19e944047ee8bebaa0b5584e0097362987db019e91/manifest.json",
+    "manifest_sha256": "00d8a55a9aea0fbe9e60f09e61edb2e39839f3170cc052544713ce12a032c769",
+    "manifest_bytes": 7055,
+    "artifact_sha256": "8b81947dd65f54e380e8b46ddb6b6296dacd244a0f80a3103fe0ade5cb94e0dc",
+    "artifact_bytes": 3222894,
+    "scope_rows": 60,
+    "dimension_count": 50,
+    "industry_cells": 2409700
+  },
+  "claims": {
+    "predecessor_dimensions_preserved": true,
+    "chicago_license_raw_states_preserved": true,
+    "publisher_membership": "City of Chicago source-defined current active business-license view",
+    "lifecycle_status": "source-defined-current-membership",
+    "municipal_scope": "City of Chicago",
+    "reported_address_jurisdiction_may_differ": true,
+    "address_jurisdiction_inferred": false,
+    "complete_selected_official_view_snapshot": true,
+    "current_operations_verified": false,
+    "continuous_operation_verified": false,
+    "site_occupancy_verified": false,
+    "public_access_verified": false,
+    "complete_all_businesses": false,
+    "nonadditive_with_chicago_license_location_profiles": true,
+    "production_enrollment": false
+  }
+}
