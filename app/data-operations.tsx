@@ -85,6 +85,7 @@ export default function DataOperations() {
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
   const [maintenanceError,setMaintenanceError]=useState('');
+  const [maintenanceIndustries,setMaintenanceIndustries]=useState<string[]|null>(null);
   const maintenanceLoaded=useRef(false);
 
   useEffect(() => {
@@ -104,8 +105,8 @@ export default function DataOperations() {
             maintenanceLoaded.current=true;
             try{
               const maintenance=await runnerJson<MaintenanceView>('/api/administration/industries',{signal:controller.signal});
-              if(!controller.signal.aborted){setIndustries(maintenancePlanningDefault(nextCatalog.industries.map(item=>item.id),maintenance.maintainedIndustries));setMaintenanceError('');}
-            }catch{if(!controller.signal.aborted){setIndustries([]);setMaintenanceError('Maintenance selection is unavailable; no industries were selected by default.');}}
+              if(!controller.signal.aborted){const defaults=maintenancePlanningDefault(nextCatalog.industries.map(item=>item.id),maintenance.maintainedIndustries);setIndustries(defaults);setMaintenanceIndustries(defaults);setMaintenanceError('');}
+            }catch{if(!controller.signal.aborted){setIndustries([]);setMaintenanceIndustries(null);setMaintenanceError('Maintenance selection is unavailable; no industries were selected by default.');}}
           }
         }
       } catch (reason) {
@@ -228,7 +229,7 @@ export default function DataOperations() {
     <NationalEpaEchoActiveFacilityCoverageStatus />
     <NationalIrsEoBmfOrganizationCoverageStatus />
     <NationalCmsNppesOrganizationPracticeLocationCoverageStatus />
-    <RefreshSchedules catalog={catalog} />
+    <RefreshSchedules catalog={catalog} administrationIndustries={maintenanceIndustries} administrationUnavailable={!!maintenanceError} />
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-hospital-general-information')&&<CmsHospitalAdoption operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-hospital-general-information'})))}/>}
     {catalog?.retainedSourceAdoptions?.some(source=>source.sourceId==='cms-nursing-home-provider-information')&&<CmsHospitalAdoption sourceId="cms-nursing-home-provider-information" operations={operations} disabled={locked||busy||!!connectionError} onInspect={()=>void act(async()=>remember(await post<Operation>('/source-adoptions',{sourceId:'cms-nursing-home-provider-information'})))}/>}
     <CmsNursingHomeChainReview />

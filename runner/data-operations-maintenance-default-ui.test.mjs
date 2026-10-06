@@ -6,6 +6,8 @@ const source=await readFile(new URL("../app/data-operations.tsx",import.meta.url
 
 test("operations polling hydrates maintenance intent once and never dispatches it",()=>{
   assert.match(source,/maintenanceLoaded=useRef\(false\)/);
+  assert.match(source,/setMaintenanceIndustries\(defaults\)/);
+  assert.match(source,/administrationIndustries=\{maintenanceIndustries\}/);
   assert.match(source,/if\(!maintenanceLoaded\.current\)/);
   assert.match(source,/maintenanceLoaded\.current=true/);
   assert.match(source,/setInterval\(\(\) => void refresh\(\), 3000\)/);

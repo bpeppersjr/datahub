@@ -11,7 +11,9 @@
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "Taxpayer/outlet pairs in the official Texas Comptroller Active Sales Tax Permit Holders dataset at its source refresh. Active means the outlet holds an active sales-tax permit under Texas Tax Code Chapter 151, Subchapter F; it is not independent proof of continuous operations or public access.",
   "current_verified_release": {
-    "release_id": "tx-active-sales-tax-20260831-235045220Z-c067b3eb",
+    "release_id": "tx-active-sales-tax-20260903-004825316Z-3ba279b8",
+    "manifest": "data/business-sources/tx-active-sales-tax-outlets/releases/tx-active-sales-tax-20260903-004825316Z-3ba279b8/manifest.json",
+    "manifest_sha256": "7654c7ec1439a29e76abc2e2c19ce05c53901b836f43b1bb42b4c71cd032c499",
     "source_release_id": "tx-active-sales-tax-2026-08-29-98b90d177d81493e",
     "source_outlet_permits": 885278,
     "normalized_outlet_permits": 885097,

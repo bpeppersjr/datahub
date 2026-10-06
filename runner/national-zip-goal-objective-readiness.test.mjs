@@ -48,11 +48,11 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.6.0');
   assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
-assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-2cda66ffbd78232edeffea73167bfa9f151c885bd912e3f8025c6c18455b503b');
-  assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'eee93f465d24575487e23c52781507f5543dfb593e9f3d76fde907597cba013b');
-  assert.equal(value.lineage.zip_industry_matrix.temporal_qualification_registration_sha256,'a3315cdb19d2d6c34c31f91d77a9807e7ba07f0af5753c0eadb1ebf008ca5ff4');
-  assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'776803ff9c0172227f277ac444e6ef1114804fadf2c37bd8a163cdc8cdebcaf3');
-  assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[46,2216924]);
+assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-fd4f57796a03b50125e2668336a039a1d1e18ae6bdf12d664d382020e77293b8');
+  assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'b02e108ef70ac16732744cadd2cd2540e7f448e46957de4a9e07eaff30474a0d');
+  assert.equal(value.lineage.zip_industry_matrix.temporal_qualification_registration_sha256,'3ffdaf667547dc1bc057453bbc7318df4af4694c12018040ccf0daf9cd6c901a');
+  assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'542572ad6f16d2679286a47a192ab5f116b1ba37c2961df3edc031c29e3ac9c9');
+  assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[47,2265118]);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
   assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);
   assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011835);
@@ -63,8 +63,8 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_inventory_sha256, 'ca92485cf7659fc8f4565fe81de5728c960de9667f9b5c605f66c9e07d24a5f5');
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_count, 100);
   assert.equal(value.lineage.reporting_only_site_qualification.record_count, 13182);
-  assert.equal(value.lineage.business_entity_source_policy_provenance.release_id, 'business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098');
-  assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, 'dea750ba0c597b4792189f321cdba2d6f73e69664fcb901587ad0d43302e603f');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.release_id, 'business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, 'f6c0662226535b821ab81c5e1e18a712ff10f6dab69b631e3eee56b50fb81686');
   assert.equal(value.lineage.business_entity_source_policy_provenance.source_count, 15);
   assert.equal(value.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance').profile_policy_rows_verified, 8011835);
   assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba');

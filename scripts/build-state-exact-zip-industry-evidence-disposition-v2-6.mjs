@@ -1,0 +1,1 @@
+import{buildStateExactZipIndustryEvidenceDispositionV26}from'../runner/state-exact-zip-industry-evidence-disposition-v2-6.mjs';process.stdout.write(JSON.stringify(await buildStateExactZipIndustryEvidenceDispositionV26(),null,2)+'\n');

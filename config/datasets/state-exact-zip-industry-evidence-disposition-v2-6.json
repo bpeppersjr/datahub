@@ -1,0 +1,29 @@
+{
+  "schema_version": "2.6.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-d5f421773f0ea60fce2b36006a055b3c17a9ade2cea97ba7e28477fd063356c9",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v2-6/releases/state-exact-zip-industry-evidence-disposition-d5f421773f0ea60fce2b36006a055b3c17a9ade2cea97ba7e28477fd063356c9/manifest.json",
+    "manifest_sha256": "46b270990d432e6a55faa65da4d7145951bfdcacc531b052f135852d03c88295",
+    "manifest_bytes": 5469,
+    "artifact_sha256": "6c550381931c30cba332a3a61b50748dc0b9d47b6259aaef183ad3e84d5cdeca",
+    "artifact_bytes": 3014337,
+    "scope_rows": 60,
+    "dimension_count": 47,
+    "industry_cells": 2265118
+  },
+  "claims": {
+    "predecessor_dimensions_preserved": true,
+    "tx_sales_tax_raw_states_preserved": true,
+    "publisher_active_snapshot_only": true,
+    "current_operations_verified": false,
+    "continuous_operation_verified": false,
+    "complete_all_businesses": false,
+    "nonadditive_with_tx_sales_tax_outlet_profiles": true,
+    "public_record_export_authorized": false,
+    "production_enrollment": false
+  }
+}

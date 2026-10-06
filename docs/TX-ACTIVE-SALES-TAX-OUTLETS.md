@@ -27,7 +27,7 @@ The publisher pages in deterministic taxpayer/outlet/source-row order, applies b
 
 ## Current verified release
 
-Release `tx-active-sales-tax-20260831-235045220Z-c067b3eb` captures source release `tx-active-sales-tax-2026-08-29-98b90d177d81493e`. Of 885,278 taxpayer/outlet rows, 885,097 become provisional outlets and 700,705 distinct taxpayer organizations across 2,156 accepted ZIPs. The 181 quarantines comprise 170 ZIPs outside the governed ZBP/ZCTA union, 10 missing or nonphysical outlet addresses, and one invalid state. City-limit evidence is preserved as 684,079 inside, 201,002 outside, and 16 unreported indicators.
+Release `tx-active-sales-tax-20260903-004825316Z-3ba279b8` (manifest SHA-256 `7654c7ec1439a29e76abc2e2c19ce05c53901b836f43b1bb42b4c71cd032c499`) is the live verified retained release and captures source release `tx-active-sales-tax-2026-08-29-98b90d177d81493e`. Of 885,278 taxpayer/outlet rows, 885,097 become provisional outlets and 700,705 distinct taxpayer organizations across 2,156 accepted ZIPs. The 181 quarantines comprise 170 ZIPs outside the governed ZBP/ZCTA union, 10 missing or nonphysical outlet addresses, and one invalid state. City-limit evidence is preserved as 684,079 inside, 201,002 outside, and 16 unreported indicators.
 
 The 21 independently verified artifacts total 260,059,941 bytes. Record-level output remains `local-review-only`; the release explicitly sets `complete_all_businesses` to false.
 

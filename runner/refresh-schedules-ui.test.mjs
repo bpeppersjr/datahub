@@ -10,9 +10,9 @@ const source = await readFile(new URL('../app/refresh-schedules.tsx', import.met
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 const catalog = { industries: [{ id: 'retail', label: 'Retail' }], states: ['TX'] };
 const record = { id: 's1', industries: ['retail'], states: ['TX'], intervalHours: 168, enabled: false, status: 'DISABLED', nextDueAt: null, reason: null, lastOccurrence: null };
-function fixture(request, initial = {}) {
+function fixture(request, initial = {}, props = {}) {
   const values = [], refs = [], effects = [];
-  let index = 0, refIndex = 0, timer;
+  let index = 0, refIndex = 0, effectIndex = 0, timer;
   const exports = {};
   runInNewContext(code, {
     exports, AbortController,
@@ -20,10 +20,10 @@ function fixture(request, initial = {}) {
     require: (name) => name === './runner-client' ? { runnerJson: request } : name === 'react' ? {
       useState(value) { const i = index++; if (!(i in values)) values[i] = i in initial ? initial[i] : value; return [values[i], (next) => { values[i] = typeof next === 'function' ? next(values[i]) : next; }]; },
       useRef(value) { const i = refIndex++; refs[i] ??= { current: value }; return refs[i]; },
-      useEffect(effect) { if (!effects.length) effects.push(effect); },
+      useEffect(effect) { const i=effectIndex++; effects[i] ??= effect; },
     } : require(name),
   });
-  return { values, render() { index = 0; refIndex = 0; return exports.default({ catalog }); }, mount() { return effects[0](); }, poll() { return timer(); } };
+  return { values, render() { index = 0; refIndex = 0; effectIndex = 0; return exports.default({ catalog, administrationIndustries: [], ...props }); }, mount() { const cleanups=effects.map(effect=>effect()).filter(value=>typeof value==='function'); return()=>cleanups.forEach(cleanup=>cleanup()); }, poll() { return timer(); } };
 }
 function nodes(tree) {
   if (!tree || typeof tree !== 'object') return [];
@@ -49,6 +49,24 @@ test('schedule form requires explicit scope and saves disabled through the authe
   assert.equal(calls[0][0], '/api/data-operations/schedules');
   assert.deepEqual(JSON.parse(calls[0][1].body), { industries: ['retail'], states: ['TX'], intervalHours: 168, enabled: false });
   assert.equal(f.values[0][0].id, 's1');
+});
+
+test('persisted Administration industries initialize and can restore only the schedule form', async () => {
+  const expanded={industries:[{id:'retail',label:'Retail'},{id:'childcare',label:'Childcare'}],states:['TX']};
+  const f=fixture(async()=>[],{}, {catalog:expanded,administrationIndustries:['childcare','unknown','childcare']});
+  f.render(); const cleanup=f.mount(); await settle();
+  let tree=f.render();
+  assert.deepEqual(Array.from(nodes(tree).find(node=>node.type==='select').props.value),['childcare']);
+  const selects=nodes(tree).filter(node=>node.type==='select');
+  selects[0].props.onChange({currentTarget:{selectedOptions:[{value:'retail'}]}});
+  selects[1].props.onChange({currentTarget:{selectedOptions:[{value:'TX'}]}});
+  tree=f.render(); assert.deepEqual(Array.from(nodes(tree).find(node=>node.type==='select').props.value),['retail']);
+  button(tree,'Use Administration selection').props.onClick();
+  tree=f.render(); const restored=nodes(tree).filter(node=>node.type==='select');
+  assert.deepEqual(Array.from(restored[0].props.value),['childcare']);
+  assert.deepEqual(Array.from(restored[1].props.value),['TX']);
+  assert.match(f.values[7],/No schedule was created or enabled/);
+  cleanup();
 });
 
 test('invalid intervals cannot submit; scheduler outage disables schedule controls only', () => {

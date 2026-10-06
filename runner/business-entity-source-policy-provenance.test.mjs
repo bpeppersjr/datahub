@@ -41,6 +41,10 @@ async function copyBoundedFixture(root, provenance) {
 
 test('registered source-policy inventory conserves all 15 exact sources and 8,011,835 profiles without granting authority', async () => {
   const value = await readBusinessEntitySourcePolicyProvenance();
+  assert.equal(value.release_id, 'business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7');
+  assert.equal(value.registration_sha256, 'f6c0662226535b821ab81c5e1e18a712ff10f6dab69b631e3eee56b50fb81686');
+  assert.equal(value.manifest_sha256, '5b2570e8d266fd74d0cf4d0175aa92b11675b26fb2ed6979741b425e1e4962a4');
+  assert.equal(value.artifact_sha256, 'a210597683397a37a458bb86c0f1758251549ecfc46831780c19ab4e0e4c0855');
   assert.equal(value.rows.length, 15); assert.equal(value.record_count, 15);
   assert.equal(value.summary.profile_count, 8011835);
   assert.equal(value.rows.reduce((sum, row) => sum + row.profile_count, 0), 8011835);

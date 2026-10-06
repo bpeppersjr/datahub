@@ -13,7 +13,12 @@ const endpoint = '/api/data-operations/schedules';
 const readable = (value: string) => value.replaceAll('_', ' ').replaceAll('-', ' ');
 const selected = (element: HTMLSelectElement) => Array.from(element.selectedOptions, (option) => option.value);
 
-export default function RefreshSchedules({ catalog }: { catalog: Catalog | null }) {
+export const administrationScheduleDefault = (catalog: Catalog | null, maintained: string[]) => {
+  const allowed = new Set(catalog?.industries.map((item) => item.id) ?? []);
+  return maintained.filter((id, index) => allowed.has(id) && maintained.indexOf(id) === index);
+};
+
+export default function RefreshSchedules({ catalog, administrationIndustries = null, administrationUnavailable = false }: { catalog: Catalog | null; administrationIndustries?: string[] | null; administrationUnavailable?: boolean }) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [industries, setIndustries] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
@@ -25,6 +30,13 @@ export default function RefreshSchedules({ catalog }: { catalog: Catalog | null 
   const [busy, setBusy] = useState(false);
   const revision = useRef(0);
   const mutating = useRef(false);
+  const administrationApplied = useRef(false);
+
+  useEffect(() => {
+    if (!catalog || administrationIndustries === null || administrationApplied.current) return;
+    setIndustries(administrationScheduleDefault(catalog, administrationIndustries));
+    administrationApplied.current = true;
+  }, [catalog, administrationIndustries]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,10 +87,12 @@ export default function RefreshSchedules({ catalog }: { catalog: Catalog | null 
     }}>
       <fieldset disabled={unavailable || !catalog} className="schedule-selection">
         <legend>New refresh schedule</legend>
-        <label>Industries<select multiple size={5} required value={industries} onChange={(event) => setIndustries(selected(event.currentTarget))}>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? readable(item.id)}</option>)}</select></label>
+        <label>Industries<select multiple size={5} required value={industries} onChange={(event) => { administrationApplied.current = true; setIndustries(selected(event.currentTarget)); }}>{catalog?.industries.map((item) => <option key={item.id} value={item.id}>{item.label ?? readable(item.id)}</option>)}</select></label>
         <label>Publisher states<select multiple size={5} required value={states} onChange={(event) => setStates(selected(event.currentTarget))}>{catalog?.states.map((state) => <option key={state}>{state}</option>)}</select></label>
         <label>Refresh interval (hours)<input type="number" min={24} max={8760} step={1} required value={interval} onChange={(event) => setIntervalHours(event.target.value)} /></label>
       </fieldset>
+      <div className="operations-actions"><button type="button" className="ghost-button" disabled={unavailable || !catalog || administrationIndustries === null} onClick={() => { if (catalog && administrationIndustries !== null) { setIndustries(administrationScheduleDefault(catalog, administrationIndustries)); setNotice('Restored the persisted Administration industry selection. No schedule was created or enabled.'); } }}>Use Administration selection</button></div>
+      <p className="operations-note">{administrationUnavailable ? 'Administration maintenance selection is unavailable; no schedule industry was inferred.' : administrationIndustries === null ? 'Loading the persisted Administration maintenance selection…' : `Administration default: ${administrationIndustries.length ? administrationIndustries.map(readable).join(', ') : 'none selected'}. This only initializes this form and grants no source authorization.`}</p>
       <p className="operations-note">Choose at least one industry and state. Hold Ctrl or Command to select several. The interval is measured from a successful refresh; missed intervals do not create a backlog. Source policies and request limits still apply.</p>
       <button type="submit" className="primary-button" disabled={!catalog || unavailable || !valid}>Create disabled schedule</button>
     </form>

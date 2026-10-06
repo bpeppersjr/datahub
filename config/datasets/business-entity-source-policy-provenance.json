@@ -5,13 +5,21 @@
   "runtime_pointer": null,
   "production_enrollment": false,
   "current_pointer_written": false,
-  "selected_release_id": "business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098",
+  "selected_release_id": "business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7",
   "retained_releases": [
     {
       "release_id": "business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098",
       "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-c43ddd5a681702e77c1446a31bdd07264a6a206a5435947d353e0d7c3e3ed098/manifest.json",
       "manifest_sha256": "4706f9cb6bfaf9ff11b488c8bb692172ec46e2ea85847c07571e1a0e7efbce54",
       "artifact_sha256": "be3ae723b0728ff161e0764233bfae7888222fc8f0b1768bad70635d5a378534",
+      "record_count": 15,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7",
+      "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7/manifest.json",
+      "manifest_sha256": "5b2570e8d266fd74d0cf4d0175aa92b11675b26fb2ed6979741b425e1e4962a4",
+      "artifact_sha256": "a210597683397a37a458bb86c0f1758251549ecfc46831780c19ab4e0e4c0855",
       "record_count": 15,
       "selected": true
     }
