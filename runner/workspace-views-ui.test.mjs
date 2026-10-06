@@ -5,6 +5,8 @@ import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { readExactZipIndustrySummary } from "./exact-zip-industry-summary.mjs";
+import { readExactZipIndustrySummaryV24 } from "./exact-zip-industry-summary-v2-4.mjs";
+import { readExactZipIndustrySummaryV25 } from "./exact-zip-industry-summary-v2-5.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
 const require = createRequire(import.meta.url),
   code = await readFile(
@@ -2246,7 +2248,7 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
   const h = harness(() => assert.fail()),
     sha = "a".repeat(64),
     view = {
-      schema_version: "national-business-temporal-claim-matrix-view@1.1.0",
+      schema_version: "national-business-temporal-claim-matrix-view@1.2.0",
       available: true,
       scope: "effective-profile-classification-with-source-cohort-provenance",
       summary: {
@@ -2264,12 +2266,14 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
       },
       publisher_membership:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",assertion:"active-list-membership-without-row-status",profile_count:633232,row_status:"null",lifecycle_evidence:"unknown"},
       source_status_posture:{source_id:"cms-nppes-monthly-v2",status:"source-defined-current-registration-status",profile_count:1958089,non_primary_reporting_count:130691},
+      organization_assertion_status_posture:{source_id:"co-business-registry",good_standing:{status:"source-defined-current-registry-standing",organization_count:1019372},delinquent:{status:"non-active-reporting",organization_count:1145439}},
       mismatch:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",source_release_id:"la-release",source_cohort_classification:"source-defined-current-membership",effective_profile_classification:"unknown-source-status",lifecycle_evidence:"unknown",profile_count:633232,current_operations_verified:false},
       provenance: {
         temporal:{release_id: `national-business-temporal-claim-matrix-${sha}`,manifest_sha256:sha,artifact_sha256:sha,created_at:"2026-10-03T00:00:00.000Z",registry_release_id:"registry-r1",registry_manifest_sha256:sha,coverage_release_id:"coverage-r1",coverage_manifest_sha256:sha},
         reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation.json",registration_sha256:"5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad",schema_version:"national-business-temporal-lifecycle-reconciliation@1.0.0",status:"one-bounded-profile-classification-conflict",lifecycle_release_id:"lifecycle-r1",lifecycle_manifest_sha256:sha,taxonomy_path:"config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",taxonomy_sha256:sha,los_angeles_pointer_sha256:sha,los_angeles_manifest_sha256:sha},
         publisher_membership_reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",registration_sha256:sha,schema_version:"national-business-temporal-lifecycle-reconciliation@1.1.0",source_artifact_sha256:sha,source_summary_sha256:sha},
-        source_status_posture:{registration_path:"config/datasets/national-business-source-status-posture.json",manifest_sha256:sha,taxonomy_sha256:sha},
+        source_status_posture:{registration_path:"config/datasets/national-business-source-status-posture.json",access_mode:"pointer-pinned-local-only",pointer_sha256:sha,manifest_sha256:sha,taxonomy_sha256:sha},
+        organization_assertion_status_posture:{registration_path:"config/datasets/national-business-co-registration-status-posture.json",scope:"separate-organization-assertion-cohort",pointer_sha256:sha,manifest_sha256:sha,source_summary_sha256:sha,taxonomy_sha256:sha},
       },
       claims: {
         network_requests: 0,
@@ -2294,6 +2298,10 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
   assert.match(value, /1,958,089 primary profiles/);
   assert.match(value, /130,691 non-primary locations remain reporting-only/);
   assert.match(value, /does not prove an open business/);
+  assert.match(value, /Colorado registry posture/);
+  assert.match(value, /1,019,372 organizations are in Good Standing/);
+  assert.match(value, /1,145,439 are Delinquent/);
+  assert.match(value, /does not change the profile-source totals/);
   assert.match(value, /Broad state\/DC sources11 \/ 51/);
   assert.match(value, /Broad state\/DC gaps40/);
   assert.match(value, /Verified-current-complete jurisdictions0 \/ 51/);
@@ -2308,6 +2316,8 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
     { ...view, source_status_posture:{...view.source_status_posture,status:"business-active"} },
     { ...view, source_status_posture:{...view.source_status_posture,profile_count:1958090} },
     { ...view, provenance:{...view.provenance,source_status_posture:{...view.provenance.source_status_posture,manifest_sha256:"bad"}} },
+    { ...view, organization_assertion_status_posture:{...view.organization_assertion_status_posture,good_standing:{...view.organization_assertion_status_posture.good_standing,organization_count:1019373}} },
+    { ...view, provenance:{...view.provenance,organization_assertion_status_posture:{...view.provenance.organization_assertion_status_posture,scope:"location-profile-cohort"}} },
     { ...view, summary:{...view.summary,effective_profile_source_counts:{...view.summary.effective_profile_source_counts,source_defined_current_membership:22}}},
     { ...view, unexpected:true },
     null,
@@ -2716,6 +2726,12 @@ test("demographic readiness panel distinguishes no-ZCTA and malformed response s
   malformed.close();
 });
 test("national joined-disposition summary validation fails closed on balanced redistribution and semantic drift",async()=>{const value=await readExactZipIndustrySummary(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);const pair=value.evidence_disposition_counts.joined.map((row,index)=>({row,index})).filter(item=>item.row.cell_status===value.evidence_disposition_counts.joined[0].cell_status&&item.row.count>0).slice(0,2);assert.equal(pair.length,2);const shifted=value.evidence_disposition_counts.joined.map((row,index)=>index===pair[0].index?{...row,count:row.count-1}:index===pair[1].index?{...row,count:row.count+1}:row),first=value.evidence_disposition_counts.joined[0],duplicate=value.evidence_disposition_counts.joined.map((row,index)=>index===1?{...row,cell_status:first.cell_status,lifecycle_status:first.lifecycle_status,label:first.label}:row),dimensionLifecycle=value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,joined:row.evidence_disposition_counts.joined.map((item,itemIndex)=>itemIndex?item:{...item,lifecycle_status:"unmapped",label:`${item.cell_status.replaceAll("-"," ")} · unmapped`})}});for(const malformed of [null,{...value,claims:undefined},{...value,extra:true},{...value,manifest_sha256:"f".repeat(64)},{...value,temporal_qualification:{...value.temporal_qualification,manifest_sha256:"e".repeat(64)}},{...value,geography_cohort:{...value.geography_cohort,cohort_manifest_sha256:"d".repeat(64)}},{...value,dimensions:value.dimensions.map((row,index)=>index===1?{...row,id:value.dimensions[0].id}:row)},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,status_counts:{...row.status_counts,positive:row.status_counts.positive+1}})},{...value,coverage_gaps:null},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,total_cells:value.industry_cells-1}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:shifted}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:duplicate}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:value.evidence_disposition_counts.joined.map((row,index)=>index?row:{...row,label:"verified current business"})}},{...value,dimensions:dimensionLifecycle},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,total_cells:48193}})},{...value,claims:{...value.claims,current_operation_verified:true}}])assert.equal(h.render("validExactZipIndustrySummary",malformed),false);});
+
+test("v2.4 national summary conserves and renders all six temporal semantics",async()=>{const value=await readExactZipIndustrySummaryV24(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);h.render("ExactZipIndustryNationalSummary");await flush();const rendered=text(h.render("ExactZipIndustryNationalSummary"));assert.match(rendered,/24 dimensions use a publisher-defined current status/);assert.match(rendered,/8 are non-active reporting/);assert.match(rendered,/10 are unmapped/);assert.match(rendered,/1 is an annual aggregate, not a current-operation measure/);assert.match(rendered,/1 is linkage readiness, not identity resolution or a merge/);assert.match(rendered,/1 is a publisher-active snapshot only, not continuous operation or completeness/);assert.match(rendered,/27 dimensions are within review window; 1 is stale; 7 are unmeasured; 10 are unmapped/);h.close();});
+
+test("v2.4 national summary rejects balanced semantic and review redistribution",async()=>{const value=await readExactZipIndustrySummaryV24(),h=harness(async()=>value),semantic={...value.temporal_qualification.semantic_dimension_counts,"source-defined-current":23,"non-active-reporting":9},review={...value.temporal_qualification.dimension_counts,"within-review-window":26,stale:2};assert.equal(h.render("validExactZipIndustrySummary",{...value,temporal_qualification:{...value.temporal_qualification,semantic_dimension_counts:semantic}}),false);assert.equal(h.render("validExactZipIndustrySummary",{...value,temporal_qualification:{...value.temporal_qualification,dimension_counts:review}}),false);});
+
+test("v2.5 national summary renders 46 dimensions and two snapshot-only semantics",async()=>{const value=await readExactZipIndustrySummaryV25(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);h.render("ExactZipIndustryNationalSummary");await flush();const rendered=text(h.render("ExactZipIndustryNationalSummary"));assert.match(rendered,/48,194 retained ZIP5 keys × 46 governed source dimensions = 2,216,924 evidence cells/);assert.match(rendered,/2 is a publisher-active snapshot only, not continuous operation or completeness/);assert.match(rendered,/D\.C\. active basic business license physical sites/);const balanced={...value.temporal_qualification.semantic_dimension_counts,"publisher-active-snapshot":1,"source-defined-current":25};assert.equal(h.render("validExactZipIndustrySummary",{...value,temporal_qualification:{...value.temporal_qualification,semantic_dimension_counts:balanced}}),false);h.close();});
 
 test("operational industry summary validates exact 9 by 51 state conservation and renders accessible drilldowns",async()=>{const evidence=await stateAccessIndustrySummary(),maintenance={industries:evidence.industries.map(row=>({id:row.id,label:row.id.replaceAll('-',' ')})),maintainedIndustries:['construction','health-care'],revision:4,semantics:'Maintenance intent only.'},h=harness(async url=>url.includes('/api/administration/')?maintenance:evidence);assert.equal(h.render('validOperationalIndustryEvidence',evidence),true);h.render('OperationalMaintenanceIntent');await flush();const tree=h.render('OperationalMaintenanceIntent'),value=text(tree);assert.equal(nodes(tree).filter(node=>node.type==='details').length,9);assert.equal(nodes(tree).filter(node=>node.type==='table').length,9);assert.equal(nodes(tree).filter(node=>node.type==='tr').length,9*52);assert.match(value,/State evidence details for construction/);assert.match(value,/Unknown — no retained temporal source key/);assert.match(value,/no crosswalk to retained exact-ZIP source dimensions is inferred/);h.close();});
 

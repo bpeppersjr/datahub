@@ -5,14 +5,15 @@ import { isDeepStrictEqual as same } from 'node:util';
 import { APP_ROOT } from './paths.mjs';
 import { mnSelectionReadJson as readJson, mnSelectionReadLines as readLines } from './mn-construction-retained-selection.mjs';
 import { readZipEntityResolutionEvidence, RELEASE as ZIP_ENTITY_RELEASE, RELEASE_SHA256 as ZIP_ENTITY_MANIFEST_SHA } from './zip-entity-resolution-evidence.mjs';
-import { readExactZipIndustryEvidenceV24 } from './national-exact-zip-industry-evidence-matrix-v2-4-reader.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualificationV24 } from './exact-zip-industry-temporal-qualification-v2-4.mjs';
-import { readExactZipIndustrySummaryV24 } from './exact-zip-industry-summary-v2-4.mjs';
-const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@2.4.0';
+import { readExactZipIndustryEvidenceV25 } from './national-exact-zip-industry-evidence-matrix-v2-5-reader.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV25 } from './exact-zip-industry-temporal-qualification-v2-5.mjs';
+import { readExactZipIndustrySummaryV25 } from './exact-zip-industry-summary-v2-5.mjs';
+const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@2.5.0';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliation } from './national-business-temporal-lifecycle-reconciliation.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from './national-business-temporal-lifecycle-reconciliation-v1-1.mjs';
 import { verifyNationalBusinessSourceStatusPosture } from './national-business-source-status-posture.mjs';
+import { verifyNationalBusinessCoRegistrationStatusPosture } from './national-business-co-registration-status-posture.mjs';
 import { readNewestNationalGoalCompletionMatrix } from './national-goal-completion-view.mjs';
 import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad-organization-authorization-program-view.mjs';
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
@@ -225,7 +226,7 @@ function entityGeographyRequirementComplete(value) {
 
 function validateGoalReadinessBindings(value) {
   const entity = value?.bindings?.zip_entity_resolution, industry = value?.bindings?.zip_industry_matrix,
-    temporal = value?.bindings?.temporal_claim_matrix, temporalReconciliation=value?.bindings?.temporal_lifecycle_reconciliation, publisherMembership=value?.bindings?.publisher_membership_reconciliation, sourceStatusPosture=value?.bindings?.source_status_posture, goal = value?.bindings?.goal_completion_matrix,
+    temporal = value?.bindings?.temporal_claim_matrix, temporalReconciliation=value?.bindings?.temporal_lifecycle_reconciliation, publisherMembership=value?.bindings?.publisher_membership_reconciliation, sourceStatusPosture=value?.bindings?.source_status_posture, coRegistrationStatusPosture=value?.bindings?.organization_assertion_status_posture, goal = value?.bindings?.goal_completion_matrix,
     broad = value?.bindings?.broad_organization_projection, lifecycle = value?.bindings?.lifecycle_eligibility,
     geographyRelationship = value?.bindings?.business_entity_geography_relationship,
     sourcePolicy = value?.bindings?.business_entity_source_policy_provenance;
@@ -235,23 +236,23 @@ function validateGoalReadinessBindings(value) {
     && entity.registration_sha256 === 'a99311cfc37b523a9a924555cceb21ab184c65d4192ad9dbe30a428e5da34c39'
     && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba', 'ZIP entity-resolution evidence pin/semantics');
   check(industry?.version === ZIP_INDUSTRY_VERSION
-    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-522a5236674ebbdd8163d71cc15fba49e3526feac916aee74be1bcbf01cb7d63'
-    && industry.registration_sha256 === '51ae2288a1fb0052f3e9d4ba7306878fdcbd116e92227cb1e2dc317a0bcb7022'
-    && industry.manifest_sha256 === '072ab5f6018ec9eb085f18a675535514268e1b2154f23ce26334ef66c0a5dc4b'
+    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-2cda66ffbd78232edeffea73167bfa9f151c885bd912e3f8025c6c18455b503b'
+    && industry.registration_sha256 === 'd2fbf0c26d276c5d1efc9c80d3680de6e1d5d15d1a32ea79150ae91417439df4'
+    && industry.manifest_sha256 === 'eee93f465d24575487e23c52781507f5543dfb593e9f3d76fde907597cba013b'
     && industry?.claims?.current_operations_verified === false
-    && industry?.claims?.publisher_status === 'ACTIVE'
+    && industry?.claims?.publisher_status === 'Active'
     && industry?.claims?.continuous_operation_verified === false
     && industry?.claims?.complete_all_businesses === false
-    && industry?.claims?.nonadditive_with_ca_abc_profiles === true
+    && industry?.claims?.nonadditive_with_dc_license_profiles === true
     && industry?.claims?.usps_validity === null&&industry?.claims?.zcta_is_zip_geometry===false
     &&industry?.claims?.public_export_authorized===false
     && industry?.claims?.production_enrollment === false
-    && industry?.zip5_rows===48194&&industry?.dimension_count===45&&industry?.industry_cells === 2168730
-    &&industry.temporal_qualification?.registration_sha256==='11966313c081be9e427fc4aebe28019f8244a820defe3be61fed1e46831c563e'
-    &&industry.temporal_qualification.dimension_count===45&&industry.temporal_qualification.qualification_cell_total===2168730&&industry.temporal_qualification.current_operations_verified===false
-    &&industry.national_summary?.registration_sha256==='431171101faa45a7e021f33a653fba552bc3a7e64249cbdc215b5edd46027d58'
-    &&industry.national_summary.dimension_count===45&&industry.national_summary.industry_cells===2168730
-    &&industry.national_summary.raw_status_cell_total===2168730&&industry.national_summary.derived_evidence_cell_total===2168730
+    && industry?.zip5_rows===48194&&industry?.dimension_count===46&&industry?.industry_cells === 2216924
+    &&industry.temporal_qualification?.registration_sha256==='a3315cdb19d2d6c34c31f91d77a9807e7ba07f0af5753c0eadb1ebf008ca5ff4'
+    &&industry.temporal_qualification.dimension_count===46&&industry.temporal_qualification.qualification_cell_total===2216924&&industry.temporal_qualification.current_operations_verified===false
+    &&industry.national_summary?.registration_sha256==='776803ff9c0172227f277ac444e6ef1114804fadf2c37bd8a163cdc8cdebcaf3'
+    &&industry.national_summary.dimension_count===46&&industry.national_summary.industry_cells===2216924
+    &&industry.national_summary.raw_status_cell_total===2216924&&industry.national_summary.derived_evidence_cell_total===2216924
     &&industry.national_summary.raw_status_preserved_separately===true
     &&industry.national_summary.current_operations_verified===false, 'ZIP industry matrix semantic boundary');
   check(temporal?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
@@ -271,6 +272,7 @@ function validateGoalReadinessBindings(value) {
     &&temporalReconciliation.active_business_count===null&&temporalReconciliation.completeness_percentage===null,'temporal lifecycle reconciliation binding');
   check(publisherMembership?.schema_version==='national-business-temporal-lifecycle-reconciliation@1.1.0'&&publisherMembership.publisher_cohort_assertion==='active-list-membership-without-row-status'&&publisherMembership.profile_count===633232&&publisherMembership.lifecycle_evidence==='unknown'&&publisherMembership.active_business_eligible_count===0&&publisherMembership.current_operations_verified===false&&publisherMembership.active_business_count===null&&publisherMembership.completeness_percentage===null,'publisher membership reconciliation binding');
   check(sourceStatusPosture?.profile_count===1958089&&sourceStatusPosture.non_primary_reporting_count===130691&&sourceStatusPosture.business_activity_status==='unmeasured'&&sourceStatusPosture.current_operations_verified===false&&sourceStatusPosture.active_business_eligible===false&&sourceStatusPosture.active_business_count===null&&sourceStatusPosture.completeness_percentage===null,'source status posture binding');
+  check(coRegistrationStatusPosture?.scope==='separate-organization-assertion-cohort'&&coRegistrationStatusPosture.good_standing_count===1019372&&coRegistrationStatusPosture.delinquent_count===1145439&&coRegistrationStatusPosture.location_profile_cohort_affected===false&&coRegistrationStatusPosture.current_operations_verified===false&&coRegistrationStatusPosture.active_business_eligible===false&&coRegistrationStatusPosture.active_business_count===null&&coRegistrationStatusPosture.completeness_percentage===null,'organization assertion status posture binding');
   check(goal?.schema_version === 'national-goal-completion-matrix@1.3.0' && /^national-goal-completion-\d{14}-[a-f0-9]{8}$/.test(goal.release_id ?? '')
     && goal?.jurisdiction_count === 51 && goal?.broad_layer_gaps === 40 && goal?.all_business_completion_percent === null
     && SHA.test(goal.manifest_sha256 ?? '') && SHA.test(goal.report_sha256 ?? '') && goal.manifest_path.endsWith(`/${goal.release_id}/manifest.json`),
@@ -544,6 +546,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         taxonomy_sha256:binding.temporal_lifecycle_reconciliation.taxonomy_sha256},
       publisher_membership_reconciliation: {release_id:binding.publisher_membership_reconciliation.release_id,manifest_sha256:binding.publisher_membership_reconciliation.manifest_sha256,registration_sha256:binding.publisher_membership_reconciliation.registration_sha256,profile_count:binding.publisher_membership_reconciliation.profile_count,publisher_cohort_assertion:binding.publisher_membership_reconciliation.publisher_cohort_assertion},
       source_status_posture:{release_id:binding.source_status_posture.release_id,manifest_sha256:binding.source_status_posture.manifest_sha256,profile_count:binding.source_status_posture.profile_count,business_activity_status:binding.source_status_posture.business_activity_status},
+      organization_assertion_status_posture:{release_id:binding.organization_assertion_status_posture.release_id,manifest_sha256:binding.organization_assertion_status_posture.manifest_sha256,scope:binding.organization_assertion_status_posture.scope,good_standing_count:binding.organization_assertion_status_posture.good_standing_count,delinquent_count:binding.organization_assertion_status_posture.delinquent_count},
       goal_completion_matrix: { release_id: binding.goal_completion_matrix.release_id, manifest_sha256: binding.goal_completion_matrix.manifest_sha256,
         report_sha256: binding.goal_completion_matrix.report_sha256 },
       broad_organization_projection: {
@@ -760,15 +763,16 @@ async function readVerifiedBusinessEntityGeographyBinding({ root = APP_ROOT, sig
 async function readObjectiveReadiness({ signal }) {
   signal?.throwIfAborted();
   const sampleZip = '00501';
-  const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, loadedGoal, broad, lifecycle] = await Promise.all([
+  const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, coRegistrationStatusPosture, loadedGoal, broad, lifecycle] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceV24({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceWithTemporalQualificationV24({zip5:sampleZip,signal}),
-    readExactZipIndustrySummaryV24({signal}),
+    readExactZipIndustryEvidenceV25({ zip5: sampleZip, signal }),
+    readExactZipIndustryEvidenceWithTemporalQualificationV25({zip5:sampleZip,signal}),
+    readExactZipIndustrySummaryV25({signal}),
     readNationalBusinessTemporalClaimRows({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliation({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliationV11({ signal }),
     verifyNationalBusinessSourceStatusPosture({ signal }),
+    verifyNationalBusinessCoRegistrationStatusPosture({ signal }),
     readNewestNationalGoalCompletionMatrix(),
     loadBroadOrganizationAuthorizationProgramManagementView(),
     readBusinessEntityLifecycleEligibilitySummary({ signal }).catch(error => {
@@ -790,29 +794,29 @@ async function readObjectiveReadiness({ signal }) {
     && reportingVerified.artifact_sha256 === REPORTING_SITES.artifact_sha256 && reportingVerified.summary.site_count === REPORTING_SITES.record_count,
     'verified reporting-only site qualification release');
   const [industryRegistration,industryTemporalRegistration,industrySummaryRegistration]=await Promise.all([
-    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v2-4.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v2-4.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v2-4.json',signal)]);
+    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v2-5.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v2-5.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v2-5.json',signal)]);
   const industryPin = industryRegistration.value.retained_release;
   check(industryRegistration.value.dataset_id === 'national-exact-zip-industry-evidence-matrix' && industryRegistration.value.runtime_pointer === null
     && industryRegistration.value.production_enrollment === false && industryPin?.release_id === industry.release_id
-    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===45
-    && industryPin?.industry_cells === 2168730&&industryRegistration.evidence.sha256==='51ae2288a1fb0052f3e9d4ba7306878fdcbd116e92227cb1e2dc317a0bcb7022', 'registered industry-matrix release binding');
-  check(industryTemporalRegistration.evidence.sha256==='11966313c081be9e427fc4aebe28019f8244a820defe3be61fed1e46831c563e'
+    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===46
+    && industryPin?.industry_cells === 2216924&&industryRegistration.evidence.sha256==='d2fbf0c26d276c5d1efc9c80d3680de6e1d5d15d1a32ea79150ae91417439df4', 'registered industry-matrix release binding');
+  check(industryTemporalRegistration.evidence.sha256==='a3315cdb19d2d6c34c31f91d77a9807e7ba07f0af5753c0eadb1ebf008ca5ff4'
     &&industryTemporalRegistration.value.matrix_release_id===industry.release_id&&industryTemporalRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industryTemporal.temporal_qualification.rows.length===45&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2168730
+    &&industryTemporal.temporal_qualification.rows.length===46&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2216924
     &&industryTemporal.temporal_qualification.claims.current_operations_verified===false&&industryTemporal.temporal_qualification.claims.active_business_count===null
-    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v2.4 temporal qualification binding');
-  check(industrySummaryRegistration.evidence.sha256==='431171101faa45a7e021f33a653fba552bc3a7e64249cbdc215b5edd46027d58'
+    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v2.5 temporal qualification binding');
+  check(industrySummaryRegistration.evidence.sha256==='776803ff9c0172227f277ac444e6ef1114804fadf2c37bd8a163cdc8cdebcaf3'
     &&industrySummaryRegistration.value.matrix_release_id===industry.release_id&&industrySummaryRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@2.4.0'&&industrySummary.release_id===industry.release_id
-    &&industrySummary.source_dimensions===45&&industrySummary.industry_cells===2168730
-    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2168730
-    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2168730
+    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@2.5.0'&&industrySummary.release_id===industry.release_id
+    &&industrySummary.source_dimensions===46&&industrySummary.industry_cells===2216924
+    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2216924
+    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2216924
     &&industrySummary.zbp_dispositions.every(row=>row.raw_status!==row.evidence_state)&&industrySummary.claims.current_operation_verified===false
-    &&industrySummary.claims.all_business_completeness===false,'v2.4 national summary binding');
+    &&industrySummary.claims.all_business_completeness===false,'v2.5 national summary binding');
   check(entity.available && entity.registration_sha256 && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'
     && entity.evidence?.entity_resolution_applied === false && entity.evidence?.benchmark_gate_passed === false, 'registered ZIP entity-resolution evidence');
-  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-522a5236674ebbdd8163d71cc15fba49e3526feac916aee74be1bcbf01cb7d63'
-    && industry.manifest_sha256 === '072ab5f6018ec9eb085f18a675535514268e1b2154f23ce26334ef66c0a5dc4b'
+  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-2cda66ffbd78232edeffea73167bfa9f151c885bd912e3f8025c6c18455b503b'
+    && industry.manifest_sha256 === 'eee93f465d24575487e23c52781507f5543dfb593e9f3d76fde907597cba013b'
     && industry.claims?.network_requests === 0 && industry.claims?.production_enrollment === false, 'registered ZIP industry matrix');
   check(temporal.rows.length === 30 && temporal.provenance?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
     && temporal.provenance?.manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05', 'selected temporal claim release');
@@ -930,11 +934,11 @@ async function readObjectiveReadiness({ signal }) {
       manifest_path: 'data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564/manifest.json',
       manifest_sha256: entity.manifest_sha256, source_release_id: ZIP_ENTITY_RELEASE, source_manifest_sha256: ZIP_ENTITY_MANIFEST_SHA,
       claims: { entity_resolution_applied: entity.evidence.entity_resolution_applied, benchmark_gate_passed: entity.evidence.benchmark_gate_passed } },
-    zip_industry_matrix: { registration_path: 'config/datasets/national-exact-zip-industry-evidence-matrix-v2-4.json', registration_sha256: industryRegistration.evidence.sha256,
+    zip_industry_matrix: { registration_path: 'config/datasets/national-exact-zip-industry-evidence-matrix-v2-5.json', registration_sha256: industryRegistration.evidence.sha256,
       release_id: industry.release_id, manifest_path: industryPin.manifest, manifest_sha256: industry.manifest_sha256, version: industry.schema_version,
       zip5_rows: industryPin.zip5_rows,dimension_count:industryPin.dimension_count, industry_cells: industryPin.industry_cells, claims: industry.claims,
-      temporal_qualification:{registration_path:'config/datasets/exact-zip-industry-temporal-qualification-v2-4.json',registration_sha256:industryTemporalRegistration.evidence.sha256,schema_version:industryTemporal.temporal_qualification.schema_version,dimension_count:industryTemporal.temporal_qualification.rows.length,qualification_cell_total:industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows,current_operations_verified:false,active_business_count:null,all_business_completion_percent:null},
-      national_summary:{registration_path:'config/datasets/national-exact-zip-industry-summary-v2-4.json',registration_sha256:industrySummaryRegistration.evidence.sha256,schema_version:industrySummary.schema_version,dimension_count:industrySummary.source_dimensions,industry_cells:industrySummary.industry_cells,raw_status_cell_total:Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0),derived_evidence_cell_total:Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0),raw_status_preserved_separately:true,current_operations_verified:false,all_business_completeness:false} },
+      temporal_qualification:{registration_path:'config/datasets/exact-zip-industry-temporal-qualification-v2-5.json',registration_sha256:industryTemporalRegistration.evidence.sha256,schema_version:industryTemporal.temporal_qualification.schema_version,dimension_count:industryTemporal.temporal_qualification.rows.length,qualification_cell_total:industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows,current_operations_verified:false,active_business_count:null,all_business_completion_percent:null},
+      national_summary:{registration_path:'config/datasets/national-exact-zip-industry-summary-v2-5.json',registration_sha256:industrySummaryRegistration.evidence.sha256,schema_version:industrySummary.schema_version,dimension_count:industrySummary.source_dimensions,industry_cells:industrySummary.industry_cells,raw_status_cell_total:Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0),derived_evidence_cell_total:Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0),raw_status_preserved_separately:true,current_operations_verified:false,all_business_completeness:false} },
     temporal_claim_matrix: { registration_path: 'config/datasets/national-business-temporal-claim-matrix.json', registration_sha256: temporalRegistration.evidence.sha256,
       release_id: temporal.provenance.release_id, manifest_path: selected[0].manifest_path, manifest_sha256: temporal.provenance.manifest_sha256, rows: temporal.rows.length,
       classification_counts: temporalClassCounts, summary: temporal.summary, claims: temporal.claims,
@@ -942,6 +946,7 @@ async function readObjectiveReadiness({ signal }) {
     temporal_lifecycle_reconciliation: temporalReconciliationBinding,
     publisher_membership_reconciliation: publisherMembershipBinding,
     source_status_posture:{release_id:sourceStatusPosture.provenance.release_id,manifest_sha256:sourceStatusPosture.provenance.manifest_sha256,registration_sha256:sourceStatusPosture.provenance.taxonomy_sha256,profile_count:sourceStatusPosture.posture.profile_count,non_primary_reporting_count:sourceStatusPosture.posture.non_primary_reporting_count,business_activity_status:'unmeasured',current_operations_verified:false,active_business_eligible:false,active_business_count:null,completeness_percentage:null},
+    organization_assertion_status_posture:{release_id:coRegistrationStatusPosture.provenance.release_id,manifest_sha256:coRegistrationStatusPosture.provenance.manifest_sha256,registration_sha256:coRegistrationStatusPosture.provenance.taxonomy_sha256,scope:coRegistrationStatusPosture.scope,good_standing_count:coRegistrationStatusPosture.posture.good_standing.organization_count,delinquent_count:coRegistrationStatusPosture.posture.delinquent.organization_count,location_profile_cohort_affected:false,current_operations_verified:false,active_business_eligible:false,active_business_count:null,completeness_percentage:null},
     goal_completion_matrix: { release_id: loadedGoal.report.release_id, manifest_path: goalManifestRel, manifest_sha256: goalManifest.evidence.sha256,
       report_sha256: goalManifest.value.artifacts?.[0]?.sha256, schema_version: loadedGoal.report.schema_version,
       jurisdiction_count: loadedGoal.report.jurisdictions.length, broad_layer_gaps: broadStateGapCount,

@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "national-business-co-registration-status-posture",
+  "status": "registered-pointer-pinned-local-review-only",
+  "scope": "separate-organization-assertion-cohort",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "bindings": {
+    "pointer": { "path": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/current.json", "sha256": "d6100098eb40af1a81933a61797fc195fcc10843c5151fc0435beb77f459cbcd" },
+    "manifest": { "path": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/releases/co-business-registry-20260903-002916547Z-ed08beca/manifest.json", "sha256": "861cc6199e5222ae672bdcf6df3ee0daf2f6060882d36faa3ae398b13d24db36" },
+    "source_summary": { "path": "data/business-sources/co-business-registry-good-standing-or-delinquent-organizations/releases/co-business-registry-20260903-002916547Z-ed08beca/derived/source-summary.json", "sha256": "2cac581397654d3d2fa0b91f5bb00304018cc2d6260156494b1403e4ba381808" },
+    "dataset_registration": { "path": "config/datasets/co-business-registry-good-standing-or-delinquent-organizations.json", "sha256": "dc5737721d7bd5c1804e52ca8dab00ed08efa4fd19a9bcb18a7bd962110de7d8" },
+    "source_policy": { "path": "config/source-policies/co-business-registry.json", "sha256": "064d28cd7106e30d051fc67e7409c921a306b3b188c07a2984ff32fdb0fef8d1" },
+    "record_schema": { "path": "config/schemas/co-business-registry-organization.schema.json", "sha256": "85745504349a8e1ed50a316de179c981cf332eb156024132e73a3c8855b8f1d9" },
+    "lifecycle_taxonomy": { "path": "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json", "sha256": "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc" }
+  },
+  "expected": { "source_rows": 2164812, "published_organizations": 2164811, "quarantined_rows": 1, "good_standing": 1019372, "delinquent": 1145439, "eligible_us_address": 2150360, "without_eligible_us_zip": 14451 },
+  "claims": { "current_operations_verified": false, "active_business_eligible": false, "active_business_count": null, "completeness_percentage": null, "location_profile_cohort_affected": false, "network_requests": 0, "production_enrollment": false }
+}

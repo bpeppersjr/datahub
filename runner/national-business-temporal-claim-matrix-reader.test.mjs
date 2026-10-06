@@ -6,11 +6,11 @@ import {
   readNationalBusinessTemporalClaimRows,
 } from "./national-business-temporal-claim-matrix-reader.mjs";
 
-test("reads the selected pointer-free temporal matrix and preserves unknown all-business claims", async () => {
+test("reads the selected temporal matrix with pinned local supplemental postures and preserves unknown all-business claims", async () => {
   const view = await readNationalBusinessTemporalClaimMatrix();
   assert.equal(
     view.schema_version,
-    "national-business-temporal-claim-matrix-view@1.1.0",
+    "national-business-temporal-claim-matrix-view@1.2.0",
   );
   assert.equal(view.available, true);
   assert.equal(
@@ -38,6 +38,10 @@ test("reads the selected pointer-free temporal matrix and preserves unknown all-
     row_status: "null",
     lifecycle_evidence: "unknown",
   });
+  assert.deepEqual(view.source_status_posture, { source_id: "cms-nppes-monthly-v2", status: "source-defined-current-registration-status", profile_count: 1958089, non_primary_reporting_count: 130691 });
+  assert.deepEqual(view.organization_assertion_status_posture, { source_id: "co-business-registry", good_standing: { status: "source-defined-current-registry-standing", organization_count: 1019372 }, delinquent: { status: "non-active-reporting", organization_count: 1145439 } });
+  assert.equal(view.provenance.source_status_posture.access_mode, "pointer-pinned-local-only");
+  assert.equal(view.provenance.organization_assertion_status_posture.scope, "separate-organization-assertion-cohort");
   assert.equal(
     view.provenance.temporal.release_id,
     "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
@@ -69,7 +73,7 @@ test("reads the selected pointer-free temporal matrix and preserves unknown all-
   assert.equal(view.claims.completeness_percentage, null);
 });
 
-test("reader remains bounded, pointer-free and contains no acquisition path", async () => {
+test("reader remains bounded and contains no acquisition path or pointer mutation", async () => {
   const code = await readFile(
     new URL(
       "./national-business-temporal-claim-matrix-reader.mjs",

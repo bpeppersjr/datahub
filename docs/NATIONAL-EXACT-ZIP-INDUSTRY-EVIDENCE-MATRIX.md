@@ -62,3 +62,7 @@ The pointer-free v2.3 successor adds `cross_source_entity_resolution_linkage_evi
 # California ABC physical-site successor dimension
 
 The pointer-free v2.4 successor adds `ca_abc_active_issued_license_physical_sites`: 2,920 positive ZIPs totaling 84,497 normalized sites, 34,908 measured-zero rows inside the retained source denominator, and 10,366 outside-denominator nulls. Publisher `ACTIVE` is snapshot license evidence, not independently verified continuous operation; 3,155 selected source-active rows had expiration before observation. The dimension overlaps the existing California ABC profile dimension and is nonadditive. Completeness and USPS validity remain false or null, inherited sidecars remain byte-identical, and no new ZIP gap artifact is created.
+
+# District of Columbia active-license site successor
+
+The pointer-free v2.5 successor adds `dc_active_basic_business_license_physical_sites`: 3,125 positive ZIPs totaling 54,910 normalized sites, 34,703 measured-zero rows inside the retained denominator, and 10,366 outside-denominator nulls. Publisher Active status is snapshot evidence, not independently verified continuous operation. The dimension overlaps the existing DC license-profile dimension and is nonadditive. Source-reported DC versus other-state premises and geocode counts remain conservation metadata, not jurisdiction reassignment. Completeness and USPS validity remain false or null; inherited sidecars are unchanged and no new ZIP gap artifact is created.

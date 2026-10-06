@@ -173,15 +173,15 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-522a5236674ebbdd8163d71cc15fba49e3526feac916aee74be1bcbf01cb7d63');
-  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'51ae2288a1fb0052f3e9d4ba7306878fdcbd116e92227cb1e2dc317a0bcb7022');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '072ab5f6018ec9eb085f18a675535514268e1b2154f23ce26334ef66c0a5dc4b');
-  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,45,2168730]);
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'11966313c081be9e427fc4aebe28019f8244a820defe3be61fed1e46831c563e');
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2168730);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'431171101faa45a7e021f33a653fba552bc3a7e64249cbdc215b5edd46027d58');
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2168730);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2168730);
+assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-2cda66ffbd78232edeffea73167bfa9f151c885bd912e3f8025c6c18455b503b');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'d2fbf0c26d276c5d1efc9c80d3680de6e1d5d15d1a32ea79150ae91417439df4');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, 'eee93f465d24575487e23c52781507f5543dfb593e9f3d76fde907597cba013b');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,46,2216924]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'a3315cdb19d2d6c34c31f91d77a9807e7ba07f0af5753c0eadb1ebf008ca5ff4');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2216924);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'776803ff9c0172227f277ac444e6ef1114804fadf2c37bd8a163cdc8cdebcaf3');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2216924);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2216924);
   assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');

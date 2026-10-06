@@ -5,6 +5,7 @@ import { mnSelectionReadJson as readJson } from "./mn-construction-retained-sele
 import { verifyNationalBusinessTemporalLifecycleReconciliation } from "./national-business-temporal-lifecycle-reconciliation.mjs";
 import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from "./national-business-temporal-lifecycle-reconciliation-v1-1.mjs";
 import { verifyNationalBusinessSourceStatusPosture } from "./national-business-source-status-posture.mjs";
+import { verifyNationalBusinessCoRegistrationStatusPosture } from "./national-business-co-registration-status-posture.mjs";
 
 const SHA = /^[a-f0-9]{64}$/;
 const RELEASE = /^national-business-temporal-claim-matrix-[a-f0-9]{64}$/;
@@ -285,7 +286,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
       (opts.includeRows === undefined || typeof opts.includeRows === "boolean"),
   );
   const raw = await readMatrix({ root: opts.root, signal: opts.signal }),
-    [reconciliation, membership, sourceStatusPosture] = await Promise.all([
+    [reconciliation, membership, sourceStatusPosture, coRegistrationStatusPosture] = await Promise.all([
       verifyNationalBusinessTemporalLifecycleReconciliation({
         root: opts.root,
         signal: opts.signal,
@@ -295,6 +296,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
         signal: opts.signal,
       }),
       verifyNationalBusinessSourceStatusPosture({ root: opts.root, signal: opts.signal }),
+      verifyNationalBusinessCoRegistrationStatusPosture({ root: opts.root, signal: opts.signal }),
     ]);
   const summary = reconciliation.summary,
     mismatch = reconciliation.mismatch,
@@ -317,7 +319,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
       provenance.temporal.artifact_sha256 === raw.provenance.artifact_sha256,
   );
   return {
-    schema_version: "national-business-temporal-claim-matrix-view@1.1.0",
+    schema_version: "national-business-temporal-claim-matrix-view@1.2.0",
     available: true,
     scope: "effective-profile-classification-with-source-cohort-provenance",
     summary: {
@@ -360,6 +362,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
     },
     publisher_membership: membership.publisher_membership,
     source_status_posture: sourceStatusPosture.posture,
+    organization_assertion_status_posture: coRegistrationStatusPosture.posture,
     mismatch: {
       source_key: mismatch.source_key,
       profile_source_id: mismatch.profile_source_id,
@@ -392,7 +395,8 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
         source_artifact_sha256: membership.provenance.source_artifact_sha256,
         source_summary_sha256: membership.provenance.source_summary_sha256,
       },
-      source_status_posture: { registration_path: sourceStatusPosture.registration_path, manifest_sha256: sourceStatusPosture.provenance.manifest_sha256, taxonomy_sha256: sourceStatusPosture.provenance.taxonomy_sha256 },
+      source_status_posture: { registration_path: sourceStatusPosture.registration_path, access_mode: "pointer-pinned-local-only", pointer_sha256: sourceStatusPosture.provenance.pointer_sha256, manifest_sha256: sourceStatusPosture.provenance.manifest_sha256, taxonomy_sha256: sourceStatusPosture.provenance.taxonomy_sha256 },
+      organization_assertion_status_posture: { registration_path: coRegistrationStatusPosture.registration_path, scope: coRegistrationStatusPosture.scope, pointer_sha256: coRegistrationStatusPosture.provenance.pointer_sha256, manifest_sha256: coRegistrationStatusPosture.provenance.manifest_sha256, source_summary_sha256: coRegistrationStatusPosture.provenance.source_summary_sha256, taxonomy_sha256: coRegistrationStatusPosture.provenance.taxonomy_sha256 },
     },
     claims: {
       network_requests: 0,
