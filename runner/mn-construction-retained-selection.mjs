@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, realpath, mkdir, open, readdir, link, unlink, rmdir, statfs } from 'node:fs/promises';
 import { Readable } from 'node:stream';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
 import { mnConstructionFailure } from './mn-construction-diagnostics.mjs';
@@ -36,7 +37,7 @@ async function canonical(target,{create=false,output=false,signal}={}) {
 }
 async function *readChunks(file,maximum,signal,meter={}) {
   await canonical(path.dirname(file),{signal});signal?.throwIfAborted();
-  const initial=await lstat(file,{bigint:true});check(initial.isFile()&&!initial.isSymbolicLink()&&initial.nlink===1n&&initial.size<=BigInt(maximum),'bounded single-link input');
+  const initial=await observeBoundedSingleLink(file,maximum,signal);
   const handle=await open(file,'r');const digest=hash();let consumed=0;
   try{
     check(sameFile(initial,await handle.stat({bigint:true})),'read ownership');
@@ -46,6 +47,24 @@ async function *readChunks(file,maximum,signal,meter={}) {
     check(stableFile(initial,after)&&stableFile(initial,named)&&BigInt(consumed)===initial.size,'read changed');
     meter.bytes=consumed;meter.sha256=digest.digest('hex');meter.identity=after;
   }finally{await handle.close();}
+}
+/**
+ * Windows can briefly report an extra link while a local no-overwrite publication
+ * commit is settling. Require one stable identity and a single-link observation
+ * within a small bounded window; persistent hardlinks remain rejected.
+ */
+export async function observeBoundedSingleLink(file,maximum,signal,{stat=lstat,pause=delay,attempts=4}={}) {
+  let identity;
+  for(let attempt=0;attempt<attempts;attempt++){
+    signal?.throwIfAborted();const current=await stat(file,{bigint:true});
+    check(current.isFile()&&!current.isSymbolicLink()&&current.size<=BigInt(maximum),'bounded single-link input');
+    if(identity)check(identity.dev===current.dev&&identity.ino===current.ino&&identity.size===current.size,'bounded input identity changed');
+    else identity=current;
+    if(current.nlink===1n)return current;
+    if(current.nlink<1n||attempt===attempts-1)check(false,'bounded single-link input');
+    await pause(25*(2**attempt),undefined,{signal});
+  }
+  check(false,'bounded single-link input');
 }
 async function readJson(file,maximum,signal,meter={}){const chunks=[];for await(const chunk of readChunks(file,maximum,signal,meter))chunks.push(chunk);return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));}
 export async function *mnSelectionReadLines(file,maximum,signal,meter={}) {
