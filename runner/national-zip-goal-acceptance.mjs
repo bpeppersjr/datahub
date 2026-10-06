@@ -327,11 +327,11 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
-  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-86c0f274be2e5c350c36aabdd301cde101826aebc705dd1cd995f0c8b42c5649'
+  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d'
     && sourcePolicy.registration_path === 'config/datasets/business-entity-source-policy-provenance.json'
-    && sourcePolicy.registration_sha256 === '6c98e38b8c8605f5b3974c84cc5ce7dbc6c26886af184ccf8a7890ea6732fcb1'
-    && sourcePolicy.manifest_sha256 === '8da166fa132f61213d8544ac50387b01f3bd94242198b50469c53ec236e733ca'
-    && sourcePolicy.artifact_sha256 === '51113c1bc69589ebfbccd328d87f434216909bb719ae06cfae167aab74b8de25'
+    && sourcePolicy.registration_sha256 === '5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76'
+    && sourcePolicy.manifest_sha256 === '51bbf629fdb1fa55efb60ca6fc0fad67a779f0016c9ecbc74bf668dc3cb13355'
+    && sourcePolicy.artifact_sha256 === 'b2943263ee1b29fd2bc13373037b322b7505e0af408bb17d4528cc00a2686871'
     && sourcePolicy.source_count === 15 && sourcePolicy.profile_count === 8011835
     && sourcePolicy.registry_release_id === lifecycle.registry_release_id
     && sourcePolicy.registry_manifest_sha256 === lifecycle.registry_manifest_sha256
@@ -393,7 +393,7 @@ function validateGoalReadinessBindings(value) {
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
-  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-86c0f274be2e5c350c36aabdd301cde101826aebc705dd1cd995f0c8b42c5649',
+  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d',
     'source-policy inventory binding absent');
   return true;
 }

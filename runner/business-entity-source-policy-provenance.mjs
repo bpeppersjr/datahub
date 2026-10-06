@@ -13,7 +13,7 @@ const LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114
 const LIFECYCLE_SHA = 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae';
 const TAXONOMY_SHA = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
 const AS_OF = '2026-10-02T16:30:00.000Z';
-const REGISTRATION_SHA = '6c98e38b8c8605f5b3974c84cc5ce7dbc6c26886af184ccf8a7890ea6732fcb1';
+const REGISTRATION_SHA = '5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76';
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business-entity source-policy provenance contract rejected.') => { if (!value) throw new Error(message); };
 const hash = value => createHash('sha256').update(value).digest('hex');
