@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.9.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v1-9/releases/national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003/manifest.json",
+    "manifest_sha256": "aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1",
+    "zip5_rows": 48194,
+    "dimension_count": 40,
+    "industry_cells": 1927760,
+    "artifact_count": 100,
+    "max_prefix_artifact_bytes": 14123524
+  },
+  "claims": {
+    "wa_broad_jurisdiction_gap_complete": false,
+    "physical_site_inference_permitted": false,
+    "establishment_inference_permitted": false,
+    "current_operations_verified": false,
+    "all_business_completeness_percent": null,
+    "nonadditive": true,
+    "record_level_export_policy": "local-review-only",
+    "aggregate_export_policy": "public-under-pddl-with-attribution-and-semantic-limitations",
+    "zip4_joined_to_zip5": false,
+    "production_enrollment": false,
+    "network_requests": 0,
+    "current_pointer_written": false
+  },
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}

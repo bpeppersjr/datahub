@@ -1,16 +1,16 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "dataset_id": "state-exact-zip-industry-evidence-disposition",
   "status": "registered-pointer-free-local-review-evidence",
   "runtime_pointer": null,
   "production_enrollment": false,
   "retained_release": {
-    "release_id": "state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd",
-    "manifest": "data/state-exact-zip-industry-evidence-disposition/releases/state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd/manifest.json",
-    "manifest_sha256": "ba434ac7cfc67963291a338e50995453d34bb1dd79b4cb69b86504a95b3b4213",
-    "manifest_bytes": 5426,
-    "artifact_sha256": "456c23c36863adc4974d7a79d5aa19d5813b4d6e5e6473fc1d2ef24a62c9e264",
-    "artifact_bytes": 5772604,
+    "release_id": "state-exact-zip-industry-evidence-disposition-2e71fa9aa3aee1398399674634d5537fc33c19427f1dfa9d97196656c841689c",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition/releases/state-exact-zip-industry-evidence-disposition-2e71fa9aa3aee1398399674634d5537fc33c19427f1dfa9d97196656c841689c/manifest.json",
+    "manifest_sha256": "d2f2114dfdbf6788eea0dd2335c9a9383673d61baf557486ebd2e8aba7ffbf41",
+    "manifest_bytes": 5431,
+    "artifact_sha256": "d29f7047dfe713fd9e95ede930edd0d2642eaa59158e3d2398ee3d5945658c84",
+    "artifact_bytes": 5923582,
     "scope_rows": 60,
     "state_scope_rows": 51,
     "territory_scope_rows": 5,
@@ -26,9 +26,9 @@
       "non-zcta-unassigned": 14402,
       "explicit-placeholder": 1
     },
-    "industry_dimensions": 39,
-    "joined_cell_total": 1879566,
-    "disposition_rows": 2340
+    "industry_dimensions": 40,
+    "joined_cell_total": 1927760,
+    "disposition_rows": 2400
   },
   "claims": {
     "polygon_area_only_not_business_location": true,

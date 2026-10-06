@@ -26,16 +26,16 @@ const statuses = ["positive", "measured-zero", "outside-source-denominator", "ab
 const lifecycles = ["source-defined-current-positive-within-review-window", "source-defined-current-without-positive-evidence", "non-active-reporting-positive", "non-active-reporting-without-positive-evidence", "stale", "unmeasured", "unmapped"];
 function view(state = "MD") {
   const joined = Object.fromEntries(statuses.flatMap((cell) => lifecycles.map((lifecycle) => [`${cell}|${lifecycle}`, cell === "positive" && lifecycle === "source-defined-current-positive-within-review-window" ? 2 : 0])));
-  return { schema_version: "state-exact-zip-industry-evidence-disposition@1.0.0", status: "present", release_id: "state-exact-zip-industry-evidence-disposition-fixture", manifest_sha256: "a".repeat(64), source_bytes_read: 100, full_matrix_replay_performed: false, scope_id: `state:${state}`, scope_label: "Maryland state disposition",
+  return { schema_version: "state-exact-zip-industry-evidence-disposition@1.1.0", status: "present", release_id: "state-exact-zip-industry-evidence-disposition-fixture", manifest_sha256: "a".repeat(64), source_bytes_read: 100, full_matrix_replay_performed: false, scope_id: `state:${state}`, scope_label: "Maryland state disposition",
     geography_scope_counts: { state: 33455, territory: 149, "multi-state-material": 184, "zcta-overlay-unresolved": 3, "non-zcta-unassigned": 14402, "explicit-placeholder": 1 },
-    row: { scope_id: `state:${state}`, scope_label: "Maryland state disposition", state_geo_id: "state:24", state_fips: "24", state_name: "Maryland", postal_abbreviation: state, zip5_rows: 2, zcta_linked_zip5_rows: 2, dimensions: Object.fromEntries(Array.from({ length: 39 }, (_, index) => [`source-${index}`, { source_id: `source-${index}`, zip5_rows: 2, count_sum: 2, by_cell_status: { positive: 2, "measured-zero": 0, "outside-source-denominator": 0, "absent-from-retained-source-rows": 0, unavailable: 0 }, by_lifecycle_status: { "source-defined-current-positive-within-review-window": 2, "source-defined-current-without-positive-evidence": 0, "non-active-reporting-positive": 0, "non-active-reporting-without-positive-evidence": 0, stale: 0, unmeasured: 0, unmapped: 0 }, joined: { cell_total: 2, numeric_cell_count: 2, null_cell_count: 0, evidence_count: 2, by_cell_status_and_lifecycle: joined } }])) },
+    row: { scope_id: `state:${state}`, scope_label: "Maryland state disposition", state_geo_id: "state:24", state_fips: "24", state_name: "Maryland", postal_abbreviation: state, zip5_rows: 2, zcta_linked_zip5_rows: 2, dimensions: Object.fromEntries(Array.from({ length: 40 }, (_, index) => [`source-${index}`, { source_id: `source-${index}`, zip5_rows: 2, count_sum: 2, by_cell_status: { positive: 2, "measured-zero": 0, "outside-source-denominator": 0, "absent-from-retained-source-rows": 0, unavailable: 0 }, by_lifecycle_status: { "source-defined-current-positive-within-review-window": 2, "source-defined-current-without-positive-evidence": 0, "non-active-reporting-positive": 0, "non-active-reporting-without-positive-evidence": 0, stale: 0, unmeasured: 0, unmapped: 0 }, joined: { cell_total: 2, numeric_cell_count: 2, null_cell_count: 0, evidence_count: 2, by_cell_status_and_lifecycle: joined } }])) },
     claims: { polygon_area_only_not_business_location: true, usps_zip_state_assignment: false, fractional_allocation: false, current_operation_verified: false, additive_cross_industry_total: false, network_requests: 0, current_pointer_written: false, production_enrollment: false } };
 }
 
 test("state evidence panel preserves the independent availability denominator and unassigned scopes", async () => {
   const h = harness(async () => view());
   h.render({ state: "MD" }); await flush(); const tree = h.render({ state: "MD" }), value = text(tree);
-  assert.match(value, /39 retained source dimensions/);
+  assert.match(value, /40 retained source dimensions/);
   assert.match(value, /joined dispositions/);
   assert.match(value, /positive \/ source-defined-current-positive-within-review-window: 2/);
   assert.match(value, /Source-defined current/);
@@ -45,7 +45,7 @@ test("state evidence panel preserves the independent availability denominator an
   assert.match(value, /14,402 non-ZCTA keys/);
   assert.match(value, /independent of the 8\/11-dataset availability denominator/);
   assert.match(value, /not businesses, all-business completeness, or verified current operation/);
-  assert.equal(nodes(tree).filter((node) => node.props?.scope === "row").length, 39);
+  assert.equal(nodes(tree).filter((node) => node.props?.scope === "row").length, 40);
   h.close();
 });
 

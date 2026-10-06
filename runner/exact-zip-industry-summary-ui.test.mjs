@@ -7,7 +7,7 @@ const source = await readFile(
 );
 test("industry summary exposes bounded national exact-ZIP matrix and non-ZCTA status without completeness claims", () => {
   for (const phrase of [
-    "National exact-ZIP evidence matrix",
+    "Retained source-dimension status",
     "Joined evidence disposition:",
     "source-specific evidence cells, not business counts",
     "no disposition verifies current operation",
@@ -27,7 +27,7 @@ test("industry summary exposes bounded national exact-ZIP matrix and non-ZCTA st
     "source-contributed keys",
     "denominator-only keys",
     "Non-ZCTA status does not mean an invalid ZIP",
-    "All 39 source dimensions",
+    "All {view.source_dimensions} governed source dimensions",
     "Source dimension / retained source release",
     "No temporal source mapping",
     "No retained source release mapped",
@@ -55,7 +55,7 @@ test("industry summary exposes bounded national exact-ZIP matrix and non-ZCTA st
     "Temporal qualification",
     "Geography cohort",
     "Resolution evidence",
-    "Industries outside these 39 dimensions are unavailable",
+    "Industries outside these {view.source_dimensions} dimensions are unavailable",
     "not an authoritative current USPS denominator or all-business completeness",
     "Source dimensions overlap and are not additive",
     "Current operation is not independently verified",

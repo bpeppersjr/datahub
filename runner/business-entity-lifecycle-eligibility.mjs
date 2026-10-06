@@ -19,6 +19,7 @@ const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-f37556f8722c5
 const SELECTED_MANIFEST_SHA256 = 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae';
 const SELECTED_TAXONOMY_SHA256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
 const SELECTED_REGISTRATION_SHA256 = 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035';
+const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503', manifest_sha256: '771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e', artifact_sha256: '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed', assessment_as_of: AS_OF });
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business entity lifecycle eligibility contract rejected.') => { if (!value) throw new Error(message); };
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -203,9 +204,9 @@ export async function readBusinessEntityLifecycleEligibilityPartition({ root = A
   check(actual.taxonomy_sha256 === SELECTED_TAXONOMY_SHA256 && manifest.bindings.taxonomy.sha256 === actual.taxonomy_sha256
     && manifest.bindings.registry.release_id === actual.registry.release_id && manifest.bindings.registry.manifest_sha256 === actual.registry.manifest_sha256
     && manifest.bindings.temporal.release_id === actual.temporal.release_id && manifest.bindings.temporal.manifest_sha256 === actual.temporal.manifest_sha256
-    && manifest.bindings.qualification.release_id === actual.qualification.release_id && manifest.bindings.qualification.manifest_sha256 === actual.qualification.manifest_sha256
+    && manifest.bindings.qualification.release_id === HISTORICAL_QUALIFICATION.release_id && manifest.bindings.qualification.manifest_sha256 === HISTORICAL_QUALIFICATION.manifest_sha256
     && stable(manifest.bindings.temporal) === stable({ release_id: actual.temporal.release_id, manifest_sha256: actual.temporal.manifest_sha256, artifact_sha256: actual.temporal.artifact_sha256 })
-    && stable(manifest.bindings.qualification) === stable(actual.qualification));
+    && stable(manifest.bindings.qualification) === stable(HISTORICAL_QUALIFICATION));
   const artifact = manifest.artifacts.find(item => item.path === `decisions/zip2=${zip2}.jsonl.gz`);
   check(artifact && artifact.artifact_type === 'business-entity-lifecycle-decision-jsonl-gzip' && artifact.record_count > 0
     && Number.isSafeInteger(artifact.bytes) && artifact.bytes > 0 && SHA.test(artifact.sha256));
@@ -267,7 +268,7 @@ export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP
     && stable(manifest.claims) === stable({ current_operation_verified: false, active_business_eligible: false, identity_resolution_applied: false,
       registry_bytes_modified: false, source_acquisition_performed: false, current_pointer_written: false, production_enrollment: false }),
   'Lifecycle selected manifest is unavailable or incompatible.');
-  const input = await readBindings(root, signal), expectedBindings = bindingObject(input);
+  const input = await readBindings(root, signal), expectedBindings = {...bindingObject(input),qualification:HISTORICAL_QUALIFICATION};
   check(stable(manifest.bindings) === stable(expectedBindings) && input.taxonomy_sha256 === SELECTED_TAXONOMY_SHA256,
     'Lifecycle selected upstream lineage is incompatible.');
   const artifacts = manifest.artifacts;
@@ -284,7 +285,7 @@ export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP
     && stable(summary.review_status_counts) === stable({ 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 })
     && stable(summary.lifecycle_evidence_counts) === stable({ 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 })
     && stable(summary.exception_counts) === stable({ la_null_source_status: 633232, ca_expiration_before_observation_profiles: 2667, ny_retail_food_stale_non_active: 24230 })
-    && stable(summary.bindings) === stable({ registry_release_id: input.registry.release_id, temporal_release_id: input.temporal.release_id, qualification_release_id: input.qualification.release_id }),
+    && stable(summary.bindings) === stable({ registry_release_id: input.registry.release_id, temporal_release_id: input.temporal.release_id, qualification_release_id: HISTORICAL_QUALIFICATION.release_id }),
   'Lifecycle selected summary conservation differs from the audited cohort.');
   return {
     schema_version: BUSINESS_ENTITY_LIFECYCLE_VERSION,

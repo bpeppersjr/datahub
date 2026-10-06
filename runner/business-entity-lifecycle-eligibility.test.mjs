@@ -27,7 +27,7 @@ test('lifecycle taxonomy exhaustively pins the retained 15 profile cohorts and 1
   assert.equal(input.registry.release_id, 'national-business-registry-20260911-022652067Z-1ec656c3');
   assert.equal(input.registry.manifest_sha256, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
   assert.equal(input.temporal.release_id, 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090');
-  assert.equal(input.qualification.release_id, 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503');
+  assert.equal(input.qualification.release_id, 'exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee');
 });
 
 test('bounded lifecycle summary binds registration, selected manifest, inventory, lineage and exact conservation', async () => {

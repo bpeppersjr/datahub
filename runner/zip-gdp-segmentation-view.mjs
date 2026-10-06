@@ -8,8 +8,8 @@ const fail = (message = "ZIP GDP segmentation view is unavailable or incompatibl
 const DIMENSIONS = Object.freeze(["race", "ancestry_lineage", "sex", "age"]);
 const SHA256 = /^[a-f0-9]{64}$/;
 const INDUSTRY_RELEASE = /^national-exact-zip-industry-evidence-matrix-([a-f0-9]{64})$/;
-const TEMPORAL_QUALIFICATION_RELEASE="exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503";
-const TEMPORAL_QUALIFICATION_MANIFEST="771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e";
+const TEMPORAL_QUALIFICATION_RELEASE="exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee";
+const TEMPORAL_QUALIFICATION_MANIFEST="c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409";
 
 function validCurrentReadiness(view, zcta) {
   if (view?.schema_version !== "zcta-gdp-execution-readiness-view@1.0.0" || view.zcta !== zcta
@@ -54,21 +54,20 @@ function projectedIndustryValue(cell) {
 function validatedIndustryEvidence(cross, zip5) {
   const evidence = cross?.industry_evidence;
   const releaseMatch = INDUSTRY_RELEASE.exec(evidence?.release_id ?? "");
-  if (evidence?.schema_version !== "national-exact-zip-industry-evidence-matrix@1.8.0"
+  if (evidence?.schema_version !== "national-exact-zip-industry-evidence-matrix@1.9.0"
       || evidence.status !== "present"
       || !SHA256.test(evidence.manifest_sha256 ?? "")
       || !releaseMatch
-      || !Array.isArray(evidence.out_of_cohort_source_zip_gaps)
-      || !Array.isArray(evidence.source_quality_gaps)
-      || !Array.isArray(evidence.source_address_row_gaps)
-      || !evidence.claims || evidence.claims.additive_cross_industry_total !== false
-      || evidence.claims.current_operation_verified !== false
-      || evidence.claims.all_business_completeness !== false) fail();
+      || !evidence.claims || evidence.claims.nonadditive !== true
+      || evidence.claims.current_operations_verified !== false
+      || evidence.claims.all_business_completeness_percent !== null
+      || evidence.claims.physical_site_inference_permitted !== false
+      || evidence.claims.production_enrollment !== false) fail();
   const temporal=evidence.temporal_qualification;
-  if(!['exact-zip-industry-temporal-qualification@1.0.0','exact-zip-industry-temporal-qualification-view@1.1.0'].includes(temporal?.schema_version)||temporal.zip5!==zip5||temporal.assessment_as_of!=='2026-10-02T16:30:00.000Z'||temporal.claims?.current_operations_verified!==false||temporal.claims?.acquisition_performed!==false||temporal.claims?.network_requests!==0||temporal.claims?.current_pointer_written!==false||temporal.claims?.production_enrollment!==false||temporal.rows?.length!==39||temporal.provenance?.release_id!==TEMPORAL_QUALIFICATION_RELEASE||temporal.provenance?.manifest_sha256!==TEMPORAL_QUALIFICATION_MANIFEST||!SHA256.test(temporal.provenance.artifact_sha256??''))fail();
+  if(temporal?.schema_version!=='exact-zip-industry-temporal-qualification-view@1.1.0'||temporal.zip5!==zip5||temporal.assessment_as_of!=='2026-10-02T16:30:00.000Z'||temporal.claims?.current_operations_verified!==false||temporal.claims?.acquisition_performed!==false||temporal.claims?.network_requests!==0||temporal.claims?.current_pointer_written!==false||temporal.claims?.production_enrollment!==false||temporal.rows?.length!==40||temporal.provenance?.release_id!==TEMPORAL_QUALIFICATION_RELEASE||temporal.provenance?.manifest_sha256!==TEMPORAL_QUALIFICATION_MANIFEST||!SHA256.test(temporal.provenance.artifact_sha256??''))fail();
   const row = evidence.row;
   if (row === null) return { evidence, cells: {} };
-  if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.8.0"
+  if (row?.schema_version !== "national-exact-zip-industry-evidence-matrix-row@1.9.0"
       || row.zip5 !== zip5 || row.zip4 !== null || !row.cells
       || typeof row.cells !== "object" || Array.isArray(row.cells)) fail();
   for (const cell of Object.values(row.cells)) projectedIndustryValue(cell);

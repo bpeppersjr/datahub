@@ -1487,7 +1487,9 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       lifecycle.taxonomy_path !== "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json" ||
       lifecycle.registry_release_id !== "national-business-registry-20260911-022652067Z-1ec656c3" ||
       lifecycle.temporal_release_id !== "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090" ||
-      lifecycle.qualification_release_id !== "exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503" ||
+      lifecycle.qualification_release_id !== "exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee" ||
+      lifecycle.qualification_manifest_sha256 !== "c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409" ||
+      lifecycle.qualification_artifact_sha256 !== "8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a" ||
       !exactKeys(lifecycle.review_status_counts, ["within-review-window", "stale", "unmeasured", "unmapped"]) ||
       lifecycle.review_status_counts["within-review-window"] !== 7987605 || lifecycle.review_status_counts.stale !== 24230 ||
       lifecycle.review_status_counts.unmeasured !== 0 || lifecycle.review_status_counts.unmapped !== 0 ||
@@ -1505,8 +1507,8 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       lifecycle.artifact_count !== 100 || lifecycle.artifact_record_count !== 8011835 || lifecycle.profile_count !== 8011835 || lifecycle.registry_profile_count !== lifecycle.profile_count || lifecycle.release_manifest_verified !== true ||
       lifecycle.registry_manifest_sha256 !== "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76" ||
       lifecycle.temporal_artifact_sha256 !== "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0" ||
-      lifecycle.qualification_manifest_sha256 !== "771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e" ||
-      lifecycle.qualification_artifact_sha256 !== "958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed" ||
+      lifecycle.qualification_manifest_sha256 !== "c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409" ||
+      lifecycle.qualification_artifact_sha256 !== "8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a" ||
       lifecycle.active_business_eligible_count !== 0 || lifecycle.current_operation_verified_count !== 0 ||
       lifecycle.review_status_counts?.stale !== 24230 || lifecycle.lifecycle_evidence_counts?.unknown !== 633232 || lifecycle.lifecycle_evidence_counts?.contradictory !== 2667) return false;
   const entityGeography = lineage.business_entity_geography_relationship;
@@ -4368,6 +4370,7 @@ const EXACT_ZIP_SOURCES = [
   "broad_org_or_legal_registration_addresses",
   "broad_org_or_brand_registration_addresses",
   "broad_org_pa_organization_addresses",
+  "wa_lni_active_contractor_organization_mailing_addresses",
 ] as const;
 type ExactZipSource = (typeof EXACT_ZIP_SOURCES)[number];
 type ExactZipZeroEvidenceSemantics = {
@@ -4490,10 +4493,10 @@ type ExactZipAddressRowGap = {
   };
 };
 type ExactZipEvidence = {
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0";
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.9.0";
   status: "present";
   row: null | {
-    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.8.0";
+    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.9.0";
     zip5: string;
     zip4: null;
     cohort_classification: string;
@@ -4535,17 +4538,18 @@ type ExactZipEvidence = {
   source_bytes_read: number;
   full_matrix_replay_performed: false;
   claims: {
-    authoritative_current_usps_zip_denominator: null;
-    usps_validity_classified: false;
-    zip4_joined: false;
-    additive_cross_industry_total: false;
-    current_operation_verified: false;
-    all_business_completeness: false;
+    wa_broad_jurisdiction_gap_complete: false;
+    physical_site_inference_permitted: false;
+    establishment_inference_permitted: false;
+    current_operations_verified: false;
+    all_business_completeness_percent: null;
+    nonadditive: true;
+    record_level_export_policy: "local-review-only";
+    aggregate_export_policy: "public-under-pddl-with-attribution-and-semantic-limitations";
+    zip4_joined_to_zip5: false;
     network_requests: 0;
-    acquisition_performed: false;
     current_pointer_written: false;
     production_enrollment: false;
-    production_execution: false;
   };
 };
 const exactObject = (v: unknown): v is Record<string, unknown> =>
@@ -4555,8 +4559,7 @@ export function validExactZipEvidence(
   value: unknown,
   zip: string,
 ): value is ExactZipEvidence {
-  if (
-    !exactKeys(value, [
+  const legacyKeys = [
       "schema_version",
       "status",
       "row",
@@ -4574,18 +4577,32 @@ export function validExactZipEvidence(
       "source_bytes_read",
       "full_matrix_replay_performed",
       "claims",
-    ])
-  )
+    ], leanKeys = ["schema_version", "status", "row", "source_metadata", "status_counts", "cell_status_counts_by_dimension", "release_id", "manifest_sha256", "temporal_qualification", "source_bytes_read", "full_matrix_replay_performed", "claims"];
+  if (!exactKeys(value, legacyKeys) && !exactKeys(value, leanKeys))
     return false;
   const v = value as ExactZipEvidence,
     childcarePin = childcareRegistration.retained_release,
     nativePin = zipSourceStatusRegistration.retained_release;
   const tq=v.temporal_qualification;
-  if(!exactKeys(tq,["schema_version","zip5","assessment_as_of","rows","summary","provenance","claims"])||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@1.1.0"||tq.zip5!==zip||tq.assessment_as_of!=="2026-10-02T16:30:00.000Z"||!Array.isArray(tq.rows)||tq.rows.length!==39||!exactKeys(tq.provenance,["release_id","manifest_sha256","artifact_sha256","bindings"])||tq.provenance.release_id!=="exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503"||tq.provenance.manifest_sha256!=="771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e"||!sha(tq.provenance.artifact_sha256)||!exactKeys(tq.claims,["current_operations_verified","active_business_count","all_business_denominator","all_business_completion_percent","additive","network_requests","acquisition_performed","current_pointer_written","production_enrollment"])||tq.claims.current_operations_verified!==false||tq.claims.active_business_count!==null||tq.claims.all_business_denominator!==null||tq.claims.all_business_completion_percent!==null||tq.claims.additive!==false||tq.claims.network_requests!==0||tq.claims.acquisition_performed!==false||tq.claims.current_pointer_written!==false||tq.claims.production_enrollment!==false)return false;
+  if(!exactKeys(tq,["schema_version","zip5","assessment_as_of","rows","summary","provenance","claims"])||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@1.1.0"||tq.zip5!==zip||tq.assessment_as_of!=="2026-10-02T16:30:00.000Z"||!Array.isArray(tq.rows)||tq.rows.length!==40||!exactKeys(tq.provenance,["release_id","manifest_sha256","artifact_sha256","bindings"])||tq.provenance.release_id!=="exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee"||tq.provenance.manifest_sha256!=="c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409"||!sha(tq.provenance.artifact_sha256)||!exactKeys(tq.claims,["current_operations_verified","active_business_count","all_business_denominator","all_business_completion_percent","additive","network_requests","acquisition_performed","current_pointer_written","production_enrollment"])||tq.claims.current_operations_verified!==false||tq.claims.active_business_count!==null||tq.claims.all_business_denominator!==null||tq.claims.all_business_completion_percent!==null||tq.claims.additive!==false||tq.claims.network_requests!==0||tq.claims.acquisition_performed!==false||tq.claims.current_pointer_written!==false||tq.claims.production_enrollment!==false)return false;
   const tRows=tq.rows;
   if(tRows.some((r,i)=>!exactKeys(r,["dimension_id","source_key","source_release_id","semantic_class","source_status_term","source_reference_at","assessment_as_of","review_qualification","review_due_at","evidence_disposition","current_operations_verified"])||r.dimension_id!==EXACT_ZIP_SOURCES[i]||!(["source-defined-current","non-active-reporting","unmapped"].includes(r.semantic_class))||!(["within-review-window","stale","unmeasured","unmapped"].includes(r.review_qualification))||r.assessment_as_of!==tq.assessment_as_of||r.current_operations_verified!==false||(r.semantic_class==="unmapped")!==(r.source_key===null)||(r.semantic_class==="unmapped")!==(r.review_qualification==="unmapped")||!sameClosed(r.evidence_disposition,exactZipDisposition(v.row?.cells?.[r.dimension_id]?.status??"unavailable",r.semantic_class,r.review_qualification))))return false;
   const qualificationCounts=Object.fromEntries(["within-review-window","stale","unmeasured","unmapped"].map(status=>[status,tRows.filter(row=>row.review_qualification===status).length])), semanticCounts=Object.fromEntries(["source-defined-current","non-active-reporting","unmapped"].map(status=>[status,tRows.filter(row=>row.semantic_class===status).length])), binds=tq.provenance.bindings;
-  if(!sameClosed(qualificationCounts,{"within-review-window":25,stale:1,unmeasured:4,unmapped:9})||!sameClosed(semanticCounts,{"source-defined-current":22,"non-active-reporting":8,unmapped:9})||tq.summary?.qualification_cell_total!==48194*39||tq.summary?.semantic_cell_total!==48194*39||tq.summary?.zip_cohort_members!==48194||!exactKeys(binds,["matrix","temporal","qualification"])||!exactKeys(binds.matrix,["release_id","manifest_sha256","artifact_inventory_sha256","registration_sha256"])||binds.matrix.release_id!=="national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6"||binds.matrix.manifest_sha256!=="743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe"||!sha(binds.matrix.artifact_inventory_sha256)||!sha(binds.matrix.registration_sha256)||!exactKeys(binds.temporal,["release_id","manifest_sha256","artifact_sha256","registration_sha256"])||binds.temporal.release_id!=="national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090"||binds.temporal.manifest_sha256!=="342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05"||!sha(binds.temporal.artifact_sha256)||!sha(binds.temporal.registration_sha256)||!exactKeys(binds.qualification,["release_id","manifest_sha256","projection_sha256","inventory_sha256","registration_sha256","assessment_as_of"])||binds.qualification.release_id!=="zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9"||binds.qualification.manifest_sha256!=="9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493"||binds.qualification.projection_sha256!=="bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8"||binds.qualification.inventory_sha256!=="9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5"||binds.qualification.assessment_as_of!==tq.assessment_as_of)return false;
+  if(!sameClosed(qualificationCounts,{"within-review-window":26,stale:1,unmeasured:4,unmapped:9})||!sameClosed(semanticCounts,{"source-defined-current":23,"non-active-reporting":8,unmapped:9})||tq.summary?.qualification_cell_total!==48194*40||tq.summary?.semantic_cell_total!==48194*40||tq.summary?.zip_cohort_members!==48194||!exactKeys(binds,["matrix","temporal","qualification"])||!exactKeys(binds.matrix,["release_id","manifest_sha256","artifact_inventory_sha256","registration_sha256"])||binds.matrix.release_id!=="national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003"||binds.matrix.manifest_sha256!=="aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1"||!sha(binds.matrix.artifact_inventory_sha256)||!sha(binds.matrix.registration_sha256)||!exactKeys(binds.temporal,["release_id","manifest_sha256","artifact_sha256","registration_sha256"])||binds.temporal.release_id!=="national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090"||binds.temporal.manifest_sha256!=="342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05"||!sha(binds.temporal.artifact_sha256)||!sha(binds.temporal.registration_sha256)||!exactKeys(binds.qualification,["release_id","manifest_sha256","projection_sha256","inventory_sha256","registration_sha256","assessment_as_of"])||binds.qualification.release_id!=="zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9"||binds.qualification.manifest_sha256!=="9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493"||binds.qualification.projection_sha256!=="bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8"||binds.qualification.inventory_sha256!=="9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5"||binds.qualification.assessment_as_of!==tq.assessment_as_of)return false;
+  if (exactKeys(value, leanKeys)) {
+    {
+      const row=v.row, claims=v.claims;
+      if(v.full_matrix_replay_performed!==false||!Number.isSafeInteger(v.source_bytes_read)||v.source_bytes_read<=0)return false;
+      if(v.status!=="present"||v.release_id!==binds.matrix.release_id||v.manifest_sha256!==binds.matrix.manifest_sha256||!exactKeys(claims,["wa_broad_jurisdiction_gap_complete","physical_site_inference_permitted","establishment_inference_permitted","current_operations_verified","all_business_completeness_percent","nonadditive","record_level_export_policy","aggregate_export_policy","zip4_joined_to_zip5","production_enrollment","network_requests","current_pointer_written"])||claims.current_operations_verified!==false||claims.all_business_completeness_percent!==null||claims.nonadditive!==true||claims.physical_site_inference_permitted!==false||claims.establishment_inference_permitted!==false||claims.production_enrollment!==false||claims.zip4_joined_to_zip5!==false||claims.network_requests!==0||claims.current_pointer_written!==false||!exactObject(v.source_metadata)||!exactObject(v.cell_status_counts_by_dimension))return false;
+      const metadataSources=EXACT_ZIP_SOURCES.filter(source=>source!=="wa_lni_active_contractor_organization_mailing_addresses");
+      if(Object.keys(v.source_metadata).length!==39||metadataSources.some(source=>!(source in v.source_metadata))||Object.values(v.source_metadata).some(metadata=>metadata.current_operation_verified!==false)||v.source_metadata.childcare_md_candidates?.export_policy!=="internal")return false;
+      if(v.source_metadata.childcare_pa_candidates?.zero_evidence_semantics?.exact_zip_denominator!==false)return false;
+      if(row===null)return true;
+      if(!exactKeys(row,["schema_version","zip5","zip4","cohort_classification","usps_validity","zcta_geoid","cells"])||row.schema_version!=="national-exact-zip-industry-evidence-matrix-row@1.9.0"||row.zip5!==zip||row.zip4!==null||row.usps_validity!==null||!exactObject(row.cells)||Object.keys(row.cells).length!==40||EXACT_ZIP_SOURCES.some(source=>!(source in row.cells)))return false;
+      for(const source of EXACT_ZIP_PROFILE_SOURCES){const metadata=v.source_metadata[source],cell=row.cells[source],observation=metadata?.source_observation,statusCounts=cell?.source_status_counts,clock=(value:unknown)=>typeof value==="string"&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value);if(metadata?.source_refresh_asserted!==false||!observation||!clock(observation.earliest_observed_at)||!clock(observation.latest_observed_at)||!exactObject(statusCounts)||Object.values(statusCounts).some(value=>!Number.isSafeInteger(value)||Number(value)<0)||Object.values(statusCounts).reduce((sum,value)=>sum+Number(value),0)!==(cell.count??0))return false;}
+      return Object.values(row.cells).every(cell=>["positive","measured-zero","outside-source-denominator","absent-from-retained-source-rows"].includes(cell.status)&&(cell.status==="positive"?Number.isSafeInteger(cell.count)&&Number(cell.count)>0:cell.status==="measured-zero"?cell.count===0:cell.count===null));
+    }
+  }
   const expectedQuality: ExactZipQualityGap[] = [
     {
       zip5: null,
@@ -4791,7 +4808,7 @@ export function validExactZipEvidence(
     typeof value === "string" &&
     /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value);
   if (
-    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.8.0" ||
+    v.schema_version !== "national-exact-zip-industry-evidence-matrix@1.9.0" ||
     v.status !== "present" ||
     !/^national-exact-zip-industry-evidence-matrix-[a-f0-9]{64}$/.test(
       v.release_id,
@@ -4886,33 +4903,28 @@ export function validExactZipEvidence(
   )
     return false;
   const claimKeys = [
-    "authoritative_current_usps_zip_denominator",
-    "usps_validity_classified",
-    "zip4_joined",
-    "additive_cross_industry_total",
-    "current_operation_verified",
-    "all_business_completeness",
+    "wa_broad_jurisdiction_gap_complete",
+    "physical_site_inference_permitted",
+    "establishment_inference_permitted",
+    "current_operations_verified",
+    "all_business_completeness_percent",
+    "nonadditive",
+    "record_level_export_policy",
+    "aggregate_export_policy",
+    "zip4_joined_to_zip5",
     "network_requests",
-    "acquisition_performed",
     "current_pointer_written",
     "production_enrollment",
-    "production_execution",
   ];
   if (
     !exactKeys(v.claims, claimKeys) ||
-    v.claims.authoritative_current_usps_zip_denominator !== null ||
+    v.claims.all_business_completeness_percent !== null ||
+    v.claims.nonadditive !== true ||
+    v.claims.record_level_export_policy !== "local-review-only" ||
+    v.claims.aggregate_export_policy !== "public-under-pddl-with-attribution-and-semantic-limitations" ||
     v.claims.network_requests !== 0 ||
-    claimKeys
-      .filter(
-        (k) =>
-          ![
-            "authoritative_current_usps_zip_denominator",
-            "network_requests",
-          ].includes(k),
-      )
-      .some(
-        (k) => (v.claims as unknown as Record<string, unknown>)[k] !== false,
-      )
+    ["wa_broad_jurisdiction_gap_complete", "physical_site_inference_permitted", "establishment_inference_permitted", "current_operations_verified", "zip4_joined_to_zip5", "current_pointer_written", "production_enrollment"]
+      .some((k) => (v.claims as unknown as Record<string, unknown>)[k] !== false)
   )
     return false;
   if (
@@ -5308,7 +5320,7 @@ export function validExactZipEvidence(
       "cells",
     ]) ||
     r.schema_version !==
-      "national-exact-zip-industry-evidence-matrix-row@1.8.0" ||
+      "national-exact-zip-industry-evidence-matrix-row@1.9.0" ||
     r.zip5 !== zip ||
     r.zip4 !== null ||
     r.usps_validity !== null ||
@@ -5479,13 +5491,15 @@ const sourceLabel = (source: string) =>
   )[source] ??
   source.replaceAll("_", " ");
 type DispositionCount={cell_status:string;lifecycle_status:string;label:string;current_operations_verified:false;count:number};
-type ExactZipIndustrySummary={schema_version:"national-exact-zip-industry-summary-view@1.9.0";available:true;release_id:string;manifest_sha256:string;created_at:string;zip5_rows:number;source_dimensions:number;industry_cells:number;status_counts:Record<string,number>;evidence_disposition_counts:{total_cells:number;by_cell_status:Record<string,number>;by_lifecycle_status:Record<string,number>;joined:DispositionCount[]};temporal_status_counts:{"source-referenced-current-operation-unverified":number;"source-reference-unresolved":number};temporal_qualification:{release_id:string;manifest_sha256:string;assessment_as_of:string;dimension_counts:{"within-review-window":number;stale:number;unmeasured:number;unmapped:number};semantic_dimension_counts:{"source-defined-current":number;"non-active-reporting":number;unmapped:number}};omitted_industries_status:"unavailable-not-materialized";coverage_gaps:{out_of_cohort_source_records:number;out_of_cohort_zip_count:number;source_quality_gap_records:number;address_gap_dimensions:number;address_rows_without_eligible_zip5:number;meaning:string};geography_cohort:{same_code_census_zcta:number;source_contributed_without_same_code_zcta:number;denominator_only_without_same_code_zcta:number;explicit_placeholder:number;without_same_code_zcta_total:number;cohort_release_id:string;cohort_manifest_sha256:string;created_at:string};entity_resolution:{evidence_zip_count:number;no_decision_zip_count:number;evidence_zip_percent:number;no_decision_zip_percent:number;site_alias_groups:number;establishment_alias_groups:number;unapplied_review_candidates:number;release_id:string;manifest_sha256:string;created_at:string;benchmark_gate_passed:false;entity_resolution_applied:false};dimensions:Array<{id:string;status_counts:Record<string,number>;positive_zip_percent:number;measured_status_percent:number;evidence_disposition_counts:{total_cells:number;joined:DispositionCount[]};temporal_qualification:{source_key:string|null;source_release_id:string|null;review_qualification:"within-review-window"|"stale"|"unmeasured"|"unmapped";semantic_class:"source-defined-current"|"non-active-reporting"|"unmapped";source_reference_at:string|null;review_due_at:string|null;source_status_term:string|null;assessment_as_of:string}}>;verification_scope:string;claims:{authoritative_current_usps_zip_denominator:null;current_operation_verified:false;all_business_completeness:false;additive_cross_industry_total:false;non_zcta_means_invalid_zip:false;omitted_industries_measured:false;network_requests:0}};
+type ExactZipIndustrySummary={schema_version:"national-exact-zip-industry-summary-view@2.0.0";available:true;release_id:string;manifest_sha256:string;created_at:null;zip5_rows:number;source_dimensions:number;industry_cells:number;status_counts:Record<string,number>;evidence_disposition_counts:{total_cells:number;by_cell_status:Record<string,number>;by_lifecycle_status:Record<string,number>;joined:DispositionCount[]};temporal_status_counts:{"source-referenced-current-operation-unverified":number;"source-reference-unresolved":number};temporal_qualification:{release_id:string;manifest_sha256:string;assessment_as_of:string;dimension_counts:{"within-review-window":number;stale:number;unmeasured:number;unmapped:number};semantic_dimension_counts:{"source-defined-current":number;"non-active-reporting":number;unmapped:number}};omitted_industries_status:"unavailable-not-materialized";coverage_gaps:{out_of_cohort_source_records:number;out_of_cohort_zip_count:number;source_quality_gap_records:number;address_gap_dimensions:number;address_rows_without_eligible_zip5:number;meaning:string};geography_cohort:{same_code_census_zcta:number;source_contributed_without_same_code_zcta:number;denominator_only_without_same_code_zcta:number;explicit_placeholder:number;without_same_code_zcta_total:number;cohort_release_id:string;cohort_manifest_sha256:string;created_at:string};entity_resolution:{evidence_zip_count:number;no_decision_zip_count:number;evidence_zip_percent:number;no_decision_zip_percent:number;site_alias_groups:number;establishment_alias_groups:number;unapplied_review_candidates:number;release_id:string;manifest_sha256:string;created_at:string;benchmark_gate_passed:false;entity_resolution_applied:false};dimensions:Array<{id:string;status_counts:Record<string,number>;positive_zip_percent:number;measured_status_percent:number;evidence_disposition_counts:{total_cells:number;joined:DispositionCount[]};temporal_qualification:{source_key:string|null;source_release_id:string|null;review_qualification:"within-review-window"|"stale"|"unmeasured"|"unmapped";semantic_class:"source-defined-current"|"non-active-reporting"|"unmapped";source_reference_at:string|null;review_due_at:string|null;source_status_term:string|null;assessment_as_of:string}}>;verification_scope:string;claims:{authoritative_current_usps_zip_denominator:null;current_operation_verified:false;all_business_completeness:false;additive_cross_industry_total:false;non_zcta_means_invalid_zip:false;omitted_industries_measured:false;network_requests:0}};
 const summaryStatuses=['positive','measured-zero','outside-source-denominator','absent-from-retained-source-rows','unavailable'],summaryLifecycles=['source-defined-current-positive-within-review-window','source-defined-current-without-positive-evidence','non-active-reporting-positive','non-active-reporting-without-positive-evidence','stale','unmeasured','unmapped'];
 function validDispositionCount(item:DispositionCount){return exactKeys(item,['cell_status','lifecycle_status','label','current_operations_verified','count'])&&summaryStatuses.includes(item.cell_status)&&summaryLifecycles.includes(item.lifecycle_status)&&item.label===`${item.cell_status.replaceAll('-',' ')} · ${item.lifecycle_status.replaceAll('-',' ')}`&&item.current_operations_verified===false&&Number.isSafeInteger(item.count)&&item.count>=0}
-export function validExactZipIndustrySummary(input:unknown):input is ExactZipIndustrySummary{try{const rootKeys=['schema_version','available','release_id','manifest_sha256','created_at','zip5_rows','source_dimensions','industry_cells','status_counts','evidence_disposition_counts','temporal_status_counts','temporal_qualification','omitted_industries_status','coverage_gaps','geography_cohort','entity_resolution','dimensions','verification_scope','claims'];if(!exactKeys(input,rootKeys))return false;const value=input as ExactZipIndustrySummary,iso=(item:unknown)=>typeof item==='string'&&Number.isFinite(Date.parse(item))&&new Date(item).toISOString()===item,nonnegative=(item:unknown)=>Number.isSafeInteger(item)&&Number(item)>=0;if(value.schema_version!=="national-exact-zip-industry-summary-view@1.9.0"||value.available!==true||value.release_id!=="national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6"||value.manifest_sha256!=='743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe'||!iso(value.created_at)||value.industry_cells!==1879566||value.zip5_rows!==48194||value.source_dimensions!==39||value.omitted_industries_status!=='unavailable-not-materialized'||typeof value.verification_scope!=='string'||!exactKeys(value.claims,['authoritative_current_usps_zip_denominator','current_operation_verified','all_business_completeness','additive_cross_industry_total','non_zcta_means_invalid_zip','omitted_industries_measured','network_requests'])||!sameClosed(value.claims,{authoritative_current_usps_zip_denominator:null,current_operation_verified:false,all_business_completeness:false,additive_cross_industry_total:false,non_zcta_means_invalid_zip:false,omitted_industries_measured:false,network_requests:0})||!exactKeys(value.status_counts,summaryStatuses)||!summaryStatuses.every(key=>nonnegative(value.status_counts[key]))||Object.values(value.status_counts).reduce((sum,item)=>sum+item,0)!==value.industry_cells)return false;const tq=value.temporal_qualification;if(!exactKeys(tq,['release_id','manifest_sha256','assessment_as_of','dimension_counts','semantic_dimension_counts'])||tq.release_id!=='exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503'||tq.manifest_sha256!=='771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e'||!iso(tq.assessment_as_of)||!exactKeys(tq.dimension_counts,['within-review-window','stale','unmeasured','unmapped'])||!exactKeys(tq.semantic_dimension_counts,['source-defined-current','non-active-reporting','unmapped'])||Object.values(tq.dimension_counts).reduce((sum,item)=>sum+item,0)!==39||Object.values(tq.semantic_dimension_counts).reduce((sum,item)=>sum+item,0)!==39)return false;if(!exactKeys(value.temporal_status_counts,['source-referenced-current-operation-unverified','source-reference-unresolved'])||Object.values(value.temporal_status_counts).reduce((sum,item)=>sum+item,0)!==value.industry_cells)return false;const gap=value.coverage_gaps,geo=value.geography_cohort,entity=value.entity_resolution;if(!exactKeys(gap,['out_of_cohort_source_records','out_of_cohort_zip_count','source_quality_gap_records','address_gap_dimensions','address_rows_without_eligible_zip5','meaning'])||!Object.entries(gap).every(([key,item])=>key==='meaning'?typeof item==='string':nonnegative(item))||!exactKeys(geo,['same_code_census_zcta','source_contributed_without_same_code_zcta','denominator_only_without_same_code_zcta','explicit_placeholder','without_same_code_zcta_total','cohort_release_id','cohort_manifest_sha256','created_at'])||geo.cohort_release_id!=='zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb'||geo.cohort_manifest_sha256!=='792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea'||!iso(geo.created_at)||geo.same_code_census_zcta+geo.without_same_code_zcta_total!==value.zip5_rows||!exactKeys(entity,['evidence_zip_count','no_decision_zip_count','evidence_zip_percent','no_decision_zip_percent','site_alias_groups','establishment_alias_groups','unapplied_review_candidates','release_id','manifest_sha256','created_at','benchmark_gate_passed','entity_resolution_applied'])||entity.release_id!=='zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'||entity.manifest_sha256!=='742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'||!iso(entity.created_at)||entity.benchmark_gate_passed!==false||entity.entity_resolution_applied!==false||entity.evidence_zip_count+entity.no_decision_zip_count!==value.zip5_rows)return false;const counts=value.evidence_disposition_counts;if(!exactKeys(counts,['total_cells','by_cell_status','by_lifecycle_status','joined'])||counts.total_cells!==value.industry_cells||!sameClosed(counts.by_cell_status,value.status_counts)||!exactKeys(counts.by_cell_status,summaryStatuses)||!exactKeys(counts.by_lifecycle_status,summaryLifecycles)||!Array.isArray(counts.joined)||!counts.joined.every(validDispositionCount)||counts.joined.reduce((sum,item)=>sum+item.count,0)!==value.industry_cells)return false;const joinedKeys=counts.joined.map(item=>`${item.cell_status}|${item.lifecycle_status}`),joinedByCell=Object.fromEntries(summaryStatuses.map(status=>[status,counts.joined.filter(item=>item.cell_status===status).reduce((sum,item)=>sum+item.count,0)])),joinedByLifecycle=Object.fromEntries(summaryLifecycles.map(status=>[status,counts.joined.filter(item=>item.lifecycle_status===status).reduce((sum,item)=>sum+item.count,0)]));if(new Set(joinedKeys).size!==joinedKeys.length||!sameClosed(joinedByCell,counts.by_cell_status)||!sameClosed(joinedByLifecycle,counts.by_lifecycle_status)||!Array.isArray(value.dimensions)||value.dimensions.length!==39||new Set(value.dimensions.map(row=>row.id)).size!==39)return false;return value.dimensions.every(row=>{if(!exactKeys(row,['id','status_counts','positive_zip_percent','measured_status_percent','evidence_disposition_counts','temporal_qualification'])||typeof row.id!=='string'||!exactKeys(row.status_counts,summaryStatuses)||!summaryStatuses.every(status=>nonnegative(row.status_counts[status]))||Object.values(row.status_counts).reduce((sum,item)=>sum+item,0)!==value.zip5_rows||typeof row.positive_zip_percent!=='number'||typeof row.measured_status_percent!=='number')return false;const temporal=row.temporal_qualification;if(!exactKeys(temporal,['source_key','source_release_id','review_qualification','semantic_class','source_reference_at','review_due_at','source_status_term','assessment_as_of'])||!['within-review-window','stale','unmeasured','unmapped'].includes(temporal.review_qualification)||!['source-defined-current','non-active-reporting','unmapped'].includes(temporal.semantic_class)||temporal.assessment_as_of!==tq.assessment_as_of)return false;const disposition=row.evidence_disposition_counts;if(!exactKeys(disposition,['total_cells','joined'])||!Array.isArray(disposition.joined))return false;const joined=disposition.joined,cellStatuses=joined.map(item=>item.cell_status);return disposition.total_cells===value.zip5_rows&&joined.length===5&&new Set(cellStatuses).size===5&&summaryStatuses.every(status=>cellStatuses.includes(status))&&joined.every(validDispositionCount)&&joined.reduce((sum,item)=>sum+item.count,0)===value.zip5_rows&&joined.every(item=>item.count===row.status_counts[item.cell_status]&&item.lifecycle_status===exactZipDisposition(item.cell_status,temporal.semantic_class,temporal.review_qualification).lifecycle_status);});}catch{return false;}}
-function ExactZipIndustryNationalSummary(){const[view,setView]=useState<ExactZipIndustrySummary|null>(null),[failed,setFailed]=useState(false);useEffect(()=>{const controller=new AbortController();void runnerJson<ExactZipIndustrySummary>('/api/business-map/exact-zip-industry-summary',{signal:controller.signal}).then(value=>{if(controller.signal.aborted)return;if(validExactZipIndustrySummary(value))setView(value);else setFailed(true)}).catch(()=>{if(!controller.signal.aborted)setFailed(true)});return()=>controller.abort()},[]);const download=()=>{if(!view)return;const url=URL.createObjectURL(new Blob([`${JSON.stringify(view,null,2)}\n`],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download=`cotive-national-zip-industry-status-${view.manifest_sha256.slice(0,12)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),0)};if(failed)return <p role="alert">Retained source-dimension status is unavailable; no coverage percentage or zero was inferred.</p>;if(!view)return <p role="status">Loading retained source-dimension status…</p>;return <section className="supporting-evidence" aria-label="National exact ZIP industry evidence summary"><h4>Retained source-dimension status</h4><p><strong>{count(view.zip5_rows)}</strong> retained ZIP5 keys × <strong>{view.source_dimensions}</strong> governed source dimensions = <strong>{count(view.industry_cells)}</strong> evidence cells.</p><button type="button" onClick={download}>Download governed status JSON</button><p><strong>Joined evidence disposition:</strong> {view.evidence_disposition_counts.joined.filter(item=>item.count>0).map(item=>`${item.label}: ${count(item.count)}`).join(' · ')}. These are source-specific evidence cells, not business counts, and no disposition verifies current operation.</p><p><strong>{count(view.geography_cohort.same_code_census_zcta)}</strong> keys have a same-code Census ZCTA polygon. <strong>{count(view.geography_cohort.source_contributed_without_same_code_zcta)}</strong> source-contributed keys and <strong>{count(view.geography_cohort.denominator_only_without_same_code_zcta)}</strong> denominator-only keys do not; one additional key is the explicit `00000` placeholder. Non-ZCTA status does not mean an invalid ZIP.</p><p>Positive: {count(view.status_counts.positive)} · measured zero: {count(view.status_counts['measured-zero'])} · outside source denominator: {count(view.status_counts['outside-source-denominator'])} · absent from retained source rows: {count(view.status_counts['absent-from-retained-source-rows'])}.</p><p><strong>Review qualification:</strong> {count(view.temporal_qualification.dimension_counts['within-review-window'])} dimensions are within review window; {count(view.temporal_qualification.dimension_counts.stale)} is stale; {count(view.temporal_qualification.dimension_counts.unmeasured)} are unmeasured; {count(view.temporal_qualification.dimension_counts.unmapped)} are unmapped. Assessed {view.temporal_qualification.assessment_as_of}. No qualification verifies current operation.</p><p><strong>Publisher status meaning:</strong> {count(view.temporal_qualification.semantic_dimension_counts['source-defined-current'])} dimensions use a publisher-defined current status; {count(view.temporal_qualification.semantic_dimension_counts['non-active-reporting'])} are non-active reporting; {count(view.temporal_qualification.semantic_dimension_counts.unmapped)} are unmapped. Publisher-defined current still does not verify general business operation.</p><p><strong>Entity-resolution evidence:</strong> {count(view.entity_resolution.evidence_zip_count)} ZIPs have retained candidate evidence ({view.entity_resolution.evidence_zip_percent.toFixed(1)}%); {count(view.entity_resolution.no_decision_zip_count)} ZIPs have no resolution decision ({view.entity_resolution.no_decision_zip_percent.toFixed(1)}%). Candidate groups are not applied business merges; the benchmark gate has not passed.</p><p><strong>Source quality gaps:</strong> {count(view.coverage_gaps.out_of_cohort_source_records)} retained records report ZIPs outside the cohort; {count(view.coverage_gaps.source_quality_gap_records)} source-quality gap groups remain; {count(view.coverage_gaps.address_rows_without_eligible_zip5)} address rows lack an eligible ZIP5 across {count(view.coverage_gaps.address_gap_dimensions)} source dimensions. These are retained source-row quality and assignment gaps, not missing-business counts.</p><p><strong>Scope boundary:</strong> Industries outside these 39 dimensions are unavailable—not materialized, not measured zero, and not included in either percentage.</p><details><summary>Governed release provenance</summary><dl><dt>Matrix release</dt><dd><code>{view.release_id}</code><small>Built {view.created_at} · manifest SHA-256 {view.manifest_sha256}</small></dd><dt>Temporal qualification</dt><dd><code>{view.temporal_qualification.release_id}</code><small>Assessed {view.temporal_qualification.assessment_as_of} · manifest SHA-256 {view.temporal_qualification.manifest_sha256}</small></dd><dt>Geography cohort</dt><dd><code>{view.geography_cohort.cohort_release_id}</code><small>Built {view.geography_cohort.created_at} · manifest SHA-256 {view.geography_cohort.cohort_manifest_sha256}</small></dd><dt>Resolution evidence</dt><dd><code>{view.entity_resolution.release_id}</code><small>Built {view.entity_resolution.created_at} · manifest SHA-256 {view.entity_resolution.manifest_sha256}</small></dd></dl></details><details><summary>All 39 governed source dimensions</summary><div className="representation-table" role="region" aria-label="National ZIP source dimension status" tabIndex={0}><table><thead><tr><th scope="col">Source dimension / retained source release</th><th scope="col">ZIPs with positive evidence</th><th scope="col">ZIPs with measured status</th><th scope="col">Source vintage / temporal status</th><th scope="col">Unknown, absent, or outside denominator</th></tr></thead><tbody>{view.dimensions.map(row=><tr key={row.id}><th scope="row">{sourceLabel(row.id)}<small>{row.temporal_qualification.source_key??'No temporal source mapping'} · {row.temporal_qualification.source_release_id??'No retained source release mapped'}</small></th><td>{count(row.status_counts.positive)} · {row.positive_zip_percent.toFixed(1)}%</td><td>{count(row.status_counts.positive+row.status_counts['measured-zero'])} · {row.measured_status_percent.toFixed(1)}%</td><td>{row.temporal_qualification.review_qualification.replaceAll('-', ' ')}<small>{row.temporal_qualification.semantic_class.replaceAll('-', ' ')} · {row.temporal_qualification.source_status_term??'No publisher status meaning mapped'} · reference {row.temporal_qualification.source_reference_at??'unresolved'} · due {row.temporal_qualification.review_due_at??'unmeasured'}</small><small>Joined cell disposition: {row.evidence_disposition_counts.joined.filter(item=>item.count>0).map(item=>`${item.label} ${count(item.count)}`).join(' · ')}. Not business counts; current operation unverified.</small></td><td>{count(row.status_counts['absent-from-retained-source-rows'])} absent · {count(row.status_counts['outside-source-denominator'])} outside</td></tr>)}</tbody></table></div></details><p className="operations-note">Percentages use the retained 48,194-key evidence cohort, not an authoritative current USPS denominator or all-business completeness. Source dimensions overlap and are not additive. Current operation is not independently verified. {view.verification_scope}.</p></section>}
+export function validExactZipIndustrySummary(input:unknown):input is ExactZipIndustrySummary{try{const rootKeys=['schema_version','available','release_id','manifest_sha256','created_at','zip5_rows','source_dimensions','industry_cells','status_counts','evidence_disposition_counts','temporal_status_counts','temporal_qualification','omitted_industries_status','coverage_gaps','geography_cohort','entity_resolution','dimensions','verification_scope','claims'];if(!exactKeys(input,rootKeys))return false;const value=input as ExactZipIndustrySummary,iso=(item:unknown)=>typeof item==='string'&&Number.isFinite(Date.parse(item))&&new Date(item).toISOString()===item,nonnegative=(item:unknown)=>Number.isSafeInteger(item)&&Number(item)>=0;if(value.schema_version!=="national-exact-zip-industry-summary-view@2.0.0"||value.available!==true||value.release_id!=="national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003"||value.manifest_sha256!=='aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1'||value.created_at!==null||value.industry_cells!==1927760||value.zip5_rows!==48194||value.source_dimensions!==40||value.omitted_industries_status!=='unavailable-not-materialized'||typeof value.verification_scope!=='string'||!exactKeys(value.claims,['authoritative_current_usps_zip_denominator','current_operation_verified','all_business_completeness','additive_cross_industry_total','non_zcta_means_invalid_zip','omitted_industries_measured','network_requests'])||!sameClosed(value.claims,{authoritative_current_usps_zip_denominator:null,current_operation_verified:false,all_business_completeness:false,additive_cross_industry_total:false,non_zcta_means_invalid_zip:false,omitted_industries_measured:false,network_requests:0})||!exactKeys(value.status_counts,summaryStatuses)||!summaryStatuses.every(key=>nonnegative(value.status_counts[key]))||Object.values(value.status_counts).reduce((sum,item)=>sum+item,0)!==value.industry_cells)return false;const tq=value.temporal_qualification;if(!exactKeys(tq,['release_id','manifest_sha256','assessment_as_of','dimension_counts','semantic_dimension_counts'])||tq.release_id!=='exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee'||tq.manifest_sha256!=='c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409'||!iso(tq.assessment_as_of)||!exactKeys(tq.dimension_counts,['within-review-window','stale','unmeasured','unmapped'])||!exactKeys(tq.semantic_dimension_counts,['source-defined-current','non-active-reporting','unmapped'])||Object.values(tq.dimension_counts).reduce((sum,item)=>sum+item,0)!==40||Object.values(tq.semantic_dimension_counts).reduce((sum,item)=>sum+item,0)!==40)return false;if(!exactKeys(value.temporal_status_counts,['source-referenced-current-operation-unverified','source-reference-unresolved'])||Object.values(value.temporal_status_counts).reduce((sum,item)=>sum+item,0)!==value.industry_cells)return false;const gap=value.coverage_gaps,geo=value.geography_cohort,entity=value.entity_resolution;if(!exactKeys(gap,['out_of_cohort_source_records','out_of_cohort_zip_count','source_quality_gap_records','address_gap_dimensions','address_rows_without_eligible_zip5','meaning'])||!Object.entries(gap).every(([key,item])=>key==='meaning'?typeof item==='string':nonnegative(item))||!exactKeys(geo,['same_code_census_zcta','source_contributed_without_same_code_zcta','denominator_only_without_same_code_zcta','explicit_placeholder','without_same_code_zcta_total','cohort_release_id','cohort_manifest_sha256','created_at'])||geo.cohort_release_id!=='zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb'||geo.cohort_manifest_sha256!=='792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea'||!iso(geo.created_at)||geo.same_code_census_zcta+geo.without_same_code_zcta_total!==value.zip5_rows||!exactKeys(entity,['evidence_zip_count','no_decision_zip_count','evidence_zip_percent','no_decision_zip_percent','site_alias_groups','establishment_alias_groups','unapplied_review_candidates','release_id','manifest_sha256','created_at','benchmark_gate_passed','entity_resolution_applied'])||entity.release_id!=='zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'||entity.manifest_sha256!=='742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'||!iso(entity.created_at)||entity.benchmark_gate_passed!==false||entity.entity_resolution_applied!==false||entity.evidence_zip_count+entity.no_decision_zip_count!==value.zip5_rows)return false;const counts=value.evidence_disposition_counts;if(!exactKeys(counts,['total_cells','by_cell_status','by_lifecycle_status','joined'])||counts.total_cells!==value.industry_cells||!sameClosed(counts.by_cell_status,value.status_counts)||!exactKeys(counts.by_cell_status,summaryStatuses)||!exactKeys(counts.by_lifecycle_status,summaryLifecycles)||!Array.isArray(counts.joined)||!counts.joined.every(validDispositionCount)||counts.joined.reduce((sum,item)=>sum+item.count,0)!==value.industry_cells)return false;const joinedKeys=counts.joined.map(item=>`${item.cell_status}|${item.lifecycle_status}`),joinedByCell=Object.fromEntries(summaryStatuses.map(status=>[status,counts.joined.filter(item=>item.cell_status===status).reduce((sum,item)=>sum+item.count,0)])),joinedByLifecycle=Object.fromEntries(summaryLifecycles.map(status=>[status,counts.joined.filter(item=>item.lifecycle_status===status).reduce((sum,item)=>sum+item.count,0)]));if(new Set(joinedKeys).size!==joinedKeys.length||!sameClosed(joinedByCell,counts.by_cell_status)||!sameClosed(joinedByLifecycle,counts.by_lifecycle_status)||!Array.isArray(value.dimensions)||value.dimensions.length!==40||new Set(value.dimensions.map(row=>row.id)).size!==40)return false;return value.dimensions.every(row=>{if(!exactKeys(row,['id','status_counts','positive_zip_percent','measured_status_percent','evidence_disposition_counts','temporal_qualification'])||typeof row.id!=='string'||!exactKeys(row.status_counts,summaryStatuses)||!summaryStatuses.every(status=>nonnegative(row.status_counts[status]))||Object.values(row.status_counts).reduce((sum,item)=>sum+item,0)!==value.zip5_rows||typeof row.positive_zip_percent!=='number'||typeof row.measured_status_percent!=='number')return false;const temporal=row.temporal_qualification;if(!exactKeys(temporal,['source_key','source_release_id','review_qualification','semantic_class','source_reference_at','review_due_at','source_status_term','assessment_as_of'])||!['within-review-window','stale','unmeasured','unmapped'].includes(temporal.review_qualification)||!['source-defined-current','non-active-reporting','unmapped'].includes(temporal.semantic_class)||temporal.assessment_as_of!==tq.assessment_as_of)return false;const disposition=row.evidence_disposition_counts;if(!exactKeys(disposition,['total_cells','joined'])||!Array.isArray(disposition.joined))return false;const joined=disposition.joined,cellStatuses=joined.map(item=>item.cell_status);return disposition.total_cells===value.zip5_rows&&joined.length===5&&new Set(cellStatuses).size===5&&summaryStatuses.every(status=>cellStatuses.includes(status))&&joined.every(validDispositionCount)&&joined.reduce((sum,item)=>sum+item.count,0)===value.zip5_rows&&joined.every(item=>item.count===row.status_counts[item.cell_status]&&item.lifecycle_status===exactZipDisposition(item.cell_status,temporal.semantic_class,temporal.review_qualification).lifecycle_status);});}catch{return false;}}
+function ExactZipIndustryNationalSummary(){const[view,setView]=useState<ExactZipIndustrySummary|null>(null),[failed,setFailed]=useState(false);useEffect(()=>{const controller=new AbortController();void runnerJson<ExactZipIndustrySummary>('/api/business-map/exact-zip-industry-summary',{signal:controller.signal}).then(value=>{if(controller.signal.aborted)return;if(validExactZipIndustrySummary(value))setView(value);else setFailed(true)}).catch(()=>{if(!controller.signal.aborted)setFailed(true)});return()=>controller.abort()},[]);const download=()=>{if(!view)return;const url=URL.createObjectURL(new Blob([`${JSON.stringify(view,null,2)}\n`],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download=`cotive-national-zip-industry-status-${view.manifest_sha256.slice(0,12)}.json`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),0)};if(failed)return <p role="alert">Retained source-dimension status is unavailable; no coverage percentage or zero was inferred.</p>;if(!view)return <p role="status">Loading retained source-dimension status…</p>;return <section className="supporting-evidence" aria-label="National exact ZIP industry evidence summary"><h4>Retained source-dimension status</h4><p><strong>{count(view.zip5_rows)}</strong> retained ZIP5 keys × <strong>{view.source_dimensions}</strong> governed source dimensions = <strong>{count(view.industry_cells)}</strong> evidence cells.</p><button type="button" onClick={download}>Download governed status JSON</button><p><strong>Joined evidence disposition:</strong> {view.evidence_disposition_counts.joined.filter(item=>item.count>0).map(item=>`${item.label}: ${count(item.count)}`).join(' · ')}. These are source-specific evidence cells, not business counts, and no disposition verifies current operation.</p><p><strong>{count(view.geography_cohort.same_code_census_zcta)}</strong> keys have a same-code Census ZCTA polygon. <strong>{count(view.geography_cohort.source_contributed_without_same_code_zcta)}</strong> source-contributed keys and <strong>{count(view.geography_cohort.denominator_only_without_same_code_zcta)}</strong> denominator-only keys do not; one additional key is the explicit `00000` placeholder. Non-ZCTA status does not mean an invalid ZIP.</p><p>Positive: {count(view.status_counts.positive)} · measured zero: {count(view.status_counts['measured-zero'])} · outside source denominator: {count(view.status_counts['outside-source-denominator'])} · absent from retained source rows: {count(view.status_counts['absent-from-retained-source-rows'])}.</p><p><strong>Review qualification:</strong> {count(view.temporal_qualification.dimension_counts['within-review-window'])} dimensions are within review window; {count(view.temporal_qualification.dimension_counts.stale)} is stale; {count(view.temporal_qualification.dimension_counts.unmeasured)} are unmeasured; {count(view.temporal_qualification.dimension_counts.unmapped)} are unmapped. Assessed {view.temporal_qualification.assessment_as_of}. No qualification verifies current operation.</p><p><strong>Publisher status meaning:</strong> {count(view.temporal_qualification.semantic_dimension_counts['source-defined-current'])} dimensions use a publisher-defined current status; {count(view.temporal_qualification.semantic_dimension_counts['non-active-reporting'])} are non-active reporting; {count(view.temporal_qualification.semantic_dimension_counts.unmapped)} are unmapped. Publisher-defined current still does not verify general business operation.</p><p><strong>Entity-resolution evidence:</strong> {count(view.entity_resolution.evidence_zip_count)} ZIPs have retained candidate evidence ({view.entity_resolution.evidence_zip_percent.toFixed(1)}%); {count(view.entity_resolution.no_decision_zip_count)} ZIPs have no resolution decision ({view.entity_resolution.no_decision_zip_percent.toFixed(1)}%). Candidate groups are not applied business merges; the benchmark gate has not passed.</p><p><strong>Source quality gaps:</strong> {count(view.coverage_gaps.out_of_cohort_source_records)} retained records report ZIPs outside the cohort; {count(view.coverage_gaps.source_quality_gap_records)} source-quality gap groups remain; {count(view.coverage_gaps.address_rows_without_eligible_zip5)} address rows lack an eligible ZIP5 across {count(view.coverage_gaps.address_gap_dimensions)} source dimensions. These are retained source-row quality and assignment gaps, not missing-business counts.</p><p><strong>Scope boundary:</strong> Industries outside these {view.source_dimensions} dimensions are unavailable—not materialized, not measured zero, and not included in either percentage.</p><details><summary>Governed release provenance</summary><dl><dt>Matrix release</dt><dd><code>{view.release_id}</code><small>Release creation time not asserted · manifest SHA-256 {view.manifest_sha256}</small></dd><dt>Temporal qualification</dt><dd><code>{view.temporal_qualification.release_id}</code><small>Assessed {view.temporal_qualification.assessment_as_of} · manifest SHA-256 {view.temporal_qualification.manifest_sha256}</small></dd><dt>Geography cohort</dt><dd><code>{view.geography_cohort.cohort_release_id}</code><small>Built {view.geography_cohort.created_at} · manifest SHA-256 {view.geography_cohort.cohort_manifest_sha256}</small></dd><dt>Resolution evidence</dt><dd><code>{view.entity_resolution.release_id}</code><small>Built {view.entity_resolution.created_at} · manifest SHA-256 {view.entity_resolution.manifest_sha256}</small></dd></dl></details><details><summary>All {view.source_dimensions} governed source dimensions</summary><div className="representation-table" role="region" aria-label="National ZIP source dimension status" tabIndex={0}><table><thead><tr><th scope="col">Source dimension / retained source release</th><th scope="col">ZIPs with positive evidence</th><th scope="col">ZIPs with measured status</th><th scope="col">Source vintage / temporal status</th><th scope="col">Unknown, absent, or outside denominator</th></tr></thead><tbody>{view.dimensions.map(row=><tr key={row.id}><th scope="row">{sourceLabel(row.id)}<small>{row.temporal_qualification.source_key??'No temporal source mapping'} · {row.temporal_qualification.source_release_id??'No retained source release mapped'}</small></th><td>{count(row.status_counts.positive)} · {row.positive_zip_percent.toFixed(1)}%</td><td>{count(row.status_counts.positive+row.status_counts['measured-zero'])} · {row.measured_status_percent.toFixed(1)}%</td><td>{row.temporal_qualification.review_qualification.replaceAll('-', ' ')}<small>{row.temporal_qualification.semantic_class.replaceAll('-', ' ')} · {row.temporal_qualification.source_status_term??'No publisher status meaning mapped'} · reference {row.temporal_qualification.source_reference_at??'unresolved'} · due {row.temporal_qualification.review_due_at??'unmeasured'}</small><small>Joined cell disposition: {row.evidence_disposition_counts.joined.filter(item=>item.count>0).map(item=>`${item.label} ${count(item.count)}`).join(' · ')}. Not business counts; current operation unverified.</small></td><td>{count(row.status_counts['absent-from-retained-source-rows'])} absent · {count(row.status_counts['outside-source-denominator'])} outside</td></tr>)}</tbody></table></div></details><p className="operations-note">Percentages use the retained 48,194-key evidence cohort, not an authoritative current USPS denominator or all-business completeness. Source dimensions overlap and are not additive. Current operation is not independently verified. {view.verification_scope}.</p></section>}
 
-function GovernedIndustryStatus(){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The nine operational maintenance segments and 39 governed source dimensions are separate taxonomies and are not crosswalked or treated as equivalent. The retained panel is the National exact-ZIP evidence matrix. All 39 source dimensions retain their own provenance and status.</p><OperationalMaintenanceIntent/><ExactZipIndustryNationalSummary /></section>}
+function GovernedCoverageStates(){return <section className="supporting-evidence" aria-label="Nonblocking geography coverage states"><h4>Geography coverage states</h4><p>These states remain visible and never block retained source evidence. They are context states, not business completeness or ZIP-validity decisions.</p><dl><dt>Census ZCTA</dt><dd>Available map geography where a same-code 2020 Census ZCTA is retained.</dd><dt>Private or special-purpose ZIP evidence</dt><dd>Preserved as reported non-ZCTA/special-purpose evidence only where the governed source supplies that classification; otherwise unresolved.</dd><dt>Park or protected land</dt><dd>Unavailable until a governed protected-land overlay is retained. No classification is inferred.</dd><dt>Tribal or Native territory</dt><dd>Unavailable until a governed tribal-area overlay is retained. No classification is inferred.</dd><dt>Unresolved land outside selected ZCTAs</dt><dd>Nonblocking and explicitly unresolved. State plus cardinal/central fallback partitions remain unavailable until the governed residual layer passes topology verification.</dd></dl></section>}
+
+function GovernedIndustryStatus(){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The nine operational maintenance segments and governed source dimensions are separate taxonomies and are not crosswalked or treated as equivalent. Each retained dimension keeps its own provenance and status; unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><GovernedCoverageStates/><ExactZipIndustryNationalSummary /></section>}
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   const [result, setResult] = useState<{
       zip: string;
@@ -5518,15 +5532,15 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   if (!zip)
     return (
       <p role="status">
-        Enter a ZIP to inspect the thirty-nine retained source projections.
+        Enter a ZIP to inspect the forty retained source projections.
       </p>
     );
   if (!view)
     return (
       <p role={failure ? "alert" : "status"}>
         {failure
-          ? "Exact thirty-nine-source ZIP matrix evidence is unavailable or malformed; no cell was interpreted."
-          : `Loading thirty-nine-source matrix evidence for ZIP ${zip}…`}
+          ? "Exact forty-source ZIP matrix evidence is unavailable or malformed; no cell was interpreted."
+          : `Loading forty-source matrix evidence for ZIP ${zip}…`}
       </p>
     );
   if (!view.row)
@@ -5536,13 +5550,13 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
           ZIP {zip} is outside the retained evidence cohort. This does not
           establish an invalid USPS ZIP or zero business activity.
         </p>
-        {view.out_of_cohort_source_zip_gaps.length > 0 && (
+        {(view.out_of_cohort_source_zip_gaps??[]).length > 0 && (
           <>
             <p>
               Retained source ZIP evidence is preserved as out-of-cohort gaps:
             </p>
             <ul>
-              {view.out_of_cohort_source_zip_gaps.map((g) => (
+              {(view.out_of_cohort_source_zip_gaps??[]).map((g) => (
                 <li key={`${g.zip5}:${g.source_id}:${g.publisher_scope ?? ""}`}>
                   {sourceLabel(g.source_id)}
                   {g.publisher_scope ? ` (${g.publisher_scope})` : ""}:{" "}
@@ -5555,14 +5569,14 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             </ul>
           </>
         )}
-        {view.source_quality_gaps.length > 0 && (
+        {(view.source_quality_gaps??[]).length > 0 && (
           <>
             <p>
               Separate retained source ZIP quality gaps are not keyed to this
               out-of-cohort ZIP:
             </p>
             <ul>
-              {view.source_quality_gaps.map((g, index) => (
+              {(view.source_quality_gaps??[]).map((g, index) => (
                 <li key={`${g.source_id}:${index}`}>
                   {g.publisher_scope} · {g.source_id}:{" "}
                   {"candidate_rows" in g
@@ -5578,14 +5592,14 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             </ul>
           </>
         )}
-        {view.source_address_row_gaps.length > 0 && (
+        {(view.source_address_row_gaps??[]).length > 0 && (
           <details>
             <summary>
               Separate source-address rows without eligible ZIP5 (
-              {view.source_address_row_gaps.length} grouped gaps)
+              {(view.source_address_row_gaps??[]).length} grouped gaps)
             </summary>
             <ul>
-              {view.source_address_row_gaps.map((g, index) => (
+              {(view.source_address_row_gaps??[]).map((g, index) => (
                 <li
                   key={`${g.publisher_jurisdiction}:${g.dimension_id}:${g.zip_partition_reason}:${index}`}
                 >
@@ -5640,9 +5654,9 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
     ) : null;
   return (
     <details className="supporting-evidence">
-      <summary>Detailed thirty-nine-source ZIP matrix and provenance</summary>
+      <summary>Detailed forty-source ZIP matrix and provenance</summary>
       <section aria-label={`Exact ZIP ${zip} industry source matrix`}>
-        <h4>Thirty-nine-source exact-ZIP matrix</h4>
+        <h4>Forty-source exact-ZIP matrix</h4>
         <p>
           USPS validity: <strong>Unknown</strong> · ZIP+4:{" "}
           <strong>Separate and not joined</strong>. Cells are nonadditive and do
@@ -5677,7 +5691,7 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             <tbody>
               {EXACT_ZIP_SOURCES.map((source) => {
                 const cell = view.row!.cells[source],
-                  metadata = view.source_metadata[source],
+                  metadata = view.source_metadata[source] ?? {} as ExactZipSourceMetadata,
                   qualification=view.temporal_qualification.rows.find(row=>row.dimension_id===source)!,
                   measureValue = exactZipSourceMeasureValue(cell);
                 return (
@@ -5726,14 +5740,14 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             </tbody>
           </table>
         </div>
-        {view.source_quality_gaps.length > 0 && (
+        {(view.source_quality_gaps??[]).length > 0 && (
           <details>
             <summary>
               Childcare source ZIP quality gaps (
-              {view.source_quality_gaps.length})
+              {(view.source_quality_gaps??[]).length})
             </summary>
             <ul>
-              {view.source_quality_gaps.map((g, index) => (
+              {(view.source_quality_gaps??[]).map((g, index) => (
                 <li key={`${g.source_id}:${index}`}>
                   {g.publisher_scope} · {g.source_id}:{" "}
                   {"candidate_rows" in g
@@ -5753,14 +5767,14 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
             </ul>
           </details>
         )}
-        {view.source_address_row_gaps.length > 0 && (
+        {(view.source_address_row_gaps??[]).length > 0 && (
           <details>
             <summary>
               Separate broad-organization address-row ZIP gaps (
-              {view.source_address_row_gaps.length} grouped gaps)
+              {(view.source_address_row_gaps??[]).length} grouped gaps)
             </summary>
             <ul>
-              {view.source_address_row_gaps.map((g, index) => (
+              {(view.source_address_row_gaps??[]).map((g, index) => (
                 <li
                   key={`${g.publisher_jurisdiction}:${g.dimension_id}:${g.zip_partition_reason}:${index}`}
                 >
@@ -6036,7 +6050,7 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
       <div
         className="representation-table"
         role="region"
-        aria-label="Thirty-nine source cells with demographic context"
+        aria-label="Forty source cells with demographic context"
         tabIndex={0}
       >
         <table>
@@ -6057,7 +6071,7 @@ export function ZipIndustryDemographicCrossViewPanel({ zip }: { zip: string }) {
             {EXACT_ZIP_SOURCES.map((source) => {
               const cell = view.industry_evidence.row!.cells[source],
                 measureValue = exactZipSourceMeasureValue(cell),
-                metadata = view.industry_evidence.source_metadata[source],
+                metadata = view.industry_evidence.source_metadata[source] ?? {} as ExactZipSourceMetadata,
                 qualification=view.industry_evidence.temporal_qualification.rows.find(row=>row.dimension_id===source)!,
                 statusCounts = cell.source_status_counts,
                 observation = metadata.source_observation,

@@ -23,7 +23,7 @@ const readiness = (zcta, executionStatus = "feasible-on-approval") => ({
 });
 const matrixHash = "c".repeat(64);
 const matrixRelease = `national-exact-zip-industry-evidence-matrix-${matrixHash}`;
-const temporalQualification=(zip5,ids)=>({schema_version:"exact-zip-industry-temporal-qualification@1.0.0",zip5,assessment_as_of:"2026-10-02T16:30:00.000Z",rows:[...ids,...Array.from({length:39-ids.length},(_,i)=>`filler_${i}`)].map(dimension_id=>({dimension_id,source_key:null,source_release_id:null,semantic_class:"unmapped",source_status_term:null,source_reference_at:null,assessment_as_of:"2026-10-02T16:30:00.000Z",review_qualification:"unmapped",review_due_at:null,current_operations_verified:false})),summary:{},provenance:{release_id:"exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503",manifest_sha256:"771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e",artifact_sha256:"e".repeat(64),bindings:{}},claims:{current_operations_verified:false,acquisition_performed:false,network_requests:0,current_pointer_written:false,production_enrollment:false}});
+const temporalQualification=(zip5,ids)=>({schema_version:"exact-zip-industry-temporal-qualification-view@1.1.0",zip5,assessment_as_of:"2026-10-02T16:30:00.000Z",rows:[...ids,...Array.from({length:40-ids.length},(_,i)=>`filler_${i}`)].map(dimension_id=>({dimension_id,source_key:null,source_release_id:null,semantic_class:"unmapped",source_status_term:null,source_reference_at:null,assessment_as_of:"2026-10-02T16:30:00.000Z",review_qualification:"unmapped",review_due_at:null,current_operations_verified:false})),summary:{},provenance:{release_id:"exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee",manifest_sha256:"c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409",artifact_sha256:"e".repeat(64),bindings:{}},claims:{current_operations_verified:false,acquisition_performed:false,network_requests:0,current_pointer_written:false,production_enrollment:false}});
 const industryCell = (status, count) => ({
   status,
   count,
@@ -35,10 +35,10 @@ const industryCell = (status, count) => ({
   },
 });
 const industryEvidence = (zip5, cells = { retail: industryCell("positive", 12) }) => ({
-  schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
+  schema_version: "national-exact-zip-industry-evidence-matrix@1.9.0",
   status: "present",
   row: {
-    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.8.0",
+    schema_version: "national-exact-zip-industry-evidence-matrix-row@1.9.0",
     zip5,
     zip4: null,
     cells,
@@ -50,9 +50,11 @@ const industryEvidence = (zip5, cells = { retail: industryCell("positive", 12) }
   manifest_sha256: matrixHash,
   temporal_qualification:temporalQualification(zip5,Object.keys(cells)),
   claims: {
-    additive_cross_industry_total: false,
-    current_operation_verified: false,
-    all_business_completeness: false,
+    nonadditive: true,
+    current_operations_verified: false,
+    all_business_completeness_percent: null,
+    physical_site_inference_permitted: false,
+    production_enrollment: false,
   },
 });
 const cross = (zip5, zcta = zip5, evidence = industryEvidence(zip5)) => ({
@@ -80,7 +82,7 @@ test("exposes the requested total, industry, and demographic structure while wit
     manifest_sha256: matrixHash,
   });
   assert.equal(view.industry_breakdown[0].temporal_qualification.current_operations_verified,false);
-  assert.equal(view.provenance.industry_temporal_qualification.release_id,"exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503");
+  assert.equal(view.provenance.industry_temporal_qualification.release_id,"exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee");
   assert.equal(view.claims.acquisition_performed,false);
   assert.ok(view.industry_breakdown.every((row) => row.gdp.estimate_current_dollars === null));
   assert.deepEqual(view.demographic_breakdown.map((row) => row.dimension), ["race", "ancestry_lineage", "sex", "age"]);
@@ -147,8 +149,8 @@ test("real exact-ZIP reader provenance is bound into the GDP view", async () => 
     }),
   });
   assert.deepEqual(view.provenance.industry_evidence, {
-    release_id: "national-exact-zip-industry-evidence-matrix-ada7e938a0bfa31a51b4cc165b0a3e357f025704eff853fb88a4ccadf2c9ceb6",
-    manifest_sha256: "743d1bad94a7e8b122969cbb0cb9618e20b820b4b1b5afb46285bd70458d9ffe",
+    release_id: "national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003",
+    manifest_sha256: "aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1",
   });
 });
 

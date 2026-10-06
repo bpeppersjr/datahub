@@ -84,7 +84,7 @@ test("HTTP JSON preserves null values for absent/outside cells and numeric zero 
   assert.equal(result.body.serialized_status_value_counts["absent-from-retained-source-rows"].null_cells, 1237187);
   assert.equal(result.body.serialized_status_value_counts["absent-from-retained-source-rows"].numeric_cells, 0);
 });
-test("HTTP endpoint survives governed per-cell disposition enrichment",async()=>{const result=await call({reader:readExactZipIndustryEvidenceWithTemporalQualification});assert.equal(result.status,200);assert.equal(result.body.temporal_qualification.schema_version,"exact-zip-industry-temporal-qualification-view@1.1.0");assert.equal(result.body.temporal_qualification.rows.length,39);assert.ok(result.body.temporal_qualification.rows.every(row=>row.current_operations_verified===false&&row.evidence_disposition.current_operations_verified===false&&row.evidence_disposition.cell_status===result.body.row.cells[row.dimension_id].status));});
+test("HTTP endpoint survives governed per-cell disposition enrichment",async()=>{const result=await call({reader:readExactZipIndustryEvidenceWithTemporalQualification});assert.equal(result.status,200);assert.equal(result.body.temporal_qualification.schema_version,"exact-zip-industry-temporal-qualification-view@1.1.0");assert.equal(result.body.temporal_qualification.rows.length,40);assert.ok(result.body.temporal_qualification.rows.every(row=>row.current_operations_verified===false&&row.evidence_disposition.current_operations_verified===false&&row.evidence_disposition.cell_status===result.body.row.cells[row.dimension_id].status));});
 test("redacts failures and aborts bounded reads on disconnect", async () => {
   const failed = await call({
     reader: () => {

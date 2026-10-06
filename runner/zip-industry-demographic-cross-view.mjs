@@ -1,5 +1,5 @@
 import {readExactZipIndustryEvidenceWithTemporalQualification as readExactZipIndustryEvidence} from './exact-zip-industry-temporal-qualification.mjs';
-import {VERSION as EXACT_ZIP_VERSION} from './national-exact-zip-industry-evidence-matrix.mjs';
+import {VERSION as EXACT_ZIP_VERSION} from './national-exact-zip-industry-evidence-matrix-v1-9.mjs';
 import {readZctaDemographicReadiness} from './zcta-demographic-readiness-reader.mjs';
 
 const check=value=>{if(!value)throw Error('ZIP industry and demographic cross-view is unavailable or incompatible.');};

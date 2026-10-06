@@ -36,7 +36,7 @@ const nativeStatusPin = nativeStatusRegistration.retained_release;
 const exactZipMatrixRegistration = JSON.parse(
   await readFile(
     new URL(
-      "../config/datasets/national-exact-zip-industry-evidence-matrix.json",
+      "../config/datasets/national-exact-zip-industry-evidence-matrix-v1-9.json",
       import.meta.url,
     ),
     "utf8",
@@ -490,6 +490,7 @@ const crossSources = [
   "childcare_oh_reporting_centers",
   ...Object.keys(profileDimensions),
   ...Object.keys(broadDimensions),
+  "wa_lni_active_contractor_organization_mailing_addresses",
 ];
 function fixtureDisposition(cell_status,item){const lifecycle_status=item.review_qualification==="unmapped"?"unmapped":item.review_qualification==="unmeasured"?"unmeasured":item.review_qualification==="stale"?"stale":item.semantic_class==="source-defined-current"?(cell_status==="positive"?"source-defined-current-positive-within-review-window":"source-defined-current-without-positive-evidence"):(cell_status==="positive"?"non-active-reporting-positive":"non-active-reporting-without-positive-evidence");return{cell_status,lifecycle_status,label:`${cell_status.replaceAll("-"," ")} · ${lifecycle_status.replaceAll("-"," ")}`,current_operations_verified:false}}
 function crossView(zip = "00601", status = "available") {
@@ -735,6 +736,7 @@ function crossView(zip = "00601", status = "available") {
       return [source, metadata];
     }),
   );
+  delete source_metadata.wa_lni_active_contractor_organization_mailing_addresses;
   const qualityGap = {
       zip5: null,
       quality_dimension: "source-zip",
@@ -793,7 +795,7 @@ function crossView(zip = "00601", status = "available") {
       ? null
       : {
           schema_version:
-            "national-exact-zip-industry-evidence-matrix-row@1.8.0",
+            "national-exact-zip-industry-evidence-matrix-row@1.9.0",
           zip5: zip,
           zip4: null,
           cohort_classification: "same-code-census-zcta",
@@ -803,7 +805,7 @@ function crossView(zip = "00601", status = "available") {
           cells,
         };
   const industry_evidence = {
-    schema_version: "national-exact-zip-industry-evidence-matrix@1.8.0",
+    schema_version: "national-exact-zip-industry-evidence-matrix@1.9.0",
     status: "present",
     row,
     out_of_cohort_source_zip_gaps: [],
@@ -818,28 +820,31 @@ function crossView(zip = "00601", status = "available") {
       "absent-from-retained-source-rows": { cells: 1237187, numeric_cells: 0, null_cells: 1237187 },
     },
     cell_status_counts_by_dimension:
-      exactZipMatrixManifest.summary.cell_status_counts_by_dimension,
+      exactZipMatrixManifest.summary.cell_status_counts_by_dimension ?? {},
     reclassified_absent_source_row_cells:
       exactZipMatrixManifest.summary.reclassified_absent_source_row_cells,
-    release_id: `national-exact-zip-industry-evidence-matrix-${hash}`,
-    manifest_sha256: hash,
+    release_id: exactZipMatrixRegistration.retained_release.release_id,
+    manifest_sha256: exactZipMatrixRegistration.retained_release.manifest_sha256,
     temporal_qualification:{schema_version:"exact-zip-industry-temporal-qualification-view@1.1.0",zip5:zip,assessment_as_of:temporalQualificationArtifact.assessment_as_of,rows:temporalQualificationArtifact.rows.map(item=>({...item,evidence_disposition:fixtureDisposition(row?.cells?.[item.dimension_id]?.status??"unavailable",item)})),summary:temporalQualificationArtifact.summary,provenance:{release_id:temporalQualificationRegistration.retained_release.release_id,manifest_sha256:temporalQualificationRegistration.retained_release.manifest_sha256,artifact_sha256:temporalQualificationRegistration.retained_release.artifact_sha256,bindings:temporalQualificationRegistration.retained_release.bindings},claims:temporalQualificationArtifact.claims},
     source_bytes_read: 4000,
     full_matrix_replay_performed: false,
     claims: {
-      authoritative_current_usps_zip_denominator: null,
-      usps_validity_classified: false,
-      zip4_joined: false,
-      additive_cross_industry_total: false,
-      current_operation_verified: false,
-      all_business_completeness: false,
+      wa_broad_jurisdiction_gap_complete: false,
+      physical_site_inference_permitted: false,
+      establishment_inference_permitted: false,
+      current_operations_verified: false,
+      all_business_completeness_percent: null,
+      nonadditive: true,
+      record_level_export_policy: "local-review-only",
+      aggregate_export_policy: "public-under-pddl-with-attribution-and-semantic-limitations",
+      zip4_joined_to_zip5: false,
       network_requests: 0,
-      acquisition_performed: false,
       current_pointer_written: false,
       production_enrollment: false,
-      production_execution: false,
     },
   };
+  for (const legacyKey of ["out_of_cohort_source_zip_gaps", "source_quality_gaps", "source_address_row_gaps", "serialized_status_value_counts", "reclassified_absent_source_row_cells"])
+    delete industry_evidence[legacyKey];
   const demographic_context =
     status === "available"
       ? {
@@ -874,7 +879,7 @@ function crossView(zip = "00601", status = "available") {
     semantics: {
       geography: "Exact same-code governed Census ZCTA only.",
       industry:
-        "Thirty-nine source-specific nonadditive units preserve registry-location profile status counts and source observation clocks; current operation is unverified.",
+        "Forty source-specific nonadditive units preserve registry-location profile status counts and source observation clocks; current operation is unverified.",
       demographic: "Population and housing are aggregate context only.",
     },
     claims: {
@@ -891,7 +896,8 @@ function crossView(zip = "00601", status = "available") {
     },
   };
 }
-test("cross-view renders thirty-nine temporal cells with source-native status and Census context", async () => {
+test("cross-view renders forty temporal cells with source-native status and Census context", async () => {
+  assert.deepEqual(temporalQualificationArtifact.rows.map((row)=>row.dimension_id),crossSources);
   const view = crossView(),
     h = harness(async (url) => {
       assert.equal(
@@ -928,7 +934,7 @@ test("cross-view renders thirty-nine temporal cells with source-native status an
       .filter((node) => node.type === "tbody")
       .flatMap(nodes)
       .filter((node) => node.type === "tr").length,
-    39,
+    40,
   );
   assert.match(value, /population 17,242/);
   assert.match(value, /housing units 7,605/);
@@ -2694,7 +2700,7 @@ test("demographic readiness panel distinguishes no-ZCTA and malformed response s
   malformed.close();
 });
 test("national joined-disposition summary validation fails closed on balanced redistribution and semantic drift",async()=>{const value=await readExactZipIndustrySummary(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);const pair=value.evidence_disposition_counts.joined.map((row,index)=>({row,index})).filter(item=>item.row.cell_status===value.evidence_disposition_counts.joined[0].cell_status&&item.row.count>0).slice(0,2);assert.equal(pair.length,2);const shifted=value.evidence_disposition_counts.joined.map((row,index)=>index===pair[0].index?{...row,count:row.count-1}:index===pair[1].index?{...row,count:row.count+1}:row),first=value.evidence_disposition_counts.joined[0],duplicate=value.evidence_disposition_counts.joined.map((row,index)=>index===1?{...row,cell_status:first.cell_status,lifecycle_status:first.lifecycle_status,label:first.label}:row),dimensionLifecycle=value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,joined:row.evidence_disposition_counts.joined.map((item,itemIndex)=>itemIndex?item:{...item,lifecycle_status:"unmapped",label:`${item.cell_status.replaceAll("-"," ")} · unmapped`})}});for(const malformed of [null,{...value,claims:undefined},{...value,extra:true},{...value,manifest_sha256:"f".repeat(64)},{...value,temporal_qualification:{...value.temporal_qualification,manifest_sha256:"e".repeat(64)}},{...value,geography_cohort:{...value.geography_cohort,cohort_manifest_sha256:"d".repeat(64)}},{...value,dimensions:value.dimensions.map((row,index)=>index===1?{...row,id:value.dimensions[0].id}:row)},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,status_counts:{...row.status_counts,positive:row.status_counts.positive+1}})},{...value,coverage_gaps:null},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,total_cells:value.industry_cells-1}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:shifted}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:duplicate}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:value.evidence_disposition_counts.joined.map((row,index)=>index?row:{...row,label:"verified current business"})}},{...value,dimensions:dimensionLifecycle},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,total_cells:48193}})},{...value,claims:{...value.claims,current_operation_verified:true}}])assert.equal(h.render("validExactZipIndustrySummary",malformed),false);});
-test("exact ZIP matrix validates thirty-nine temporal source dimensions and publisher-specific metadata", async () => {
+test("exact ZIP matrix validates forty temporal source dimensions and publisher-specific metadata", async () => {
   const matrix = crossView().industry_evidence,
     h = harness(async () => matrix);
   assert.equal(h.render("validExactZipEvidence", matrix, "00601"), true);
@@ -2744,19 +2750,6 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
         },
       },
     },
-    { ...matrix, source_quality_gaps: [] },
-    {
-      ...matrix,
-      source_quality_gaps: [
-        { ...matrix.source_quality_gaps[0], zip5: "21708" },
-      ],
-    },
-    {
-      ...matrix,
-      source_address_row_gaps: [
-        { ...matrix.source_address_row_gaps[0], zip5: "21708" },
-      ],
-    },
     {
       ...matrix,
       source_metadata: {
@@ -2801,8 +2794,7 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
       },
     },
   ];
-  for (const value of malformed)
-    assert.equal(h.render("validExactZipEvidence", value, "00601"), false);
+  malformed.forEach((value,index)=>assert.equal(h.render("validExactZipEvidence", value, "00601"), false,`malformed v1.9 case ${index}`));
   h.render("ExactZipIndustryEvidencePanel", { zip: "00601" });
   await flush();
   const tree = h.render("ExactZipIndustryEvidencePanel", { zip: "00601" }),
@@ -2811,7 +2803,7 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     nodes(tree)
       .filter((n) => n.type === "tbody")
       .flatMap((n) => nodes(n).filter((row) => row.type === "tr")).length,
-    39,
+    40,
   );
   assert.match(value, /Measured zero in this source projection/);
   assert.match(value, /Outside source denominator — not zero/);
@@ -2829,10 +2821,7 @@ test("exact ZIP matrix validates thirty-nine temporal source dimensions and publ
     value,
     /Childcare candidate rows and publisher reporting-center rows remain distinct source units/,
   );
-  assert.match(value, /Childcare source ZIP quality gaps/);
-  assert.match(value, /invalid-source-zip-range/);
-  assert.match(value, /no ZIP5 key is asserted/);
-  assert.match(value, /Separate broad-organization address-row ZIP gaps/);
+  assert.doesNotMatch(value, /Childcare source ZIP quality gaps|Separate broad-organization address-row ZIP gaps/);
   assert.match(value, /source referenced current operation unverified/);
   assert.match(value, new RegExp(matrix.release_id));
   h.close();
@@ -2952,7 +2941,7 @@ test("registry profile cells fail closed on lost status conservation or conflate
   for (const value of [badCounts, badObservation, badRefresh])
     assert.equal(h.render("validExactZipEvidence", value, "00601"), false);
 });
-test("exact ZIP matrix exposes childcare and CMS out-of-cohort gaps without invalid-ZIP claims", async () => {
+test("exact ZIP v1.9 rejects legacy injected out-of-cohort arrays without interpreting them", async () => {
   for (const [zip5, source_id, label] of [
     ["21708", "childcare_md_candidates", "MD childcare candidate rows"],
     ["35999", "cms_nursing_home_directory", "CMS nursing-home directory rows"],
@@ -2984,12 +2973,11 @@ test("exact ZIP matrix exposes childcare and CMS out-of-cohort gaps without inva
     const value = text(
       h.render("ExactZipIndustryEvidencePanel", { zip: zip5 }),
     );
-    assert.match(value, /out-of-cohort gaps/);
-    assert.match(value, new RegExp(label));
-    assert.match(value, /does not establish an invalid USPS ZIP/);
+    assert.match(value, /unavailable or malformed/);
+    assert.doesNotMatch(value, new RegExp(label));
+    assert.match(value, /no cell was interpreted/);
     if (zip5 === "21708") {
-      assert.match(value, /not keyed to this out-of-cohort ZIP/);
-      assert.match(value, /invalid-source-zip-range/);
+      assert.doesNotMatch(value, /not keyed to this out-of-cohort ZIP|invalid-source-zip-range/);
     }
     h.close();
   }
