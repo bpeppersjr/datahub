@@ -20,6 +20,7 @@ import CensusZctaResidualLayer from "./census-zcta-residual-layer";
 import StateExactZipEvidencePanel from "./state-exact-zip-evidence-panel";
 import StateExactZipEvidenceMap from "./state-exact-zip-evidence-map";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
+import NonZctaSourceGeographyContext from "./non-zcta-source-geography-context";
 import stateAccessEnrollment from "../config/state-access-ui-enrollment.json";
 
 export const workspaceTabs = [
@@ -6418,6 +6419,7 @@ export function ZipEconomyWorkspace({
           )}
           <CmsDirectoryZipLoader zip={zip} attempt={attempt} />
           <RetainedChildcareZipLoader zip={zip} attempt={attempt} />
+          <NonZctaSourceGeographyContext zip={zip} />
         </details>
       )}
       <div

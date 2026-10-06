@@ -1,0 +1,68 @@
+{
+  "dataset_id": "census-nonemployer-county-industry-adjacent-evidence",
+  "schema_version": "1.0.0",
+  "status": "registered-local-adjacent-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "matrix_enrollment": false,
+  "exact_zip_catalog_enrollment": false,
+  "source": {
+    "pointer_path": "data/business-baselines/census-nonemployer/current.json",
+    "pointer_sha256": "2b1f75364b703d674670870181b9b99e7feaf4842d239923145b12429bad13b5",
+    "manifest_path": "data/business-baselines/census-nonemployer/releases/census-nonemployer-2023-20260830-230249716Z-78268f89/manifest.json",
+    "manifest_sha256": "7ebdba43630506d1c6bf859fdc91fe57566c0d0b95c4b8f872c40c2c71670f06",
+    "release_id": "census-nonemployer-2023-20260830-230249716Z-78268f89",
+    "county_industry_artifact_sha256": "35571aad99f81e7d03d172d63594d264c36d2b64175a0f29bdb7d920d4e69667"
+  },
+  "policy": {
+    "path": "config/source-policies/us-census-nonemployer.json",
+    "sha256": "efa192764471c5b851c9d859024f37c2a2bbec5242781f13ed22b16aa4365ace"
+  },
+  "retained_context": {
+    "config_path": "config/datasets/census-nonemployer-county-industry-context.json",
+    "config_sha256": "55b35e6ab8896dedacb7cc331e0a0578928bda6b366a82904e112b45d1dd3d7f",
+    "manifest_path": "data/business-baselines/census-nonemployer-industry-context/releases/census-nonemployer-industry-context-2023-e3fe540b-889b-4dc2-b279-8e9f515ac97e/manifest.json",
+    "manifest_sha256": "60bc303ec665df2472afb93277ed871c1448a6e891b6294903431b6d15c6715f",
+    "release_id": "census-nonemployer-industry-context-2023-e3fe540b-889b-4dc2-b279-8e9f515ac97e",
+    "artifact_path": "county-industry-context.jsonl",
+    "artifact_sha256": "50783ebe19fef9817c6502ee48a9de0be7c99fe71f1b2db475948fd93a0bc0ba",
+    "artifact_bytes": 12483025,
+    "artifact_rows": 6390
+  },
+  "selection": {
+    "reference_year": 2023,
+    "classification": "2022 NAICS",
+    "geography_type": "county",
+    "naics_codes": ["23", "62441"],
+    "source_cell": { "legal_form_code": "001", "receipt_size_code": "001" },
+    "hierarchy_aggregation": false,
+    "zip_allocation": false
+  },
+  "expected_counts": {
+    "county_geographies": 3143,
+    "projected_rows": 6286,
+    "direct_published_cells": 6151,
+    "usable_cells": 6141,
+    "flagged_cells": 10,
+    "absent_cells": 135,
+    "by_naics": {
+      "23": { "rows": 3143, "usable": 3141, "flagged": 1, "absent": 1, "establishments_usable_sum": 2917626 },
+      "62441": { "rows": 3143, "usable": 3000, "flagged": 9, "absent": 134, "establishments_usable_sum": 533398 }
+    }
+  },
+  "claims": {
+    "export_policy": "local-review-only",
+    "current_operations_verified": false,
+    "all_business_completeness": false,
+    "named_business_directory": false,
+    "geocoding_performed": false,
+    "zip5": null,
+    "zip4": null,
+    "network_requests": 0,
+    "production_enrollment": false,
+    "matrix_enrollment": false,
+    "exact_zip_catalog_enrollment": false
+  },
+  "documentation": "docs/CENSUS-NONEMPLOYER-COUNTY-INDUSTRY-ADJACENT-EVIDENCE.md"
+}

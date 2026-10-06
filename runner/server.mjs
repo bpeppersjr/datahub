@@ -33,6 +33,8 @@ import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
+import { readNonZctaSourceGeographyContext } from './non-zcta-source-geography-context.mjs';
+import { nonZctaSourceGeographyContextHttp } from './non-zcta-source-geography-context-http.mjs';
 import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
 import { readZctaEconomicReadiness } from './zcta-economic-readiness-reader.mjs';
@@ -810,6 +812,9 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/business-map/zip-inspector') {
       await zipInspectorHttp(request, response, url, zipInspectorView, json);
       return;
+    }
+    if(url.pathname==='/api/business-map/non-zcta-source-geography-context'){
+      await nonZctaSourceGeographyContextHttp(request,response,url,{authorize:()=>true,reader:readNonZctaSourceGeographyContext},json);return;
     }
     if (url.pathname === '/api/business-map/zip-evidence-qualification') {
       await zipEvidenceQualificationHttp(request,response,url,{reader:readZipEvidenceQualification,authorize:incoming=>{

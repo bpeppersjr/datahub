@@ -1,0 +1,3 @@
+import {verifyCensusNonemployerCountyIndustryAdjacentEvidence} from '../runner/census-nonemployer-county-industry-adjacent-evidence.mjs';
+const controller=new AbortController();for(const event of ['SIGINT','SIGTERM'])process.once(event,()=>controller.abort());
+try{const result=await verifyCensusNonemployerCountyIndustryAdjacentEvidence({signal:controller.signal});process.stdout.write(`${JSON.stringify({verified:result.verified,dataset_id:result.dataset_id,source_release_id:result.source_release_id,context_release_id:result.context_release_id,counts:result.counts,claims:result.claims},null,2)}\n`);}catch(error){process.stderr.write(`${error.stack??error}\n`);process.exitCode=1;}
