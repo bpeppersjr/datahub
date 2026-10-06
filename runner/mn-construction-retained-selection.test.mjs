@@ -7,7 +7,7 @@ import { syncBuiltinESMExports } from 'node:module';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
 import { MN_CONSTRUCTION_COLUMNS } from './mn-construction-preflight.mjs';
-import { buildMnConstructionRetainedSelection as build, verifyMnConstructionRetainedSelection as verify, observeBoundedSingleLink } from './mn-construction-retained-selection.mjs';
+import { buildMnConstructionRetainedSelection as build, verifyMnConstructionRetainedSelection as verify } from './mn-construction-retained-selection.mjs';
 const context={runId:'fixture-run',sourceReleaseId:'fixture-release',observedAt:'2026-09-08T12:00:00.000Z',cohort:'residential'};
 const csv=()=>Buffer.from(MN_CONSTRUCTION_COLUMNS.join(',')+'\r\n'+[true,false].map(b=>{
   const row={...Object.fromEntries(MN_CONSTRUCTION_COLUMNS.map(k=>[k,''])),Bus_Pers:b?'Business':'Person',Status:'Issued',Lic_Number:'BC123456',Name:b?'Fixture Contractor':'SECRET PERSON',Phone_No:'SECRET PHONE',Email_Address:'SECRET EMAIL',St:'MN',Zip:'00501-0012'};
@@ -74,12 +74,4 @@ test('MN writer initialization failure closes its opened handle',async t=>{
     const close=handle.close.bind(handle);handle.close=async()=>{closed=true;return close();};handle.stat=async()=>{throw new Error('fixture stat failure');};}return handle;});
   syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
   await assert.rejects(build(source(),{context,outputRoot:path.join(root,'output')}));assert.equal(closed,true);
-});
-test('MN bounded reader tolerates only a transient same-identity Windows link count',async()=>{
-  const stat=nlink=>({isFile:()=>true,isSymbolicLink:()=>false,nlink,size:10n,dev:1n,ino:2n});let calls=0,pauses=0;
-  const observed=await observeBoundedSingleLink('fixture',100,undefined,{stat:async()=>stat(++calls===1?2n:1n),pause:async()=>{pauses++;}});
-  assert.equal(observed.nlink,1n);assert.equal(calls,2);assert.equal(pauses,1);
-  await assert.rejects(observeBoundedSingleLink('fixture',100,undefined,{stat:async()=>stat(2n),pause:async()=>{}}),/bounded single-link/);
-  calls=0;await assert.rejects(observeBoundedSingleLink('fixture',100,undefined,{stat:async()=>({...stat(++calls===1?2n:1n),ino:BigInt(calls)}),pause:async()=>{}}),/identity changed/);
-  await assert.rejects(observeBoundedSingleLink('fixture',9,undefined,{stat:async()=>stat(1n),pause:async()=>{}}),/bounded single-link/);
 });

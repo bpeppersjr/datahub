@@ -7,6 +7,7 @@ import path from "node:path";
 import {APP_ROOT} from './paths.mjs';
 import { createInterface } from "node:readline";
 import { finished } from "node:stream/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { createGunzip, gunzipSync } from "node:zlib";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import RBush from "rbush";
@@ -24,6 +25,17 @@ const USPS_VALIDITY_GAP_CONTRACT = Object.freeze({ version: "1.0.0", claim: "com
   census_zcta_spatial_denominator_independent: true, zip4_polygon_applicability: "not-applicable" });
 const OH_SOURCE = "oh-dcy-publisher-open-childcare-centers", OH_KEY = "oh_childcare_centers";
 const ohioCoverage = () => import("./oh-childcare-coverage-evidence.mjs");
+const TRANSIENT_MN_SINGLE_LINK_ERROR = "Minnesota retained selection rejected: bounded single-link input.";
+
+export async function verifyCoverageReleaseWithBoundedMnLinkRetry(manifestPath,{verifier=verifyNationalBusinessCoverageViewsRelease,pause=delay}={}) {
+  for(let observation=0;observation<4;observation++){
+    try{return await verifier(manifestPath);}
+    catch(error){
+      if(error?.message!==TRANSIENT_MN_SINGLE_LINK_ERROR||observation===3)throw error;
+      await pause(25*(2**observation));
+    }
+  }
+}
 const TN_SOURCE = "tn-dhs-active-childcare-centers";
 const TN_KEY = "tn_childcare_centers";
 function emptyTnReporting() {
@@ -1732,7 +1744,7 @@ export async function buildNationalBusinessCoverageViews({
   if(cmsHospitalDeclaration)manifest.cms_hospital_directory_reporting=cmsHospitalDeclaration;
   if(cmsNursingHomeDeclaration)manifest.cms_nursing_home_directory_reporting=cmsNursingHomeDeclaration;
   await writeArtifact(stagingDirectory, "manifest.json", json(manifest));
-  if (ohSupported || retainedChildcareDeclaration || mnCredentialDeclaration || cmsHospitalDeclaration || cmsNursingHomeDeclaration) await verifyNationalBusinessCoverageViewsRelease(path.join(stagingDirectory, "manifest.json"));
+  if (ohSupported || retainedChildcareDeclaration || mnCredentialDeclaration || cmsHospitalDeclaration || cmsNursingHomeDeclaration) await verifyCoverageReleaseWithBoundedMnLinkRetry(path.join(stagingDirectory, "manifest.json"));
   const releaseDirectory = path.join(outputRoot, "releases", releaseId);
   await mkdir(path.dirname(releaseDirectory), { recursive: true });
   await renameWithRetry(stagingDirectory, releaseDirectory);

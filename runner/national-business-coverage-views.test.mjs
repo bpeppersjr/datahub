@@ -15,8 +15,25 @@ import { BUSINESS_LOCATION_PROFILE_VERSION } from "./business-location-profile-c
 import {
   assignPointToCounty,
   buildNationalBusinessCoverageViews,
+  verifyCoverageReleaseWithBoundedMnLinkRetry,
   verifyNationalBusinessCoverageViewsRelease,
 } from "./national-business-coverage-views.mjs";
+
+test("coverage final verifier retries only the exact transient Minnesota single-link error", async () => {
+  const message = "Minnesota retained selection rejected: bounded single-link input.";
+  let calls = 0; const pauses = [];
+  const result = await verifyCoverageReleaseWithBoundedMnLinkRetry("fixture-manifest", {
+    verifier: async value => { assert.equal(value, "fixture-manifest"); if (++calls < 3) throw new Error(message); return { verified: true }; },
+    pause: async milliseconds => { pauses.push(milliseconds); },
+  });
+  assert.deepEqual(result, { verified: true }); assert.equal(calls, 3); assert.deepEqual(pauses, [25, 50]);
+  calls = 0;
+  await assert.rejects(verifyCoverageReleaseWithBoundedMnLinkRetry("fixture", { verifier: async () => { calls++; throw new Error(message); }, pause: async () => {} }), error => error.message === message);
+  assert.equal(calls, 4);
+  calls = 0;
+  await assert.rejects(verifyCoverageReleaseWithBoundedMnLinkRetry("fixture", { verifier: async () => { calls++; throw new Error("Minnesota retained selection verification failed."); }, pause: async () => assert.fail("arbitrary error must not pause") }), /verification failed/);
+  assert.equal(calls, 1);
+});
 
 function polygonFeature(properties, west = -90, south = 30, east = -89, north = 31) {
   return {
