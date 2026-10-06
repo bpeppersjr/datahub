@@ -46,20 +46,21 @@ export async function stateAccessView({root=APP_ROOT,state,industry}={}){
 export async function stateAccessIndustrySummary({root=APP_ROOT,configLoader=loadIndustryConfig}={}){
   const [{report,config},industryConfig]=await Promise.all([enrolledReport(root),configLoader(path.join(root,'config','industry-segments.json'))]),expected=Object.keys(industryConfig.industries).sort();
   check(expected.length===9,'State-access operational industry taxonomy is invalid.');
-  const rows=new Map(expected.map(id=>[id,{id,jurisdictions:0,access_status_counts:{},temporal_status_counts:{}}]));
+  const rows=new Map(expected.map(id=>[id,{id,jurisdictions:0,access_status_counts:Object.fromEntries([...ACCESS_STATUSES].sort().map(status=>[status,0])),temporal_status_counts:Object.fromEntries([...TEMPORAL_STATUSES].sort().map(status=>[status,0])),states:[]}]))
   let cells=0;const states=new Set();
   for(const jurisdiction of report.jurisdictions){
     check(STATE.test(jurisdiction.state??'')&&!states.has(jurisdiction.state),'State-access jurisdiction identities are invalid.');states.add(jurisdiction.state);
     const actual=Array.isArray(jurisdiction.industries)?jurisdiction.industries.map(row=>row.industry).sort():[];
     check(actual.length===9&&new Set(actual).size===9&&actual.every((id,index)=>id===expected[index]),'State-access operational industry cells are invalid.');
-    for(const cell of jurisdiction.industries){const row=rows.get(cell.industry);check(row&&ACCESS_STATUSES.has(cell.accessEvidenceStatus)&&TEMPORAL_STATUSES.has(cell.temporalStatus?.status),'State-access industry status vocabulary is invalid.');row.jurisdictions+=1;row.access_status_counts[cell.accessEvidenceStatus]=(row.access_status_counts[cell.accessEvidenceStatus]??0)+1;row.temporal_status_counts[cell.temporalStatus.status]=(row.temporal_status_counts[cell.temporalStatus.status]??0)+1;cells+=1;}
+    for(const cell of jurisdiction.industries){const row=rows.get(cell.industry);check(row&&ACCESS_STATUSES.has(cell.accessEvidenceStatus)&&TEMPORAL_STATUSES.has(cell.temporalStatus?.status),'State-access industry status vocabulary is invalid.');const sources=[],sourceKeys=new Set();for(const evidence of cell.evidence??[]){if(!evidence?.temporalEvidence)continue;const item=temporal(evidence.temporalEvidence);check(typeof item.sourceKey==='string'&&item.sourceKey.length>0&&(item.sourceReleaseId===null||typeof item.sourceReleaseId==='string')&&(item.sourceReferenceAt===null||typeof item.sourceReferenceAt==='string')&&(item.reviewDueDate===null||typeof item.reviewDueDate==='string')&&typeof item.evidenceScope==='string','State-access source provenance is invalid.');const key=[item.sourceKey,item.sourceReleaseId,item.sourceReferenceAt,item.reviewDueDate,item.evidenceScope].join('|');if(!sourceKeys.has(key)){sourceKeys.add(key);sources.push({source_key:item.sourceKey,source_release_id:item.sourceReleaseId,source_reference_at:item.sourceReferenceAt,review_due_date:item.reviewDueDate,evidence_scope:item.evidenceScope});}}sources.sort((a,b)=>a.source_key.localeCompare(b.source_key)||String(a.source_release_id).localeCompare(String(b.source_release_id)));row.jurisdictions+=1;row.access_status_counts[cell.accessEvidenceStatus]+=1;row.temporal_status_counts[cell.temporalStatus.status]+=1;row.states.push({state:jurisdiction.state,access_status:cell.accessEvidenceStatus,temporal_status:cell.temporalStatus.status,source_keys:[...new Set(sources.map(item=>item.source_key))].sort(),sources});cells+=1;}
   }
-  check(states.size===51&&cells===459&&[...rows.values()].every(row=>row.jurisdictions===51),'State-access industry-cell conservation failed.');
+  check(states.size===51&&cells===459&&[...rows.values()].every(row=>row.jurisdictions===51&&row.states.length===51&&new Set(row.states.map(item=>item.state)).size===51),'State-access industry-cell conservation failed.');
   for(const row of rows.values()){
+    row.states.sort((a,b)=>a.state.localeCompare(b.state));
     row.jurisdictions_with_retained_access_evidence=(row.access_status_counts['direct-state-publisher']??0)+(row.access_status_counts['local-publisher-substate-evidence']??0)+(row.access_status_counts['national-dataset-state-evidence']??0);
     row.retained_access_evidence_percent=Number(((row.jurisdictions_with_retained_access_evidence/row.jurisdictions)*100).toFixed(1));
   }
-  return {schema_version:'state-access-industry-summary@1.1.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
+  return {schema_version:'state-access-industry-summary@1.2.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
 }
 
 export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedIndustries=[],maintenanceRevision=0,configLoader=loadIndustryConfig}={}){

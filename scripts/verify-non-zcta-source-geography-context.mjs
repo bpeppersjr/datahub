@@ -1,0 +1,1 @@
+import{verifyNonZctaSourceGeographyContext}from'../runner/non-zcta-source-geography-context.mjs';try{console.log(JSON.stringify(await verifyNonZctaSourceGeographyContext({manifestPath:process.argv[2]}),null,2))}catch{console.error('Non-ZCTA source geography context verification failed.');process.exitCode=1}

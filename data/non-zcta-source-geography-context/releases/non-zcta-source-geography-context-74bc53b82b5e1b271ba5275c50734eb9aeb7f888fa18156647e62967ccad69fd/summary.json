@@ -1,0 +1,38 @@
+{
+  "schema_version": "non-zcta-source-geography-context@1.0.0",
+  "summary": {
+    "rows": 14402,
+    "source_contributed_outside_zcta": 14361,
+    "denominator_only_outside_zcta": 41,
+    "relationship_keys": 8871,
+    "no_relationship_keys": 5531,
+    "one_reported_code_keys": 8673,
+    "multiple_reported_code_keys": 198,
+    "one_code_census_state_dc_keys": 8456,
+    "one_code_census_territory_keys": 126,
+    "one_code_outside_census_roster_keys": 91,
+    "point_keys": 336,
+    "point_profile_rows": 441,
+    "point_agreement_keys": 335,
+    "point_conflict_keys": 1
+  },
+  "claims": {
+    "zip_to_state_assignment": false,
+    "cardinal_or_central_grouping": null,
+    "polygon": null,
+    "centroid": null,
+    "usps_class": null,
+    "usps_validity": null,
+    "park_status": null,
+    "tribal_or_native_status": null,
+    "private_land_status": null,
+    "population": null,
+    "business_completeness": null,
+    "map_blocked": false,
+    "heatmap_integration": false,
+    "state_denominator_integration": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  }
+}

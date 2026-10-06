@@ -1,0 +1,1 @@
+import{buildNonZctaSourceGeographyContext}from'../runner/non-zcta-source-geography-context.mjs';try{console.log(JSON.stringify(await buildNonZctaSourceGeographyContext({createdAt:process.argv[2]}),null,2))}catch{console.error('Non-ZCTA source geography context build failed.');process.exitCode=1}

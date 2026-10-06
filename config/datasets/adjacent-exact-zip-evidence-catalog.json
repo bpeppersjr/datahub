@@ -44,6 +44,27 @@
         "positive_zip5_keys": 377,
         "projected_rows": 420
       }
+    },
+    {
+      "id": "census-zbp-2023-all-industry-employer-establishments",
+      "label": "Census ZBP 2023 all-industry employer-establishment aggregates",
+      "jurisdiction": "US",
+      "verifier_id": "census-zbp-all-industry-exact-zip-evidence@1.0.0",
+      "registration_path": "config/datasets/census-zbp-all-industry-exact-zip-evidence.json",
+      "registration_sha256": "63221c73ebd7aa509691abfb6dd1bf3f9ffe001a913600aea1660c64d9f70e01",
+      "dimension_id": "census_zbp_2023_all_industry_employer_establishments",
+      "record_unit": "census-published-zip-all-industry-employer-establishment-aggregate",
+      "export_policy": "local-review-only",
+      "temporal_status": "annual-reference-year-current-operation-unverified",
+      "source_reference_at": "2023-12-31T00:00:00.000Z",
+      "expected_counts": {
+        "source_rows": 37828,
+        "zip5_bearing_rows": 37828,
+        "missing_zip5_rows": 0,
+        "zip4_rows": 0,
+        "positive_zip5_keys": 34954,
+        "projected_rows": 37828
+      }
     }
   ],
   "claims": {

@@ -1,0 +1,77 @@
+{
+  "dataset_id": "census-zbp-all-industry-exact-zip-evidence",
+  "schema_version": "1.0.0",
+  "status": "registered-local-adjacent-evidence",
+  "release_only": true,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "national_reporting_denominator_enrollment": false,
+  "dimension_id": "census_zbp_2023_all_industry_employer_establishments",
+  "source_pointer": {
+    "path": "data/business-baselines/census-zbp/current.json",
+    "sha256": "526fdd2b2aef067286c3a5c1cdad1139d81724fefec847d197b9b7e1f968a496"
+  },
+  "source_manifest": {
+    "path": "data/business-baselines/census-zbp/releases/census-zbp-2023-20260830-134622645Z-4da1edc0/manifest.json",
+    "sha256": "db6ec348a46b4b3ad9692aafc1d47fd388308031e397fb5de8e0193df19bf271",
+    "release_id": "census-zbp-2023-20260830-134622645Z-4da1edc0"
+  },
+  "policy": {
+    "path": "config/source-policies/us-census-zbp.json",
+    "sha256": "07a7411d7c94bac2cad72221b3fd2886b7bf896a19d7459acf299439df2bcfcb"
+  },
+  "geography": {
+    "pointer_path": "data/geography/current.json",
+    "pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0"
+  },
+  "profile_index": {
+    "registration_path": "config/datasets/census-zbp-zip-profile-index.json",
+    "registration_sha256": "4e4520b3f29f48568cb44ad46d071b61cd39494c4a0ea9eda89a4de880163db2",
+    "manifest_path": "data/census-zbp-zip-profile-index/releases/census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58/manifest.json",
+    "manifest_sha256": "485f19b9715eb3807ef4d6dfa5a98c353645690f47c3b55a52b16487933e316d",
+    "release_id": "census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58",
+    "artifact_inventory_sha256": "5b5561ad3064c4da28b8dcb4dbe72aa746ea47178752cd95cd05963d0d262c2c"
+  },
+  "selection": {
+    "reference_year": 2023,
+    "naics_code": "------",
+    "aggregation": "direct-publisher-row-only",
+    "zip4": null
+  },
+  "expected_coverage": {
+    "union_zip_status_rows": 37828,
+    "published_zbp": 34954,
+    "same_code_zcta": 33791,
+    "both": 30917,
+    "zbp_without_zcta": 4037,
+    "zcta_without_zbp": 2874,
+    "direct_all_industry_rows": 34954,
+    "measured_positive": 34954,
+    "measured_zero": 0,
+    "unmeasured": 2874
+  },
+  "claims": {
+    "export_policy": "local-review-only",
+    "reference_year": 2023,
+    "record_unit": "census-published-zip-all-industry-employer-establishment-aggregate",
+    "hierarchical_aggregation_permitted": false,
+    "zip4": null,
+    "business_count": false,
+    "physical_site_count": false,
+    "all_business_completeness": false,
+    "geocoding_performed": false,
+    "current_operations_verified": false,
+    "current_operating_business_count": null,
+    "gdp": null,
+    "all_business_completion_percent": null,
+    "matrix_admission_performed": false,
+    "nonadditive": true,
+    "public_export_authorized": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/CENSUS-ZBP-ALL-INDUSTRY-EXACT-ZIP-EVIDENCE.md"
+}

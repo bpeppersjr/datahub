@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { readExactZipIndustrySummary } from "./exact-zip-industry-summary.mjs";
+import { stateAccessIndustrySummary } from "./state-access-view.mjs";
 const require = createRequire(import.meta.url),
   code = await readFile(
     new URL("../app/workspace-views.tsx", import.meta.url),
@@ -33,6 +34,7 @@ const nativeStatusRegistration = JSON.parse(
   ),
 );
 const nativeStatusPin = nativeStatusRegistration.retained_release;
+const stateAccessEnrollment = JSON.parse(await readFile(new URL('../config/state-access-ui-enrollment.json',import.meta.url),'utf8'));
 const exactZipMatrixRegistration = JSON.parse(
   await readFile(
     new URL(
@@ -90,6 +92,8 @@ function harness(request, sourceCode = code) {
           : name ===
               "../config/datasets/zip-source-native-status-distribution.json"
             ? { default: nativeStatusRegistration }
+            : name === "../config/state-access-ui-enrollment.json"
+              ? { default: stateAccessEnrollment }
             : name === "./runner-client"
               ? { runnerJson: request }
               : name === "./business-intelligence"
@@ -2700,6 +2704,12 @@ test("demographic readiness panel distinguishes no-ZCTA and malformed response s
   malformed.close();
 });
 test("national joined-disposition summary validation fails closed on balanced redistribution and semantic drift",async()=>{const value=await readExactZipIndustrySummary(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);const pair=value.evidence_disposition_counts.joined.map((row,index)=>({row,index})).filter(item=>item.row.cell_status===value.evidence_disposition_counts.joined[0].cell_status&&item.row.count>0).slice(0,2);assert.equal(pair.length,2);const shifted=value.evidence_disposition_counts.joined.map((row,index)=>index===pair[0].index?{...row,count:row.count-1}:index===pair[1].index?{...row,count:row.count+1}:row),first=value.evidence_disposition_counts.joined[0],duplicate=value.evidence_disposition_counts.joined.map((row,index)=>index===1?{...row,cell_status:first.cell_status,lifecycle_status:first.lifecycle_status,label:first.label}:row),dimensionLifecycle=value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,joined:row.evidence_disposition_counts.joined.map((item,itemIndex)=>itemIndex?item:{...item,lifecycle_status:"unmapped",label:`${item.cell_status.replaceAll("-"," ")} · unmapped`})}});for(const malformed of [null,{...value,claims:undefined},{...value,extra:true},{...value,manifest_sha256:"f".repeat(64)},{...value,temporal_qualification:{...value.temporal_qualification,manifest_sha256:"e".repeat(64)}},{...value,geography_cohort:{...value.geography_cohort,cohort_manifest_sha256:"d".repeat(64)}},{...value,dimensions:value.dimensions.map((row,index)=>index===1?{...row,id:value.dimensions[0].id}:row)},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,status_counts:{...row.status_counts,positive:row.status_counts.positive+1}})},{...value,coverage_gaps:null},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,total_cells:value.industry_cells-1}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:shifted}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:duplicate}},{...value,evidence_disposition_counts:{...value.evidence_disposition_counts,joined:value.evidence_disposition_counts.joined.map((row,index)=>index?row:{...row,label:"verified current business"})}},{...value,dimensions:dimensionLifecycle},{...value,dimensions:value.dimensions.map((row,index)=>index?row:{...row,evidence_disposition_counts:{...row.evidence_disposition_counts,total_cells:48193}})},{...value,claims:{...value.claims,current_operation_verified:true}}])assert.equal(h.render("validExactZipIndustrySummary",malformed),false);});
+
+test("operational industry summary validates exact 9 by 51 state conservation and renders accessible drilldowns",async()=>{const evidence=await stateAccessIndustrySummary(),maintenance={industries:evidence.industries.map(row=>({id:row.id,label:row.id.replaceAll('-',' ')})),maintainedIndustries:['construction','health-care'],revision:4,semantics:'Maintenance intent only.'},h=harness(async url=>url.includes('/api/administration/')?maintenance:evidence);assert.equal(h.render('validOperationalIndustryEvidence',evidence),true);h.render('OperationalMaintenanceIntent');await flush();const tree=h.render('OperationalMaintenanceIntent'),value=text(tree);assert.equal(nodes(tree).filter(node=>node.type==='details').length,9);assert.equal(nodes(tree).filter(node=>node.type==='table').length,9);assert.equal(nodes(tree).filter(node=>node.type==='tr').length,9*52);assert.match(value,/State evidence details for construction/);assert.match(value,/Unknown — no retained temporal source key/);assert.match(value,/no crosswalk to retained exact-ZIP source dimensions is inferred/);h.close();});
+
+test("operational industry summary rejects malformed, duplicate, rebalanced, extra-key, pin and claim drift",async()=>{const value=await stateAccessIndustrySummary(),h=harness(()=>assert.fail());const malformed=[null,{...value,extra:true},{...value,report_sha256:'0'.repeat(64)},{...value,industries:value.industries.slice(1)},{...value,industries:value.industries.map((row,index)=>index===1?{...row,id:value.industries[0].id}:row)},{...value,industries:value.industries.map((row,index)=>index?row:{...row,states:row.states.map((state,stateIndex)=>stateIndex?state:{...state,access_status:state.access_status==='unsupported-missing'?'national-dataset-state-evidence':'unsupported-missing'})})},{...value,industries:value.industries.map((row,index)=>index?row:{...row,access_status_counts:{...row.access_status_counts,'unsupported-missing':row.access_status_counts['unsupported-missing']+1,'national-dataset-state-evidence':row.access_status_counts['national-dataset-state-evidence']-1}})},{...value,claims:{...value.claims,complete_geocodes:true}}];malformed.forEach((item,index)=>assert.equal(h.render('validOperationalIndustryEvidence',item),false,`malformed operational summary ${index}`));});
+
+test("operational industry status preserves unknown on evidence failure and cancels stale requests",async()=>{const evidence=await stateAccessIndustrySummary(),maintenance={industries:evidence.industries.map(row=>({id:row.id,label:row.id})),maintainedIndustries:[],revision:0,semantics:'Maintenance intent only.'},signals=[],pending=[],h=harness((url,{signal})=>{signals.push(signal);return new Promise((resolve,reject)=>pending.push({url,resolve,reject}))});h.render('OperationalMaintenanceIntent');pending.find(item=>item.url.includes('/api/administration/')).resolve(maintenance);pending.find(item=>item.url.includes('state-access-industry-summary')).reject(Error('unavailable'));await flush();assert.match(text(h.render('OperationalMaintenanceIntent')),/Retained state evidence is unavailable or incompatible; unknown is preserved and no zero is inferred/);h.close();assert.ok(signals.every(signal=>signal.aborted));});
 test("exact ZIP matrix validates forty temporal source dimensions and publisher-specific metadata", async () => {
   const matrix = crossView().industry_evidence,
     h = harness(async () => matrix);

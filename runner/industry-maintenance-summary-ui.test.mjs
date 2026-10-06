@@ -12,10 +12,12 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/historical evidence below remains visible and unchanged/);
   assert.match(source,/Manual-only and unauthorized sources retain their own gates/);
   assert.match(source,/of jurisdictions \(/);
-  assert.match(source,/This is a source-access scope metric, not business completeness or a business count/);
+  assert.match(source,/have any retained source-access evidence\. This is not business completeness or a business count/);
   assert.match(source,/Retained evidence status:/);
   assert.match(source,/Temporal status:/);
-  assert.match(source,/source vintage and retained release identifiers are reported independently/);
+  assert.match(source,/State evidence details for/);
+  assert.match(source,/State provenance is reported only where the enrolled operational ledger supplies it/);
+  assert.match(source,/no crosswalk to retained exact-ZIP source dimensions is inferred/);
   assert.match(source,/Retained source-dimension status/);
   assert.match(source,/Source vintage \/ temporal status/);
   assert.match(source,/Unknown, absent, or outside denominator/);

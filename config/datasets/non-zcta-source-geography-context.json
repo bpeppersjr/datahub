@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "non-zcta-source-geography-context",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd",
+    "manifest": "data/non-zcta-source-geography-context/releases/non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd/manifest.json",
+    "manifest_sha256": "c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16",
+    "manifest_bytes": 26846,
+    "rows": 14402,
+    "artifact_count": 101
+  },
+  "claims": {
+    "zip_to_state_assignment": false,
+    "cardinal_or_central_grouping": null,
+    "polygon": null,
+    "centroid": null,
+    "usps_class": null,
+    "usps_validity": null,
+    "park_status": null,
+    "tribal_or_native_status": null,
+    "private_land_status": null,
+    "population": null,
+    "business_completeness": null,
+    "map_blocked": false,
+    "heatmap_integration": false,
+    "state_denominator_integration": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  }
+}

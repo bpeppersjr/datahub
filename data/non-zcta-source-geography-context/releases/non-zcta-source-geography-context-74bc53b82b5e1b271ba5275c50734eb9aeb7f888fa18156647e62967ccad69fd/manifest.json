@@ -1,0 +1,769 @@
+{
+  "schema_version": "non-zcta-source-geography-context@1.0.0",
+  "dataset_id": "non-zcta-source-geography-context",
+  "status": "immutable-pointer-free-local-review-only",
+  "created_at": "2026-10-06T00:00:00.000Z",
+  "publication_mode": "pointer-free",
+  "bindings": {
+    "cohort": {
+      "release_id": "zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb",
+      "manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+      "artifact_sha256": "c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9"
+    },
+    "relationship": {
+      "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
+      "manifest_sha256": "07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2",
+      "artifact_inventory_sha256": "ca92485cf7659fc8f4565fe81de5728c960de9667f9b5c605f66c9e07d24a5f5"
+    },
+    "census_state_roster": {
+      "release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+      "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+      "artifact_sha256": "1be852f9ad38113b0be04e6936b1de402bf3718837c452b8496f926d1edde806"
+    }
+  },
+  "summary": {
+    "rows": 14402,
+    "source_contributed_outside_zcta": 14361,
+    "denominator_only_outside_zcta": 41,
+    "relationship_keys": 8871,
+    "no_relationship_keys": 5531,
+    "one_reported_code_keys": 8673,
+    "multiple_reported_code_keys": 198,
+    "one_code_census_state_dc_keys": 8456,
+    "one_code_census_territory_keys": 126,
+    "one_code_outside_census_roster_keys": 91,
+    "point_keys": 336,
+    "point_profile_rows": 441,
+    "point_agreement_keys": 335,
+    "point_conflict_keys": 1
+  },
+  "claims": {
+    "zip_to_state_assignment": false,
+    "cardinal_or_central_grouping": null,
+    "polygon": null,
+    "centroid": null,
+    "usps_class": null,
+    "usps_validity": null,
+    "park_status": null,
+    "tribal_or_native_status": null,
+    "private_land_status": null,
+    "population": null,
+    "business_completeness": null,
+    "map_blocked": false,
+    "heatmap_integration": false,
+    "state_denominator_integration": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "artifacts": [
+    {
+      "artifact_type": "non-zcta-source-geography-context-summary",
+      "path": "summary.json",
+      "bytes": 1133,
+      "sha256": "e2d2d113bb6c6844970eb7ac18d6dc888aafb99df5bbef3ab453b9c3e31bf95b",
+      "record_count": 1
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=00.jsonl",
+      "bytes": 88572,
+      "sha256": "c608bb9e9e5aa55452fd14ba96aa7a5cc5399b4e386c352cc84745b28c7b2cc7",
+      "record_count": 132
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=01.jsonl",
+      "bytes": 69060,
+      "sha256": "0ff563f8c2bc3ac151983634e53172b7dc6882779ab1a5ce9fdbc5ffbd47b7b8",
+      "record_count": 104
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=02.jsonl",
+      "bytes": 101316,
+      "sha256": "d898264a8a92a3be9a2abded679f4ec044104ae7c6f34b62ba3debf36720062d",
+      "record_count": 153
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=03.jsonl",
+      "bytes": 52397,
+      "sha256": "04dbcdaf2f7b2099fbe154357aab61a65a4ef3bbeb5b1a482139d2b021b78919",
+      "record_count": 79
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=04.jsonl",
+      "bytes": 49938,
+      "sha256": "31c760c7ac7db9b175f8408ff1d8929c379af8771f80aeafeb34291b3d8c671e",
+      "record_count": 75
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=05.jsonl",
+      "bytes": 45534,
+      "sha256": "80ad75eee2874b5253590c1b575e0d0e20116ba91cae8a3acf7e9e45d231d0de",
+      "record_count": 69
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=06.jsonl",
+      "bytes": 188654,
+      "sha256": "3ebe08d77b702f398b452b0e31394c4a25a8c9eeebc8a01d66bfa1214f32fccc",
+      "record_count": 292
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=07.jsonl",
+      "bytes": 85130,
+      "sha256": "fe1a32d632a8d23a2d44bd8568155874c7cc044a80cf5ffc7941b4d230f521c4",
+      "record_count": 129
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=08.jsonl",
+      "bytes": 88058,
+      "sha256": "d6c70d9fe75ee87e13d00632d70d5e9506f5fc91d03aaca03472d83991499a7b",
+      "record_count": 133
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=09.jsonl",
+      "bytes": 64533,
+      "sha256": "a0f9a1f86901645fd7473f040ad87ecdbc847637adbada903db3f5e91edda6dd",
+      "record_count": 98
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=10.jsonl",
+      "bytes": 175133,
+      "sha256": "5d38ec554192fdaeda0536e8e9f620261ce123cd8e5f6a74d469322a2c51d0e0",
+      "record_count": 272
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=11.jsonl",
+      "bytes": 199355,
+      "sha256": "3fcb3f4cbbcf8fffb8108fc5793ba541d768364eb65b5141f4690e1723fd1610",
+      "record_count": 311
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=12.jsonl",
+      "bytes": 91287,
+      "sha256": "9f3f61cf9c8bbd3ef56c94cf2576500ee4408f9108604e5ccde90439ce76d1ed",
+      "record_count": 139
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=13.jsonl",
+      "bytes": 65863,
+      "sha256": "4cfc46c6b66bbde09635125972349f0711e9c9811674d6d75aa06346fce1ea3a",
+      "record_count": 101
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=14.jsonl",
+      "bytes": 93378,
+      "sha256": "2c32b07b2dc677cfab070243147473f641ad278ec4136ec52eacb3d9c70d93bf",
+      "record_count": 143
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=15.jsonl",
+      "bytes": 139280,
+      "sha256": "98332c5279a8287ba0a3b5a6cf0979c0afbc1f272997a3ddcf5d727ab9080c70",
+      "record_count": 217
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=16.jsonl",
+      "bytes": 131064,
+      "sha256": "1623fdded4ff11126f5372d6c661c08c9d3f625b8cecb489d83900b557c6fc5f",
+      "record_count": 204
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=17.jsonl",
+      "bytes": 162582,
+      "sha256": "6671fc7ee058c3b62d5392d510ae6008f39110c2d83ee3d1f6276306234585cc",
+      "record_count": 253
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=18.jsonl",
+      "bytes": 210637,
+      "sha256": "67bf62e9f6399c5e0e733658e3b69b97a405bfde1f95310b659a8c8d54cb4f08",
+      "record_count": 328
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=19.jsonl",
+      "bytes": 241793,
+      "sha256": "8ea37d300c9b79fdca47cb88802aabd30a50a6e974f1b6b11f4ef8f1ff2dccf3",
+      "record_count": 376
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=20.jsonl",
+      "bytes": 179411,
+      "sha256": "51ad75ed77dea9703a29a5221021113fd232309a0e4279a38c77cf52ced7a054",
+      "record_count": 270
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=21.jsonl",
+      "bytes": 70019,
+      "sha256": "babc16be487e3ae467c0de0862d6108a96d1adaa4f6a5aff24dd44b9fc69a0af",
+      "record_count": 105
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=22.jsonl",
+      "bytes": 120685,
+      "sha256": "0185f6294bda006f3a0396fab8bc858e5e91bab403367b666b9701cde41994c5",
+      "record_count": 183
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=23.jsonl",
+      "bytes": 88607,
+      "sha256": "62b2cda748eba3015abccdfaf4aff96aadf47fce67779f90d9303d542d264736",
+      "record_count": 135
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=24.jsonl",
+      "bytes": 87390,
+      "sha256": "8cd846d4ae1b0ec43728ea5369ed8698f44796fc9c6627d774feaf3f4e0c9d26",
+      "record_count": 133
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=25.jsonl",
+      "bytes": 93615,
+      "sha256": "d8c1be64b7a23e40b4f9d983943ddd71d66d07524f2307b09388a52b1e3fdd6a",
+      "record_count": 141
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=26.jsonl",
+      "bytes": 62860,
+      "sha256": "08e01f53281d3e01f1e3b290b1a3722cfc7839bf0f2182401a5d4d38592d3031",
+      "record_count": 94
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=27.jsonl",
+      "bytes": 90415,
+      "sha256": "9dbd832790e7ac34cc84c9170336cf116b48561312864c6706a544570b01f404",
+      "record_count": 136
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=28.jsonl",
+      "bytes": 97703,
+      "sha256": "b42948b84883d01f6fbbc3d166ded1d460c394a31eb0d1a81f360d3dd0978175",
+      "record_count": 147
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=29.jsonl",
+      "bytes": 108904,
+      "sha256": "4a323a681d3a943c3f99e1ab4ee0ea26567908cbf96a91c99fb0ef784ccea637",
+      "record_count": 163
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=30.jsonl",
+      "bytes": 144222,
+      "sha256": "7915145352755931d780f95fb08db9b2d97d297a58a0c4a55bcdfc4079869385",
+      "record_count": 216
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=31.jsonl",
+      "bytes": 122532,
+      "sha256": "365281e20f6d8d3fe4ff1d4456ed17c72c8dcb1013a8366f6d44e00ec1cb3290",
+      "record_count": 187
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=32.jsonl",
+      "bytes": 303356,
+      "sha256": "5d8fd0243d698b6f40b27ba7719787807d4e082713ce415f150f5fa2b49cdb1a",
+      "record_count": 467
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=33.jsonl",
+      "bytes": 355708,
+      "sha256": "42e7ae5e503a761d2a9bb91e9f3fe48a9b092d74665fafe34a991f4de8178536",
+      "record_count": 549
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=34.jsonl",
+      "bytes": 316711,
+      "sha256": "fed0aa763f24a7ef17918129078d152271fdf74417db2df8d6409b563fd6bc12",
+      "record_count": 494
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=35.jsonl",
+      "bytes": 100927,
+      "sha256": "aa5619e5a6f944f334046b0a21fb5d9afb953a2103dcb4f09a5f9fca3f1b6a2c",
+      "record_count": 154
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=36.jsonl",
+      "bytes": 71544,
+      "sha256": "b16e718b3dd8f5255fa013c468b2505fb2c148d5989ef9bc14aa3eb75ede25ca",
+      "record_count": 108
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=37.jsonl",
+      "bytes": 116906,
+      "sha256": "141e42a26cc73e7faf85bb934bffed35094d6c83e58ec6df82b4b83b55f6730b",
+      "record_count": 178
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=38.jsonl",
+      "bytes": 82195,
+      "sha256": "f1046f315041885d4857357d054af1f5606ecb8e3d2d2638eb92a87318f8fee2",
+      "record_count": 124
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=39.jsonl",
+      "bytes": 89711,
+      "sha256": "e2e3b3e1aba8cfa2b18e010ddcd62c01edc7776c4a9808b6269d61c4d652a012",
+      "record_count": 136
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=40.jsonl",
+      "bytes": 90188,
+      "sha256": "a99bfa4d4aa8befe2d770776f3f3586e6fcd22e440ace094a371ab696c62a9ad",
+      "record_count": 136
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=41.jsonl",
+      "bytes": 50815,
+      "sha256": "42bf2437ab332ef5bc375b120d9e78532cac7d63b6944fd2446bef65716e33d1",
+      "record_count": 76
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=42.jsonl",
+      "bytes": 49913,
+      "sha256": "63bab9bc58d17de99080dd7c89354070195c7f02a1ce847aa6e33e2b9c9f1583",
+      "record_count": 75
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=43.jsonl",
+      "bytes": 50053,
+      "sha256": "1103d73d7099bd8dea6ad559600795aab8f049dc9b10abb6bdbb5e14ed193a39",
+      "record_count": 76
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=44.jsonl",
+      "bytes": 59371,
+      "sha256": "20e56f9e9c50d25e96a1a16c2869b60ddb0e4746fe3916f89f8170ae0fe1c6a4",
+      "record_count": 90
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=45.jsonl",
+      "bytes": 49866,
+      "sha256": "de86de3328d78e707764bae7e678a0d83da345834a77bcb68d6a731c192f431f",
+      "record_count": 75
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=46.jsonl",
+      "bytes": 81609,
+      "sha256": "8e029c2005ea2d11d70fc5042076e221dac0e6d2140d37960f59e37207271cd7",
+      "record_count": 123
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=47.jsonl",
+      "bytes": 57573,
+      "sha256": "42fd2fe2f82b2668e5578a4bb9defc5dd03f731281f6b5214f4ffc31c0689180",
+      "record_count": 87
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=48.jsonl",
+      "bytes": 78736,
+      "sha256": "b921ae7cdeaadba5c4b3106b054135eb6fee7a57b49ca77b3bc63ca4ddd9fabf",
+      "record_count": 118
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=49.jsonl",
+      "bytes": 50441,
+      "sha256": "1aae155314a45b1baaed9460e433c47343098169e935464821f5a56872fa8be4",
+      "record_count": 76
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=50.jsonl",
+      "bytes": 64367,
+      "sha256": "6f46aab249009d90298ec3069f207b60b9abfb63f76d989be0f5a20ffbc2049a",
+      "record_count": 100
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=51.jsonl",
+      "bytes": 35311,
+      "sha256": "12052cd43b2e99ef71ba4c758ef7e80c48268750eb7640e506164c1cc9653d84",
+      "record_count": 55
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=52.jsonl",
+      "bytes": 74645,
+      "sha256": "dabb4e8a9e47906d7337f18659e4340a63c6ff05aaeabad039aaac33d9ddee6d",
+      "record_count": 116
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=53.jsonl",
+      "bytes": 51855,
+      "sha256": "c06458d5aad43342995781685eebf2501867f6e2ea4de249ae476c85efde462d",
+      "record_count": 78
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=54.jsonl",
+      "bytes": 61379,
+      "sha256": "96bd56253866220328b4fa200f5c00064842ee52640ea26348b4663fb18aaf96",
+      "record_count": 92
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=55.jsonl",
+      "bytes": 48419,
+      "sha256": "cda3855206d5bb89cb24f75f3c400652f19e37f6047e81843fad182b939bc618",
+      "record_count": 73
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=56.jsonl",
+      "bytes": 28902,
+      "sha256": "f956aefbfd057e2a5600168e3c549b463f0b8b3033faf21fe4d0a450b28eb479",
+      "record_count": 43
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=57.jsonl",
+      "bytes": 16533,
+      "sha256": "a7ade9148e4458e6549f6d8e5618be0b4677dbc1cf5cc80778c4b21b67518a93",
+      "record_count": 25
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=58.jsonl",
+      "bytes": 31755,
+      "sha256": "f3fde774e165d70ead1ac79009f5ec31af712ce3cd8aaf0959f2afb5ff22eecf",
+      "record_count": 48
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=59.jsonl",
+      "bytes": 35988,
+      "sha256": "bfa8d14d1e9709a73f418956a5c9c8a8a5af4347b279bfbf292a0c53ef863819",
+      "record_count": 54
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=60.jsonl",
+      "bytes": 85268,
+      "sha256": "c5f41a6124186b13afa8eda72689d8e3899c83eff4f8624ff53d7333941e0b42",
+      "record_count": 129
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=61.jsonl",
+      "bytes": 46604,
+      "sha256": "b3bb6fd88889a74395a18a48b5e30f2fe3e0d0092a783fa1ba296517ce813c2e",
+      "record_count": 70
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=62.jsonl",
+      "bytes": 37808,
+      "sha256": "174d330c61c1c9dfcf1039000d9158b03609836b6efa8bf8a245c388008e2ff9",
+      "record_count": 57
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=63.jsonl",
+      "bytes": 37901,
+      "sha256": "a7d46e109162aa7db56b393728eb7f5a59fa42b5aeb0469a005aedb70b7d6f1d",
+      "record_count": 57
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=64.jsonl",
+      "bytes": 34189,
+      "sha256": "fbe5ff79cc42259746b2021a7f3b04bd9415f6447ce17390f955f0c386dacb09",
+      "record_count": 52
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=65.jsonl",
+      "bytes": 43031,
+      "sha256": "b06183764b627557e9e8123b3b29bbf1be5f2f3db9bd160998654ac40fcf7f5c",
+      "record_count": 65
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=66.jsonl",
+      "bytes": 38285,
+      "sha256": "2dab8cabe4533fcde087be841b8ed69cfeceb6c30826cfde62ab4ca2b4cc25b0",
+      "record_count": 58
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=67.jsonl",
+      "bytes": 23448,
+      "sha256": "756f7bc9bfae4150fe713f31155d3a5ef6e695be3f3301b6b986218e01d0c594",
+      "record_count": 35
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=68.jsonl",
+      "bytes": 28630,
+      "sha256": "176085c91e1a76d265422252c9dbce2e0c3b9155831cb91a64c4c91509b2bbd9",
+      "record_count": 43
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=69.jsonl",
+      "bytes": 7990,
+      "sha256": "699bbf9a97e21f34b01e05831e3a794d74a6d38154026f90b80a503e9ea12695",
+      "record_count": 12
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=70.jsonl",
+      "bytes": 113348,
+      "sha256": "6c010e27cd3e5ea3c8d4f2adca9552e1c5c9575cac1c45862164d518fb5b4068",
+      "record_count": 170
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=71.jsonl",
+      "bytes": 72032,
+      "sha256": "4b5558b58100694c6ddc6cb6e8c7c6e8f183fe77fc6e7a493252320d992214bd",
+      "record_count": 108
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=72.jsonl",
+      "bytes": 58963,
+      "sha256": "db8ea2936b9f84fa4c9b5081b9ee4d9beb97bff8da0298c7736f1709a454d52d",
+      "record_count": 88
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=73.jsonl",
+      "bytes": 52229,
+      "sha256": "56a1cba86959c236e43887a3b7f14753c3d806242b4b51c87787a4600669444e",
+      "record_count": 78
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=74.jsonl",
+      "bytes": 53277,
+      "sha256": "e65964a9bf439e16e3cbd01646bd7a4793def5d4b291d825ee1a519ae1714a67",
+      "record_count": 80
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=75.jsonl",
+      "bytes": 104121,
+      "sha256": "07ef5938c571b8ad7857838b3d028f384f90deeb7372e2d61969f734c69d68f8",
+      "record_count": 157
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=76.jsonl",
+      "bytes": 84315,
+      "sha256": "124f85c6269a47e7495c15a3ee0c736d8763af6cb77c79500167418033000ddd",
+      "record_count": 126
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=77.jsonl",
+      "bytes": 124579,
+      "sha256": "6246ff772eeac07935b62329ffcfa11912e301a06966e5a4329aa19f9ec27e53",
+      "record_count": 186
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=78.jsonl",
+      "bytes": 99248,
+      "sha256": "70acf6a68cd2190da77969526cfeba38798cb603570cb56cf03903d428e11d4c",
+      "record_count": 149
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=79.jsonl",
+      "bytes": 69604,
+      "sha256": "930e9df1f9810ed7b44a6a3d646cec1cf54394b9df7b2167fcd90108437e9eaf",
+      "record_count": 105
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=80.jsonl",
+      "bytes": 213134,
+      "sha256": "319f36646d516ded255144b754dbc20bdf2e87448edb17e0b2141b298a2b0fc5",
+      "record_count": 329
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=81.jsonl",
+      "bytes": 91552,
+      "sha256": "a28ea12ec9540668dcb1044620fc1a3857738072da522dcf002150e7c29ac706",
+      "record_count": 142
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=82.jsonl",
+      "bytes": 58264,
+      "sha256": "d1bdafce4b509f0359815a07b16a480c83f0855a836048d39036874368699253",
+      "record_count": 90
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=83.jsonl",
+      "bytes": 39803,
+      "sha256": "8ec8626b6f9d44a8a290dd6958ffd302a1a12ada4cd9b9b04517f610553dc83d",
+      "record_count": 60
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=84.jsonl",
+      "bytes": 63434,
+      "sha256": "bd116d5953a7c17a64dadc04e67d04286cac5d72034dcc9491cfd8adfeaf5dbc",
+      "record_count": 95
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=85.jsonl",
+      "bytes": 101897,
+      "sha256": "f02ef8c03096ce5e471fb5df14dd1c30e17c3a9b7f50a8ea697de5100604f87a",
+      "record_count": 153
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=86.jsonl",
+      "bytes": 29382,
+      "sha256": "19b58dd0f8bd2f904f05561791c1d30c8cbd62a1fe7bdbe8ae62ab7d489c4998",
+      "record_count": 45
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=87.jsonl",
+      "bytes": 52404,
+      "sha256": "98cbc179e5206d401541e3d60c976cc82c349f723f5046267206b5857128c417",
+      "record_count": 79
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=88.jsonl",
+      "bytes": 29157,
+      "sha256": "dd8853662940b8a899bd049c5234632c013b1ca76930a43080aa7546852ef069",
+      "record_count": 44
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=89.jsonl",
+      "bytes": 87018,
+      "sha256": "80ea409b4e00a8caecb4a7e0507a68487d9416c288e3a0929a36414df0e37bab",
+      "record_count": 133
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=90.jsonl",
+      "bytes": 171384,
+      "sha256": "535bc900a296070b85f82f013104a1037ab4ba9b9b8cd077bc73b47c7286338a",
+      "record_count": 258
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=91.jsonl",
+      "bytes": 197997,
+      "sha256": "becb688c402a7756f0deb84db4cedd1c7fa41509c99c644a012790a9cdd89691",
+      "record_count": 297
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=92.jsonl",
+      "bytes": 249646,
+      "sha256": "189ae80e03dacdc76c64389393e5131daf04b57b629a08354c5d494ce9efbd9e",
+      "record_count": 373
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=93.jsonl",
+      "bytes": 140748,
+      "sha256": "763bab9a1dda6396f55705876d058a68bec768e99130658f981705bd7f4613fc",
+      "record_count": 211
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=94.jsonl",
+      "bytes": 138129,
+      "sha256": "342621bb3853d5a4b2a8ee2f2d1e0f985522242747b8974c9001c748a71c4de2",
+      "record_count": 207
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=95.jsonl",
+      "bytes": 151870,
+      "sha256": "16bcf523202bc407359c4b52ad010499d0e5631b29cd450942949786b36710cc",
+      "record_count": 227
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=96.jsonl",
+      "bytes": 99555,
+      "sha256": "9ccd85622ba86bd80cfa3816b4097e9aee6a02a3ebc5d8dab8ec950894c5b41b",
+      "record_count": 149
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=97.jsonl",
+      "bytes": 62346,
+      "sha256": "a25a2ba34a9d23efb3781f61856d395c97250be96a3379a71229bd77542be5d8",
+      "record_count": 94
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=98.jsonl",
+      "bytes": 83821,
+      "sha256": "6f772e13efab1fa6360e34ea93ec0d8c2b02afc3a2a6d48b240901d48ca15c0d",
+      "record_count": 126
+    },
+    {
+      "artifact_type": "non-zcta-source-geography-context-jsonl",
+      "path": "zip2=99.jsonl",
+      "bytes": 83191,
+      "sha256": "900a6db19a24974cc7b76d4a4217567df5c2befec65a88c69f2ef3a2e77752e7",
+      "record_count": 121
+    }
+  ],
+  "release_id": "non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd"
+}
