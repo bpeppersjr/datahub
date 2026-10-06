@@ -54,3 +54,7 @@ All source ZIP5 keys are already in the governed cohort and no source row lacks 
 # Census ZBP all-industry successor dimension
 
 The pointer-free v2.2 successor adds the direct 2023 Census ZBP all-industry employer-establishment aggregate. It preserves 34,954 measured-positive ZIP rows totaling 8,356,295 establishments, 2,874 same-code ZCTA rows not published by ZBP as null, and 10,366 cohort rows outside the ZBP/ZCTA evidence union as null. It never sums the NAICS hierarchy. The measure is nonadditive with every other matrix dimension and does not establish businesses, physical sites, current operations, completeness, GDP, USPS validity, or ZIP geometry. The inherited gap sidecars remain unchanged.
+
+# Entity-resolution linkage successor dimension
+
+The pointer-free v2.3 successor adds `cross_source_entity_resolution_linkage_evidence`. Exactly 26,919 ZIPs contain retained linkage evidence and 21,275 remain null with no retained linkage decision. Each positive cell counts one evidence row and retains five heterogeneous metrics separately; those metrics are never summed into a business count. The benchmark gate has not passed, identity resolution was not applied, and unique/current business counts remain null. All inherited gap sidecars remain unchanged and no new gap artifact is created.

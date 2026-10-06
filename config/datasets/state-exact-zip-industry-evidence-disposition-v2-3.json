@@ -1,0 +1,30 @@
+{
+  "schema_version": "2.3.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-417040220c5737e9e2d9aeb211e4f7568d7d3f0da78e475da540f2c9450fc874",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v2-3/releases/state-exact-zip-industry-evidence-disposition-417040220c5737e9e2d9aeb211e4f7568d7d3f0da78e475da540f2c9450fc874/manifest.json",
+    "manifest_sha256": "5300af2cafc88dbffb0e679984052650fdb5ef113a7041d8985f444895e37a73",
+    "manifest_bytes": 3648,
+    "artifact_sha256": "be34b6d484e503d2b05e82bc77d933fe90c09fa811603045c5de0842468a7eb0",
+    "artifact_bytes": 2516072,
+    "scope_rows": 60,
+    "dimension_count": 44,
+    "industry_cells": 2120536
+  },
+  "claims": {
+    "predecessor_dimensions_preserved": true,
+    "raw_linkage_state_preserved": true,
+    "derived_readiness_separate": true,
+    "identity_merges": false,
+    "entity_resolution_applied": false,
+    "benchmark_gate_passed": false,
+    "unique_business_count": null,
+    "current_operating_business_count": null,
+    "current_operations_verified": false,
+    "production_enrollment": false
+  }
+}
