@@ -1,6 +1,6 @@
 # State exact-ZIP industry evidence disposition
 
-This pointer-free, local-review-only dataset assigns each retained exact-ZIP cohort member to one governed geography scope and aggregates 39 source dimensions.
+This pointer-free, local-review-only dataset assigns each retained exact-ZIP cohort member to one governed geography scope and aggregates 40 industry evidence dimensions.
 
 ## Scope rules
 
@@ -15,13 +15,13 @@ Assignments are Census polygon-area evidence only—not postal membership or bus
 
 ## Governed release
 
-- Release: `state-exact-zip-industry-evidence-disposition-09748258667a891ceae946954dbd778145791e8ad3d26ab6612827b8e29d03dd`
-- Manifest SHA-256: `ba434ac7cfc67963291a338e50995453d34bb1dd79b4cb69b86504a95b3b4213`
-- Artifact SHA-256: `456c23c36863adc4974d7a79d5aa19d5813b4d6e5e6473fc1d2ef24a62c9e264`
+- Release: `state-exact-zip-industry-evidence-disposition-2e71fa9aa3aee1398399674634d5537fc33c19427f1dfa9d97196656c841689c`
+- Manifest SHA-256: `d2f2114dfdbf6788eea0dd2335c9a9383673d61baf557486ebd2e8aba7ffbf41`
+- Artifact SHA-256: `d29f7047dfe713fd9e95ede930edd0d2642eaa59158e3d2398ee3d5945658c84`
 - Counts: 33,455 state/DC; 149 territory; 184 material crossings; 3 unresolved; 14,402 non-ZCTA; 1 placeholder.
-- Conservation: 48,194 ZIP keys × 39 source dimensions = 1,879,566 evidence cells.
+- Conservation: 48,194 ZIP keys × 40 industry dimensions = 1,927,760 evidence cells and 2,400 geography-scope/industry disposition rows.
 
-The manifest binds by exact SHA-256 to matrix 1.8, its cohort, the temporal qualification artifact, and the governed ZCTA crosswalk. Seven lifecycle dispositions and 35 joined buckets reconcile to independently derived national totals.
+The manifest binds by exact SHA-256 to matrix 1.9, its cohort, the temporal qualification artifact, and the governed ZCTA crosswalk. Seven lifecycle dispositions and the closed cell-status/lifecycle cross-classes reconcile to independently derived national totals.
 
 ## Reproduction
 

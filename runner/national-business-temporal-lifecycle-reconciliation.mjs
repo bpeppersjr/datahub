@@ -1,0 +1,54 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {isDeepStrictEqual as same} from 'node:util';
+import {APP_ROOT} from './paths.mjs';
+
+const CONFIG='config/datasets/national-business-temporal-lifecycle-reconciliation.json';
+const check=(value,message)=>{if(!value)throw Error(`Temporal lifecycle reconciliation rejected: ${message}.`);};
+const hash=buffer=>createHash('sha256').update(buffer).digest('hex');
+const stable=(a,b)=>a.isFile()&&b.isFile()&&!a.isSymbolicLink()&&!b.isSymbolicLink()&&a.nlink===1n&&b.nlink===1n&&['dev','ino','size','mtimeNs','ctimeNs'].every(key=>a[key]===b[key]);
+function target(root,relative){check(typeof relative==='string'&&!path.isAbsolute(relative)&&!relative.includes('\\')&&relative.split('/').every(part=>part&&part!=='.'&&part!=='..'),'path');const file=path.resolve(root,relative);check(file.startsWith(`${path.resolve(root)}${path.sep}`),'containment');return file;}
+async function read(root,relative,sha,max){const file=target(root,relative),before=await fs.lstat(file,{bigint:true});check(before.isFile()&&!before.isSymbolicLink()&&before.nlink===1n&&before.size<=BigInt(max),'file ownership/bounds');const raw=await fs.readFile(file);check(!sha||hash(raw)===sha,'hash pin');const after=await fs.lstat(file,{bigint:true});check(stable(before,after),'input mutation');return{file,raw,value:JSON.parse(raw),identity:after,sha256:hash(raw)};}
+async function readJsonl(root,relative,sha,max){const input=await readRaw(root,relative,sha,max);const lines=input.raw.toString('utf8').split(/\r?\n/);if(lines.at(-1)==='')lines.pop();check(lines.length>0&&lines.every(Boolean),'JSONL rows');return{...input,value:lines.map(line=>JSON.parse(line))};}
+async function readRaw(root,relative,sha,max){const file=target(root,relative),before=await fs.lstat(file,{bigint:true});check(before.isFile()&&!before.isSymbolicLink()&&before.nlink===1n&&before.size<=BigInt(max),'file ownership/bounds');const raw=await fs.readFile(file);check(hash(raw)===sha,'hash pin');const after=await fs.lstat(file,{bigint:true});check(stable(before,after),'input mutation');return{file,raw,identity:after,sha256:hash(raw)};}
+
+export function reconcileTemporalLifecycle({temporalRows,taxonomy,expected,losAngeles}){
+ check(Array.isArray(temporalRows)&&taxonomy&&Array.isArray(taxonomy.sources)&&expected&&losAngeles,'inputs');
+ const byKey=new Map();for(const row of temporalRows){check(row&&typeof row.source_key==='string'&&!byKey.has(row.source_key),'unique temporal source');byKey.set(row.source_key,row);check(row.current_operations_verified===false&&row.complete_all_businesses===false,'closed temporal claims');}
+ check(byKey.size===expected.temporal_rows,'temporal row count');
+ const seenIds=new Set(),seenKeys=new Set(),bindings=[];
+ for(const source of taxonomy.sources){
+  check(source&&typeof source.source_id==='string'&&!seenIds.has(source.source_id)&&typeof source.source_key==='string'&&!seenKeys.has(source.source_key),'unique lifecycle source');seenIds.add(source.source_id);seenKeys.add(source.source_key);
+  const row=byKey.get(source.source_key);check(row&&row.profile_source_id===source.source_id&&row.source_release_id===source.source_release_id&&row.policy_sha256===source.policy_sha256,'exact lifecycle binding');
+  const profileCount=taxonomy.expected_profile_counts?.[source.source_id];check(Number.isSafeInteger(profileCount)&&profileCount>=0,'profile count');
+  bindings.push({source_key:row.source_key,profile_source_id:row.profile_source_id,source_release_id:row.source_release_id,source_cohort_classification:row.classification,source_status_term:row.source_status_term,as_of_or_observed_from:row.as_of_or_observed_from,as_of_or_observed_through:row.as_of_or_observed_through,effective_profile_classification:source.membership_class,lifecycle_evidence:source.lifecycle_evidence,profile_count:profileCount,classification_match:row.classification===source.membership_class,current_operations_verified:false});
+ }
+ check(bindings.length===expected.lifecycle_bound_sources,'lifecycle source count');
+ const mismatches=bindings.filter(row=>!row.classification_match),mismatchProfiles=mismatches.reduce((sum,row)=>sum+row.profile_count,0);
+ check(mismatches.length===expected.classification_mismatches&&mismatchProfiles===expected.mismatch_profiles,'mismatch conservation');
+ const mismatch=mismatches[0];check(mismatch?.source_key===losAngeles.source_key&&mismatch.profile_source_id===losAngeles.profile_source_id&&mismatch.source_release_id===losAngeles.source_release_id&&mismatch.profile_count===losAngeles.profile_count&&mismatch.source_cohort_classification==='source-defined-current-membership'&&mismatch.effective_profile_classification==='unknown-source-status'&&mismatch.lifecycle_evidence==='unknown','Los Angeles mismatch');
+ const effectiveRows=temporalRows.map(row=>{const binding=bindings.find(item=>item.source_key===row.source_key);return{...row,source_cohort_classification:row.classification,effective_profile_classification:binding?.effective_profile_classification??row.classification,current_operations_verified:false};});
+ const effectiveCounts={};for(const row of effectiveRows)effectiveCounts[row.effective_profile_classification]=(effectiveCounts[row.effective_profile_classification]??0)+1;
+ check(same(effectiveCounts,expected.effective_classification_counts),'effective classification totals');
+ const summary={temporal_rows:temporalRows.length,lifecycle_bound_sources:bindings.length,classification_matches:bindings.length-mismatches.length,classification_mismatches:mismatches.length,mismatch_profiles:mismatchProfiles,effective_classification_counts:effectiveCounts,broad_state_dc_source_defined_active:effectiveRows.filter(row=>row.broad_state_dc_source_defined_active).length,broad_state_dc_total:expected.broad_state_dc_total,verified_current_complete_jurisdictions:0,verified_current_complete_total:expected.verified_current_complete_total,active_business_count:null,completeness_percentage:null};
+ check(same(summary,expected),'summary conservation');
+ return{summary,bindings,effective_rows:effectiveRows};
+}
+
+export async function verifyNationalBusinessTemporalLifecycleReconciliation(options={}){
+ check(options&&Object.keys(options).every(key=>['root','signal'].includes(key)),'options');const root=path.resolve(options.root??APP_ROOT),signal=options.signal;signal?.throwIfAborted();
+ const registration=await read(root,CONFIG,null,100000),c=registration.value;check(c.dataset_id==='national-business-temporal-lifecycle-reconciliation'&&c.status==='registered-pointer-free-local-review-only'&&c.publication_mode==='pointer-free'&&c.runtime_pointer===null&&c.production_enrollment===false,'closed registration');
+ check(c.claims.network_requests===0&&Object.entries(c.claims).filter(([key])=>key!=='network_requests').every(([,value])=>value===false),'closed claims');
+ const temporalManifest=await read(root,c.temporal.manifest_path,c.temporal.manifest_sha256,100000),temporalArtifact=await readJsonl(root,c.temporal.artifact_path,c.temporal.artifact_sha256,1000000),lifecycleManifest=await read(root,c.lifecycle.manifest_path,c.lifecycle.manifest_sha256,2000000),taxonomy=await read(root,c.taxonomy.path,c.taxonomy.sha256,200000),laPointer=await read(root,c.los_angeles.pointer_path,c.los_angeles.pointer_sha256,20000),laManifest=await read(root,c.los_angeles.manifest_path,c.los_angeles.manifest_sha256,200000);
+ signal?.throwIfAborted();const tm=temporalManifest.value,lm=lifecycleManifest.value,lap=laPointer.value,lam=laManifest.value;
+ check(tm.release_id===c.temporal.release_id&&tm.artifacts.length===1&&tm.artifacts[0].sha256===c.temporal.artifact_sha256&&tm.artifacts[0].record_count===c.expected.temporal_rows,'temporal release binding');
+ check(tm.inputs.registry_release_id===c.lineage.registry_release_id&&tm.inputs.registry_manifest_sha256===c.lineage.registry_manifest_sha256&&tm.inputs.coverage_release_id===c.lineage.coverage_release_id&&tm.inputs.coverage_manifest_sha256===c.lineage.coverage_manifest_sha256&&tm.inputs.source_artifact_sha256===c.lineage.coverage_source_artifact_sha256,'registry/coverage lineage');
+ check(lm.release_id===c.lifecycle.release_id&&lm.bindings.registry.release_id===c.lineage.registry_release_id&&lm.bindings.registry.manifest_sha256===c.lineage.registry_manifest_sha256&&lm.bindings.temporal.release_id===c.temporal.release_id&&lm.bindings.temporal.manifest_sha256===c.temporal.manifest_sha256&&lm.bindings.temporal.artifact_sha256===c.temporal.artifact_sha256&&lm.bindings.taxonomy.sha256===c.taxonomy.sha256,'lifecycle lineage');
+ check(lm.summary.source_count===c.expected.lifecycle_bound_sources&&lm.summary.source_counts[c.los_angeles.profile_source_id]===c.los_angeles.profile_count&&lm.summary.lifecycle_evidence_counts.unknown===c.los_angeles.profile_count&&lm.summary.exception_counts.la_null_source_status===c.los_angeles.profile_count,'lifecycle LA conservation');
+ check(lap.source_release_id===c.los_angeles.source_release_id&&path.posix.join(path.posix.dirname(c.los_angeles.pointer_path),lap.manifest)===c.los_angeles.manifest_path&&lam.release_id===lap.release_id&&lam.source_release_id===c.los_angeles.source_release_id&&lam.coverage.normalized_us_location_accounts===c.los_angeles.profile_count&&lam.source.rows_updated_at==='2026-08-15T15:37:22.000Z','LA retained release');
+ check(Array.isArray(lam.limitations)&&lam.limitations.some(text=>text.includes('not independent proof of current operations')),'LA current-operation limitation');
+ const result=reconcileTemporalLifecycle({temporalRows:temporalArtifact.value,taxonomy:taxonomy.value,expected:c.expected,losAngeles:c.los_angeles});
+ for(const input of [registration,temporalManifest,temporalArtifact,lifecycleManifest,taxonomy,laPointer,laManifest])check(stable(input.identity,await fs.lstat(input.file,{bigint:true})),'post-read mutation');
+ return{schema_version:'national-business-temporal-lifecycle-reconciliation@1.0.0',verified:true,status:'one-bounded-profile-classification-conflict',lineage:c.lineage,summary:result.summary,mismatch:result.bindings.find(row=>!row.classification_match),bindings:result.bindings,claims:c.claims};
+}

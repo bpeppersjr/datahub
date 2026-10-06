@@ -1,0 +1,37 @@
+{
+  "schema_version": "2.0.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-cacdfb393fe26751640cd7400d75ea0b14fc0a021b4865c2cdad244d2258ccf6",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v2-0/releases/national-exact-zip-industry-evidence-matrix-cacdfb393fe26751640cd7400d75ea0b14fc0a021b4865c2cdad244d2258ccf6/manifest.json",
+    "manifest_sha256": "d1913580d11c832c19a34817121f77bdfbc15324d303581b2c52b72f16385cc3",
+    "manifest_bytes": 21022,
+    "zip5_rows": 48194,
+    "dimension_count": 41,
+    "industry_cells": 1975954,
+    "artifact_count": 102,
+    "max_prefix_artifact_bytes": 14490833,
+    "out_of_cohort_gap_sha256": "89c0713cb842735f9fcf9a0906e85493627e59a5d27114051b50dbb950f63e10",
+    "missing_zip_gap_sha256": "add1186bbe5088b4984536cdd064b3820d7f6bf1752c6ad8fc7840e7eee254db"
+  },
+  "claims": {
+    "mn_broad_jurisdiction_gap_complete": false,
+    "physical_site_inference_permitted": false,
+    "establishment_inference_permitted": false,
+    "current_operations_verified": false,
+    "all_business_completeness_percent": null,
+    "usps_validity": null,
+    "state_assignment_inferred": false,
+    "nonadditive": true,
+    "record_level_export_policy": "local-review-only",
+    "public_export_authorized": false,
+    "zip4_joined_to_zip5": false,
+    "production_enrollment": false,
+    "network_requests": 0,
+    "current_pointer_written": false
+  },
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}

@@ -10,7 +10,18 @@ type View = {
   semantics: string;
   revision: number;
 };
-type Backlog = {schema_version:"state-access-maintenance-backlog@1.1.0";backlog_sha256:string;maintenance_revision:number;maintained_industries:string[];total_attention_cells:number;batch_limit:10;next_batch:Array<{state:string;industry:string;action_kind:"source-discovery-review"|"temporal-source-review";access_status:string;temporal_status:string;source_keys:string[];issue_codes:string[]}>;remaining_after_batch:number;claims:{acquisition_authorized:false;dispatch_performed:false;production_change:false;business_completeness:null}};
+type Backlog = {schema_version:"state-access-maintenance-backlog@1.1.0";report_sha256:string;backlog_sha256:string;maintenance_revision:number;maintained_industries:string[];total_attention_cells:number;batch_limit:10;next_batch:Array<{state:string;industry:string;action_kind:"source-discovery-review"|"temporal-source-review";access_status:string;temporal_status:string;source_keys:string[];issue_codes:string[]}>;remaining_after_batch:number;claims:{acquisition_authorized:false;dispatch_performed:false;production_change:false;business_completeness:null}};
+const industryIds=['childcare','construction','financial-services','health-care','local-business-licenses','retail-consumer','sales-tax-outlets','tax-exempt-organizations','transportation'] as const;
+const states=['AK','AL','AR','AZ','CA','CO','CT','DC','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY'] as const;
+const accessStatuses=['direct-state-publisher','local-publisher-substate-evidence','national-dataset-state-evidence','unsupported-evidence-not-measured','unsupported-missing'] as const;
+const temporalStatuses=['missing-source-reference','no-positive-count-evidence','review-due','within-review-window'] as const;
+const reportSha='a977e9477c9db453c394100b859bdf8dda839fc33ddc0a9761c9195d10d586af';
+type IndustryEvidence={schema_version:'state-access-industry-summary@1.2.0';report_sha256:string;jurisdictions:51;industry_cells:459;industries:Array<{id:string;jurisdictions:51;jurisdictions_with_retained_access_evidence:number;retained_access_evidence_percent:number;access_status_counts:Record<string,number>;temporal_status_counts:Record<string,number>;states:Array<{state:string;access_status:string;temporal_status:string;source_keys:string[];sources:Array<{source_key:string;source_release_id:string|null;source_reference_at:string|null;review_due_date:string|null;evidence_scope:string}>}>}>;claims:{active_business_count:null;nationwide_industry_completeness:null;complete_geocodes:false;maintenance_selection_affects_evidence:false}};
+const exact=(value:unknown,keys:string[])=>!!value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join('|')===[...keys].sort().join('|');
+const same=(a:unknown,b:unknown)=>JSON.stringify(a,Object.keys(a as object).sort())===JSON.stringify(b,Object.keys(b as object).sort());
+export function validAdministrationView(input:unknown):input is View{if(!exact(input,['industries','maintainedIndustries','semantics','revision']))return false;const v=input as View,ids=Array.isArray(v.industries)?v.industries.map(x=>x?.id).sort():[];return ids.length===9&&ids.every((id,i)=>id===industryIds[i])&&v.industries.every(x=>exact(x,['id','label'])&&typeof x.label==='string'&&x.label.length>0)&&Array.isArray(v.maintainedIndustries)&&new Set(v.maintainedIndustries).size===v.maintainedIndustries.length&&v.maintainedIndustries.every(id=>industryIds.includes(id as typeof industryIds[number]))&&Number.isSafeInteger(v.revision)&&v.revision>=0&&typeof v.semantics==='string';}
+export function validAdministrationBacklog(input:unknown,view:View):input is Backlog{if(!exact(input,['schema_version','report_sha256','backlog_sha256','maintenance_revision','maintained_industries','total_attention_cells','batch_limit','next_batch','remaining_after_batch','claims']))return false;const v=input as Backlog;if(v.schema_version!=='state-access-maintenance-backlog@1.1.0'||v.report_sha256!==reportSha||!/^[a-f0-9]{64}$/.test(v.backlog_sha256)||v.maintenance_revision!==view.revision||v.batch_limit!==10||!Array.isArray(v.maintained_industries)||[...v.maintained_industries].sort().join('|')!==[...view.maintainedIndustries].sort().join('|')||!Number.isSafeInteger(v.total_attention_cells)||v.total_attention_cells<0||!Number.isSafeInteger(v.remaining_after_batch)||v.remaining_after_batch<0||!Array.isArray(v.next_batch)||v.next_batch.length>10||v.next_batch.length+v.remaining_after_batch!==v.total_attention_cells||!same(v.claims,{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}))return false;return v.next_batch.every(row=>exact(row,['state','industry','action_kind','access_status','temporal_status','source_keys','issue_codes'])&&states.includes(row.state as typeof states[number])&&industryIds.includes(row.industry as typeof industryIds[number])&&v.maintained_industries.includes(row.industry)&&['source-discovery-review','temporal-source-review'].includes(row.action_kind)&&accessStatuses.includes(row.access_status as typeof accessStatuses[number])&&temporalStatuses.includes(row.temporal_status as typeof temporalStatuses[number])&&Array.isArray(row.source_keys)&&new Set(row.source_keys).size===row.source_keys.length&&row.source_keys.every(x=>typeof x==='string')&&Array.isArray(row.issue_codes)&&row.issue_codes.every(x=>typeof x==='string'));}
+export function validAdministrationIndustryEvidence(input:unknown):input is IndustryEvidence{if(!exact(input,['schema_version','report_sha256','jurisdictions','industry_cells','industries','claims']))return false;const v=input as IndustryEvidence;if(v.schema_version!=='state-access-industry-summary@1.2.0'||v.report_sha256!==reportSha||v.jurisdictions!==51||v.industry_cells!==459||!same(v.claims,{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false})||!Array.isArray(v.industries)||v.industries.length!==9||new Set(v.industries.map(x=>x.id)).size!==9||!industryIds.every(id=>v.industries.some(x=>x.id===id)))return false;return v.industries.every(row=>{if(!exact(row,['id','jurisdictions','access_status_counts','temporal_status_counts','states','jurisdictions_with_retained_access_evidence','retained_access_evidence_percent'])||row.jurisdictions!==51||!exact(row.access_status_counts,[...accessStatuses])||!exact(row.temporal_status_counts,[...temporalStatuses])||!Array.isArray(row.states)||row.states.length!==51||new Set(row.states.map(x=>x.state)).size!==51||!states.every(state=>row.states.some(x=>x.state===state)))return false;const access=Object.fromEntries(accessStatuses.map(x=>[x,0])),temporal=Object.fromEntries(temporalStatuses.map(x=>[x,0]));for(const state of row.states){if(!exact(state,['state','access_status','temporal_status','source_keys','sources'])||!states.includes(state.state as typeof states[number])||!accessStatuses.includes(state.access_status as typeof accessStatuses[number])||!temporalStatuses.includes(state.temporal_status as typeof temporalStatuses[number])||!Array.isArray(state.source_keys)||new Set(state.source_keys).size!==state.source_keys.length||!Array.isArray(state.sources))return false;access[state.access_status]++;temporal[state.temporal_status]++;const keys=new Set<string>();for(const source of state.sources){if(!exact(source,['source_key','source_release_id','source_reference_at','review_due_date','evidence_scope'])||typeof source.source_key!=='string'||!source.source_key||source.source_release_id!==null&&typeof source.source_release_id!=='string'||source.source_reference_at!==null&&typeof source.source_reference_at!=='string'||source.review_due_date!==null&&typeof source.review_due_date!=='string'||typeof source.evidence_scope!=='string')return false;keys.add(source.source_key)}if(keys.size!==state.source_keys.length||!state.source_keys.every(x=>keys.has(x)))return false;}const retained=access['direct-state-publisher']+access['local-publisher-substate-evidence']+access['national-dataset-state-evidence'];return same(access,row.access_status_counts)&&same(temporal,row.temporal_status_counts)&&row.jurisdictions_with_retained_access_evidence===retained&&row.retained_access_evidence_percent===Number((retained/51*100).toFixed(1));});}
 
 export default function Administration() {
   const [view, setView] = useState<View | null>(null);
@@ -19,18 +30,23 @@ export default function Administration() {
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [backlog,setBacklog]=useState<Backlog|null>(null);
+  const [evidence,setEvidence]=useState<IndustryEvidence|null>(null);
+  const [evidenceError,setEvidenceError]=useState(false);
+  const draftChanged=!!view&&[...selected].sort().join('|')!==[...view.maintainedIndustries].sort().join('|');
 
   useEffect(() => {
     const controller = new AbortController();
-    void runnerJson<View>("/api/administration/industries", { signal: controller.signal })
+    void runnerJson<unknown>("/api/administration/industries", { signal: controller.signal })
       .then((value) => {
         if (!controller.signal.aborted) {
+          if(!validAdministrationView(value))throw Error('Invalid administration settings.');
           setView(value);
           setSelected(value.maintainedIndustries);
-          void runnerJson<Backlog>("/api/administration/industry-backlog",{signal:controller.signal}).then(next=>!controller.signal.aborted&&setBacklog(next)).catch(()=>{});
+          void runnerJson<unknown>("/api/administration/industry-backlog",{signal:controller.signal}).then(next=>{if(!controller.signal.aborted)setBacklog(validAdministrationBacklog(next,value)?next:null)}).catch(()=>{});
         }
       })
       .catch(() => !controller.signal.aborted && setError(true));
+    void runnerJson<unknown>("/api/business-map/state-access-industry-summary",{signal:controller.signal}).then(value=>{if(controller.signal.aborted)return;if(validAdministrationIndustryEvidence(value))setEvidence(value);else setEvidenceError(true)}).catch(()=>!controller.signal.aborted&&setEvidenceError(true));
     return () => controller.abort();
   }, []);
 
@@ -38,17 +54,19 @@ export default function Administration() {
     setSaving(true);
     setMessage("");
     try {
-      const value = await runnerJson<View>("/api/administration/industries", {
+      const value = await runnerJson<unknown>("/api/administration/industries", {
         method: "PUT",
         headers: { "Content-Type": "application/json", "If-Match": `"${view?.revision ?? -1}"` },
         body: JSON.stringify({ maintainedIndustries: selected, expectedRevision: view?.revision ?? -1 }),
       });
+      if(!validAdministrationView(value))throw Error('Invalid saved settings.');
       setView(value);
       setSelected(value.maintainedIndustries);
       setMessage("Maintenance selection saved locally.");
-      try{setBacklog(await runnerJson<Backlog>("/api/administration/industry-backlog"));}catch{setBacklog(null);}
+      try{const next=await runnerJson<unknown>("/api/administration/industry-backlog");setBacklog(validAdministrationBacklog(next,value)?next:null);}catch{setBacklog(null);}
     } catch {
-      setMessage("Unable to save maintenance selection. Existing settings were preserved.");
+      try{const durable=await runnerJson<unknown>("/api/administration/industries");if(!validAdministrationView(durable))throw Error('Invalid durable settings.');setView(durable);setSelected(durable.maintainedIndustries);setMessage("Save failed or was stale. Reloaded the persisted maintenance selection.");}
+      catch{setView(null);setSelected([]);setBacklog(null);setError(true);setMessage("Save failed and persisted settings could not be reloaded. No selection is shown.");}
     } finally {
       setSaving(false);
     }
@@ -67,17 +85,19 @@ export default function Administration() {
           <button type="button" onClick={() => setSelected(view.industries.map(({ id }) => id))}>Select all</button>
           <button type="button" onClick={() => setSelected([])}>Select none</button>
           <span>{selected.length} of {view.industries.length} selected</span>
+          <span>{draftChanged?'Unsaved draft — persisted selection is unchanged':'Displayed selection is persisted'}</span>
         </div>
         <div className="maintenance-grid" role="group" aria-label="Industries selected for maintenance">
           {view.industries.map((industry) => {
             const checked = selected.includes(industry.id);
+            const status=evidence?.industries.find(row=>row.id===industry.id);
             return <label key={industry.id} className={checked ? "maintained" : "not-maintained"}>
               <input type="checkbox" checked={checked} onChange={() => setSelected((current) => checked ? current.filter((id) => id !== industry.id) : [...current, industry.id])}/>
-              <span><strong>{industry.label}</strong><small>{checked ? "Enabled for maintenance planning" : "Not selected for maintenance"}</small></span>
+              <span><strong>{industry.label}</strong><small>{checked ? "Enabled in draft maintenance selection" : "Not selected in draft maintenance selection"}</small>{status?<><small><strong>{status.retained_access_evidence_percent.toFixed(1)}%</strong> of jurisdictions ({status.jurisdictions_with_retained_access_evidence}/51) have retained source-access evidence; not business completeness.</small><small>Temporal status: {temporalStatuses.map(key=>`${key.replaceAll('-', ' ')}: ${status.temporal_status_counts[key]}`).join(' · ')}</small><small>Authorization not represented by this ledger; maintenance selection grants none.</small></>:<small>{evidenceError?'Industry evidence unavailable; unknown is preserved and no zero is inferred.':'Verifying retained industry evidence…'}</small>}</span>
             </label>;
           })}
         </div>
-        <button className="primary-button" type="button" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save maintenance selection"}</button>
+        <button className="primary-button" type="button" disabled={saving||!draftChanged} onClick={save}>{saving ? "Saving…" : "Save maintenance selection"}</button>
         {message && <p role="status">{message}</p>}
         {backlog&&<section className="maintenance-backlog" aria-label="Maintained industry attention backlog"><h3>Next maintenance review batch</h3><p>{backlog.total_attention_cells} selected industry/state cells need access or temporal review. The first {backlog.next_batch.length} are shown; {backlog.remaining_after_batch} remain.</p>{backlog.next_batch.length?<ol>{backlog.next_batch.map(row=><li key={`${row.industry}:${row.state}`}><strong>{row.state} · {row.industry.replaceAll("-"," ")}</strong><span>{row.action_kind.replaceAll("-"," ")} · {row.issue_codes.map(code=>code.replaceAll("-"," ")).join(" · ")}{row.source_keys.length?` · sources: ${row.source_keys.join(", ")}`:" · no retained source cohort"}</span></li>)}</ol>:<p>No selected industry currently has an access or temporal-review item. An empty selection does not imply complete coverage.</p>}<button type="button" onClick={downloadBacklog}>Download review batch JSON</button><p className="operations-note">Revision {backlog.maintenance_revision} · fingerprint {backlog.backlog_sha256}. This deterministic batch is planning evidence only. It does not authorize acquisition, dispatch workers, change production, or measure business completeness.</p></section>}
         <p className="operations-note">{view.semantics}</p>

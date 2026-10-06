@@ -1,0 +1,11 @@
+# National business temporal/lifecycle reconciliation
+
+This pointer-free local-review verifier reconciles the retained 30-row national temporal source-cohort matrix with the retained 15-source lifecycle taxonomy. Source cohort wording remains intact, but lifecycle taxonomy takes precedence for the effective profile classification. It does not rewrite either immutable input release or create a derived data pointer.
+
+The temporal input is release `national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090`, manifest SHA-256 `342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05`, and artifact SHA-256 `d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0`. The lifecycle input is release `business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057`, manifest SHA-256 `fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae`. The taxonomy file SHA-256 is `7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc`.
+
+Exactly 14 lifecycle-bound sources agree. The only mismatch is `la_active_business_location_accounts`: the source cohort is labelled source-defined current, while all 633,232 retained location profiles have null source status and therefore remain `unknown-source-status`. The source observation timestamp is provenance only and cannot upgrade lifecycle evidence. The Los Angeles publisher definition means the owner has not notified the Office of Finance of cessation; it is not independent evidence of current operation.
+
+The conserved effective source totals are 21 source-defined-current, seven non-active reporting, one annual aggregate, and one unknown. Broad state/D.C. source-defined coverage remains 11 of 51; verified-current-complete coverage remains zero of 51. Active-business count and completeness remain null.
+
+Run `npm run business-temporal-lifecycle:verify`. Verification performs no network request, download, source build, pointer mutation, production action, candidate action, or enrollment. It makes no current-operation, active-business-count, completeness, closure, identity-resolution, or national-coverage claim.

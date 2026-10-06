@@ -1,0 +1,74 @@
+{
+  "dataset_id": "national-business-temporal-lifecycle-reconciliation",
+  "schema_version": "1.0.0",
+  "status": "registered-pointer-free-local-review-only",
+  "publication_mode": "pointer-free",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "temporal": {
+    "manifest_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090/manifest.json",
+    "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+    "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+    "artifact_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090/temporal-claims.jsonl",
+    "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0"
+  },
+  "lifecycle": {
+    "manifest_path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057/manifest.json",
+    "manifest_sha256": "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae",
+    "release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057"
+  },
+  "taxonomy": {
+    "path": "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",
+    "sha256": "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc"
+  },
+  "lineage": {
+    "registry_release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+    "registry_manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+    "coverage_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
+    "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+    "coverage_source_artifact_sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e"
+  },
+  "los_angeles": {
+    "source_key": "la_active_business_location_accounts",
+    "profile_source_id": "los-angeles-office-of-finance-active-businesses",
+    "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac",
+    "policy_sha256": "45e2917529dd0e6df238eeb8db770389eb40ddac4de6283a6003f2f07a1dc656",
+    "pointer_path": "data/business-sources/la-active-business-location-accounts/current.json",
+    "pointer_sha256": "cf2afade8e625d84785362813653d1685305ff7718ab045f1c71a9d32b7201e7",
+    "manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
+    "manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b",
+    "profile_count": 633232
+  },
+  "expected": {
+    "temporal_rows": 30,
+    "lifecycle_bound_sources": 15,
+    "classification_matches": 14,
+    "classification_mismatches": 1,
+    "mismatch_profiles": 633232,
+    "effective_classification_counts": {
+      "source-defined-current-membership": 21,
+      "non-active-reporting-membership": 7,
+      "annual-aggregate": 1,
+      "unknown-source-status": 1
+    },
+    "broad_state_dc_source_defined_active": 11,
+    "broad_state_dc_total": 51,
+    "verified_current_complete_jurisdictions": 0,
+    "verified_current_complete_total": 51,
+    "active_business_count": null,
+    "completeness_percentage": null
+  },
+  "claims": {
+    "network_requests": 0,
+    "download_performed": false,
+    "source_build_performed": false,
+    "pointer_mutation_performed": false,
+    "production_action_performed": false,
+    "candidate_action_performed": false,
+    "current_operation_verified": false,
+    "active_business_count_claimed": false,
+    "completeness_claimed": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/NATIONAL-BUSINESS-TEMPORAL-LIFECYCLE-RECONCILIATION.md"
+}
