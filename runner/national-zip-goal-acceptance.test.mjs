@@ -173,18 +173,23 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-fd4f57796a03b50125e2668336a039a1d1e18ae6bdf12d664d382020e77293b8');
-  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'ed85b9cd5c0bc949421445ac80819a6476ce7e2168a3d948fd51f02ba3debe31');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, 'b02e108ef70ac16732744cadd2cd2540e7f448e46957de4a9e07eaff30474a0d');
-  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,47,2265118]);
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'3ffdaf667547dc1bc057453bbc7318df4af4694c12018040ccf0daf9cd6c901a');
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2265118);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'542572ad6f16d2679286a47a192ab5f116b1ba37c2961df3edc031c29e3ac9c9');
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2265118);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2265118);
+assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-33ab3fa11f8d1782c945359f4d88e1cbab808f109f6f7a29cd1f5b46cc79e6c6');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'b638fcbfa43204ad7336d4a51a83196e0f0bc986544238372d63a0f4ca89428f');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '447ebb5a78205557c539f54c726d832052aa43eb72c2072c75296b9cabedafca');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,48,2313312]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'f0c3568619bedc9455c43d46836b3590e8427be8b7e38bc1453d92000a240df5');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2313312);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'cc1858f134f61a21970e73a98339b2311bea06d3e43e9ebbe99e19e86847bfc4');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2313312);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2313312);
   assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_status,'Active sales tax permit (source-defined)');
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_tx_sales_tax_outlet_profiles,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.recursive_lineage_verified,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_cohort_status,'City of Los Angeles publisher active-list membership');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.row_lifecycle_status,'unknown-source-status');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.municipal_scope,'City of Los Angeles');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_la_registered_location_profiles,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.unique_business_count,null);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.statewide_scope,undefined);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.current_operations_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.continuous_operation_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_all_businesses,false);
@@ -208,9 +213,10 @@ assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-z
     value => { value.bindings.zip_entity_resolution.manifest_sha256 = '0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.release_id = 'self-consistent-unverified-release'; },
     value => { value.bindings.zip_industry_matrix.dimension_count = 42; },
+    value => { value.bindings.zip_industry_matrix.recursive_lineage_verified = false; },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.registration_sha256='0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.current_operations_verified=true; },
-    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_tx_sales_tax_outlet_profiles=false; },
+    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_la_registered_location_profiles=false; },
     value => { value.bindings.zip_industry_matrix.claims.current_operations_verified=true; },
     value => { value.bindings.zip_industry_matrix.national_summary.raw_status_cell_total--; },
     value => { value.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately=false; },

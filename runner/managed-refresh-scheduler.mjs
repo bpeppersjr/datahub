@@ -37,7 +37,7 @@ function planIdentity(plan) {
 
 export class ManagedRefreshScheduler {
   constructor({ operations, root = "data/refresh-schedules", now = () => new Date().toISOString(), intervalMs = 60_000, autoStart = true } = {}) {
-    if (!operations || !["plan", "get", "startScheduledCollection"].every((key) => typeof operations[key] === "function")) throw invalid("Managed operations implementation is required.");
+    if (!operations || !["planScheduled", "get", "startScheduledCollection"].every((key) => typeof operations[key] === "function")) throw invalid("Managed scheduled-operations implementation is required.");
     if (!Number.isInteger(intervalMs) || intervalMs < 10) throw invalid("Invalid scheduler poll interval.");
     this.operations = operations; this.root = assertInsideApp(path.resolve(APP_ROOT, root));
     if (this.root === APP_ROOT) throw invalid("Scheduler requires a dedicated storage directory.");
@@ -99,7 +99,7 @@ export class ManagedRefreshScheduler {
         this.schedules = state.schedules;
         for (const schedule of this.schedules) {
           try {
-            const identity = planIdentity(await this.operations.plan({ industries: schedule.industries, states: schedule.states }));
+            const identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states }));
             if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) this.pause(schedule, "PLAN_DRIFT_REQUIRES_REVIEW");
           } catch { this.pause(schedule, "PLAN_VALIDATION_FAILED"); }
         }
@@ -159,7 +159,7 @@ export class ManagedRefreshScheduler {
   }
   list() { return this.run(() => clone(this.schedules)); }
   create(input) { return this.run(async () => {
-    const normalized = normalize(input); const identity = planIdentity(await this.operations.plan({ industries: normalized.industries, states: normalized.states }));
+    const normalized = normalize(input); const identity = planIdentity(await this.operations.planScheduled({ industries: normalized.industries, states: normalized.states }));
     const time = this.time(); const schedule = { id: randomUUID(), ...normalized, ...identity, createdAt: time, status: normalized.enabled ? "READY" : "DISABLED", nextDueAt: normalized.enabled ? time : null, lastOccurrence: null, reason: null };
     if (schedule.enabled) this.assertNoOverlap(schedule);
     this.schedules.push(schedule); await this.persist(); return clone(schedule);
@@ -168,7 +168,7 @@ export class ManagedRefreshScheduler {
     if (typeof enabled !== "boolean") throw invalid("enabled must be boolean.");
     const schedule = this.schedules.find((item) => item.id === id); if (!schedule) return null;
     if (enabled) {
-      const identity = planIdentity(await this.operations.plan({ industries: schedule.industries, states: schedule.states }));
+      const identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states }));
       if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) throw invalid("Plan changed; create a newly reviewed schedule.", "SCHEDULE_PLAN_DRIFT");
       this.assertNoOverlap(schedule);
       if (schedule.lastOccurrence && ["DISPATCHING", "UNKNOWN"].includes(schedule.lastOccurrence.status)) throw invalid("Unresolved occurrence requires inspection before enabling.");
@@ -197,7 +197,7 @@ export class ManagedRefreshScheduler {
     for (const schedule of this.schedules) {
       if (!schedule.enabled || !schedule.nextDueAt || Date.parse(schedule.nextDueAt) > Date.parse(this.time())) continue;
       let identity;
-      try { identity = planIdentity(await this.operations.plan({ industries: schedule.industries, states: schedule.states })); }
+      try { identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states })); }
       catch { this.pause(schedule, "PLAN_VALIDATION_FAILED"); await this.persist(); continue; }
       if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) { this.pause(schedule, "PLAN_DRIFT_REQUIRES_REVIEW"); await this.persist(); continue; }
       if (this.closed) break;

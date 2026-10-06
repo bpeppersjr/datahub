@@ -1,0 +1,31 @@
+{
+  "schema_version": "2.7.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-bdf813c0075e4d5a2e23d7abd0a015acb6632bfe1563f7b3ae75cb5f0091a121",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v2-7/releases/state-exact-zip-industry-evidence-disposition-bdf813c0075e4d5a2e23d7abd0a015acb6632bfe1563f7b3ae75cb5f0091a121/manifest.json",
+    "manifest_sha256": "a1991f09f2ee7c381789b21ff1d8631bdd9b6619c82ed84de36f79b3138fb31b",
+    "manifest_bytes": 5681,
+    "artifact_sha256": "59cda87e9430cac930842ab930b0e5c204af341ebe886d6231c6c05b1d145814",
+    "artifact_bytes": 3082101,
+    "scope_rows": 60,
+    "dimension_count": 48,
+    "industry_cells": 2313312
+  },
+  "claims": {
+    "predecessor_dimensions_preserved": true,
+    "la_listing_raw_states_preserved": true,
+    "publisher_cohort_status": "City of Los Angeles publisher active-list membership",
+    "row_lifecycle_status": "unknown-source-status",
+    "municipal_scope": "City of Los Angeles",
+    "current_operations_verified": false,
+    "continuous_operation_verified": false,
+    "complete_all_businesses": false,
+    "nonadditive_with_la_registered_location_profiles": true,
+    "public_record_export_authorized": false,
+    "production_enrollment": false
+  }
+}

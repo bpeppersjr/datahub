@@ -21,7 +21,7 @@ async function fixture(t) {
     'other-source': { script: 'scripts/build-fdic-bankfind.mjs', scope: 'national', states: 'all', state_filter_supported: false, prerequisites: [] },
   } };
   const operations = {
-    plan: async (selection) => buildIndustryPlan(config, selection),
+    planScheduled: async (selection) => buildIndustryPlan(config, selection),
     get: async (id) => records.get(id) ?? null,
     startScheduledCollection: async (_selection, { operationId }) => {
       if (busy) throw Object.assign(new Error('busy'), { code: 'OPERATION_CONFLICT', retryable: true });
@@ -169,7 +169,9 @@ test('local timer triggers a due occurrence without an external caller', async (
 });
 test('scheduler dispatches through real managed operations with stable persisted identity', async (t) => {
   const f = await fixture(t); let executions = 0;
-  const operations = createManagedOperations({ root: path.join(f.root, 'operations'), configLoader: async () => f.config, executor: async () => { executions += 1; return { code: 0 }; } });
+  const operations = createManagedOperations({ root: path.join(f.root, 'operations'), configLoader: async () => f.config,
+    automaticRefreshLoader: async config => Object.entries(config.sources).map(([sourceId, source]) => ({ sourceId, script: source.script, automaticRefreshAuthorized: true, reasonCode: 'REVIEWED_TEST_FIXTURE', governedSourceId: null })),
+    executor: async () => { executions += 1; return { code: 0 }; } });
   t.after(() => operations.close());
   const scheduler = f.make({ operations }); await scheduler.create({ ...input, enabled: true }); await scheduler.tick();
   for (let n = 0; n < 100; n++) { await scheduler.tick(); if ((await scheduler.list())[0].lastOccurrence.status === 'SUCCEEDED') break; await new Promise((resolve) => setTimeout(resolve, 5)); }

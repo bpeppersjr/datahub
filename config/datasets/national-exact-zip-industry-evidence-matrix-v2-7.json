@@ -1,0 +1,17 @@
+{
+  "schema_version": "2.7.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-33ab3fa11f8d1782c945359f4d88e1cbab808f109f6f7a29cd1f5b46cc79e6c6",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v2-7/releases/national-exact-zip-industry-evidence-matrix-33ab3fa11f8d1782c945359f4d88e1cbab808f109f6f7a29cd1f5b46cc79e6c6/manifest.json",
+    "manifest_sha256": "447ebb5a78205557c539f54c726d832052aa43eb72c2072c75296b9cabedafca",
+    "manifest_bytes": 21401,
+    "zip5_rows": 48194,
+    "dimension_count": 48,
+    "industry_cells": 2313312
+  },
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}

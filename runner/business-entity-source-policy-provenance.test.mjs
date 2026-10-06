@@ -41,10 +41,12 @@ async function copyBoundedFixture(root, provenance) {
 
 test('registered source-policy inventory conserves all 15 exact sources and 8,011,835 profiles without granting authority', async () => {
   const value = await readBusinessEntitySourcePolicyProvenance();
-  assert.equal(value.release_id, 'business-entity-source-policy-provenance-046deb14fcd46d7699f0db30e6b0a9dda5f0c61e93c359a9aab45e7aa8676fa7');
-  assert.equal(value.registration_sha256, 'f6c0662226535b821ab81c5e1e18a712ff10f6dab69b631e3eee56b50fb81686');
-  assert.equal(value.manifest_sha256, '5b2570e8d266fd74d0cf4d0175aa92b11675b26fb2ed6979741b425e1e4962a4');
-  assert.equal(value.artifact_sha256, 'a210597683397a37a458bb86c0f1758251549ecfc46831780c19ab4e0e4c0855');
+  assert.equal(value.release_id, 'business-entity-source-policy-provenance-62ad90b4ae761c62925b247007f52dfe0872fcb908022839911f26e1d1db82fa');
+  assert.equal(value.registration_sha256, 'f26841a676fe6bb808bbfad6fcd46cca9c8979433f62805651129d0a32b2fcc2');
+  assert.equal(value.manifest_sha256, '5db207e18512b9a805b6bdf954be9c818db8d5c1b585a144fa90fb0a20cbc9ac');
+  assert.equal(value.artifact_sha256, '66a14e200366041c44a1c5ba6d5dd5f955d868d817fd29daba7cb364973bb82d');
+  assert.equal(value.temporal_release_id, 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090');
+  assert.equal(value.temporal_manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(value.rows.length, 15); assert.equal(value.record_count, 15);
   assert.equal(value.summary.profile_count, 8011835);
   assert.equal(value.rows.reduce((sum, row) => sum + row.profile_count, 0), 8011835);

@@ -37,6 +37,8 @@
     "exact-zip-industry-matrix:v2.5:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v2-5.mjs",
     "exact-zip-industry-matrix:v2.6:build": "node scripts/build-national-exact-zip-industry-evidence-matrix-v2-6.mjs",
     "exact-zip-industry-matrix:v2.6:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v2-6.mjs",
+    "exact-zip-industry-matrix:v2.7:build": "node scripts/build-national-exact-zip-industry-evidence-matrix-v2-7.mjs",
+    "exact-zip-industry-matrix:v2.7:verify": "node scripts/verify-national-exact-zip-industry-evidence-matrix-v2-7.mjs",
     "reconciliation:plan": "node scripts/reconcile-business-candidates.mjs plan",
     "reconciliation:run": "node scripts/reconcile-business-candidates.mjs run",
     "reconciliation:production:plan": "node scripts/reconcile-business-production.mjs plan",

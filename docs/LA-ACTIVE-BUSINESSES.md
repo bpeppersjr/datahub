@@ -36,9 +36,9 @@ All selected source rows, normalized partitions, quarantine records, ZIP aggrega
 
 ## Current verified release
 
-Release `la-active-businesses-20260831-195158034Z-5a5328d2` pins source refresh `2026-08-15T15:37:22Z`. It retains 633,782 selected source location accounts and publishes 633,332 normalized U.S. location/establishment candidates. The remaining 450 rows are quarantined—a rate of 0.0710%—including 365 invalid/non-U.S.-format ZIP values and 85 incomplete business-location addresses.
+Release `la-active-businesses-20260903-004213132Z-082faa76` (manifest SHA-256 `12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b`) pins source refresh `2026-08-15T15:37:22Z`. It retains 633,782 selected source location accounts and publishes 633,232 normalized U.S. location/establishment candidates. The remaining 550 rows are quarantined—a rate of 0.0868%—including 465 invalid or unmapped U.S. ZIP values and 85 incomplete business-location addresses.
 
-The release includes 566,943 source-geocoded locations, 482,261 accepted locations with a nonzero council district, 151,071 source-designated out-of-city locations, 29,457 nonzero-district coordinates outside the broad plausibility bounds, and contributions across 5,437 source ZIP values. Its 21 verified artifacts total 227,107,980 bytes. These counts describe the source snapshot, not a complete population of Los Angeles or U.S. businesses.
+The release includes 566,858 source-geocoded locations, 482,232 accepted locations with a nonzero council district, 151,000 source-designated out-of-city locations, 29,451 nonzero-district coordinates outside the broad plausibility bounds, and contributions across 5,371 source ZIP values. Its 21 verified artifacts total 226,593,117 bytes. These counts describe the source snapshot, not a complete population of Los Angeles or U.S. businesses. Although the publisher calls the listing active, retained rows have null source status; downstream lifecycle qualification therefore remains `unknown-source-status` and does not establish current operation.
 
 ## Official references
 

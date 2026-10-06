@@ -8,6 +8,8 @@ Selection does not authorize or dispatch acquisition, enable a connector, schedu
 
 The Industry Summary displays this operational maintenance intent in a separate section beside, not merged into, reporting/map evidence categories. The Collection planner and the new-refresh-schedule form each read the persisted selection once as their initial explicit multi-industry selection. The schedule form also provides **Use Administration selection** so an operator can restore that persisted default after editing. Neither use previews, queues, starts, creates, enables, or schedules work automatically. An empty selection remains empty. Schedule creation still requires an explicit state selection and creates a disabled schedule; connector authorization, policy, overlap, and execution gates remain unchanged. Manual-only and unauthorized sources retain their existing gates.
 
+Schedule planning now checks the separate source-level automatic-refresh authorization contract. A maintained industry whose selected state resolves to any source without explicit reviewed authorization cannot create a schedule. Authorization is revalidated again at enable/restart planning and immediately before managed dispatch. The catalog exposes each source decision and reason so a later UI can explain the hold without converting Administration intent into authority.
+
 The once-only planning default fails closed: if the maintenance preference cannot be read during initial Collection loading, no industries are selected. The three-second operations polling loop does not retry that preference or overwrite later operator edits; re-entering/reloading the Collection workspace obtains a fresh persisted default.
 
 ## Geography and evidence boundary

@@ -25,6 +25,7 @@ import {getOrBusinessRegistryRefreshReadiness,OR_BUSINESS_REGISTRY_REFRESH_SOURC
 import {getNyBusinessRegistryRefreshReadiness,NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ny-business-registry-refresh-readiness.mjs';
 import {getRetainedBusinessRefreshReadiness,RETAINED_BUSINESS_REFRESH_DESCRIPTORS,RETAINED_BUSINESS_REFRESH_SOURCE_IDS} from './retained-business-refresh-readiness.mjs';
 import {GOVERNED_SOURCE_REFRESH_SOURCE_IDS,governedSourceRefreshHoldPlan,validateGovernedSourceRefreshDescriptor} from './governed-source-refresh-registry.mjs';
+import {assertAutomaticRefreshAuthorized,loadAutomaticRefreshAuthorizations} from './automatic-refresh-authorization.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 const SOURCE_REFRESH_DISPATCH=new Map([
   [IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getIaBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
@@ -127,6 +128,7 @@ export class ManagedOperations {
       this.adoptionTiming={...timing};
     }
     this.configLoader = options.configLoader ?? loadIndustryConfig;
+    this.automaticRefreshLoader = options.automaticRefreshLoader ?? loadAutomaticRefreshAuthorizations;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
     this.receiptWriter = options.receiptWriter ?? atomicJson;
@@ -152,7 +154,7 @@ export class ManagedOperations {
   }
   async catalog() {
     await this.ready; const config = await this.configLoader();
-    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], collectionSources: industrySourceCatalog(config), sourcePrerequisites: getSourcePrerequisiteGates(),
+    return { industries: Object.keys(config.industries).map((id) => ({ id })), states: [...config.states], collectionSources: industrySourceCatalog(config), automaticRefreshSources: await this.automaticRefreshLoader(config), sourcePrerequisites: getSourcePrerequisiteGates(),
       boundedSourceCollections: [{ sourceId: "ok-childcare-retained-73102", state: "OK", industry: "childcare", zip5: "73102",
         endpoint: "/api/data-operations/ok-childcare-collections", scope: "one-center-only-public-search", requestCount: 3,
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
@@ -170,6 +172,12 @@ export class ManagedOperations {
     throw Object.assign(new Error(dispatch.rejection), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
+  async planScheduled(input = {}) {
+    await this.ready; this.#only(input, ["industries", "states"]);
+    const config = await this.configLoader(), plan = validate(() => buildIndustryPlan(config, this.#selection(input)));
+    await assertAutomaticRefreshAuthorized(config, plan, { loader: this.automaticRefreshLoader });
+    await verifyRetainedPlan(plan); return plan;
+  }
   async startCollection(input = {}) {
     await this.ready; await this.#refreshUnknown(); this.#reserve();
     try { this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return await this.#start("collection", { plan }); }
@@ -375,6 +383,7 @@ export class ManagedOperations {
     try {
       const config = await this.configLoader();
       const plan = validate(() => buildIndustryPlan(config, selection));
+      await assertAutomaticRefreshAuthorized(config, plan, { loader: this.automaticRefreshLoader });
       const actualPlanHash = industryPlanFingerprint(plan);
       if (expectedPlanHash !== undefined && expectedPlanHash !== actualPlanHash) throw conflict("Scheduled industry plan changed; acquisition is blocked.");
       return await this.#start("collection", { plan }, { operationId, selection, expectedPlanHash: actualPlanHash });

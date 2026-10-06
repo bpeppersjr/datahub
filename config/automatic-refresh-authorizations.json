@@ -1,0 +1,32 @@
+{
+  "schema_version": "automatic-refresh-authorizations@1.0.0",
+  "sources": {
+    "state-ok-childcare-spatial-batch": { "script": "scripts/build-ok-childcare-zip-batch.mjs", "authorized": false, "reason_code": "MANUAL_SELECTION_REQUIRED", "governed_source_id": null },
+    "state-ia-childcare-centers": { "script": "scripts/build-ia-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ut-childcare-centers-retained": { "script": "scripts/build-ut-childcare-app.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-co-childcare-centers": { "script": "scripts/build-co-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-vt-childcare-centers": { "script": "scripts/build-vt-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-md-childcare-centers": { "script": "scripts/build-md-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ct-childcare-centers": { "script": "scripts/build-ct-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-pa-childcare-centers": { "script": "scripts/build-pa-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ak-business-licenses": { "script": "scripts/run-ak-business-app.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-de-business-licenses": { "script": "scripts/run-de-business-app.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-mn-contractor-registrations": { "script": "scripts/build-mn-contractor-registrations.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-mn-residential-contractors": { "script": "scripts/build-mn-residential-contractors.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-oh-childcare": { "script": "scripts/build-oh-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-tn-childcare": { "script": "scripts/build-tn-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-nj-childcare": { "script": "scripts/build-nj-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ma-childcare": { "script": "scripts/build-ma-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-dc-basic-licenses": { "script": "scripts/build-dc-basic-business-licenses.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-irs-eo-bmf": { "script": "scripts/build-irs-eo-bmf.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-nppes-organizations": { "script": "scripts/build-cms-nppes-organizations.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-snap-retailers": { "script": "scripts/build-usda-snap-retailers.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-fdic-bankfind": { "script": "scripts/build-fdic-bankfind.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-ncua-quarterly": { "script": "scripts/build-ncua-quarterly.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-fmcsa-census": { "script": "scripts/build-fmcsa-company-census.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ny-retail-food": { "script": "scripts/build-ny-retail-food-stores.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ca-abc": { "script": "scripts/build-ca-abc-active-license-sites.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-wa-contractors": { "script": "scripts/build-wa-lni-active-contractor-licenses.mjs", "authorized": false, "reason_code": "GOVERNED_SOURCE_HOLD", "governed_source_id": "wa-lni-active-contractor-licenses" },
+    "state-tx-sales-tax": { "script": "scripts/build-tx-active-sales-tax-permits.mjs", "authorized": false, "reason_code": "GOVERNED_SOURCE_HOLD", "governed_source_id": "tx-active-sales-tax-permits" }
+  }
+}
