@@ -58,3 +58,7 @@ The pointer-free v2.2 successor adds the direct 2023 Census ZBP all-industry emp
 # Entity-resolution linkage successor dimension
 
 The pointer-free v2.3 successor adds `cross_source_entity_resolution_linkage_evidence`. Exactly 26,919 ZIPs contain retained linkage evidence and 21,275 remain null with no retained linkage decision. Each positive cell counts one evidence row and retains five heterogeneous metrics separately; those metrics are never summed into a business count. The benchmark gate has not passed, identity resolution was not applied, and unique/current business counts remain null. All inherited gap sidecars remain unchanged and no new gap artifact is created.
+
+# California ABC physical-site successor dimension
+
+The pointer-free v2.4 successor adds `ca_abc_active_issued_license_physical_sites`: 2,920 positive ZIPs totaling 84,497 normalized sites, 34,908 measured-zero rows inside the retained source denominator, and 10,366 outside-denominator nulls. Publisher `ACTIVE` is snapshot license evidence, not independently verified continuous operation; 3,155 selected source-active rows had expiration before observation. The dimension overlaps the existing California ABC profile dimension and is nonadditive. Completeness and USPS validity remain false or null, inherited sidecars remain byte-identical, and no new ZIP gap artifact is created.

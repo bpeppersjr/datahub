@@ -173,15 +173,15 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-  assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-cdddc0df5de1697491cb82a6f8d0e70d174271d7e1b4e2ed3c37e48e512815a5');
-  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'0700c729d7830508fb12a95f291e8850b2f1e28035c78f4e79c089f6f8393e31');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, 'd5c9da391a7a35de0f72f2b6912c9098dcefce2e88cafc0bcd048ed86d78963c');
-  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,44,2120536]);
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'0083bbfb51cbcc248c398df74d1b73a4df40def07e239ba1fba606cd6b39a9aa');
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2120536);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'b2882873f41d9843a8de0d5b251ae4430e822e87955d0d91f85781523be04f90');
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2120536);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2120536);
+assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-522a5236674ebbdd8163d71cc15fba49e3526feac916aee74be1bcbf01cb7d63');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'51ae2288a1fb0052f3e9d4ba7306878fdcbd116e92227cb1e2dc317a0bcb7022');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '072ab5f6018ec9eb085f18a675535514268e1b2154f23ce26334ef66c0a5dc4b');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,45,2168730]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'11966313c081be9e427fc4aebe28019f8244a820defe3be61fed1e46831c563e');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2168730);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'431171101faa45a7e021f33a653fba552bc3a7e64249cbdc215b5edd46027d58');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2168730);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2168730);
   assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');

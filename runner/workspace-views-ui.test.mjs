@@ -2263,11 +2263,13 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
         completeness_percentage: null,
       },
       publisher_membership:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",assertion:"active-list-membership-without-row-status",profile_count:633232,row_status:"null",lifecycle_evidence:"unknown"},
+      source_status_posture:{source_id:"cms-nppes-monthly-v2",status:"source-defined-current-registration-status",profile_count:1958089,non_primary_reporting_count:130691},
       mismatch:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",source_release_id:"la-release",source_cohort_classification:"source-defined-current-membership",effective_profile_classification:"unknown-source-status",lifecycle_evidence:"unknown",profile_count:633232,current_operations_verified:false},
       provenance: {
         temporal:{release_id: `national-business-temporal-claim-matrix-${sha}`,manifest_sha256:sha,artifact_sha256:sha,created_at:"2026-10-03T00:00:00.000Z",registry_release_id:"registry-r1",registry_manifest_sha256:sha,coverage_release_id:"coverage-r1",coverage_manifest_sha256:sha},
         reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation.json",registration_sha256:"5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad",schema_version:"national-business-temporal-lifecycle-reconciliation@1.0.0",status:"one-bounded-profile-classification-conflict",lifecycle_release_id:"lifecycle-r1",lifecycle_manifest_sha256:sha,taxonomy_path:"config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",taxonomy_sha256:sha,los_angeles_pointer_sha256:sha,los_angeles_manifest_sha256:sha},
         publisher_membership_reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",registration_sha256:sha,schema_version:"national-business-temporal-lifecycle-reconciliation@1.1.0",source_artifact_sha256:sha,source_summary_sha256:sha},
+        source_status_posture:{registration_path:"config/datasets/national-business-source-status-posture.json",manifest_sha256:sha,taxonomy_sha256:sha},
       },
       claims: {
         network_requests: 0,
@@ -2288,6 +2290,10 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
   assert.match(value, /Publisher-labelled current cohorts22/);
   assert.match(value, /633,232 profiles have null source status and remain unknown/);
   assert.match(value, /Los Angeles publisher membership/);
+  assert.match(value, /NPPES registration posture/);
+  assert.match(value, /1,958,089 primary profiles/);
+  assert.match(value, /130,691 non-primary locations remain reporting-only/);
+  assert.match(value, /does not prove an open business/);
   assert.match(value, /Broad state\/DC sources11 \/ 51/);
   assert.match(value, /Broad state\/DC gaps40/);
   assert.match(value, /Verified-current-complete jurisdictions0 \/ 51/);
@@ -2299,6 +2305,9 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
     { ...view, summary: { ...view.summary, active_business_count: 1 } },
     { ...view, claims: { ...view.claims, current_operations_verified: true } },
     { ...view, provenance: { ...view.provenance, reconciliation:{...view.provenance.reconciliation,registration_sha256:"bad"} } },
+    { ...view, source_status_posture:{...view.source_status_posture,status:"business-active"} },
+    { ...view, source_status_posture:{...view.source_status_posture,profile_count:1958090} },
+    { ...view, provenance:{...view.provenance,source_status_posture:{...view.provenance.source_status_posture,manifest_sha256:"bad"}} },
     { ...view, summary:{...view.summary,effective_profile_source_counts:{...view.summary.effective_profile_source_counts,source_defined_current_membership:22}}},
     { ...view, unexpected:true },
     null,

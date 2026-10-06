@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.4.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-b86c0d1ca6f7e37f9da0d856e1faa8e4844778d44e8523d9beb256e05ce0a319",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v2-4/releases/state-exact-zip-industry-evidence-disposition-b86c0d1ca6f7e37f9da0d856e1faa8e4844778d44e8523d9beb256e05ce0a319/manifest.json",
+    "manifest_sha256": "82f1dcd633736d78288bd62171c56c60872bb54634a5bb79bf4d2a147c49fca5",
+    "manifest_bytes": 3797,
+    "artifact_sha256": "5194cfb1b5eae660d233d68f214f94c9b995abbffbbf8654839f12cfc07b0060",
+    "artifact_bytes": 2882345,
+    "scope_rows": 60,
+    "dimension_count": 45,
+    "industry_cells": 2168730
+  },
+  "claims": {
+    "predecessor_dimensions_preserved": true,
+    "ca_abc_raw_states_preserved": true,
+    "derived_readiness_separate": true,
+    "publisher_status": "ACTIVE",
+    "publisher_active_snapshot_only": true,
+    "current_operations_verified": false,
+    "continuous_operation_verified": false,
+    "complete_all_businesses": false,
+    "nonadditive_with_ca_abc_profiles": true,
+    "identity_merges": false,
+    "entity_resolution_applied": false,
+    "unique_business_count": null,
+    "current_operating_business_count": null,
+    "production_enrollment": false
+  }
+}

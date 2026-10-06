@@ -4,6 +4,7 @@ import { APP_ROOT } from "./paths.mjs";
 import { mnSelectionReadJson as readJson } from "./mn-construction-retained-selection.mjs";
 import { verifyNationalBusinessTemporalLifecycleReconciliation } from "./national-business-temporal-lifecycle-reconciliation.mjs";
 import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from "./national-business-temporal-lifecycle-reconciliation-v1-1.mjs";
+import { verifyNationalBusinessSourceStatusPosture } from "./national-business-source-status-posture.mjs";
 
 const SHA = /^[a-f0-9]{64}$/;
 const RELEASE = /^national-business-temporal-claim-matrix-[a-f0-9]{64}$/;
@@ -284,7 +285,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
       (opts.includeRows === undefined || typeof opts.includeRows === "boolean"),
   );
   const raw = await readMatrix({ root: opts.root, signal: opts.signal }),
-    [reconciliation, membership] = await Promise.all([
+    [reconciliation, membership, sourceStatusPosture] = await Promise.all([
       verifyNationalBusinessTemporalLifecycleReconciliation({
         root: opts.root,
         signal: opts.signal,
@@ -293,6 +294,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
         root: opts.root,
         signal: opts.signal,
       }),
+      verifyNationalBusinessSourceStatusPosture({ root: opts.root, signal: opts.signal }),
     ]);
   const summary = reconciliation.summary,
     mismatch = reconciliation.mismatch,
@@ -357,6 +359,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
       completeness_percentage: null,
     },
     publisher_membership: membership.publisher_membership,
+    source_status_posture: sourceStatusPosture.posture,
     mismatch: {
       source_key: mismatch.source_key,
       profile_source_id: mismatch.profile_source_id,
@@ -389,6 +392,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
         source_artifact_sha256: membership.provenance.source_artifact_sha256,
         source_summary_sha256: membership.provenance.source_summary_sha256,
       },
+      source_status_posture: { registration_path: sourceStatusPosture.registration_path, manifest_sha256: sourceStatusPosture.provenance.manifest_sha256, taxonomy_sha256: sourceStatusPosture.provenance.taxonomy_sha256 },
     },
     claims: {
       network_requests: 0,
