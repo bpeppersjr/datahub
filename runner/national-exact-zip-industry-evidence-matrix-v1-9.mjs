@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, open, readFile, readdir, realpath, rename, rm, unlink } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
 import { APP_ROOT } from './paths.mjs';
 import { projectWaLniExactZipDimension, readExactZipIndustryEvidence as readV18Evidence,
   WA_LNI_EXACT_ZIP_DIMENSION as WA } from './national-exact-zip-industry-evidence-matrix.mjs';
@@ -34,6 +35,7 @@ const exactKeys = (value, keys) => value && typeof value === 'object' && !Array.
   && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 const claims = () => ({ ...EXPECTED_WA_CLAIMS, current_pointer_written: false });
 const sameIdentity = (left, right) => left && right && left.dev === right.dev && left.ino === right.ino;
+const same = (left, right) => isDeepStrictEqual(left, right);
 
 async function safeDirectory(root, target, { create = false } = {}) {
   const canonicalRoot = await realpath(root);
@@ -75,7 +77,7 @@ function validateWa(wa, expected = null) {
       .every(key => wa.bindings[key] === WA[key])
     && wa.bindings.release_id === WA.release_id && wa.bindings.source_release_id === WA.source_release_id,
   'WA bindings');
-  check(JSON.stringify(wa.claims) === JSON.stringify(EXPECTED_WA_CLAIMS), 'WA claims');
+  check(same(wa.claims, EXPECTED_WA_CLAIMS), 'WA claims');
   check(Array.isArray(wa.rows) && exactKeys(wa.summary, [
     'eligible_mailing_address_rows', 'missing_or_ineligible_mailing_address_rows', 'positive_zip5_rows',
   ]), 'WA summary');
@@ -121,7 +123,23 @@ async function writeOwned(file, bytes) {
 }
 
 async function acquire(file) {
-  const handle = await open(file, 'wx');
+  let handle;
+  try { handle = await open(file, 'wx'); }
+  catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    const before = await lstat(file, { bigint: true });
+    check(before.isFile() && !before.isSymbolicLink() && before.nlink === 1n, 'lock shape');
+    const value = (await readFile(file, 'utf8')).trim(), pid = Number(value);
+    check(Number.isSafeInteger(pid) && pid > 0, 'lock owner');
+    let live = true; try { process.kill(pid, 0); } catch (failure) { if (failure.code === 'ESRCH') live = false; else throw failure; }
+    check(!live, 'concurrent lock');
+    const quarantine = `${file}.stale-${randomUUID()}`;
+    await rename(file, quarantine);
+    const moved = await lstat(quarantine, { bigint: true });
+    if (!sameIdentity(before, moved)) { await rename(quarantine, file).catch(() => {}); fail('lock ownership changed'); }
+    await unlink(quarantine);
+    handle = await open(file, 'wx');
+  }
   const identity = await handle.stat({ bigint: true });
   await handle.writeFile(`${process.pid}\n`); await handle.sync();
   return { handle, identity };
@@ -187,14 +205,14 @@ async function engine({ root, outputRoot, signal, predecessor, wa, expected, aft
       artifacts.push({ path: descriptor.path, bytes: bytes.length, sha256: sha256(bytes), record_count: rows.length });
     }
     summary.industry_cells = summary.zip5_rows * 40;
-    check(JSON.stringify(summary) === JSON.stringify(expected), 'national conservation');
+    check(same(summary, expected), 'national conservation');
     await afterInputs?.(); signal?.throwIfAborted();
     for (const descriptor of predecessor.artifacts) { const input = await stableBytes(root, path.join(predecessor.directory, descriptor.path));
       check(input.sha256 === descriptor.sha256 && input.bytes.length === descriptor.bytes, 'predecessor changed before commit'); }
     for (const descriptor of artifacts) { const staged = await stableBytes(root, path.join(staging, descriptor.path));
       check(staged.sha256 === descriptor.sha256 && staged.bytes.length === descriptor.bytes, 'staged artifact changed'); }
     if (recheckWa) { const again = await recheckWa(); validateWa(again, expected);
-      check(JSON.stringify(again) === JSON.stringify(wa), 'WA input changed before commit'); }
+      check(same(again, wa), 'WA input changed before commit'); }
     const body = manifestBody({ artifacts, summary, predecessor: predecessor.binding, wa: wa.bindings });
     const releaseId = `${DATASET}-${sha256(JSON.stringify(body))}`;
     const manifest = { release_id: releaseId, ...body };
@@ -208,11 +226,15 @@ async function engine({ root, outputRoot, signal, predecessor, wa, expected, aft
     const existing = await lstat(releaseDir).catch(error => error.code === 'ENOENT' ? null : Promise.reject(error));
     if (existing) {
       await inspectRelease(root, releaseDir, manifest);
+      await verifyEngine(path.join(releaseDir, 'manifest.json'), { root, signal,
+        inputLoader: async () => ({ predecessor, wa: recheckWa ? await recheckWa() : wa }), expected });
       await ownedCleanup(staging, stagingIdentity, owned); staging = null;
       return { release_id: releaseId, manifest: path.join(releaseDir, 'manifest.json'), summary, reused: true };
     }
     signal?.throwIfAborted();
     await rename(staging, releaseDir); staging = null;
+    await verifyEngine(path.join(releaseDir, 'manifest.json'), { root, signal,
+      inputLoader: async () => ({ predecessor, wa: recheckWa ? await recheckWa() : wa }), expected });
     return { release_id: releaseId, manifest: path.join(releaseDir, 'manifest.json'), summary, reused: false };
   } catch (error) {
     if (staging) await ownedCleanup(staging, stagingIdentity, owned);
@@ -256,7 +278,7 @@ export async function readExactZipIndustryEvidenceV19({ root = APP_ROOT, zip5, s
   check(exactKeys(registration, ['claims', 'dataset_id', 'documentation', 'production_enrollment', 'retained_release', 'runtime_pointer', 'schema_version', 'status'])
     && registration.schema_version === '1.9.0' && registration.dataset_id === DATASET
     && registration.status === 'registered-pointer-free-local-review-only' && registration.runtime_pointer === null
-    && registration.production_enrollment === false && JSON.stringify(registration.claims) === JSON.stringify(claims())
+    && registration.production_enrollment === false && same(registration.claims, claims())
     && retained.release_id === RELEASE_ID && retained.manifest_sha256 === MANIFEST_SHA
     && retained.manifest === `data/national-exact-zip-industry-evidence-matrix-v1-9/releases/${RELEASE_ID}/manifest.json`
     && retained.zip5_rows === 48194 && retained.dimension_count === 40 && retained.industry_cells === 1927760
@@ -264,7 +286,7 @@ export async function readExactZipIndustryEvidenceV19({ root = APP_ROOT, zip5, s
   const manifestRead = await stableBytes(root, path.join(root, retained.manifest), 1_000_000), manifest = JSON.parse(manifestRead.bytes);
   check(manifestRead.sha256 === MANIFEST_SHA && manifest.release_id === RELEASE_ID && manifest.schema_version === VERSION
     && manifest.dataset_id === DATASET && manifest.status === 'immutable-pointer-free-local-review-only'
-    && manifest.publication_mode === 'pointer-free' && JSON.stringify(manifest.claims) === JSON.stringify(claims())
+    && manifest.publication_mode === 'pointer-free' && same(manifest.claims, claims())
     && manifest.artifacts.length === 100 && manifest.summary.dimension_count === 40
     && manifest.summary.zip5_rows === 48194 && manifest.summary.industry_cells === 1927760, 'registered manifest');
   const descriptor = manifest.artifacts.find(item => item.path === `prefix=${zip5.slice(0, 2)}.json`);
@@ -313,12 +335,14 @@ async function verifyEngine(manifestPath, { root, signal, inputLoader, expected 
   const manifestKeys = ['release_id', 'schema_version', 'dataset_id', 'status', 'publication_mode', 'claims', 'bindings', 'summary', 'artifacts'];
   check(exactKeys(manifest, manifestKeys), 'manifest keys');
   const { release_id: releaseId, ...body } = manifest;
-  check(path.basename(path.dirname(manifestPath)) === releaseId && releaseId === `${DATASET}-${sha256(JSON.stringify(body))}`
+  const normalizedBody = manifestBody({ artifacts: body.artifacts, summary: body.summary,
+    predecessor: body.bindings?.predecessor, wa: body.bindings?.wa });
+  check(path.basename(path.dirname(manifestPath)) === releaseId && releaseId === `${DATASET}-${sha256(JSON.stringify(normalizedBody))}`
     && body.schema_version === VERSION && body.dataset_id === DATASET && body.status === 'immutable-pointer-free-local-review-only'
-    && body.publication_mode === 'pointer-free' && JSON.stringify(body.claims) === JSON.stringify(claims())
-    && JSON.stringify(body.summary) === JSON.stringify(expected), 'manifest identity/claims');
+    && body.publication_mode === 'pointer-free' && same(body.claims, claims())
+    && same(body.summary, expected), 'manifest identity/claims');
   const input = await inputLoader(root, signal), waMap = validateWa(input.wa, expected);
-  check(JSON.stringify(body.bindings) === JSON.stringify({ predecessor: input.predecessor.binding, wa: input.wa.bindings }), 'live bindings');
+  check(same(body.bindings, { predecessor: input.predecessor.binding, wa: input.wa.bindings }), 'live bindings');
   const names = await readdir(path.dirname(manifestPath));
   check(names.length === body.artifacts.length + 1 && names.includes('manifest.json'), 'closed inventory');
   let total = 0;
@@ -332,13 +356,13 @@ async function verifyEngine(manifestPath, { root, signal, inputLoader, expected 
     const rows = JSON.parse(actual.bytes), prior = JSON.parse(priorBytes.bytes);
     check(rows.length === artifact.record_count && rows.length === prior.length, 'artifact row counts');
     for (let row = 0; row < rows.length; row += 1) { if (row % 256 === 0) signal?.throwIfAborted();
-      check(JSON.stringify(rows[row]) === JSON.stringify(successor(prior[row], waMap)), 'successor replay'); }
+      check(same(rows[row], successor(prior[row], waMap)), 'successor replay'); }
     total += rows.length;
   }
   for (const predecessor of input.predecessor.artifacts) { const final = await stableBytes(root, path.join(input.predecessor.directory, predecessor.path));
     check(final.sha256 === predecessor.sha256 && final.bytes.length === predecessor.bytes, 'predecessor final recheck'); }
   const finalInput = await inputLoader(root, signal); validateWa(finalInput.wa, expected);
-  check(JSON.stringify(finalInput.wa) === JSON.stringify(input.wa), 'WA final recheck');
+  check(same(finalInput.wa, input.wa), 'WA final recheck');
   check(total === expected.zip5_rows, 'row total');
   return { verified: true, release_id: releaseId, rows: total, dimensions: 40 };
 }
