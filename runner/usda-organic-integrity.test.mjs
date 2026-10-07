@@ -38,7 +38,7 @@ function hash(value) {
 test("official API contract is credential-gated, inert, attributed, and privacy bounded", async () => {
   const connector = JSON.parse(await readFile(CONNECTOR_PATH, "utf8"));
   const policy = JSON.parse(await readFile(POLICY_PATH, "utf8"));
-  assert.equal(connector.version, "1.2.0");
+  assert.equal(connector.version, "1.3.0");
   assert.deepEqual(connector.named_secret_references, [{
     name: "DATA_GOV_API_KEY",
     purpose: "Required query credential for the USDA Organic INTEGRITY public API",

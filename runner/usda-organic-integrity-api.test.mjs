@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { crc32 } from "node:zlib";
+import { appendFile, mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import {
   inspectUsdaOrganicIntegrityApiArchive,
   requestUsdaOrganicIntegrityApiArchive,
   USDA_INTEGRITY_API_ACKNOWLEDGEMENT,
+  verifyUsdaOrganicIntegrityApiSnapshot,
+  writeUsdaOrganicIntegrityApiSnapshot,
 } from "./usda-organic-integrity-api.mjs";
 
 function storedZip(parts) {
@@ -44,4 +49,25 @@ test("cancellation and response limits are enforced without credential disclosur
   await assert.rejects(requestUsdaOrganicIntegrityApiArchive({apiKey:"fixture_key_123",acknowledgement:USDA_INTEGRITY_API_ACKNOWLEDGEMENT,signal:controller.signal,fetchImpl:async()=>{throw Error("must not fetch")}}),{name:"AbortError"});
   let cancelled=false;const body=new ReadableStream({start(c){c.enqueue(new Uint8Array(32));},cancel(){cancelled=true;}});
   await assert.rejects(requestUsdaOrganicIntegrityApiArchive({apiKey:"fixture_key_123",acknowledgement:USDA_INTEGRITY_API_ACKNOWLEDGEMENT,maximumArchiveBytes:16,fetchImpl:async()=>new Response(body,{headers:{"content-type":"application/zip"}})}),/byte limit/);assert.equal(cancelled,true);
+});
+
+test("writes one immutable hash-bound raw snapshot without normalization or a current pointer",async()=>{
+  const appRoot=await mkdtemp(path.join(tmpdir(),"cotive-usda-api-"));
+  try{
+    const acquired=await requestUsdaOrganicIntegrityApiArchive({apiKey:"fixture_key_123",acknowledgement:USDA_INTEGRITY_API_ACKNOWLEDGEMENT,fetchImpl:async()=>new Response(archive,{headers:{"content-type":"application/zip","content-length":String(archive.length)}})});
+    const runId="11111111-2222-4333-8444-555555555555",createdAt="2026-10-07T18:00:00.000Z";
+    const written=await writeUsdaOrganicIntegrityApiSnapshot({archive:acquired.archive,receipt:acquired.receipt,appRoot,outputRoot:path.join(appRoot,"data","api"),runId,now:()=>new Date(createdAt)});
+    const manifest=JSON.parse(await readFile(path.join(written.directory,"manifest.json"),"utf8"));
+    assert.equal(manifest.status,"immutable-raw-api-snapshot-awaiting-schema-validation");
+    assert.deepEqual(manifest.claims,{xml_schema_validated:false,normalized_records:0,production_admission:false,current_pointer_written:false});
+    assert.equal(manifest.artifacts[0].sha256,acquired.receipt.response_sha256);
+    assert.equal(JSON.stringify(JSON.parse(await readFile(path.join(written.directory,"receipt.json"),"utf8"))).includes("fixture_key_123"),false);
+    const verified=await verifyUsdaOrganicIntegrityApiSnapshot({manifestPath:path.join(written.directory,"manifest.json"),appRoot});
+    assert.equal(verified.verified,true);
+    await assert.rejects(writeUsdaOrganicIntegrityApiSnapshot({archive:acquired.archive,receipt:{...acquired.receipt,response_sha256:"0".repeat(64)},appRoot,outputRoot:path.join(appRoot,"data","api"),runId:"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}),/bind exactly/);
+    await assert.rejects(writeUsdaOrganicIntegrityApiSnapshot({archive:acquired.archive,receipt:acquired.receipt,appRoot,outputRoot:path.join(appRoot,"..","escape"),runId:"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}),/escapes/);
+    await assert.rejects(writeUsdaOrganicIntegrityApiSnapshot({archive:acquired.archive,receipt:acquired.receipt,appRoot,outputRoot:path.join(appRoot,"data","api"),runId}),/already exists and is immutable/);
+    await appendFile(path.join(written.directory,"archive.zip"),"tamper");
+    await assert.rejects(verifyUsdaOrganicIntegrityApiSnapshot({manifestPath:path.join(written.directory,"manifest.json"),appRoot}),/integrity check/);
+  }finally{await rm(appRoot,{recursive:true,force:true});}
 });

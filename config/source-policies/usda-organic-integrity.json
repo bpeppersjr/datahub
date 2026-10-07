@@ -1,6 +1,6 @@
 {
   "policy_id": "usda-organic-integrity",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "publisher": "USDA Agricultural Marketing Service, National Organic Program",
   "ownership": "Official Organic INTEGRITY certified-operation information supplied by USDA-accredited certifying agents and published by USDA AMS",
   "source_home": "https://organic.ams.usda.gov/integrity/Default",
@@ -15,6 +15,7 @@
     "bounded validation of the exact official history page and extraction of an exact monthly workbook link without requesting the workbook",
     "documenting the official public API methods, credential requirement, default rate limit, attribution, and terms without making a record request",
     "fixture-tested bounded retrieval and structural ZIP/XML validation for the documented all-operations API method, with production execution disabled",
+    "immutable local retention of a hash-bound raw API ZIP and privacy-safe receipt after a separately authorized request, without schema or normalization claims",
     "immutable local retention of metadata-only preflight receipts",
     "local-review-only normalization of an operator-supplied conformance-profile workbook after exact acknowledgement and source hash pinning",
     "selection of Certified operations whose country identity is exact code USA and source label UNITED STATES OF AMERICA (THE), from a USDA NOP-scoped snapshot",
