@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.0.0";
+  schema_version: "state-access-maintenance-backlog@2.1.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -66,7 +66,9 @@ type Backlog = {
         | "official-manual-export-identified-automated-bulk-contract-unverified"
         | "official-current-provider-tables-export-format-unverified-acquisition-disabled"
         | "official-search-and-data-request-path-identified-acquisition-disabled"
-        | "official-dynamic-download-control-identified-contract-unverified";
+        | "official-dynamic-download-control-identified-contract-unverified"
+        | "official-statewide-center-finder-identified-bulk-contract-unverified"
+        | "official-current-and-history-downloads-identified-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -342,7 +344,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.0.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.1.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -421,6 +423,8 @@ export function validAdministrationBacklog(
             "IN",
             "KS",
             "KY",
+            "LA",
+            "MA",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -436,10 +440,12 @@ export function validAdministrationBacklog(
               IN: "official-current-provider-tables-export-format-unverified-acquisition-disabled",
               KS: "official-search-and-data-request-path-identified-acquisition-disabled",
               KY: "official-dynamic-download-control-identified-contract-unverified",
+              LA: "official-statewide-center-finder-identified-bulk-contract-unverified",
+              MA: "official-current-and-history-downloads-identified-contract-unverified",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
-            (["AK", "IL", "KS"].includes(row.state)
+            (["AK", "IL", "KS", "LA"].includes(row.state)
               ? 4
               : row.state === "ID"
                 ? 6
@@ -447,7 +453,9 @@ export function validAdministrationBacklog(
                   ? 3
                   : 5) &&
           row.source_discovery.supported_bulk_export_verified ===
-            ["AZ", "DE", "FL", "GA", "ID", "IN", "KY"].includes(row.state) &&
+            ["AZ", "DE", "FL", "GA", "ID", "IN", "KY", "MA"].includes(
+              row.state,
+            ) &&
           row.source_discovery.supported_api_verified ===
             (row.state === "DE") &&
           row.source_discovery.portal_automation_authorized === false &&

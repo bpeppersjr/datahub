@@ -1,0 +1,93 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ma-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MA",
+  "industry": "childcare",
+  "publisher": "Massachusetts Department of Early Education and Care",
+  "decision": "official-current-and-history-downloads-identified-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.mass.gov/lists/data-on-massachusetts-child-care-programs",
+      "role": "official-current-and-historical-download-entry",
+      "evidence": "EEC states that complete current and month-over-month licensed and funded program lists can be browsed or downloaded."
+    },
+    {
+      "url": "https://www.mass.gov/info-details/massgis-data-licensed-child-care-programs",
+      "role": "official-center-only-geospatial-download",
+      "evidence": "MassGIS publishes a downloadable point layer sourced from EEC LEAD, with provider number, name, address, ZIP, status, capacity, and program type; family-based care is excluded."
+    },
+    {
+      "url": "https://www.mass.gov/info-details/e2c-hub-directory-of-datasets-and-reports",
+      "role": "official-dataset-directory",
+      "evidence": "The E2C directory lists current and historical licensed and funded early education and care program datasets."
+    },
+    {
+      "url": "https://www.mass.gov/guides/find-a-licensed-family-group-or-school-age-child-care-program",
+      "role": "official-search-and-coverage-caveat",
+      "evidence": "EEC provides a geographic licensed-program search and warns that absence from search does not prove unlicensed status."
+    },
+    {
+      "url": "https://www.mass.gov/eec-data-research-reports",
+      "role": "official-data-request-path",
+      "evidence": "EEC provides public-data guidance and a formal request path for unavailable data."
+    }
+  ],
+  "scope": {
+    "download_cohort": "licensed-and-funded-programs-current-and-historical",
+    "center_only_option": "massgis-licensed-center-based-care-excludes-family-based-care-and-funded-public-schools",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Licensed programs and funded-but-unlicensed programs are distinct; current-list membership and license status do not independently prove active business operation."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "direct_download_endpoint_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "monthly-described-for-eec-program-lists",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The exact current-download artifact, schema, as-of field, license-status vocabulary, and reuse contract were not admitted or pinned."
+  },
+  "required_record_contract": {
+    "provider_number": "required-stable-source-identifier",
+    "program_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "licensed_or_funded": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-by-default",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-or-massgis-value-only",
+    "longitude": "optional-source-or-massgis-value-only",
+    "family-provider-person-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "authorized-single-download-or-direct-artifact-contract",
+    "current-versus-history-file-identity",
+    "licensed-versus-funded-cohort-separation",
+    "center-only-predicate-and-family-privacy",
+    "status-vocabulary-and-current-operation-semantics",
+    "reuse-retention-and-redistribution",
+    "row-and-provider-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Authorize one intended current-list or MassGIS download, then pin the artifact and validate schema, licensed center predicate, status, temporal meaning, privacy, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

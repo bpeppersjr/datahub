@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "la-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "LA",
+  "industry": "childcare",
+  "publisher": "Louisiana Department of Education",
+  "decision": "official-statewide-center-finder-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://doe.louisiana.gov/families-and-students/early-childhood-families",
+      "role": "official-family-and-provider-directory-entry",
+      "evidence": "The Department links the Louisiana School and Center Finder and separately publishes annual Child Care Program Statistics."
+    },
+    {
+      "url": "https://doe.louisiana.gov/families-and-students/family-support-resources/leap-resources",
+      "role": "official-statewide-finder-description",
+      "evidence": "The Department describes the Finder as a statewide search for schools, systems, and early childhood centers."
+    },
+    {
+      "url": "https://doe.louisiana.gov/early-childhood/licensing",
+      "role": "official-licensing-authority",
+      "evidence": "The Department identifies child care facility licensing and provider-certification support channels."
+    },
+    {
+      "url": "https://doe.louisiana.gov/families-and-students/early-childhood-families/understanding-revoked-licenses-and-unlicensed-centers",
+      "role": "official-status-boundary",
+      "evidence": "Active valid licenses, revoked licenses, non-renewals, and prohibited unlicensed operation are distinct cohorts."
+    }
+  ],
+  "scope": {
+    "finder_cohort": "schools-systems-and-early-childhood-centers",
+    "license_types": "type-i-type-ii-type-iii-and-other-program-types-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Finder membership, performance profiles, publicly funded participation, license type, valid license status, and current operation are not interchangeable."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No machine-readable release, as-of date, status vocabulary, or refresh contract was established."
+  },
+  "required_record_contract": {
+    "license_or_provider_identifier": "required-if-published",
+    "program_name": "required-preserve-verbatim",
+    "license_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "owner-and-person-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "finder-cohort-and-license-type-separation",
+    "active-valid-license-status-semantics",
+    "home-provider-privacy",
+    "reuse-retention-and-redistribution",
+    "row-and-identifier-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek a publisher-sanctioned center-focused export or data-request path; do not automate the consumer Finder, and validate license type, status, privacy, temporal meaning, and reuse before any acquisition.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

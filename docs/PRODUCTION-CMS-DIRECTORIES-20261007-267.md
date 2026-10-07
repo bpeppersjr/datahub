@@ -1,0 +1,9 @@
+# Production planning receipt 267
+
+Run `production-cms-directories-20261007-267` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-267.json`, confirmation SHA-256 `f2c8a12b5a59b9fd3e09f2f43796ac2e89c2061c6a693cbb3e88b2fee449efb8`, and file SHA-256 `c9dc4ed9ade5fd75dad17bd117e5bcaca9f541c45f4e2a8a4714cddcce02a5bc`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,499,737,088 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.1.0` and reports sixteen governed childcare source discoveries. Louisiana exposes a statewide official School and Center Finder, licensing authority, and license-status boundary, but no supported bulk or API contract; consumer-search automation and acquisition remain disabled. Massachusetts explicitly exposes current and historical EEC program downloads and a center-only MassGIS download, but the exact artifact, schema, current-file identity, status semantics, privacy boundary, and reuse contract remain unadmitted; acquisition remains disabled. No provider rows were acquired.
+
+Verification passed ten focused source-discovery, state-access, and administration tests. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing large-chunk warning. The required stop, desktop control-plane test, and launch cycle passed; exactly one listener served `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{ "ok": true }`.
