@@ -14,8 +14,61 @@ import { readExactZipIndustryEvidenceWithTemporalQualificationV28 } from "./exac
 import { readExactZipIndustrySummaryV29 } from "./exact-zip-industry-summary-v2-9.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV29 } from "./exact-zip-industry-temporal-qualification-v2-9.mjs";
 import { readExactZipIndustrySummaryV30 } from "./exact-zip-industry-summary-v3-0.mjs";
+import { readExactZipIndustrySummaryV31 } from "./exact-zip-industry-summary-v3-1.mjs";
+import { TEMPORAL_MAPPINGS_V31 } from "./exact-zip-industry-temporal-mappings-v3-1.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from "./exact-zip-industry-temporal-qualification-v3-0.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
+
+test("v3.1 national summary renders all retained source mappings and rejects contract drift",async()=>{
+  const value=await readExactZipIndustrySummaryV31(), h=harness(async()=>value);
+  assert.equal(h.render("validExactZipIndustrySummary",value),true);
+  h.render("ExactZipIndustryNationalSummary"); await flush();
+  const rendered=text(h.render("ExactZipIndustryNationalSummary"));
+  assert.match(rendered,/48,194 retained ZIP5 keys × 51 governed source dimensions = 2,457,894 evidence cells/);
+  assert.match(rendered,/25 dimensions use a publisher-defined current status; 20 are non-active reporting; 0 are unmapped/);
+  assert.match(rendered,/29 dimensions are within review window; 2 is stale; 20 are unmeasured; 0 are unmapped/);
+  for(const mapping of TEMPORAL_MAPPINGS_V31){
+    const row=value.dimensions.find(row=>row.id===mapping.dimension_id);
+    assert.match(rendered,new RegExp(mapping.source_key));
+    assert.match(rendered,new RegExp(row.temporal_qualification.source_release_id));
+  }
+  const changed=v=>v.dimensions.find(row=>row.id==="cms_hospital_directory");
+  const mutations=[
+    v=>{v.extra=true},v=>{v.schema_version="national-exact-zip-industry-summary-view@3.2.0"},
+    v=>{v.manifest_sha256="f".repeat(64)},v=>{v.claims.current_operation_verified=true},
+    v=>{v.claims.additive_cross_industry_total=true},v=>{v.claims.all_business_completeness=true},
+    v=>{v.zip5_rows=48193},v=>{v.industry_cells--},v=>{v.dimensions.pop()},
+    v=>{v.dimensions[1].id=v.dimensions[0].id},v=>{changed(v).temporal_qualification.source_release_id=null},
+    v=>{changed(v).temporal_qualification.source_release_id="invented-release"},
+    v=>{changed(v).temporal_qualification.source_key="invented-source"},
+    v=>{changed(v).temporal_qualification.semantic_class="source-defined-current"},
+    v=>{changed(v).temporal_qualification.review_qualification="within-review-window"},
+    v=>{changed(v).temporal_qualification.extra=true},
+    v=>{v.temporal_qualification.dimension_counts.unmeasured--;v.temporal_qualification.dimension_counts.stale++},
+    v=>{v.temporal_qualification.semantic_dimension_counts["non-active-reporting"]--;v.temporal_qualification.semantic_dimension_counts["source-defined-current"]++},
+    v=>{changed(v).status_counts.positive--;changed(v).status_counts["measured-zero"]++},
+    v=>{changed(v).evidence_disposition_counts.joined[0].current_operations_verified=true},
+    v=>{changed(v).evidence_disposition_counts.joined[0].additive=true},
+    v=>{changed(v).evidence_disposition_counts.joined[0].identity_merge_applied=true},
+    v=>{changed(v).evidence_disposition_counts.joined[0].label="verified current business"},
+    v=>{changed(v).evidence_disposition_counts.joined[0].count--;changed(v).evidence_disposition_counts.joined[1].count++},
+    v=>{v.evidence_disposition_counts.joined[0].count--;v.evidence_disposition_counts.joined[1].count++},
+    v=>{v.evidence_disposition_counts.by_lifecycle_status.unmeasured--},
+    v=>{v.ny_retail_food_license_address_dispositions[0].site_occupancy_verified=true},
+    v=>{v.entity_resolution.benchmark_gate_passed=true},
+  ];
+  for(const mutate of mutations){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false,String(mutate));}
+  for(const invalid of [null,{...value,dimensions:[null,...value.dimensions.slice(1)]}])assert.equal(h.render("validExactZipIndustrySummary",invalid),false);
+  h.close();
+});
+
+test("v3.1 national summary fails closed in the UI on malformed responses",async()=>{
+  const value=await readExactZipIndustrySummaryV31();value.claims.current_operation_verified=true;
+  const h=harness(async()=>value);h.render("ExactZipIndustryNationalSummary");await flush();
+  const rendered=text(h.render("ExactZipIndustryNationalSummary"));
+  assert.match(rendered,/status is unavailable; no coverage percentage or zero was inferred/);
+  assert.doesNotMatch(rendered,/2,457,894|Download governed status JSON/);h.close();
+});
 const require = createRequire(import.meta.url),
   code = await readFile(
     new URL("../app/workspace-views.tsx", import.meta.url),

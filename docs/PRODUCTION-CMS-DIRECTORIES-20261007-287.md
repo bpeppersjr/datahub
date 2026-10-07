@@ -1,0 +1,9 @@
+# Production successor plan 287
+
+Run `production-cms-directories-20261007-287` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-287.json`, confirmation SHA-256 `dbcf873c12fe0978927b166c80ab44313161d0fb536b58009ab251bac79d5c49`, and file SHA-256 `b918e2d866ad7c9cbb45db9d8638e560eae95e926153c2d4c24aae0b502b2dfb`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,093,319,680 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The national exact-ZIP industry summary endpoint now serves the closed v3.1 projection. All ten formerly placeholder CMS, childcare, and Minnesota credential dimensions expose their governed source keys and hash-verified matrix evidence-release identities. Review qualification remains `unmeasured`, semantic class remains `non-active-reporting`, and current operation remains false. The registered matrix is unchanged at 48,194 ZIP5 keys, 51 dimensions, and 2,457,894 cells; no source refresh or production pointer change accompanied this work.
+
+The full repository check passed 3,914 tests with 77 skipped and zero failures. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop builds passed with the existing large-chunk warning, and the desktop control-plane smoke passed after the required collector stop. A controlled live HTTP check returned schema `national-exact-zip-industry-summary-view@3.1.0`, zero unmapped dimensions, and ten nonempty retained release identities. The collector was then relaunched and left available on `127.0.0.1:4300`.

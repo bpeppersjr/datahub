@@ -1,6 +1,7 @@
 import { readExactZipIndustrySummaryV30 as prior } from "./exact-zip-industry-summary-v3-0.mjs";
 import { classifyExactZipEvidenceDispositionV24 as classify } from "./exact-zip-evidence-disposition-v2-4.mjs";
 import { TEMPORAL_MAPPING_BY_ID_V31 } from "./exact-zip-industry-temporal-mappings-v3-1.mjs";
+import { readExactZipIndustryEvidenceV30 } from "./national-exact-zip-industry-evidence-matrix-v3-0-reader.mjs";
 
 const TOTAL = 48194;
 const countBy = (rows, key) => rows.reduce((result, row) => {
@@ -14,17 +15,27 @@ const countDimensions = (rows, key, vocabulary) => rows.reduce((result, row) => 
 }, Object.fromEntries(vocabulary.map((value) => [value, 0])));
 
 export async function readExactZipIndustrySummaryV31(options = {}) {
-  const previous = await prior(options);
+  const [previous, matrix] = await Promise.all([
+    prior(options), readExactZipIndustryEvidenceV30({ ...options, zip5: "00000" }),
+  ]);
+  if (matrix.release_id !== previous.release_id || matrix.manifest_sha256 !== previous.manifest_sha256 || !matrix.row) {
+    throw new Error("Exact-ZIP v3.1 summary provenance is unavailable.");
+  }
   const dimensions = previous.dimensions.map((dimension) => {
     const mapping = TEMPORAL_MAPPING_BY_ID_V31.get(dimension.id);
     if (!mapping) return dimension;
+    const cell = matrix.row.cells[dimension.id];
+    if (typeof cell?.source_release_id !== "string" || !cell.source_release_id.length) {
+      throw new Error("Exact-ZIP v3.1 summary source release is unavailable.");
+    }
     const joined = Object.entries(dimension.status_counts).map(([raw_status, count]) => ({
       ...classify({ raw_status, semantic_class: "non-active-reporting", review_qualification: "unmeasured" }),
       count,
     }));
     const priorTemporal = dimension.temporal_qualification;
     return { ...dimension, evidence_disposition_counts: { total_cells: TOTAL, joined }, temporal_qualification: {
-      ...priorTemporal, source_key: mapping.source_key, source_release_id: priorTemporal.source_release_id,
+      ...priorTemporal, source_key: mapping.source_key, source_release_id: cell.source_release_id,
+      source_reference_at: cell.temporal_status?.source_reference_date ?? cell.temporal_status?.source_reference_at ?? priorTemporal.source_reference_at,
       review_qualification: "unmeasured", semantic_class: "non-active-reporting",
       source_status_term: mapping.source_status_term,
     } };
@@ -37,5 +48,5 @@ export async function readExactZipIndustrySummaryV31(options = {}) {
     evidence_state_counts: lifecycle,
     evidence_disposition_counts: { ...previous.evidence_disposition_counts, by_lifecycle_status: lifecycle, joined },
     temporal_qualification: { ...previous.temporal_qualification, dimension_counts: dimensionCounts, semantic_dimension_counts: semanticCounts },
-    verification_scope: "Bounded v3.1 temporal/provenance projection over the unchanged hash-pinned v3.0 matrix. Ten retained CMS, childcare, and Minnesota credential dimensions now carry explicit non-active-reporting semantics instead of unmapped placeholders. Counts and cell states are unchanged; current operation, unique business identity, nationwide completeness, and additivity remain unverified." };
+    verification_scope: "Bounded v3.1 temporal/provenance projection over the unchanged hash-pinned v3.0 matrix; full_matrix_replay_performed=false. Ten retained CMS, childcare, and Minnesota credential dimensions now carry explicit non-active-reporting semantics instead of unmapped placeholders. Counts and cell states are unchanged; current operation, unique business identity, nationwide completeness, and additivity remain unverified." };
 }
