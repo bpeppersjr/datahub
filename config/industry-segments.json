@@ -51,12 +51,12 @@
     "state-ca-childcare": {
       "script": "scripts/build-ca-childcare.mjs",
       "scope": "state", "states": ["CA"], "state_filter_supported": false,
-      "prerequisites": ["config/connectors/ca-childcare-app.json", "config/connectors/ca-childcare-datastore-acquisition.json", "config/source-policies/ca-childcare-provider-records-internal.json"],
+      "prerequisites": ["config/connectors/ca-childcare-app.json", "config/connectors/ca-childcare-datastore-acquisition.json", "config/connectors/ca-childcare-normalization.json", "config/source-policies/ca-childcare-provider-records-internal.json"],
       "coverage_notes": [
         "California CDSS Child Care Centers and Family Child Care Homes selected source rows are publisher-listed candidates, not independently verified current businesses, unique physical sites, or a denominator of all childcare providers.",
         "Co*Tive owns 83 fixed serial DataStore requests, query-time privacy exclusion, durable page retention, before/after count reconciliation, an exclusive publisher lock, immutable releases, and terminal receipts. No automatic retry, restart, or recurring schedule is enabled.",
         "ZIP is retained only as source-reported text and is not USPS-validity or Census ZCTA membership evidence. ZIP+4, coordinates, address verification, ownership, network affiliation, and identity matching are not supplied or inferred.",
-        "Facility status and source file date are preserved as publisher evidence; they do not independently prove current operation. Retained release reuse avoids another download. Enrollment does not normalize, promote national reporting, change source pointers, or authorize public export."
+        "Facility status and source file date are preserved as publisher evidence; they do not independently prove current operation. Retained release reuse avoids another download. The app independently replays normalization and binds both releases in its terminal receipt; enrollment does not promote national reporting, change source pointers, or authorize public export."
       ]
     },
     "state-co-childcare-centers": {

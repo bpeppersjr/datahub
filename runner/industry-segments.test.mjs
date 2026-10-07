@@ -118,7 +118,7 @@ test('CO childcare enrollment selects only the bounded Colorado app worker',asyn
   assert.equal(config.sources['state-co-childcare-centers'].state_filter_supported,false);
 });
 
-test('CA childcare enrollment selects the durable acquisition-only app operation',async()=>{
+test('CA childcare enrollment selects the durable acquisition and normalization app operation',async()=>{
   const config=await loadIndustryConfig(),sourceId='state-ca-childcare';
   const selected={industries:['childcare'],states:['CA','WI'],sourceIds:[sourceId]},plan=buildIndustryPlan(config,selected);
   assert.equal(plan.taskCount,1);assert.equal(plan.tasks[0].state,'CA');
@@ -126,11 +126,12 @@ test('CA childcare enrollment selects the durable acquisition-only app operation
   assert.deepEqual(plan.tasks[0].prerequisites,[
     'config/connectors/ca-childcare-app.json',
     'config/connectors/ca-childcare-datastore-acquisition.json',
+    'config/connectors/ca-childcare-normalization.json',
     'config/source-policies/ca-childcare-provider-records-internal.json',
   ]);
   assert.ok(plan.gaps.some(g=>g.state==='WI'));
   assert.ok(plan.warnings.some(w=>w.includes('83 fixed serial DataStore requests')));
-  assert.ok(plan.warnings.some(w=>w.includes('does not normalize, promote national reporting')));
+  assert.ok(plan.warnings.some(w=>w.includes('does not promote national reporting')));
   assert.equal(buildIndustryPlan(config,{industries:['childcare'],states:['CA']}).taskCount,1);
   assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
   assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);

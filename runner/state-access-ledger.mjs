@@ -49,6 +49,9 @@ const PROFILE_IDS = Object.freeze({
   "state-ct-childcare-centers": null,
   "state-md-childcare-centers": null,
   "state-vt-childcare-centers": null,
+  // App-owned acquisition and normalization are locally governed evidence,
+  // but California has no admitted national reporting profile yet.
+  "state-ca-childcare": null,
   "state-co-childcare-centers": null,
   "state-ia-childcare-centers": null,
   "state-ok-childcare-spatial-batch": null,
