@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.1.0",
+  "dataset_id": "nyc-dcwp-active-license-sites",
+  "status": "registered-immutable-local-review-only-successor",
+  "predecessor_registration": "config/datasets/nyc-dcwp-active-license-sites.json",
+  "predecessor_registration_sha256": "b22235e15a2d0fb0a6a0203ddceb4f205acb5c6e96028114b12b54c98f9ed79b",
+  "retained_release": {
+    "release_id": "nyc-dcwp-active-premises-20260903-004437783Z-a00056e7",
+    "source_release_id": "nyc-dcwp-active-premises-2026-08-20-6c47b96b3ab94aec",
+    "manifest": "data/business-sources/nyc-dcwp-active-license-sites/releases/nyc-dcwp-active-premises-20260903-004437783Z-a00056e7/manifest.json",
+    "manifest_sha256": "c8ad5ffeb5c970d07bc9a78e963a10e26003631b6303bd6e1eed4f004c5013d3",
+    "manifest_bytes": 8766,
+    "source_rows_updated_at": "2026-08-20T13:24:53.000Z",
+    "artifact_count": 21,
+    "artifact_bytes": 91531713,
+    "source_active_premise_license_records": 35245,
+    "accepted_active_premise_license_records": 34397,
+    "normalized_licensed_sites": 31163,
+    "unique_business_ids": 31163,
+    "quarantined_source_records": 848,
+    "quarantined_business_groups": 665,
+    "source_geocoded_sites": 26532,
+    "source_zip_codes": 1550,
+    "zip_union_records": 37828
+  },
+  "claims": {
+    "publisher_membership": "NYC DCWP source-defined Active Premises license snapshot",
+    "current_operations_verified": false,
+    "continuous_operation_verified": false,
+    "public_access_verified": false,
+    "complete_all_businesses": false,
+    "record_export_policy": "local-review-only",
+    "aggregate_export_policy": "public-with-provenance-and-semantic-limitations",
+    "nonadditive_with_nyc_dcwp_license_location_profiles": true,
+    "identity_merges": false,
+    "parent_company_inferred": false,
+    "production_enrollment": false,
+    "network_requests": 0,
+    "current_pointer_written": false
+  },
+  "runtime_pointer": null,
+  "production_enrollment": false
+}

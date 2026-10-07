@@ -39,3 +39,7 @@ Because the registration and pointer do not identify the same immutable release,
 5. Keep the proposed dimension nonadditive with `nyc_dcwp_license_location_profiles`; ZIP+4 remains separate and no parent-company relationship is inferred.
 
 Until those steps are complete, the existing registry profile dimension remains available, but a second NYC DCWP site-count dimension must remain unadmitted.
+
+## Successor registration completed
+
+The first required step is now implemented separately at `config/datasets/nyc-dcwp-active-license-sites-v1-1.json`. It pins the exact `20260903` manifest and all 21 artifacts without changing the legacy registration, current pointer, runtime selection, or production enrollment. `runner/nyc-dcwp-active-license-registration-v1-1.mjs` independently verifies the predecessor registration hash, manifest identity, artifact inventory and bytes, coverage conservation, and closed semantic claims. Exact-ZIP admission remains on HOLD pending downstream source-policy and lifecycle provenance successors.
