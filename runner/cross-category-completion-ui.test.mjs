@@ -35,6 +35,8 @@ test('State Completion shows strict lifecycle, reporting-only sites and partial 
  for (const mutate of [
   value=>{value.lineage.lifecycle_eligibility.registration_sha256='0'.repeat(64);},
   value=>{value.lineage.lifecycle_eligibility.artifact_inventory_sha256='0'.repeat(64);},
+  value=>{value.lineage.lifecycle_eligibility.source_policy_provenance_manifest_sha256='0'.repeat(64);},
+  value=>{value.lineage.lifecycle_eligibility.source_policy_predecessor_lifecycle_manifest_sha256='0'.repeat(64);},
   value=>{value.lineage.lifecycle_eligibility.review_status_counts.stale=0;},
   value=>{value.acceptance.blocker_details.find(row=>row.code==='lifecycle-unknown-or-contradictory').count=0;},
   value=>{value.lineage.business_entity_geography_relationship.artifact_inventory_sha256='0'.repeat(64);},
