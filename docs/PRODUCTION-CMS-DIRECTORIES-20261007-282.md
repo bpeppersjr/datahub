@@ -1,0 +1,9 @@
+# Production successor plan 282
+
+Run `production-cms-directories-20261007-282` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-282.json`, confirmation SHA-256 `5cf720aa96a793aae0b027525782547b733ca53ce888e31ba6eb48e50e12edaa`, and file SHA-256 `33c66b50ff9cd767f7488416027ab67afe830672b9d025f91dad854d5d28b794`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,451,416,576 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.16.0` and reports forty-six governed childcare source discoveries. Wisconsin's official licensed-group ArcGIS source returned a metadata-only count of 2,382 records; its source-use decision remains pending, acquisition is not authorized, and no provider rows were requested or acquired. West Virginia's official WV PATH provider search is recorded as search-only because no supported provider-level bulk or API contract was verified; it is not automated and no provider rows were acquired.
+
+Focused Node tests passed 10/10. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing chunk-size warning. The required clean restart sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.

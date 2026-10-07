@@ -1,0 +1,96 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "wi-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "WI",
+  "industry": "childcare",
+  "publisher": "Wisconsin Department of Health Services and Department of Children and Families",
+  "decision": "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending",
+  "official_sources": [
+    {
+      "url": "https://dhsgis.wi.gov/server/rest/services/DHS_DCF/Child_Care/MapServer/0",
+      "role": "official-child-care-provider-map-layer",
+      "evidence": "Wisconsin DHS publishes a queryable child-care provider layer; the governed candidate predicate is CategoryType='LICENSED GROUP'."
+    },
+    {
+      "url": "https://dhsgis.wi.gov/server/rest/services/DHS_DCF/Child_Care/MapServer/0/iteminfo",
+      "role": "official-layer-item-information",
+      "evidence": "The layer item information credits Wisconsin DHS and publishes source notices and metadata."
+    },
+    {
+      "url": "https://data.dhsgis.wi.gov/pages/gis-data-disclaimer",
+      "role": "official-gis-use-notice",
+      "evidence": "The notice states that use constitutes acceptance and includes liability, warranty, staleness, endorsement, Wisconsin-law, and third-party-right conditions."
+    },
+    {
+      "url": "https://www.arcgis.com/sharing/rest/content/items/bdec49075cd84b9d97df3fb50585b632",
+      "role": "official-public-service-item",
+      "evidence": "The public service item binds the Wisconsin DHS publisher identity to the public child-care map service."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-group-child-care-provider-source-rows",
+    "fixed_predicate": "CategoryType='LICENSED GROUP'",
+    "excluded_provider_types": "all-non-licensed-group-categories-remain-separate",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "personal_contact_fields_excluded": true,
+    "warning": "Publisher layer membership, licensed-group category, premises, license state, and current business operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "not-established",
+    "snapshot_date": "2026-09-08T09:50:39.691Z-metadata-preflight-finished",
+    "current_operation_equivalence": false,
+    "limitation": "The retained observation time and source count do not establish publisher snapshot time, continuous operation, or record freshness."
+  },
+  "retained_metadata_preflight": {
+    "receipt_path": "data/business-sources/wi-dhs-licensed-group-childcare/preflights/b868758e-3ff7-429c-8625-57bac5367a9e.json",
+    "receipt_sha256": "33dcdd06296167ccd58e4105563c7674790c17cf167f19684b1f198a13b72426",
+    "receipt_bytes": 83140,
+    "source_record_count": 2382,
+    "observations": 18,
+    "provider_rows_acquired": 0,
+    "current_notice_fingerprints_match": true,
+    "source_use_decision": "pending"
+  },
+  "required_record_contract": {
+    "provider_location_and_facility_identifiers": "required-preserve-separately",
+    "facility_name": "required-preserve-verbatim",
+    "category_type": "required-fixed-licensed-group-predicate",
+    "reported_address": "required-premises-source-value",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-point-only",
+    "longitude": "optional-source-point-only",
+    "contact-name-and-phone": "excluded-at-query-time"
+  },
+  "unresolved_gates": [
+    "operator-source-use-decision",
+    "current-notice-and-policy-binding",
+    "publisher-snapshot-and-refresh-cadence",
+    "identifier-stability-and-row-conservation",
+    "current-operation-equivalence",
+    "public-export-decision",
+    "production-admission"
+  ],
+  "next_action": "Keep native acquisition disabled until the operator answers the source-use question. If authorized, bind current complete notice fingerprints and use the existing bounded acquisition, durable journal, normalization, immutable release, and app lifecycle without reimplementing or broadening the licensed-group scope.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": 2382,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

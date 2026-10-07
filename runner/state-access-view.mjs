@@ -49,6 +49,8 @@ import { readUtChildcareSourceDiscovery } from "./ut-childcare-source-discovery.
 import { readVaChildcareSourceDiscovery } from "./va-childcare-source-discovery.mjs";
 import { readVtChildcareSourceDiscovery } from "./vt-childcare-source-discovery.mjs";
 import { readWaChildcareSourceDiscovery } from "./wa-childcare-source-discovery.mjs";
+import { readWiChildcareSourceDiscovery } from "./wi-childcare-source-discovery.mjs";
+import { readWvChildcareSourceDiscovery } from "./wv-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -457,6 +459,8 @@ export async function stateAccessMaintenanceBacklog({
   vaChildcareDiscoveryLoader = readVaChildcareSourceDiscovery,
   vtChildcareDiscoveryLoader = readVtChildcareSourceDiscovery,
   waChildcareDiscoveryLoader = readWaChildcareSourceDiscovery,
+  wiChildcareDiscoveryLoader = readWiChildcareSourceDiscovery,
+  wvChildcareDiscoveryLoader = readWvChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -588,6 +592,8 @@ export async function stateAccessMaintenanceBacklog({
             "VA",
             "VT",
             "WA",
+            "WI",
+            "WV",
           ].includes(jurisdiction.state)
         ) {
           const loaders = {
@@ -635,6 +641,8 @@ export async function stateAccessMaintenanceBacklog({
               VA: vaChildcareDiscoveryLoader,
               VT: vtChildcareDiscoveryLoader,
               WA: waChildcareDiscoveryLoader,
+              WI: wiChildcareDiscoveryLoader,
+              WV: wvChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -683,6 +691,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-annual-quality-workbooks-identified-use-permission-unresolved",
                 "official-socrata-center-api-and-retained-release-validated",
                 "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled",
+                "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending",
+                "official-wvpath-provider-search-identified-bulk-contract-unverified",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -740,7 +750,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.15.0",
+    schema_version: "state-access-maintenance-backlog@2.16.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,
