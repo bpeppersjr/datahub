@@ -1,0 +1,13 @@
+{
+  "schema_version": "ca-childcare-status-readiness-registration@1.0.0",
+  "dataset_id": "ca-cdss-childcare-status-readiness",
+  "manifest_path": "data/business-sources/ca-childcare/status-preflights/ca-childcare-status-preflight-f5fc764b-ab5b-4fd6-b219-3fbf16ab62ae/manifest.json",
+  "manifest_sha256": "856f8c6f6ca02e0919b5d8bbb3ead358f5391538ce3668d9bf3ef08b912cc52f",
+  "production_enrollment": false,
+  "claims": {
+    "provider_rows_acquired": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "business_count": null
+  }
+}

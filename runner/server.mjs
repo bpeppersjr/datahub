@@ -36,6 +36,7 @@ import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
 import { readNonZctaSourceGeographyContext, readNonZctaSourceGeographyContextSummary } from './non-zcta-source-geography-context.mjs';
 import { nonZctaSourceGeographyContextHttp } from './non-zcta-source-geography-context-http.mjs';
+import { readCaChildcareStatusReadiness } from './ca-childcare-status-readiness.mjs';
 import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
 import { readZctaEconomicReadiness } from './zcta-economic-readiness-reader.mjs';
@@ -820,6 +821,10 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/non-zcta-source-geography-context'){
       await nonZctaSourceGeographyContextHttp(request,response,url,{authorize:()=>true,reader:readNonZctaSourceGeographyContext},json);return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/ca-childcare-status-readiness'){
+      if(url.search||Number(request.headers['content-length']??0)>0){json(response,400,{error:'Unsupported California childcare status-readiness request.'});return;}
+      try{json(response,200,await readCaChildcareStatusReadiness());}catch{json(response,503,{error:'California childcare status readiness is unavailable or incompatible.'});}return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/non-zcta-source-geography-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'Non-ZCTA geography summary does not accept options.'});return;}

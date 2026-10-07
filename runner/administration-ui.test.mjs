@@ -20,6 +20,9 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(admin, /Next maintenance review batch/);
   assert.match(admin, /Download review batch JSON/);
   assert.match(admin, /backlog_sha256/);
+  assert.match(admin, /California childcare publisher status readiness/);
+  assert.match(admin, /lifecycle-review candidates, not verified active businesses/);
+  assert.match(server, /\/api\/business-map\/ca-childcare-status-readiness/);
   assert.match(admin, /sources:/);
   assert.match(admin, /planning evidence only/);
   assert.match(admin, /does not authorize acquisition, dispatch workers, change production, or measure business completeness/);
