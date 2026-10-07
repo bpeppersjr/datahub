@@ -1,0 +1,9 @@
+# Production planning receipt 270
+
+Run `production-cms-directories-20261007-270` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-270.json`, confirmation SHA-256 `a55b8a17629a7f92519cd8d1f85ab7c4d5424e21a3922fffddc102b43efe91c2`, and file SHA-256 `f3cb32dbd56e1c4bd1c2f6284c2ced034bb4819ba3cd3975e0dadd735c12ca4b`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,495,440,384 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.4.0` and reports twenty-two governed childcare source discoveries. Mississippi exposes an official licensed-facility search and public-records request path but no supported bulk export. Missouri exposes a dated licensed/license-exempt provider listing plus distinct subsidy and public-record search paths; the listing remains an intended bulk artifact pending exact identity, format, schema, cohort, temporal, privacy, reuse, and operation-semantics validation. Search automation and acquisition remain disabled, and no provider rows were acquired.
+
+Verification passed ten focused source-discovery, state-access, and administration tests. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing large-chunk warning. The required stop, desktop control-plane test, and launch cycle passed; exactly one listener served `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{ "ok": true }`.

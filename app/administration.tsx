@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.3.0";
+  schema_version: "state-access-maintenance-backlog@2.4.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -72,7 +72,9 @@ type Backlog = {
         | "official-open-provider-search-identified-bulk-contract-unverified"
         | "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled"
         | "official-current-facilities-report-identified-contract-unverified"
-        | "official-daily-licensing-lookup-csv-export-identified-acquisition-disabled";
+        | "official-daily-licensing-lookup-csv-export-identified-acquisition-disabled"
+        | "official-dated-licensed-and-exempt-provider-listing-identified-contract-unverified"
+        | "official-licensed-facility-search-and-records-request-path-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -348,7 +350,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.3.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.4.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -433,6 +435,8 @@ export function validAdministrationBacklog(
             "ME",
             "MI",
             "MN",
+            "MO",
+            "MS",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -454,10 +458,14 @@ export function validAdministrationBacklog(
               ME: "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled",
               MI: "official-current-facilities-report-identified-contract-unverified",
               MN: "official-daily-licensing-lookup-csv-export-identified-acquisition-disabled",
+              MO: "official-dated-licensed-and-exempt-provider-listing-identified-contract-unverified",
+              MS: "official-licensed-facility-search-and-records-request-path-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
-            (["AK", "IL", "KS", "LA", "MI", "MN"].includes(row.state)
+            (["AK", "IL", "KS", "LA", "MI", "MN", "MO", "MS"].includes(
+              row.state,
+            )
               ? 4
               : row.state === "ID"
                 ? 6
@@ -476,6 +484,7 @@ export function validAdministrationBacklog(
               "MA",
               "MI",
               "MN",
+              "MO",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
             (row.state === "DE") &&

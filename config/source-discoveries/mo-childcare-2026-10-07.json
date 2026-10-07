@@ -1,0 +1,90 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "mo-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MO",
+  "industry": "childcare",
+  "publisher": "Missouri Department of Elementary and Secondary Education Office of Childhood",
+  "decision": "official-dated-licensed-and-exempt-provider-listing-identified-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://dese.mo.gov/childhood/child-care/find-care",
+      "role": "official-dated-provider-listing-entry",
+      "evidence": "DESE publishes a dated Licensed & License-Exempt Child Care Provider Listing and separate active-subsidy search."
+    },
+    {
+      "url": "https://healthapps.dhss.mo.gov/childcaresearch/",
+      "role": "official-provider-and-public-records-search",
+      "evidence": "The search separates family homes, group homes, centers, license-exempt programs, and subsidy cohorts, and identifies a public-records request path."
+    },
+    {
+      "url": "https://childcare.mo.gov/parent/s/",
+      "role": "official-regulated-and-subsidy-provider-search-entry",
+      "evidence": "The Office of Childhood portal links regulated provider and subsidy-acceptance search."
+    },
+    {
+      "url": "https://dese.mo.gov/childhood/child-care/concerns",
+      "role": "official-compliance-and-cohort-boundary",
+      "evidence": "DESE distinguishes licensed, license-exempt, subsidy, unlicensed, complaint, and enforcement records."
+    }
+  ],
+  "scope": {
+    "listing_cohort": "licensed-and-license-exempt-child-care-providers",
+    "search_cohorts": "licensed-exempt-and-subsidy-contracted-provider-types",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Licensed, license-exempt, subsidy-contracted, registered, family/home, center, camp, school care, complaint, and current operation must remain distinct."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "direct_download_endpoint_verified": false,
+    "public_records_request_path_available": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "listing_label_date": "2026-09-01",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The dated listing artifact, format, schema, generated-at meaning, status vocabulary, and refresh contract were not admitted or pinned."
+  },
+  "required_record_contract": {
+    "license_or_dvn_identifier": "required-if-published",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_or_exemption_status": "required-preserve-verbatim",
+    "subsidy_contract_status": "required-preserve-separately",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "owner-person-home-and-complaint-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "authorized-single-dated-listing-download",
+    "direct-artifact-format-schema-and-as-of",
+    "licensed-exempt-and-subsidy-cohort-separation",
+    "facility-type-license-status-and-operation-semantics",
+    "home-provider-privacy",
+    "reuse-retention-and-redistribution",
+    "row-and-identifier-conservation",
+    "production-admission"
+  ],
+  "next_action": "Authorize one intended dated listing download, then pin and validate artifact identity, schema, licensed/exempt and subsidy cohorts, facility type, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
