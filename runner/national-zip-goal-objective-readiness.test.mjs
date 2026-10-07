@@ -41,11 +41,13 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.claims.current_operations_verified, false); assert.equal(value.claims.all_business_completeness, false);
   assert.equal(value.claims.public_export_authorized, false); assert.equal(value.claims.network_requests, 0);
   for (const code of codes) assert.ok(value.acceptance.blockers.includes(code));
-  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','temporal_lifecycle_reconciliation','publisher_membership_reconciliation','source_status_posture','organization_assertion_status_posture','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification','business_entity_source_policy_provenance'].sort());
+  assert.deepEqual(Object.keys(value.lineage).sort(), ['broad_organization_projection','goal_completion_matrix','temporal_claim_matrix','temporal_lifecycle_reconciliation','publisher_membership_reconciliation','source_status_posture','organization_assertion_status_posture','zip_entity_resolution','zip_industry_matrix','lifecycle_eligibility','business_entity_geography_relationship','reporting_only_site_qualification','business_entity_source_policy_provenance','non_zcta_source_geography_context'].sort());
   assert.equal(value.lineage.organization_assertion_status_posture.good_standing_count,1019372); assert.equal(value.lineage.organization_assertion_status_posture.delinquent_count,1145439); assert.equal(value.lineage.organization_assertion_status_posture.scope,'separate-organization-assertion-cohort');
   assert.equal(value.lineage.publisher_membership_reconciliation.profile_count,633232);
   assert.equal(value.lineage.publisher_membership_reconciliation.publisher_cohort_assertion,'active-list-membership-without-row-status');
-  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.6.0');
+  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.7.0');
+  assert.deepEqual([value.lineage.non_zcta_source_geography_context.rows,value.lineage.non_zcta_source_geography_context.relationship_keys,value.lineage.non_zcta_source_geography_context.no_relationship_keys],[14402,8871,5531]);
+  assert.equal(value.lineage.non_zcta_source_geography_context.map_blocked,false);
   assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
 assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9');

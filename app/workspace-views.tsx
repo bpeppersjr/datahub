@@ -1435,7 +1435,7 @@ type NationalObjectiveReadiness = {
     usps_operational_assignment_verified?: false; usps_deliverability_verified?: false; same_code_zcta_is_membership?: false; entity_polygons_present?: false }>;
   broad_jurisdiction_gap_count: 40;
   claims: { all_business_completion_percent: null; active_business_count: null; current_operating_business_count: null; active_business_eligible_count: 0; current_operations_verified: false; all_business_completeness: false; public_export_authorized: false; production_execution: false; publication_performed: false; network_requests: 0 };
-  lineage: { zip_entity_resolution: ObjectiveLineageEntry; zip_industry_matrix: ObjectiveLineageEntry; temporal_claim_matrix: ObjectiveLineageEntry; temporal_lifecycle_reconciliation: ObjectiveLineageEntry; publisher_membership_reconciliation: ObjectiveLineageEntry; source_status_posture: ObjectiveLineageEntry; organization_assertion_status_posture: ObjectiveLineageEntry; goal_completion_matrix: ObjectiveLineageEntry; broad_organization_projection: ObjectiveLineageEntry; lifecycle_eligibility: ObjectiveLineageEntry; business_entity_geography_relationship: ObjectiveLineageEntry; reporting_only_site_qualification: ObjectiveLineageEntry; business_entity_source_policy_provenance: ObjectiveLineageEntry };
+  lineage: { zip_entity_resolution: ObjectiveLineageEntry; zip_industry_matrix: ObjectiveLineageEntry; temporal_claim_matrix: ObjectiveLineageEntry; temporal_lifecycle_reconciliation: ObjectiveLineageEntry; publisher_membership_reconciliation: ObjectiveLineageEntry; source_status_posture: ObjectiveLineageEntry; organization_assertion_status_posture: ObjectiveLineageEntry; goal_completion_matrix: ObjectiveLineageEntry; broad_organization_projection: ObjectiveLineageEntry; lifecycle_eligibility: ObjectiveLineageEntry; business_entity_geography_relationship: ObjectiveLineageEntry; reporting_only_site_qualification: ObjectiveLineageEntry; business_entity_source_policy_provenance: ObjectiveLineageEntry; non_zcta_source_geography_context: ObjectiveLineageEntry };
 };
 
 export function validNationalObjectiveReadiness(value: unknown): value is NationalObjectiveReadiness {
@@ -1444,7 +1444,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
   const sha = (item: unknown) => typeof item === "string" && /^[a-f0-9]{64}$/.test(item);
   if (!exactKeys(value, ["schema_version", "available", "status", "assessment_as_of", "acceptance", "requirements_ledger", "broad_jurisdiction_gap_count", "claims", "lineage"])) return false;
   const payload = value as NationalObjectiveReadiness;
-  if (payload.schema_version !== "national-zip-objective-readiness-api@1.6.0" || payload.available !== true || payload.status !== "not-accepted" ||
+  if (payload.schema_version !== "national-zip-objective-readiness-api@1.7.0" || payload.available !== true || payload.status !== "not-accepted" ||
       payload.acceptance?.accepted !== false || !exactKeys(payload.acceptance, ["accepted", "blockers", "blocker_details"]) || payload.broad_jurisdiction_gap_count !== 40 || !Array.isArray(payload.requirements_ledger) ||
       payload.requirements_ledger.length !== OBJECTIVE_READINESS_ROWS.length || !Array.isArray(payload.acceptance.blockers) ||
       !Array.isArray(payload.acceptance.blocker_details)) return false;
@@ -1500,12 +1500,14 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       payload.claims.current_operations_verified !== false || payload.claims.all_business_completeness !== false || payload.claims.public_export_authorized !== false ||
       payload.claims.production_execution !== false || payload.claims.publication_performed !== false || payload.claims.network_requests !== 0) return false;
   const lineage = payload.lineage;
-  if (!exactKeys(lineage, ["zip_entity_resolution", "zip_industry_matrix", "temporal_claim_matrix", "temporal_lifecycle_reconciliation", "publisher_membership_reconciliation", "source_status_posture", "organization_assertion_status_posture", "goal_completion_matrix", "broad_organization_projection", "lifecycle_eligibility", "business_entity_geography_relationship", "reporting_only_site_qualification", "business_entity_source_policy_provenance"])) return false;
+  if (!exactKeys(lineage, ["zip_entity_resolution", "zip_industry_matrix", "temporal_claim_matrix", "temporal_lifecycle_reconciliation", "publisher_membership_reconciliation", "source_status_posture", "organization_assertion_status_posture", "goal_completion_matrix", "broad_organization_projection", "lifecycle_eligibility", "business_entity_geography_relationship", "reporting_only_site_qualification", "business_entity_source_policy_provenance", "non_zcta_source_geography_context"])) return false;
   for (const [key, item] of Object.entries(lineage) as [string, ObjectiveLineageEntry][]) {
     if (typeof item?.release_id !== "string" || !item.release_id) return false;
     if (!["goal_completion_matrix", "broad_organization_projection", "source_status_posture", "organization_assertion_status_posture"].includes(key) && !sha(item.registration_sha256)) return false;
     if (key !== "goal_completion_matrix" && key !== "broad_organization_projection" && !sha(item.manifest_sha256)) return false;
   }
+  const nonZcta=lineage.non_zcta_source_geography_context;
+  if(!exactKeys(nonZcta,["registration_path","registration_sha256","release_id","manifest_sha256","summary_sha256","rows","source_contributed_outside_zcta","denominator_only_outside_zcta","relationship_keys","no_relationship_keys","state_assignment","cardinal_or_central_grouping","map_blocked","state_denominator_integration","business_completeness"])||nonZcta.rows!==14402||nonZcta.source_contributed_outside_zcta!==14361||nonZcta.denominator_only_outside_zcta!==41||nonZcta.relationship_keys!==8871||nonZcta.no_relationship_keys!==5531||nonZcta.state_assignment!==false||nonZcta.cardinal_or_central_grouping!==null||nonZcta.map_blocked!==false||nonZcta.state_denominator_integration!==false||nonZcta.business_completeness!==null||!sha(nonZcta.summary_sha256))return false;
   if (!sha(lineage.goal_completion_matrix.report_sha256) || !sha(lineage.broad_organization_projection.program_manifest_sha256) ||
       !sha(lineage.broad_organization_projection.backlog_manifest_sha256) || !sha(lineage.broad_organization_projection.assessment_catalog_sha256) ||
       !lineage.broad_organization_projection.backlog_release_id || !lineage.broad_organization_projection.assessment_catalog_id ||

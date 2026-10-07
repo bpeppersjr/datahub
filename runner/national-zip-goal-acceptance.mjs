@@ -19,6 +19,7 @@ import { loadBroadOrganizationAuthorizationProgramManagementView } from './broad
 import { readBusinessEntityLifecycleEligibilitySummary } from './business-entity-lifecycle-eligibility.mjs';
 import { readReportingOnlySiteQualification, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
 import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
+import { readNonZctaSourceGeographyContextSummary } from './non-zcta-source-geography-context.mjs';
 
 export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.7.0';
 const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
@@ -229,7 +230,8 @@ function validateGoalReadinessBindings(value) {
     temporal = value?.bindings?.temporal_claim_matrix, temporalReconciliation=value?.bindings?.temporal_lifecycle_reconciliation, publisherMembership=value?.bindings?.publisher_membership_reconciliation, sourceStatusPosture=value?.bindings?.source_status_posture, coRegistrationStatusPosture=value?.bindings?.organization_assertion_status_posture, goal = value?.bindings?.goal_completion_matrix,
     broad = value?.bindings?.broad_organization_projection, lifecycle = value?.bindings?.lifecycle_eligibility,
     geographyRelationship = value?.bindings?.business_entity_geography_relationship,
-    sourcePolicy = value?.bindings?.business_entity_source_policy_provenance;
+    sourcePolicy = value?.bindings?.business_entity_source_policy_provenance,
+    nonZcta = value?.bindings?.non_zcta_source_geography_context;
   check(entity?.claims?.entity_resolution_applied === false
     && entity.claims.benchmark_gate_passed === false
     && entity.release_id === 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'
@@ -349,6 +351,16 @@ function validateGoalReadinessBindings(value) {
     && sourcePolicy.profile_export_policy_counts?.public === 6161216
     && SHA.test(sourcePolicy.source_profile_counts_sha256 ?? ''),
   'business-entity source-policy provenance registration/release/summary binding');
+  check(nonZcta?.registration_path === 'config/datasets/non-zcta-source-geography-context.json'
+    && nonZcta.registration_sha256 === 'b8d9f6cc7ccea0c031f2ba7bf6a5f4176fcb747cef5594fc83607553c84595bd'
+    && nonZcta.release_id === 'non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd'
+    && nonZcta.manifest_sha256 === 'c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16'
+    && SHA.test(nonZcta.summary_sha256) && nonZcta.rows === 14402 && nonZcta.relationship_keys === 8871
+    && nonZcta.no_relationship_keys === 5531 && nonZcta.source_contributed_outside_zcta === 14361
+    && nonZcta.denominator_only_outside_zcta === 41 && nonZcta.state_assignment === false
+    && nonZcta.cardinal_or_central_grouping === null && nonZcta.map_blocked === false
+    && nonZcta.state_denominator_integration === false && nonZcta.business_completeness === null,
+  'non-ZCTA context registration/release/summary binding');
   validateGeographyRelationshipBinding(geographyRelationship);
   validateReportingOnlySiteBinding(value.bindings?.reporting_only_site_qualification);
   const ledger = value.requirements_ledger, expectedLedger = {
@@ -538,7 +550,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.export_authorized === false,
   'source-policy provenance integrity-only requirement');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.6.0',
+    schema_version: 'national-zip-objective-readiness-api@1.7.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -624,6 +636,7 @@ export function projectNationalZipObjectiveReadiness(report) {
         usps_unverified_count: binding.reporting_only_site_qualification.usps_unverified_count,
         export_policy: binding.reporting_only_site_qualification.export_policy,
       },
+      non_zcta_source_geography_context: binding.non_zcta_source_geography_context,
       business_entity_source_policy_provenance: {
         release_id: binding.business_entity_source_policy_provenance.release_id,
         registration_sha256: binding.business_entity_source_policy_provenance.registration_sha256,
@@ -778,7 +791,7 @@ async function readVerifiedBusinessEntityGeographyBinding({ root = APP_ROOT, sig
 async function readObjectiveReadiness({ signal }) {
   signal?.throwIfAborted();
   const sampleZip = '00501';
-  const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, coRegistrationStatusPosture, loadedGoal, broad, lifecycle] = await Promise.all([
+  const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, coRegistrationStatusPosture, loadedGoal, broad, lifecycle, nonZcta] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
     readExactZipIndustryEvidenceV30({ zip5: sampleZip, signal }),
     readExactZipIndustryEvidenceWithTemporalQualificationV30({zip5:sampleZip,signal}),
@@ -794,6 +807,7 @@ async function readObjectiveReadiness({ signal }) {
       if (signal?.aborted || error?.name === 'AbortError') throw error;
       const failure = new Error('Selected lifecycle release is unavailable or invalid.'); failure.code = 'LIFECYCLE_RELEASE_INVALID'; throw failure;
     }),
+    readNonZctaSourceGeographyContextSummary({ signal }),
   ]);
   const geographyRelationship = await readVerifiedBusinessEntityGeographyBinding({ signal });
   const reportingVerified = await verifyReportingOnlySiteQualification({ signal }).catch(error => {
@@ -923,6 +937,16 @@ async function readObjectiveReadiness({ signal }) {
     profile_policy_rows_verified: sourcePolicyProvenance.summary.profile_count,
     authorization_granted: false, acquisition_authorized: false, export_authorized: false,
   };
+  const nonZctaRegistration = await snapshot('config/datasets/non-zcta-source-geography-context.json', signal);
+  const nonZctaBinding = {
+    registration_path: 'config/datasets/non-zcta-source-geography-context.json', registration_sha256: nonZctaRegistration.evidence.sha256,
+    release_id: nonZcta.release.release_id, manifest_sha256: nonZcta.release.manifest_sha256, summary_sha256: nonZcta.release.summary_sha256,
+    rows: nonZcta.summary.rows, source_contributed_outside_zcta: nonZcta.summary.source_contributed_outside_zcta,
+    denominator_only_outside_zcta: nonZcta.summary.denominator_only_outside_zcta, relationship_keys: nonZcta.summary.relationship_keys,
+    no_relationship_keys: nonZcta.summary.no_relationship_keys, state_assignment: nonZcta.claims.zip_to_state_assignment,
+    cardinal_or_central_grouping: nonZcta.claims.cardinal_or_central_grouping, map_blocked: nonZcta.claims.map_blocked,
+    state_denominator_integration: nonZcta.claims.state_denominator_integration, business_completeness: nonZcta.claims.business_completeness,
+  };
   const geographyRelationshipBinding = geographyRelationship;
   const reportingSources = reportingSites.provenance.bindings.sources;
   const reportingBinding = {
@@ -988,8 +1012,9 @@ async function readObjectiveReadiness({ signal }) {
     business_entity_source_policy_provenance: sourcePolicyBinding,
     business_entity_geography_relationship: geographyRelationshipBinding,
     reporting_only_site_qualification: reportingBinding,
+    non_zcta_source_geography_context: nonZctaBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.6.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.7.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
       { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,

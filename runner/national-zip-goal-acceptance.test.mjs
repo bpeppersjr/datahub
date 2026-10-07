@@ -131,7 +131,11 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.6.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.7.0');
+  assert.deepEqual(readiness.bindings.non_zcta_source_geography_context, {
+    registration_path:'config/datasets/non-zcta-source-geography-context.json',registration_sha256:'b8d9f6cc7ccea0c031f2ba7bf6a5f4176fcb747cef5594fc83607553c84595bd',
+    release_id:'non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd',manifest_sha256:'c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16',summary_sha256:'e2d2d113bb6c6844970eb7ac18d6dc888aafb99df5bbef3ab453b9c3e31bf95b',rows:14402,source_contributed_outside_zcta:14361,denominator_only_outside_zcta:41,relationship_keys:8871,no_relationship_keys:5531,state_assignment:false,cardinal_or_central_grouping:null,map_blocked:false,state_denominator_integration:false,business_completeness:null,
+  });
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
     ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
     ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
