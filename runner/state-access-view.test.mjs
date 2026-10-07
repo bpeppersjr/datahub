@@ -306,7 +306,7 @@ test("maintenance backlog deterministically bounds selected-industry attention t
     maintainedIndustries: ["childcare", "retail-consumer"],
     maintenanceRevision: 3,
   });
-  assert.equal(view.schema_version, "state-access-maintenance-backlog@2.10.0");
+  assert.equal(view.schema_version, "state-access-maintenance-backlog@2.11.0");
   assert.match(view.backlog_sha256, /^[a-f0-9]{64}$/);
   assert.ok(view.total_attention_cells > 0);
   assert.equal(

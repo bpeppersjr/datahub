@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.10.0";
+  schema_version: "state-access-maintenance-backlog@2.11.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -86,7 +86,9 @@ type Backlog = {
         | "official-daily-program-api-identified-nyc-center-boundary-unresolved"
         | "official-daily-email-gated-csv-export-identified-acquisition-disabled"
         | "official-licensed-provider-locator-identified-bulk-contract-unverified"
-        | "official-daily-child-care-safety-portal-identified-bulk-contract-unverified";
+        | "official-daily-child-care-safety-portal-identified-bulk-contract-unverified"
+        | "official-monthly-open-certified-program-odata-identified-acquisition-disabled"
+        | "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -362,7 +364,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.10.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.11.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -461,6 +463,8 @@ export function validAdministrationBacklog(
             "OH",
             "OK",
             "OR",
+            "PA",
+            "RI",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -496,6 +500,8 @@ export function validAdministrationBacklog(
               OH: "official-daily-email-gated-csv-export-identified-acquisition-disabled",
               OK: "official-licensed-provider-locator-identified-bulk-contract-unverified",
               OR: "official-daily-child-care-safety-portal-identified-bulk-contract-unverified",
+              PA: "official-monthly-open-certified-program-odata-identified-acquisition-disabled",
+              RI: "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -520,6 +526,8 @@ export function validAdministrationBacklog(
               "OH",
               "OK",
               "OR",
+              "PA",
+              "RI",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -544,9 +552,10 @@ export function validAdministrationBacklog(
               "NJ",
               "NY",
               "OH",
+              "PA",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["DE", "NJ", "NY"].includes(row.state) &&
+            ["DE", "NJ", "NY", "PA"].includes(row.state) &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&

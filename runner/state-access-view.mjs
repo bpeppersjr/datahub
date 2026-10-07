@@ -39,6 +39,8 @@ import { readNyChildcareSourceDiscovery } from "./ny-childcare-source-discovery.
 import { readOhChildcareSourceDiscovery } from "./oh-childcare-source-discovery.mjs";
 import { readOkChildcareSourceDiscovery } from "./ok-childcare-source-discovery.mjs";
 import { readOrChildcareSourceDiscovery } from "./or-childcare-source-discovery.mjs";
+import { readPaChildcareSourceDiscovery } from "./pa-childcare-source-discovery.mjs";
+import { readRiChildcareSourceDiscovery } from "./ri-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -437,6 +439,8 @@ export async function stateAccessMaintenanceBacklog({
   ohChildcareDiscoveryLoader = readOhChildcareSourceDiscovery,
   okChildcareDiscoveryLoader = readOkChildcareSourceDiscovery,
   orChildcareDiscoveryLoader = readOrChildcareSourceDiscovery,
+  paChildcareDiscoveryLoader = readPaChildcareSourceDiscovery,
+  riChildcareDiscoveryLoader = readRiChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -558,6 +562,8 @@ export async function stateAccessMaintenanceBacklog({
             "OH",
             "OK",
             "OR",
+            "PA",
+            "RI",
           ].includes(jurisdiction.state)
         ) {
           const loaders = {
@@ -595,6 +601,8 @@ export async function stateAccessMaintenanceBacklog({
               OH: ohChildcareDiscoveryLoader,
               OK: okChildcareDiscoveryLoader,
               OR: orChildcareDiscoveryLoader,
+              PA: paChildcareDiscoveryLoader,
+              RI: riChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -633,6 +641,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-daily-email-gated-csv-export-identified-acquisition-disabled",
                 "official-licensed-provider-locator-identified-bulk-contract-unverified",
                 "official-daily-child-care-safety-portal-identified-bulk-contract-unverified",
+                "official-monthly-open-certified-program-odata-identified-acquisition-disabled",
+                "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -690,7 +700,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.10.0",
+    schema_version: "state-access-maintenance-backlog@2.11.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

@@ -1,0 +1,89 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "pa-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "PA",
+  "industry": "childcare",
+  "publisher": "Pennsylvania Department of Human Services Office of Child Development and Early Learning",
+  "decision": "official-monthly-open-certified-program-odata-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://data.pa.gov/Services-Near-You/Child-Care-Providers-including-Early-Learning-Prog/ajn5-kaxt",
+      "role": "official-monthly-program-level-open-data",
+      "evidence": "DHS publishes each open certified child-care facility and other early learning program as of the last day of the month with program-level identifiers and physical-location fields."
+    },
+    {
+      "url": "https://data.pa.gov/api/odata/v4/ajn5-kaxt",
+      "role": "official-odata-api",
+      "evidence": "The PA Open Data catalog provides a supported OData endpoint for refreshable program-level access."
+    },
+    {
+      "url": "https://www.pa.gov/agencies/dhs/resources/early-learning-child-care",
+      "role": "official-certification-authority-and-search-context",
+      "evidence": "OCDEL certifies and registers child-care facilities and directs families to certification, complaint, and inspection information."
+    },
+    {
+      "url": "https://www.compass.dhs.pa.gov/assets/documents/pdf/Compass_ELPandProviderSearchQRG.pdf",
+      "role": "official-provider-search-contract",
+      "evidence": "The COMPASS guide documents search by provider name, address, city, ZIP, county, school district, services, schedule, and other program attributes."
+    }
+  ],
+  "scope": {
+    "search_cohort": "open-certified-child-care-facilities-and-other-early-learning-programs",
+    "program_types": "child-care-center-group-home-family-home-and-other-early-learning-programs-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "regulated_childcare_predicate_required": true,
+    "warning": "Open certified status, provider type, Keystone STARS, subsidy, inspection, complaint, non-regulated Other program, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "public_domain_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "monthly",
+    "snapshot_date": "2026-08-31",
+    "catalog_updated_at": "2026-09-25",
+    "current_operation_equivalence": false,
+    "limitation": "The source represents facilities and programs open and certified as of the last day of the reporting month; source status does not prove continuous operation after that snapshot."
+  },
+  "required_record_contract": {
+    "mpi_id": "required-source-provider-identifier",
+    "mpi_location_id": "required-source-location-identifier",
+    "facility_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "certification_or_open_status": "required-preserve-source-semantics",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "phone-fax-email-stars-complaint-and-inspection-fields": "excluded-from-default-business-entity-view"
+  },
+  "unresolved_gates": [
+    "regulated-childcare-versus-other-program-predicate",
+    "exact-odata-schema-pagination-and-null-contract",
+    "family-home-privacy",
+    "monthly-snapshot-as-of-capture",
+    "row-and-mpi-location-id-conservation",
+    "zip5-and-zip4-separation",
+    "production-admission"
+  ],
+  "next_action": "Validate the current OData schema and pagination contract without acquiring provider rows; preserve regulated-childcare and Other cohorts separately and admit only after privacy, temporal, conservation, and ZIP-field review.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

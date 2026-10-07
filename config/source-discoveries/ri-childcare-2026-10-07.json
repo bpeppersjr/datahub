@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ri-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "RI",
+  "industry": "childcare",
+  "publisher": "Rhode Island Department of Human Services Office of Child Care",
+  "decision": "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://dhs.ri.gov/programs-and-services/child-care",
+      "role": "official-licensing-authority-and-family-portal",
+      "evidence": "DHS identifies its Office of Child Care and directs families to the RISES portal for provider searches by age, setting, quality, and financial assistance."
+    },
+    {
+      "url": "https://kids.ri.gov/prenatal-pre-k-resources/find-child-care-or-preschool",
+      "role": "official-statewide-licensed-program-search-description",
+      "evidence": "The state describes the consumer tool as an online list of all licensed early learning programs in Rhode Island."
+    },
+    {
+      "url": "https://dhs.ri.gov/programs-and-services/child-care/rises",
+      "role": "official-system-of-record-and-consumer-portal-context",
+      "evidence": "DHS identifies RISES as the licensing system of record, provider portal, workforce registry, and consumer portal."
+    },
+    {
+      "url": "https://dhs.ri.gov/programs-and-services/child-care/child-care-providers-staff-resources/apply-be-child-care-provider",
+      "role": "official-program-type-and-privacy-boundary",
+      "evidence": "DHS distinguishes centers from family child-care homes, including the requirement that family providers live at the licensed residential property."
+    }
+  ],
+  "scope": {
+    "search_cohort": "all-licensed-early-learning-programs-published-to-rises-consumer-portal",
+    "program_types": "child-care-center-family-child-care-home-school-age-preschool-and-license-exempt-cohorts-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "RISES record presence, license, quality rating, CCAP approval, setting, workforce association, license exemption, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The consumer portal is described as statewide and backed by the licensing system of record, but no supported bulk/API, snapshot date, directory refresh SLA, or lifecycle contract was established."
+  },
+  "required_record_contract": {
+    "license_or_program_id": "required-source-identifier",
+    "program_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-family-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-workforce-quality-and-ccap-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "licensed-and-license-exempt-cohort-separation",
+    "license-status-and-operation-semantics",
+    "family-home-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek a DHS-sanctioned center-focused RISES extract; do not automate the consumer portal, and validate cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

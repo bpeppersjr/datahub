@@ -1,0 +1,9 @@
+# Production successor plan 277
+
+Run `production-cms-directories-20261007-277` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-277.json`, confirmation SHA-256 `dfbaaf510af5ecfb1aa9846ffbad9335ad06adfc69c4075bf29adc5bfcfd194d`, and file SHA-256 `a6e6721306a65be097c5e4f112e78b228cbd9a2f6e6f1ac848ee167aa2e3243c`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,459,158,016 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.11.0` and reports thirty-six governed childcare source discoveries. Pennsylvania exposes a public-domain monthly program-level OData source for open certified facilities and other early learning programs; regulated childcare requires an exact provider-type predicate and the retained snapshot is 2026-08-31. Rhode Island exposes the RISES licensing system of record and statewide licensed-program consumer search but no supported bulk/API contract. Provider acquisition, production admission, and current-operation claims remain disabled, and no provider rows were acquired.
+
+Focused Node tests passed 10/10. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing chunk-size warning. The required clean restart sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.
