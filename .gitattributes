@@ -4,3 +4,5 @@ data/broad-organization-adjacent-evidence-index/releases/** text eol=lf
 data/zcta-gdp-execution-readiness/releases/** text eol=lf
 data/us-census-non-zcta-state-residual/releases/** text eol=lf
 data/national-goal-completion-matrix/releases/** text eol=lf
+config/datasets/adjacent-exact-zip-evidence-catalog.json text eol=lf
+config/datasets/adjacent-exact-zip-evidence-catalog-registration.json text eol=lf

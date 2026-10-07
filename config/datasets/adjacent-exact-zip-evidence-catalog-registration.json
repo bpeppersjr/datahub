@@ -2,7 +2,7 @@
   "schema_version": "adjacent-exact-zip-evidence-catalog-registration@1.0.0",
   "dataset_id": "adjacent-exact-zip-evidence-catalog",
   "catalog_path": "config/datasets/adjacent-exact-zip-evidence-catalog.json",
-  "catalog_sha256": "c0b49aaaacb588f1aabc5a448ab4bc8af9fc4f01d23a7cfcbdb9c54a54e92294",
+  "catalog_sha256": "bddea7b4997fd440a46091160c1e484240852dbb43b89f3b484a7377c1a6a1fc",
   "status": "registered-local-review-only-read-model",
   "production_enrollment": false,
   "mutable_pointer": false

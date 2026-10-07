@@ -65,6 +65,48 @@
         "positive_zip5_keys": 34954,
         "projected_rows": 37828
       }
+    },
+    {
+      "id": "cms-hospital-directory-rows",
+      "label": "CMS hospital directory ZIP evidence",
+      "jurisdiction": "US",
+      "verifier_id": "cms-retained-hospital-directory-zip-evidence@1.0.0",
+      "registration_path": "config/datasets/cms-retained-directory-zip-evidence.json",
+      "registration_sha256": "512d2635b7ac6bf82d8ce6dd303ee477982cd09877081391c88e54d1b3e9da16",
+      "dimension_id": "cms_hospital_directory",
+      "record_unit": "publisher-directory-row",
+      "export_policy": "local-review-only",
+      "temporal_status": "dated-publisher-directory-current-operation-unverified",
+      "source_reference_at": "2026-08-13T00:00:00.000Z",
+      "expected_counts": {
+        "source_rows": 5419,
+        "zip5_bearing_rows": 5419,
+        "missing_zip5_rows": 0,
+        "zip4_rows": 0,
+        "positive_zip5_keys": 4716,
+        "projected_rows": 5419
+      }
+    },
+    {
+      "id": "cms-nursing-home-directory-rows",
+      "label": "CMS nursing-home directory ZIP evidence",
+      "jurisdiction": "US",
+      "verifier_id": "cms-retained-nursing-home-directory-zip-evidence@1.0.0",
+      "registration_path": "config/datasets/cms-retained-directory-zip-evidence.json",
+      "registration_sha256": "512d2635b7ac6bf82d8ce6dd303ee477982cd09877081391c88e54d1b3e9da16",
+      "dimension_id": "cms_nursing_home_directory",
+      "record_unit": "publisher-directory-row",
+      "export_policy": "local-review-only",
+      "temporal_status": "dated-publisher-directory-current-operation-unverified",
+      "source_reference_at": "2026-08-26T00:00:00.000Z",
+      "expected_counts": {
+        "source_rows": 14690,
+        "zip5_bearing_rows": 14690,
+        "missing_zip5_rows": 0,
+        "zip4_rows": 0,
+        "positive_zip5_keys": 8925,
+        "projected_rows": 14690
+      }
     }
   ],
   "claims": {
