@@ -1,0 +1,21 @@
+{
+  "schema_version":"state-industry-source-discovery@1.0.0",
+  "discovery_id":"dc-childcare-official-source-discovery-20261007",
+  "observed_at":"2026-10-07",
+  "state":"DC",
+  "industry":"childcare",
+  "publisher":"District of Columbia Office of the State Superintendent of Education",
+  "decision":"official-monthly-pdf-identified-offline-parser-required",
+  "official_sources":[
+    {"url":"https://osse.dc.gov/publication/child-development-facilities-listing","role":"official-monthly-listing-landing","evidence":"OSSE describes a monthly listing of licensed centers, homes, and expanded homes."},
+    {"url":"https://osse.dc.gov/sites/default/files/dc/sites/osse/publication/attachments/July%202026%20Child%20Development%20Facility%20Listing%208-7-2026.pdf","role":"official-pdf-snapshot","evidence":"Landing label says August 2026 while the linked filename says July 2026 and 8-7-2026; mismatch is preserved."},
+    {"url":"https://mychildcare.dc.gov/","role":"official-consumer-search","evidence":"Useful for manual reconciliation; portal automation is not authorized."}
+  ],
+  "scope":{"publisher_described_members":["licensed-child-development-centers","licensed-child-development-homes","licensed-expanded-child-development-homes"],"operating_business_equivalence":false,"statewide_business_completeness":null,"privacy_warning":"Contact names, emails, phone numbers, and inspector names must be excluded."},
+  "access":{"public_search_available":true,"supported_bulk_export_verified":false,"supported_api_verified":false,"portal_automation_authorized":false,"record_acquisition_authorized":false,"account_created":false,"terms_accepted":false,"publisher_contacted":false},
+  "temporal":{"publisher_cadence":"monthly-described","landing_label":"August 2026","attachment_filename_label":"July 2026 Child Development Facility Listing 8-7-2026","snapshot_generated_at":"2026-08-07","current_operation_equivalence":false,"limitation":"The label/filename mismatch and non-current snapshot must remain explicit."},
+  "required_record_contract":{"license_number":"required-if-published","facility_name":"required-preserve-verbatim","facility_type":"required-preserve-verbatim","reported_address":"required-if-published","zip5":"separate-field-required-if-published","zip4":"separate-field-optional","latitude":"optional-source-value-only","longitude":"optional-source-value-only","license_dates":"source-values-only","capacity":"source-value-only","excluded_fields":["contact_name","email","phone","inspector_name"]},
+  "unresolved_gates":["authorized-retained-pdf","exact-file-hash","deterministic-layout-parser","row-and-page-conservation","privacy-minimization","terms-and-redistribution-review","status-semantic-review","production-admission"],
+  "next_action":"Retain one explicitly authorized PDF and validate an offline deterministic parser with exact hash, layout, row/page conservation, privacy exclusions, terms, and status gates.",
+  "claims":{"network_requests_by_discovery_record":0,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"zip_coverage":null,"current_operations_verified":false,"production_admission":false}
+}

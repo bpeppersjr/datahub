@@ -1,0 +1,24 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "de-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "DE",
+  "industry": "childcare",
+  "publisher": "Delaware Office of Child Care Licensing",
+  "decision": "official-public-domain-api-metadata-validated-acquisition-disabled",
+  "official_sources": [
+    {"url":"https://data.delaware.gov/Human-Services/Licensed-Child-Care-Providers-and-Facilities/iuzd-3dbt","role":"official-dataset-landing","evidence":"Official daily tabular roster of licensed providers and facilities."},
+    {"url":"https://data.delaware.gov/api/views/iuzd-3dbt","role":"official-metadata-api","evidence":"Retained zero-row preflight validated identity, schema, cadence, provenance, and Public Domain metadata."},
+    {"url":"https://data.delaware.gov/resource/iuzd-3dbt.json","role":"official-record-api","evidence":"Publisher-supported SODA record endpoint; record delivery was not exercised."},
+    {"url":"https://dev.socrata.com/foundry/data.delaware.gov/iuzd-3dbt","role":"official-api-documentation","evidence":"Dataset-specific API documentation."},
+    {"url":"https://opendatacouncil.delaware.gov/open-data-portal-terms-of-service/","role":"official-terms","evidence":"Portal terms disclaim accuracy, timeliness, and completeness and require conservative provenance."}
+  ],
+  "scope": {"publisher_described_members":["family-child-care","large-family-child-care","child-care-center"],"operating_business_equivalence":false,"statewide_business_completeness":null,"privacy_warning":"Family-home addresses may be residential; public redistribution requires separate review."},
+  "access": {"public_search_available":true,"supported_bulk_export_verified":true,"supported_api_verified":true,"portal_automation_authorized":false,"record_acquisition_authorized":false,"account_created":false,"terms_accepted":false,"publisher_contacted":false},
+  "temporal": {"publisher_cadence":"daily","publisher_temporal_coverage":"current information","rows_updated_at":"2026-10-06T15:49:09.000Z","current_operation_equivalence":false,"limitation":"Daily metadata and row-update time do not prove operation at observation time."},
+  "retained_metadata_preflight": {"manifest_path":"data/business-sources/de-childcare/preflights/de-childcare-preflight-3963d3a0-0af8-4e03-b4ef-5aabfb293749/manifest.json","manifest_sha256":"ee935ceed8384ef75ea303b5f973a575b9f2db915fc3cf87122866889bf46c60","run_id":"3963d3a0-0af8-4e03-b4ef-5aabfb293749","provider_rows_acquired":0},
+  "required_record_contract": {"resource_id":"state-license-number","resource_name":"required-preserve-verbatim","resource_type":"required-preserve-verbatim","enforcement_action":"separate-source-fact","intent_to_revoke":"separate-pending-process-fact","reported_address":"required-if-published","zip5":"separate-field-required-if-published","zip4":"separate-field-optional","latitude":"optional-source-value-only","longitude":"optional-source-value-only","excluded_fields":["resource_name_reversed","phone_number","site_opens_at","site_closes_at"]},
+  "unresolved_gates": ["record-acquisition-authorization","deterministic-pagination-and-order","row-conservation-and-schema-gates","privacy-and-redistribution-review","status-semantic-review","request-rate-and-token-policy","production-admission"],
+  "next_action": "Implement and validate a bounded staged SODA acquisition with deterministic pagination, row conservation, privacy exclusions, status preservation, and stop-on-401/403/429 behavior before production admission.",
+  "claims": {"network_requests_by_discovery_record":0,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"zip_coverage":null,"current_operations_verified":false,"production_admission":false}
+}
