@@ -1,13 +1,13 @@
 {
   "connector_id": "usda-organic-integrity",
-  "version": "1.1.0",
-  "implementation_status": "metadata-and-offline-verified-api-contract-credential-gated-and-execution-disabled",
+  "version": "1.2.0",
+  "implementation_status": "bounded-api-archive-acquisition-implemented-fixture-tested-production-execution-disabled",
   "description": "Metadata-only preflight, credential-gated official API contract, and offline local-review staging for selected USDA Organic INTEGRITY certified operations.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "lifecycle_status": {
     "preflight": "implemented-and-fixture-tested-live-history-link-not-server-rendered-api-readiness-documented",
     "plan": "implemented-offline-only",
-    "acquire": "default-denied-not-implemented",
+    "acquire": "bounded-credential-gated-api-archive-primitive-implemented-not-enrolled",
     "validate": "implemented-guarded-fixture-xlsx",
     "normalize": "implemented-local-review-only",
     "reconcile": "foreign-key-integrity-only-no-entity-resolution",
