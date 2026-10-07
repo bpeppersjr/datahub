@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.6.0";
+  schema_version: "state-access-maintenance-backlog@2.7.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -78,7 +78,9 @@ type Backlog = {
         | "official-licensed-provider-dashboard-identified-bulk-contract-unverified"
         | "official-facility-search-and-data-request-path-identified-acquisition-disabled"
         | "official-licensed-and-self-declared-search-identified-bulk-contract-unverified"
-        | "official-weekly-zip-organized-roster-identified-acquisition-disabled";
+        | "official-weekly-zip-organized-roster-identified-acquisition-disabled"
+        | "official-child-care-search-identified-bulk-contract-unverified"
+        | "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -354,7 +356,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.6.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.7.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -445,6 +447,8 @@ export function validAdministrationBacklog(
             "NC",
             "ND",
             "NE",
+            "NH",
+            "NJ",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -472,6 +476,8 @@ export function validAdministrationBacklog(
               NC: "official-facility-search-and-data-request-path-identified-acquisition-disabled",
               ND: "official-licensed-and-self-declared-search-identified-bulk-contract-unverified",
               NE: "official-weekly-zip-organized-roster-identified-acquisition-disabled",
+              NH: "official-child-care-search-identified-bulk-contract-unverified",
+              NJ: "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -488,6 +494,8 @@ export function validAdministrationBacklog(
               "NC",
               "ND",
               "NE",
+              "NH",
+              "NJ",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -509,9 +517,10 @@ export function validAdministrationBacklog(
               "MN",
               "MO",
               "NE",
+              "NJ",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            (row.state === "DE") &&
+            ["DE", "NJ"].includes(row.state) &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&

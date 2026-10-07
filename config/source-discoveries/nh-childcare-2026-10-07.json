@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nh-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NH",
+  "industry": "childcare",
+  "publisher": "New Hampshire Department of Health and Human Services Child Care Licensing Unit",
+  "decision": "official-child-care-search-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.dhhs.nh.gov/programs-services/childcare-parenting-childbirth/child-care-licensing",
+      "role": "official-licensing-authority",
+      "evidence": "DHHS identifies the Child Care Licensing Unit as the regulator of licensed child-care programs."
+    },
+    {
+      "url": "https://new-hampshire.my.site.com/nhccis/NH_ChildCareSearch",
+      "role": "official-public-provider-search",
+      "evidence": "The current licensing rules identify NHCIS Child Care Search as the public route for program and licensing records."
+    },
+    {
+      "url": "https://gc.nh.gov/rules/state_agencies/he-c4000.html",
+      "role": "official-program-and-search-contract",
+      "evidence": "Current rules define licensed program types, annual unannounced monitoring, three-year license renewal visits, and online statements of findings and corrective action plans."
+    },
+    {
+      "url": "https://www.gc.nh.gov/rsa/html/XII/170-E/170-E-mrg.htm",
+      "role": "official-statutory-scope-boundary",
+      "evidence": "RSA 170-E distinguishes licensed child day care agencies from legally license-exempt providers and makes the license a public record while protecting application material."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-programs",
+    "program_types": "family-child-care-home-family-group-home-small-center-and-center-types-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "License, program type, statement of findings, corrective action plan, scholarship enrollment, legal exemption, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "annual-unannounced-monitoring-and-three-year-license-renewal-visits-not-a-directory-refresh-contract",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The monitoring cadence is not a directory publication cadence, and no supported bulk extract, API, snapshot date, or lifecycle contract was established."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "program_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "application-person-home-monitoring-and-corrective-action-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "licensed-and-license-exempt-cohort-separation",
+    "program-type-and-operation-semantics",
+    "home-provider-and-application-record-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek a DHHS-sanctioned center-focused machine-readable extract; do not automate NHCIS search, and validate cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

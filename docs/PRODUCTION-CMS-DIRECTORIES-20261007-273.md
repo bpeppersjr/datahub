@@ -1,0 +1,9 @@
+# Production successor plan 273
+
+Run `production-cms-directories-20261007-273` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-273.json`, confirmation SHA-256 `004db3f339814242db6ca3b6508ec09be8fd4e7a64ba2f78a86ee2eb7caa43be`, and file SHA-256 `ca3f7aa5a80a6ed6806ceba4bbb7628b5d0cc782c64930e04f38a10eea9e25ba`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,463,602,176 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.7.0` and reports twenty-eight governed childcare source discoveries. New Hampshire exposes an official public licensed-program search and statutory program boundaries, but no supported bulk/API contract. New Jersey exposes a dated 2026-10-01 statewide licensed-center roster and an official Socrata API; the current DCF roster and separately cataloged open-data presentation require temporal reconciliation before acquisition or promotion. Search automation, provider acquisition, and current-operation claims remain disabled, and no provider rows were acquired.
+
+Focused Node tests passed 10/10. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing chunk-size warning. The required clean restart sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.

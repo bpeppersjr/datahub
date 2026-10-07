@@ -1,0 +1,87 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nj-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NJ",
+  "industry": "childcare",
+  "publisher": "New Jersey Department of Children and Families Office of Licensing",
+  "decision": "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://www.nj.gov/dcf/families/childcare/",
+      "role": "official-licensing-authority-and-cohort-boundary",
+      "evidence": "DCF licenses centers serving six or more children and distinguishes voluntarily registered family child-care homes."
+    },
+    {
+      "url": "https://www.nj.gov/dcf/documents/about/divisions/ol/NJDCF-Licensed-Child-Care-Centers.pdf",
+      "role": "official-dated-statewide-center-roster",
+      "evidence": "The 2026-10-01 roster publishes license number, provider type and name, street address, ZIP, phone, email, ages served, and licensed capacity for licensed centers."
+    },
+    {
+      "url": "https://data.nj.gov/api/views/cru5-4rmm",
+      "role": "official-open-data-api-metadata",
+      "evidence": "The NJ Open Data Center provides a supported Socrata API contract for Licensed Child Care Centers; its temporal currency must be assessed separately from the newer DCF roster."
+    },
+    {
+      "url": "https://data.nj.gov/Public-Safety/Licensed-Child-Care-Center-Explorer/xsex-syrm",
+      "role": "official-open-data-explorer-metadata",
+      "evidence": "The state catalog attributes the statewide, ongoing explorer to DCF Office of Licensing with on-demand/as-needed collection and posting."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-centers",
+    "program_types": "licensed-centers-and-voluntarily-registered-family-homes-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "center_only_predicate_required": true,
+    "warning": "Roster presence, three-year license term, inspection, violation, family-home registration, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "direct_download_endpoint_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "open-data-on-demand-as-needed",
+    "snapshot_date": "2026-10-01",
+    "current_operation_equivalence": false,
+    "limitation": "The dated DCF roster is newer than the separately cataloged open-data presentation; API and roster currency must be reconciled before acquisition or promotion."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "license_status": "required-if-published-preserve-verbatim",
+    "reported_address": "required-center-site-value",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "phone-email-inspection-and-person-fields": "excluded-from-default-business-entity-view"
+  },
+  "unresolved_gates": [
+    "pdf-versus-api-temporal-reconciliation",
+    "exact-center-roster-status-semantics",
+    "schema-and-pagination-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "zip5-and-zip4-separation",
+    "production-admission"
+  ],
+  "next_action": "Validate the current Socrata schema and row/pagination contract against the 2026-10-01 DCF center roster without acquiring provider rows; preserve center-only scope and admit only after temporal, reuse, and conservation review.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
