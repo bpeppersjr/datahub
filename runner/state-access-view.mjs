@@ -4,6 +4,7 @@ import { lstat, readFile, realpath } from 'node:fs/promises';
 import { APP_ROOT } from './paths.mjs';
 import { loadIndustryConfig } from './industry-segments.mjs';
 import { loadAutomaticRefreshAuthorizations } from './automatic-refresh-authorization.mjs';
+import { readCaChildcareStatusReadiness } from './ca-childcare-status-readiness.mjs';
 
 const STATE=/^[A-Z]{2}$/;
 const INDUSTRY=/^[a-z][a-z0-9-]{1,79}$/;
@@ -26,7 +27,7 @@ async function enrolledReport(root){
   return {report,config};
 }
 
-export async function stateAccessView({root=APP_ROOT,state,industry}={}){
+export async function stateAccessView({root=APP_ROOT,state,industry,caStatusReadinessLoader=readCaChildcareStatusReadiness}={}){
   check(STATE.test(state??''),'Invalid state selection.');check(INDUSTRY.test(industry??''),'Invalid industry selection.');
   const {report}=await enrolledReport(root);
   const jurisdiction=report.jurisdictions.find(row=>row?.state===state);check(jurisdiction,'State is outside the enrolled ledger.');const cell=jurisdiction.industries?.find(row=>row?.industry===industry);check(cell,'Industry is outside the enrolled ledger.');
@@ -41,7 +42,8 @@ export async function stateAccessView({root=APP_ROOT,state,industry}={}){
     contextTemporalEvidence=temporal(cell.annualAggregateContext.temporalEvidence);
   }
   const retainedDirectoryEvidence=cell.retainedDirectoryEvidence??[];check(Array.isArray(retainedDirectoryEvidence)&&retainedDirectoryEvidence.every(item=>item?.status==='verified-retained-directory-readiness'&&Number.isSafeInteger(item.directoryRows)&&item.directoryRows>=0&&item.namedBusinessCount===null&&item.uniqueBusinessCount===null&&item.physicalSiteCount===null&&item.currentOperatingCount===null&&item.nationalCompletenessPercent===null&&item.currentUspsAssignmentVerified===false&&item.zctaMembershipInferred===false&&item.countyAssignmentPerformed===false&&item.spatialAssignmentPerformed===false));
-  return {accessEvidenceStatus:cell.accessEvidenceStatus,temporalStatus:cell.temporalStatus,exactBindings,...(cell.annualAggregateContext?{annualAggregateContext:cell.annualAggregateContext,contextTemporalEvidence}:{}),retainedDirectoryEvidence,limitations:cell.limitations};
+  let publisherStatusReadiness=null;if(state==='CA'&&industry==='childcare'){publisherStatusReadiness=await caStatusReadinessLoader({root});check(publisherStatusReadiness?.schema_version==='ca-childcare-status-readiness-view@1.0.0'&&publisherStatusReadiness.state==='CA'&&publisherStatusReadiness.industry==='childcare'&&publisherStatusReadiness.publisher_rows===39184&&publisherStatusReadiness.claims?.provider_rows_acquired===0&&publisherStatusReadiness.claims.current_operations_verified===false&&publisherStatusReadiness.claims.statewide_completeness===null&&publisherStatusReadiness.claims.business_count===null,'California childcare publisher readiness is invalid.');}
+  return {accessEvidenceStatus:cell.accessEvidenceStatus,temporalStatus:cell.temporalStatus,exactBindings,...(cell.annualAggregateContext?{annualAggregateContext:cell.annualAggregateContext,contextTemporalEvidence}:{}),retainedDirectoryEvidence,...(publisherStatusReadiness?{publisherStatusReadiness}:{}),limitations:cell.limitations};
 }
 
 export async function stateAccessIndustrySummary({root=APP_ROOT,configLoader=loadIndustryConfig}={}){
