@@ -11,9 +11,10 @@ function usage() {
   return `Run the governed USDA Organic INTEGRITY metadata-only preflight.
 
 Usage:
-  node scripts/preflight-usda-organic-integrity.mjs --workbook-url <exact-official-url> [options]
+  node scripts/preflight-usda-organic-integrity.mjs (--discover-latest | --workbook-url <exact-official-url>) [options]
 
-Required:
+Discovery mode (choose exactly one):
+  --discover-latest      Select the newest exact workbook link exposed by the bounded official history HTML
   --workbook-url <url>  Exact https://organic.ams.usda.gov/Integrity/MonthlyReports/INTEGRITY_Data_YYYYMM01.xlsx URL
 
 Options:
@@ -22,16 +23,17 @@ Options:
   --stdout-only         Print the receipt without writing it
   --help                Show this help
 
-The command downloads only bounded history HTML and requires the exact expected monthly workbook link to appear there. It makes zero requests to the workbook URL and never writes current.json.
+The command downloads only bounded history HTML and requires either the newest discovered link or the exact expected monthly workbook link to appear there. It makes zero requests to the workbook URL and never writes current.json.
 `;
 }
 
 function parseArguments(arguments_) {
-  const result = { workbookUrl: null, output: "data/business-sources/usda-organic-integrity/preflights", stdoutOnly: false };
+  const result = { workbookUrl: null, discoverLatest: false, output: "data/business-sources/usda-organic-integrity/preflights", stdoutOnly: false };
   for (let index = 0; index < arguments_.length; index += 1) {
     const argument = arguments_[index];
     if (argument === "--help") return { help: true };
     if (argument === "--stdout-only") { result.stdoutOnly = true; continue; }
+    if (argument === "--discover-latest") { result.discoverLatest = true; continue; }
     if (!["--workbook-url", "--output"].includes(argument)) throw new Error(`Unknown argument ${argument}.`);
     const value = arguments_[index + 1];
     if (!value) throw new Error(`${argument} requires a value.`);
@@ -39,7 +41,7 @@ function parseArguments(arguments_) {
     if (argument === "--workbook-url") result.workbookUrl = value;
     if (argument === "--output") result.output = value;
   }
-  if (!result.workbookUrl) throw new Error("--workbook-url is required.");
+  if (result.discoverLatest === Boolean(result.workbookUrl)) throw new Error("Choose exactly one of --discover-latest or --workbook-url.");
   return result;
 }
 
@@ -70,7 +72,7 @@ try {
   if (options.help) {
     process.stdout.write(usage());
   } else {
-    const receipt = await preflightUsdaOrganicIntegrity({ workbookUrl: options.workbookUrl });
+    const receipt = await preflightUsdaOrganicIntegrity({ workbookUrl: options.discoverLatest ? undefined : options.workbookUrl });
     if (options.stdoutOnly) {
       process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
     } else {

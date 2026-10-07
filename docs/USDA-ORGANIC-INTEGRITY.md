@@ -12,6 +12,8 @@ https://organic.ams.usda.gov/Integrity/MonthlyReports/INTEGRITY_Data_YYYYMM01.xl
 
 The host, port, user information, case-sensitive path, filename date, empty query, and empty fragment are all validated. Redirects are denied. If the bounded HTML does not expose such a link—as can occur with the current server-rendered application—the preflight fails closed and makes no workbook request.
 
+On October 7, 2026, `--discover-latest` completed its single bounded history request and failed closed because the returned HTML exposed no exact monthly workbook link. It made zero workbook requests, acquired zero source records, and wrote no receipt or pointer. This is an access/discovery limitation, not a zero-operation result or evidence that the USDA dataset is unavailable.
+
 Authoritative references:
 
 - [Organic INTEGRITY Database](https://organic.ams.usda.gov/integrity/Default)
@@ -23,7 +25,13 @@ The Ag Data Commons catalog labels the dataset U.S. Public Domain. That label is
 
 ## Metadata-only preflight
 
-Run from the repository root with the exact monthly link expected in the official history response:
+Run from the repository root to discover the newest exact monthly link in the official bounded history response:
+
+```powershell
+node scripts/preflight-usda-organic-integrity.mjs --discover-latest
+```
+
+For a previously reviewed month, require that exact link instead:
 
 ```powershell
 node scripts/preflight-usda-organic-integrity.mjs `

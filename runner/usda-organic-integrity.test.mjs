@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { gzipSync, gunzipSync } from "node:zlib";
 
@@ -25,6 +27,7 @@ import {
 
 const WORKBOOK_URL = "https://organic.ams.usda.gov/Integrity/MonthlyReports/INTEGRITY_Data_20260901.xlsx";
 const BUILD_NOW = () => new Date("2026-09-03T16:00:00.000Z");
+const PREFLIGHT_CLI = fileURLToPath(new URL("../scripts/preflight-usda-organic-integrity.mjs", import.meta.url));
 
 function hash(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -139,6 +142,16 @@ test("metadata-only preflight discovers an exact workbook link from one bounded 
     workbookUrl: WORKBOOK_URL,
     fetchImpl: async () => response(Buffer.alloc(65 * 1024, 65), { "content-type": "text/html", "content-length": "10" }),
   }), /exceeded its bounded size limit/);
+});
+
+test("metadata CLI exposes explicit latest-link discovery and rejects ambiguous discovery before network", () => {
+  const help = spawnSync(process.execPath, [PREFLIGHT_CLI, "--help"], { encoding: "utf8" });
+  assert.equal(help.status, 0);
+  assert.match(help.stdout, /--discover-latest/);
+  const ambiguous = spawnSync(process.execPath, [PREFLIGHT_CLI, "--discover-latest", "--workbook-url", WORKBOOK_URL], { encoding: "utf8" });
+  assert.equal(ambiguous.status, 1);
+  assert.match(ambiguous.stderr, /Choose exactly one/);
+  assert.doesNotMatch(ambiguous.stderr, /HTTP|history metadata|workbook request/);
 });
 
 test("preflight receipt output rejects a junction that resolves outside datahub", async (t) => {
