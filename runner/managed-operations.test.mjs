@@ -14,7 +14,9 @@ const sha = (text) => createHash("sha256").update(text).digest("hex");
 async function fixture(t, options = {}) {
   const relative = `data/managed-operations-test-${process.pid}-${Math.random().toString(16).slice(2)}`;
   const root = path.join(APP_ROOT, relative); await mkdir(root, { recursive: true }); t.after(() => rm(root, { recursive: true, force: true }));
-  return createManagedOperations({ root: relative, configLoader: async () => config, ...options });
+  return createManagedOperations({ root: relative, configLoader: async () => config,
+    automaticRefreshLoader: async () => [{ sourceId: "source", script: config.sources.source.script, automaticRefreshAuthorized: true, reasonCode: null, governedSourceId: null }],
+    ...options });
 }
 async function finished(service, id) { for (let i = 0; i < 100; i += 1) { const operation = await service.get(id); if (!["QUEUED", "RUNNING"].includes(operation.status)) return operation; await new Promise((resolve) => setTimeout(resolve, 5)); } throw new Error("operation did not finish"); }
 
