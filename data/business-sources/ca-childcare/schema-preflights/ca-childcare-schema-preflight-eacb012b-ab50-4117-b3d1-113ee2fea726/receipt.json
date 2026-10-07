@@ -1,0 +1,287 @@
+{
+  "schema_version": "ca-childcare-schema-preflight-receipt@1.0.0",
+  "status": "official-zero-record-schema-and-row-totals-validated",
+  "observed_at": "2026-10-07T09:09:44.333Z",
+  "catalog": {
+    "url": "https://data.ca.gov/@california-department-of-social-services/community-care-licensing-facilities",
+    "last_updated": "2026-09-30",
+    "frequency": "Irregular",
+    "response_bytes": 68268,
+    "response_sha256": "96d0feb83dea3ba365c7749821b3253d82775e25e8c9f66acd92e5f3bbafdb50"
+  },
+  "package": {
+    "url": "https://data.chhs.ca.gov/api/3/action/package_show?id=46ffcbdf-4874-4cc1-92c2-fb715e3ad014",
+    "response_bytes": 13166,
+    "response_sha256": "8fc2942a0e87d1da61824b335bb619671ddbfe239fe0b45e1aa6b430a9639491",
+    "resources": [
+      {
+        "id": "7aed8063-cea7-4367-8651-c81643164ae0",
+        "name": "Child Care Centers",
+        "format": "CSV",
+        "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/7aed8063-cea7-4367-8651-c81643164ae0/download/tmpwya01y9s.csv",
+        "datastore_active": true,
+        "size": 3838380,
+        "hash_md5": "99292a8900b9d8c673627b4e461e4d4f",
+        "created": "2024-10-02T20:10:49.156723",
+        "last_modified": "2025-05-27T23:42:16.512684",
+        "metadata_modified": "2025-05-27T23:47:15.196263"
+      },
+      {
+        "id": "4b5cc48d-03b1-4f42-a7d1-b9816903eb2b",
+        "name": "Family Child Care Homes",
+        "format": "CSV",
+        "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/4b5cc48d-03b1-4f42-a7d1-b9816903eb2b/download/tmpghf_prqt.csv",
+        "datastore_active": true,
+        "size": 3485818,
+        "hash_md5": "4cc95c2afb43302d8016625e02b4201f",
+        "created": "2024-10-02T19:42:13.886684",
+        "last_modified": "2025-05-27T23:42:21.908087",
+        "metadata_modified": "2025-05-27T23:45:00.896337"
+      }
+    ]
+  },
+  "datastore": {
+    "resources": [
+      {
+        "resource_id": "7aed8063-cea7-4367-8651-c81643164ae0",
+        "label": "Child Care Centers",
+        "row_total_at_observation": 19426,
+        "records_returned": 0,
+        "fields": [
+          {
+            "id": "_id",
+            "type": "int"
+          },
+          {
+            "id": "facility_type",
+            "type": "text"
+          },
+          {
+            "id": "facility_number",
+            "type": "text"
+          },
+          {
+            "id": "facility_name",
+            "type": "text"
+          },
+          {
+            "id": "licensee",
+            "type": "text"
+          },
+          {
+            "id": "facility_administrator",
+            "type": "text"
+          },
+          {
+            "id": "facility_telephone_number",
+            "type": "text"
+          },
+          {
+            "id": "facility_address",
+            "type": "text"
+          },
+          {
+            "id": "facility_city",
+            "type": "text"
+          },
+          {
+            "id": "facility_state",
+            "type": "text"
+          },
+          {
+            "id": "facility_zip",
+            "type": "text"
+          },
+          {
+            "id": "county_name",
+            "type": "text"
+          },
+          {
+            "id": "regional_office",
+            "type": "text"
+          },
+          {
+            "id": "facility_capacity",
+            "type": "text"
+          },
+          {
+            "id": "facility_status",
+            "type": "text"
+          },
+          {
+            "id": "license_first_date",
+            "type": "text"
+          },
+          {
+            "id": "closed_date",
+            "type": "text"
+          },
+          {
+            "id": "file_date",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "resource_id": "4b5cc48d-03b1-4f42-a7d1-b9816903eb2b",
+        "label": "Family Child Care Homes",
+        "row_total_at_observation": 19758,
+        "records_returned": 0,
+        "fields": [
+          {
+            "id": "_id",
+            "type": "int"
+          },
+          {
+            "id": "facility_type",
+            "type": "text"
+          },
+          {
+            "id": "facility_number",
+            "type": "text"
+          },
+          {
+            "id": "facility_name",
+            "type": "text"
+          },
+          {
+            "id": "licensee",
+            "type": "text"
+          },
+          {
+            "id": "facility_administrator",
+            "type": "text"
+          },
+          {
+            "id": "facility_telephone_number",
+            "type": "text"
+          },
+          {
+            "id": "facility_address",
+            "type": "text"
+          },
+          {
+            "id": "facility_city",
+            "type": "text"
+          },
+          {
+            "id": "facility_state",
+            "type": "text"
+          },
+          {
+            "id": "facility_zip",
+            "type": "text"
+          },
+          {
+            "id": "county_name",
+            "type": "text"
+          },
+          {
+            "id": "regional_office",
+            "type": "text"
+          },
+          {
+            "id": "facility_capacity",
+            "type": "text"
+          },
+          {
+            "id": "facility_status",
+            "type": "text"
+          },
+          {
+            "id": "license_first_date",
+            "type": "text"
+          },
+          {
+            "id": "closed_date",
+            "type": "text"
+          },
+          {
+            "id": "file_date",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "shared_schema": true,
+    "schema_field_count": 18,
+    "provider_records_returned": 0
+  },
+  "privacy": {
+    "excluded_fields": [
+      "licensee",
+      "facility_administrator",
+      "facility_telephone_number"
+    ],
+    "future_allowed_fields": [
+      "facility_type",
+      "facility_number",
+      "facility_name",
+      "facility_address",
+      "facility_city",
+      "facility_state",
+      "facility_zip",
+      "county_name",
+      "regional_office",
+      "facility_capacity",
+      "facility_status",
+      "license_first_date",
+      "closed_date",
+      "file_date"
+    ]
+  },
+  "temporal_warning": {
+    "catalog_last_updated": "2026-09-30",
+    "backend_resource_last_modified_values": [
+      "2025-05-27T23:42:16.512684",
+      "2025-05-27T23:42:21.908087"
+    ],
+    "consistent": false,
+    "meaning": "Catalog and CKAN backend resource dates differ; neither proves row-effective date or current operation."
+  },
+  "requests": [
+    {
+      "url": "https://data.ca.gov/@california-department-of-social-services/community-care-licensing-facilities",
+      "method": "GET",
+      "records_returned": 0,
+      "response_bytes": 68268
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/package_show?id=46ffcbdf-4874-4cc1-92c2-fb715e3ad014",
+      "method": "GET",
+      "records_returned": 0,
+      "response_bytes": 13166
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search?resource_id=7aed8063-cea7-4367-8651-c81643164ae0&limit=0&include_total=true",
+      "method": "GET",
+      "records_returned": 0,
+      "response_bytes": 1349
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search?resource_id=4b5cc48d-03b1-4f42-a7d1-b9816903eb2b&limit=0&include_total=true",
+      "method": "GET",
+      "records_returned": 0,
+      "response_bytes": 1349
+    }
+  ],
+  "unresolved_gates": [
+    "csv-file-delivery-or-datastore-acquisition-authorization",
+    "status-vocabulary",
+    "physical-versus-mailing-address",
+    "zip5-and-zip4-parsing",
+    "suppression-and-redaction-semantics",
+    "catalog-backend-temporal-disagreement"
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_records_returned": 0,
+    "csv_body_requests": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "datastore_schema_verified": true,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
