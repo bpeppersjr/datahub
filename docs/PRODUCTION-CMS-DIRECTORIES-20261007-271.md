@@ -1,0 +1,9 @@
+# Production planning receipt 271
+
+Run `production-cms-directories-20261007-271` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-271.json`, confirmation SHA-256 `5cea220f4df5eb058cba6af7ac5761ff9e1831497dd75d9f4e6531f647a4ae75`, and file SHA-256 `18805cb5e6e463f7306d60f32194b31ec7c5498d45df3d552975afc9a7436239`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,493,568,512 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.5.0` and reports twenty-four governed childcare source discoveries. Montana exposes official statewide licensed-provider search and exact center, group-home, family-home, and legally-certified-provider boundaries, but no supported bulk/API contract. North Carolina exposes official facility search, aggregate dashboard downloads, and a provider-level data-request path; aggregate dashboard data is not treated as entity data, and facility records retain the publisher-described possible 1–364-day update age. Search automation and acquisition remain disabled, and no provider rows were acquired.
+
+Verification passed ten focused source-discovery, state-access, and administration tests. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing large-chunk warning. The required stop, desktop control-plane test, and launch cycle passed; exactly one listener served `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{ "ok": true }`.

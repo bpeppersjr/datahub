@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "mt-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MT",
+  "industry": "childcare",
+  "publisher": "Montana Department of Public Health and Human Services Child Care Licensing",
+  "decision": "official-licensed-provider-dashboard-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://dphhs.mt.gov/ecfsd/childcare/childcarelicensing/",
+      "role": "official-provider-search-and-licensing-authority",
+      "evidence": "DPHHS links provider search and inspection information and licenses or registers child care programs."
+    },
+    {
+      "url": "https://dphhs.mt.gov/ecfsd/childcare/ecsbproviders",
+      "role": "official-statewide-provider-search-description",
+      "evidence": "DPHHS describes statewide and local licensed-provider search; subsidy participation is separate."
+    },
+    {
+      "url": "https://dphhs.mt.gov/ecfsd/childcare/childcarelicensing/childcareprovidersearch/",
+      "role": "official-program-type-boundary",
+      "evidence": "Centers, group homes, family homes, and legally certified providers have materially different licensing and monitoring rules."
+    },
+    {
+      "url": "https://dphhs.mt.gov/assets/ecfsd/childcare/documentsandresources/MontanaCCDFStatePlan.pdf",
+      "role": "official-search-cohort-description",
+      "evidence": "The state plan describes search by county, city, provider type, PV number, ages served, and license status for licensed providers."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-and-registered-child-care-providers",
+    "program_types": "center-group-home-family-home-and-legally-certified-provider-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "License or registration, provider type, subsidy eligibility, inspection, license status, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No supported machine-readable export, snapshot date, lifecycle vocabulary, or refresh contract was established."
+  },
+  "required_record_contract": {
+    "pv_or_license_number": "required-source-identifier",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "license_or_registration_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-and-inspection-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "center-home-and-legally-certified-cohort-separation",
+    "license-status-and-operation-semantics",
+    "home-provider-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-provider-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek a DPHHS-sanctioned center-focused machine-readable extract; do not automate provider search, and validate program type, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

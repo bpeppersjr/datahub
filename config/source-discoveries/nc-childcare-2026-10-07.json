@@ -1,0 +1,91 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nc-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NC",
+  "industry": "childcare",
+  "publisher": "North Carolina Division of Child Development and Early Education",
+  "decision": "official-facility-search-and-data-request-path-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://ncchildcare.ncdhhs.gov/childcaresearch",
+      "role": "official-facility-search",
+      "evidence": "DCDEE supports search by license number, name, city, county, ZIP, facility type, permit type, ages, subsidy enrollment, and program attributes."
+    },
+    {
+      "url": "https://www.ncdhhs.gov/child-development-and-early-education",
+      "role": "official-licensing-and-search-authority",
+      "evidence": "NCDHHS identifies DCDEE as the quality and child-care authority and links its official facility search."
+    },
+    {
+      "url": "https://ncchildcare.ncdhhs.gov/Home/Data/Dashboards/Data-Behind-the-Dashboard",
+      "role": "official-aggregate-download-and-temporal-limit",
+      "evidence": "Downloadable dashboards are aggregate; facility Regulatory System values may be 1–364 days old because updates occur during at-least-annual site visits."
+    },
+    {
+      "url": "https://ncchildcare.ncdhhs.gov/Home/Data/Dashboards/NC-Pre-K",
+      "role": "official-data-request-path",
+      "evidence": "DCDEE directs additional detailed data requests through its Data Request Portal."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-facilities-filterable-by-facility-and-permit-type",
+    "aggregate_download_scope": "county-and-program-aggregates-not-provider-rows",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Facility search, permit type, star rating, subsidy enrollment, NC Pre-K, aggregate dashboards, and active operation are distinct; aggregate downloads cannot supply entity rows."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "provider_level_data_request_path_available": true,
+    "aggregate_dashboard_download_available": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "facility-values-updated-during-at-least-annual-site-visits",
+    "snapshot_date": null,
+    "maximum_described_facility_record_age_days": 364,
+    "current_operation_equivalence": false,
+    "limitation": "No provider-level machine-readable snapshot, generated-at date, complete status vocabulary, or refresh contract was established."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "permit_type": "required-preserve-verbatim",
+    "license_or_permit_status": "required-preserve-verbatim",
+    "subsidy_enrollment": "required-preserve-separately-if-published",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-and-enrollment-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "approved-provider-level-data-request",
+    "machine-readable-format-schema-generated-at-and-record-age",
+    "center-home-facility-and-permit-type-separation",
+    "license-status-subsidy-and-operation-semantics",
+    "home-provider-privacy",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Use the DCDEE data-request route for a center-focused provider-level extract and exact reuse terms; do not automate facility search or substitute aggregate dashboard downloads for entity records.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
