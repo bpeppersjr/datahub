@@ -1,0 +1,104 @@
+{
+  "schema_version": "ga-childcare-metadata-preflight-receipt@1.0.0",
+  "status": "export-contract-and-dictionary-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T08:37:49.803Z",
+  "page": {
+    "url": "https://families.decal.ga.gov/Provider/Data",
+    "content_type": "text/html",
+    "last_modified": "Thu, 24 Sep 2026 15:58:35 GMT",
+    "etag": "\"78902780\""
+  },
+  "application": {
+    "bundle_url": "https://families.decal.ga.gov/assets/index-wSbqsIq9.js",
+    "content_type": "text/javascript",
+    "last_modified": "Thu, 24 Sep 2026 15:58:35 GMT",
+    "etag": "\"78902780\"",
+    "export_contract": {
+      "method": "POST",
+      "path": "/Provider/Export",
+      "request_fields": [
+        "qualityRatedOnly",
+        "preKOnly",
+        "selectedProgramTypes",
+        "selectedCountyId"
+      ],
+      "response_type": "blob-csv"
+    },
+    "licensed_program_types": [
+      {
+        "id": 100,
+        "label": "Child Care Learning Centers"
+      },
+      {
+        "id": 102,
+        "label": "Family Child Care Learning Homes"
+      }
+    ]
+  },
+  "dictionary": {
+    "url": "https://www.decal.ga.gov/Documents/Attachments/DataExportDataDictionary.pdf",
+    "sha256": "565c5862037ae94ec2f6bcfec05763eaa0993bae061ec36c44b1c03dcfbeeaab",
+    "bytes": 209120,
+    "last_modified": "Fri, 17 Jul 2020 20:44:01 GMT",
+    "etag": "\"d5c0b207b5cd61:0\"",
+    "document_date": "2020-07-01",
+    "selected_fields": [
+      "Provider_Number",
+      "Location",
+      "County",
+      "Address",
+      "City",
+      "State",
+      "Zip",
+      "LicenseCapacity",
+      "Program_Type",
+      "Provider_Type"
+    ],
+    "excluded_fields": [
+      "administrator",
+      "MailingAddress",
+      "MailingCity",
+      "MailingState",
+      "MailingZip",
+      "Email",
+      "Phone"
+    ]
+  },
+  "requests": [
+    {
+      "kind": "page",
+      "method": "GET",
+      "url": "https://families.decal.ga.gov/Provider/Data",
+      "status": 200,
+      "response_bytes": 2523,
+      "response_sha256": "273e8913141edafe9f0c8f449ce7e7c6f34827cb0ac2eecadcc3d73ca2fa004c"
+    },
+    {
+      "kind": "bundle",
+      "method": "GET",
+      "url": "https://families.decal.ga.gov/assets/index-wSbqsIq9.js",
+      "status": 200,
+      "response_bytes": 5434696,
+      "response_sha256": "5b456ee11dfbefe1ccc53aa21713351f48e1b654dbf75035ed0f6e6391e9c745"
+    },
+    {
+      "kind": "dictionary",
+      "method": "GET",
+      "url": "https://www.decal.ga.gov/Documents/Attachments/DataExportDataDictionary.pdf",
+      "status": 200,
+      "response_bytes": 209120,
+      "response_sha256": "565c5862037ae94ec2f6bcfec05763eaa0993bae061ec36c44b1c03dcfbeeaab"
+    }
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "export_post_requests": 0,
+    "provider_detail_requests": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "dictionary_current": false,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

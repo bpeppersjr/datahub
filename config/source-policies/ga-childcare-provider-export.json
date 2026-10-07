@@ -1,0 +1,13 @@
+{
+  "policy_id": "ga-childcare-provider-export",
+  "version": "1.0.0",
+  "publisher": "Georgia Department of Early Care and Learning",
+  "ownership": "Official DECAL Family Access to Services and Tools Provider Data Export",
+  "allowed_use": ["bounded validation of the public export page and current same-origin application contract", "validation of the exact reviewed official data-dictionary PDF", "immutable retention of privacy-safe metadata evidence"],
+  "prohibited_use": ["calling the provider export POST endpoint in this version", "provider-row or provider-detail acquisition", "retaining administrator, email, phone, mailing-address, or other contact fields", "claiming current operation, statewide completeness, dictionary currency, ZIP validity, or production readiness"],
+  "attribution": "Georgia Department of Early Care and Learning (DECAL)",
+  "retention": "Public page, application-contract, and dictionary observations only; no provider export content.",
+  "redistribution": "No provider records are acquired or redistributed.",
+  "temporal_limits": "The live export page and application bundle were observed in 2026, while the official dictionary is dated July 1, 2020; schema currency remains unverified until a separately authorized export is checked.",
+  "review": "A later version must explicitly authorize one bounded export, select licensed Child Care Learning Center and Family Child Care Learning Home codes only, pin the returned CSV schema and observation time, exclude contact and mailing fields, preserve ZIP5 and ZIP4 separately if present, conserve rows by provider type, and define current-status semantics before admission."
+}

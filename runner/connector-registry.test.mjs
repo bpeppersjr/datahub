@@ -97,7 +97,8 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 102);
+  assert.equal(registry.connectorCount, 103);
+  assert.equal(registry.get("ga-childcare-provider-export").resource_class, "bounded-metadata-only");
   assert.equal(registry.get("az-childcare-provider-tables").resource_class, "bounded-metadata-only");
   assert.equal(registry.get("de-childcare-providers").resource_class, "bounded-metadata-only");
   assert.match(registry.get("de-childcare-providers").implementation_status, /record-acquisition-disabled/);
@@ -131,7 +132,7 @@ test("loads the complete repository registry deterministically without secret va
   assert.deepEqual(registry.get("il-business-registry-app").allowed_hosts, []);
   assert.equal(registry.get("de-business-licenses-app").provider_budget_key, "de-dor-business-licenses-public-socrata");
   assert.equal(registry.get("de-business-licenses").version, "1.0.1");
-  assert.equal(registry.policyProfileCount, 79);
+  assert.equal(registry.policyProfileCount, 80);
   assert.equal(registry.get("national-irs-eo-bmf-organization-coverage").implementation_status, "implemented-release-only");
   assert.equal(registry.get("national-cms-nppes-organization-practice-location-coverage").implementation_status, "implemented-release-only");
   assert.equal(registry.get("usps-city-state-admission").implementation_status, "offline-app-managed-package-admission-fail-closed");
