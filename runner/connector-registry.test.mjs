@@ -157,6 +157,18 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(JSON.stringify(entries).includes("FL_SUNBIZ_PUBLIC_PASSWORD"), true);
   assert.equal(JSON.stringify(entries).toLowerCase().includes('"value"'), false);
 
+  const organic = registry.get("usda-organic-integrity");
+  assert.deepEqual(organic.api_readiness, {
+    credential_required: true,
+    credential_reference: "DATA_GOV_API_KEY",
+    credential_present: null,
+    execution_enabled: false,
+    record_requests_performed: 0,
+    credential_creation_performed: false,
+    default_rate_limit_requests_per_hour: 1000,
+  });
+  assert.equal(JSON.stringify(organic.api_readiness).includes("api_key"), false);
+
   const florida = registry.get("fl-business-registry");
   assert.deepEqual(florida.named_secret_references, [{ name: "FL_SUNBIZ_PUBLIC_PASSWORD" }]);
   florida.allowed_hosts.push("mutation.example");

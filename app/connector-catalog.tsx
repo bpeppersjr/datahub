@@ -26,6 +26,15 @@ type Connector = {
   };
   produced_entities: string[];
   produced_identifiers: string[];
+  api_readiness: {
+    credential_required: boolean;
+    credential_reference: string | null;
+    credential_present: null;
+    execution_enabled: boolean;
+    record_requests_performed: number | null;
+    credential_creation_performed: boolean;
+    default_rate_limit_requests_per_hour: number | null;
+  } | null;
   manifest_sha256: string;
 };
 
@@ -131,6 +140,7 @@ export default function ConnectorCatalog() {
                 <div><span>Artifacts</span><p>{connector.input_artifact_types.length} inputs → {connector.output_artifact_types.length} outputs</p></div>
                 <div><span>Produced records</span><p>{connector.produced_entities.join(', ')}</p><small>{connector.produced_identifiers.length} governed identifier types</small></div>
                 <div><span>Secret references</span><p>{connector.named_secret_references.length ? connector.named_secret_references.map((secret) => secret.name).join(', ') : 'None'}</p><small>Reference names only; values are never part of the catalog.</small></div>
+                {connector.api_readiness && <div><span>API collection readiness</span><p>{connector.api_readiness.execution_enabled ? 'Execution enabled' : 'Collection disabled'} · {connector.api_readiness.credential_required ? `Credential required: ${connector.api_readiness.credential_reference}` : 'No named credential required'}</p><small>Credential presence: not inspected · record requests performed: {connector.api_readiness.record_requests_performed ?? 'unknown'} · credential creation performed: {connector.api_readiness.credential_creation_performed ? 'yes' : 'no'}{connector.api_readiness.default_rate_limit_requests_per_hour ? ` · documented default limit: ${connector.api_readiness.default_rate_limit_requests_per_hour.toLocaleString()} requests/hour` : ''}. Configuration is not collected industry data.</small></div>}
                 <div><span>Manifest proof</span><p className="connector-hash">sha256:{connector.manifest_sha256}</p></div>
               </div>
             </details>

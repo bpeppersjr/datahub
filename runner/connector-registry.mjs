@@ -266,6 +266,11 @@ function validatePolicy(policy, filename) {
 }
 
 function publicEntry(entry) {
+  const apiContract = isPlainObject(entry.manifest.api_contract) ? entry.manifest.api_contract : null;
+  const credentialReference = typeof apiContract?.credential_reference === "string"
+    && entry.manifest.named_secret_references.some((item) => (typeof item === "string" ? item : item.name) === apiContract.credential_reference)
+    ? apiContract.credential_reference
+    : null;
   return {
     connector_id: entry.manifest.connector_id,
     version: entry.manifest.version,
@@ -293,6 +298,15 @@ function publicEntry(entry) {
     retention_profile: entry.manifest.retention_profile,
     produced_entities: clone(entry.manifest.produced_entities),
     produced_identifiers: clone(entry.manifest.produced_identifiers),
+    api_readiness: apiContract ? {
+      credential_required: credentialReference !== null,
+      credential_reference: credentialReference,
+      credential_present: null,
+      execution_enabled: apiContract.execution_enabled === true,
+      record_requests_performed: Number.isSafeInteger(apiContract.record_requests_performed) && apiContract.record_requests_performed >= 0 ? apiContract.record_requests_performed : null,
+      credential_creation_performed: apiContract.credential_creation_performed === true,
+      default_rate_limit_requests_per_hour: Number.isSafeInteger(apiContract.default_rate_limit_requests_per_hour) && apiContract.default_rate_limit_requests_per_hour > 0 ? apiContract.default_rate_limit_requests_per_hour : null,
+    } : null,
     manifest_sha256: entry.manifestSha256,
   };
 }
