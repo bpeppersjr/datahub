@@ -173,29 +173,28 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
   assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
-assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7');
-  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba');
-  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975');
-  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,50,2409700]);
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd');
-  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2409700);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e');
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2409700);
-  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2409700);
+assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9');
+  assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'04b0ff129f6ff46cbc38d1374dd3e08babd4dd9852a890ea769be430cef1b72b');
+  assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7');
+  assert.deepEqual([readiness.bindings.zip_industry_matrix.zip5_rows,readiness.bindings.zip_industry_matrix.dimension_count,readiness.bindings.zip_industry_matrix.industry_cells],[48194,51,2457894]);
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.registration_sha256,'fa9c83d1193f72d59c97bd6bdb90cd5a31fafa99a5039236931977aefc85599f');
+  assert.equal(readiness.bindings.zip_industry_matrix.temporal_qualification.qualification_cell_total,2457894);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.registration_sha256,'6d08eb60a5182fa3316467f67fd3ebfb72daecd0f99993c36faa185be9164155');
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_cell_total,2457894);
+  assert.equal(readiness.bindings.zip_industry_matrix.national_summary.derived_evidence_cell_total,2457894);
   assert.equal(readiness.bindings.zip_industry_matrix.national_summary.raw_status_preserved_separately,true);
   assert.equal(readiness.bindings.zip_industry_matrix.recursive_lineage_verified,true);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_membership,'City of Chicago source-defined current active business-license view');
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.lifecycle_status,'source-defined-current-membership');
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.municipal_scope,'City of Chicago');
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.reported_address_jurisdiction_may_differ,true);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.address_jurisdiction_inferred,false);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_chicago_license_location_profiles,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_membership,'New York Agriculture and Markets annual licensed retail-food-store snapshot');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.lifecycle_status,'non-active-reporting');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.publisher_scope,'New York State');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.nonadditive_with_ny_retail_food_location_profiles,true);
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.address_evidence_may_not_qualify_as_physical_site,true);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.unique_business_count,null);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_selected_official_view_snapshot,true);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.source_coordinates_available,true);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.site_occupancy_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.public_access_verified,false);
-  assert.equal(readiness.bindings.zip_industry_matrix.claims.aggregate_export_policy,'public-with-provenance-and-semantic-limitations');
+  assert.equal(readiness.bindings.zip_industry_matrix.claims.aggregate_export_policy,'public-under-open-ny-terms-with-attribution-and-limitations');
   assert.equal(readiness.bindings.zip_industry_matrix.claims.current_operations_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.continuous_operation_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_all_businesses,false);
@@ -222,9 +221,9 @@ assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-z
     value => { value.bindings.zip_industry_matrix.recursive_lineage_verified = false; },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.registration_sha256='0'.repeat(64); },
     value => { value.bindings.zip_industry_matrix.temporal_qualification.current_operations_verified=true; },
-    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_chicago_license_location_profiles=false; },
-    value => { value.bindings.zip_industry_matrix.claims.reported_address_jurisdiction_may_differ=false; },
-    value => { value.bindings.zip_industry_matrix.claims.address_jurisdiction_inferred=true; },
+    value => { value.bindings.zip_industry_matrix.claims.nonadditive_with_ny_retail_food_location_profiles=false; },
+    value => { value.bindings.zip_industry_matrix.claims.address_evidence_may_not_qualify_as_physical_site=false; },
+    value => { value.bindings.zip_industry_matrix.claims.source_coordinates_are_verified_premises=true; },
     value => { value.bindings.zip_industry_matrix.claims.complete_selected_official_view_snapshot=false; },
     value => { value.bindings.zip_industry_matrix.claims.site_occupancy_verified=true; },
     value => { value.bindings.zip_industry_matrix.claims.public_access_verified=true; },

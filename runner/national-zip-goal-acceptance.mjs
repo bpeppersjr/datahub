@@ -5,10 +5,10 @@ import { isDeepStrictEqual as same } from 'node:util';
 import { APP_ROOT } from './paths.mjs';
 import { mnSelectionReadJson as readJson, mnSelectionReadLines as readLines } from './mn-construction-retained-selection.mjs';
 import { readZipEntityResolutionEvidence, RELEASE as ZIP_ENTITY_RELEASE, RELEASE_SHA256 as ZIP_ENTITY_MANIFEST_SHA } from './zip-entity-resolution-evidence.mjs';
-import { readExactZipIndustryEvidenceV29 } from './national-exact-zip-industry-evidence-matrix-v2-9-reader.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualificationV29 } from './exact-zip-industry-temporal-qualification-v2-9.mjs';
-import { readExactZipIndustrySummaryV29 } from './exact-zip-industry-summary-v2-9.mjs';
-const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@2.9.0';
+import { readExactZipIndustryEvidenceV30 } from './national-exact-zip-industry-evidence-matrix-v3-0-reader.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from './exact-zip-industry-temporal-qualification-v3-0.mjs';
+import { readExactZipIndustrySummaryV30 } from './exact-zip-industry-summary-v3-0.mjs';
+const ZIP_INDUSTRY_VERSION = 'national-exact-zip-industry-evidence-row@3.0.0';
 import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliation } from './national-business-temporal-lifecycle-reconciliation.mjs';
 import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from './national-business-temporal-lifecycle-reconciliation-v1-1.mjs';
@@ -236,15 +236,13 @@ function validateGoalReadinessBindings(value) {
     && entity.registration_sha256 === 'a99311cfc37b523a9a924555cceb21ab184c65d4192ad9dbe30a428e5da34c39'
     && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba', 'ZIP entity-resolution evidence pin/semantics');
   check(industry?.version === ZIP_INDUSTRY_VERSION
-    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7'
-    && industry.registration_sha256 === '694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba'
-    && industry.manifest_sha256 === '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975'
+    && industry.release_id === 'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9'
+    && industry.registration_sha256 === '04b0ff129f6ff46cbc38d1374dd3e08babd4dd9852a890ea769be430cef1b72b'
+    && industry.manifest_sha256 === '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7'
     && industry?.claims?.current_operations_verified === false
-    && industry?.claims?.publisher_membership === 'City of Chicago source-defined current active business-license view'
-    && industry?.claims?.lifecycle_status === 'source-defined-current-membership'
-    && industry?.claims?.municipal_scope === 'City of Chicago'
-    && industry?.claims?.reported_address_jurisdiction_may_differ === true
-    && industry?.claims?.address_jurisdiction_inferred === false
+    && industry?.claims?.publisher_membership === 'New York Agriculture and Markets annual licensed retail-food-store snapshot'
+    && industry?.claims?.lifecycle_status === 'non-active-reporting'
+    && industry?.claims?.publisher_scope === 'New York State'
     && industry?.claims?.continuous_operation_verified === false
     && industry?.claims?.site_occupancy_verified === false
     && industry?.claims?.public_access_verified === false
@@ -252,17 +250,19 @@ function validateGoalReadinessBindings(value) {
     && industry?.claims?.unique_business_count === null
     && industry?.claims?.complete_selected_official_view_snapshot === true
     && industry?.claims?.source_coordinates_available === true
-    && industry?.claims?.nonadditive_with_chicago_license_location_profiles === true
+    && industry?.claims?.source_coordinates_are_verified_premises === false
+    && industry?.claims?.nonadditive_with_ny_retail_food_location_profiles === true
+    && industry?.claims?.address_evidence_may_not_qualify_as_physical_site === true
     && industry?.claims?.record_export_policy === 'local-review-only'
-    && industry?.claims?.aggregate_export_policy === 'public-with-provenance-and-semantic-limitations'
+    && industry?.claims?.aggregate_export_policy === 'public-under-open-ny-terms-with-attribution-and-limitations'
     && industry?.claims?.usps_validity === null&&industry?.claims?.zcta_is_zip_geometry===false
     && industry?.claims?.production_enrollment === false
-    && industry?.zip5_rows===48194&&industry?.dimension_count===50&&industry?.industry_cells === 2409700&&industry?.recursive_lineage_verified===true
-    &&industry.temporal_qualification?.registration_sha256==='81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd'
-    &&industry.temporal_qualification.dimension_count===50&&industry.temporal_qualification.qualification_cell_total===2409700&&industry.temporal_qualification.current_operations_verified===false
-    &&industry.national_summary?.registration_sha256==='07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e'
-    &&industry.national_summary.dimension_count===50&&industry.national_summary.industry_cells===2409700
-    &&industry.national_summary.raw_status_cell_total===2409700&&industry.national_summary.derived_evidence_cell_total===2409700
+    && industry?.zip5_rows===48194&&industry?.dimension_count===51&&industry?.industry_cells === 2457894&&industry?.recursive_lineage_verified===true
+    &&industry.temporal_qualification?.registration_sha256==='fa9c83d1193f72d59c97bd6bdb90cd5a31fafa99a5039236931977aefc85599f'
+    &&industry.temporal_qualification.dimension_count===51&&industry.temporal_qualification.qualification_cell_total===2457894&&industry.temporal_qualification.current_operations_verified===false
+    &&industry.national_summary?.registration_sha256==='6d08eb60a5182fa3316467f67fd3ebfb72daecd0f99993c36faa185be9164155'
+    &&industry.national_summary.dimension_count===51&&industry.national_summary.industry_cells===2457894
+    &&industry.national_summary.raw_status_cell_total===2457894&&industry.national_summary.derived_evidence_cell_total===2457894
     &&industry.national_summary.raw_status_preserved_separately===true
     &&industry.national_summary.current_operations_verified===false, 'ZIP industry matrix semantic boundary');
   check(temporal?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
@@ -775,9 +775,9 @@ async function readObjectiveReadiness({ signal }) {
   const sampleZip = '00501';
   const [entity, industry, industryTemporal, industrySummary, temporal, temporalReconciliation, publisherMembership, sourceStatusPosture, coRegistrationStatusPosture, loadedGoal, broad, lifecycle] = await Promise.all([
     readZipEntityResolutionEvidence({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceV29({ zip5: sampleZip, signal }),
-    readExactZipIndustryEvidenceWithTemporalQualificationV29({zip5:sampleZip,signal}),
-    readExactZipIndustrySummaryV29({signal}),
+    readExactZipIndustryEvidenceV30({ zip5: sampleZip, signal }),
+    readExactZipIndustryEvidenceWithTemporalQualificationV30({zip5:sampleZip,signal}),
+    readExactZipIndustrySummaryV30({signal}),
     readNationalBusinessTemporalClaimRows({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliation({ signal }),
     verifyNationalBusinessTemporalLifecycleReconciliationV11({ signal }),
@@ -804,23 +804,23 @@ async function readObjectiveReadiness({ signal }) {
     && reportingVerified.artifact_sha256 === REPORTING_SITES.artifact_sha256 && reportingVerified.summary.site_count === REPORTING_SITES.record_count,
     'verified reporting-only site qualification release');
   const [industryRegistration,industryTemporalRegistration,industrySummaryRegistration]=await Promise.all([
-    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v2-9.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v2-9.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v2-9.json',signal)]);
+    snapshot('config/datasets/national-exact-zip-industry-evidence-matrix-v3-0.json',signal),snapshot('config/datasets/exact-zip-industry-temporal-qualification-v3-0.json',signal),snapshot('config/datasets/national-exact-zip-industry-summary-v3-0.json',signal)]);
   const industryPin = industryRegistration.value.retained_release;
   check(industryRegistration.value.dataset_id === 'national-exact-zip-industry-evidence-matrix' && industryRegistration.value.runtime_pointer === null
     && industryRegistration.value.production_enrollment === false && industryPin?.release_id === industry.release_id
-    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===50
-    && industryPin?.industry_cells === 2409700&&industryRegistration.evidence.sha256==='694d650ef277bb7b27c7df05c78e938afa1e99d1495a67910180ecc08609dfba', 'registered industry-matrix release binding');
-  check(industryTemporalRegistration.evidence.sha256==='81bae1e6987ee9273648b3d3e31a55359d34cd5e3d9f49799043bd6b22a6d9bd'
+    && industryPin?.manifest_sha256 === industry.manifest_sha256 && industryPin?.zip5_rows === 48194&&industryPin?.dimension_count===51
+    && industryPin?.industry_cells === 2457894&&industryRegistration.evidence.sha256==='04b0ff129f6ff46cbc38d1374dd3e08babd4dd9852a890ea769be430cef1b72b', 'registered industry-matrix release binding');
+  check(industryTemporalRegistration.evidence.sha256==='fa9c83d1193f72d59c97bd6bdb90cd5a31fafa99a5039236931977aefc85599f'
     &&industryTemporalRegistration.value.matrix_release_id===industry.release_id&&industryTemporalRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industryTemporal.temporal_qualification.rows.length===50&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2409700
+    &&industryTemporal.temporal_qualification.rows.length===51&&industryTemporal.temporal_qualification.rows.length*industryPin.zip5_rows===2457894
     &&industryTemporal.temporal_qualification.claims.current_operations_verified===false&&industryTemporal.temporal_qualification.claims.active_business_count===null
-    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v2.9 temporal qualification binding');
-  check(industrySummaryRegistration.evidence.sha256==='07c2220e6e445548869695374907fffeeb70d90279a32b0d6988110f8f020e3e'
+    &&industryTemporal.temporal_qualification.claims.all_business_completion_percent===null,'v3.0 temporal qualification binding');
+  check(industrySummaryRegistration.evidence.sha256==='6d08eb60a5182fa3316467f67fd3ebfb72daecd0f99993c36faa185be9164155'
     &&industrySummaryRegistration.value.matrix_release_id===industry.release_id&&industrySummaryRegistration.value.matrix_manifest_sha256===industry.manifest_sha256
-    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@2.9.0'&&industrySummary.release_id===industry.release_id
-    &&industrySummary.source_dimensions===50&&industrySummary.industry_cells===2409700
-    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2409700
-    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2409700
+    &&industrySummary.schema_version==='national-exact-zip-industry-summary-view@3.0.0'&&industrySummary.release_id===industry.release_id
+    &&industrySummary.source_dimensions===51&&industrySummary.industry_cells===2457894
+    &&Object.values(industrySummary.raw_status_counts).reduce((sum,count)=>sum+count,0)===2457894
+    &&Object.values(industrySummary.evidence_state_counts).reduce((sum,count)=>sum+count,0)===2457894
     &&industrySummary.zbp_dispositions.every(row=>row.raw_status!==row.evidence_state)&&industrySummary.claims.current_operation_verified===false
     &&industrySummary.claims.all_business_completeness===false
     &&industry.recursive_lineage_verified===true
@@ -830,12 +830,13 @@ async function readObjectiveReadiness({ signal }) {
       .every(id=>industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id===id&&row.semantic_class==='publisher-active-snapshot'&&row.current_operations_verified===false&&row.continuous_operation_verified===false))
     &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='la_publisher_active_listing_location_account_sites'&&row.semantic_class==='unknown-source-status'&&row.municipal_scope==='City of Los Angeles'&&row.current_operations_verified===false&&row.continuous_operation_verified===false)
     &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='ak_active_business_license_conditional_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='Alaska'&&row.reported_address_jurisdiction_may_differ===true&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.coordinates_available===false&&row.evidence_disposition?.additive===false)
-    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='chicago_current_active_business_license_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='City of Chicago'&&row.reported_address_jurisdiction_may_differ===true&&row.address_jurisdiction_inferred===false&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.unique_business_count===null&&row.record_export_policy==='local-review-only'&&row.evidence_disposition?.additive===false),
-  'v2.9 national summary binding');
+    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='chicago_current_active_business_license_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='City of Chicago'&&row.reported_address_jurisdiction_may_differ===true&&row.address_jurisdiction_inferred===false&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.unique_business_count===null&&row.record_export_policy==='local-review-only'&&row.evidence_disposition?.additive===false)
+    &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='ny_retail_food_license_address_evidence_count'&&row.semantic_class==='non-active-reporting'&&row.review_qualification==='stale'&&row.current_operations_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.coordinates_available===true&&row.coordinates_are_verified_premises===false&&row.evidence_disposition?.additive===false),
+  'v3.0 national summary binding');
   check(entity.available && entity.registration_sha256 && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'
     && entity.evidence?.entity_resolution_applied === false && entity.evidence?.benchmark_gate_passed === false, 'registered ZIP entity-resolution evidence');
-  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7'
-    && industry.manifest_sha256 === '9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975'
+  check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9'
+    && industry.manifest_sha256 === '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7'
     && industry.claims?.network_requests === 0 && industry.claims?.production_enrollment === false, 'registered ZIP industry matrix');
   check(temporal.rows.length === 30 && temporal.provenance?.release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
     && temporal.provenance?.manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05', 'selected temporal claim release');
