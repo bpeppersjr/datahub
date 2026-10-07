@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.1.0";
+  schema_version: "state-access-maintenance-backlog@2.2.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -68,7 +68,9 @@ type Backlog = {
         | "official-search-and-data-request-path-identified-acquisition-disabled"
         | "official-dynamic-download-control-identified-contract-unverified"
         | "official-statewide-center-finder-identified-bulk-contract-unverified"
-        | "official-current-and-history-downloads-identified-contract-unverified";
+        | "official-current-and-history-downloads-identified-contract-unverified"
+        | "official-open-provider-search-identified-bulk-contract-unverified"
+        | "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -344,7 +346,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.1.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.2.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -425,6 +427,8 @@ export function validAdministrationBacklog(
             "KY",
             "LA",
             "MA",
+            "MD",
+            "ME",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -442,6 +446,8 @@ export function validAdministrationBacklog(
               KY: "official-dynamic-download-control-identified-contract-unverified",
               LA: "official-statewide-center-finder-identified-bulk-contract-unverified",
               MA: "official-current-and-history-downloads-identified-contract-unverified",
+              MD: "official-open-provider-search-identified-bulk-contract-unverified",
+              ME: "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -449,7 +455,7 @@ export function validAdministrationBacklog(
               ? 4
               : row.state === "ID"
                 ? 6
-                : ["DC", "FL", "GA", "IN"].includes(row.state)
+                : ["DC", "FL", "GA", "IN", "MD"].includes(row.state)
                   ? 3
                   : 5) &&
           row.source_discovery.supported_bulk_export_verified ===

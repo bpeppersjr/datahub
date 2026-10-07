@@ -1,0 +1,80 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "md-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MD",
+  "industry": "childcare",
+  "publisher": "Maryland State Department of Education Office of Child Care",
+  "decision": "official-open-provider-search-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.checkccmd.org/Default.aspx",
+      "role": "official-open-provider-and-compliance-search",
+      "evidence": "MSDE exposes facility type, license status, county, city, ZIP, all-open-provider viewing, verified complaints, and inspection results."
+    },
+    {
+      "url": "https://earlychildhood.marylandpublicschools.org/system/files/filedepot/2/guide_to_regulated_child_care.pdf",
+      "role": "official-regulation-and-search-guide",
+      "evidence": "The Office of Child Care Licensing Branch regulates Maryland child care and identifies Check Child Care Maryland as its public licensing resource."
+    },
+    {
+      "url": "https://earlychildhood.marylandpublicschools.org/child-care-providers/licensing",
+      "role": "official-licensing-authority",
+      "evidence": "MSDE Office of Child Care is the state licensing authority; no supported bulk/API contract was established."
+    }
+  ],
+  "scope": {
+    "search_cohort": "regulated-child-care-providers-with-open-provider-filter",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Open-provider search, facility type, license status, complaints, inspections, corrected findings, and active business operation are separate concepts."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No machine-readable snapshot, as-of date, lifecycle vocabulary, or refresh contract was established."
+  },
+  "required_record_contract": {
+    "license_or_registration_identifier": "required-if-published",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "open_provider_predicate": "required-preserve-separately",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "complaint-person-and-home-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "open-provider-and-license-status-semantics",
+    "facility-type-and-home-privacy",
+    "temporal-and-lifecycle-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-identifier-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek an MSDE-sanctioned center-focused machine-readable extract; do not automate the consumer compliance search, and validate open-provider, license-status, privacy, temporal, reuse, and conservation semantics first.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "me-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "ME",
+  "industry": "childcare",
+  "publisher": "Maine Department of Health and Human Services Office of Child and Family Services",
+  "decision": "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://www.maine.gov/doe/learning/earlychildhood/resources",
+      "role": "official-regulated-program-search-entry",
+      "evidence": "Maine DOE describes Child Care Choices as a statewide search for regulated child care programs."
+    },
+    {
+      "url": "https://search.childcarechoices.me",
+      "role": "official-consumer-provider-search",
+      "evidence": "The state-linked search exposes regulated programs; no supported bulk/API contract or automation authority was established."
+    },
+    {
+      "url": "https://www.maine.gov/doe/sites/maine.gov.doe/files/inline-files/Guidance%20Handbook%20for%20Sponsors%20of%20Family%20Childcare%20Providers_0.pdf",
+      "role": "official-search-status-and-monthly-list-guidance",
+      "evidence": "State guidance documents town/ZIP search, license status and number, and a contact-group path for a monthly licensing list."
+    },
+    {
+      "url": "https://www.maine.gov/dhhs/ocfs/provider-resources/child-care-licensing",
+      "role": "official-licensing-authority",
+      "evidence": "OCFS licenses and oversees child care providers and children’s facilities."
+    },
+    {
+      "url": "https://www3.maine.gov/dhhs/ocfs/provider-resources/child-care-licensing/becoming-a-childcare-provider",
+      "role": "official-program-type-rules",
+      "evidence": "Facility and family child care are governed by distinct licensing rules."
+    }
+  ],
+  "scope": {
+    "search_cohort": "regulated-child-care-programs-including-licensed-and-license-exempt",
+    "monthly_list_scope": "licensing-contact-group-including-new-applicants-not-yet-approved",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Licensed, license-exempt, active, renewal-in-process, sanctioned, expired, and new-applicant records must remain distinct; list receipt would not prove operation."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "monthly_list_contact_path_available": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "monthly-list-described-but-not-received",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No list artifact, schema, as-of contract, current-membership rule, or redistribution terms were established."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "license_effective_dates": "required-if-published",
+    "reported_address": "facility-only-unless-family-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "family-provider-person-and-home-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "authorized-monthly-list-contact-and-receipt",
+    "approved-versus-applicant-cohort-separation",
+    "license-status-and-operation-semantics",
+    "facility-versus-family-home-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Contact OCFS only through the documented licensing-list path for a facility-focused extract and exact reuse terms; do not automate Child Care Choices, and exclude applicants and home-person fields unless separately approved.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

@@ -1,0 +1,9 @@
+# Production planning receipt 268
+
+Run `production-cms-directories-20261007-268` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-268.json`, confirmation SHA-256 `95f2c44de6a61bc850c26d2a6a2a28d33eb3137cef7948d6267ba6f66086711e`, and file SHA-256 `fbf35933ed147c5bab483a02164acf6c2d9542bf0e496b5f6151f8b6a3562132`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,501,744,128 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.2.0` and reports eighteen governed childcare source discoveries. Maryland exposes an official open-provider licensing and compliance search but no supported bulk/API contract. Maine exposes an official regulated-program search and a documented contact path for monthly licensing lists; the contact path is not treated as a public download contract, and applicant, license-exempt, licensed, status, and operation cohorts remain separate. Search automation and acquisition remain disabled, and no provider rows were acquired.
+
+Verification passed ten focused source-discovery, state-access, and administration tests. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing large-chunk warning. The required stop, desktop control-plane test, and launch cycle passed; exactly one listener served `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{ "ok": true }`.
