@@ -97,7 +97,7 @@ test("loads the complete repository registry deterministically without secret va
   const registry = await createConnectorRegistry();
   const entries = registry.list();
   assert.equal(registry.version, CONNECTOR_REGISTRY_VERSION);
-  assert.equal(registry.connectorCount, 107);
+  assert.equal(registry.connectorCount, 108);
   assert.equal(registry.get("fl-childcare-provider-workbook").resource_class, "bounded-metadata-only");
   assert.equal(registry.get("ga-childcare-provider-export").resource_class, "bounded-metadata-only");
   assert.equal(registry.get("az-childcare-provider-tables").resource_class, "bounded-metadata-only");

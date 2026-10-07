@@ -1,13 +1,13 @@
 {
   "policy_id": "ca-childcare-provider-records-internal",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "California Department of Social Services",
   "ownership": "Official California Health and Human Services Open Data CKAN DataStore resources",
   "allowed_use": ["bounded application-owned acquisition of explicitly selected non-contact facility fields", "retention of source-native publisher status and file date", "internal ZIP5 validation and later governed ZCTA reconciliation", "immutable provenance and coverage-gap analysis"],
   "prohibited_use": ["requesting or retaining licensee, facility administrator, telephone, email, person-name, or contact fields", "claiming LICENSED or ON PROBATION proves present operation", "claiming facility_address is a verified physical site without additional authority", "joining ZIP5 and ZIP4 into one canonical field", "public export or production enrollment in this version"],
   "attribution": "California Department of Social Services via California Health and Human Services Open Data",
-  "retention": "Selected source fields and acquisition evidence remain internal/local-review-only until a separately governed normalized release is implemented and admitted.",
+  "retention": "Selected source fields, acquisition evidence, normalized source candidates, explicit quality gaps, and quarantine references remain internal/local-review-only pending a separately governed normalized release and admission decision.",
   "redistribution": "The source catalog states Public access, no restrictions on public use, and Creative Commons Attribution; this connector still withholds public export pending field-level normalized-release governance.",
   "temporal_limits": "Rows report publisher facility_status and file_date. These are source-native temporal facts, not independent verification of current operation. Catalog and backend resource dates disagree.",
-  "review": "Before execution, wire the engine to a durable Co*Tive operation with disk, restart, receipt, and independent verification. Before admission, implement normalization, ZIP5 validation, separate ZIP4, physical-address governance, lifecycle rules, conservation, and current-operation disclaimers."
+  "review": "The durable Co*Tive acquisition operation and deterministic conservative normalization are implemented. Before admission, publish and independently verify an immutable normalized release, define lifecycle eligibility, reconcile ZIP/ZCTA evidence without equivalence, and approve reporting/export policy."
 }

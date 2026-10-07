@@ -1,0 +1,23 @@
+{
+  "connector_id": "ca-childcare-normalization",
+  "version": "1.0.0",
+  "description": "Offline normalization of verified California CDSS childcare selected rows into internal source candidates with split postal fields and explicit temporal, address, identity, and geocode gaps.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["verified-ca-childcare-acquired-release"],
+  "output_artifact_types": ["ca-childcare-normalized-records", "ca-childcare-normalization-quarantine", "ca-childcare-normalization-summary"],
+  "allowed_hosts": [],
+  "redirect_policy": "Offline only; independently verified acquired input inside datahub.",
+  "provider_budget_key": "ca-childcare-offline-normalization",
+  "resource_class": "bounded-offline-normalization",
+  "execution_limits": {"network_requests":0,"maximum_source_rows":39184,"maximum_jsonl_line_bytes":65536,"minimum_free_disk_bytes":500000000},
+  "retry": "No automatic retry or source repull. Preserve the acquired release for explicit offline reuse.",
+  "checkpoint": "Deterministic source-candidate projection, quarantine and exact row conservation before a future manifest-last normalized release.",
+  "idempotency": "Release-scoped source IDs bind resource ID, DataStore row ID, acquired release and transformation version.",
+  "cancellation": "Cooperative bounded replay; no network or source mutation.",
+  "source_policy": "config/source-policies/ca-childcare-provider-records-internal.json",
+  "retention_profile": "Internal source candidates only. Preserve publisher status/dates and selected fields; split ZIP5/ZIP4; null geocodes; no inferred site, ownership, network, identity, current operation, USPS validity, or ZCTA membership.",
+  "produced_entities": ["publisher-listed-childcare-source-candidate", "quarantined-source-record-reference"],
+  "produced_identifiers": ["ca-childcare-release-scoped-source-key", "california-childcare-facility-number", "zip5", "zip4"]
+}
