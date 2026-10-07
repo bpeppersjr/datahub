@@ -798,8 +798,8 @@ const server = http.createServer(async (request, response) => {
       json(response,200,await stateAccessIndustrySummary());return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/census-zcta-residual'){
-      if([...url.searchParams.keys()].some(key=>key!=='state')||url.searchParams.getAll('state').length>1){json(response,400,{error:'Unsupported or repeated residual-layer option.'});return;}
-      json(response,200,await readCensusZctaResidualView({state:url.searchParams.get('state')??undefined}));return;
+      if([...url.searchParams.keys()].some(key=>!['state','offset','direction'].includes(key))||['state','offset','direction'].some(key=>url.searchParams.getAll(key).length>1)||url.searchParams.has('offset')&&!/^(0|[1-9][0-9]{0,6})$/.test(url.searchParams.get('offset'))){json(response,400,{error:'Unsupported or repeated residual-layer option.'});return;}
+      json(response,200,await readCensusZctaResidualView({state:url.searchParams.get('state')??undefined,offset:Number(url.searchParams.get('offset')??0),direction:url.searchParams.get('direction')??'all'}));return;
     }
     if (url.pathname === '/api/business-map/nonemployer-county-heatmap') {
       const [{ nonemployerCountyHeatmapView }, { censusNonemployerCountyHeatmapHttp }] = await Promise.all([

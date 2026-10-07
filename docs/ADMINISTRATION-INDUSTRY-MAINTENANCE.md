@@ -21,3 +21,7 @@ Census ZCTAs remain usable statistical map geography without a complete USPS ope
 Park, Native, private, or other special-area categories are displayed only if a governed retained overlay supports them. The current ZIP inspector has no such overlay and therefore reports that classification as unresolved. No residual polygons or acreage are invented.
 
 Industry status describes retained dataset evidence. It does not require or imply a complete all-business denominator, complete geocoding, current-operation proof, or nationwide industry completeness. Unknown and unmeasured cells remain distinct from measured zero.
+
+## Industry status visibility (October 7, 2026)
+
+Administration includes a compact status table for all nine operational industry segments. It reports jurisdictions with retained source evidence, access status, temporal review status and the saved maintenance selection. The table loads independently of maintenance settings: a settings failure leaves validated retained status visible, with the selection explicitly unavailable. Existing industry checkboxes still save locally with revision checks and atomic persistence; an unsaved draft does not change the table's saved selection. Source evidence can be reported without complete geocoding, population, nationwide industry coverage or an all-business denominator. Percentages describe 50 states plus D.C. with retained source-access evidence, not the percentage of businesses collected. Detailed state/source provenance remains in Industry Status.

@@ -10,6 +10,10 @@ test('runtime verifies the immutable national residual release without blocking 
   assert.equal(view.release.release_id, 'us-census-non-zcta-state-residual-af772d3aa8d9f7a0266a0aa5e507d6ebf8bd4998');
   assert.equal(view.release.state_artifacts, 56);
   assert.equal(view.state.state_abbreviation, 'DC'); assert.equal(view.state.state_geoid, '11');
+  assert.equal(view.reference_areas.component_count, 167);
+  assert.equal(view.reference_areas.rows.length, 100);
+  assert.equal(view.reference_areas.next_offset, 100);
+  assert.equal(Object.values(view.reference_areas.direction_counts).reduce((sum,n)=>sum+n,0),167);
   assert.deepEqual(view.inventory, { state_equivalents: 56, zcta_features: 33791 });
   assert.equal(view.conservation.published_state_equivalents, 56);
   assert.deepEqual(view.claims, { zip_completion: false, population: null, business_count: null, park_status: null,
@@ -19,4 +23,6 @@ test('runtime verifies the immutable national residual release without blocking 
 test('runtime rejects noncanonical or unretained state selectors', async () => {
   await assert.rejects(readCensusZctaResidualView({ state: 'dc' }), /Invalid residual state selection/);
   await assert.rejects(readCensusZctaResidualView({ state: 'ZZ' }), /not retained/);
+  await assert.rejects(readCensusZctaResidualView({ offset: 100 }), /Choose a state/);
+  await assert.rejects(readCensusZctaResidualView({ state: 'DC', direction: 'park' }), /Unsupported residual reference direction/);
 });

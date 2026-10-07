@@ -945,6 +945,20 @@ export default function Administration() {
         </p>
       )}
       {!view && !error && <p role="status">Loading maintained industries…</p>}
+      <section className="industry-summary" aria-label="Industry evidence status overview">
+        <h3>Industry evidence status</h3>
+        <p>Existing holdings are reportable even when maintenance settings, population, geocodes or nationwide coverage are incomplete. Percentages below describe jurisdictions with retained source evidence.</p>
+        {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
+          <table><thead><tr><th scope="col">Industry</th><th scope="col">Retained source evidence</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
+            <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
+            <td>{row.jurisdictions_with_retained_access_evidence}/51 jurisdictions · {row.retained_access_evidence_percent.toFixed(1)}%</td>
+            <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
+            <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
+            <td>{view ? view.maintainedIndustries.includes(row.id) ? "Selected" : "Not selected" : "Settings unavailable — evidence still reportable"}</td>
+          </tr>)}</tbody></table>
+          <small>Retained state-access report SHA-256 {evidence.report_sha256}. Detailed state/source provenance is available in Industry Status.</small>
+        </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
+      </section>
       {view && (
         <>
           <div className="administration-actions">
