@@ -1,0 +1,16 @@
+{
+  "schema_version": "az-childcare-metadata-preflight-manifest@1.0.0",
+  "run_id": "e1856c0b-624a-46db-a5c8-18fb54db60e0",
+  "status": "immutable-metadata-readiness-only",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 3391,
+    "sha256": "0c833d9eb442a62ad023f2dd7cf92c9b5040b75d741f910681a5e1cc5fb3825a"
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "workbook_bodies_requested": 0,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

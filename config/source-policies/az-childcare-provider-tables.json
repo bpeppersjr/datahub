@@ -1,0 +1,13 @@
+{
+  "policy_id": "az-childcare-provider-tables",
+  "version": "1.0.0",
+  "publisher": "Arizona Department of Health Services",
+  "ownership": "Official ADHS Provider and Facility Databases publication",
+  "allowed_use": ["bounded validation of the official monthly publication statement", "HEAD-only validation of the two exact current reviewed childcare workbook URLs", "immutable retention of privacy-safe metadata evidence"],
+  "prohibited_use": ["workbook-body or provider-row acquisition in this version", "using the stale GIS layer as a substitute", "guessing unpublished months", "current-operation, completeness, ZIP-validity, or production claims"],
+  "attribution": "Arizona Department of Health Services, Public Health Licensing",
+  "retention": "Catalog evidence and workbook response headers only; no workbook content.",
+  "redistribution": "No provider records are acquired or redistributed.",
+  "temporal_limits": "ADHS says tables are updated on the first business day monthly and represent the first day of the month, but also warns active facilities may be omitted during licensing-system migration.",
+  "review": "A later version must inspect an explicitly authorized workbook, pin its run date and schema, exclude contacts, preserve ZIP5/ZIP4, conserve center and group-home rows separately, and retain the migration omission warning."
+}

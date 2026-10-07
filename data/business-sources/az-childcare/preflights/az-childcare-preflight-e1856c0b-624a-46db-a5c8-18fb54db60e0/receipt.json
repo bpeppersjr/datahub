@@ -1,0 +1,63 @@
+{
+  "schema_version": "az-childcare-metadata-preflight-receipt@1.0.0",
+  "status": "monthly-table-metadata-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T07:42:34.064Z",
+  "catalog": {
+    "name": "Provider and Facility Databases",
+    "status": "Active",
+    "url": "https://www.azdhs.gov/licensing/index.php#databases",
+    "description": "The data tables are updated on the first business day of the month, and provide a snapshot of licensed providers on the first day of the month. The exact date is contained within each file as the run date. This includes: child care (centers and group homes), group homes for the developmentally disabled, nursing homes, intermediate care facilities for the intellectually disabled, marijuana (dispensaries, establishments, labs, facility agents), medical facilities (hospitals, hospice centers, home health agencies, outpatient and recover centers, outpatient treatment centers, physical and speech therapists, rural health clinics, other medical facilities), non-transplant organ procurement organizations, residential facilities (adult day health care, adult foster care, assisted living homes and centers, behavioral health supportive homes, residential respite care), sober living homes, community health workers, doulas, laser technicians, radiologic technologists, midwives, speech and hearing professionals (audiologists, hearing aid dispensers, speech language pathologists, speech language pathology assistants), and funeral services (individual and facilities)."
+  },
+  "tables": [
+    {
+      "kind": "centers",
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_CENTERS.xlsx",
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content_length": 296959,
+      "last_modified": "2026-09-03T18:57:46.000Z",
+      "etag": "\"487ff-65a98ba397ef8\""
+    },
+    {
+      "kind": "group-homes",
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_GROUP_HOMES.xlsx",
+      "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content_length": 47316,
+      "last_modified": "2026-09-03T18:57:46.000Z",
+      "etag": "\"b8d4-65a98ba39c160\""
+    }
+  ],
+  "requests": [
+    {
+      "kind": "catalog",
+      "method": "GET",
+      "url": "https://data.azdhs.gov/data-assets/get-data-list",
+      "status": 200,
+      "response_bytes": 381238,
+      "response_sha256": "80f11e0bcc97545515e23dbbbc8e51dd8b8cf79240d9f09788b197829c559dcc"
+    },
+    {
+      "kind": "centers",
+      "method": "HEAD",
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_CENTERS.xlsx",
+      "status": 200,
+      "response_bytes": 0
+    },
+    {
+      "kind": "group-homes",
+      "method": "HEAD",
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_GROUP_HOMES.xlsx",
+      "status": 200,
+      "response_bytes": 0
+    }
+  ],
+  "warning": "ADHS states that some active facilities may be unintentionally omitted during migration to a new licensing management system.",
+  "claims": {
+    "provider_rows_acquired": 0,
+    "workbook_bodies_requested": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
