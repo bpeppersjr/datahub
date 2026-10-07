@@ -1,0 +1,13 @@
+{
+  "policy_id": "fl-childcare-provider-workbook",
+  "version": "1.0.0",
+  "publisher": "Florida Department of Children and Families",
+  "ownership": "Official Florida DCF child care publication and provider-profile information pages",
+  "allowed_use": ["bounded validation of the official publication link and provider-profile field statement", "HEAD-only validation of the exact current workbook URL", "immutable retention of privacy-safe metadata evidence"],
+  "prohibited_use": ["workbook-body or provider-row acquisition in this version", "provider-search or profile-detail scraping", "assuming unpublished status, cadence, schema, contact-field, or reuse semantics", "current-operation, statewide-completeness, ZIP-validity, or production claims"],
+  "attribution": "Florida Department of Children and Families",
+  "retention": "Official page evidence and workbook response headers only; no workbook content.",
+  "redistribution": "No provider records are acquired or redistributed.",
+  "temporal_limits": "The workbook response supplies a last-modified timestamp, but DCF does not publish a cadence, snapshot date contract, row status semantics, or historical replay policy on the reviewed pages.",
+  "review": "A later version must separately authorize and inspect the workbook, pin its sheet/header schema and row controls, identify license/status and provider-type vocabularies, exclude contacts and personal fields, preserve ZIP5 and ZIP4 separately, establish reuse terms, and conserve every row before admission."
+}

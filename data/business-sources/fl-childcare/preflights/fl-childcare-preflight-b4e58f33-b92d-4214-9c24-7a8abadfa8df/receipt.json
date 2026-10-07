@@ -1,0 +1,76 @@
+{
+  "schema_version": "fl-childcare-metadata-preflight-receipt@1.0.0",
+  "status": "official-workbook-metadata-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T08:44:38.077Z",
+  "publication": {
+    "url": "https://www.myflfamilies.com/services/child-family/child-care/child-care-providers-and-staff/brochures-fact-sheets-and-reports/",
+    "label": "Listing of all child care providers"
+  },
+  "profile_scope": {
+    "url": "https://www.myflfamilies.com/services/child-family/child-care/child-care-resources-families",
+    "published_fields": [
+      "name",
+      "address",
+      "license number",
+      "provider type",
+      "capacity",
+      "days and hours of operation",
+      "services offered"
+    ],
+    "schema_verified": false
+  },
+  "workbook": {
+    "url": "https://www.myflfamilies.com/documents/Listing%20of%20all%20child%20care%20providers.xlsx",
+    "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "content_length": 2146163,
+    "last_modified": "2026-10-02T19:02:00.000Z",
+    "etag": "\"0x8DF20B7A3AF613C\""
+  },
+  "requests": [
+    {
+      "kind": "publication-page",
+      "method": "GET",
+      "url": "https://www.myflfamilies.com/services/child-family/child-care/child-care-providers-and-staff/brochures-fact-sheets-and-reports/",
+      "status": 200,
+      "response_bytes": 26828,
+      "response_sha256": "d73f210ed44cb2d3da3a7ecc730d0349b2c0f91adc20c1b3e9805135ca4fbe7e"
+    },
+    {
+      "kind": "profile-scope-page",
+      "method": "GET",
+      "url": "https://www.myflfamilies.com/services/child-family/child-care/child-care-resources-families",
+      "status": 200,
+      "response_bytes": 15026,
+      "response_sha256": "a15a9dd4f574ab2802bf4db5b41c83763f614ad31de3fff6be90bc056d9837c3"
+    },
+    {
+      "kind": "workbook",
+      "method": "HEAD",
+      "url": "https://www.myflfamilies.com/documents/Listing%20of%20all%20child%20care%20providers.xlsx",
+      "status": 200,
+      "response_bytes": 0
+    }
+  ],
+  "unresolved_gates": [
+    "workbook-schema",
+    "status-semantics",
+    "provider-type-vocabulary",
+    "contact-and-personal-field-exclusion",
+    "publication-cadence",
+    "snapshot-date",
+    "reuse-rights",
+    "row-control-totals"
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "workbook_body_requests": 0,
+    "provider_search_requests": 0,
+    "provider_detail_requests": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "schema_verified": false,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
