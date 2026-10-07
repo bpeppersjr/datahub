@@ -1,0 +1,9 @@
+# Production successor plan 286
+
+Run `production-cms-directories-20261007-286` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-286.json`, confirmation SHA-256 `a8bb6778294dad83d2147d8008f6b2c77a9f02f680ea9d67ff2705a963978835`, and file SHA-256 `21c5e8d33598492b6aa7ce04dd553d731cb404cd26e14bdc76d149f8ebc8527e`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,143,761,920 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+Exact-ZIP temporal projection v3.1 maps the ten previously placeholder dimensions to their retained source releases. Each mapping is conservatively classified `non-active-reporting`, review qualification remains `unmeasured`, and current operation remains false. The registered v3.0 matrix is unchanged at 48,194 ZIP5 keys, 51 dimensions, and 2,457,894 cells; no source download, production pointer change, or active-business claim accompanied the projection.
+
+The full Node suite passed 3,911 tests with 77 skipped and zero failures. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop builds passed with the existing large-chunk warning. The aggregate check's desktop smoke initially encountered the already-running collector on port 4300; the required recovery sequence then passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`. Exactly one listener was restored on `127.0.0.1:4300`, and `/api/health` returned HTTP 200.

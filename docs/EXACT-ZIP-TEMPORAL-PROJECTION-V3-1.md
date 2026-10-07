@@ -1,0 +1,9 @@
+# Exact-ZIP temporal projection 3.1
+
+Version 3.1 is a read-only temporal and provenance successor over the unchanged, hash-pinned 51-dimension v3.0 exact-ZIP evidence matrix. It performs no source request, changes no evidence cell, adds no business record, and writes no production pointer.
+
+The predecessor left ten retained dimensions with `unmapped` temporal placeholders: CMS hospitals, CMS nursing homes, Pennsylvania, Connecticut, Maryland, Vermont, Colorado, Utah and Iowa childcare candidates, and Minnesota residential-construction credential rows. Version 3.1 binds each dimension to a stable source key and its retained source-release identity. All ten use `non-active-reporting` and `unmeasured` review semantics. This deliberately does not convert directory, provider-candidate or credential membership into verified current operation, a unique business, a physical operating site, completeness, or an additive business count. Utah and Iowa retain unresolved publisher reference dates even though their retained release identities are known.
+
+The exact-ZIP API now returns `exact-zip-industry-temporal-qualification-view@3.1.0` while preserving the underlying `national-exact-zip-industry-evidence-row@3.0.0` schema, matrix release ID, manifest hash, 48,194 ZIP5 keys, 51 dimensions and 2,457,894 evidence cells. The national aggregate v3.1 projection is implemented and tested separately; the existing national-summary endpoint remains on v3.0 until its large closed UI validator is migrated without weakening fail-closed validation.
+
+Focused runtime tests conserve the full cell total, eliminate the ten temporal placeholders, require retained release IDs, and keep current-operation and all-business-completeness claims false. The UI acceptance test requires all ten mappings and the conservative semantic flags.
