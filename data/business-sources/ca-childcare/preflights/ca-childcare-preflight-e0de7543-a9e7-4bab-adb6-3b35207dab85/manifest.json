@@ -1,0 +1,17 @@
+{
+  "schema_version": "ca-childcare-metadata-preflight-manifest@1.0.0",
+  "run_id": "e0de7543-a9e7-4bab-adb6-3b35207dab85",
+  "status": "immutable-metadata-readiness-only",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 3782,
+    "sha256": "530b3d4255f1bd3672aa680096e4169b6af3c000b6713a7a8e846fd0998cebf6"
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "csv_body_requests": 0,
+    "redirect_follow_requests": 0,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

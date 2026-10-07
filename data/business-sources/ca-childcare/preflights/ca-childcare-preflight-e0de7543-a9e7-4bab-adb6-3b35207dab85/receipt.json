@@ -1,0 +1,112 @@
+{
+  "schema_version": "ca-childcare-metadata-preflight-receipt@1.0.0",
+  "status": "official-catalog-and-resource-redirect-metadata-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T09:02:47.619Z",
+  "catalog": {
+    "url": "https://data.ca.gov/@california-department-of-social-services/community-care-licensing-facilities",
+    "publisher": "California Department of Social Services",
+    "dataset": "Community Care Licensing Facilities",
+    "public_access_level": "Public",
+    "rights": "No restrictions on public use",
+    "license": "Creative Commons Attribution",
+    "frequency": "Irregular",
+    "last_updated": "2026-09-30",
+    "response_bytes": 68268,
+    "response_sha256": "96d0feb83dea3ba365c7749821b3253d82775e25e8c9f66acd92e5f3bbafdb50"
+  },
+  "resources": [
+    {
+      "label": "Child Care Centers",
+      "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/7aed8063-cea7-4367-8651-c81643164ae0/download/tmpwya01y9s.csv",
+      "head_status": 302,
+      "content_type": "text/html",
+      "redirect_target": {
+        "host": "s3.amazonaws.com",
+        "path": "/og-production-open-data-chelseama-892364687672/resources/7aed8063-cea7-4367-8651-c81643164ae0/tmpwya01y9s.csv",
+        "query_retained": false
+      },
+      "csv_body_requested": false
+    },
+    {
+      "label": "Family Child Care Homes",
+      "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/4b5cc48d-03b1-4f42-a7d1-b9816903eb2b/download/tmpghf_prqt.csv",
+      "head_status": 302,
+      "content_type": "text/html",
+      "redirect_target": {
+        "host": "s3.amazonaws.com",
+        "path": "/og-production-open-data-chelseama-892364687672/resources/4b5cc48d-03b1-4f42-a7d1-b9816903eb2b/tmpghf_prqt.csv",
+        "query_retained": false
+      },
+      "csv_body_requested": false
+    }
+  ],
+  "future_projection": {
+    "candidate_fields": [
+      "facility number",
+      "facility name",
+      "facility type",
+      "physical address",
+      "city",
+      "state",
+      "ZIP5",
+      "ZIP4",
+      "publisher status",
+      "capacity"
+    ],
+    "excluded_fields": [
+      "licensee",
+      "facility administrator",
+      "facility telephone number",
+      "email",
+      "person names",
+      "contact fields"
+    ],
+    "schema_verified": false
+  },
+  "requests": [
+    {
+      "kind": "catalog",
+      "method": "GET",
+      "url": "https://data.ca.gov/@california-department-of-social-services/community-care-licensing-facilities",
+      "status": 200,
+      "response_bytes": 68268
+    },
+    {
+      "kind": "resource",
+      "method": "HEAD",
+      "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/7aed8063-cea7-4367-8651-c81643164ae0/download/tmpwya01y9s.csv",
+      "status": 302,
+      "response_bytes": 0,
+      "redirect_followed": false
+    },
+    {
+      "kind": "resource",
+      "method": "HEAD",
+      "url": "https://data.chhs.ca.gov/dataset/46ffcbdf-4874-4cc1-92c2-fb715e3ad014/resource/4b5cc48d-03b1-4f42-a7d1-b9816903eb2b/download/tmpghf_prqt.csv",
+      "status": 302,
+      "response_bytes": 0,
+      "redirect_followed": false
+    }
+  ],
+  "unresolved_gates": [
+    "resource-delivery",
+    "csv-schema",
+    "status-vocabulary",
+    "physical-versus-mailing-address",
+    "zip5-and-zip4-fields",
+    "suppression-and-redaction-semantics",
+    "irregular-publication-cadence",
+    "row-control-totals"
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "csv_body_requests": 0,
+    "redirect_follow_requests": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "schema_verified": false,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

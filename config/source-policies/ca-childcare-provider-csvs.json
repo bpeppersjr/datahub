@@ -1,0 +1,13 @@
+{
+  "policy_id": "ca-childcare-provider-csvs",
+  "version": "1.0.0",
+  "publisher": "California Department of Social Services",
+  "ownership": "Official California Open Data catalog record for Community Care Licensing Facilities",
+  "allowed_use": ["bounded validation of the official catalog, access level, rights statement, license, frequency, update date, and two childcare resource links", "HEAD-only validation of the two exact current resource URLs without following signed redirects", "immutable retention of privacy-safe metadata evidence"],
+  "prohibited_use": ["CSV-body or provider-row acquisition in this version", "retaining temporary signed redirect query strings", "collecting or publishing licensee, facility administrator, telephone, email, or other person/contact fields", "assuming unpublished schema, status vocabulary, suppression, cadence, physical-address, ZIP, or row-control semantics", "current-operation, statewide-completeness, ZIP-validity, or production claims"],
+  "attribution": "California Department of Social Services via California Open Data",
+  "retention": "Official catalog evidence and sanitized resource response headers only; no CSV content or signed URL query strings.",
+  "redistribution": "The catalog states Public access, no restrictions on public use, and Creative Commons Attribution; no provider records are acquired or redistributed by this version.",
+  "temporal_limits": "The catalog reports an irregular frequency and a September 30, 2026 update. This does not establish a recurring cadence, record-effective date, current-operation guarantee, or historical replay policy.",
+  "review": "A later version must resolve resource delivery, inspect and pin each CSV header/schema, identify status vocabulary and suppression/redaction semantics, distinguish physical from mailing addresses, preserve ZIP5 and ZIP4 separately, exclude every person/contact field, establish row controls, and conserve every admitted row."
+}
