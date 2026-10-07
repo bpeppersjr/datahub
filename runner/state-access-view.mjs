@@ -23,6 +23,8 @@ import { readLaChildcareSourceDiscovery } from "./la-childcare-source-discovery.
 import { readMaChildcareSourceDiscovery } from "./ma-childcare-source-discovery.mjs";
 import { readMdChildcareSourceDiscovery } from "./md-childcare-source-discovery.mjs";
 import { readMeChildcareSourceDiscovery } from "./me-childcare-source-discovery.mjs";
+import { readMiChildcareSourceDiscovery } from "./mi-childcare-source-discovery.mjs";
+import { readMnChildcareSourceDiscovery } from "./mn-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -405,6 +407,8 @@ export async function stateAccessMaintenanceBacklog({
   maChildcareDiscoveryLoader = readMaChildcareSourceDiscovery,
   mdChildcareDiscoveryLoader = readMdChildcareSourceDiscovery,
   meChildcareDiscoveryLoader = readMeChildcareSourceDiscovery,
+  miChildcareDiscoveryLoader = readMiChildcareSourceDiscovery,
+  mnChildcareDiscoveryLoader = readMnChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -510,6 +514,8 @@ export async function stateAccessMaintenanceBacklog({
             "MA",
             "MD",
             "ME",
+            "MI",
+            "MN",
           ].includes(jurisdiction.state)
         ) {
           const loaders = {
@@ -531,6 +537,8 @@ export async function stateAccessMaintenanceBacklog({
               MA: maChildcareDiscoveryLoader,
               MD: mdChildcareDiscoveryLoader,
               ME: meChildcareDiscoveryLoader,
+              MI: miChildcareDiscoveryLoader,
+              MN: mnChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -553,6 +561,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-current-and-history-downloads-identified-contract-unverified",
                 "official-open-provider-search-identified-bulk-contract-unverified",
                 "official-regulated-provider-search-and-monthly-list-path-identified-acquisition-disabled",
+                "official-current-facilities-report-identified-contract-unverified",
+                "official-daily-licensing-lookup-csv-export-identified-acquisition-disabled",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -610,7 +620,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.2.0",
+    schema_version: "state-access-maintenance-backlog@2.3.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

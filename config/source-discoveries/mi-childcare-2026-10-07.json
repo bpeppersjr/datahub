@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "mi-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MI",
+  "industry": "childcare",
+  "publisher": "Michigan Department of Lifelong Education, Advancement, and Potential Child Care Licensing Bureau",
+  "decision": "official-current-facilities-report-identified-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.michigan.gov/mileap/early-childhood-education/cclb/public-resources",
+      "role": "official-current-facilities-report-entry",
+      "evidence": "MiLEAP publishes a Data section linking a Current Facilities Record Report, facility map, and licensing resources."
+    },
+    {
+      "url": "https://www.michigan.gov/mileap/early-childhood-education/cclb/cchirp",
+      "role": "official-statewide-public-facility-search",
+      "evidence": "CCHIRP provides public statewide facility search and separately supports provider license management."
+    },
+    {
+      "url": "https://www.michigan.gov/mileap/early-childhood-education/cclb",
+      "role": "official-licensing-authority",
+      "evidence": "The Child Care Licensing Bureau regulates licensed child care settings and publishes contact and public resources."
+    },
+    {
+      "url": "https://www.michigan.gov/mileap/early-childhood-education/cclb/rules-statutes-technical-assistance",
+      "role": "official-center-and-home-type-boundary",
+      "evidence": "Michigan maintains distinct licensing rules for child care centers and family/group homes."
+    }
+  ],
+  "scope": {
+    "report_cohort": "current-facilities-record-report-unverified-schema",
+    "facility_types": "centers-family-homes-and-group-homes-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Current-report membership, facility license status, operating/non-operating designation, disciplinary status, quality participation, and business operation are distinct."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "direct_download_endpoint_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The Current Facilities Record Report artifact, generated-at value, status vocabulary, and refresh contract were not admitted or pinned."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "operating_designation": "required-if-published-preserve-separately",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-and-complaint-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "authorized-single-report-download",
+    "direct-artifact-format-schema-and-generated-at",
+    "center-home-and-group-home-cohort-separation",
+    "license-status-and-operation-semantics",
+    "home-provider-privacy",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Authorize one intended Current Facilities Record Report download, then pin and validate the artifact, center predicate, status, operating designation, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

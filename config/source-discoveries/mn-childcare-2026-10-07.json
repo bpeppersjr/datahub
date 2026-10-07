@@ -1,0 +1,89 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "mn-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "MN",
+  "industry": "childcare",
+  "publisher": "Minnesota Department of Human Services and Department of Children, Youth, and Families",
+  "decision": "official-daily-licensing-lookup-csv-export-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://mn.gov/dhs/licensing/lookup/",
+      "role": "official-csv-export-contract-description",
+      "evidence": "Licensing Information Lookup supports program-type searches and CSV export with license status, number, holder, service type, initial effective date, and monitoring information."
+    },
+    {
+      "url": "https://mn.gov/dhs/partners-and-providers/partners-licensing/",
+      "role": "official-daily-update-and-authority-description",
+      "evidence": "Minnesota identifies DHS/DCYF licensing authority and describes Licensing Lookup as updated daily."
+    },
+    {
+      "url": "https://mn.gov/dhs/partners-and-providers/program-overviews/child-care-and-early-education/",
+      "role": "official-cohort-boundary",
+      "evidence": "Licensed programs and legal nonlicensed providers are distinct; licensing or certification records are accessed through official lookup."
+    },
+    {
+      "url": "https://mn.gov/dhs/partners-and-providers/partners-licensing/provider-hub/",
+      "role": "official-provider-system-boundary",
+      "evidence": "Provider Hub licensing, CCAP registration, and attendance functions have different eligible cohorts and are not public-directory equivalence."
+    }
+  ],
+  "scope": {
+    "lookup_cohort": "dhs-and-dcyf-licensed-and-certified-programs-filterable-by-program-type",
+    "retention_context": "licensing-actions-and-investigation-documents-posted-for-four-years",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Licensed, certified, family child care, legal nonlicensed, CCAP-registered, status, monitoring, enforcement, and active operation are separate cohorts and assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "csv_export_control_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "daily-described-for-licensing-lookup",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No exact CSV artifact, export timestamp, complete status vocabulary, or current-operation equivalence was admitted."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "program_name": "required-preserve-verbatim",
+    "license_holder": "required-preserve-verbatim-for-organization-only",
+    "program_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "initial_effective_date": "required-if-published",
+    "reported_address": "center-only-unless-family-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-maltreatment-and-home-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "authorized-single-program-type-csv-export",
+    "export-schema-generated-at-and-row-limit",
+    "licensed-center-certified-center-and-family-cohort-separation",
+    "license-status-and-current-operation-semantics",
+    "family-provider-privacy-and-license-holder-identity",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Authorize one intended child-care program-type CSV export, then pin and validate the artifact, cohort, status, temporal meaning, privacy, reuse, and license-number conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

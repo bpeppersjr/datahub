@@ -1,0 +1,9 @@
+# Production planning receipt 269
+
+Run `production-cms-directories-20261007-269` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-269.json`, confirmation SHA-256 `1e672e7c3c85c41dd8d5052eaf6b96f6305d125a8a21ec1d9d71c46bf5ae9c39`, and file SHA-256 `c125e5dc8f12570bdeeb48975edc44ea5429097de77cc8a8167e3cb28d3431c8`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,498,811,392 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.3.0` and reports twenty governed childcare source discoveries. Michigan exposes an official Current Facilities Record Report and statewide CCHIRP facility search. Minnesota exposes a daily-described Licensing Information Lookup with an intentional program-type CSV export. Both are retained as intended bulk paths, while exact artifact identity, schema, cohort, temporal semantics, privacy, reuse, and current-operation equivalence remain unadmitted. Search automation and acquisition remain disabled, and no provider rows were acquired.
+
+Verification passed ten focused source-discovery, state-access, and administration tests. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing large-chunk warning. The required stop, desktop control-plane test, and launch cycle passed; exactly one listener served `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{ "ok": true }`.
