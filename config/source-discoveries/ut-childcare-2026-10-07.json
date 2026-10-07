@@ -1,0 +1,96 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ut-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "UT",
+  "industry": "childcare",
+  "publisher": "Utah Department of Health and Human Services Division of Licensing and Background Checks",
+  "decision": "official-current-regulated-program-report-and-retained-center-release-validated",
+  "official_sources": [
+    {
+      "url": "https://dlbc.utah.gov/information-for-the-public/reports/",
+      "role": "official-regulated-program-reports-index",
+      "evidence": "The reports index publishes a list of currently regulated child-care programs and, when observed, labeled that list updated October 1, 2026."
+    },
+    {
+      "url": "https://dlbc.utah.gov/wp-content/uploads/All-Child-Care-Licensing-Facilities-Report-September-2026.pdf",
+      "role": "official-retained-source-edition",
+      "evidence": "The retained September 2026 report is the exact source document for the separately verified center-only internal normalization."
+    },
+    {
+      "url": "https://dlbc.utah.gov/licensing/child-care-licensing/",
+      "role": "official-licensing-authority-and-program-context",
+      "evidence": "DLBC describes regulated child-care licensing and program oversight; report membership and license or operating assertions remain separate."
+    },
+    {
+      "url": "https://www.utah.gov/support/disclaimer.html",
+      "role": "official-use-and-disclaimer-context",
+      "evidence": "Utah's conditional informational or personal-use language is not treated as blanket permission for commercial derivative redistribution."
+    }
+  ],
+  "scope": {
+    "search_cohort": "retained-september-2026-child-care-center-candidates",
+    "current_index_cohort": "currently-regulated-child-care-program-list-updated-2026-10-01-not-acquired",
+    "excluded_provider_types": "all-non-center-report-categories-remain-outside-the-retained-normalized-cohort",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Facility ID and report membership are licensing evidence, not canonical business identity, physical-site verification, current operation, or a national denominator."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "dated-report-editions",
+    "snapshot_date": "September 2026",
+    "newer_index_edition_date": "2026-10-01",
+    "current_operation_equivalence": false,
+    "limitation": "The retained September edition and currently indexed October edition are distinct; no refresh, cross-edition lifecycle comparison, or current-operation inference was performed."
+  },
+  "retained_release": {
+    "run_id": "6aaca68b-f0cc-4ada-a301-0ada860574b8",
+    "manifest_path": "data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/manifest.json",
+    "manifest_sha256": "1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43",
+    "source_release_id": "ut-childcare-pdf-85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa",
+    "accepted_rows": 422,
+    "zip5_available_rows": 422,
+    "geocoded_rows": 0,
+    "export_policy": "internal"
+  },
+  "required_record_contract": {
+    "facility_id": "required-if-published-and-source-scoped",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-center-predicate",
+    "license_and-calendar_fields": "preserve-source-semantics-not-operating-dates",
+    "reported_address": "required-source-value",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only"
+  },
+  "unresolved_gates": [
+    "october-edition-acquisition-and-source-origin-verification",
+    "cross-edition-stable-key-and-lifecycle-contract",
+    "current-operation-equivalence",
+    "non-center-provider-type-expansion",
+    "public-derivative-redistribution-rights",
+    "geocode-availability",
+    "production-admission"
+  ],
+  "next_action": "Continue using the verified September center cohort as internal retained evidence. Treat the October index entry only as a newer-edition signal; require a separately approved fixed-edition acquisition, byte/source verification, schema replay, privacy review, lifecycle comparison, and production decision before replacement.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": 422,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.13.0";
+  schema_version: "state-access-maintenance-backlog@2.14.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -92,7 +92,9 @@ type Backlog = {
         | "official-manual-excel-export-identified-automated-bulk-contract-unverified"
         | "official-mixed-cohort-provider-search-identified-bulk-contract-unverified"
         | "official-center-only-arcgis-api-and-retained-release-validated"
-        | "official-regulated-provider-search-identified-bulk-contract-unverified";
+        | "official-regulated-provider-search-identified-bulk-contract-unverified"
+        | "official-current-regulated-program-report-and-retained-center-release-validated"
+        | "official-annual-quality-workbooks-identified-use-permission-unresolved";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -368,7 +370,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.13.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.14.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -473,6 +475,8 @@ export function validAdministrationBacklog(
             "SD",
             "TN",
             "TX",
+            "UT",
+            "VA",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -514,6 +518,8 @@ export function validAdministrationBacklog(
               SD: "official-mixed-cohort-provider-search-identified-bulk-contract-unverified",
               TN: "official-center-only-arcgis-api-and-retained-release-validated",
               TX: "official-regulated-provider-search-identified-bulk-contract-unverified",
+              UT: "official-current-regulated-program-report-and-retained-center-release-validated",
+              VA: "official-annual-quality-workbooks-identified-use-permission-unresolved",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -543,6 +549,8 @@ export function validAdministrationBacklog(
               "SC",
               "SD",
               "TX",
+              "UT",
+              "VA",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -569,6 +577,8 @@ export function validAdministrationBacklog(
               "OH",
               "PA",
               "TN",
+              "UT",
+              "VA",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
             ["DE", "NJ", "NY", "PA", "TN"].includes(row.state) &&

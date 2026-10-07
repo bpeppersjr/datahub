@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "va-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "VA",
+  "industry": "childcare",
+  "publisher": "Virginia Department of Education",
+  "decision": "official-annual-quality-workbooks-identified-use-permission-unresolved",
+  "official_sources": [
+    {
+      "url": "https://earlychildhoodquality.doe.virginia.gov/download-data/",
+      "role": "official-vqb5-quality-and-participation-downloads",
+      "evidence": "VDOE publishes annual VQB5 quality/location and participation workbooks with distinct program-year and measurement semantics."
+    },
+    {
+      "url": "https://earlychildhoodquality.doe.virginia.gov/about-vqb5/",
+      "role": "official-vqb5-scope-context",
+      "evidence": "VQB5 is Virginia's birth-to-five quality measurement and improvement system, not a real-time census of all active licensed businesses."
+    },
+    {
+      "url": "https://www.childcare.virginia.gov/families/finding-child-care",
+      "role": "official-family-provider-search-context",
+      "evidence": "Virginia provides a consumer pathway for finding child care; the human-facing search is not treated as an unattended bulk contract."
+    },
+    {
+      "url": "https://www.doe.virginia.gov/about-vdoe/web-policies",
+      "role": "official-use-policy",
+      "evidence": "The documented policy permits non-commercial downloads with notices retained and requires written permission for commercial use; this discovery does not decide the intended-use classification or obtain permission."
+    }
+  ],
+  "scope": {
+    "search_cohort": "vqb5-participating-quality-rated-and-annually-measured-program-sites",
+    "provider_types": "center-school-and-family-day-home-or-other-site-types-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "family_home_and_contact_privacy_review_required": true,
+    "warning": "Administrator-reported location/contact information, verified ratings, participation eligibility, licensing, and current operation are separate assertions and observation periods."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "annual-program-year-workbooks",
+    "snapshot_date": "2024-2025-quality-location-and-2025-2026-participation-editions",
+    "current_operation_equivalence": false,
+    "limitation": "The two published workbooks cover different program years and meanings and cannot be merged into a single current-status assertion."
+  },
+  "required_record_contract": {
+    "site_or_program_identifier": "required-if-published-and-stability-reviewed",
+    "site_name": "required-preserve-verbatim",
+    "site_type": "required-preserve-verbatim",
+    "quality_rating_participation_and_license_status": "separate-source-semantics",
+    "reported_address": "center-or-school-only-unless-home-and-contact-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only"
+  },
+  "unresolved_gates": [
+    "intended-use-and-commercial-permission",
+    "bounded-workbook-metadata-and-schema",
+    "stable-site-key-contract",
+    "provider-type-and-family-home-privacy",
+    "program-year-and-license-status-separation",
+    "row-conservation-and-control-total",
+    "production-admission"
+  ],
+  "next_action": "Resolve intended-use and permission applicability before downloading workbooks. If authorized, validate bounded workbook metadata and person-safe schema, preserve program years and rating/participation/license semantics separately, and establish stable keys and row conservation before connector or production admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
