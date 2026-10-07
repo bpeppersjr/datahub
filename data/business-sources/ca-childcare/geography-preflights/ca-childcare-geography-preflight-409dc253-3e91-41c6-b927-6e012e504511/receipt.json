@@ -1,0 +1,125 @@
+{
+  "schema_version": "ca-childcare-geography-preflight-receipt@1.0.0",
+  "status": "official-aggregate-zip-format-and-address-completeness-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T09:22:11.677Z",
+  "resources": [
+    {
+      "resource_id": "7aed8063-cea7-4367-8651-c81643164ae0",
+      "label": "Child Care Centers",
+      "schema_preflight_row_total": 19426,
+      "zip_format_counts": [
+        {
+          "zip_format": "zip5",
+          "row_count": 19426
+        }
+      ],
+      "address_completeness": {
+        "row_total": 19426,
+        "distinct_reported_zip_values": 1387,
+        "blank_address_count": 0,
+        "blank_city_count": 0,
+        "blank_state_count": 0,
+        "blank_zip_count": 0,
+        "non_ca_state_count": 0
+      },
+      "claims": {
+        "all_rows_have_lexical_zip5": true,
+        "zip4_observed": false,
+        "reported_zip_values_usps_validated": false,
+        "same_code_zcta_membership_verified": false,
+        "address_is_physical_site_verified": false
+      }
+    },
+    {
+      "resource_id": "4b5cc48d-03b1-4f42-a7d1-b9816903eb2b",
+      "label": "Family Child Care Homes",
+      "schema_preflight_row_total": 19758,
+      "zip_format_counts": [
+        {
+          "zip_format": "zip5",
+          "row_count": 19758
+        }
+      ],
+      "address_completeness": {
+        "row_total": 19758,
+        "distinct_reported_zip_values": 1188,
+        "blank_address_count": 0,
+        "blank_city_count": 0,
+        "blank_state_count": 0,
+        "blank_zip_count": 0,
+        "non_ca_state_count": 0
+      },
+      "claims": {
+        "all_rows_have_lexical_zip5": true,
+        "zip4_observed": false,
+        "reported_zip_values_usps_validated": false,
+        "same_code_zcta_membership_verified": false,
+        "address_is_physical_site_verified": false
+      }
+    }
+  ],
+  "semantics": {
+    "zip5": "Five ASCII digits as reported by the publisher; not USPS validity or ZCTA membership.",
+    "distinct_reported_zip_values": "Distinct source strings counted without returning their values.",
+    "address_completeness": "Nonblank source fields only; not proof that facility_address is a physical operating site."
+  },
+  "requests": [
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20CASE%20WHEN%20facility_zip%20IS%20NULL%20OR%20BTRIM(facility_zip)%20%3D%20''%20THEN%20'blank'%20WHEN%20facility_zip%20~%20'%5E%5B0-9%5D%7B5%7D%24'%20THEN%20'zip5'%20WHEN%20facility_zip%20~%20'%5E%5B0-9%5D%7B5%7D-%5B0-9%5D%7B4%7D%24'%20THEN%20'zip5-plus4'%20ELSE%20'other'%20END%20AS%20zip_format%2C%20COUNT(*)%20AS%20row_count%20FROM%20%227aed8063-cea7-4367-8651-c81643164ae0%22%20GROUP%20BY%20zip_format%20ORDER%20BY%20zip_format",
+      "method": "GET",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "address_or_zip_values_returned": 0,
+      "response_bytes": 592,
+      "response_sha256": "0f271c8ac5c6b9bae2f8c0e148670c46663659be0321b7ef2e9e01302df5f9f4"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20COUNT(*)%20AS%20row_total%2C%20COUNT(DISTINCT%20facility_zip)%20AS%20distinct_reported_zip_values%2C%20SUM(CASE%20WHEN%20facility_address%20IS%20NULL%20OR%20BTRIM(facility_address)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_address_count%2C%20SUM(CASE%20WHEN%20facility_city%20IS%20NULL%20OR%20BTRIM(facility_city)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_city_count%2C%20SUM(CASE%20WHEN%20facility_state%20IS%20NULL%20OR%20BTRIM(facility_state)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_state_count%2C%20SUM(CASE%20WHEN%20facility_zip%20IS%20NULL%20OR%20BTRIM(facility_zip)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_zip_count%2C%20SUM(CASE%20WHEN%20facility_state%20%3C%3E%20'CA'%20THEN%201%20ELSE%200%20END)%20AS%20non_ca_state_count%20FROM%20%227aed8063-cea7-4367-8651-c81643164ae0%22",
+      "method": "GET",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "address_or_zip_values_returned": 0,
+      "response_bytes": 1292,
+      "response_sha256": "b6e511567d1d48f3cad09c6a4dee605702a3bac2a5b4fd5bc0902a32bd544b14"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20CASE%20WHEN%20facility_zip%20IS%20NULL%20OR%20BTRIM(facility_zip)%20%3D%20''%20THEN%20'blank'%20WHEN%20facility_zip%20~%20'%5E%5B0-9%5D%7B5%7D%24'%20THEN%20'zip5'%20WHEN%20facility_zip%20~%20'%5E%5B0-9%5D%7B5%7D-%5B0-9%5D%7B4%7D%24'%20THEN%20'zip5-plus4'%20ELSE%20'other'%20END%20AS%20zip_format%2C%20COUNT(*)%20AS%20row_count%20FROM%20%224b5cc48d-03b1-4f42-a7d1-b9816903eb2b%22%20GROUP%20BY%20zip_format%20ORDER%20BY%20zip_format",
+      "method": "GET",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "address_or_zip_values_returned": 0,
+      "response_bytes": 592,
+      "response_sha256": "6bfdae5863dac67a56a90a1cfe0c5623fe05f2d50088d3cefc370f6031f7e8cd"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20COUNT(*)%20AS%20row_total%2C%20COUNT(DISTINCT%20facility_zip)%20AS%20distinct_reported_zip_values%2C%20SUM(CASE%20WHEN%20facility_address%20IS%20NULL%20OR%20BTRIM(facility_address)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_address_count%2C%20SUM(CASE%20WHEN%20facility_city%20IS%20NULL%20OR%20BTRIM(facility_city)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_city_count%2C%20SUM(CASE%20WHEN%20facility_state%20IS%20NULL%20OR%20BTRIM(facility_state)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_state_count%2C%20SUM(CASE%20WHEN%20facility_zip%20IS%20NULL%20OR%20BTRIM(facility_zip)%20%3D%20''%20THEN%201%20ELSE%200%20END)%20AS%20blank_zip_count%2C%20SUM(CASE%20WHEN%20facility_state%20%3C%3E%20'CA'%20THEN%201%20ELSE%200%20END)%20AS%20non_ca_state_count%20FROM%20%224b5cc48d-03b1-4f42-a7d1-b9816903eb2b%22",
+      "method": "GET",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "address_or_zip_values_returned": 0,
+      "response_bytes": 1292,
+      "response_sha256": "789da2eaa7400047c6258c53325ea1f03102656406143d1eeecd6f218d5ca23d"
+    }
+  ],
+  "unresolved_gates": [
+    "publisher-status-to-active-lifecycle-rule",
+    "csv-file-delivery-or-datastore-acquisition-authorization",
+    "physical-versus-mailing-address",
+    "reported-zip5-governed-geography-validation",
+    "suppression-and-redaction-semantics",
+    "catalog-backend-temporal-disagreement"
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_rows_returned": 0,
+    "address_or_zip_values_returned": 0,
+    "personal_fields_requested": false,
+    "all_rows_have_lexical_zip5": true,
+    "zip4_observed": false,
+    "zip_validity_verified": false,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

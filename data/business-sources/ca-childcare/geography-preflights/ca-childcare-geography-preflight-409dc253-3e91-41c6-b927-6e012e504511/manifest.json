@@ -1,0 +1,19 @@
+{
+  "schema_version": "ca-childcare-geography-preflight-manifest@1.0.0",
+  "run_id": "409dc253-3e91-41c6-b927-6e012e504511",
+  "status": "immutable-aggregate-geography-readiness-only",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 6925,
+    "sha256": "2718df6aa5d2cc7a62fe1566f2c7635edde2a02d3be1f44324f977131f9c8e2a"
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_rows_returned": 0,
+    "address_or_zip_values_returned": 0,
+    "zip_validity_verified": false,
+    "current_operations_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
