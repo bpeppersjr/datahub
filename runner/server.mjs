@@ -34,7 +34,7 @@ import { zipQualityView } from './zip-quality-view.mjs';
 import { createZipInspectorView } from './zip-inspector-view.mjs';
 import { readIndexedZipInspectorEvidence } from './zip-inspector-indexed-reader.mjs';
 import { zipInspectorHttp } from './zip-inspector-http.mjs';
-import { readNonZctaSourceGeographyContext } from './non-zcta-source-geography-context.mjs';
+import { readNonZctaSourceGeographyContext, readNonZctaSourceGeographyContextSummary } from './non-zcta-source-geography-context.mjs';
 import { nonZctaSourceGeographyContextHttp } from './non-zcta-source-geography-context-http.mjs';
 import { zipEvidenceQualificationHttp, zipEvidenceQualificationPreflight } from './zip-evidence-qualification-http.mjs';
 import { readZipEvidenceQualification } from './zip-evidence-qualification-reader.mjs';
@@ -820,6 +820,10 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/non-zcta-source-geography-context'){
       await nonZctaSourceGeographyContextHttp(request,response,url,{authorize:()=>true,reader:readNonZctaSourceGeographyContext},json);return;
+    }
+    if(request.method==='GET'&&url.pathname==='/api/business-map/non-zcta-source-geography-summary'){
+      if([...url.searchParams.keys()].length){json(response,400,{error:'Non-ZCTA geography summary does not accept options.'});return;}
+      try{json(response,200,await readNonZctaSourceGeographyContextSummary());}catch{json(response,503,{error:'Non-ZCTA geography summary is unavailable or incompatible.'});}return;
     }
     if (url.pathname === '/api/business-map/zip-evidence-qualification') {
       await zipEvidenceQualificationHttp(request,response,url,{reader:readZipEvidenceQualification,authorize:incoming=>{

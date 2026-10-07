@@ -17,6 +17,7 @@ import ZipSourceNativeStatus, {
 } from "./zip-source-native-status";
 import childcareRegistration from "../config/datasets/retained-childcare-zip-evidence.json";
 import CensusZctaResidualLayer from "./census-zcta-residual-layer";
+import NonZctaGeographyStatus from "./non-zcta-geography-status";
 import StateExactZipEvidencePanel from "./state-exact-zip-evidence-panel";
 import StateExactZipEvidenceMap from "./state-exact-zip-evidence-map";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
@@ -2266,7 +2267,7 @@ export function CoverageWorkspace({
         )}
         <RetainedCountyWorkspace stateCode={state} />
       </details>
-      {!industries&&<CensusZctaResidualLayer state={state}/>}
+      {!industries&&<><NonZctaGeographyStatus/><CensusZctaResidualLayer state={state}/></>}
     </section>
   );
 }
