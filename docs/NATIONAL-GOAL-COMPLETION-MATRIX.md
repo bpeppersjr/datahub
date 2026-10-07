@@ -1,5 +1,7 @@
 # National goal-completion matrix
 
+Current immutable status release: `national-goal-completion-20261007052337-6ca8bb3a`, built and replay-verified October 7, 2026 from the currently retained inputs with zero network requests and no production-pointer change. The matrix reports 11 of 51 jurisdictions with retained broad general-business evidence and 40 as unmeasured. Each of the seven declared sector categories has retained measured evidence in all 51 jurisdictions; these are dataset-presence results, not percentages of businesses collected or proof of all-industry completeness. All contributing temporal policies remain within their configured review windows as of the release timestamp.
+
 ## Current retained-evidence contract
 
 The current builder contract is `national-goal-completion-matrix@1.3.0` with broad-layer contract 1.3. It admits eleven retained broad-evidence jurisdictions: AK, CO, CT, DC, DE, FL, IA, NY, OR, PA, and TX. The historical release noted below remains immutable and was not rebuilt by this change. Older narrative below describing the 1.2 contract and its ten-jurisdiction target records the preceding implementation state; it is superseded by this current-contract summary.
