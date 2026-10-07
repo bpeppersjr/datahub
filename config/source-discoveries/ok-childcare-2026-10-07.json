@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ok-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "OK",
+  "industry": "childcare",
+  "publisher": "Oklahoma Human Services Child Care Services",
+  "decision": "official-licensed-provider-locator-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://oklahoma.gov/okdhs/services/child-care-services.html",
+      "role": "official-licensing-authority",
+      "evidence": "Oklahoma Human Services identifies Child Care Services as responsible for licensing, inspection, complaint investigation, and corrective action."
+    },
+    {
+      "url": "http://childcarefind.okdhs.org/childcarefind/",
+      "role": "official-public-provider-locator",
+      "evidence": "The state-linked locator supports provider search and monitoring-summary review; no supported bulk export or API contract was established."
+    },
+    {
+      "url": "https://oklahoma.gov/okdhs/services/child-care-services/providers-educators.html",
+      "role": "official-locator-and-monitoring-context",
+      "evidence": "OKDHS directs providers and the public to the locator for summaries of program monitoring."
+    },
+    {
+      "url": "https://oklahoma.gov/okdhs/services/child-care-services/providers-educators/faqproviders.html",
+      "role": "official-search-and-cohort-description",
+      "evidence": "OKDHS describes searches by city or ZIP and the licensing requirement for regular child-care providers."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-providers-published-in-okdhs-locator",
+    "program_types": "family-child-care-home-center-residential-and-child-placing-cohorts-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Locator presence, license, subsidy contract, quality rating, monitoring, complaint, residential care, child placement, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The locator publishes monitoring and substantiated-complaint summaries for the previous 36 months, but no directory refresh cadence, snapshot date, supported bulk/API, or lifecycle contract was established."
+  },
+  "required_record_contract": {
+    "license_or_facility_number": "required-source-identifier",
+    "provider_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-monitoring-complaint-and-residential-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "child-care-versus-residential-and-placement-cohort-separation",
+    "license-status-and-operation-semantics",
+    "home-provider-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek an OKDHS-sanctioned center-focused machine-readable extract; do not automate the locator, and validate cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

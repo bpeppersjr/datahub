@@ -37,6 +37,8 @@ import { readNmChildcareSourceDiscovery } from "./nm-childcare-source-discovery.
 import { readNvChildcareSourceDiscovery } from "./nv-childcare-source-discovery.mjs";
 import { readNyChildcareSourceDiscovery } from "./ny-childcare-source-discovery.mjs";
 import { readOhChildcareSourceDiscovery } from "./oh-childcare-source-discovery.mjs";
+import { readOkChildcareSourceDiscovery } from "./ok-childcare-source-discovery.mjs";
+import { readOrChildcareSourceDiscovery } from "./or-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -433,6 +435,8 @@ export async function stateAccessMaintenanceBacklog({
   nvChildcareDiscoveryLoader = readNvChildcareSourceDiscovery,
   nyChildcareDiscoveryLoader = readNyChildcareSourceDiscovery,
   ohChildcareDiscoveryLoader = readOhChildcareSourceDiscovery,
+  okChildcareDiscoveryLoader = readOkChildcareSourceDiscovery,
+  orChildcareDiscoveryLoader = readOrChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -552,6 +556,8 @@ export async function stateAccessMaintenanceBacklog({
             "NV",
             "NY",
             "OH",
+            "OK",
+            "OR",
           ].includes(jurisdiction.state)
         ) {
           const loaders = {
@@ -587,6 +593,8 @@ export async function stateAccessMaintenanceBacklog({
               NV: nvChildcareDiscoveryLoader,
               NY: nyChildcareDiscoveryLoader,
               OH: ohChildcareDiscoveryLoader,
+              OK: okChildcareDiscoveryLoader,
+              OR: orChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -623,6 +631,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-licensure-search-identified-jurisdiction-boundary-unresolved",
                 "official-daily-program-api-identified-nyc-center-boundary-unresolved",
                 "official-daily-email-gated-csv-export-identified-acquisition-disabled",
+                "official-licensed-provider-locator-identified-bulk-contract-unverified",
+                "official-daily-child-care-safety-portal-identified-bulk-contract-unverified",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -680,7 +690,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.9.0",
+    schema_version: "state-access-maintenance-backlog@2.10.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

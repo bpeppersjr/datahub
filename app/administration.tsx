@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.9.0";
+  schema_version: "state-access-maintenance-backlog@2.10.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -84,7 +84,9 @@ type Backlog = {
         | "official-provider-database-backed-finder-identified-bulk-contract-unverified"
         | "official-licensure-search-identified-jurisdiction-boundary-unresolved"
         | "official-daily-program-api-identified-nyc-center-boundary-unresolved"
-        | "official-daily-email-gated-csv-export-identified-acquisition-disabled";
+        | "official-daily-email-gated-csv-export-identified-acquisition-disabled"
+        | "official-licensed-provider-locator-identified-bulk-contract-unverified"
+        | "official-daily-child-care-safety-portal-identified-bulk-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -360,7 +362,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.9.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.10.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -457,6 +459,8 @@ export function validAdministrationBacklog(
             "NV",
             "NY",
             "OH",
+            "OK",
+            "OR",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -490,6 +494,8 @@ export function validAdministrationBacklog(
               NV: "official-licensure-search-identified-jurisdiction-boundary-unresolved",
               NY: "official-daily-program-api-identified-nyc-center-boundary-unresolved",
               OH: "official-daily-email-gated-csv-export-identified-acquisition-disabled",
+              OK: "official-licensed-provider-locator-identified-bulk-contract-unverified",
+              OR: "official-daily-child-care-safety-portal-identified-bulk-contract-unverified",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -512,6 +518,8 @@ export function validAdministrationBacklog(
               "NV",
               "NY",
               "OH",
+              "OK",
+              "OR",
             ].includes(row.state)
               ? 4
               : row.state === "ID"

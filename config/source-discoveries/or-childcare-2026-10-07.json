@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "or-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "OR",
+  "industry": "childcare",
+  "publisher": "Oregon Department of Early Learning and Care Child Care Licensing Division",
+  "decision": "official-daily-child-care-safety-portal-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.oregon.gov/delc/families/pages/child-care-safety.aspx",
+      "role": "official-daily-license-safety-search-description",
+      "evidence": "DELC describes a daily-updated portal publishing license status, type, capacity, inspection, enforcement, injury, death, and quality-participation information."
+    },
+    {
+      "url": "https://findchildcareoregon.org/",
+      "role": "official-public-provider-and-safety-search",
+      "evidence": "DELC links Find Child Care Oregon as the current family-facing provider and safety portal; no supported bulk/API contract was established."
+    },
+    {
+      "url": "https://www.oregon.gov/delc/data/Pages/default.aspx",
+      "role": "official-aggregate-dashboard-and-cohort-context",
+      "evidence": "DELC identifies Certified Center, Certified Family, and Registered Family facility cohorts and provides quarterly aggregate licensing dashboards."
+    },
+    {
+      "url": "https://www.oregon.gov/delc/programs/pages/child-care-licensing.aspx",
+      "role": "official-licensing-authority",
+      "evidence": "The Child Care Licensing Division regulates licensed child-care facilities and maintains facility-type boundaries."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-programs-published-to-find-child-care-oregon",
+    "program_types": "certified-center-certified-family-registered-family-and-license-exempt-cohorts-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Portal presence, license type, license status, capacity, inspection, enforcement, quality participation, ERDC eligibility, license exemption, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "daily-portal-quarterly-aggregate-dashboard",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "Daily portal updates do not provide a supported entity-level bulk/API or captured snapshot date; quarterly dashboard aggregates cannot substitute for provider rows."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "provider_or_facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-family-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-inspection-enforcement-injury-and-quality-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-entity-level-export-or-publisher-request",
+    "licensed-and-license-exempt-cohort-separation",
+    "license-status-and-operation-semantics",
+    "family-home-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek a DELC-sanctioned center-focused entity extract; do not automate the public portal or substitute aggregate dashboard counts, and validate cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
