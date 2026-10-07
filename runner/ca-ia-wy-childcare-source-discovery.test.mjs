@@ -22,8 +22,8 @@ test("Iowa discovery preserves regulated cohorts and the agreement gate", () => 
   assert.match(value.unresolved_gates[0], /data-sharing-agreement/);
 });
 
-test("Wyoming discovery separates licensed and exempt monthly counts", () => {
-  const value = readWyChildcareSourceDiscovery();
+test("Wyoming discovery separates licensed and exempt monthly counts", async () => {
+  const value = await readWyChildcareSourceDiscovery();
   assert.equal(value.scope.published_monthly_licensed_total, 492);
   assert.equal(value.scope.published_monthly_exempt_total, 124);
   assert.equal(value.access.supported_bulk_export_verified, true);
@@ -37,7 +37,7 @@ test("maintenance backlog verifies all three final discovery contracts before ba
     maintainedIndustries: ["childcare"], maintenanceRevision: 13,
     caChildcareDiscoveryLoader: () => { reads.CA++; return readCaChildcareSourceDiscovery(); },
     iaChildcareDiscoveryLoader: () => { reads.IA++; return readIaChildcareSourceDiscovery(); },
-    wyChildcareDiscoveryLoader: () => { reads.WY++; return readWyChildcareSourceDiscovery(); },
+    wyChildcareDiscoveryLoader: async () => { reads.WY++; return readWyChildcareSourceDiscovery(); },
   });
   assert.equal(value.schema_version, "state-access-maintenance-backlog@2.18.0");
   assert.deepEqual(reads, { CA: 1, IA: 1, WY: 1 });

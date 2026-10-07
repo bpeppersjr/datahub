@@ -1,0 +1,41 @@
+{
+  "schema_version": "wy-childcare-metadata-preflight@1.0.0",
+  "run_id": "wy-childcare-preflight-20261007-175437",
+  "observed_at": "2026-10-07T17:54:37.100Z",
+  "status": "official-monthly-active-provider-pdf-metadata-validated-zero-provider-rows",
+  "publisher": "Wyoming Department of Family Services",
+  "statistics_page": {
+    "url": "https://dfs.wyo.gov/providers/child-care-2/wyoming-child-care-statistics-and-reports/",
+    "status": 200,
+    "content_type": "text/html; charset=UTF-8",
+    "bytes": 84200,
+    "sha256": "063470be54a1c3c662d69d29d1ae9f028041b388ed74dd49735e007ab6bac0fa",
+    "published_statistics_source_date": "2026-09-01",
+    "licensed_provider_count": 492,
+    "exempt_provider_count": 124
+  },
+  "publisher_linked_folder": {
+    "url": "https://drive.google.com/drive/folders/1UpaYAbPbhT3l2UOiS6AlFGFhcjarzpd8?usp=drive_link",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "bytes": 306310,
+    "sha256": "6c899fe571c21297be886b3166409c128e0667755032223de6c397338f989b5f"
+  },
+  "current_file": {
+    "file_id": "1wikI4MQYcdBfvZr4s5-XRXrqIPuH0XIQ",
+    "filename": "Oct 2026 Active Provider.pdf",
+    "download_url": "https://drive.usercontent.google.com/download?id=1wikI4MQYcdBfvZr4s5-XRXrqIPuH0XIQ&export=download",
+    "head_status": 200,
+    "content_type": "application/octet-stream",
+    "content_length": 281722,
+    "content_disposition": "attachment; filename=\"Oct 2026 Active Provider.pdf\"",
+    "last_modified": "Tue, 06 Oct 2026 17:35:32 GMT"
+  },
+  "requests": [
+    {"method":"GET","role":"statistics-page","provider_rows_returned":0},
+    {"method":"GET","role":"publisher-linked-folder-metadata","provider_rows_returned":0},
+    {"method":"HEAD","role":"current-file-headers","provider_rows_returned":0}
+  ],
+  "unresolved_gates": ["pdf-body-acquisition-authorization","pdf-content-sha256","pdf-layout-schema-and-row-unit","licensed-versus-exempt-cohort-conservation","residential-provider-privacy","publisher-active-and-snapshot-semantics","request-and-redistribution-policy","production-admission"],
+  "claims": {"pdf_body_requested":false,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"current_operations_verified":false,"production_admission":false}
+}

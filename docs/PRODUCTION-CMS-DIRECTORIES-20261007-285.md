@@ -1,0 +1,9 @@
+# Production successor plan 285
+
+Run `production-cms-directories-20261007-285` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-285.json`, confirmation SHA-256 `28a05923a8a4937bd509c95a9a0dd1457a85a571eb427f6d8484496500dc73e3`, and file SHA-256 `289c80e0059373c1c86f03d38c8b0fb62a9111a8791c6e8d0d55ebb803b9cd39`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,413,192,704 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+Wyoming childcare discovery now binds the exact current publisher-linked folder and an immutable metadata-only preflight. Two bounded HTML metadata GETs and one file-header HEAD request identified file `1wikI4MQYcdBfvZr4s5-XRXrqIPuH0XIQ`, `Oct 2026 Active Provider.pdf`, modified October 6, 2026, with a declared 281,722-byte body. The PDF body was not requested; zero provider rows were returned or acquired. The separately dated September 1 statistics page still reports 492 licensed and 124 exempt providers. PDF hash, layout, row schema, cohort conservation, residential privacy, status semantics, redistribution, and production admission remain explicit gates.
+
+Focused Wyoming preflight, national discovery, state-access, and Administration tests passed 17/17. ESLint completed with zero errors and seven pre-existing warnings. The required recovery sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.
