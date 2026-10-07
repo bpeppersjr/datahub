@@ -1,0 +1,115 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "az-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "AZ",
+  "industry": "childcare",
+  "publisher": "Arizona Department of Health Services and Arizona Department of Economic Security",
+  "decision": "official-monthly-table-metadata-validated-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://www.azdhs.gov/licensing/index.php#databases",
+      "role": "official-monthly-provider-table-landing",
+      "evidence": "ADHS describes monthly provider and facility database snapshots including child care centers and group homes."
+    },
+    {
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_CENTERS.xlsx",
+      "role": "official-childcare-center-workbook",
+      "evidence": "The exact September 2026 XLSX response metadata was retained by a zero-row preflight; the workbook body was not requested."
+    },
+    {
+      "url": "https://www.azdhs.gov/documents/licensing/databases/2026/september/CC_GROUP_HOMES.xlsx",
+      "role": "official-childcare-group-home-workbook",
+      "evidence": "The exact September 2026 XLSX response metadata was retained by a zero-row preflight; the workbook body was not requested."
+    },
+    {
+      "url": "https://services1.arcgis.com/mpVYz37anSdrK4d8/ArcGIS/rest/services/AZLicensedFacilities/FeatureServer/17",
+      "role": "official-api-capable-but-stale-gis-layer",
+      "evidence": "The query-capable child-care layer exposes licensing and location fields, but its public edit metadata appears frozen in February 2025 despite monthly language."
+    },
+    {
+      "url": "https://azchildcareprovidersearch.azdes.gov/",
+      "role": "official-consumer-provider-search",
+      "evidence": "DES provides the consumer search and documents licensed and selected license-exempt cohorts, but no supported bulk/API contract was established."
+    }
+  ],
+  "scope": {
+    "publisher_described_members": [
+      "adhs-licensed-childcare-centers",
+      "adhs-certified-childcare-group-homes",
+      "des-certified-family-childcare-homes",
+      "license-exempt-family-childcare-ccdf-providers",
+      "license-exempt-non-ccdf-providers"
+    ],
+    "publisher_described_exclusions": [
+      "license-exempt-center-based-ccdf-providers",
+      "relative-ccdf-providers",
+      "summer-camps-and-public-pre-k-other-cohorts"
+    ],
+    "scope_overlap_warning": "ADHS license or certification, DES certification or contract, CCDF eligibility, consumer-search membership, and current subsidy acceptance are distinct potentially overlapping facts.",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "first-business-day-monthly-snapshot-described",
+    "validated_workbook_month": "2026-09",
+    "workbook_last_modified": "2026-09-03T18:57:46.000Z",
+    "gis_last_edit_observed": "2025-02-04",
+    "current_operation_equivalence": false,
+    "limitation": "The validated workbook headers establish publication availability, not row content or current operation; the GIS layer has an unresolved stale-metadata conflict."
+  },
+  "retained_metadata_preflight": {
+    "manifest_path": "data/business-sources/az-childcare/preflights/az-childcare-preflight-e1856c0b-624a-46db-a5c8-18fb54db60e0/manifest.json",
+    "manifest_sha256": "950fb3baca262a65380790bbf5edb467f952e2a5be85ee85f7b2d39c993ad4c1",
+    "run_id": "e1856c0b-624a-46db-a5c8-18fb54db60e0",
+    "provider_rows_acquired": 0,
+    "workbook_bodies_requested": 0
+  },
+  "required_record_contract": {
+    "business_name": "required-if-published",
+    "facility_identifier": "required-if-published",
+    "publisher_regulatory_type": "required-preserve-verbatim",
+    "publisher_operation_status": "required-if-published-preserve-verbatim",
+    "license_effective": "optional-source-value-only",
+    "license_expiration_or_fee_due": "optional-source-value-with-qualified-semantics",
+    "reported_address": "required-if-published",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "des_contract_status": "separate-optional-source-fact",
+    "ccdf_eligibility": "separate-optional-source-fact"
+  },
+  "unresolved_gates": [
+    "workbook-body-acquisition-authorization",
+    "workbook-schema-and-public-field-allowlist",
+    "record-count-and-row-conservation",
+    "stable-identifier-and-status-dictionaries",
+    "redistribution-retention-and-request-rate-terms",
+    "gis-current-run-date-and-item-lineage",
+    "licensed-certified-exempt-cohort-separation",
+    "des-contract-and-ccdf-separation",
+    "current-operation-semantics",
+    "production-admission"
+  ],
+  "next_action": "Authorize and validate one exact monthly workbook acquisition with run-date, schema, public-field, row-conservation, retention, and redistribution contracts; separately revalidate the stale ADHS GIS metadata before considering its API.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

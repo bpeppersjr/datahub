@@ -1,0 +1,109 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ar-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "AR",
+  "industry": "childcare",
+  "publisher": "Arkansas Department of Education, Office of Early Childhood",
+  "decision": "official-search-identified-bulk-interface-unverified",
+  "official_sources": [
+    {
+      "url": "https://daycare.arkansas.gov/",
+      "role": "official-statewide-search-landing",
+      "evidence": "The ADE service describes statewide licensed-provider search by city, ZIP, county, star rating, availability, and support services."
+    },
+    {
+      "url": "https://ardhsllicensing.my.site.com/elicensing/s/search-provider/find-providers?tab=CC&language=en_US",
+      "role": "official-linked-public-directory",
+      "evidence": "The CCDF plan identifies this human-facing Salesforce directory as the public provider search; no supported bulk or API contract was established."
+    },
+    {
+      "url": "https://dese.ade.arkansas.gov/Offices/office-of-early-childhood/child-care-licensing",
+      "role": "official-licensing-scope",
+      "evidence": "OEC defines registered family homes, licensed homes, licensed centers, and out-of-school-time facilities."
+    },
+    {
+      "url": "https://dese.ade.arkansas.gov/Files/2025-2027_CCDF_State_Plan_Final_4.26.24.1REV_OEC.pdf",
+      "role": "official-published-directory-scope",
+      "evidence": "The state plan certifies searchable licensed-provider coverage and names additional Other program types while distinguishing license-exempt CCDF categories."
+    },
+    {
+      "url": "https://dese.ade.arkansas.gov/Files/Child_Care_Facility_Licensing_Act_20230525091545.pdf",
+      "role": "official-credential-authority",
+      "evidence": "The licensing framework recognizes licensed, registered, provisional, adverse-action, and church-operated exemption boundaries that must remain distinct."
+    }
+  ],
+  "scope": {
+    "publisher_described_members": [
+      "licensed-childcare-centers",
+      "licensed-childcare-family-homes",
+      "registered-childcare-family-homes",
+      "out-of-school-time-facilities",
+      "arkansas-better-chance-preschool",
+      "summer-camps",
+      "boys-and-girls-clubs",
+      "head-start",
+      "federal-pre-k"
+    ],
+    "publisher_described_exclusions": [
+      "license-exempt-center-based-ccdf-category",
+      "license-exempt-family-care-ccdf-category",
+      "relative-ccdf-category"
+    ],
+    "scope_overlap_warning": "Directory presence, licensed or registered credential, church-operated exemption, SRA/CCDF participation, and Better Beginnings rating are distinct potentially overlapping facts and must not be treated as equivalent or additive businesses.",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "directory_as_of_date": null,
+    "refresh_cadence": null,
+    "history_retention_verified": false,
+    "current_operation_equivalence": false,
+    "limitation": "Portal descriptions of real-time availability or quality do not establish a roster-wide as-of date, historical status, refresh SLA, or operation on another date."
+  },
+  "required_record_contract": {
+    "business_name": "required-if-published",
+    "facility_identifier": "required-if-published",
+    "credential_status": "required-if-published-preserve-verbatim",
+    "status_effective_or_observed_date": "required-if-published-otherwise-retrieval-time",
+    "reported_address": "required-if-published",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "credential_type": "required-to-separate-licensed-registered-provisional-and-exempt",
+    "ccdf_or_sra_participation": "separate-optional-source-fact",
+    "better_beginnings_rating": "separate-optional-source-fact"
+  },
+  "unresolved_gates": [
+    "supported-bulk-export-or-api",
+    "written-automation-and-reuse-authorization",
+    "field-schema-and-privacy-review",
+    "stable-identifier-contract",
+    "status-vocabulary-and-current-operation-semantics",
+    "licensed-registered-exempt-cohort-separation",
+    "ccdf-sra-and-quality-rating-separation",
+    "snapshot-date-and-pagination-conservation",
+    "record-acquisition-authorization",
+    "production-admission"
+  ],
+  "next_action": "Request an official ADE/OEC machine-readable extract or written authorization with schema, credential cohorts, pagination, terms, and temporal contracts; do not automate or reverse-engineer the Salesforce directory meanwhile.",
+  "claims": {
+    "network_requests_by_datahub": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
