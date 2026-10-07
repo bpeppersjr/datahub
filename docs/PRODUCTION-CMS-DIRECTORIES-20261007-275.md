@@ -1,0 +1,9 @@
+# Production successor plan 275
+
+Run `production-cms-directories-20261007-275` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-275.json`, confirmation SHA-256 `cc1a8792ca3483e8de4cca50eb12e581a4e78fa2a92ba6dd817416bf10ccd50e`, and file SHA-256 `4fe4377663049a65b3d13db902bea4c89b188d492cae104c6951242e1918a122`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,459,657,728 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.9.0` and reports thirty-two governed childcare source discoveries. New York exposes a daily official program-level SODA API but explicitly excludes NYC center-based programs, which require a separately governed NYC Health source. Ohio exposes a daily CSV of all currently listed programs; its manual email and one-time-code flow is limited to five downloads per day and ten per month for each email address. Provider acquisition, production admission, and current-operation claims remain disabled, and no provider rows were acquired.
+
+Focused Node tests passed 10/10. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing chunk-size warning. The required clean restart sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.

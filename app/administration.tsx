@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.8.0";
+  schema_version: "state-access-maintenance-backlog@2.9.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -82,7 +82,9 @@ type Backlog = {
         | "official-child-care-search-identified-bulk-contract-unverified"
         | "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled"
         | "official-provider-database-backed-finder-identified-bulk-contract-unverified"
-        | "official-licensure-search-identified-jurisdiction-boundary-unresolved";
+        | "official-licensure-search-identified-jurisdiction-boundary-unresolved"
+        | "official-daily-program-api-identified-nyc-center-boundary-unresolved"
+        | "official-daily-email-gated-csv-export-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -358,7 +360,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.8.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.9.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -453,6 +455,8 @@ export function validAdministrationBacklog(
             "NJ",
             "NM",
             "NV",
+            "NY",
+            "OH",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -484,6 +488,8 @@ export function validAdministrationBacklog(
               NJ: "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled",
               NM: "official-provider-database-backed-finder-identified-bulk-contract-unverified",
               NV: "official-licensure-search-identified-jurisdiction-boundary-unresolved",
+              NY: "official-daily-program-api-identified-nyc-center-boundary-unresolved",
+              OH: "official-daily-email-gated-csv-export-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -504,6 +510,8 @@ export function validAdministrationBacklog(
               "NJ",
               "NM",
               "NV",
+              "NY",
+              "OH",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -526,9 +534,11 @@ export function validAdministrationBacklog(
               "MO",
               "NE",
               "NJ",
+              "NY",
+              "OH",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["DE", "NJ"].includes(row.state) &&
+            ["DE", "NJ", "NY"].includes(row.state) &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&

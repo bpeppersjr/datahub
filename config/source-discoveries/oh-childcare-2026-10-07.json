@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "oh-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "OH",
+  "industry": "childcare",
+  "publisher": "Ohio Department of Children and Youth",
+  "decision": "official-daily-email-gated-csv-export-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://childcaresearch.ohio.gov/",
+      "role": "official-current-program-search",
+      "evidence": "Ohio publishes licensing status, quality rating, inspection results, and search across regulated early care and education program types."
+    },
+    {
+      "url": "https://childcaresearch.ohio.gov/export",
+      "role": "official-daily-csv-export-contract",
+      "evidence": "The state offers a daily CSV of all currently listed programs with license number, address, county, program type, and rating."
+    },
+    {
+      "url": "https://maps.ohio.gov/portal/apps/instant/nearby/index.html?appid=e80b0d56986a4c9caa2ccd8c5419cdca",
+      "role": "official-map-based-program-search",
+      "evidence": "Ohio links a map-based view of all rated and unrated programs from the primary search page."
+    },
+    {
+      "url": "https://childrenandyouth.ohio.gov/for-families/early-care-education/child-care-search",
+      "role": "official-program-authority-context",
+      "evidence": "The Department of Children and Youth is the state authority linked from the program search and export."
+    }
+  ],
+  "scope": {
+    "search_cohort": "all-current-early-care-and-education-programs-listed-by-ohio",
+    "program_types": "type-a-home-type-b-home-center-day-camp-in-home-aide-school-based-preschool-and-school-age-care-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Current-list presence, license or certification, program type, quality rating, publicly funded participation, inspection, service hours, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "manual_email_access_code_required": true,
+    "download_limit_per_email_per_day": 5,
+    "download_limit_per_email_per_month": 10,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "daily",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The CSV is updated daily, but a user-supplied email and one-time code are required and the download is rate-limited; current-list presence does not prove continuous operation."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "program_name": "required-if-published-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_or_certification_status": "required-if-published-preserve-verbatim",
+    "reported_address": "center-only-unless-home-or-in-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "email-code-rating-service-inspection-and-person-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "manual-user-email-and-one-time-code",
+    "exact-csv-schema-and-status-contract",
+    "home-and-in-home-provider-privacy",
+    "daily-snapshot-as-of-capture",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Build a manual app-mediated preflight for the user-supplied one-time code without storing credentials or downloading rows; validate CSV schema, privacy, status, as-of capture, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

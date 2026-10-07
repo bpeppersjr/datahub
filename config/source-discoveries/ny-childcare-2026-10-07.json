@@ -1,0 +1,87 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ny-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NY",
+  "industry": "childcare",
+  "publisher": "New York State Office of Children and Family Services Division of Child Care Services",
+  "decision": "official-daily-program-api-identified-nyc-center-boundary-unresolved",
+  "official_sources": [
+    {
+      "url": "https://data.ny.gov/Human-Services/Child-Care-Regulated-Programs/ktam-ytxy",
+      "role": "official-program-level-open-data-catalog",
+      "evidence": "OCFS publishes licensed and registered child-care program data for public research and provider selection."
+    },
+    {
+      "url": "https://data.ny.gov/resource/fymg-3wv3.json",
+      "role": "official-soda-api",
+      "evidence": "NY Open Data exposes the Child Care Regulated Programs API as a supported SODA2 program-level interface."
+    },
+    {
+      "url": "https://data.ny.gov/Human-Services/Child-Care-Regulated-Programs-Map/s8uq-s4wq",
+      "role": "official-cadence-and-coverage-contract",
+      "evidence": "The catalog describes daily posting, current program information, two years of violation history, statewide program-level coverage, and explicit exclusion of NYC day care centers."
+    },
+    {
+      "url": "https://hs.ocfs.ny.gov/dcfs",
+      "role": "official-regulated-program-search-and-cohort-boundary",
+      "evidence": "OCFS search distinguishes family, group-family, center, school-age, small-center, and legally exempt group programs and routes NYC center-based programs to NYC Health."
+    }
+  ],
+  "scope": {
+    "search_cohort": "ocfs-licensed-registered-and-selected-legally-exempt-programs",
+    "program_types": "family-group-family-day-care-center-school-age-small-center-and-legally-exempt-group-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "nyc_center_based_programs_included": false,
+    "warning": "OCFS program presence, open status, license or registration, enforcement, legally exempt enrollment, NYC Health regulation, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "daily",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "Daily catalog currency does not prove continuous operation; NYC center-based programs require a separately governed NYC Health source before statewide center coverage can be claimed."
+  },
+  "required_record_contract": {
+    "facility_id": "required-source-identifier",
+    "program_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "facility_status": "required-preserve-verbatim",
+    "regulatory_authority": "required-ocfs-or-nyc-health",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "contact-person-phone-violation-and-inspection-fields": "excluded-from-default-business-entity-view"
+  },
+  "unresolved_gates": [
+    "nyc-health-center-source-contract-and-reconciliation",
+    "exact-api-schema-pagination-and-status-contract",
+    "home-provider-privacy",
+    "daily-snapshot-as-of-capture",
+    "reuse-retention-and-redistribution",
+    "row-and-facility-id-conservation",
+    "production-admission"
+  ],
+  "next_action": "Validate the OCFS SODA schema and pagination contract without acquiring provider rows, identify an authorized NYC Health center-level source, and reconcile regulator, cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
