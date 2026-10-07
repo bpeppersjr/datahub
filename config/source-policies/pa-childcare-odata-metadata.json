@@ -1,0 +1,19 @@
+{
+  "policy_id": "pa-childcare-odata-metadata",
+  "version": "1.0.0",
+  "publisher": "Pennsylvania Department of Human Services / PA Open Data",
+  "ownership": "Official OData v4 service model; selected schema metadata for dataset ajn5-kaxt only.",
+  "terms_url": "https://data.pa.gov/data-policy",
+  "allowed_use": ["one anonymous bounded service CSDL metadata request", "internal immutable selected-schema receipt retention"],
+  "prohibited_use": ["entity endpoint requests including purported zero-row top=0 probes", "following nextLink or pagination links", "provider-row acquisition", "automatic refresh or production admission", "retaining other dataset metadata or raw service XML"],
+  "attribution": "Pennsylvania Department of Human Services; data.pa.gov",
+  "retention": "Keep selected metadata receipts internally; no source current pointer or retained release replacement.",
+  "redistribution": "Internal metadata evidence only; no record-level export authorized.",
+  "contains_personal_data": false,
+  "contains_secrets": false,
+  "export_policy": "internal",
+  "record_acquisition_authorized": false,
+  "automatic_refresh_authorized": false,
+  "production_admission": false,
+  "discovery_reference": "config/source-discoveries/pa-childcare-2026-10-07.json"
+}

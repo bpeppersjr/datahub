@@ -1,0 +1,23 @@
+{
+  "connector_id": "pa-childcare-odata-metadata",
+  "version": "1.0.0",
+  "description": "Bounded OData CSDL schema inspection for PA DHS childcare; entity and pagination requests are disabled.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "configuration_schema": {"type":"object","additionalProperties":false,"properties":{}},
+  "named_secret_references": [],
+  "input_artifact_types": ["pa-odata-v4-csdl-metadata"],
+  "output_artifact_types": ["pa-childcare-odata-metadata-receipt"],
+  "allowed_hosts": ["data.pa.gov"],
+  "redirect_policy": "Reject redirects; GET https://data.pa.gov/api/odata/v4/$metadata is the only permitted request.",
+  "provider_budget_key": "pa-dhs-childcare-odata-metadata",
+  "resource_class": "bounded-metadata-only",
+  "execution_limits": {"max_parallel_requests":1,"maximum_requests":1,"maximum_response_bytes":2000000,"request_timeout_ms":30000,"provider_rows_requested":0},
+  "retry": "No retries or API fallback; failure requires inspection.",
+  "checkpoint": "Persist only a complete validated selected-schema receipt; exclude other datasets and raw XML.",
+  "idempotency": "New immutable receipt for each explicit successful invocation; no current pointer changes.",
+  "cancellation": "Abort transport and bounded body reading cooperatively; remove only an owned unpublished temporary receipt.",
+  "source_policy": "config/source-policies/pa-childcare-odata-metadata.json",
+  "retention_profile": "Internal selected CSDL field/type/nullability/key metadata and response digest only.",
+  "produced_entities": ["source-schema-readiness-assertion"],
+  "produced_identifiers": ["pa-dhs-catalog-id"]
+}

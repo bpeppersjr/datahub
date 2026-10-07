@@ -1,0 +1,20 @@
+{
+  "schema_version": "pa-childcare-odata-metadata-registration@1.0.0",
+  "dataset_id": "pa-dhs-childcare-odata-metadata",
+  "publication_scope": "internal-metadata-only",
+  "receipt": {
+    "path": "data/business-sources/pa-childcare-centers/odata-metadata-preflights/3a285b40-8819-43ad-a209-cc6a6e4832ea.json",
+    "bytes": 2546,
+    "sha256": "c4a330dc7935d6459c84ca211489fbc38bed6923b21bcbe31263b5aeb3faf01f"
+  },
+  "observed_at": "2026-10-07T21:02:42.370Z",
+  "source_response": {
+    "url": "https://data.pa.gov/api/odata/v4/$metadata",
+    "bytes": 431474,
+    "sha256": "a13bfbddd5a770fcd2a764612d668717217abaeda952ab2a96173f1a1bafa230"
+  },
+  "current_pointer": null,
+  "production_enrollment": false,
+  "acquisition_authorized": false,
+  "automatic_refresh_authorized": false
+}

@@ -1,0 +1,27 @@
+# Pennsylvania childcare OData metadata readiness
+
+The current discovery identifies DHS dataset `ajn5-kaxt` and asks for OData schema and pagination validation. The separate `pa-childcare-odata-metadata@1.0.0` connector can inspect the service CSDL, retain the selected provider/location/address/ZIP/point field types, their declared nullability, and the publisher `__id` row key. It requests only `https://data.pa.gov/api/odata/v4/$metadata`, with a 2 MB body ceiling and 30-second deadline. It never follows entity, pagination, or other URLs. The older SODA2 preflight, acquisition, normalization and retained releases retain their original contracts.
+
+Run `node scripts/preflight-pa-childcare-odata-metadata.mjs`. A successful invocation publishes a new immutable checksummed receipt inside `data/business-sources/pa-childcare-centers/odata-metadata-preflights`; failure publishes nothing. The selected receipt excludes raw XML and metadata for other datasets. The service metadata covers a whole domain and may exceed the bound; this produces an inspection error rather than widening the download. External entities, DTD declarations, CDATA, namespace spoofing, duplicate selected properties and schema changes fail closed. Supported CSDL is deliberately narrow; an unsupported serialization requires review.
+
+## Observed pagination defect, 2026-10-07
+
+A manual request intended as a zero-row check (`$top=0&$count=true`) returned a nonempty provider page and a next link containing `$top=1000`. The publisher therefore does not honor zero as a safe row exclusion on this endpoint. That response included unselected fields and was displayed in tool output; it was not written into local files, source releases or application receipts. This was an unexpected acquisition during validation and must not be represented as a successful metadata-only check. No further entity requests are allowed under this connector. The dataset-level `ajn5-kaxt/$metadata` route returned HTTP 400; the service CSDL route is at `/api/odata/v4/$metadata`. A HEAD request to that route returned HTTP 405. No entity response body is preserved as a fixture.
+
+Pagination remains explicitly held. Declared nullability is metadata evidence only; row-level null behavior, monthly snapshot date, cohort conservation, regulated versus Other predicates, home privacy, ZIP5/ZIP4 separation and production admission remain unresolved. The metadata connector does not authorize provider collection, scheduled refresh, current-operation claims or any all-business completeness percentage.
+
+## Registered metadata evidence
+
+The application-owned metadata CLI succeeded at `2026-10-07T21:02:42.370Z`. The service returned HTTP 200 with 431,474 metadata bytes, SHA-256 `a13bfbddd5a770fcd2a764612d668717217abaeda952ab2a96173f1a1bafa230`. The selected entity type is `socrata.ajn5-kaxt`; the selected row key is non-nullable `__id`, eighteen selected source fields are nullable in CSDL, and the point type is `Edm.GeographyPoint`.
+
+Registration `config/datasets/pa-childcare-odata-metadata.json` pins receipt `data/business-sources/pa-childcare-centers/odata-metadata-preflights/3a285b40-8819-43ad-a209-cc6a6e4832ea.json`, 2,546 bytes, SHA-256 `c4a330dc7935d6459c84ca211489fbc38bed6923b21bcbe31263b5aeb3faf01f`. Run `node scripts/verify-pa-childcare-odata-metadata.mjs` for bounded offline verification of its exact registered path, byte count, digest, configuration pins, selected schema, conservative claims and observed source-response identity. Verification makes no network request and writes nothing. The registration itself is pinned; changing its path or claims requires a reviewed code/configuration migration.
+
+This particular application receipt reports zero requested/retained provider rows and zero entity requests. Those counts describe only its successful metadata invocation; they do not conceal the earlier manual pagination probe documented above. The retained artifact is selected metadata evidence and is suitable for Git retention alongside the existing California, Arizona and other metadata preflight receipts. Raw XML and the unexpected entity response remain excluded. The registration has no source current pointer and no production enrollment.
+
+Source documentation: [Socrata OData endpoint and type documentation](https://support.socrata.com/hc/en-us/articles/115005364207-Access-Data-Insights-Data-using-OData), [OASIS OData metadata protocol](https://docs.oasis-open.org/odata/odata/v4.0/cs02/part1-protocol/odata-v4.0-cs02-part1-protocol.html), and [PA DHS source discovery](../config/source-discoveries/pa-childcare-2026-10-07.json).
+
+Rollback: remove the new metadata connector, policy, module, metadata/verification CLIs, registration, selected metadata receipt, tests and this document. No database migration, retained source update, application enrollment or production successor is needed for this standalone prerequisite.
+
+## Verification
+
+The focused Pennsylvania/registry/security checks passed after the connector inventory was advanced to 109 connectors and 84 source-policy profiles. The required clean-port `npm run check` passed with 4,009 tests: 3,932 passed, 77 skipped and none failed; ESLint reported zero errors and seven pre-existing warnings, both web and desktop builds passed, and the desktop control-plane smoke passed. `npm audit --omit=dev` continues to report the two existing high-severity transitive advisories in `sharp` and `source-map-js`; no automatic dependency change was made.
