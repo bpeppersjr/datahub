@@ -1,0 +1,148 @@
+{
+  "schema_version": "ca-childcare-status-preflight-receipt@1.0.0",
+  "status": "official-aggregate-status-and-file-date-counts-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T09:16:18.241Z",
+  "resources": [
+    {
+      "resource_id": "7aed8063-cea7-4367-8651-c81643164ae0",
+      "label": "Child Care Centers",
+      "schema_preflight_row_total": 19426,
+      "status_counts": [
+        {
+          "facility_status": "CLOSED",
+          "row_count": 4448
+        },
+        {
+          "facility_status": "INACTIVE",
+          "row_count": 401
+        },
+        {
+          "facility_status": "LICENSED",
+          "row_count": 14072
+        },
+        {
+          "facility_status": "ON PROBATION",
+          "row_count": 24
+        },
+        {
+          "facility_status": "PENDING",
+          "row_count": 481
+        }
+      ],
+      "file_date_counts": [
+        {
+          "file_date": "05252025",
+          "row_count": 19426
+        }
+      ],
+      "publisher_current_candidate_count": 14096,
+      "current_operation_verified": false
+    },
+    {
+      "resource_id": "4b5cc48d-03b1-4f42-a7d1-b9816903eb2b",
+      "label": "Family Child Care Homes",
+      "schema_preflight_row_total": 19758,
+      "status_counts": [
+        {
+          "facility_status": "CLOSED",
+          "row_count": 5160
+        },
+        {
+          "facility_status": "INACTIVE",
+          "row_count": 415
+        },
+        {
+          "facility_status": "LICENSED",
+          "row_count": 13986
+        },
+        {
+          "facility_status": "ON PROBATION",
+          "row_count": 27
+        },
+        {
+          "facility_status": "PENDING",
+          "row_count": 170
+        }
+      ],
+      "file_date_counts": [
+        {
+          "file_date": "05252025",
+          "row_count": 19758
+        }
+      ],
+      "publisher_current_candidate_count": 14013,
+      "current_operation_verified": false
+    }
+  ],
+  "publisher_status_semantics": {
+    "observed_terms": [
+      "CLOSED",
+      "INACTIVE",
+      "LICENSED",
+      "ON PROBATION",
+      "PENDING"
+    ],
+    "publisher_current_candidates": [
+      "LICENSED",
+      "ON PROBATION"
+    ],
+    "candidate_rule_approved_for_admission": false,
+    "meaning": "Publisher labels are retained as reported. LICENSED and ON PROBATION are candidates for later governed lifecycle review, not proof of present operation."
+  },
+  "requests": [
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20facility_status%2C%20COUNT(*)%20AS%20row_count%20FROM%20%227aed8063-cea7-4367-8651-c81643164ae0%22%20GROUP%20BY%20facility_status%20ORDER%20BY%20facility_status",
+      "method": "GET",
+      "group_by": "facility_status",
+      "aggregate_rows_returned": 5,
+      "provider_rows_returned": 0,
+      "response_bytes": 629,
+      "response_sha256": "4cba5382e035a50f6182d5d367c886fe183a39e0d47906e09e8934289bfb66c0"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20file_date%2C%20COUNT(*)%20AS%20row_count%20FROM%20%227aed8063-cea7-4367-8651-c81643164ae0%22%20GROUP%20BY%20file_date%20ORDER%20BY%20file_date",
+      "method": "GET",
+      "group_by": "file_date",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "response_bytes": 394,
+      "response_sha256": "c83cfa4ffc15a27c29813b653204b5c1bc497d220291fe8f2c73866c66eec5d0"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20facility_status%2C%20COUNT(*)%20AS%20row_count%20FROM%20%224b5cc48d-03b1-4f42-a7d1-b9816903eb2b%22%20GROUP%20BY%20facility_status%20ORDER%20BY%20facility_status",
+      "method": "GET",
+      "group_by": "facility_status",
+      "aggregate_rows_returned": 5,
+      "provider_rows_returned": 0,
+      "response_bytes": 629,
+      "response_sha256": "4dacc8cdf323bd4077dc81dc9b48ff371711fcc1ccce9575327f22875190a8b1"
+    },
+    {
+      "url": "https://data.chhs.ca.gov/api/3/action/datastore_search_sql?sql=SELECT%20file_date%2C%20COUNT(*)%20AS%20row_count%20FROM%20%224b5cc48d-03b1-4f42-a7d1-b9816903eb2b%22%20GROUP%20BY%20file_date%20ORDER%20BY%20file_date",
+      "method": "GET",
+      "group_by": "file_date",
+      "aggregate_rows_returned": 1,
+      "provider_rows_returned": 0,
+      "response_bytes": 394,
+      "response_sha256": "55a1bbf253f940efa1d2f35a06ef5cdfcacad5b866115f7d734cf4c868df198f"
+    }
+  ],
+  "unresolved_gates": [
+    "publisher-status-to-active-lifecycle-rule",
+    "csv-file-delivery-or-datastore-acquisition-authorization",
+    "physical-versus-mailing-address",
+    "zip5-and-zip4-parsing",
+    "suppression-and-redaction-semantics",
+    "catalog-backend-temporal-disagreement"
+  ],
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_rows_returned": 0,
+    "personal_fields_requested": false,
+    "publisher_status_vocabulary_verified": true,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
