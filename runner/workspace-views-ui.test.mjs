@@ -174,7 +174,7 @@ function pageHarness() {
     BenchmarkReview = marker("BenchmarkReview");
   const workspaceViews = {
     workspaceTabs: [
-      "State Completion",
+      "State Evidence",
       "Industry Summary",
       "ZIP Economics",
       "Operations",
@@ -1964,7 +1964,7 @@ test("six primary tab cards expose their work areas and arrow Home End keyboard 
   let selected;
   const h = harness(() => assert.fail()),
     tree = h.render("WorkspaceTabs", {
-      value: "State Completion",
+      value: "State Evidence",
       onChange: (value) => (selected = value),
     }),
     tabs = nodes(tree).filter((n) => n.props?.role === "tab"),
@@ -1977,7 +1977,7 @@ test("six primary tab cards expose their work areas and arrow Home End keyboard 
         ),
       );
   assert.deepEqual(tabs.map(label), [
-    "State Completion",
+    "State Evidence",
     "Industry Summary",
     "ZIP Economics",
     "Demographic GDP",
@@ -1985,7 +1985,7 @@ test("six primary tab cards expose their work areas and arrow Home End keyboard 
     "Operations",
   ]);
   assert.deepEqual(tabs.map(description), [
-    "State CompletionNationwide dataset availability",
+    "State EvidenceRetained evidence by state",
     "Industry SummaryIndustry reach and connectivity",
     "ZIP EconomicsZIP total and segment GDP",
     "Demographic GDPNational and ZIP cross-views",
@@ -2004,7 +2004,7 @@ test("six primary tab cards expose their work areas and arrow Home End keyboard 
     assert.equal(prevented, true);
     assert.equal(
       selected,
-      ["State Completion", "Industry Summary", "ZIP Economics", "Demographic GDP", "Administration", "Operations"][
+      ["State Evidence", "Industry Summary", "ZIP Economics", "Demographic GDP", "Administration", "Operations"][
         index
       ],
     );
@@ -2217,7 +2217,7 @@ test("default state completion uses all expected industry datasets and preserves
     map = nodes(tree).find((node) => node.props?.measure === "expected");
   assert.equal(map.props.categoryLabel, "All expected datasets");
   assert.equal(map.props.rows[0].percent, (1 / 3) * 100);
-  assert.match(value, /National dataset completion33.3%/);
+  assert.match(value, /National evidence availability33.3%/);
   assert.match(value, /Measured-only availability100.0%/);
   assert.match(value, /All-business completenessUnknown/);
   assert.match(value, /Industry connections/);
@@ -3481,7 +3481,7 @@ test("page navigation reaches every operations view, scopes job actions and pres
   tree = h.render();
   assert.equal(component(tree, "ZipEconomyWorkspace").props.stateCode, "MD");
   assert.equal(component(tree, "ZipEconomyWorkspace").props.initialZip, "");
-  component(tree, "WorkspaceTabs").props.onChange("State Completion");
+  component(tree, "WorkspaceTabs").props.onChange("State Evidence");
   tree = h.render();
   assert.equal(component(tree, "CoverageWorkspace").props.stateCode, "MD");
   component(tree, "WorkspaceTabs").props.onChange("Industry Summary");

@@ -81,9 +81,9 @@ const statusLabel: Record<Status, string> = {
 };
 
 const workspaceContext: Record<WorkspaceTab, { eyebrow: string; description: string }> = {
-  'State Completion': {
+  'State Evidence': {
     eyebrow: 'National coverage',
-    description: 'Compare expected dataset availability across all 50 states and D.C. Unknown coverage remains unmeasured.',
+    description: 'Compare retained dataset evidence across all 50 states and D.C. without treating it as all-business completeness.',
   },
   'Industry Summary': {
     eyebrow: 'Industry connectivity',
@@ -129,7 +129,7 @@ function formatCount(value: number) {
 }
 
 export default function Home() {
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('State Completion');
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('State Evidence');
   const [operationsTab, setOperationsTab] = useState<OperationsTab>('Jobs');
   const [workspaceState, setWorkspaceState] = useState('');
   const [workspaceZip, setWorkspaceZip] = useState('');
@@ -381,7 +381,7 @@ export default function Home() {
           <p>{workspaceContext[workspaceTab].description}</p>
         </div>
         <div className="workspace-stage" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${workspaceTabs.indexOf(workspaceTab)}`} tabIndex={0}>
-        {workspaceTab==='State Completion'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
+        {workspaceTab==='State Evidence'&&<CoverageWorkspace stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='Industry Summary'&&<CoverageWorkspace key="industries" industries stateCode={workspaceState} categoryCode={workspaceCategory} onStateChange={setWorkspaceState} onCategoryChange={setWorkspaceCategory} onNavigate={navigateWorkspace}/>}
         {workspaceTab==='ZIP Economics'&&<ZipEconomyWorkspace stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}
         {workspaceTab==='Demographic GDP'&&<ZipEconomyWorkspace mode="demographics" stateCode={workspaceState} initialZip={workspaceZip} onZipChange={setWorkspaceZip}/>}

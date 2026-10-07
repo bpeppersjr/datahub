@@ -10,7 +10,7 @@ const pageSource = await readFile(new URL("../app/page.tsx", import.meta.url), "
 
 test("primary navigation exposes focused completion, industry, economic, demographic, and operations tabs", () => {
   const labels = [
-    "State Completion",
+    "State Evidence",
     "Industry Summary",
     "ZIP Economics",
     "Demographic GDP",
