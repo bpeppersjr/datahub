@@ -1,0 +1,100 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "tn-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "TN",
+  "industry": "childcare",
+  "publisher": "Tennessee Department of Human Services and State of Tennessee STS GIS",
+  "decision": "official-center-only-arcgis-api-and-retained-release-validated",
+  "official_sources": [
+    {
+      "url": "https://www.tn.gov/humanservices/for-families/child-care-services/find-child-care.html",
+      "role": "official-child-care-search-context",
+      "evidence": "TDHS links its public provider locator and provider-list resources while distinguishing TDHS and TDOE scope."
+    },
+    {
+      "url": "https://www.tn.gov/humanservices/for-families/child-care-services/child-care-types-of-regulated-care.html",
+      "role": "official-provider-type-boundary",
+      "evidence": "TDHS distinguishes centers, family homes, group homes, and drop-in centers."
+    },
+    {
+      "url": "https://services1.arcgis.com/YuVBSS7Y1of2Qud1/ArcGIS/rest/services/Active_ChildCare_Locations/FeatureServer/0",
+      "role": "official-queryable-center-source",
+      "evidence": "The public state GIS layer supports bounded Query and Extract access with point geometry and a fixed center-only predicate."
+    },
+    {
+      "url": "https://www.arcgis.com/sharing/rest/content/items/bfe29552601b4d8793b1fba580c2e3fd",
+      "role": "official-item-identity-and-terms",
+      "evidence": "The item is public, belongs to the State of Tennessee STS GIS organization, credits TDHS, and publishes source terms and modification metadata."
+    },
+    {
+      "url": "https://www.tn.gov/content/dam/tn/human-services/documents/Agency%20WebProvider%20List%20README_2024-11-15.pdf",
+      "role": "official-provider-list-schema-context",
+      "evidence": "The official README describes a broader monthly provider list; that workbook was not used for this center-only retained release."
+    }
+  ],
+  "scope": {
+    "search_cohort": "publisher-active-child-care-centers-only",
+    "fixed_filter": "Provider_Status = 'Active' AND Provider_Type = 'Child Care' AND Child_Care_Type = 'Child Care Center'",
+    "excluded_provider_types": "drop-in-centers-family-homes-group-homes-authorized-providers-and-education-department-facilities",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Publisher Active extract membership is not independently verified current operation, license validity, unique-business identity, or all-childcare coverage."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "monthly-described-not-transactionally-proven",
+    "snapshot_date": "2026-09-08T00:36:36.628Z",
+    "current_operation_equivalence": false,
+    "limitation": "Observation time, ArcGIS edit time, item modification time, provider status, and license dates are separate clocks and assertions."
+  },
+  "retained_release": {
+    "release_id": "tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801",
+    "manifest_path": "data/business-sources/tn-dhs-active-childcare-centers-recovered/releases/tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801/manifest.json",
+    "manifest_sha256": "98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d",
+    "selected_rows": 1863,
+    "accepted_rows": 1863,
+    "zip5_available_rows": 1691,
+    "zip5_unavailable_rows": 172,
+    "export_policy": "local-review-only"
+  },
+  "required_record_contract": {
+    "provider_id": "required-source-identifier-if-published",
+    "provider_name": "required-preserve-verbatim",
+    "provider_status": "required-preserve-source-semantics",
+    "provider_and_child_care_type": "required-fixed-center-predicate",
+    "reported_address": "required-center-premises-source-value",
+    "zip5": "separate-field-or-null-with-explicit-reason",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only"
+  },
+  "unresolved_gates": [
+    "fresh-publisher-metadata-and-terms-revalidation",
+    "current-snapshot-transactional-consistency",
+    "current-operation-and-license-date-equivalence",
+    "excluded-provider-type-coverage",
+    "public-redistribution-decision",
+    "new-acquisition-authorization",
+    "production-admission"
+  ],
+  "next_action": "Reuse the verified immutable center-only release for reporting; before any refresh, rerun the bounded metadata preflight and separately approve acquisition, source drift, policy, row conservation, temporal semantics, and production admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": 1863,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.12.0";
+  schema_version: "state-access-maintenance-backlog@2.13.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -90,7 +90,9 @@ type Backlog = {
         | "official-monthly-open-certified-program-odata-identified-acquisition-disabled"
         | "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified"
         | "official-manual-excel-export-identified-automated-bulk-contract-unverified"
-        | "official-mixed-cohort-provider-search-identified-bulk-contract-unverified";
+        | "official-mixed-cohort-provider-search-identified-bulk-contract-unverified"
+        | "official-center-only-arcgis-api-and-retained-release-validated"
+        | "official-regulated-provider-search-identified-bulk-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -366,7 +368,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.12.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.13.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -469,6 +471,8 @@ export function validAdministrationBacklog(
             "RI",
             "SC",
             "SD",
+            "TN",
+            "TX",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -508,6 +512,8 @@ export function validAdministrationBacklog(
               RI: "official-rises-statewide-licensed-program-search-identified-bulk-contract-unverified",
               SC: "official-manual-excel-export-identified-automated-bulk-contract-unverified",
               SD: "official-mixed-cohort-provider-search-identified-bulk-contract-unverified",
+              TN: "official-center-only-arcgis-api-and-retained-release-validated",
+              TX: "official-regulated-provider-search-identified-bulk-contract-unverified",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -536,6 +542,7 @@ export function validAdministrationBacklog(
               "RI",
               "SC",
               "SD",
+              "TX",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -561,9 +568,10 @@ export function validAdministrationBacklog(
               "NY",
               "OH",
               "PA",
+              "TN",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["DE", "NJ", "NY", "PA"].includes(row.state) &&
+            ["DE", "NJ", "NY", "PA", "TN"].includes(row.state) &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&
