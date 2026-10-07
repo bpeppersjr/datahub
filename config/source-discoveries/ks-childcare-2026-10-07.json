@@ -1,0 +1,85 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ks-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "KS",
+  "industry": "childcare",
+  "publisher": "Kansas Office of Early Childhood Child Care Licensing",
+  "decision": "official-search-and-data-request-path-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://www.koec.ks.gov/providers/child-care-licensing/data-and-history/data-request",
+      "role": "official-data-request-guidance",
+      "evidence": "Licensing maintains current and former facility data and provides special-data and records-request paths."
+    },
+    {
+      "url": "https://khap.kdhe.ks.gov/OIDS/",
+      "role": "official-compliance-search",
+      "evidence": "CAPTCHA-protected exact search; no supported bulk/API contract and no automation authority."
+    },
+    {
+      "url": "https://www.kdhe.ks.gov/FormCenter/Child-Care-Licensing-24/Child-Care-Data-Request-87",
+      "role": "official-authorized-use-data-request",
+      "evidence": "Requests are evaluated under Kansas law and proposed use; no request was submitted."
+    },
+    {
+      "url": "https://www.kdhe.ks.gov/1518/Open-Records",
+      "role": "official-open-records-guidance",
+      "evidence": "KORA provides an official records path subject to exemptions."
+    }
+  ],
+  "scope": {
+    "publisher_repository": "current-and-former-licensed-child-care-facilities",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Search or requested licensing records do not by themselves prove current operation; program types and former/current status must remain separate."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "data_request_path_available": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No public machine-readable release or temporal/status contract was established."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "facility_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "owner_and_person_fields": "excluded"
+  },
+  "unresolved_gates": [
+    "approved-data-or-open-records-request",
+    "authorized-use-and-resale-restrictions",
+    "machine-readable-schema",
+    "current-former-and-operation-semantics",
+    "facility-type-and-home-privacy",
+    "row-and-identifier-conservation",
+    "production-admission"
+  ],
+  "next_action": "Submit no automated search; seek a sanctioned center-focused machine-readable extract through the official data/open-records path with exact use, status, privacy, retention, and redistribution terms.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

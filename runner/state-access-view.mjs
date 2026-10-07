@@ -17,6 +17,8 @@ import { readHiChildcareSourceDiscovery } from "./hi-childcare-source-discovery.
 import { readIdChildcareSourceDiscovery } from "./id-childcare-source-discovery.mjs";
 import { readIlChildcareSourceDiscovery } from "./il-childcare-source-discovery.mjs";
 import { readInChildcareSourceDiscovery } from "./in-childcare-source-discovery.mjs";
+import { readKsChildcareSourceDiscovery } from "./ks-childcare-source-discovery.mjs";
+import { readKyChildcareSourceDiscovery } from "./ky-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -393,6 +395,8 @@ export async function stateAccessMaintenanceBacklog({
   idChildcareDiscoveryLoader = readIdChildcareSourceDiscovery,
   ilChildcareDiscoveryLoader = readIlChildcareSourceDiscovery,
   inChildcareDiscoveryLoader = readInChildcareSourceDiscovery,
+  ksChildcareDiscoveryLoader = readKsChildcareSourceDiscovery,
+  kyChildcareDiscoveryLoader = readKyChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -479,9 +483,22 @@ export async function stateAccessMaintenanceBacklog({
         let source_discovery = null;
         if (
           cell.industry === "childcare" &&
-          ["AK", "AL", "AR", "AZ", "DC", "DE", "FL", "GA", "HI", "ID", "IL", "IN"].includes(
-            jurisdiction.state,
-          )
+          [
+            "AK",
+            "AL",
+            "AR",
+            "AZ",
+            "DC",
+            "DE",
+            "FL",
+            "GA",
+            "HI",
+            "ID",
+            "IL",
+            "IN",
+            "KS",
+            "KY",
+          ].includes(jurisdiction.state)
         ) {
           const loaders = {
               AK: akChildcareDiscoveryLoader,
@@ -496,6 +513,8 @@ export async function stateAccessMaintenanceBacklog({
               ID: idChildcareDiscoveryLoader,
               IL: ilChildcareDiscoveryLoader,
               IN: inChildcareDiscoveryLoader,
+              KS: ksChildcareDiscoveryLoader,
+              KY: kyChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -512,6 +531,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-dual-workbook-metadata-identified-acquisition-disabled",
                 "official-manual-export-identified-automated-bulk-contract-unverified",
                 "official-current-provider-tables-export-format-unverified-acquisition-disabled",
+                "official-search-and-data-request-path-identified-acquisition-disabled",
+                "official-dynamic-download-control-identified-contract-unverified",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -569,7 +590,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@1.9.0",
+    schema_version: "state-access-maintenance-backlog@2.0.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

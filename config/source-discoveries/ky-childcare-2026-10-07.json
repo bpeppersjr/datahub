@@ -1,0 +1,95 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ky-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "KY",
+  "industry": "childcare",
+  "publisher": "Kentucky Cabinet for Health and Family Services",
+  "decision": "official-dynamic-download-control-identified-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.chfs.ky.gov/agencies/dcbs/dcc/Pages/find-care.aspx",
+      "role": "official-cohort-description",
+      "evidence": "Public search lists certified or licensed providers; unregulated care is excluded."
+    },
+    {
+      "url": "https://kynect.ky.gov/benefits/s/child-care-provider?language=en_US",
+      "role": "official-consumer-search",
+      "evidence": "Human search by location, ZIP, name, or license; do not automate."
+    },
+    {
+      "url": "https://kynect.ky.gov/benefits/s/child-care-program?language=en_US",
+      "role": "official-dynamic-provider-download-control",
+      "evidence": "Page intentionally exposes Download Provider List; direct endpoint, format, cohort, and as-of remain unverified."
+    },
+    {
+      "url": "https://apps.legislature.ky.gov/law/kar/titles/922/002/090/15323/",
+      "role": "official-type-boundary",
+      "evidence": "Type I and residential Type II definitions require an exact Type I predicate for center-focused acquisition."
+    },
+    {
+      "url": "https://kynect.ky.gov/resources/s/privacy-policy?language=en_US",
+      "role": "official-privacy-policy",
+      "evidence": "Commercial use of personally identifiable information is restricted and public availability does not clear redistribution."
+    }
+  ],
+  "scope": {
+    "search_cohort": "certified-or-licensed-providers",
+    "type_i_nonhome_predicate_required": true,
+    "download_cohort": "unverified-possibly-ccap-scoped",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Type I, residential Type II, certified family homes, registered relatives, CCAP, All STARS, inspections, availability, and current operation are distinct."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "direct_download_endpoint_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No download as-of, status vocabulary, lifecycle, or refresh contract was established."
+  },
+  "required_record_contract": {
+    "provider_identifier": "required-if-published",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "provider_status": "required-preserve-verbatim",
+    "type_i_predicate": "required-deterministic",
+    "reported_address": "type-i-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "contact_cost_and_person_fields": "excluded"
+  },
+  "unresolved_gates": [
+    "publisher-clarification-or-authorized-single-download",
+    "download-endpoint-format-schema-and-as-of",
+    "download-cohort-versus-ccap-scope",
+    "type-i-and-status-literals",
+    "stable-license-key-and-lifecycle",
+    "home-and-relative-privacy",
+    "reuse-retention-and-redistribution",
+    "row-and-key-conservation",
+    "production-admission"
+  ],
+  "next_action": "Obtain publisher clarification or authorize one manual provider-list download through the intended control, without search automation or endpoint reverse engineering, then validate Type I, status, privacy, terms, and conservation.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

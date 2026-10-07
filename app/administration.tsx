@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@1.9.0";
+  schema_version: "state-access-maintenance-backlog@2.0.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -56,15 +56,17 @@ type Backlog = {
       discovery_id: string;
       status:
         | "official-search-identified-bulk-interface-unverified"
-      | "official-monthly-table-metadata-validated-acquisition-disabled"
-      | "official-monthly-pdf-identified-offline-parser-required"
-      | "official-public-domain-api-metadata-validated-acquisition-disabled"
-      | "official-workbook-metadata-validated-acquisition-disabled"
-      | "official-csv-export-contract-metadata-validated-acquisition-disabled"
-      | "official-search-identified-automation-prohibited-bulk-interface-unverified"
-      | "official-dual-workbook-metadata-identified-acquisition-disabled"
-      | "official-manual-export-identified-automated-bulk-contract-unverified"
-      | "official-current-provider-tables-export-format-unverified-acquisition-disabled";
+        | "official-monthly-table-metadata-validated-acquisition-disabled"
+        | "official-monthly-pdf-identified-offline-parser-required"
+        | "official-public-domain-api-metadata-validated-acquisition-disabled"
+        | "official-workbook-metadata-validated-acquisition-disabled"
+        | "official-csv-export-contract-metadata-validated-acquisition-disabled"
+        | "official-search-identified-automation-prohibited-bulk-interface-unverified"
+        | "official-dual-workbook-metadata-identified-acquisition-disabled"
+        | "official-manual-export-identified-automated-bulk-contract-unverified"
+        | "official-current-provider-tables-export-format-unverified-acquisition-disabled"
+        | "official-search-and-data-request-path-identified-acquisition-disabled"
+        | "official-dynamic-download-control-identified-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -340,7 +342,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@1.9.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.0.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -404,7 +406,22 @@ export function validAdministrationBacklog(
           "record_acquisition_authorized",
           "next_action",
         ]) &&
-          ["AK", "AL", "AR", "AZ", "DC", "DE", "FL", "GA", "HI", "ID", "IL", "IN"].includes(row.state) &&
+          [
+            "AK",
+            "AL",
+            "AR",
+            "AZ",
+            "DC",
+            "DE",
+            "FL",
+            "GA",
+            "HI",
+            "ID",
+            "IL",
+            "IN",
+            "KS",
+            "KY",
+          ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
             ({
@@ -417,13 +434,22 @@ export function validAdministrationBacklog(
               ID: "official-dual-workbook-metadata-identified-acquisition-disabled",
               IL: "official-manual-export-identified-automated-bulk-contract-unverified",
               IN: "official-current-provider-tables-export-format-unverified-acquisition-disabled",
+              KS: "official-search-and-data-request-path-identified-acquisition-disabled",
+              KY: "official-dynamic-download-control-identified-contract-unverified",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
-            (row.state === "AK" || row.state === "IL" ? 4 : row.state === "ID" ? 6 : ["DC", "FL", "GA", "IN"].includes(row.state) ? 3 : 5) &&
+            (["AK", "IL", "KS"].includes(row.state)
+              ? 4
+              : row.state === "ID"
+                ? 6
+                : ["DC", "FL", "GA", "IN"].includes(row.state)
+                  ? 3
+                  : 5) &&
           row.source_discovery.supported_bulk_export_verified ===
-            (["AZ", "DE", "FL", "GA", "ID", "IN"].includes(row.state)) &&
-          row.source_discovery.supported_api_verified === (row.state === "DE") &&
+            ["AZ", "DE", "FL", "GA", "ID", "IN", "KY"].includes(row.state) &&
+          row.source_discovery.supported_api_verified ===
+            (row.state === "DE") &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&
@@ -732,7 +758,10 @@ export default function Administration() {
         source access by state, temporal review posture, and maintenance
         selection. It does not require an all-business denominator, complete
         geocodes, or complete nationwide industry coverage. This selection
-        records local maintenance intent only; {"it does not authorize acquisition, start downloads, prove coverage, or change production enrollment."}
+        records local maintenance intent only;{" "}
+        {
+          "it does not authorize acquisition, start downloads, prove coverage, or change production enrollment."
+        }
       </p>
       {error && (
         <p role="alert">
@@ -919,7 +948,8 @@ export default function Administration() {
                             ? "monthly official PDF identified; an authorized retained file and offline parser are still required"
                             : row.source_discovery.supported_api_verified
                               ? "official public-domain API and bulk metadata verified; provider-row acquisition disabled"
-                              : row.source_discovery.supported_bulk_export_verified
+                              : row.source_discovery
+                                    .supported_bulk_export_verified
                                 ? "downloadable bulk publication metadata verified; provider-row acquisition disabled"
                                 : "bulk export/API unverified"}
                           ; portal automation unauthorized. Next:{" "}
@@ -955,8 +985,12 @@ export default function Administration() {
               </button>
               <p className="operations-note">
                 Revision {backlog.maintenance_revision} · fingerprint{" "}
-                {backlog.backlog_sha256}. {"This deterministic batch is planning evidence only."} It does not authorize acquisition, dispatch
-                {"does not authorize acquisition, dispatch workers, change production, or measure business completeness."}
+                {backlog.backlog_sha256}.{" "}
+                {"This deterministic batch is planning evidence only."} It does
+                not authorize acquisition, dispatch
+                {
+                  "does not authorize acquisition, dispatch workers, change production, or measure business completeness."
+                }
               </p>
             </section>
           )}
