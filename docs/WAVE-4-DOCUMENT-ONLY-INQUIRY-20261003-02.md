@@ -6,12 +6,12 @@ Status: **PROPOSED — NOT APPROVED — NO ACTION AUTHORIZED**
 - Proposed jurisdictions: Rhode Island, South Dakota, Wyoming, Alabama, Arkansas, Georgia, Nebraska, New Mexico, Utah, and Washington
 - Program wave roster: `RI, SD, WY, AL, AR, GA, NE, NM, UT, WA`
 - Assessment catalog: `state-business-source-assessment-catalog-51-2026-10-03` (SHA-256 `2657cf08d39c61bb5c02a37dec778447c420002c01e91c223cd75847e26f5a1d`)
-- Backlog release: `broad-organization-acquisition-backlog-2026-10-03T21-39-58.008Z-3b06b7e6dc73`
-- Backlog manifest SHA-256: `d3d38cde534304f09e7a42d5ddc270ac2c618c83ef8f2d876805da61fab748fe`
-- Backlog artifact SHA-256: `3b06b7e6dc732df0dcb71cbbc13e0ac0947a4498fc7b43d4f9dd6e520a9e69da`
-- Authorization program release: `broad-organization-authorization-program-2026-10-03T21-39-58.008Z-09e7e96ddc39`
-- Program manifest SHA-256: `61df6a7d34acdcb252ad15caab4137420e4a41674ac08cc5df0998a2ab365ccd`
-- Program artifact SHA-256: `09e7e96ddc391f9c8aea3e39bce5027c4f3b0f783dc6aa60d370e9e74c02ca5b`
+- Backlog release: `broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-add02eecfa37`
+- Backlog manifest SHA-256: `ba710a3fdbe108fac26527e94951191e052d1359ce47a1d6c4f9b579ce60163b`
+- Backlog artifact SHA-256: `add02eecfa37f3abef25686ae9965a4b6eb018b281943fa7315600be38343cab`
+- Authorization program release: `broad-organization-authorization-program-2026-10-07T05-23-37.982Z-0187d2cedbe7`
+- Program manifest SHA-256: `7c9be7223cdd5a73d6bf093475efaadee548b8a95d79f929e99198e85bcb3890`
+- Program artifact SHA-256: `0187d2cedbe7c47ea1ad54d533b71a2eeaee5ffba84cfdce2a9b1a777bed8ab8`
 
 This proposal is an offline specification for possible future review. The referenced assessment, backlog, and program preserve zero source actions and grant no authority. Approval must name this proposal ID and its exact document SHA-256. Even then, approval is limited to the specific non-row-bearing document review and inquiry described here; it does not approve acquisition, payment, row-bearing access, automation, or production changes.
 

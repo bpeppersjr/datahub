@@ -46,7 +46,7 @@ async function currentProgramFixture() {
   };
 }
 
-const expectedHashes = ["8c6bc9c5d69469edf6dafddf616a208956580df62aea59a09f50e775944ed48a", "8ce9b3a1b3d835915652d92da4d75ba48491c3568a6036b926c99441d5dc8c3e", "156a26c0e1b7ef7bbf58ad73b8c18695bc56fee0ddc63f6f0b2334d5022511b5", "fe4bee251fcd2d21fc8b562f2ffff9a5b42fd0d3453299cefdcc5f8fc8a15dbb"];
+const expectedHashes = ["16606c61044a20f515527bd657df578e87dcd7a3d12ae61b4ecce7592978cb92", "e32f6a48a2baa46fecaf327b9b1694e4f5b6c1bfb06cd94fc5249bf121466f61", "a5726ffed679f33f679eb15f034b469b26008d1d215c88649ff888a85a13b232", "e3d7519785d133c57c9f33a0ac2eac5c5e36f6b6945f338544aee57eb8719728"];
 
 test("registry independently verifies four current program-bound proposals and 40 unique states", async () => {
   const program = await currentProgramFixture();

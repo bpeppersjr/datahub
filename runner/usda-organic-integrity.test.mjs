@@ -28,10 +28,45 @@ import {
 const WORKBOOK_URL = "https://organic.ams.usda.gov/Integrity/MonthlyReports/INTEGRITY_Data_20260901.xlsx";
 const BUILD_NOW = () => new Date("2026-09-03T16:00:00.000Z");
 const PREFLIGHT_CLI = fileURLToPath(new URL("../scripts/preflight-usda-organic-integrity.mjs", import.meta.url));
+const CONNECTOR_PATH = fileURLToPath(new URL("../config/connectors/usda-organic-integrity.json", import.meta.url));
+const POLICY_PATH = fileURLToPath(new URL("../config/source-policies/usda-organic-integrity.json", import.meta.url));
 
 function hash(value) {
   return createHash("sha256").update(value).digest("hex");
 }
+
+test("official API contract is credential-gated, inert, attributed, and privacy bounded", async () => {
+  const connector = JSON.parse(await readFile(CONNECTOR_PATH, "utf8"));
+  const policy = JSON.parse(await readFile(POLICY_PATH, "utf8"));
+  assert.equal(connector.version, "1.1.0");
+  assert.deepEqual(connector.named_secret_references, [{
+    name: "DATA_GOV_API_KEY",
+    purpose: "Required query credential for the USDA Organic INTEGRITY public API",
+    storage: "environment-or-local-secret-store-only",
+  }]);
+  assert.equal(connector.api_contract.base_url, "https://organicapi.ams.usda.gov/IntegrityPubDataServices/OIDPublicAPI");
+  assert.equal(connector.api_contract.credential_query_parameter, "api_key");
+  assert.equal(connector.api_contract.default_rate_limit_requests_per_hour, 1000);
+  assert.deepEqual(connector.api_contract.operations.map(({ name, method, path }) => ({ name, method, path })), [
+    { name: "GetAllOperationsPublicData", method: "GET", path: "/GetAllOperationsPublicData" },
+    { name: "Operations", method: "POST", path: "/Operations" },
+    { name: "OperationsCount", method: "POST", path: "/Operations/Count" },
+    { name: "Operation", method: "GET", path: "/Operation" },
+    { name: "Items", method: "GET", path: "/Items" },
+    { name: "ItemsCount", method: "GET", path: "/Items/Count" },
+  ]);
+  assert.equal(connector.api_contract.execution_enabled, false);
+  assert.equal(connector.api_contract.credential_present, null);
+  assert.equal(connector.api_contract.record_requests_performed, 0);
+  assert.equal(connector.api_contract.credential_creation_performed, false);
+  assert.equal(connector.execution_limits.api_record_requests, 0);
+  assert.equal(connector.production_admission, "disabled");
+  assert.match(connector.required_api_attribution, /not endorsed or certified by USDA/);
+  assert.match(policy.source_access, /zero API record requests/);
+  assert.match(policy.prohibited_use.join(" "), /storing an API-key value/);
+  assert.match(policy.prohibited_use.join(" "), /creating a data.gov credential/);
+  assert.equal(policy.field_export_policy.contact_phone_email_client_agent_person_free_text, "excluded");
+});
 
 function response(body, headers, status = 200) {
   return new Response(body, { status, headers });

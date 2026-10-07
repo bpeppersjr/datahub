@@ -1,10 +1,11 @@
 {
   "connector_id": "usda-organic-integrity",
-  "version": "1.0.0",
-  "description": "Metadata-only preflight and offline local-review staging for selected USDA Organic INTEGRITY certified operations.",
+  "version": "1.1.0",
+  "implementation_status": "metadata-and-offline-verified-api-contract-credential-gated-and-execution-disabled",
+  "description": "Metadata-only preflight, credential-gated official API contract, and offline local-review staging for selected USDA Organic INTEGRITY certified operations.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "lifecycle_status": {
-    "preflight": "implemented-and-fixture-tested-live-history-link-not-server-rendered",
+    "preflight": "implemented-and-fixture-tested-live-history-link-not-server-rendered-api-readiness-documented",
     "plan": "implemented-offline-only",
     "acquire": "default-denied-not-implemented",
     "validate": "implemented-guarded-fixture-xlsx",
@@ -28,16 +29,44 @@
     }
   },
   "output_schema": "config/schemas/usda-organic-integrity-certified-operation.schema.json",
-  "named_secret_references": [],
-  "input_artifact_types": ["official-bounded-history-html-metadata", "official-monthly-workbook-link-identity", "operator-supplied-sha256-pinned-xlsx"],
+  "named_secret_references": [
+    {
+      "name": "DATA_GOV_API_KEY",
+      "purpose": "Required query credential for the USDA Organic INTEGRITY public API",
+      "storage": "environment-or-local-secret-store-only"
+    }
+  ],
+  "api_contract": {
+    "documentation": "https://organic.ams.usda.gov/integrity/Developer/APIHelp",
+    "terms": "https://organic.ams.usda.gov/integrity/Developer/TOS",
+    "base_url": "https://organicapi.ams.usda.gov/IntegrityPubDataServices/OIDPublicAPI",
+    "credential_query_parameter": "api_key",
+    "credential_reference": "DATA_GOV_API_KEY",
+    "default_rate_limit_requests_per_hour": 1000,
+    "operations": [
+      { "name": "GetAllOperationsPublicData", "method": "GET", "path": "/GetAllOperationsPublicData", "response": "zip-of-xml" },
+      { "name": "Operations", "method": "POST", "path": "/Operations", "response": "json" },
+      { "name": "OperationsCount", "method": "POST", "path": "/Operations/Count", "response": "json" },
+      { "name": "Operation", "method": "GET", "path": "/Operation", "response": "json" },
+      { "name": "Items", "method": "GET", "path": "/Items", "response": "json" },
+      { "name": "ItemsCount", "method": "GET", "path": "/Items/Count", "response": "json" }
+    ],
+    "execution_enabled": false,
+    "credential_present": null,
+    "record_requests_performed": 0,
+    "credential_creation_performed": false
+  },
+  "input_artifact_types": ["official-api-documentation-contract", "official-api-terms-contract", "official-bounded-history-html-metadata", "official-monthly-workbook-link-identity", "operator-supplied-sha256-pinned-xlsx"],
   "output_artifact_types": ["metadata-only-preflight-receipt-json", "normalized-usda-organic-integrity-certified-operation-jsonl-gzip", "verified-staging-manifest-json"],
-  "allowed_hosts": ["organic.ams.usda.gov"],
+  "allowed_hosts": ["organic.ams.usda.gov", "organicapi.ams.usda.gov"],
   "redirect_policy": "deny",
   "provider_budget_key": "usda-organic-integrity-metadata-only",
   "resource_class": "metadata-network-offline-cpu-disk",
   "execution_limits": {
     "metadata_requests": 1,
     "metadata_request_methods": ["GET"],
+    "api_record_requests": 0,
+    "api_execution_enabled": false,
     "workbook_network_requests": 0,
     "full_workbook_body_requests": 0,
     "workbook_response_bytes": 0,
@@ -50,12 +79,13 @@
     "retries": 0
   },
   "retry": "No automatic retry in this bounded version; rerun metadata preflight explicitly.",
-  "checkpoint": "No live acquisition checkpoint exists. The public live workbook schema remains unverified pending separately authorized source inspection. Offline output is isolated under an immutable run-ID .staging directory; pinned sheets and headers are a conformance profile rather than a claim about the uninspected official workbook layout.",
+  "checkpoint": "No live API or workbook acquisition checkpoint exists. The API contract is documented but execution is disabled until a named data.gov credential is supplied and a separately governed acquisition is implemented. The public live workbook schema remains unverified pending separately authorized source inspection. Offline output is isolated under an immutable run-ID .staging directory; pinned sheets and headers are a conformance profile rather than a claim about the uninspected official workbook layout.",
   "idempotency": "Source SHA-256, preflight receipt fingerprint, and run ID are recorded; a run-ID directory cannot be reused.",
   "cancellation": "Abort is checked before metadata requests, workbook parsing, and every operation normalization; no pointer or lock is written.",
   "source_policy": "config/source-policies/usda-organic-integrity.json",
   "retention_profile": "Metadata receipts may be retained; source and normalized records remain local and governed until an explicit retention decision.",
   "produced_entities": ["provisional-certified-organization-candidate", "certification-assertion", "address-evidence", "product-taxonomy-assertion"],
   "produced_identifiers": ["usda-nop-operation-id", "zip5", "zip4"],
+  "required_api_attribution": "This product uses USDA's Organic Integrity Database API but is not endorsed or certified by USDA.",
   "production_admission": "disabled"
 }
