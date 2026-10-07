@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { APP_ROOT } from './paths.mjs';
 import { loadIndustryConfig } from './industry-segments.mjs';
+import { loadAutomaticRefreshAuthorizations } from './automatic-refresh-authorization.mjs';
 
 const STATE=/^[A-Z]{2}$/;
 const INDUSTRY=/^[a-z][a-z0-9-]{1,79}$/;
@@ -63,20 +64,22 @@ export async function stateAccessIndustrySummary({root=APP_ROOT,configLoader=loa
   return {schema_version:'state-access-industry-summary@1.3.0',report_sha256:config.reportSha256,jurisdictions:51,industry_cells:459,industries:[...rows.values()],claims:{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}};
 }
 
-export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedIndustries=[],maintenanceRevision=0,configLoader=loadIndustryConfig}={}){
+export async function stateAccessMaintenanceBacklog({root=APP_ROOT,maintainedIndustries=[],maintenanceRevision=0,configLoader=loadIndustryConfig,automaticRefreshLoader=loadAutomaticRefreshAuthorizations}={}){
   const [{report,config},industryConfig]=await Promise.all([enrolledReport(root),configLoader(path.join(root,'config','industry-segments.json'))]);
   check(Array.isArray(maintainedIndustries)&&Number.isSafeInteger(maintenanceRevision)&&maintenanceRevision>=0,'Maintained industry selection is invalid.');
   const allowed=Object.keys(industryConfig.industries),selected=[...new Set(maintainedIndustries)];
   check(selected.length===maintainedIndustries.length&&selected.every(id=>allowed.includes(id)),'Maintained industry selection is invalid.');
+  const automaticRefresh=await automaticRefreshLoader(industryConfig),automaticBySource=new Map(automaticRefresh.map(item=>[item.sourceId,item]));
+  check(automaticRefresh.length===Object.keys(industryConfig.sources).length&&automaticBySource.size===automaticRefresh.length,'Automatic-refresh posture is unavailable.');
   const severity={'unsupported-missing':0,'unsupported-evidence-not-measured':1,'review-due':2,'missing-source-reference':3},items=[];
   for(const jurisdiction of report.jurisdictions)for(const cell of jurisdiction.industries){
     if(!selected.includes(cell.industry))continue;
     const issue_codes=[];
     if(cell.accessEvidenceStatus==='unsupported-missing'||cell.accessEvidenceStatus==='unsupported-evidence-not-measured')issue_codes.push(cell.accessEvidenceStatus);
     if(cell.temporalStatus?.status==='review-due'||cell.temporalStatus?.status==='missing-source-reference')issue_codes.push(cell.temporalStatus.status);
-    if(issue_codes.length){const source_keys=[...new Set(cell.evidence.map(item=>item?.temporalEvidence?.sourceKey).filter(value=>typeof value==='string'&&value.length>0))].sort();items.push({state:jurisdiction.state,industry:cell.industry,action_kind:issue_codes.some(code=>code.startsWith('unsupported-'))?'source-discovery-review':'temporal-source-review',access_status:cell.accessEvidenceStatus,temporal_status:cell.temporalStatus.status,source_keys,issue_codes});}
+    if(issue_codes.length){const source_keys=[...new Set(cell.evidence.map(item=>item?.temporalEvidence?.sourceKey).filter(value=>typeof value==='string'&&value.length>0))].sort();const applicable_collection_sources=industryConfig.industries[cell.industry].filter(id=>{const source=industryConfig.sources[id];return source.scope==='national'||source.states.includes(jurisdiction.state)}).sort().map(id=>{const source=industryConfig.sources[id],decision=automaticBySource.get(id);check(decision&&decision.script===source.script,'Automatic-refresh source binding is invalid.');return{source_id:id,scope:source.scope,manual_selection_required:source.manual_selection_required===true,automatic_refresh_authorized:decision.automaticRefreshAuthorized,automatic_refresh_reason_code:decision.reasonCode};});items.push({state:jurisdiction.state,industry:cell.industry,action_kind:issue_codes.some(code=>code.startsWith('unsupported-'))?'source-discovery-review':'temporal-source-review',access_status:cell.accessEvidenceStatus,temporal_status:cell.temporalStatus.status,source_keys,issue_codes,refresh_posture:{applicable_collection_sources,manual_app_plan_available:applicable_collection_sources.length>0,automatic_refresh_authorized:applicable_collection_sources.length>0&&applicable_collection_sources.every(source=>source.automatic_refresh_authorized),newer_publisher_release_guaranteed:false,gap_resolution_guaranteed:false}});}
   }
   items.sort((a,b)=>Math.min(...a.issue_codes.map(code=>severity[code]))-Math.min(...b.issue_codes.map(code=>severity[code]))||a.industry.localeCompare(b.industry)||a.state.localeCompare(b.state));
-  const view={schema_version:'state-access-maintenance-backlog@1.1.0',report_sha256:config.reportSha256,maintenance_revision:maintenanceRevision,maintained_industries:selected,total_attention_cells:items.length,batch_limit:10,next_batch:items.slice(0,10),remaining_after_batch:Math.max(0,items.length-10),claims:{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}};
+  const view={schema_version:'state-access-maintenance-backlog@1.2.0',report_sha256:config.reportSha256,maintenance_revision:maintenanceRevision,maintained_industries:selected,total_attention_cells:items.length,batch_limit:10,next_batch:items.slice(0,10),remaining_after_batch:Math.max(0,items.length-10),claims:{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}};
   return {...view,backlog_sha256:hash(Buffer.from(JSON.stringify(view)))};
 }
