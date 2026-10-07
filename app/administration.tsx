@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.14.0";
+  schema_version: "state-access-maintenance-backlog@2.15.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -94,7 +94,9 @@ type Backlog = {
         | "official-center-only-arcgis-api-and-retained-release-validated"
         | "official-regulated-provider-search-identified-bulk-contract-unverified"
         | "official-current-regulated-program-report-and-retained-center-release-validated"
-        | "official-annual-quality-workbooks-identified-use-permission-unresolved";
+        | "official-annual-quality-workbooks-identified-use-permission-unresolved"
+        | "official-socrata-center-api-and-retained-release-validated"
+        | "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -370,7 +372,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.14.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.15.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -477,6 +479,8 @@ export function validAdministrationBacklog(
             "TX",
             "UT",
             "VA",
+            "VT",
+            "WA",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -520,6 +524,8 @@ export function validAdministrationBacklog(
               TX: "official-regulated-provider-search-identified-bulk-contract-unverified",
               UT: "official-current-regulated-program-report-and-retained-center-release-validated",
               VA: "official-annual-quality-workbooks-identified-use-permission-unresolved",
+              VT: "official-socrata-center-api-and-retained-release-validated",
+              WA: "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -551,6 +557,8 @@ export function validAdministrationBacklog(
               "TX",
               "UT",
               "VA",
+              "VT",
+              "WA",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -579,9 +587,11 @@ export function validAdministrationBacklog(
               "TN",
               "UT",
               "VA",
+              "VT",
+              "WA",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["DE", "NJ", "NY", "PA", "TN"].includes(row.state) &&
+            ["DE", "NJ", "NY", "PA", "TN", "VT", "WA"].includes(row.state) &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&
           typeof row.source_discovery.next_action === "string")) &&

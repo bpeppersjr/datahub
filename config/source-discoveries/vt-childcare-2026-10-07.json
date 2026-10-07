@@ -1,0 +1,97 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "vt-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "VT",
+  "industry": "childcare",
+  "publisher": "Vermont Department for Children and Families Child Development Division",
+  "decision": "official-socrata-center-api-and-retained-release-validated",
+  "official_sources": [
+    {
+      "url": "https://data.vermont.gov/d/ctdw-tmfz",
+      "role": "official-child-care-provider-data-catalog",
+      "evidence": "The Vermont open-data catalog identifies Child Care Provider Data owned by the Child Development Division Data Unit."
+    },
+    {
+      "url": "https://dev.socrata.com/foundry/data.vermont.gov/ctdw-tmfz",
+      "role": "official-documented-socrata-api",
+      "evidence": "The API Foundry documents the queryable dataset and monthly source description under the Open Database License."
+    },
+    {
+      "url": "https://dcf.vermont.gov/cdd-blog/changes-child-care-licensing-rules-effective-october-1-2024",
+      "role": "official-provider-type-and-licensing-context",
+      "evidence": "DCF licensing material identifies CBCCPP as center-based childcare and preschool and separately recognizes non-recurring care."
+    },
+    {
+      "url": "https://opendatacommons.org/licenses/odbl/1-0/",
+      "role": "source-declared-license-context",
+      "evidence": "The retained source policy preserves the dataset's Open Database License notice and attribution; public export remains separately disabled by the current implementation."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-provider-cbccpp-and-cbccpp-non-recurring-source-candidates",
+    "fixed_predicate": "license_type='Licensed Provider' AND provider_program_type IN('CBCCPP','CBCCPP - Non-Recurring')",
+    "excluded_provider_types": "family-home-afterschool-and-other-provider-program-types-remain-separate",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Monthly source membership, license dates, reported address, publisher jurisdiction, and current operation are separate assertions; source coordinates are deliberately jittered and excluded."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "monthly-described",
+    "snapshot_date": "reporting-period-unverified",
+    "current_operation_equivalence": false,
+    "limitation": "The source description refers to programs in business on the last day of the preceding complete month, but the retained reporting period is not verified and does not prove operation today."
+  },
+  "retained_release": {
+    "run_id": "b6fda9fd-718e-4c99-abcd-a51fbbf1bf92",
+    "manifest_path": "data/industry-segments/runs/52b06724-fa4e-4873-9388-27c1a5f1424d/state-vt-childcare-centers-VT/runs/4f721905-454e-4f16-b11f-98594d035640/normalized/jobs/b6fda9fd-718e-4c99-abcd-a51fbbf1bf92/manifest.json",
+    "manifest_sha256": "76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166",
+    "source_release_id": "vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0",
+    "accepted_rows": 503,
+    "zip5_available_rows": 503,
+    "zip4_available_rows": 2,
+    "geocoded_rows": 0,
+    "source_state_available_rows": 0,
+    "export_policy": "internal"
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier-if-published",
+    "provider_name": "required-preserve-verbatim",
+    "license_and_program_type": "required-fixed-center-predicate",
+    "license_dates": "preserve-source-calendar-semantics-not-current-operation",
+    "reported_address": "source-role-unspecified",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "excluded-deliberately-jittered-source-value",
+    "longitude": "excluded-deliberately-jittered-source-value"
+  },
+  "unresolved_gates": [
+    "fresh-source-metadata-and-count-revalidation",
+    "exact-reporting-period",
+    "source-key-cross-release-stability",
+    "reported-address-role",
+    "current-operation-equivalence",
+    "public-export-decision",
+    "production-admission"
+  ],
+  "next_action": "Reuse the verified immutable 503-row center cohort for publisher-jurisdiction reporting. Before any refresh, rerun the paired metadata/count preflight and separately approve anonymous access, reporting-period semantics, row conservation, source-key stability, address role, policy, and production admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": 503,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

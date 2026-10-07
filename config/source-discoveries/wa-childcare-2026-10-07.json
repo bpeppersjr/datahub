@@ -1,0 +1,94 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "wa-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "WA",
+  "industry": "childcare",
+  "publisher": "Washington State Department of Children, Youth, and Families",
+  "decision": "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://data.wa.gov/d/was8-3ni8",
+      "role": "official-open-data-provider-dataset",
+      "evidence": "DCYF publishes Licensed Childcare Center and School Age Program Providers as active license and facility information at extraction time."
+    },
+    {
+      "url": "https://data.wa.gov/resource/was8-3ni8.json",
+      "role": "official-socrata-api",
+      "evidence": "The Washington open-data platform exposes a supported queryable resource; discovery used metadata and count-only requests and acquired no provider rows."
+    },
+    {
+      "url": "https://www.dcyf.wa.gov/services/earlylearning-childcare/child-care-check",
+      "role": "official-child-care-check-context",
+      "evidence": "DCYF describes Child Care Check as the public pathway for licensed status, history, monitoring, and provider search."
+    },
+    {
+      "url": "https://www.findchildcarewa.org/",
+      "role": "official-public-provider-search",
+      "evidence": "Child Care Check searches by provider name, provider ID, phone, city, or ZIP and describes itself as Washington's licensed child-care status and record database."
+    }
+  ],
+  "scope": {
+    "search_cohort": "active-licensed-childcare-center-and-school-age-program-provider-licenses-at-extraction-time",
+    "provider_types": "childcare-center-and-school-age-program-facility-types-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "personal_contact_fields_excluded": true,
+    "warning": "Active license extract membership, facility type, license dates, monitoring history, provider identity, and current business operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "not-stated-in-discovery",
+    "snapshot_date": "2026-10-05T17:12:14Z-catalog-update",
+    "current_operation_equivalence": false,
+    "limitation": "Catalog update time and active-license extract membership do not prove continuous operation, current public access, or license state after extraction."
+  },
+  "retained_metadata_observation": {
+    "dataset_id": "was8-3ni8",
+    "catalog_name": "DCYF Licensed Childcare Center and School Age Program Providers",
+    "catalog_updated_at": "2026-10-05T17:12:14Z",
+    "count_only_rows": 2525,
+    "provider_rows_acquired": 0,
+    "selected_projection_validated": false
+  },
+  "required_record_contract": {
+    "provider_and_facility_identifiers": "required-review-wacompass-famlink-and-ssps-semantics",
+    "provider_name_and-doing-business-as": "required-preserve-separately",
+    "facility_type": "required-preserve-verbatim",
+    "operating_and-license_status": "required-preserve-separately",
+    "reported_physical_address": "required-source-value",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "contact-name-phone-email-and-shipping-address": "excluded-at-query-time"
+  },
+  "unresolved_gates": [
+    "exact-selected-schema-null-and-scalar-contract",
+    "provider-identifier-and-facility-identity-semantics",
+    "facility-type-and-active-license-predicate",
+    "publisher-snapshot-and-refresh-cadence",
+    "person-contact-and-shipping-field-exclusion",
+    "row-and-id-conservation",
+    "production-admission"
+  ],
+  "next_action": "Validate a zero-provider-row schema and bounded selected projection contract that excludes contact and shipping fields; then implement metadata drift, fixed-field pagination, identifier conservation, temporal semantics, ZIP5/ZIP+4 separation, and policy review before authorizing acquisition.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": 2525,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
