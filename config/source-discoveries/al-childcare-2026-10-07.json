@@ -1,0 +1,101 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "al-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "AL",
+  "industry": "childcare",
+  "publisher": "Alabama Department of Human Resources, Child Care Services Division",
+  "decision": "official-search-identified-bulk-interface-unverified",
+  "official_sources": [
+    {
+      "url": "https://dhr.alabama.gov/child-care/",
+      "role": "official-program-landing",
+      "evidence": "The Child Care Services Division administers, monitors, and licenses child care and links the official directory and interactive map."
+    },
+    {
+      "url": "https://apps.dhr.alabama.gov/daycare/daycare_search",
+      "role": "official-statewide-search",
+      "evidence": "The public search supports county, optional ZIP or name, provider type, and Licensed or Exempt status filters."
+    },
+    {
+      "url": "https://apps.dhr.alabama.gov/Child_Care_Services/Lic_Day_Care_Homes",
+      "role": "official-licensed-home-directory",
+      "evidence": "The official county-selectable page provides licensed day care home lists but no documented bulk-data contract."
+    },
+    {
+      "url": "https://dhr.alabama.gov/wp-content/uploads/2023/04/2025-2027-CCDF-State-Plan-with-Approval-Letter.pdf",
+      "role": "official-published-scope-description",
+      "evidence": "The approved state plan describes the directory cohorts and exclusions, including licensed providers and specified license-exempt center-based cohorts."
+    },
+    {
+      "url": "https://dhr.alabama.gov/child-care/license-exempt-day-care-facilities/",
+      "role": "official-license-exempt-scope",
+      "evidence": "The publisher distinguishes qualifying exempt facilities from DHR-licensed and regulated facilities."
+    }
+  ],
+  "scope": {
+    "publisher_described_members": [
+      "licensed-childcare-providers",
+      "license-exempt-center-based-ccdf-providers",
+      "license-exempt-center-based-non-ccdf-providers"
+    ],
+    "publisher_described_exclusions": [
+      "license-exempt-family-care-ccdf-providers",
+      "relative-ccdf-providers",
+      "summer-camps-and-public-pre-k-other-cohorts"
+    ],
+    "scope_overlap_warning": "Licensed, exempt, CCDF participation, and quality-rating attributes are distinct and must not be normalized as equivalent or summed as unique active businesses.",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "directory_as_of_date": null,
+    "refresh_cadence": null,
+    "history_retention_verified": false,
+    "current_operation_equivalence": false,
+    "limitation": "Displayed Licensed or Exempt status is a point-in-time publisher-system label; it does not prove operation on another date."
+  },
+  "required_record_contract": {
+    "business_name": "required-if-published",
+    "facility_identifier": "required-if-published",
+    "publisher_status": "required-if-published-preserve-exactly",
+    "status_effective_or_observed_date": "required-if-published-otherwise-retrieval-time",
+    "reported_address": "required-if-published",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "license_or_exemption_type": "required-to-preserve-distinct-cohorts"
+  },
+  "unresolved_gates": [
+    "supported-bulk-export-or-api",
+    "written-automation-and-reuse-authorization",
+    "field-schema-and-privacy-review",
+    "stable-identifier-contract",
+    "status-vocabulary-and-current-operation-semantics",
+    "licensed-versus-exempt-cohort-separation",
+    "directory-exclusion-reconciliation",
+    "snapshot-date-and-pagination-conservation",
+    "record-acquisition-authorization",
+    "production-admission"
+  ],
+  "next_action": "Request Alabama DHR written permission and a recurring machine-readable provider extract or documented API with schema, cohort, pagination, terms, and temporal contracts; do not automate the public search meanwhile.",
+  "claims": {
+    "network_requests_by_datahub": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
