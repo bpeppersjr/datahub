@@ -11,7 +11,7 @@
     "tax-exempt-organizations": ["national-irs-eo-bmf"],
     "sales-tax-outlets": ["state-tx-sales-tax"],
     "local-business-licenses": ["state-dc-basic-licenses", "state-de-business-licenses", "state-ak-business-licenses"],
-    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-co-childcare-centers", "state-ut-childcare-centers-retained", "state-ia-childcare-centers", "state-ok-childcare-spatial-batch"]
+    "childcare": ["state-ma-childcare", "state-nj-childcare", "state-tn-childcare", "state-oh-childcare", "state-pa-childcare-centers", "state-ct-childcare-centers", "state-md-childcare-centers", "state-vt-childcare-centers", "state-ca-childcare", "state-co-childcare-centers", "state-ut-childcare-centers-retained", "state-ia-childcare-centers", "state-ok-childcare-spatial-batch"]
   },
   "sources": {
     "state-ok-childcare-spatial-batch": {
@@ -46,6 +46,17 @@
         "No download or fresh acquisition: Co*Tive adopts the fixed verified retained normalized release, replaying its original PDF and complete records locally with the app-owned runtime.",
         "ZIP5 and ZIP4 remain separate. Coordinates and address role remain unknown. License calendar dates do not prove operating status; missing fields remain explicit gaps.",
         "Run-scoped app receipts bind retained evidence without rewriting historical claims. Enrollment does not promote national reporting, enable automatic retry or recovery, or activate a recurring refresh schedule. Future editions require reviewed version pins."
+      ]
+    },
+    "state-ca-childcare": {
+      "script": "scripts/build-ca-childcare.mjs",
+      "scope": "state", "states": ["CA"], "state_filter_supported": false,
+      "prerequisites": ["config/connectors/ca-childcare-app.json", "config/connectors/ca-childcare-datastore-acquisition.json", "config/source-policies/ca-childcare-provider-records-internal.json"],
+      "coverage_notes": [
+        "California CDSS Child Care Centers and Family Child Care Homes selected source rows are publisher-listed candidates, not independently verified current businesses, unique physical sites, or a denominator of all childcare providers.",
+        "Co*Tive owns 83 fixed serial DataStore requests, query-time privacy exclusion, durable page retention, before/after count reconciliation, an exclusive publisher lock, immutable releases, and terminal receipts. No automatic retry, restart, or recurring schedule is enabled.",
+        "ZIP is retained only as source-reported text and is not USPS-validity or Census ZCTA membership evidence. ZIP+4, coordinates, address verification, ownership, network affiliation, and identity matching are not supplied or inferred.",
+        "Facility status and source file date are preserved as publisher evidence; they do not independently prove current operation. Retained release reuse avoids another download. Enrollment does not normalize, promote national reporting, change source pointers, or authorize public export."
       ]
     },
     "state-co-childcare-centers": {

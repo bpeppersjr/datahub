@@ -29,7 +29,7 @@ function offlineConfig(concurrency = 2) {
 
 test('PA childcare enrollment selects one fixed app task without broadening source scope',async()=>{
   const config=await loadIndustryConfig();
-  assert.equal(Object.keys(config.sources).length,27);assert.equal(config.industries.childcare.length,12);
+  assert.equal(Object.keys(config.sources).length,28);assert.equal(config.industries.childcare.length,13);
   assert.equal(Object.keys(config.industries).length,9);assert.equal(config.states.length,51);
   const selected={industries:['childcare'],states:['PA','WI'],sourceIds:['state-pa-childcare-centers']};
   const plan=buildIndustryPlan(config,selected);
@@ -116,6 +116,25 @@ test('CO childcare enrollment selects only the bounded Colorado app worker',asyn
   assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
   assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);
   assert.equal(config.sources['state-co-childcare-centers'].state_filter_supported,false);
+});
+
+test('CA childcare enrollment selects the durable acquisition-only app operation',async()=>{
+  const config=await loadIndustryConfig(),sourceId='state-ca-childcare';
+  const selected={industries:['childcare'],states:['CA','WI'],sourceIds:[sourceId]},plan=buildIndustryPlan(config,selected);
+  assert.equal(plan.taskCount,1);assert.equal(plan.tasks[0].state,'CA');
+  assert.equal(plan.tasks[0].script,'scripts/build-ca-childcare.mjs');
+  assert.deepEqual(plan.tasks[0].prerequisites,[
+    'config/connectors/ca-childcare-app.json',
+    'config/connectors/ca-childcare-datastore-acquisition.json',
+    'config/source-policies/ca-childcare-provider-records-internal.json',
+  ]);
+  assert.ok(plan.gaps.some(g=>g.state==='WI'));
+  assert.ok(plan.warnings.some(w=>w.includes('83 fixed serial DataStore requests')));
+  assert.ok(plan.warnings.some(w=>w.includes('does not normalize, promote national reporting')));
+  assert.equal(buildIndustryPlan(config,{industries:['childcare'],states:['CA']}).taskCount,1);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,states:['WI']}),/not applicable/);
+  assert.throws(()=>buildIndustryPlan(config,{...selected,industries:['retail-consumer']}),/not applicable/);
+  assert.equal(config.sources[sourceId].state_filter_supported,false);
 });
 
 test('UT enrollment adopts only retained evidence and never offers a fresh source download',async()=>{
