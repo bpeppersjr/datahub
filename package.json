@@ -84,6 +84,7 @@
     "ca-childcare:schema-preflight": "node scripts/preflight-ca-childcare-schema.mjs",
     "ca-childcare:status-preflight": "node scripts/preflight-ca-childcare-status.mjs",
     "ca-childcare:geography-preflight": "node scripts/preflight-ca-childcare-geography.mjs",
+    "ca-childcare:build": "node scripts/build-ca-childcare.mjs",
     "oh-childcare:verify-acquired": "node scripts/verify-oh-childcare-acquired.mjs",
     "oh-childcare:reprocess": "node scripts/reprocess-oh-childcare.mjs",
     "oh-childcare:build": "node scripts/build-oh-childcare.mjs",

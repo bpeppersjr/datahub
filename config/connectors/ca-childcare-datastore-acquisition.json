@@ -1,7 +1,7 @@
 {
   "connector_id": "ca-childcare-datastore-acquisition",
   "version": "1.1.0",
-  "implementation_status": "bounded-privacy-selected-acquisition-engine-and-immutable-acquired-release-implemented-app-operation-not-yet-wired",
+  "implementation_status": "bounded-privacy-selected-acquisition-engine-immutable-release-and-durable-app-operation-implemented-live-dispatch-disabled",
   "description": "Application-owned paginated acquisition engine for California CDSS childcare DataStore resources with person/contact fields excluded at query time.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
   "configuration_schema": {"type": "object", "additionalProperties": false, "properties": {}},
