@@ -1,0 +1,45 @@
+{
+  "schema_version": "de-childcare-metadata-preflight-receipt@1.0.0",
+  "status": "metadata-contract-validated-zero-provider-rows",
+  "observed_at": "2026-10-07T07:30:06.460Z",
+  "request": {
+    "url": "https://data.delaware.gov/api/views/iuzd-3dbt",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/json",
+    "response_bytes": 42425,
+    "response_sha256": "695eb8dd8675b7ba20394da34c331aedf5ec52a381c76ecae3609deb4e58aebd"
+  },
+  "source": {
+    "dataset_id": "iuzd-3dbt",
+    "name": "Licensed Child Care Providers and Facilities",
+    "publisher": "Department of Services for Children, Youth and Their Families, Division of Family Services, Office of Child Care Licensing",
+    "provenance": "official",
+    "license": "Public Domain",
+    "temporal_coverage": "current information",
+    "publishing_frequency": "Daily",
+    "geographic_unit": "Street Address",
+    "rows_updated_at": "2026-10-06T15:49:09.000Z",
+    "required_fields": {
+      "resource_id": "number",
+      "resource_name": "text",
+      "resource_type": "text",
+      "enforcement_action": "text",
+      "intent_to_revoke": "text",
+      "site_street_address": "text",
+      "site_city": "text",
+      "site_state": "text",
+      "site_zip_code": "text",
+      "capacity": "number",
+      "geocoded_location": "point"
+    }
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "current_operations_verified": false,
+    "statewide_completeness": null,
+    "zip_validity_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

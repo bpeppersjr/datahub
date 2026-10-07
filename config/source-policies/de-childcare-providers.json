@@ -1,0 +1,23 @@
+{
+  "policy_id": "de-childcare-providers",
+  "version": "1.0.0",
+  "publisher": "Delaware Department of Services for Children, Youth and Their Families, Division of Family Services, Office of Child Care Licensing",
+  "ownership": "Official Delaware Open Data dataset metadata published through data.delaware.gov",
+  "allowed_use": [
+    "one bounded metadata request to the exact canonical Socrata dataset ID",
+    "internal validation of official provenance, Public Domain license, daily publishing claim, temporal scope, geographic unit, and field contract",
+    "immutable retention of a privacy-safe metadata receipt and manifest"
+  ],
+  "prohibited_use": [
+    "provider-record acquisition, export, query, pagination, or download under this connector version",
+    "retaining phone numbers or individual-provider reversed names",
+    "claiming current operation, statewide completeness, valid USPS ZIP membership, unique business identity, or physical-site verification",
+    "production enrollment, public export, or current-pointer mutation"
+  ],
+  "attribution": "Delaware Office of Child Care Licensing via Delaware Open Data",
+  "license": "Public Domain as declared by the canonical Socrata metadata",
+  "retention": "Metadata receipt and manifest only; the response body is hashed and discarded.",
+  "redistribution": "No provider rows are acquired or redistributed by this metadata-only version.",
+  "temporal_limits": "The publisher describes the dataset as current information published daily; dataset membership still does not independently verify a provider is operating at observation time.",
+  "review": "A later governed acquisition version must pin pagination, row conservation, selected fields, ZIP5/ZIP4 handling, enforcement semantics, source timestamps, and privacy exclusions."
+}
