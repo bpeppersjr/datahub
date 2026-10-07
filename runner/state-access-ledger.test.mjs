@@ -934,7 +934,8 @@ test('every positive state evidence variant and annual aggregate carries an exac
     assert.equal(cell.temporalStatus.generalBusinessOperatingStatusAsserted, false);
   }
   const mn = ledger.jurisdictions.find((row) => row.state === 'MN').industries.find((row) => row.industry === 'construction');
-  assert.equal(mn.evidence.find((item) => item.sourceId === 'mn-construction-credential-reporting').temporalEvidence.status, 'missing-source-reference');
+  const mnTemporal = mn.evidence.find((item) => item.sourceId === 'mn-construction-credential-reporting').temporalEvidence;
+  assert.equal(mnTemporal.status, 'missing-source-reference');
   for (const state of ['CO','CT','MD','PA','UT']) {
     const cell = ledger.jurisdictions.find((row) => row.state === state).industries.find((row) => row.industry === 'childcare');
     const retained = cell.evidence.find((item) => Object.values({CO:'co-cdec-childcare-centers',CT:'ct-oec-childcare-centers',MD:'md-msde-childcare-centers',PA:'pa-dhs-childcare-centers',UT:'ut-dlbc-childcare-centers'}).includes(item.sourceId));

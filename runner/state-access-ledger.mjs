@@ -549,7 +549,7 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   const addExtension = (sourceId, value, evidenceScope) => extensionTemporal.set(sourceId, {
     sourceId, sourceReleaseId: value?.sourceReleaseId ?? null, observedAt: value?.observedAt ?? null, evidenceScope,
   });
-  addExtension("mn-construction-credential-reporting", localCredentials, "retained-construction-credential-candidate-evidence-not-general-operation");
+  addExtension("mn-construction-credential-reporting", projectMnConstructionStateEvidence(localCredentials, "MN"), "retained-construction-credential-candidate-evidence-not-general-operation");
   addExtension("pa-dhs-childcare-centers", projectPaChildcareStateEvidence(localFacilities, "PA"), "retained-childcare-candidate-evidence-not-general-operation");
   addExtension("ct-oec-childcare-centers", projectCtChildcareStateEvidence(localCtCandidates, "CT"), "retained-childcare-candidate-evidence-not-general-operation");
   addExtension("md-msde-childcare-centers", projectMdChildcareStateEvidence(localMdCandidates, "MD"), "retained-childcare-candidate-evidence-not-general-operation");
