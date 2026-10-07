@@ -1,0 +1,22 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ct-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "CT",
+  "industry": "childcare",
+  "publisher": "Connecticut Office of Early Childhood",
+  "decision": "official-active-childcare-rosters-identified-export-contract-unverified",
+  "official_sources": [
+    {"url":"https://elicense.ct.gov/Lookup/GenerateRoster.aspx","role":"official-roster-generator","evidence":"The state roster page offers no-fee active rosters for child-care centers/group homes and family child-care homes, with exempt programs and youth camps listed separately."},
+    {"url":"https://elicense.ct.gov/Lookup/LicenseLookup.aspx","role":"official-license-lookup","evidence":"The state identifies eLicense data as maintained by Connecticut, instantly updated, and a primary verification source."},
+    {"url":"https://www.ctoec.org/licensing/","role":"official-regulator-program-page","evidence":"Office of Early Childhood licensing program context; regulated cohorts must remain distinct."},
+    {"url":"https://eregulations.ct.gov/eRegsPortal/Browse/RCSA/Title_19aSubtitle_19a-87bSection_19a-87b-16/","role":"official-family-home-public-information-rule","evidence":"The rule identifies routinely public family-home license fields while requiring complaint and residential-data handling to remain bounded."}
+  ],
+  "scope": {"publisher_described_members":["active-child-care-centers-and-group-child-care-homes","active-family-child-care-homes"],"separate_cohorts":["license-exempt-child-care-programs","licensed-youth-camps"],"operating_business_equivalence":false,"statewide_business_completeness":null,"residential_provider_privacy_review_required":true},
+  "access": {"public_search_available":true,"supported_bulk_export_verified":true,"supported_api_verified":false,"portal_automation_authorized":false,"record_acquisition_authorized":false,"account_created":false,"terms_accepted":false,"publisher_contacted":false},
+  "temporal": {"publisher_cadence":"real-time-lookup-roster-generation-cadence-unstated","snapshot_date":null,"current_operation_equivalence":false,"limitation":"Active license status and instant lookup maintenance do not prove current business operation or a stable dated full snapshot."},
+  "required_record_contract": {"credential_number":"required-preserve-verbatim","business_or_provider_name":"required-preserve-verbatim","credential_type":"required-preserve-verbatim","license_status":"required-preserve-source-semantics","reported_address":"center-only-unless-residential-privacy-approved","zip5":"separate-field-required-if-published","zip4":"separate-field-optional","latitude":"optional-source-value-only","longitude":"optional-source-value-only","excluded_fields":["complaint-details","personal-contact-fields","director-or-worker-records"]},
+  "unresolved_gates": ["exact-roster-export-request-contract","stable-file-format-and-schema","cohort-specific-row-conservation","residential-provider-address-privacy","snapshot-time-and-status-semantics","automated-request-policy","production-admission"],
+  "next_action": "Validate the exact no-fee roster export contract offline for the center/group-home and family-home cohorts, preserving them separately; establish stable schema, snapshot time, row conservation, residential privacy, and written automation posture before production admission.",
+  "claims": {"network_requests_by_discovery_record":0,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"zip_coverage":null,"current_operations_verified":false,"production_admission":false}
+}

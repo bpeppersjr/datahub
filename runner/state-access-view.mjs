@@ -9,6 +9,8 @@ import { readAkChildcareSourceDiscovery } from "./ak-childcare-source-discovery.
 import { readAlChildcareSourceDiscovery } from "./al-childcare-source-discovery.mjs";
 import { readArChildcareSourceDiscovery } from "./ar-childcare-source-discovery.mjs";
 import { readAzChildcareSourceDiscovery } from "./az-childcare-source-discovery.mjs";
+import { readCoChildcareSourceDiscovery } from "./co-childcare-source-discovery.mjs";
+import { readCtChildcareSourceDiscovery } from "./ct-childcare-source-discovery.mjs";
 import { readDcChildcareSourceDiscovery } from "./dc-childcare-source-discovery.mjs";
 import { readDeChildcareSourceDiscovery } from "./de-childcare-source-discovery.mjs";
 import { readFlChildcareSourceDiscovery } from "./fl-childcare-source-discovery.mjs";
@@ -419,6 +421,8 @@ export async function stateAccessMaintenanceBacklog({
   alChildcareDiscoveryLoader = readAlChildcareSourceDiscovery,
   arChildcareDiscoveryLoader = readArChildcareSourceDiscovery,
   azChildcareDiscoveryLoader = readAzChildcareSourceDiscovery,
+  coChildcareDiscoveryLoader = readCoChildcareSourceDiscovery,
+  ctChildcareDiscoveryLoader = readCtChildcareSourceDiscovery,
   dcChildcareDiscoveryLoader = readDcChildcareSourceDiscovery,
   deChildcareDiscoveryLoader = readDeChildcareSourceDiscovery,
   flChildcareDiscoveryLoader = readFlChildcareSourceDiscovery,
@@ -552,6 +556,8 @@ export async function stateAccessMaintenanceBacklog({
             "AL",
             "AR",
             "AZ",
+            "CO",
+            "CT",
             "DC",
             "DE",
             "FL",
@@ -601,6 +607,8 @@ export async function stateAccessMaintenanceBacklog({
               AL: alChildcareDiscoveryLoader,
               AR: arChildcareDiscoveryLoader,
               AZ: azChildcareDiscoveryLoader,
+              CO: coChildcareDiscoveryLoader,
+              CT: ctChildcareDiscoveryLoader,
               DC: dcChildcareDiscoveryLoader,
               DE: deChildcareDiscoveryLoader,
               FL: flChildcareDiscoveryLoader,
@@ -693,6 +701,8 @@ export async function stateAccessMaintenanceBacklog({
                 "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled",
                 "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending",
                 "official-wvpath-provider-search-identified-bulk-contract-unverified",
+                "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
+                "official-active-childcare-rosters-identified-export-contract-unverified",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -750,7 +760,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.16.0",
+    schema_version: "state-access-maintenance-backlog@2.17.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.16.0";
+  schema_version: "state-access-maintenance-backlog@2.17.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -98,7 +98,9 @@ type Backlog = {
         | "official-socrata-center-api-and-retained-release-validated"
         | "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled"
         | "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending"
-        | "official-wvpath-provider-search-identified-bulk-contract-unverified";
+        | "official-wvpath-provider-search-identified-bulk-contract-unverified"
+        | "official-monthly-socrata-api-metadata-validated-acquisition-disabled"
+        | "official-active-childcare-rosters-identified-export-contract-unverified";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -374,7 +376,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.16.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.17.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -443,6 +445,8 @@ export function validAdministrationBacklog(
             "AL",
             "AR",
             "AZ",
+            "CO",
+            "CT",
             "DC",
             "DE",
             "FL",
@@ -490,6 +494,8 @@ export function validAdministrationBacklog(
           row.source_discovery.status ===
             ({
               AZ: "official-monthly-table-metadata-validated-acquisition-disabled",
+              CO: "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
+              CT: "official-active-childcare-rosters-identified-export-contract-unverified",
               DC: "official-monthly-pdf-identified-offline-parser-required",
               DE: "official-public-domain-api-metadata-validated-acquisition-disabled",
               FL: "official-workbook-metadata-validated-acquisition-disabled",
@@ -566,6 +572,8 @@ export function validAdministrationBacklog(
               "VT",
               "WA",
               "WI",
+              "CO",
+              "CT",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -597,9 +605,11 @@ export function validAdministrationBacklog(
               "VT",
               "WA",
               "WI",
+              "CO",
+              "CT",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["DE", "NJ", "NY", "PA", "TN", "VT", "WA", "WI"].includes(
+            ["CO", "DE", "NJ", "NY", "PA", "TN", "VT", "WA", "WI"].includes(
               row.state,
             ) &&
           row.source_discovery.portal_automation_authorized === false &&
