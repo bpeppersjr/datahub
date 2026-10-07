@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "ne-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NE",
+  "industry": "childcare",
+  "publisher": "Nebraska Department of Health and Human Services Public Health Licensure Unit",
+  "decision": "official-weekly-zip-organized-roster-identified-acquisition-disabled",
+  "official_sources": [
+    {
+      "url": "https://dhhs.ne.gov/Pages/Search-for-Child-Care-Providers.aspx",
+      "role": "official-search-and-roster-index",
+      "evidence": "DHHS links NebraskaMAP, a ZIP-organized roster PDF, and a CAPTCHA-protected license search."
+    },
+    {
+      "url": "https://dhhs.ne.gov/licensure/Documents/ChildCareRoster.pdf",
+      "role": "official-weekly-roster-artifact",
+      "evidence": "The roster identifies licensed childcare and preschool programs, is organized by ZIP, describes weekly updates, and publishes program, address, capacity, hours, subsidy, accreditation, and facility type fields."
+    },
+    {
+      "url": "https://dhhs.ne.gov/licensure/Pages/Child-Care-Licensing.aspx",
+      "role": "official-licensing-authority",
+      "evidence": "DHHS publishes licensing requirements and program-type boundaries."
+    },
+    {
+      "url": "https://dhhs.ne.gov/licensure/Pages/Rosters-of-Facilities-and-Services.aspx",
+      "role": "official-roster-index-and-cadence-context",
+      "evidence": "DHHS publishes facility roster access and a general approximately monthly roster cadence; this conflicts with the childcare roster's weekly statement and remains unresolved."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-and-preschool-programs",
+    "program_types": "family-home-i-family-home-ii-child-care-center-and-preschool-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "center_only_predicate_required": true,
+    "warning": "Provisional or operating license status, facility type, subsidy participation, accreditation, and current operation are separate assertions; home addresses require explicit privacy review."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": true,
+    "supported_api_verified": false,
+    "direct_download_endpoint_verified": true,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "weekly-per-childcare-roster; approximately-monthly-per-general-roster-index-conflict-unresolved",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The stable PDF is an intentional bulk artifact, but no snapshot date, exact lifecycle contract, or reconciled cadence was established."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier-if-published",
+    "program_or_licensee_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "reported_address": "center-and-preschool-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-and-home-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "center-only-scope-decision",
+    "home-provider-privacy",
+    "provisional-operating-and-current-operation-semantics",
+    "weekly-versus-monthly-cadence-reconciliation",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Retain the weekly ZIP-organized PDF contract without downloading provider rows; approve an exact center/preschool predicate, resolve cadence and privacy, and validate schema, reuse, and conservation before admission. Never automate the CAPTCHA lookup.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

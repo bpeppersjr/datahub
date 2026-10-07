@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nd-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "ND",
+  "industry": "childcare",
+  "publisher": "North Dakota Health and Human Services Early Childhood Services",
+  "decision": "official-licensed-and-self-declared-search-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.hhs.nd.gov/cfs/early-childhood-services/child-care-licensing",
+      "role": "official-licensing-authority",
+      "evidence": "HHS describes the state licensing program and its regulated child-care cohorts."
+    },
+    {
+      "url": "https://www.hhs.nd.gov/cfs/early-childhood-services/families",
+      "role": "official-family-search-description",
+      "evidence": "HHS directs families to search licensed and self-declared providers and describes location, hours, ages, inspection reports, and correction orders."
+    },
+    {
+      "url": "https://www.hhs.nd.gov/cfs/early-childhood-services/contact",
+      "role": "official-publisher-contact-path",
+      "evidence": "HHS publishes Early Childhood Services contact and regional licensing specialist routes."
+    },
+    {
+      "url": "https://search.ec.hhs.nd.gov/",
+      "role": "official-provider-search",
+      "evidence": "The HHS-linked search is the human-facing directory for licensed and self-declared providers; no supported bulk or API contract was established."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-and-self-declared-child-care-providers",
+    "program_types": "licensed-self-declared-and-license-exempt-cohorts-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Licensing, self-declaration, exemption, inspection, correction order, subsidy participation, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "No supported machine-readable export, snapshot date, lifecycle vocabulary, or refresh contract was established; a historical 2023 report is research context only."
+  },
+  "required_record_contract": {
+    "license_or_registration_number": "required-source-identifier",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "license_or_declaration_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-inspection-and-correction-order-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "licensed-self-declared-and-exempt-cohort-separation",
+    "license-status-and-operation-semantics",
+    "home-provider-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-provider-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek an HHS-sanctioned center-focused machine-readable extract; do not automate the public search, and validate cohort, status, privacy, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
