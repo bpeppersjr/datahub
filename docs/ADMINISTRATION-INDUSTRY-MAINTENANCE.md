@@ -16,7 +16,7 @@ The once-only planning default fails closed: if the maintenance preference canno
 
 ## Geography and evidence boundary
 
-Census ZCTAs remain usable statistical map geography without a complete USPS operational ZIP denominator or USPS polygon product. Exact source-reported ZIP5 evidence without a same-code ZCTA remains visible as non-ZCTA ZIP evidence. When no governed retained state or finer geography exists, the application reports state and cardinal/central grouping as unresolved; it does not infer a location from the ZIP digits.
+Census ZCTAs remain usable statistical map geography without a complete USPS operational ZIP denominator or USPS polygon product. Exact source-reported ZIP5 evidence without a same-code ZCTA remains visible as non-ZCTA ZIP evidence. The application exposes retained source-reported state-code context and point-state evidence separately, while state assignment and cardinal/central grouping remain explicitly null. It does not infer a location from the ZIP digits. The surrounding state map remains usable and the unresolved ZIP evidence does not enter state denominators.
 
 Park, Native, private, or other special-area categories are displayed only if a governed retained overlay supports them. The current ZIP inspector has no such overlay and therefore reports that classification as unresolved. No residual polygons or acreage are invented.
 
