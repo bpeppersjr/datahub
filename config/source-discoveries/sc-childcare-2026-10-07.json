@@ -1,0 +1,87 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "sc-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "SC",
+  "industry": "childcare",
+  "publisher": "South Carolina Department of Social Services Division of Early Care and Education",
+  "decision": "official-manual-excel-export-identified-automated-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://scchildcare.org/provider-search/",
+      "role": "official-provider-search-and-manual-export",
+      "evidence": "The public search accepts ZIP, county, city, provider name, and provider number and exposes a user-operated Save Results to Excel control."
+    },
+    {
+      "url": "https://scchildcare.org/programs/child-care-licensing/",
+      "role": "official-licensing-authority-and-provider-type-context",
+      "evidence": "DSS distinguishes licensed or approved centers, licensed group homes, licensed or registered family homes, and legally exempt operations."
+    },
+    {
+      "url": "https://scchildcare.org/providers/licensing-requirements/",
+      "role": "official-monitoring-and-regulatory-context",
+      "evidence": "The publisher documents licensing or registration requirements and annual unannounced inspections for regulated provider types."
+    },
+    {
+      "url": "https://scchildcare.org/programs/",
+      "role": "official-program-and-unregulated-care-context",
+      "evidence": "The publisher distinguishes regulated provider programs from family, friend, and neighbor care that may be unlicensed or unregistered."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-approved-registered-and-search-listed-child-care-providers",
+    "provider_types": "center-group-home-family-home-faith-based-legally-exempt-and-family-friend-neighbor-cohorts-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "home_provider_privacy_review_required": true,
+    "warning": "Search visibility, license, registration, approval, legal exemption, inspection, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "manual_ui_export_identified": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "not-stated",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "The discovery establishes a current human-facing search and manual export control, not a dated complete provider release or continuous-operation assertion."
+  },
+  "required_record_contract": {
+    "provider_number": "required-if-published",
+    "provider_name": "required-preserve-verbatim",
+    "provider_type": "required-preserve-verbatim",
+    "license_registration_or_approval_status": "required-preserve-source-semantics",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only"
+  },
+  "unresolved_gates": [
+    "manual-export-schema-and-row-limit",
+    "automated-bulk-access-contract",
+    "provider-type-cohort-separation",
+    "family-home-address-privacy",
+    "publisher-snapshot-date",
+    "provider-number-and-row-conservation",
+    "zip5-and-zip4-separation",
+    "production-admission"
+  ],
+  "next_action": "Manually inspect a bounded Excel export contract without retaining provider rows; document its schema, row limits, temporal fields, provider-type semantics, and home-provider privacy boundary before any connector or acquisition decision.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}
