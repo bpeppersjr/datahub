@@ -1,0 +1,22 @@
+{
+  "schema_version":"state-industry-source-discovery@1.0.0",
+  "discovery_id":"ca-childcare-official-source-discovery-20261007",
+  "observed_at":"2026-10-07",
+  "state":"CA",
+  "industry":"childcare",
+  "publisher":"California Department of Social Services",
+  "decision":"official-datastore-app-and-retained-reporting-validated",
+  "official_sources":[
+    {"url":"https://data.chhs.ca.gov/dataset/community-care-licensing-facilities","role":"official-dataset-catalog","evidence":"Official Community Care Licensing facility catalog identifies Child Care Centers and Family Child Care Homes resources."},
+    {"url":"https://data.chhs.ca.gov/api/3/action/package_show?id=community-care-licensing-facilities","role":"official-package-metadata-api","evidence":"Publisher-supported CKAN package metadata is bound by retained zero-record preflights."},
+    {"url":"https://data.chhs.ca.gov/api/3/action/datastore_search","role":"official-record-api","evidence":"Publisher-supported DataStore API is implemented by the bounded application-owned California connector."},
+    {"url":"docs/CA-CHILDCARE-REPORTING.md","role":"local-governed-reporting-contract","evidence":"Repository reporting contract binds a verified retained app receipt without converting publisher status into current operation or business completeness."}
+  ],
+  "scope":{"publisher_described_members":["child-care-centers","family-child-care-homes"],"operating_business_equivalence":false,"statewide_business_completeness":null,"residential_provider_privacy_review_required":true,"retained_application_evidence":"separate-checksum-pinned-app-receipt-and-local-review-reporting","warning":"Publisher facility status, current business operation, physical-site verification, ZIP validity, ZCTA membership, and public export authority remain separate."},
+  "access":{"public_search_available":true,"supported_bulk_export_verified":true,"supported_api_verified":true,"portal_automation_authorized":false,"record_acquisition_authorized":false,"account_created":false,"terms_accepted":false,"publisher_contacted":false},
+  "temporal":{"publisher_cadence":"irregular","publisher_file_date":"2025-05-25","current_operation_equivalence":false,"limitation":"Retained catalog, backend, file-date, and lifecycle evidence disagree or have different meanings; none proves operation at observation time."},
+  "required_record_contract":{"facility_number":"required-preserve-verbatim","facility_name":"required-preserve-verbatim","facility_type":"required-preserve-verbatim","facility_status":"required-preserve-source-semantics","reported_address":"required-if-published-subject-to-home-privacy","zip5":"separate-field-required-if-published","zip4":"separate-field-optional","latitude":"optional-source-value-only","longitude":"optional-source-value-only","excluded_fields":["licensee","facility_administrator","facility_telephone_number","email","personal-contact-fields"]},
+  "unresolved_gates":["automatic-refresh-review","residential-address-redistribution-review","current-operation-qualification","public-export-policy","national-production-admission"],
+  "next_action":"Reuse and independently verify the retained application release for reporting; do not repull it merely for promotion. Before any refresh, require explicit operator dispatch and revalidate fixed resources, schema, privacy projection, pagination, row conservation, temporal semantics, request policy, and publication gates.",
+  "claims":{"network_requests_by_discovery_record":0,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"zip_coverage":null,"current_operations_verified":false,"production_admission":false}
+}

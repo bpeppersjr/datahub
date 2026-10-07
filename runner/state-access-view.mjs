@@ -9,6 +9,7 @@ import { readAkChildcareSourceDiscovery } from "./ak-childcare-source-discovery.
 import { readAlChildcareSourceDiscovery } from "./al-childcare-source-discovery.mjs";
 import { readArChildcareSourceDiscovery } from "./ar-childcare-source-discovery.mjs";
 import { readAzChildcareSourceDiscovery } from "./az-childcare-source-discovery.mjs";
+import { readCaChildcareSourceDiscovery } from "./ca-childcare-source-discovery.mjs";
 import { readCoChildcareSourceDiscovery } from "./co-childcare-source-discovery.mjs";
 import { readCtChildcareSourceDiscovery } from "./ct-childcare-source-discovery.mjs";
 import { readDcChildcareSourceDiscovery } from "./dc-childcare-source-discovery.mjs";
@@ -19,6 +20,7 @@ import { readHiChildcareSourceDiscovery } from "./hi-childcare-source-discovery.
 import { readIdChildcareSourceDiscovery } from "./id-childcare-source-discovery.mjs";
 import { readIlChildcareSourceDiscovery } from "./il-childcare-source-discovery.mjs";
 import { readInChildcareSourceDiscovery } from "./in-childcare-source-discovery.mjs";
+import { readIaChildcareSourceDiscovery } from "./ia-childcare-source-discovery.mjs";
 import { readKsChildcareSourceDiscovery } from "./ks-childcare-source-discovery.mjs";
 import { readKyChildcareSourceDiscovery } from "./ky-childcare-source-discovery.mjs";
 import { readLaChildcareSourceDiscovery } from "./la-childcare-source-discovery.mjs";
@@ -53,6 +55,7 @@ import { readVtChildcareSourceDiscovery } from "./vt-childcare-source-discovery.
 import { readWaChildcareSourceDiscovery } from "./wa-childcare-source-discovery.mjs";
 import { readWiChildcareSourceDiscovery } from "./wi-childcare-source-discovery.mjs";
 import { readWvChildcareSourceDiscovery } from "./wv-childcare-source-discovery.mjs";
+import { readWyChildcareSourceDiscovery } from "./wy-childcare-source-discovery.mjs";
 
 const STATE = /^[A-Z]{2}$/;
 const INDUSTRY = /^[a-z][a-z0-9-]{1,79}$/;
@@ -421,6 +424,7 @@ export async function stateAccessMaintenanceBacklog({
   alChildcareDiscoveryLoader = readAlChildcareSourceDiscovery,
   arChildcareDiscoveryLoader = readArChildcareSourceDiscovery,
   azChildcareDiscoveryLoader = readAzChildcareSourceDiscovery,
+  caChildcareDiscoveryLoader = readCaChildcareSourceDiscovery,
   coChildcareDiscoveryLoader = readCoChildcareSourceDiscovery,
   ctChildcareDiscoveryLoader = readCtChildcareSourceDiscovery,
   dcChildcareDiscoveryLoader = readDcChildcareSourceDiscovery,
@@ -431,6 +435,7 @@ export async function stateAccessMaintenanceBacklog({
   idChildcareDiscoveryLoader = readIdChildcareSourceDiscovery,
   ilChildcareDiscoveryLoader = readIlChildcareSourceDiscovery,
   inChildcareDiscoveryLoader = readInChildcareSourceDiscovery,
+  iaChildcareDiscoveryLoader = readIaChildcareSourceDiscovery,
   ksChildcareDiscoveryLoader = readKsChildcareSourceDiscovery,
   kyChildcareDiscoveryLoader = readKyChildcareSourceDiscovery,
   laChildcareDiscoveryLoader = readLaChildcareSourceDiscovery,
@@ -465,6 +470,7 @@ export async function stateAccessMaintenanceBacklog({
   waChildcareDiscoveryLoader = readWaChildcareSourceDiscovery,
   wiChildcareDiscoveryLoader = readWiChildcareSourceDiscovery,
   wvChildcareDiscoveryLoader = readWvChildcareSourceDiscovery,
+  wyChildcareDiscoveryLoader = readWyChildcareSourceDiscovery,
 } = {}) {
   const [{ report, config }, industryConfig] = await Promise.all([
     enrolledReport(root),
@@ -556,6 +562,7 @@ export async function stateAccessMaintenanceBacklog({
             "AL",
             "AR",
             "AZ",
+            "CA",
             "CO",
             "CT",
             "DC",
@@ -566,6 +573,7 @@ export async function stateAccessMaintenanceBacklog({
             "ID",
             "IL",
             "IN",
+            "IA",
             "KS",
             "KY",
             "LA",
@@ -600,6 +608,7 @@ export async function stateAccessMaintenanceBacklog({
             "WA",
             "WI",
             "WV",
+            "WY",
           ].includes(jurisdiction.state)
         ) {
           const loaders = {
@@ -607,6 +616,7 @@ export async function stateAccessMaintenanceBacklog({
               AL: alChildcareDiscoveryLoader,
               AR: arChildcareDiscoveryLoader,
               AZ: azChildcareDiscoveryLoader,
+              CA: caChildcareDiscoveryLoader,
               CO: coChildcareDiscoveryLoader,
               CT: ctChildcareDiscoveryLoader,
               DC: dcChildcareDiscoveryLoader,
@@ -617,6 +627,7 @@ export async function stateAccessMaintenanceBacklog({
               ID: idChildcareDiscoveryLoader,
               IL: ilChildcareDiscoveryLoader,
               IN: inChildcareDiscoveryLoader,
+              IA: iaChildcareDiscoveryLoader,
               KS: ksChildcareDiscoveryLoader,
               KY: kyChildcareDiscoveryLoader,
               LA: laChildcareDiscoveryLoader,
@@ -651,6 +662,7 @@ export async function stateAccessMaintenanceBacklog({
               WA: waChildcareDiscoveryLoader,
               WI: wiChildcareDiscoveryLoader,
               WV: wvChildcareDiscoveryLoader,
+              WY: wyChildcareDiscoveryLoader,
             },
             discovery = await loaders[jurisdiction.state]({ root });
           check(
@@ -703,6 +715,9 @@ export async function stateAccessMaintenanceBacklog({
                 "official-wvpath-provider-search-identified-bulk-contract-unverified",
                 "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
                 "official-active-childcare-rosters-identified-export-contract-unverified",
+                "official-datastore-app-and-retained-reporting-validated",
+                "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified",
+                "official-monthly-active-provider-list-download-identified-acquisition-disabled",
               ].includes(discovery.decision) &&
               discovery.access?.public_search_available === true &&
               typeof discovery.access.supported_bulk_export_verified ===
@@ -760,7 +775,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.17.0",
+    schema_version: "state-access-maintenance-backlog@2.18.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,

@@ -1,0 +1,22 @@
+{
+  "schema_version":"state-industry-source-discovery@1.0.0",
+  "discovery_id":"ia-childcare-official-source-discovery-20261007",
+  "observed_at":"2026-10-07",
+  "state":"IA",
+  "industry":"childcare",
+  "publisher":"Iowa Department of Health and Human Services",
+  "decision":"official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified",
+  "official_sources":[
+    {"url":"https://hhs.iowa.gov/programs/programs-and-services/child-care","role":"official-program-and-data-page","evidence":"Iowa HHS defines licensed centers, child development homes, and child care homes as separate regulated or assistance-linked cohorts and links the current provider search."},
+    {"url":"https://childcaresearch.iowa.gov/","role":"official-child-care-provider-search","evidence":"Iowa Child Care Connect provides a near-real-time family-facing provider and vacancy search."},
+    {"url":"https://hhs.iowa.gov/media/14235/download?inline=","role":"official-search-description","evidence":"Official HHS publication describes the C3 search, provider vacancies, and near-real-time multi-system integration."},
+    {"url":"https://hhs.iowa.gov/programs/programs-and-services/child-care#request-for-data-sharing-agreement-with-iowa-child-care-connect","role":"official-data-sharing-path","evidence":"Iowa publishes a process and sample agreement for requesting Iowa Child Care Connect data sharing."}
+  ],
+  "scope":{"publisher_described_members":["licensed-centers","registered-child-development-homes","child-care-homes-with-assistance-agreements"],"search_may_include_additional_cohorts":true,"operating_business_equivalence":false,"statewide_business_completeness":null,"residential_provider_privacy_review_required":true},
+  "access":{"public_search_available":true,"supported_bulk_export_verified":false,"supported_api_verified":false,"portal_automation_authorized":false,"record_acquisition_authorized":false,"account_created":false,"terms_accepted":false,"publisher_contacted":false},
+  "temporal":{"publisher_cadence":"near-real-time-search-claimed-export-snapshot-unstated","snapshot_date":null,"current_operation_equivalence":false,"limitation":"Search presence, reported vacancy, license or registration, and current business operation are separate assertions; no supported bulk snapshot contract was verified."},
+  "required_record_contract":{"provider_identifier":"required-if-published","provider_name":"required-preserve-verbatim","provider_type":"required-preserve-verbatim","license_registration_or_assistance_status":"required-preserve-source-semantics","reported_address":"center-only-unless-residential-privacy-approved","zip5":"separate-field-required-if-published","zip4":"separate-field-optional","latitude":"optional-source-value-only","longitude":"optional-source-value-only","excluded_fields":["child-or-family-information","staff-information","personal-contact-fields","vacancy-detail-not-approved-for-retention"]},
+  "unresolved_gates":["publisher-supported-bulk-or-api-contract-or-executed-data-sharing-agreement","cohort-and-status-dictionaries","residential-provider-privacy","snapshot-and-refresh-semantics","stable-identifiers-pagination-and-row-conservation","production-admission"],
+  "next_action":"Request or identify a publisher-supported machine-readable provider extract/API or execute an approved data-sharing agreement. Do not automate the family-facing search; preserve regulated cohorts, privacy, status, vacancy and temporal semantics separately.",
+  "claims":{"network_requests_by_discovery_record":0,"provider_rows_acquired":0,"provider_count":null,"active_business_count":null,"zip_coverage":null,"current_operations_verified":false,"production_admission":false}
+}

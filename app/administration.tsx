@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.17.0";
+  schema_version: "state-access-maintenance-backlog@2.18.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -100,7 +100,10 @@ type Backlog = {
         | "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending"
         | "official-wvpath-provider-search-identified-bulk-contract-unverified"
         | "official-monthly-socrata-api-metadata-validated-acquisition-disabled"
-        | "official-active-childcare-rosters-identified-export-contract-unverified";
+        | "official-active-childcare-rosters-identified-export-contract-unverified"
+        | "official-datastore-app-and-retained-reporting-validated"
+        | "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified"
+        | "official-monthly-active-provider-list-download-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -376,7 +379,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.17.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.18.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -445,6 +448,7 @@ export function validAdministrationBacklog(
             "AL",
             "AR",
             "AZ",
+            "CA",
             "CO",
             "CT",
             "DC",
@@ -455,6 +459,7 @@ export function validAdministrationBacklog(
             "ID",
             "IL",
             "IN",
+            "IA",
             "KS",
             "KY",
             "LA",
@@ -489,11 +494,13 @@ export function validAdministrationBacklog(
             "WA",
             "WI",
             "WV",
+            "WY",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
             ({
               AZ: "official-monthly-table-metadata-validated-acquisition-disabled",
+              CA: "official-datastore-app-and-retained-reporting-validated",
               CO: "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
               CT: "official-active-childcare-rosters-identified-export-contract-unverified",
               DC: "official-monthly-pdf-identified-offline-parser-required",
@@ -504,6 +511,7 @@ export function validAdministrationBacklog(
               ID: "official-dual-workbook-metadata-identified-acquisition-disabled",
               IL: "official-manual-export-identified-automated-bulk-contract-unverified",
               IN: "official-current-provider-tables-export-format-unverified-acquisition-disabled",
+              IA: "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified",
               KS: "official-search-and-data-request-path-identified-acquisition-disabled",
               KY: "official-dynamic-download-control-identified-contract-unverified",
               LA: "official-statewide-center-finder-identified-bulk-contract-unverified",
@@ -538,6 +546,7 @@ export function validAdministrationBacklog(
               WA: "official-active-center-and-school-age-socrata-api-metadata-validated-acquisition-disabled",
               WI: "official-licensed-group-arcgis-api-metadata-validated-use-decision-pending",
               WV: "official-wvpath-provider-search-identified-bulk-contract-unverified",
+              WY: "official-monthly-active-provider-list-download-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -574,6 +583,9 @@ export function validAdministrationBacklog(
               "WI",
               "CO",
               "CT",
+              "CA",
+              "IA",
+              "WY",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
@@ -607,9 +619,11 @@ export function validAdministrationBacklog(
               "WI",
               "CO",
               "CT",
+              "CA",
+              "WY",
             ].includes(row.state) &&
           row.source_discovery.supported_api_verified ===
-            ["CO", "DE", "NJ", "NY", "PA", "TN", "VT", "WA", "WI"].includes(
+            ["CA", "CO", "DE", "NJ", "NY", "PA", "TN", "VT", "WA", "WI"].includes(
               row.state,
             ) &&
           row.source_discovery.portal_automation_authorized === false &&

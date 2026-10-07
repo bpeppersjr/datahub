@@ -31,7 +31,7 @@ test("maintenance backlog verifies governed Colorado and Connecticut source post
     coChildcareDiscoveryLoader: () => { coReads++; return readCoChildcareSourceDiscovery(); },
     ctChildcareDiscoveryLoader: () => { ctReads++; return readCtChildcareSourceDiscovery(); },
   });
-  assert.equal(value.schema_version, "state-access-maintenance-backlog@2.17.0");
+  assert.equal(value.schema_version, "state-access-maintenance-backlog@2.18.0");
   assert.equal(coReads, 1);
   assert.equal(ctReads, 1);
   assert.equal(value.claims.acquisition_authorized, false);
