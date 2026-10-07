@@ -1,0 +1,88 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nv-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NV",
+  "industry": "childcare",
+  "publisher": "Nevada Division of Public and Behavioral Health Child Care Licensing",
+  "decision": "official-licensure-search-identified-jurisdiction-boundary-unresolved",
+  "official_sources": [
+    {
+      "url": "https://www.dpbh.nv.gov/Reg/Childcare/dta/Media/Find_Child_Care/",
+      "role": "official-provider-search-instructions",
+      "evidence": "DPBH directs users to the state licensing search with Child Care Program and Agency selections for licensed facilities."
+    },
+    {
+      "url": "https://nvdpbh.aithent.com/Login.aspx",
+      "role": "official-licensure-search-portal",
+      "evidence": "The DPBH-linked licensure system is the human-facing facility lookup; no supported bulk export or API contract was established."
+    },
+    {
+      "url": "https://www.dpbh.nv.gov/regulatory/child-care-facilities/statutes/child-care-statutes-and-regulations/",
+      "role": "official-regulatory-authority",
+      "evidence": "DPBH identifies its Child Care Licensing Unit as enforcing NRS and NAC Chapter 432A through licensing and inspection."
+    },
+    {
+      "url": "https://www.dpbh.nv.gov/globalassets/dpbh/regulatory/childcare/dta/providers/Statewide_Annual_Report_Jan_2022_-_Dec_2022.pdf",
+      "role": "official-historical-jurisdiction-boundary-evidence",
+      "evidence": "The historical statewide report separately presents State of Nevada and Washoe County licensed-facility cohorts; it is boundary evidence only, not a current provider roster."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-child-care-facilities-returned-by-state-licensure-search",
+    "program_types": "center-on-site-center-preschool-accommodation-group-family-institution-and-specialized-types-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "washoe_county_boundary_resolved": false,
+    "warning": "Licensure search presence, facility type, county licensing jurisdiction, inspection, complaint outcome, license status, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": null,
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "Current search data has no supported machine-readable export, snapshot date, lifecycle vocabulary, refresh contract, or verified statewide jurisdictional denominator; older PDF lists and reports are not current roster evidence."
+  },
+  "required_record_contract": {
+    "license_number": "required-source-identifier",
+    "facility_name": "required-preserve-verbatim",
+    "facility_type": "required-preserve-verbatim",
+    "license_status": "required-preserve-verbatim",
+    "licensing_jurisdiction": "required-state-or-washoe-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-complaint-and-inspection-fields": "excluded"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "state-versus-washoe-jurisdiction-reconciliation",
+    "facility-type-and-operation-semantics",
+    "home-provider-privacy",
+    "schema-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-license-number-conservation",
+    "production-admission"
+  ],
+  "next_action": "Seek publisher-supported center rosters for both DPBH and any separately licensed Washoe County cohort; do not automate the licensure search or reuse historical PDFs as current rows, and reconcile jurisdiction, privacy, status, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

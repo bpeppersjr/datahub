@@ -1,0 +1,9 @@
+# Production successor plan 274
+
+Run `production-cms-directories-20261007-274` is a planning-only successor retaining the childcare registry, Minnesota credential registry, CMS hospital, and CMS nursing-home selections. Its immutable plan is `data/reconciliations/production-plans/production-cms-directories-20261007-274.json`, confirmation SHA-256 `b7074f440ecb1892efc81423e056d96a6b882401d155ea99df2b7083b9a81d21`, and file SHA-256 `cb6bcd9f925bada72a01b27284ff42800bb97e412ced01218f83b661c59c6e09`.
+
+The read-only preflight returned `READY`, revalidated all pins, retained `national-12g`, and found 75,461,500,928 available disk bytes against 13,309,329,011 required bytes. It described eight stages, zero acquisition stages, zero network stages, and no writes. This receipt does not authorize or execute production.
+
+The administration maintenance backlog is now `state-access-maintenance-backlog@2.8.0` and reports thirty governed childcare source discoveries. New Mexico exposes an official finder populated from the ECECD provider database, but no supported bulk/API contract or machine-readable refresh contract. Nevada exposes the official DPBH licensure search; historical PDF material is retained only as jurisdiction-boundary evidence because the State of Nevada and Washoe County licensing cohorts require reconciliation. Search automation, provider acquisition, production admission, and current-operation claims remain disabled, and no provider rows were acquired.
+
+Focused Node tests passed 10/10. ESLint completed with zero errors and seven pre-existing warnings. Web and desktop production builds passed with the existing chunk-size warning. The required clean restart sequence passed: `stop-collector.bat`, desktop control-plane smoke, and `launch-datahub.bat`; exactly one listener was present on `127.0.0.1:4300`, and `/api/health` returned HTTP 200 with `{"ok":true}`.

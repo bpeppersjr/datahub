@@ -1,0 +1,86 @@
+{
+  "schema_version": "state-industry-source-discovery@1.0.0",
+  "discovery_id": "nm-childcare-official-source-discovery-20261007",
+  "observed_at": "2026-10-07",
+  "state": "NM",
+  "industry": "childcare",
+  "publisher": "New Mexico Early Childhood Education and Care Department",
+  "decision": "official-provider-database-backed-finder-identified-bulk-contract-unverified",
+  "official_sources": [
+    {
+      "url": "https://www.nmececd.org/child-care-assistance/",
+      "role": "official-finder-and-regulatory-program-description",
+      "evidence": "ECECD directs families to the statewide Child Care Finder and identifies the Regulatory Oversight Unit as responsible for licensed and registered providers."
+    },
+    {
+      "url": "https://childcare.ececd.nm.gov/search",
+      "role": "official-public-provider-finder",
+      "evidence": "The ECECD finder supports statewide provider search by proximity, age, quality, tuition, language, and program type."
+    },
+    {
+      "url": "https://www.nmececd.org/2022/11/16/gov-lujan-grisham-announces-launch-of-groundbreaking-new-child-care-search-tool/",
+      "role": "official-finder-data-lineage",
+      "evidence": "ECECD states that the finder takes the latest data directly from its child-care provider database and publishes basic program profiles."
+    },
+    {
+      "url": "https://www.nmececd.org/child-care-licensing-and-registered-homes/",
+      "role": "official-licensing-and-cohort-boundary",
+      "evidence": "ECECD regulates licensed centers, licensed homes, registered homes, and out-of-school-time programs as distinct cohorts."
+    }
+  ],
+  "scope": {
+    "search_cohort": "licensed-and-registered-child-care-programs-published-to-finder",
+    "program_types": "licensed-centers-licensed-homes-registered-homes-and-out-of-school-time-programs-must-remain-distinct",
+    "operating_business_equivalence": false,
+    "statewide_business_completeness": null,
+    "warning": "Provider-database presence, finder publication, licensing, registration, quality rating, assistance participation, tribal licensing, and current operation are separate assertions."
+  },
+  "access": {
+    "public_search_available": true,
+    "supported_bulk_export_verified": false,
+    "supported_api_verified": false,
+    "portal_automation_authorized": false,
+    "record_acquisition_authorized": false,
+    "account_created": false,
+    "terms_accepted": false,
+    "publisher_contacted": false
+  },
+  "temporal": {
+    "publisher_cadence": "latest-provider-database-data-stated-without-machine-readable-refresh-contract",
+    "snapshot_date": null,
+    "current_operation_equivalence": false,
+    "limitation": "ECECD describes current database lineage but does not publish a supported bulk/API, snapshot date, refresh SLA, or lifecycle contract for the finder."
+  },
+  "required_record_contract": {
+    "epics_or_license_identifier": "required-source-identifier-if-published",
+    "provider_name": "required-preserve-verbatim",
+    "program_type": "required-preserve-verbatim",
+    "license_or_registration_status": "required-preserve-verbatim",
+    "reported_address": "center-only-unless-home-privacy-approved",
+    "zip5": "separate-field-required-if-published",
+    "zip4": "separate-field-optional",
+    "latitude": "optional-source-value-only",
+    "longitude": "optional-source-value-only",
+    "person-home-quality-tuition-and-assistance-fields": "excluded-from-default-business-entity-view"
+  },
+  "unresolved_gates": [
+    "supported-machine-readable-export-or-publisher-request",
+    "published-finder-cohort-and-statewide-coverage-contract",
+    "tribal-ccdf-and-ececd-licensing-boundary",
+    "home-provider-privacy",
+    "status-as-of-and-refresh-contract",
+    "reuse-retention-and-redistribution",
+    "row-and-provider-identifier-conservation",
+    "production-admission"
+  ],
+  "next_action": "Request an ECECD-sanctioned center-focused machine-readable export or API; do not automate the finder, and validate cohort, tribal boundary, privacy, status, temporal meaning, reuse, and conservation before admission.",
+  "claims": {
+    "network_requests_by_discovery_record": 0,
+    "provider_rows_acquired": 0,
+    "provider_count": null,
+    "active_business_count": null,
+    "zip_coverage": null,
+    "current_operations_verified": false,
+    "production_admission": false
+  }
+}

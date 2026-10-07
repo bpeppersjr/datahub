@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.7.0";
+  schema_version: "state-access-maintenance-backlog@2.8.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -80,7 +80,9 @@ type Backlog = {
         | "official-licensed-and-self-declared-search-identified-bulk-contract-unverified"
         | "official-weekly-zip-organized-roster-identified-acquisition-disabled"
         | "official-child-care-search-identified-bulk-contract-unverified"
-        | "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled";
+        | "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled"
+        | "official-provider-database-backed-finder-identified-bulk-contract-unverified"
+        | "official-licensure-search-identified-jurisdiction-boundary-unresolved";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -356,7 +358,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.7.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.8.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -449,6 +451,8 @@ export function validAdministrationBacklog(
             "NE",
             "NH",
             "NJ",
+            "NM",
+            "NV",
           ].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
@@ -478,6 +482,8 @@ export function validAdministrationBacklog(
               NE: "official-weekly-zip-organized-roster-identified-acquisition-disabled",
               NH: "official-child-care-search-identified-bulk-contract-unverified",
               NJ: "official-dated-licensed-center-roster-and-open-data-api-identified-acquisition-disabled",
+              NM: "official-provider-database-backed-finder-identified-bulk-contract-unverified",
+              NV: "official-licensure-search-identified-jurisdiction-boundary-unresolved",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
@@ -496,6 +502,8 @@ export function validAdministrationBacklog(
               "NE",
               "NH",
               "NJ",
+              "NM",
+              "NV",
             ].includes(row.state)
               ? 4
               : row.state === "ID"
