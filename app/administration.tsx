@@ -37,7 +37,7 @@ type View = {
   revision: number;
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@1.7.0";
+  schema_version: "state-access-maintenance-backlog@1.8.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -60,7 +60,9 @@ type Backlog = {
       | "official-monthly-pdf-identified-offline-parser-required"
       | "official-public-domain-api-metadata-validated-acquisition-disabled"
       | "official-workbook-metadata-validated-acquisition-disabled"
-      | "official-csv-export-contract-metadata-validated-acquisition-disabled";
+      | "official-csv-export-contract-metadata-validated-acquisition-disabled"
+      | "official-search-identified-automation-prohibited-bulk-interface-unverified"
+      | "official-dual-workbook-metadata-identified-acquisition-disabled";
       official_source_count: number;
       supported_bulk_export_verified: boolean;
       supported_api_verified: boolean;
@@ -336,7 +338,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@1.7.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@1.8.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -400,7 +402,7 @@ export function validAdministrationBacklog(
           "record_acquisition_authorized",
           "next_action",
         ]) &&
-          ["AK", "AL", "AR", "AZ", "DC", "DE", "FL", "GA"].includes(row.state) &&
+          ["AK", "AL", "AR", "AZ", "DC", "DE", "FL", "GA", "HI", "ID"].includes(row.state) &&
           row.industry === "childcare" &&
           row.source_discovery.status ===
             ({
@@ -409,12 +411,14 @@ export function validAdministrationBacklog(
               DE: "official-public-domain-api-metadata-validated-acquisition-disabled",
               FL: "official-workbook-metadata-validated-acquisition-disabled",
               GA: "official-csv-export-contract-metadata-validated-acquisition-disabled",
+              HI: "official-search-identified-automation-prohibited-bulk-interface-unverified",
+              ID: "official-dual-workbook-metadata-identified-acquisition-disabled",
             }[row.state] ??
               "official-search-identified-bulk-interface-unverified") &&
           row.source_discovery.official_source_count ===
-            (row.state === "AK" ? 4 : ["DC", "FL", "GA"].includes(row.state) ? 3 : 5) &&
+            (row.state === "AK" ? 4 : row.state === "ID" ? 6 : ["DC", "FL", "GA"].includes(row.state) ? 3 : 5) &&
           row.source_discovery.supported_bulk_export_verified ===
-            (["AZ", "DE", "FL", "GA"].includes(row.state)) &&
+            (["AZ", "DE", "FL", "GA", "ID"].includes(row.state)) &&
           row.source_discovery.supported_api_verified === (row.state === "DE") &&
           row.source_discovery.portal_automation_authorized === false &&
           row.source_discovery.record_acquisition_authorized === false &&

@@ -306,7 +306,7 @@ test("maintenance backlog deterministically bounds selected-industry attention t
     maintainedIndustries: ["childcare", "retail-consumer"],
     maintenanceRevision: 3,
   });
-  assert.equal(view.schema_version, "state-access-maintenance-backlog@1.7.0");
+  assert.equal(view.schema_version, "state-access-maintenance-backlog@1.8.0");
   assert.match(view.backlog_sha256, /^[a-f0-9]{64}$/);
   assert.ok(view.total_attention_cells > 0);
   assert.equal(
@@ -379,6 +379,12 @@ test("maintenance backlog deterministically bounds selected-industry attention t
     assert.equal(row.source_discovery.supported_bulk_export_verified, true);
     assert.equal(row.source_discovery.record_acquisition_authorized, false);
   }
+  const hi = view.next_batch.find((item) => item.state === "HI");
+  assert.equal(
+    hi.source_discovery.status,
+    "official-search-identified-automation-prohibited-bulk-interface-unverified",
+  );
+  assert.equal(hi.source_discovery.supported_bulk_export_verified, false);
   const retail = await stateAccessMaintenanceBacklog({
       maintainedIndustries: ["retail-consumer"],
       maintenanceRevision: 3,
