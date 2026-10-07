@@ -32,9 +32,9 @@ test('lifecycle taxonomy exhaustively pins the retained 15 profile cohorts and 1
 
 test('bounded lifecycle summary binds registration, selected manifest, inventory, lineage and exact conservation', async () => {
   const result = await readBusinessEntityLifecycleEligibilitySummary();
-  assert.equal(result.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
-  assert.equal(result.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
-  assert.equal(result.manifest_sha256, 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae');
+  assert.equal(result.release_id, 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0');
+  assert.equal(result.registration_sha256, '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c');
+  assert.equal(result.manifest_sha256, 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e');
   assert.equal(result.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
   assert.equal(result.artifact_count, 100); assert.equal(result.artifact_record_count, 8011835);
   assert.equal(result.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');

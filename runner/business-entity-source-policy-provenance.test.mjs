@@ -29,8 +29,9 @@ async function copyBoundedFixture(root, provenance) {
   files.add(path.posix.join(path.posix.dirname(temporalPin.manifest_path), temporalManifest.artifacts[0].path));
   const inventoryManifest = await readJson(inventoryPin.manifest_path);
   files.add(path.posix.join(path.posix.dirname(inventoryPin.manifest_path), inventoryManifest.artifact.path));
+  files.add(inventoryManifest.bindings.lifecycle.manifest_path);
   for (const row of provenance.rows) {
-    files.add(row.dataset_registration_path); files.add(row.source_manifest_path); files.add(row.policy_profile_path);
+    files.add(row.dataset_registration_path); files.add(row.runtime_dataset_registration_path); files.add(row.source_manifest_path); files.add(row.policy_profile_path);
   }
   for (const relative of files) {
     const target = path.join(root, relative); await mkdir(path.dirname(target), { recursive: true });
@@ -41,10 +42,10 @@ async function copyBoundedFixture(root, provenance) {
 
 test('registered source-policy inventory conserves all 15 exact sources and 8,011,835 profiles without granting authority', async () => {
   const value = await readBusinessEntitySourcePolicyProvenance();
-  assert.equal(value.release_id, 'business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d');
-  assert.equal(value.registration_sha256, '5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76');
-  assert.equal(value.manifest_sha256, '51bbf629fdb1fa55efb60ca6fc0fad67a779f0016c9ecbc74bf668dc3cb13355');
-  assert.equal(value.artifact_sha256, 'b2943263ee1b29fd2bc13373037b322b7505e0af408bb17d4528cc00a2686871');
+  assert.equal(value.release_id, 'business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b');
+  assert.equal(value.registration_sha256, 'fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9');
+  assert.equal(value.manifest_sha256, 'c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5');
+  assert.equal(value.artifact_sha256, '1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232');
   assert.equal(value.temporal_release_id, 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090');
   assert.equal(value.temporal_manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
   assert.equal(value.rows.length, 15); assert.equal(value.record_count, 15);
@@ -70,6 +71,7 @@ test('policy inventory replay rejects raw policy, source manifest, registration,
       ...provenance.rows.map(row => row.policy_profile_path),
       ...provenance.rows.map(row => row.source_manifest_path),
       ...provenance.rows.map(row => row.dataset_registration_path),
+      ...provenance.rows.map(row => row.runtime_dataset_registration_path),
       registrationPath,
       path.posix.join('data/business-entity-source-policy-provenance/releases', provenance.release_id, 'source-policies.json'),
     ];

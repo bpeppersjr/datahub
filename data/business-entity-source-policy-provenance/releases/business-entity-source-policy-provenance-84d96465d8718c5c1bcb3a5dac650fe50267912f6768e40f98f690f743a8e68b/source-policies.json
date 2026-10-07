@@ -1,0 +1,1470 @@
+{
+  "schema_version": "business-entity-source-policy-provenance-rows@1.0.0",
+  "rows": [
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "alaska-dcced-active-business-licenses",
+      "source_key": "ak_active_business_licenses",
+      "profile_count": 94550,
+      "dataset_id": "ak-active-business-licenses",
+      "dataset_registration_path": "config/datasets/ak-active-business-licenses.json",
+      "dataset_registration_sha256": "9f9b55ad12f6e91de88b857e8ce7a2bbcc2967c7604a87f52cf310ca3d43baf6",
+      "runtime_dataset_registration_path": "config/datasets/ak-active-business-licenses.json",
+      "runtime_dataset_registration_sha256": "9f9b55ad12f6e91de88b857e8ce7a2bbcc2967c7604a87f52cf310ca3d43baf6",
+      "source_release_id": "ak-active-business-licenses-2026-09-03-d77a60ab0d6e75dc",
+      "selected_dataset_release_id": "ak-active-business-licenses-20260903-003659626Z-9f5638ea",
+      "source_manifest_path": "data/business-sources/ak-active-business-licenses/releases/ak-active-business-licenses-20260903-003659626Z-9f5638ea/manifest.json",
+      "source_manifest_sha256": "1c190b403359e2f9a447479e509555011dcd640943366c804f5612cd6e035930",
+      "policy_profile_path": "config/source-policies/ak-active-business-licenses.json",
+      "policy_profile_sha256": "ab9e21b69c1089c945353d7ac1e2b7e39ee2da6ea1954e28a5e250a5c507229f",
+      "policy_id": "ak-active-business-licenses",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "3c1d84f67c057e4103491a87361d2d46a9c4b45d79816d237b91e831aea5b5c1"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS full CSV downloads. DCCED presents the files as a service to the public, warns that manipulation may be required, does not verify submitted information, and disclaims accuracy and reliability warranties."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official full HTTPS business-license and NAICS downloads",
+              "local processing and quality analysis",
+              "immutable internal privacy-minimized selected-field source retention",
+              "license-backed provisional organization normalization",
+              "conditional provisional physical-site normalization from complete reported U.S. street addresses",
+              "ZIP and source coverage analysis",
+              "derived local business-registry assertions and source-linked relationships"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing source Active status as independent proof of continuous operations, public access, good standing, solvency, or compliance with every occupational or local requirement",
+              "representing the one reported physical address as a complete location inventory or independently verified operating site",
+              "representing this licensing source as every Alaska or United States business",
+              "persisting or publishing Owners or mailing-address fields",
+              "persisting raw PhysicalLine2 values that may contain phone or other contact data",
+              "publishing record-level natural-person names or possible residential addresses without an approved privacy and terms review",
+              "redistributing aggregate outputs without a separate terms review",
+              "inferring ownership, parent company, network affiliation, or cross-source identity without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_addresses_sites_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "local-aggregate-review-required",
+              "owners_and_all_mailing_fields": "excluded-before-persistence",
+              "physical_line_2": "exclude-contact-or-unstructured-values-and-retain-only-conservative-unit-designators"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable privacy-minimized selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Record-level artifacts remain local-review-only. Aggregate redistribution requires a separate review of the Alaska site terms and must retain attribution, observation window, checksums, provenance, and license/address limitations."
+        }
+      },
+      "lifecycle_policy_sha256": "ab9e21b69c1089c945353d7ac1e2b7e39ee2da6ea1954e28a5e250a5c507229f",
+      "temporal_policy_sha256": "ab9e21b69c1089c945353d7ac1e2b7e39ee2da6ea1954e28a5e250a5c507229f"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "california-abc-daily-active-licenses",
+      "source_key": "california_abc_active_issued_license_sites",
+      "profile_count": 84497,
+      "dataset_id": "ca-abc-active-license-sites",
+      "dataset_registration_path": "config/datasets/ca-abc-active-license-sites.json",
+      "dataset_registration_sha256": "ef47559ca08c455cfe8e90687a6fad065d56b39e2922fe295cbd03c2f0776bca",
+      "runtime_dataset_registration_path": "config/datasets/ca-abc-active-license-sites.json",
+      "runtime_dataset_registration_sha256": "ef47559ca08c455cfe8e90687a6fad065d56b39e2922fe295cbd03c2f0776bca",
+      "source_release_id": "ca-abc-active-licenses-2026-09-07-4adb619cd534904b",
+      "selected_dataset_release_id": "ca-abc-active-licenses-20260907-134420041Z-1d86412e",
+      "source_manifest_path": "data/business-sources/ca-abc-active-license-sites/releases/ca-abc-active-licenses-20260907-134420041Z-1d86412e/manifest.json",
+      "source_manifest_sha256": "aa5c35c1784c5d937210078a9c70799061bd3368aa455a1bd1c35353a0945d0c",
+      "policy_profile_path": "config/source-policies/ca-abc-active-license-sites.json",
+      "policy_profile_sha256": "54fed1a0e36faa44d2355960e52f10d9db6e9234cf6e6cb76734d95a8ee8a9d4",
+      "policy_id": "ca-abc-active-license-sites",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "export_policy",
+        "sha256": "de664e4d3eabe443b8791a78ff886dd7f026de827729dc2ecc7b4fe1b15665c2"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS download refreshed each business day. The ABC page explicitly offers raw fixed-width and CSV downloads of pending and active license records."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata and archive download",
+              "local privacy-minimized processing",
+              "immutable internal selected-field source retention",
+              "normalization of source rows marked both ACTIVE and LIC",
+              "ZIP/ZCTA and source coverage analysis",
+              "derived source-linked registry assertions and relationships",
+              "redistribution of aggregate statistics with publisher attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing ABC ACTIVE as independent proof of continuous operation, public access, current hours, solvency, or compliance",
+              "representing alcohol licenses as every business in California or the United States",
+              "representing application rows as issued licenses",
+              "counting multiple active license-type rows for one File Number as multiple premises",
+              "silently overriding source ACTIVE when an expiration date predates observation",
+              "publishing record-level natural-person names or possible residential premises without approved privacy review",
+              "retaining or publishing mailing addresses from the raw archive",
+              "inferring ownership, parent company, network affiliation, or cross-source identity without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "raw_archive": "ephemeral-acquisition-only-delete-before-publication",
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-attribution-and-semantic-limitations",
+              "mailing_contact_owner_officer_and_agent_fields": "excluded-before-staging"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Retain immutable privacy-minimized selected-source and governed normalized releases. Delete the raw downloaded archive after selected-field staging."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with California ABC attribution, exact refresh/checksum, and license-scope limitations. Record-level normalized data remains local-review-only because licensee names can identify people and premises can be residences."
+        }
+      },
+      "lifecycle_policy_sha256": "54fed1a0e36faa44d2355960e52f10d9db6e9234cf6e6cb76734d95a8ee8a9d4",
+      "temporal_policy_sha256": "54fed1a0e36faa44d2355960e52f10d9db6e9234cf6e6cb76734d95a8ee8a9d4"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "city-of-chicago-bacp-current-active-business-licenses",
+      "source_key": "chicago_active_business_license_sites",
+      "profile_count": 42940,
+      "dataset_id": "chicago-active-business-license-sites",
+      "dataset_registration_path": "config/datasets/chicago-active-business-license-sites.json",
+      "dataset_registration_sha256": "8248f9611bf6ec51951ac8408f736c57ad36ec7495a5e0ef440787d829c901d3",
+      "runtime_dataset_registration_path": "config/datasets/chicago-active-business-license-sites.json",
+      "runtime_dataset_registration_sha256": "8248f9611bf6ec51951ac8408f736c57ad36ec7495a5e0ef440787d829c901d3",
+      "source_release_id": "chicago-active-business-licenses-2026-09-02-5509fc257e382b49",
+      "selected_dataset_release_id": "chicago-active-business-licenses-20260903-003808582Z-a9b56939",
+      "source_manifest_path": "data/business-sources/chicago-active-business-license-sites/releases/chicago-active-business-licenses-20260903-003808582Z-a9b56939/manifest.json",
+      "source_manifest_sha256": "b0172e0ac7115da7278227d2a5926cc28503d16ed41eeb1f2247a8c787d06059",
+      "policy_profile_path": "config/source-policies/chicago-active-business-licenses.json",
+      "policy_profile_sha256": "6307bd8f600b72b4bb54608d16b3ab7a60506ea844320ad7e34af42943af4e55",
+      "policy_id": "chicago-active-business-licenses",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "82e2de2dda4ca054950e273ddeb8238de034261d736ade156f386de9208880eb"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS Socrata API. The official view is public, provenance-marked official, API-enabled, and maintained by the City of Chicago."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata, count, and selected-field API queries",
+              "local processing",
+              "immutable internal selected-field source retention",
+              "source-defined licensed-site and provisional organization normalization",
+              "ZIP and source coverage analysis",
+              "derived business-registry assertions and source-linked relationships",
+              "redistribution of aggregate statistics with source attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing a future-expiring issued City license as independent proof that a site is continuously operating, open to the public, solvent, or compliant with every requirement",
+              "representing this licensing source as every business in Chicago, Illinois, or the United States because some activities are license-exempt or licensed elsewhere",
+              "counting multiple license rows for one account/site as multiple physical sites or businesses",
+              "representing a source address or portal coordinate as independently verified or currently occupied",
+              "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+              "reconstructing addresses explicitly redacted by the publisher",
+              "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+              "owner_officer_registered_agent_contact_payment_and_application_workflow_fields": "excluded-at-query-time",
+              "publisher_redacted_addresses": "quarantined-and-never-reconstructed"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with City attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy and terms review."
+        }
+      },
+      "lifecycle_policy_sha256": "6307bd8f600b72b4bb54608d16b3ab7a60506ea844320ad7e34af42943af4e55",
+      "temporal_policy_sha256": "6307bd8f600b72b4bb54608d16b3ab7a60506ea844320ad7e34af42943af4e55"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "cms-nppes-monthly-v2",
+      "source_key": "cms_nppes_organizations",
+      "profile_count": 2088780,
+      "dataset_id": "cms-nppes-organizations",
+      "dataset_registration_path": "config/datasets/cms-nppes-organizations.json",
+      "dataset_registration_sha256": "6b12458b59a13498675e03233a52f2b2c5740ad472999419863a925ece3fcbb3",
+      "runtime_dataset_registration_path": "config/datasets/cms-nppes-organizations.json",
+      "runtime_dataset_registration_sha256": "6b12458b59a13498675e03233a52f2b2c5740ad472999419863a925ece3fcbb3",
+      "source_release_id": "NPPES_Data_Dissemination_August_2026_V2",
+      "selected_dataset_release_id": "cms-nppes-organizations-20260903-013253062Z-7ee97568",
+      "source_manifest_path": "data/business-sources/cms-nppes-organizations/releases/cms-nppes-organizations-20260903-013253062Z-7ee97568/manifest.json",
+      "source_manifest_sha256": "00e645a99a5f8b6b793b5fa250dd40bacec3850fdc83bb872845e86750585778",
+      "policy_profile_path": "config/source-policies/cms-nppes-organizations.json",
+      "policy_profile_sha256": "3dca9e845b7d567009d0363618ade92ef0e02805d10682ba14efca662e534c7f",
+      "policy_id": "cms-nppes-organizations",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "privacy_and_export_controls",
+        "sha256": "0e57f3a5e10f2ce42c9a885fd4169dc642540ad87d9510ba4f9f4bd3f8390009"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous monthly V2 full-replacement archive; CMS states there is no charge to download the data."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "download",
+              "internal immutable source retention",
+              "organization-provider normalization",
+              "practice-location coverage analysis",
+              "derived registry assertions",
+              "public redistribution of allowed normalized active-organization fields with provenance"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing NPI issuance or active enumeration as proof of licensure, credentialing, or an open business location",
+              "publishing active individual Entity Type 1 records in the combined business registry",
+              "publishing authorized-official personal fields, EIN, TIN, or unselected identifiers from the internal raw snapshot",
+              "publishing fields from deactivated records beyond NPI and deactivation date",
+              "inferring ownership solely from reported parent-organization name text"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "active_organization_normalization": "public",
+              "deactivated_npi": "public",
+              "deactivation_date": "public",
+              "raw_source_snapshot": "internal",
+              "active_individual_records": "excluded",
+              "authorized_official_fields": "excluded",
+              "ein_tin": "excluded",
+              "endpoint_records": "excluded"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for the internal immutable public-source snapshot and allowed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Allowed for selected FOIA-disclosable active organization-provider fields with source release, observation time, transformation, status limitations, and policy retained. Deactivated records are limited to NPI and deactivation date."
+        }
+      },
+      "lifecycle_policy_sha256": "3dca9e845b7d567009d0363618ade92ef0e02805d10682ba14efca662e534c7f",
+      "temporal_policy_sha256": "3dca9e845b7d567009d0363618ade92ef0e02805d10682ba14efca662e534c7f"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "dc-dlcp-active-basic-business-licenses",
+      "source_key": "dc_basic_business_license_sites",
+      "profile_count": 54910,
+      "dataset_id": "dc-basic-business-license-sites",
+      "dataset_registration_path": "config/datasets/dc-basic-business-license-sites.json",
+      "dataset_registration_sha256": "47606229e8e971bee420def3153eb889a55688b7e417717e568e9ec5d5e30797",
+      "runtime_dataset_registration_path": "config/datasets/dc-basic-business-license-sites.json",
+      "runtime_dataset_registration_sha256": "47606229e8e971bee420def3153eb889a55688b7e417717e568e9ec5d5e30797",
+      "source_release_id": "dc-basic-business-licenses-2026-09-07-70f09a6a032c9408",
+      "selected_dataset_release_id": "dc-basic-business-licenses-20260907-175749194Z-aec3b0ac",
+      "source_manifest_path": "data/business-sources/dc-basic-business-license-sites/releases/dc-basic-business-licenses-20260907-175749194Z-aec3b0ac/manifest.json",
+      "source_manifest_sha256": "6093b407bddce5a04d5d466fe34c2d920008e1aa348040e9aae8465b9e9caf0c",
+      "policy_profile_path": "config/source-policies/dc-basic-business-licenses.json",
+      "policy_profile_sha256": "4644a1cde74fe1ea6893efb88a4b5b729a87b6bead5e438c954778100d33cbd8",
+      "policy_id": "dc-basic-business-licenses",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "3f842fa3b7f4bce535401210c3cbf4ab682969be3f7ccb8fba2df605386412ec"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS ArcGIS query and bulk download access. The catalog identifies DLCP as publisher, public access, and CC BY 4.0 licensing."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata, count, and selected-field ArcGIS queries",
+              "local processing",
+              "immutable internal selected-field source retention",
+              "source-defined active license customer/premise normalization",
+              "deterministic conversion of official MAR Maryland State Plane NAD83 coordinates to WGS84",
+              "ZIP and source coverage analysis",
+              "derived business-registry assertions and source-linked relationships",
+              "redistribution of aggregate statistics with source attribution, CC BY 4.0 notice, and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing source status Active as independent proof that a premise is continuously operating, open to the public, solvent, or compliant with every requirement",
+              "representing Basic Business Licenses as every business in the District of Columbia or United States because exemptions and other licensing regimes exist",
+              "counting multiple business-activity rows for one Customer Number as multiple premises or organizations",
+              "representing a premise address or MAR coordinate as independently verified current occupancy",
+              "publishing record-level sole-proprietor names or possible residential premises without an approved privacy review",
+              "acquiring or publishing owner, agent, billing-address, parcel-lot, or rounded latitude/longitude fields",
+              "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-cc-by-4.0-attribution-and-semantic-limitations",
+              "owner_agent_billing_parcel_and_rounded_coordinate_fields": "excluded-at-query-time"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with DLCP/Open Data DC attribution, CC BY 4.0 notice, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only due sole-proprietor and possible residential content."
+        }
+      },
+      "lifecycle_policy_sha256": "4644a1cde74fe1ea6893efb88a4b5b729a87b6bead5e438c954778100d33cbd8",
+      "temporal_policy_sha256": "4644a1cde74fe1ea6893efb88a4b5b729a87b6bead5e438c954778100d33cbd8"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "epa-echo-exporter-active-facility",
+      "source_key": "epa_echo_active_facilities",
+      "profile_count": 1517826,
+      "dataset_id": "epa-echo-active-facilities",
+      "dataset_registration_path": "config/datasets/epa-echo-active-facilities.json",
+      "dataset_registration_sha256": "a3b3b884c51bdf13bee3a0639dd55f15490cee31822e06e817a6a0a322636ff7",
+      "runtime_dataset_registration_path": "config/datasets/epa-echo-active-facilities.json",
+      "runtime_dataset_registration_sha256": "a3b3b884c51bdf13bee3a0639dd55f15490cee31822e06e817a6a0a322636ff7",
+      "source_release_id": "epa-echo-2026-08-30-382d612a42041dc0",
+      "selected_dataset_release_id": "epa-echo-20260903-002418917Z-3c1270e9",
+      "source_manifest_path": "data/business-sources/epa-echo-active-facilities/releases/epa-echo-20260903-002418917Z-3c1270e9/manifest.json",
+      "source_manifest_sha256": "3de9a8d9c54006d8983581105cd7e51e8e719291b3731d78e911c65b262625fa",
+      "policy_profile_path": "config/source-policies/epa-echo.json",
+      "policy_profile_sha256": "f3249ac78bc38f4ccb90247edc86e9e44f70a0efdf3d57e1366b5d5a96e3d09b",
+      "policy_id": "epa-echo",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS download published as the weekly ECHO Exporter."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS download",
+              "local processing",
+              "immutable internal source retention",
+              "regulated-facility site and establishment normalization",
+              "coverage analysis",
+              "derived registry assertions",
+              "redistribution of approved facility-level normalized fields with EPA attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing FAC_ACTIVE_FLAG as proof that a business is generally operating, open to the public, or active in every associated environmental program",
+              "representing ECHO facilities as all U.S. businesses",
+              "representing RCRA active or inactive designations as independently carrying legal or regulatory significance",
+              "presenting ZIP- or county-centroid coordinates as premise-level geocodes",
+              "inferring a legal organization, owner, or parent company from FAC_NAME",
+              "merging facilities across sources without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "raw_source_archive": "internal",
+              "normalized_facility_site_and_establishment_records": "public",
+              "frs_and_environmental_program_identifiers": "public",
+              "facility_names_physical_addresses_coordinates_precision_metadata_classifications_program_associations_and_source_status": "public",
+              "enforcement_and_penalty_fields": "excluded-from-this-business-registry-normalization",
+              "environmental-justice-demographic-fields": "excluded-from-this-business-registry-normalization"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable source and approved normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Approved normalized public facility records may be redistributed with EPA attribution, source timestamp, archive checksum, provenance, active-status definition, coordinate precision, and coverage limitations retained; the compressed source archive remains internal."
+        }
+      },
+      "lifecycle_policy_sha256": "f3249ac78bc38f4ccb90247edc86e9e44f70a0efdf3d57e1366b5d5a96e3d09b",
+      "temporal_policy_sha256": "f3249ac78bc38f4ccb90247edc86e9e44f70a0efdf3d57e1366b5d5a96e3d09b"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "fdic-bankfind-current-structure",
+      "source_key": "fdic_bankfind",
+      "profile_count": 77285,
+      "dataset_id": "fdic-bankfind",
+      "dataset_registration_path": "config/datasets/fdic-bankfind.json",
+      "dataset_registration_sha256": "db84a0543cd0d2be2dcd4d86f8cead28a5439c6f69e9638aa10c7c91f9e45469",
+      "runtime_dataset_registration_path": "config/datasets/fdic-bankfind.json",
+      "runtime_dataset_registration_sha256": "db84a0543cd0d2be2dcd4d86f8cead28a5439c6f69e9638aa10c7c91f9e45469",
+      "source_release_id": "fdic-bankfind-5710a083e3b49f87",
+      "selected_dataset_release_id": "fdic-bankfind-20260903-002249065Z-364b6a13",
+      "source_manifest_path": "data/business-sources/fdic-bankfind/releases/fdic-bankfind-20260903-002249065Z-364b6a13/manifest.json",
+      "source_manifest_sha256": "ac7e704f1f794ded61d6b3cd4948324e6b5995732e70a6832c0e00aa700539cb",
+      "policy_profile_path": "config/source-policies/fdic-bankfind.json",
+      "policy_profile_sha256": "81b482a596eaf1fe1e9e004e3ef7633d9a6b96361d612d5218ef634c3f562f33",
+      "policy_id": "fdic-bankfind",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only API; FDIC documentation states a key is currently not required."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "download",
+              "local processing",
+              "immutable source retention",
+              "institution and office normalization",
+              "coverage analysis",
+              "derived registry assertions",
+              "redistribution with attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing a current indexed location as independent confirmation of public access, current hours, or every service offered",
+              "representing FDIC coverage as all banks, credit unions, financial businesses, or all U.S. businesses",
+              "representing foreign offices with no U.S. state and state/county code 00 as U.S. locations",
+              "merging institutions or locations across sources without versioned evidence",
+              "using institution website links as an FDIC endorsement or authenticity guarantee"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "source_and_normalized_records": "public",
+              "institution_and_location_identifiers": "public",
+              "address_and_coordinates": "public",
+              "source_specific_status_and_dates": "public"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for public immutable source and normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Allowed with FDIC attribution, pinned index metadata, provenance, temporal scope, and coverage limitations retained."
+        }
+      },
+      "lifecycle_policy_sha256": "81b482a596eaf1fe1e9e004e3ef7633d9a6b96361d612d5218ef634c3f562f33",
+      "temporal_policy_sha256": "81b482a596eaf1fe1e9e004e3ef7633d9a6b96361d612d5218ef634c3f562f33"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "fmcsa-company-census-active-us-principal-office",
+      "source_key": "fmcsa_active_us_company_census",
+      "profile_count": 2195563,
+      "dataset_id": "fmcsa-active-us-company-census",
+      "dataset_registration_path": "config/datasets/fmcsa-active-us-company-census.json",
+      "dataset_registration_sha256": "528b5fafe7399914ec3129dd3517534a45fe203085a6f2775d51dfab7722c6e7",
+      "runtime_dataset_registration_path": "config/datasets/fmcsa-active-us-company-census.json",
+      "runtime_dataset_registration_sha256": "528b5fafe7399914ec3129dd3517534a45fe203085a6f2775d51dfab7722c6e7",
+      "source_release_id": "fmcsa-company-census-2026-08-30-55fd24985d97e66e",
+      "selected_dataset_release_id": "fmcsa-company-census-20260903-002625766Z-4429b92f",
+      "source_manifest_path": "data/business-sources/fmcsa-active-us-company-census/releases/fmcsa-company-census-20260903-002625766Z-4429b92f/manifest.json",
+      "source_manifest_sha256": "89c3502096add320634a15e5338b6486ea0bc2c6f62e8466892a710f978807f0",
+      "policy_profile_path": "config/source-policies/fmcsa-company-census.json",
+      "policy_profile_sha256": "01c7b76c6d16a458e3b74ba2e26e501723b9b78d1a8a0184c3bcc3e6fbdaa930",
+      "policy_id": "fmcsa-company-census",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS metadata, Socrata resource API, and official data-dictionary attachment; no app token or API key is required for this bounded daily export."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata and minimized API acquisition",
+              "local processing",
+              "immutable internal retention of the selected source and dictionary",
+              "source-specific active registration, principal-office site, and establishment normalization",
+              "ZIP and ZCTA coverage analysis",
+              "derived registry assertions",
+              "redistribution of approved public regulatory business fields with FMCSA attribution, sensitivity warnings, provenance, and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing the Company Census as every U.S. business, every motor-carrier location, or a real-time file",
+              "generalizing FMCSA active registration status beyond the source definition",
+              "representing a principal-office address as a verified storefront, customer-accessible site, vehicle base, or independently deliverable address",
+              "inferring a legal organization, parent company, ownership, or cross-source merge from a USDOT record, legal name, DBA, BUSINESS_ORG_ID, docket, or shared address alone",
+              "publishing officer names, phone, cell, fax, email, D&B number, mailing address, or unrelated crash, inspection, review, safety-rating, or operational metrics through this layer",
+              "using the dataset for personal profiling, harassment, or exposing a home-based proprietor beyond the source-bounded public regulatory purpose",
+              "bypassing source access controls, rate limits, alerts, or terms"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "retained_selected_source_csv_and_dictionary": "internal",
+              "usdot_docket_legal_dba_name_principal_office_address_source_classifications_and_source_status": "public-regulatory-record-with-sensitivity-and-scope-warnings",
+              "business_org_id_and_description": "public-but-review-only-and-incomplete; preserve only as optional source classification and never use alone to infer a canonical organization",
+              "phone_fax_cell_email_officers_duns_and_mailing_address": "excluded-before-acquisition",
+              "crash_review_inspection_safety_rating_and_unnecessary_operational_fields": "excluded-before-acquisition"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable minimized source evidence and approved normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Approved normalized public regulatory records may be redistributed with FMCSA attribution, source timestamp, source and dictionary checksums, exact filter, provenance, sensitivity warnings, and coverage limitations retained; the selected source CSV and dictionary remain internal artifacts."
+        }
+      },
+      "lifecycle_policy_sha256": "01c7b76c6d16a458e3b74ba2e26e501723b9b78d1a8a0184c3bcc3e6fbdaa930",
+      "temporal_policy_sha256": "01c7b76c6d16a458e3b74ba2e26e501723b9b78d1a8a0184c3bcc3e6fbdaa930"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "los-angeles-office-of-finance-active-businesses",
+      "source_key": "la_active_business_location_accounts",
+      "profile_count": 633232,
+      "dataset_id": "la-active-business-location-accounts",
+      "dataset_registration_path": "config/datasets/la-active-business-location-accounts.json",
+      "dataset_registration_sha256": "ae3601b426761afebcaa779b4fbc533348f4630e42128a3919f01811c37a5170",
+      "runtime_dataset_registration_path": "config/datasets/la-active-business-location-accounts.json",
+      "runtime_dataset_registration_sha256": "ae3601b426761afebcaa779b4fbc533348f4630e42128a3919f01811c37a5170",
+      "source_release_id": "la-active-businesses-2026-08-15-7a4190d1dfe2b2ac",
+      "selected_dataset_release_id": "la-active-businesses-20260903-004213132Z-082faa76",
+      "source_manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
+      "source_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b",
+      "policy_profile_path": "config/source-policies/la-active-businesses.json",
+      "policy_profile_sha256": "45e2917529dd0e6df238eeb8db770389eb40ddac4de6283a6003f2f07a1dc656",
+      "policy_id": "la-active-businesses",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "f3431e490e7aba3124ac053fce95481cc0f5fe5e7d0cc08c69d27f6c8cbab9cf"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS Socrata API. The official catalog identifies the dataset as CC0 1.0."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata, count, and selected-field API queries",
+              "local processing",
+              "immutable internal selected-field source retention",
+              "registered-business-location and establishment normalization",
+              "ZIP and source coverage analysis",
+              "derived business-registry assertions",
+              "redistribution of aggregate statistics with source attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing source inclusion as independent proof that a business is currently operating, open to the public, solvent, licensed for every activity, or present at the address today",
+              "representing a reported business location or portal coordinate as independently verified",
+              "representing this municipal registration source as every business in Los Angeles, California, or the United States",
+              "publishing mailing-address fields, portal-computed region identifiers, or the redundant location-description field",
+              "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+              "inferring ownership, parent-company, or cross-source identity relationships without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_location_accounts": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+              "mailing_address_mailing_city_and_mailing_zip_code": "excluded-at-query-time",
+              "location_description_and_computed_region_fields": "excluded-at-query-time"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with City of Los Angeles Office of Finance attribution, source refresh timestamp, source checksum, provenance, and source-specific active-status limitations. Record-level normalized data remains local-review-only pending privacy review even though the source license is CC0."
+        }
+      },
+      "lifecycle_policy_sha256": "45e2917529dd0e6df238eeb8db770389eb40ddac4de6283a6003f2f07a1dc656",
+      "temporal_policy_sha256": "45e2917529dd0e6df238eeb8db770389eb40ddac4de6283a6003f2f07a1dc656"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "ncua-final-quarterly-call-report",
+      "source_key": "ncua_quarterly_credit_unions",
+      "profile_count": 22445,
+      "dataset_id": "ncua-quarterly-credit-unions",
+      "dataset_registration_path": "config/datasets/ncua-quarterly-credit-unions.json",
+      "dataset_registration_sha256": "99410425ade68306fda4af3fc23a090e00d3e6f6786be0610e23fb806c94e2c6",
+      "runtime_dataset_registration_path": "config/datasets/ncua-quarterly-credit-unions.json",
+      "runtime_dataset_registration_sha256": "99410425ade68306fda4af3fc23a090e00d3e6f6786be0610e23fb806c94e2c6",
+      "source_release_id": "ncua-2026-03-31-6d7fdf1e7eaf9078",
+      "selected_dataset_release_id": "ncua-quarterly-20260903-004426083Z-bb29b2c2",
+      "source_manifest_path": "data/business-sources/ncua-quarterly-credit-unions/releases/ncua-quarterly-20260903-004426083Z-bb29b2c2/manifest.json",
+      "source_manifest_sha256": "39637444743fe53c6bffba2ea1d668447fa59a61291ac9a0f6eec7e74db77b3b",
+      "policy_profile_path": "config/source-policies/ncua-quarterly.json",
+      "policy_profile_sha256": "e47f7ec2d55da2688832c61f56245bfdfe2052d211c840483c971d4a94e4dbb3",
+      "policy_id": "ncua-quarterly",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only final quarterly bulk ZIP; no CUOnline web-service credential or API access is used."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "download",
+              "local processing",
+              "immutable source retention",
+              "institution and branch normalization",
+              "coverage analysis",
+              "derived registry assertions",
+              "redistribution with attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing a quarterly branch row as independent confirmation of public access, current hours, membership eligibility, or current service availability",
+              "representing NCUA coverage as all credit unions, all financial businesses, or all U.S. businesses",
+              "representing foreign branch records as U.S. locations",
+              "treating SiteId as globally unique without its credit-union charter scope",
+              "merging institutions or locations across sources without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "raw_source_archive": "internal",
+              "normalized_institution_location_and_trade_name_records": "public",
+              "attention_of_source_field": "excluded-from-normalization-and-public-registry",
+              "institution_and_location_identifiers": "public",
+              "reported_business_address_phone_hours_and_service_flags": "public",
+              "source_specific_status_and_dates": "public"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for public immutable source and normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Normalized public business records may be redistributed with NCUA attribution, source cycle, archive checksum, provenance, temporal scope, and coverage limitations retained; the retained raw archive is internal source material."
+        }
+      },
+      "lifecycle_policy_sha256": "e47f7ec2d55da2688832c61f56245bfdfe2052d211c840483c971d4a94e4dbb3",
+      "temporal_policy_sha256": "e47f7ec2d55da2688832c61f56245bfdfe2052d211c840483c971d4a94e4dbb3"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "new-york-agriculture-markets-retail-food-stores",
+      "source_key": "ny_retail_food_store_license_sites",
+      "profile_count": 24230,
+      "dataset_id": "ny-retail-food-store-license-sites",
+      "dataset_registration_path": "config/datasets/ny-retail-food-store-license-sites.json",
+      "dataset_registration_sha256": "705d0f0e9c8de2f2875c15f8b7a1a3cd9ffb8d36934f56baa4da9da98aabb3df",
+      "runtime_dataset_registration_path": "config/datasets/ny-retail-food-store-license-sites.json",
+      "runtime_dataset_registration_sha256": "705d0f0e9c8de2f2875c15f8b7a1a3cd9ffb8d36934f56baa4da9da98aabb3df",
+      "source_release_id": "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8",
+      "selected_dataset_release_id": "ny-retail-food-stores-20260907-134303353Z-c3167a89",
+      "source_manifest_path": "data/business-sources/ny-retail-food-store-license-sites/releases/ny-retail-food-stores-20260907-134303353Z-c3167a89/manifest.json",
+      "source_manifest_sha256": "0c263a3a76edc73a4519f6f945e450951acc454118e193b1e69395d02ce3e815",
+      "policy_profile_path": "config/source-policies/ny-retail-food-stores.json",
+      "policy_profile_sha256": "735293eafbd68e3aaabaa91610eaaad3bac6b848c64bf02e3de7bd67c44ca012",
+      "policy_id": "ny-retail-food-stores",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "b74c12dcdfe0ec6cb5af0771cbe1fc1c83cd46ceee685361a07439b5dc4a738c"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS metadata and SODA API endpoints documented by OPEN-NY."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata and selected-field SODA API queries",
+              "local processing",
+              "immutable internal selected-field retention",
+              "license-backed provisional organization and conditional physical-site normalization",
+              "ZIP and source coverage analysis",
+              "aggregate redistribution under OPEN-NY terms with attribution and limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing annual snapshot membership as independent proof of current hours, day-to-day operations, continuous operation, public access, or service quality",
+              "representing platform-generated coordinates as verified premise coordinates",
+              "representing this source as every grocery store, food seller, New York business, or United States business",
+              "inferring chain, network, parent-company, ownership, or cross-source identity without versioned evidence",
+              "interpreting undocumented establishment code Y without an authoritative definition",
+              "publishing record-level possible natural-person names or residential addresses without approved privacy review"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_addresses_sites_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-under-open-ny-terms-with-attribution-and-limitations",
+              "computed_region": "excluded-before-acquisition"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule or OPEN-NY notice requires another treatment."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Only aggregate outputs are approved for redistribution under OPEN-NY terms in this version. Retain attribution, source refresh timestamp, checksum, provenance, and snapshot/address/geocode limitations."
+        }
+      },
+      "lifecycle_policy_sha256": "735293eafbd68e3aaabaa91610eaaad3bac6b848c64bf02e3de7bd67c44ca012",
+      "temporal_policy_sha256": "735293eafbd68e3aaabaa91610eaaad3bac6b848c64bf02e3de7bd67c44ca012"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "nyc-dcwp-issued-licenses-active-premises",
+      "source_key": "nyc_dcwp_active_license_sites",
+      "profile_count": 31163,
+      "dataset_id": "nyc-dcwp-active-license-sites",
+      "dataset_registration_path": "config/datasets/nyc-dcwp-active-license-sites-v1-1.json",
+      "dataset_registration_sha256": "2e66ea653f242d464004b670032521f7dade930c483593f833686692e93c2f25",
+      "runtime_dataset_registration_path": "config/datasets/nyc-dcwp-active-license-sites.json",
+      "runtime_dataset_registration_sha256": "b22235e15a2d0fb0a6a0203ddceb4f205acb5c6e96028114b12b54c98f9ed79b",
+      "source_release_id": "nyc-dcwp-active-premises-2026-08-20-6c47b96b3ab94aec",
+      "selected_dataset_release_id": "nyc-dcwp-active-premises-20260903-004437783Z-a00056e7",
+      "source_manifest_path": "data/business-sources/nyc-dcwp-active-license-sites/releases/nyc-dcwp-active-premises-20260903-004437783Z-a00056e7/manifest.json",
+      "source_manifest_sha256": "c8ad5ffeb5c970d07bc9a78e963a10e26003631b6303bd6e1eed4f004c5013d3",
+      "policy_profile_path": "config/source-policies/nyc-dcwp-active-premises.json",
+      "policy_profile_sha256": "9721be33fdc2744fe5336bdf00e00cb36e270335dc99271eb40ee935baa379c4",
+      "policy_id": "nyc-dcwp-active-premises",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "8455bbf8caa0129a0c03581426b88c6ffcace8703c9d0362a246e9f1e34a2f5b"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS Socrata API. The official dataset is public, provenance-marked official, API-enabled, automated, and updated weekly."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata, count, and selected-field API queries",
+              "local processing",
+              "immutable internal selected-field source retention",
+              "source-defined active-premise licensed-site and provisional organization normalization",
+              "ZIP and source coverage analysis",
+              "derived business-registry assertions and source-linked relationships",
+              "redistribution of aggregate statistics with source attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing an Active DCWP premise license as independent proof that a site is continuously operating, open to the public, solvent, or compliant with every requirement",
+              "representing this licensing source as every business in New York City, New York, or the United States because DCWP licenses only specified industries",
+              "counting multiple active license rows for one Business Unique ID as multiple physical sites or businesses",
+              "representing a source address or portal coordinate as independently verified or currently occupied",
+              "publishing record-level natural-person names, phone numbers, or possible residential addresses without an approved privacy review",
+              "inferring ownership, parent-company, or cross-source identity without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_organizations_sites_establishments_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+              "contact_phone_and_free_form_detail": "excluded-at-query-time",
+              "individual_license_rows": "excluded-by-premises-filter"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with City attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy review."
+        }
+      },
+      "lifecycle_policy_sha256": "9721be33fdc2744fe5336bdf00e00cb36e270335dc99271eb40ee935baa379c4",
+      "temporal_policy_sha256": "9721be33fdc2744fe5336bdf00e00cb36e270335dc99271eb40ee935baa379c4"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "texas-comptroller-active-sales-tax-permits",
+      "source_key": "tx_active_sales_tax_permit_outlets",
+      "profile_count": 885097,
+      "dataset_id": "tx-active-sales-tax-outlets",
+      "dataset_registration_path": "config/datasets/tx-active-sales-tax-outlets.json",
+      "dataset_registration_sha256": "08574e44b6dabc901d3a3703a255a83477efeef0b6cea9fb2526c960fef30975",
+      "runtime_dataset_registration_path": "config/datasets/tx-active-sales-tax-outlets.json",
+      "runtime_dataset_registration_sha256": "08574e44b6dabc901d3a3703a255a83477efeef0b6cea9fb2526c960fef30975",
+      "source_release_id": "tx-active-sales-tax-2026-08-29-98b90d177d81493e",
+      "selected_dataset_release_id": "tx-active-sales-tax-20260903-004825316Z-3ba279b8",
+      "source_manifest_path": "data/business-sources/tx-active-sales-tax-outlets/releases/tx-active-sales-tax-20260903-004825316Z-3ba279b8/manifest.json",
+      "source_manifest_sha256": "7654c7ec1439a29e76abc2e2c19ce05c53901b836f43b1bb42b4c71cd032c499",
+      "policy_profile_path": "config/source-policies/tx-active-sales-tax-permits.json",
+      "policy_profile_sha256": "85929b0f6ddb7ba4af5a6bf1ec52131be7412e36ead31f1aa3387158a23fc0ab",
+      "policy_id": "tx-active-sales-tax-permits",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "present",
+        "field": "policy",
+        "sha256": "f6842818ef33774bde3cf7a1cb6619f6183e4af914d5a17e97a93edaf250c65d"
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only HTTPS Socrata API. The official catalog marks the dataset Public Domain, and the Comptroller identifies it as public raw machine-readable open data."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "official HTTPS metadata, count, and selected-field API queries",
+              "local processing",
+              "immutable internal selected-field source retention",
+              "taxpayer organization and permitted-outlet normalization",
+              "ZIP and source coverage analysis",
+              "derived business-registry assertions and source-linked relationships",
+              "redistribution of aggregate statistics with source attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "representing an active sales-tax permit as independent proof that an outlet is continuously operating, open to the public, solvent, or compliant with every licensing requirement",
+              "representing a source physical address as independently verified or currently occupied",
+              "representing this tax-permit source as every Texas or United States business",
+              "publishing taxpayer mailing-address fields acquired from the source",
+              "publishing record-level natural-person names or possible residential addresses without an approved privacy review",
+              "inferring a parent company or cross-source identity without versioned evidence",
+              "silently treating PO boxes or invalid ZIP values as physical sites"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "local-review-only",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "selected_source_snapshot": "internal",
+              "normalized_record_level_taxpayers_outlets_sites_assertions_relationships_and_match_profiles": "local-review-only",
+              "zip_and_source_aggregate_counts": "public-with-provenance-and-semantic-limitations",
+              "taxpayer_address_city_state_zip_and_county": "excluded-at-query-time",
+              "phone_email_owner_officer_and_registered_agent_fields": "not-present-in-selected-source"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Aggregate counts may be redistributed with Texas Comptroller attribution, source refresh timestamp, source checksum, provenance, and tax-permit limitations. Record-level normalized data remains local-review-only pending privacy review even though the source catalog marks the dataset Public Domain."
+        }
+      },
+      "lifecycle_policy_sha256": "85929b0f6ddb7ba4af5a6bf1ec52131be7412e36ead31f1aa3387158a23fc0ab",
+      "temporal_policy_sha256": "85929b0f6ddb7ba4af5a6bf1ec52131be7412e36ead31f1aa3387158a23fc0ab"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "usda-fsis-active-mpi-directory",
+      "source_key": "fsis_active_mpi_establishments",
+      "profile_count": 7237,
+      "dataset_id": "fsis-active-mpi-establishments",
+      "dataset_registration_path": "config/datasets/fsis-active-mpi-establishments.json",
+      "dataset_registration_sha256": "23efca8d4e0ffd9f0102d12825d1156153b5cab01960ab8193399c9187c97079",
+      "runtime_dataset_registration_path": "config/datasets/fsis-active-mpi-establishments.json",
+      "runtime_dataset_registration_sha256": "23efca8d4e0ffd9f0102d12825d1156153b5cab01960ab8193399c9187c97079",
+      "source_release_id": "fsis-mpi-2026-08-24-e7be6d8dfc46f68e",
+      "selected_dataset_release_id": "fsis-mpi-20260903-002210046Z-c0d4d058",
+      "source_manifest_path": "data/business-sources/fsis-active-mpi-establishments/releases/fsis-mpi-20260903-002210046Z-c0d4d058/manifest.json",
+      "source_manifest_sha256": "6c68d892010cf114866121e6ea5adc2e3dc1f21784b350344590032b4562858d",
+      "policy_profile_path": "config/source-policies/fsis-mpi.json",
+      "policy_profile_sha256": "f1adc2deadb535527c09684e8962a716d00e05cd21254ae08195957881000fd7",
+      "policy_id": "fsis-mpi",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only CSV download links. This connector accepts explicitly supplied official files because FSIS edge controls reject unattended HTTP and fresh headless clients in the validated environment."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "browser download",
+              "local processing",
+              "immutable internal source retention",
+              "establishment and site normalization",
+              "coverage analysis",
+              "derived registry assertions",
+              "redistribution of approved normalized fields with attribution and semantic limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "evading FSIS access controls or disguising automated clients",
+              "representing active-directory membership as independent proof of general business operating status, public access, current hours, ownership, or every product made",
+              "representing FSIS coverage as all food businesses or all U.S. businesses",
+              "inferring a legal organization or parent company from establishment name or DBA text",
+              "merging establishments across sources without versioned evidence"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": true,
+            "value": {
+              "raw_source_csv_files": "internal",
+              "normalized_establishment_and_site_records": "public",
+              "fsis_establishment_identifiers": "public",
+              "business_names_addresses_phones_coordinates_activities_grants_and_demographics": "public",
+              "duns_number_source_field": "excluded-from-normalization-and-public-registry-pending-field-specific-review"
+            }
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for immutable source and normalized records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Approved normalized public business records may be redistributed with FSIS attribution, source date, both source checksums, provenance, temporal scope, and coverage limitations retained; raw source CSVs remain internal."
+        }
+      },
+      "lifecycle_policy_sha256": "f1adc2deadb535527c09684e8962a716d00e05cd21254ae08195957881000fd7",
+      "temporal_policy_sha256": "f1adc2deadb535527c09684e8962a716d00e05cd21254ae08195957881000fd7"
+    },
+    {
+      "schema_version": "business-entity-source-policy-provenance-row@1.0.0",
+      "source_id": "usda-snap-current-retailers",
+      "source_key": "usda_snap_retailers",
+      "profile_count": 252080,
+      "dataset_id": "usda-snap-retailers",
+      "dataset_registration_path": "config/datasets/usda-snap-retailers.json",
+      "dataset_registration_sha256": "0455e4592c63ec6456a1033d9f798e041119ac1ab21c76968576c893623409c8",
+      "runtime_dataset_registration_path": "config/datasets/usda-snap-retailers.json",
+      "runtime_dataset_registration_sha256": "0455e4592c63ec6456a1033d9f798e041119ac1ab21c76968576c893623409c8",
+      "source_release_id": "usda-snap-20260819T174009953Z",
+      "selected_dataset_release_id": "usda-snap-retailers-20260903-004744483Z-17748dbd",
+      "source_manifest_path": "data/business-sources/usda-snap/releases/usda-snap-retailers-20260903-004744483Z-17748dbd/manifest.json",
+      "source_manifest_sha256": "64d427ac5eaad16b31d85b99f21662465f30d9a1a6af68ee3a9e7595bf04842b",
+      "policy_profile_path": "config/source-policies/usda-snap-retailers.json",
+      "policy_profile_sha256": "996d09569542b9e8d26b90be8953c444c680b8695ccbcad306a725f39c09877d",
+      "policy_id": "usda-snap-retailers",
+      "policy_version": "1.0.0",
+      "source_manifest_policy": {
+        "status": "absent-in-selected-source-manifest",
+        "field": null,
+        "sha256": null
+      },
+      "semantics": {
+        "authorization": {
+          "source_access": {
+            "present": true,
+            "value": "Public anonymous read-only ArcGIS Feature Service; item metadata declares no license or terms-of-use text."
+          },
+          "allowed_use": {
+            "present": true,
+            "value": [
+              "download",
+              "local processing",
+              "coverage analysis",
+              "derived registry assertions",
+              "redistribution with provenance and limitations"
+            ]
+          },
+          "prohibited_use": {
+            "present": true,
+            "value": [
+              "publishing confidential store-level SNAP redemption amounts",
+              "representing SNAP authorization as proof of general operating status",
+              "transferring a location-specific authorization assertion to another owner or location",
+              "inferring parent company or legal ownership from store name alone"
+            ]
+          },
+          "acquisition_authorized": {
+            "present": false,
+            "value": null
+          },
+          "legal_approval": {
+            "present": false,
+            "value": null
+          },
+          "agreement_acceptance_performed": {
+            "present": false,
+            "value": null
+          },
+          "export_authorized": {
+            "present": false,
+            "value": null
+          }
+        },
+        "export": {
+          "profile_export_policy": "public",
+          "export_policy": {
+            "present": false,
+            "value": null
+          },
+          "field_export_policy": {
+            "present": false,
+            "value": null
+          }
+        },
+        "retention": {
+          "present": true,
+          "value": "Indefinite for public source snapshots and derived records unless an approved retention rule applies."
+        },
+        "redistribution": {
+          "present": true,
+          "value": "Allowed for the public locator fields with source item, update timestamp, transformation, and semantic limitations retained."
+        }
+      },
+      "lifecycle_policy_sha256": "996d09569542b9e8d26b90be8953c444c680b8695ccbcad306a725f39c09877d",
+      "temporal_policy_sha256": "996d09569542b9e8d26b90be8953c444c680b8695ccbcad306a725f39c09877d"
+    }
+  ]
+}

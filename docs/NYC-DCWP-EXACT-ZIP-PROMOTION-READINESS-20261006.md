@@ -43,3 +43,9 @@ Until those steps are complete, the existing registry profile dimension remains 
 ## Successor registration completed
 
 The first required step is now implemented separately at `config/datasets/nyc-dcwp-active-license-sites-v1-1.json`. It pins the exact `20260903` manifest and all 21 artifacts without changing the legacy registration, current pointer, runtime selection, or production enrollment. `runner/nyc-dcwp-active-license-registration-v1-1.mjs` independently verifies the predecessor registration hash, manifest identity, artifact inventory and bytes, coverage conservation, and closed semantic claims. Exact-ZIP admission remains on HOLD pending downstream source-policy and lifecycle provenance successors.
+
+## Downstream provenance completed
+
+The selected source-policy release `business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b` now binds the v1.1 successor registration and the retained `20260903` source manifest while preserving the separate legacy registration only as a runtime-path locator. The selected lifecycle release `business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0` binds that source-policy receipt and independently replays all 8,011,835 profile decisions across 100 ZIP2 partitions.
+
+No second additive NYC DCWP exact-ZIP dimension is admitted: the existing `nyc_dcwp_license_location_profiles` dimension already represents the same 31,163 Business Unique ID groups. The promotion hold is therefore resolved through nonadditive provenance replacement, not duplicate counting. Current operation, continuous operation, public access, all-business completeness, production enrollment, acquisition, and network claims remain false.

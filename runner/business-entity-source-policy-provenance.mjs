@@ -9,11 +9,11 @@ const DATASET = 'business-entity-source-policy-provenance';
 const LIFECYCLE_DATASET = 'business-entity-lifecycle-eligibility';
 const REGISTRY_ID = 'national-business-registry-20260911-022652067Z-1ec656c3';
 const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
-const LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057';
-const LIFECYCLE_SHA = 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae';
+const LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074';
+const LIFECYCLE_SHA = '6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65';
 const TAXONOMY_SHA = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
 const AS_OF = '2026-10-02T16:30:00.000Z';
-const REGISTRATION_SHA = '5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76';
+const REGISTRATION_SHA = 'fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9';
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business-entity source-policy provenance contract rejected.') => { if (!value) throw new Error(message); };
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -36,7 +36,7 @@ const SOURCES = Object.freeze({
   'los-angeles-office-of-finance-active-businesses': { dataset_id: 'la-active-business-location-accounts', registration_path: 'config/datasets/la-active-business-location-accounts.json', policy_id: 'la-active-businesses', profile_export_policy: 'local-review-only', profile_count: 633232 },
   'ncua-final-quarterly-call-report': { dataset_id: 'ncua-quarterly-credit-unions', registration_path: 'config/datasets/ncua-quarterly-credit-unions.json', policy_id: 'ncua-quarterly', profile_export_policy: 'public', profile_count: 22445 },
   'new-york-agriculture-markets-retail-food-stores': { dataset_id: 'ny-retail-food-store-license-sites', registration_path: 'config/datasets/ny-retail-food-store-license-sites.json', policy_id: 'ny-retail-food-stores', profile_export_policy: 'local-review-only', profile_count: 24230 },
-  'nyc-dcwp-issued-licenses-active-premises': { dataset_id: 'nyc-dcwp-active-license-sites', registration_path: 'config/datasets/nyc-dcwp-active-license-sites.json', policy_id: 'nyc-dcwp-active-premises', profile_export_policy: 'local-review-only', profile_count: 31163 },
+  'nyc-dcwp-issued-licenses-active-premises': { dataset_id: 'nyc-dcwp-active-license-sites', registration_path: 'config/datasets/nyc-dcwp-active-license-sites-v1-1.json', runtime_registration_path: 'config/datasets/nyc-dcwp-active-license-sites.json', policy_id: 'nyc-dcwp-active-premises', profile_export_policy: 'local-review-only', profile_count: 31163 },
   'texas-comptroller-active-sales-tax-permits': { dataset_id: 'tx-active-sales-tax-outlets', registration_path: 'config/datasets/tx-active-sales-tax-outlets.json', policy_id: 'tx-active-sales-tax-permits', profile_export_policy: 'local-review-only', profile_count: 885097 },
   'usda-fsis-active-mpi-directory': { dataset_id: 'fsis-active-mpi-establishments', registration_path: 'config/datasets/fsis-active-mpi-establishments.json', policy_id: 'fsis-mpi', profile_export_policy: 'public', profile_count: 7237 },
   'usda-snap-current-retailers': { dataset_id: 'usda-snap-retailers', registration_path: 'config/datasets/usda-snap-retailers.json', policy_id: 'usda-snap-retailers', profile_export_policy: 'public', profile_count: 252080 },
@@ -101,9 +101,10 @@ async function readInputs(root, signal) {
   const taxonomy = taxonomyRead.value;
   check(taxonomyRead.sha256 === TAXONOMY_SHA && taxonomy.status === 'closed-local-review-taxonomy' && taxonomy.profile_source_count === 15
     && taxonomy.sources.length === 15 && taxonomy.expected_profile_counts && stable(taxonomy.claims) !== '{}', 'lifecycle taxonomy pin');
-  const lifecycleRegistration = lifecycleRegistrationRead.value, lifecycleSelected = lifecycleRegistration.retained_releases?.filter(row => row.selected === true) ?? [];
-  check(lifecycleRegistrationRead.sha256 === 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035'
-    && lifecycleSelected.length === 1 && lifecycleSelected[0].release_id === LIFECYCLE_ID && lifecycleSelected[0].manifest_sha256 === LIFECYCLE_SHA
+  const lifecycleRegistration = lifecycleRegistrationRead.value;
+  const lifecycleRetained = lifecycleRegistration.retained_releases?.filter(row => row.release_id === LIFECYCLE_ID) ?? [];
+  check(lifecycleRegistration.dataset_id === LIFECYCLE_DATASET && lifecycleRetained.length === 1
+    && lifecycleRetained[0].manifest_sha256 === LIFECYCLE_SHA
     && lifecycleManifestRead.sha256 === LIFECYCLE_SHA && lifecycleManifestRead.value.release_id === LIFECYCLE_ID
     && lifecycleManifestRead.value.bindings?.taxonomy?.sha256 === TAXONOMY_SHA && lifecycleManifestRead.value.summary?.profile_count === EXPECTED_TOTAL,
   'selected lifecycle release/taxonomy pin');
@@ -122,10 +123,21 @@ async function readInputs(root, signal) {
       && tax.policy_sha256 === semantic.policy_sha256 && semantic.policy_path && tax.lifecycle_evidence && !tax.unknown_status_behavior,
     `closed taxonomy row for ${source_id}`);
     const registrationRead = await readJson(root, source.registration_path, 2_000_000, signal), registration = registrationRead.value;
-    check(registration.dataset_id === source.dataset_id && registration.source_policy === semantic.policy_path, `dataset registration identity for ${source_id}`);
+    const runtimeRegistrationPath = source.runtime_registration_path ?? source.registration_path;
+    const runtimeRegistrationRead = runtimeRegistrationPath === source.registration_path
+      ? registrationRead : await readJson(root, runtimeRegistrationPath, 2_000_000, signal);
+    const runtimeRegistration = runtimeRegistrationRead.value;
+    check(registration.dataset_id === source.dataset_id && runtimeRegistration.dataset_id === source.dataset_id
+      && runtimeRegistration.source_policy === semantic.policy_path, `dataset registration identity for ${source_id}`);
+    if (source.runtime_registration_path) check(registrationRead.sha256 === '2e66ea653f242d464004b670032521f7dade930c483593f833686692e93c2f25'
+      && registration.schema_version === '1.1.0' && registration.status === 'registered-immutable-local-review-only-successor'
+      && registration.retained_release?.manifest_sha256 === 'c8ad5ffeb5c970d07bc9a78e963a10e26003631b6303bd6e1eed4f004c5013d3'
+      && registration.claims?.record_export_policy === 'local-review-only' && registration.claims?.production_enrollment === false
+      && registration.runtime_pointer === null && registration.production_enrollment === false,
+    `immutable successor registration identity for ${source_id}`);
     const dependency = dependencies.find(dep => dep.dataset_id === source.dataset_id);
     check(dependency && SHA.test(dependency.manifest_sha256) && typeof dependency.release_id === 'string', `selected source dependency for ${source_id}`);
-    const currentPath = registration.output ?? registration.runtime_pointer;
+    const currentPath = runtimeRegistration.output ?? runtimeRegistration.runtime_pointer;
     check(safeRelative(currentPath) && path.posix.basename(currentPath) === 'current.json', `dataset current path for ${source_id}`);
     const manifestPath = `${path.posix.dirname(currentPath)}/releases/${dependency.release_id}/manifest.json`;
     const sourceManifestRead = await readJson(root, manifestPath, 8_000_000, signal), sourceManifest = sourceManifestRead.value;
@@ -133,7 +145,7 @@ async function readInputs(root, signal) {
       && sourceManifest.source_release_id === tax.source_release_id, `selected source manifest for ${source_id}`);
     const policyRead = await readJson(root, semantic.policy_path, 256_000, signal), policy = policyRead.value;
     check(policyRead.sha256 === semantic.policy_sha256 && policy.policy_id === source.policy_id && policy.version === '1.0.0'
-      && registration.source_policy === semantic.policy_path, `raw policy identity/hash for ${source_id}`);
+      && runtimeRegistration.source_policy === semantic.policy_path, `raw policy identity/hash for ${source_id}`);
     const embeddedField = ['policy', 'privacy_and_export_controls', 'export_policy'].find(key => Object.hasOwn(sourceManifest, key));
     const embedded = embeddedField ? { status: 'present', field: embeddedField, sha256: hash(stable(sourceManifest[embeddedField])) }
       : { status: 'absent-in-selected-source-manifest', field: null, sha256: null };
@@ -141,6 +153,7 @@ async function readInputs(root, signal) {
       && sourceManifest[embeddedField].policy_id !== undefined) check(sourceManifest[embeddedField].policy_id === policy.policy_id, `embedded policy identity for ${source_id}`);
     rows.push({ schema_version: `${DATASET}-row@1.0.0`, source_id, source_key: tax.source_key, profile_count: count,
       dataset_id: source.dataset_id, dataset_registration_path: source.registration_path, dataset_registration_sha256: registrationRead.sha256,
+      runtime_dataset_registration_path: runtimeRegistrationPath, runtime_dataset_registration_sha256: runtimeRegistrationRead.sha256,
       source_release_id: tax.source_release_id, selected_dataset_release_id: dependency.release_id, source_manifest_path: manifestPath,
       source_manifest_sha256: sourceManifestRead.sha256, policy_profile_path: semantic.policy_path, policy_profile_sha256: policyRead.sha256,
       policy_id: policy.policy_id, policy_version: policy.version, source_manifest_policy: embedded,
@@ -152,8 +165,7 @@ async function readInputs(root, signal) {
   const bindings = {
     registry: { registration_path: 'config/datasets/national-business-registry.json', registration_sha256: registryRegistrationRead.sha256,
       release_id: REGISTRY_ID, manifest_path: registryRelease.manifest, manifest_sha256: REGISTRY_SHA },
-    lifecycle: { registration_path: `config/datasets/${LIFECYCLE_DATASET}.json`, registration_sha256: lifecycleRegistrationRead.sha256,
-      release_id: LIFECYCLE_ID, manifest_path: `data/${LIFECYCLE_DATASET}/releases/${LIFECYCLE_ID}/manifest.json`, manifest_sha256: LIFECYCLE_SHA,
+    lifecycle: { release_id: LIFECYCLE_ID, manifest_path: `data/${LIFECYCLE_DATASET}/releases/${LIFECYCLE_ID}/manifest.json`, manifest_sha256: LIFECYCLE_SHA,
       taxonomy_path: 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json', taxonomy_sha256: taxonomyRead.sha256 },
     temporal: { release_id: temporal.provenance.release_id, manifest_sha256: temporal.provenance.manifest_sha256, artifact_sha256: temporal.provenance.artifact_sha256 },
   };

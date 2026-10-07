@@ -5,12 +5,33 @@
   "runtime_pointer": null,
   "production_enrollment": false,
   "current_pointer_written": false,
-  "selected_release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057",
+  "selected_release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
   "retained_releases": [
     {
       "release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057",
       "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057/manifest.json",
       "manifest_sha256": "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae",
+      "profile_count": 8011835,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074",
+      "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074/manifest.json",
+      "manifest_sha256": "6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65",
+      "profile_count": 8011835,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-lifecycle-eligibility-a2dae94815fedc41f6539ff37204fbe3965fdeb57fea309ef9ec5b159a66a192",
+      "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-a2dae94815fedc41f6539ff37204fbe3965fdeb57fea309ef9ec5b159a66a192/manifest.json",
+      "manifest_sha256": "dfccc14fefd8628cd06af44d4f5758cfee4985d94d3e121f686ff96c0b0f63ae",
+      "profile_count": 8011835,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
+      "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0/manifest.json",
+      "manifest_sha256": "d62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e",
       "profile_count": 8011835,
       "selected": true
     }

@@ -15,11 +15,13 @@ import { readBusinessEntitySourcePolicyProvenance } from './business-entity-sour
 export const BUSINESS_ENTITY_LIFECYCLE_VERSION = 'business-entity-lifecycle-eligibility@1.0.0';
 const DATASET = 'business-entity-lifecycle-eligibility';
 const AS_OF = '2026-10-02T16:30:00.000Z';
-const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057';
-const SELECTED_MANIFEST_SHA256 = 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae';
+const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0';
+const SELECTED_MANIFEST_SHA256 = 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e';
 const SELECTED_TAXONOMY_SHA256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
-const SELECTED_REGISTRATION_SHA256 = 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035';
-const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503', manifest_sha256: '771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e', artifact_sha256: '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed', assessment_as_of: AS_OF });
+const SELECTED_REGISTRATION_SHA256 = '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c';
+const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074';
+const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_SHA256 = '6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65';
+const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee', manifest_sha256: 'c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409', artifact_sha256: '8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a', assessment_as_of: AS_OF });
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business entity lifecycle eligibility contract rejected.') => { if (!value) throw new Error(message); };
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -139,7 +141,8 @@ async function readBindings(root, signal) {
   const temporalByProfile = new Map(temporal.rows.filter(row => row.profile_source_id).map(row => [row.profile_source_id, row]));
   check(sourcePolicy.available && sourcePolicy.record_count === 15 && sourcePolicy.summary.profile_count === 8011835
     && sourcePolicy.registry_release_id === registryMeta.release_id && sourcePolicy.registry_manifest_sha256 === registryMeta.manifest_sha256
-    && sourcePolicy.lifecycle_release_id === SELECTED_RELEASE_ID && sourcePolicy.lifecycle_manifest_sha256 === SELECTED_MANIFEST_SHA256
+    && sourcePolicy.lifecycle_release_id === SOURCE_POLICY_PREDECESSOR_LIFECYCLE_ID
+    && sourcePolicy.lifecycle_manifest_sha256 === SOURCE_POLICY_PREDECESSOR_LIFECYCLE_SHA256
     && sourcePolicy.taxonomy_sha256 === taxonomySha256, 'Selected source-policy provenance release/taxonomy bindings.');
   const qualificationBySource = new Map(qualification.rows.filter(row => row.source_key).map(row => [row.source_key, row]));
   const sourceById = new Map();
@@ -251,16 +254,17 @@ export async function businessEntityLifecycleInputs({ root = APP_ROOT, signal } 
 export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP_ROOT, signal } = {}) {
   root = path.resolve(root); signal?.throwIfAborted();
   const registrationMeter = {}, registration = await readJson(path.join(root, `config/datasets/${DATASET}.json`), 1_000_000, signal, registrationMeter);
+  const selected = registration.retained_releases?.filter(item => item.selected === true) ?? [];
   check(registrationMeter.sha256 === SELECTED_REGISTRATION_SHA256
     && registration.schema_version === `${DATASET}-registration@1.0.0` && registration.dataset_id === DATASET
     && registration.status === 'registered-pointer-free-local-review-only' && registration.runtime_pointer === null
     && registration.production_enrollment === false && registration.current_pointer_written === false
-    && registration.selected_release_id === SELECTED_RELEASE_ID && registration.retained_releases.length === 1
-    && registration.retained_releases[0].selected === true && registration.retained_releases[0].release_id === SELECTED_RELEASE_ID
-    && registration.retained_releases[0].manifest === `data/${DATASET}/releases/${SELECTED_RELEASE_ID}/manifest.json`
-    && registration.retained_releases[0].manifest_sha256 === SELECTED_MANIFEST_SHA256
-    && registration.retained_releases[0].profile_count === 8011835, 'Lifecycle selected registration is unavailable or incompatible.');
-  const manifestPath = registration.retained_releases[0].manifest, manifestMeter = {};
+    && registration.selected_release_id === SELECTED_RELEASE_ID && selected.length === 1
+    && selected[0].release_id === SELECTED_RELEASE_ID
+    && selected[0].manifest === `data/${DATASET}/releases/${SELECTED_RELEASE_ID}/manifest.json`
+    && selected[0].manifest_sha256 === SELECTED_MANIFEST_SHA256
+    && selected[0].profile_count === 8011835, 'Lifecycle selected registration is unavailable or incompatible.');
+  const manifestPath = selected[0].manifest, manifestMeter = {};
   const manifest = await readJson(path.join(root, manifestPath), 1_000_000, signal, manifestMeter);
   check(manifestMeter.sha256 === SELECTED_MANIFEST_SHA256 && manifest.schema_version === `${DATASET}-release@1.0.0`
     && manifest.dataset_id === DATASET && manifest.release_id === SELECTED_RELEASE_ID && manifest.status === 'immutable-pointer-free-local-review-only'
@@ -417,6 +421,14 @@ function bindingObject(input) {
     temporal: input.temporal,
     qualification: input.qualification,
     taxonomy: { path: 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json', sha256: input.taxonomy_sha256, source_count: 15, exact_source_status_value_count: 17 },
+    source_policy_provenance: {
+      release_id: input.source_policy_provenance.release_id,
+      registration_sha256: input.source_policy_provenance.registration_sha256,
+      manifest_sha256: input.source_policy_provenance.manifest_sha256,
+      artifact_sha256: input.source_policy_provenance.artifact_sha256,
+      predecessor_lifecycle_release_id: input.source_policy_provenance.lifecycle_release_id,
+      predecessor_lifecycle_manifest_sha256: input.source_policy_provenance.lifecycle_manifest_sha256,
+    },
   };
 }
 

@@ -1534,7 +1534,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       !exactKeys(lifecycle.exception_counts, ["la_null_source_status", "ca_expiration_before_observation_profiles", "ny_retail_food_stale_non_active"]) ||
       lifecycle.exception_counts.la_null_source_status !== 633232 || lifecycle.exception_counts.ca_expiration_before_observation_profiles !== 2667 ||
       lifecycle.exception_counts.ny_retail_food_stale_non_active !== 24230) return false;
-  if (lifecycle.release_id !== "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057" ||
+  if (lifecycle.release_id !== "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0" ||
       lifecycle.registration_sha256 !== "f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035" ||
       lifecycle.manifest_sha256 !== "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae" ||
       lifecycle.taxonomy_sha256 !== "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc" ||
@@ -1600,7 +1600,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       reporting.summary.physical_site_denominator?.matching_profiles !== 8011835 || reporting.summary.physical_site_denominator?.reporting_only_sites !== 13182 || reporting.summary.physical_site_denominator?.combined_retained_site_evidence !== 8025017) return false;
   const sourcePolicy = lineage.business_entity_source_policy_provenance;
   if (!exactKeys(sourcePolicy, ["release_id", "registration_sha256", "manifest_sha256", "artifact_sha256", "source_count", "profile_count", "registry_release_id", "registry_manifest_sha256", "lifecycle_release_id", "lifecycle_manifest_sha256", "taxonomy_sha256", "temporal_release_id", "temporal_manifest_sha256", "source_profile_counts_sha256", "policy_files_verified", "profile_policy_rows_verified", "profile_export_policy_counts", "authorization_granted", "acquisition_authorized", "export_authorized"]) ||
-      sourcePolicy.release_id !== "business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d" ||
+      sourcePolicy.release_id !== "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b" ||
       sourcePolicy.registration_sha256 !== "5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76" ||
       sourcePolicy.manifest_sha256 !== "51bbf629fdb1fa55efb60ca6fc0fad67a779f0016c9ecbc74bf668dc3cb13355" ||
       sourcePolicy.artifact_sha256 !== "b2943263ee1b29fd2bc13373037b322b7505e0af408bb17d4528cc00a2686871" ||
