@@ -16,11 +16,12 @@ test('industry status keeps maintenance intent separate from retained evidence',
 test('nonblocking geography states remain visible without unsupported classification', () => {
   for (const phrase of ['Census ZCTA', 'Private or special-purpose ZIP evidence', 'Park or protected land',
     'Tribal or Native territory', 'Unresolved land outside selected ZCTAs',
-    'No classification is inferred', 'state plus cardinal/central fallback partitions remain unavailable']) {
+    'No classification is inferred', 'topology-verified residual artifact is retained separately']) {
     assert.match(source.toLowerCase(), new RegExp(phrase.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(source, /never block retained source evidence/);
   assert.match(source, /not business completeness or ZIP-validity decisions/);
+  assert.match(source, /does not infer a ZIP, population, park, tribal\/Native, private-land, or business status/);
 });
 
 test('Administration retains explicit persisted maintenance controls', () => {

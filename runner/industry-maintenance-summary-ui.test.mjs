@@ -28,7 +28,8 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Private or special-purpose ZIP evidence/);
   assert.match(source,/Park or protected land.*No classification is inferred/);
   assert.match(source,/Tribal or Native territory.*No classification is inferred/);
-  assert.match(source,/State plus cardinal\/central fallback partitions remain unavailable until the governed residual layer passes topology verification/);
+  assert.match(source,/A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents/);
+  assert.match(source,/It remains nonblocking optional context and does not infer a ZIP, population, park, tribal\/Native, private-land, or business status/);
   assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus \/>\s*<h3>Industry connectivity<\/h3>/);
   assert.match(source,/function GovernedIndustryStatus\(\).*<OperationalMaintenanceIntent\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
   assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");

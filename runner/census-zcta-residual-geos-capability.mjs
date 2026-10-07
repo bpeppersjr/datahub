@@ -11,7 +11,7 @@ const check = (value, message) => { if (!value) throw new Error(`CENSUS_RESIDUAL
 const sha = value => createHash('sha256').update(value).digest('hex');
 const inside = (root, file) => { const resolved = path.resolve(root, file), relative = path.relative(root, resolved); check(relative && !relative.startsWith('..') && !path.isAbsolute(relative), 'path containment'); return resolved; };
 
-function geometryBounds(geometry) {
+export function geometryBounds(geometry) {
   check(['Polygon', 'MultiPolygon'].includes(geometry?.type), 'unsupported geometry');
   const result = [Infinity, Infinity, -Infinity, -Infinity];
   const visit = (value) => {
@@ -25,7 +25,7 @@ function geometryBounds(geometry) {
   return result;
 }
 
-const overlaps = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
+export const geometryBoundsOverlap = (a, b) => a[0] <= b[2] && a[2] >= b[0] && a[1] <= b[3] && a[3] >= b[1];
 
 export async function buildResidualGeometry(stateGeometry, zctaFeatures, { geos: providedGeos } = {}) {
   check(Array.isArray(zctaFeatures), 'ZCTA features');
@@ -46,7 +46,8 @@ export async function buildResidualGeometry(stateGeometry, zctaFeatures, { geos:
     const union = own(geos.GEOSUnaryUnionPrec(validCollection, PRECISION_GRID), 'ZCTA union');
     const clipped = own(geos.GEOSIntersectionPrec(statePrecise, union, PRECISION_GRID), 'clipped ZCTA union');
     const clippedPolygonal = own(geos.GEOSBuffer(clipped, 0, 8), 'polygonal clipped union');
-    const residual = own(geos.GEOSDifferencePrec(statePrecise, clippedPolygonal, PRECISION_GRID), 'state residual');
+    const residualMixed = own(geos.GEOSDifferencePrec(statePrecise, clippedPolygonal, PRECISION_GRID), 'state residual');
+    const residual = own(geos.GEOSBuffer(residualMixed, 0, 8), 'polygonal state residual');
     check(geos.GEOSisValid(residual) === 1 && geos.GEOSisEmpty(residual) !== 1, 'valid nonempty residual');
     const geometry = geosGeomToGeojson(residual, geos);
     check(['Polygon', 'MultiPolygon'].includes(geometry?.type), 'polygonal residual output');
@@ -56,7 +57,7 @@ export async function buildResidualGeometry(stateGeometry, zctaFeatures, { geos:
   }
 }
 
-export async function probeGovernedResidualCapability({ root = APP_ROOT, states = ['DC', 'RI'], signal } = {}) {
+export async function loadGovernedResidualInputs({ root = APP_ROOT, signal } = {}) {
   signal?.throwIfAborted();
   const readiness = await verifyCensusZctaResidualReadiness({ root, signal });
   root = path.resolve(root);
@@ -65,22 +66,30 @@ export async function probeGovernedResidualCapability({ root = APP_ROOT, states 
   const manifest = JSON.parse(manifestBytes), artifacts = new Map(manifest.artifacts.map(item => [item.path, item]));
   const readArtifact = async relative => { const descriptor = artifacts.get(relative); check(descriptor && Number.isSafeInteger(descriptor.bytes) && /^[a-f0-9]{64}$/.test(descriptor.sha256), `${relative} descriptor`); const file = inside(releaseRoot, relative), stat = await lstat(file); check(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && stat.size === descriptor.bytes, `${relative} file safety`); const bytes = await readFile(file); check(sha(bytes) === descriptor.sha256, `${relative} identity`); return bytes; };
   const stateCollection = JSON.parse(await readArtifact(readiness.view.upstream.artifacts.state_geometry.path));
+  const zctaFeatures = [];
+  for (let prefix = 0; prefix < 10; prefix += 1) {
+    signal?.throwIfAborted();
+    const collection = JSON.parse(await readArtifact(`source/zctas/prefix=${prefix}.geojson`));
+    check(collection?.type === 'FeatureCollection' && Array.isArray(collection.features), `ZCTA prefix ${prefix} structure`);
+    zctaFeatures.push(...collection.features);
+  }
+  check(stateCollection?.type === 'FeatureCollection' && stateCollection.features?.length === 56, 'state collection structure');
+  check(zctaFeatures.length === 33791, 'ZCTA geometry conservation');
+  return { root, readiness, stateFeatures: stateCollection.features, zctaFeatures };
+}
+
+export async function probeGovernedResidualCapability({ root = APP_ROOT, states = ['DC', 'RI'], signal } = {}) {
+  signal?.throwIfAborted();
+  const { readiness, stateFeatures, zctaFeatures } = await loadGovernedResidualInputs({ root, signal });
   const requested = [...new Set(states)];
   check(requested.length > 0 && requested.every(value => /^[A-Z]{2}$/.test(value)), 'state selection');
   const selectedStates = requested.map(code => {
-    const feature = stateCollection.features.find(item => item.properties?.STUSAB === code);
+    const feature = stateFeatures.find(item => item.properties?.STUSAB === code);
     check(feature, `missing state ${code}`); return feature;
   });
   const stateBounds = new Map(selectedStates.map(feature => [feature.properties.STUSAB, geometryBounds(feature.geometry)]));
   const candidates = new Map(requested.map(code => [code, []]));
-  for (let prefix = 0; prefix < 10; prefix += 1) {
-    signal?.throwIfAborted();
-    const collection = JSON.parse(await readArtifact(`source/zctas/prefix=${prefix}.geojson`));
-    for (const feature of collection.features) {
-      const bounds = geometryBounds(feature.geometry);
-      for (const code of requested) if (overlaps(stateBounds.get(code), bounds)) candidates.get(code).push(feature);
-    }
-  }
+  for (const feature of zctaFeatures) { const bounds = geometryBounds(feature.geometry); for (const code of requested) if (geometryBoundsOverlap(stateBounds.get(code), bounds)) candidates.get(code).push(feature); }
   const geos = await initGeos(), results = [];
   check(/^3\.13\.0-CAPI-/.test(geos.GEOSversion()), 'GEOS runtime version');
   for (const state of selectedStates) {
