@@ -200,14 +200,14 @@ assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-z
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_all_businesses,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.record_export_policy,'local-review-only');
   assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
-  assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad');
+  assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e');
   assert.deepEqual(readiness.bindings.temporal_lifecycle_reconciliation.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});
-  assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057');
-  assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035');
+  assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0');
+  assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c');
   assert.equal(readiness.bindings.reporting_only_site_qualification.record_count, 13182);
   assert.deepEqual(readiness.bindings.reporting_only_site_qualification.source_manifest_policy_hashes, { MA: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201', NJ: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410', TN: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b', OH: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98' });
   assert.deepEqual(readiness.bindings.reporting_only_site_qualification.policy_profile_hashes, { MA: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742', NJ: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc', TN: '06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e', OH: 'f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2' });
-  assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae');
+  assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e');
   assert.equal(readiness.bindings.lifecycle_eligibility.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
   assert.equal(readiness.bindings.lifecycle_eligibility.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');
   assert.equal(readiness.bindings.goal_completion_matrix.broad_layer_gaps, 40);

@@ -56,7 +56,7 @@ test("reads the selected temporal matrix with pinned local supplemental postures
   );
   assert.equal(
     view.provenance.reconciliation.registration_sha256,
-    "5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad",
+    "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e",
   );
   assert.deepEqual(view.mismatch, {
     source_key: "la_active_business_location_accounts",

@@ -1,1 +1,54 @@
-{"schema_version":"1.1.0","dataset_id":"national-business-temporal-lifecycle-reconciliation-v1-1","status":"registered-pointer-free-local-review-only","runtime_pointer":null,"production_enrollment":false,"bindings":{"reconciliation_registration":{"path":"config/datasets/national-business-temporal-lifecycle-reconciliation.json","sha256":"5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad"},"la_pointer":{"path":"data/business-sources/la-active-business-location-accounts/current.json","sha256":"cf2afade8e625d84785362813653d1685305ff7718ab045f1c71a9d32b7201e7"},"la_manifest":{"path":"data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json","sha256":"12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"},"source_artifact":{"path":"source/selected-records.jsonl.gz","sha256":"7a4190d1dfe2b2ac449ed1ae337afac264c2fe90ba41c4dffcc44c13eb151bd6","record_count":633782},"source_summary":{"path":"quality/source-summary.json","sha256":"ca16df60b76dc6fab980bc8ca41490fbb1aebc75316af89ffe224e6b2bace583"}},"expected":{"source_rows":633782,"normalized_profiles":633232,"quarantined_rows":550,"invalid_or_unmapped_zip":465,"missing_address":85,"effective_counts":{"source-defined-current-membership":21,"non-active-reporting-membership":7,"annual-aggregate":1,"unknown-source-status":1}},"claims":{"publisher_cohort_assertion":"active-list-membership-without-row-status","lifecycle_evidence":"unknown","active_business_eligible_count":0,"current_operations_verified":false,"active_business_count":null,"completeness_percentage":null,"network_requests":0,"pointer_mutation_performed":false,"production_enrollment":false}}
+{
+  "schema_version": "1.1.0",
+  "dataset_id": "national-business-temporal-lifecycle-reconciliation-v1-1",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "bindings": {
+    "reconciliation_registration": {
+      "path": "config/datasets/national-business-temporal-lifecycle-reconciliation.json",
+      "sha256": "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e"
+    },
+    "la_pointer": {
+      "path": "data/business-sources/la-active-business-location-accounts/current.json",
+      "sha256": "cf2afade8e625d84785362813653d1685305ff7718ab045f1c71a9d32b7201e7"
+    },
+    "la_manifest": {
+      "path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
+      "sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
+    },
+    "source_artifact": {
+      "path": "source/selected-records.jsonl.gz",
+      "sha256": "7a4190d1dfe2b2ac449ed1ae337afac264c2fe90ba41c4dffcc44c13eb151bd6",
+      "record_count": 633782
+    },
+    "source_summary": {
+      "path": "quality/source-summary.json",
+      "sha256": "ca16df60b76dc6fab980bc8ca41490fbb1aebc75316af89ffe224e6b2bace583"
+    }
+  },
+  "expected": {
+    "source_rows": 633782,
+    "normalized_profiles": 633232,
+    "quarantined_rows": 550,
+    "invalid_or_unmapped_zip": 465,
+    "missing_address": 85,
+    "effective_counts": {
+      "source-defined-current-membership": 21,
+      "non-active-reporting-membership": 7,
+      "annual-aggregate": 1,
+      "unknown-source-status": 1
+    }
+  },
+  "claims": {
+    "publisher_cohort_assertion": "active-list-membership-without-row-status",
+    "lifecycle_evidence": "unknown",
+    "active_business_eligible_count": 0,
+    "current_operations_verified": false,
+    "active_business_count": null,
+    "completeness_percentage": null,
+    "network_requests": 0,
+    "pointer_mutation_performed": false,
+    "production_enrollment": false
+  }
+}

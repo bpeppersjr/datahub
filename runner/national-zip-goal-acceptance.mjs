@@ -272,7 +272,7 @@ function validateGoalReadinessBindings(value) {
     && temporal?.summary?.active_business_count === null
     && temporal?.claims?.current_operations_verified === false, 'temporal claim matrix semantic boundary');
   check(temporalReconciliation?.registration_path==='config/datasets/national-business-temporal-lifecycle-reconciliation.json'
-    &&temporalReconciliation.registration_sha256==='5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad'
+    &&temporalReconciliation.registration_sha256==='8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e'
     &&temporalReconciliation.schema_version==='national-business-temporal-lifecycle-reconciliation@1.0.0'
     &&temporalReconciliation.status==='one-bounded-profile-classification-conflict'
     &&temporalReconciliation.temporal_release_id===temporal.release_id&&temporalReconciliation.temporal_manifest_sha256===temporal.manifest_sha256
@@ -299,12 +299,12 @@ function validateGoalReadinessBindings(value) {
     && broad.source_lineage.source_matrix_artifact_sha256 === goal.report_sha256
     && SHA.test(broad.source_lineage.program_manifest_sha256 ?? '') && SHA.test(broad.source_lineage.backlog_manifest_sha256 ?? '')
     && SHA.test(broad.source_lineage.assessment_catalog_sha256 ?? ''), 'broad organization readiness semantics');
-  check(lifecycle?.release_id === 'business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057'
+  check(lifecycle?.release_id === 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0'
     && lifecycle.registration_path === 'config/datasets/business-entity-lifecycle-eligibility.json'
     && lifecycle.manifest_path === `data/business-entity-lifecycle-eligibility/releases/${lifecycle.release_id}/manifest.json`
     && lifecycle.taxonomy_path === 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json'
-    && lifecycle.registration_sha256 === 'f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035'
-    && lifecycle.manifest_sha256 === 'fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae'
+    && lifecycle.registration_sha256 === '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c'
+    && lifecycle.manifest_sha256 === 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e'
     && lifecycle.taxonomy_sha256 === '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc'
     && lifecycle.artifact_inventory_sha256 === 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907'
     && lifecycle.artifact_count === 100 && lifecycle.artifact_record_count === 8011835
@@ -327,15 +327,20 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
-  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d'
+  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b'
     && sourcePolicy.registration_path === 'config/datasets/business-entity-source-policy-provenance.json'
-    && sourcePolicy.registration_sha256 === '5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76'
-    && sourcePolicy.manifest_sha256 === '51bbf629fdb1fa55efb60ca6fc0fad67a779f0016c9ecbc74bf668dc3cb13355'
-    && sourcePolicy.artifact_sha256 === 'b2943263ee1b29fd2bc13373037b322b7505e0af408bb17d4528cc00a2686871'
+    && sourcePolicy.registration_sha256 === 'fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9'
+    && sourcePolicy.manifest_sha256 === 'c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5'
+    && sourcePolicy.artifact_sha256 === '1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232'
     && sourcePolicy.source_count === 15 && sourcePolicy.profile_count === 8011835
     && sourcePolicy.registry_release_id === lifecycle.registry_release_id
     && sourcePolicy.registry_manifest_sha256 === lifecycle.registry_manifest_sha256
-    && sourcePolicy.lifecycle_release_id === lifecycle.release_id && sourcePolicy.lifecycle_manifest_sha256 === lifecycle.manifest_sha256
+    && sourcePolicy.release_id === lifecycle.source_policy_provenance_release_id
+    && sourcePolicy.registration_sha256 === lifecycle.source_policy_provenance_registration_sha256
+    && sourcePolicy.manifest_sha256 === lifecycle.source_policy_provenance_manifest_sha256
+    && sourcePolicy.artifact_sha256 === lifecycle.source_policy_provenance_artifact_sha256
+    && sourcePolicy.lifecycle_release_id === lifecycle.source_policy_predecessor_lifecycle_release_id
+    && sourcePolicy.lifecycle_manifest_sha256 === lifecycle.source_policy_predecessor_lifecycle_manifest_sha256
     && sourcePolicy.taxonomy_sha256 === lifecycle.taxonomy_sha256 && sourcePolicy.temporal_release_id === temporal.release_id
     && sourcePolicy.temporal_manifest_sha256 === temporal.manifest_sha256 && sourcePolicy.policy_files_verified === 15
     && sourcePolicy.profile_policy_rows_verified === 8011835 && sourcePolicy.authorization_granted === false
@@ -393,7 +398,7 @@ function validateGoalReadinessBindings(value) {
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
-  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-0295e9953251c911ff91e649bc7226098644d6bcd12a99f787681bf0570ce09d',
+  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b',
     'source-policy inventory binding absent');
   return true;
 }
@@ -863,7 +868,7 @@ async function readObjectiveReadiness({ signal }) {
   check(temporalClassCounts['source-defined-current-membership'] === 22
     && temporalClassCounts['non-active-reporting-membership'] === 7 && temporalClassCounts['annual-aggregate'] === 1,
     'temporal classification roster widened');
-  check(temporalReconciliation.verified===true&&temporalReconciliation.registration.sha256==='5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad'
+  check(temporalReconciliation.verified===true&&temporalReconciliation.registration.sha256==='8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e'
     &&temporalReconciliation.provenance.temporal.release_id===temporal.provenance.release_id&&temporalReconciliation.provenance.temporal.manifest_sha256===temporal.provenance.manifest_sha256
     &&same(temporalReconciliation.summary.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1})
     &&temporalReconciliation.summary.classification_mismatches===1&&temporalReconciliation.summary.mismatch_profiles===633232
@@ -888,6 +893,12 @@ async function readObjectiveReadiness({ signal }) {
     temporal_artifact_sha256: lifecycle.temporal_artifact_sha256,
     qualification_release_id: lifecycle.qualification_release_id, qualification_manifest_sha256: lifecycle.qualification_manifest_sha256,
     qualification_artifact_sha256: lifecycle.qualification_artifact_sha256,
+    source_policy_provenance_release_id: lifecycle.source_policy_provenance_release_id,
+    source_policy_provenance_registration_sha256: lifecycle.source_policy_provenance_registration_sha256,
+    source_policy_provenance_manifest_sha256: lifecycle.source_policy_provenance_manifest_sha256,
+    source_policy_provenance_artifact_sha256: lifecycle.source_policy_provenance_artifact_sha256,
+    source_policy_predecessor_lifecycle_release_id: lifecycle.source_policy_predecessor_lifecycle_release_id,
+    source_policy_predecessor_lifecycle_manifest_sha256: lifecycle.source_policy_predecessor_lifecycle_manifest_sha256,
     assessment_as_of: lifecycle.assessment_as_of, profile_count: lifecycle.summary.profile_count,
     registry_profile_count: lifecycle.registry_profile_count, release_manifest_verified: true,
     source_count: lifecycle.summary.source_count, source_status_value_count: lifecycle.summary.source_status_value_count,

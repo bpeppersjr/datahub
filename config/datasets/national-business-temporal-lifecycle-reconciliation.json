@@ -13,9 +13,9 @@
     "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0"
   },
   "lifecycle": {
-    "manifest_path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057/manifest.json",
-    "manifest_sha256": "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae",
-    "release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057"
+    "manifest_path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0/manifest.json",
+    "manifest_sha256": "d62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e",
+    "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0"
   },
   "taxonomy": {
     "path": "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",

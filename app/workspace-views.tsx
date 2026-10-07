@@ -465,7 +465,7 @@ export function validTemporalMatrix(value: unknown): value is TemporalMatrix {
       p.temporal?.release_id,
     ) &&
     temporalHash(p.temporal.manifest_sha256) && temporalHash(p.temporal.artifact_sha256) && temporalHash(p.temporal.registry_manifest_sha256) && temporalHash(p.temporal.coverage_manifest_sha256) &&
-    p.reconciliation?.registration_path === "config/datasets/national-business-temporal-lifecycle-reconciliation.json" && p.reconciliation.registration_sha256 === "5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad" && p.reconciliation.schema_version === "national-business-temporal-lifecycle-reconciliation@1.0.0" && p.reconciliation.status === "one-bounded-profile-classification-conflict" && temporalHash(p.reconciliation.lifecycle_manifest_sha256) && p.reconciliation.taxonomy_path === "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json" && temporalHash(p.reconciliation.taxonomy_sha256) && temporalHash(p.reconciliation.los_angeles_pointer_sha256) && temporalHash(p.reconciliation.los_angeles_manifest_sha256) &&
+    p.reconciliation?.registration_path === "config/datasets/national-business-temporal-lifecycle-reconciliation.json" && p.reconciliation.registration_sha256 === "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e" && p.reconciliation.schema_version === "national-business-temporal-lifecycle-reconciliation@1.0.0" && p.reconciliation.status === "one-bounded-profile-classification-conflict" && temporalHash(p.reconciliation.lifecycle_manifest_sha256) && p.reconciliation.taxonomy_path === "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json" && temporalHash(p.reconciliation.taxonomy_sha256) && temporalHash(p.reconciliation.los_angeles_pointer_sha256) && temporalHash(p.reconciliation.los_angeles_manifest_sha256) &&
     !!c &&
     c.network_requests === 0 &&
     c.current_pointer_written === false &&
@@ -1535,7 +1535,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
       lifecycle.exception_counts.la_null_source_status !== 633232 || lifecycle.exception_counts.ca_expiration_before_observation_profiles !== 2667 ||
       lifecycle.exception_counts.ny_retail_food_stale_non_active !== 24230) return false;
   if (lifecycle.release_id !== "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0" ||
-      lifecycle.registration_sha256 !== "f7531c0a06b4259ae46f6887c69eb9d8d5f0135ae52f30237556c84e89a66035" ||
+      lifecycle.registration_sha256 !== "2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c" ||
       lifecycle.manifest_sha256 !== "fe97a5b260a7c9c38c8884d668ba6f99b237ca4ec0f6885af587efd349f428ae" ||
       lifecycle.taxonomy_sha256 !== "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc" ||
       lifecycle.artifact_inventory_sha256 !== "ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907" ||
@@ -1601,9 +1601,9 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
   const sourcePolicy = lineage.business_entity_source_policy_provenance;
   if (!exactKeys(sourcePolicy, ["release_id", "registration_sha256", "manifest_sha256", "artifact_sha256", "source_count", "profile_count", "registry_release_id", "registry_manifest_sha256", "lifecycle_release_id", "lifecycle_manifest_sha256", "taxonomy_sha256", "temporal_release_id", "temporal_manifest_sha256", "source_profile_counts_sha256", "policy_files_verified", "profile_policy_rows_verified", "profile_export_policy_counts", "authorization_granted", "acquisition_authorized", "export_authorized"]) ||
       sourcePolicy.release_id !== "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b" ||
-      sourcePolicy.registration_sha256 !== "5e9e7120ebb37438d1093338f65b90450bd9294c541a6a185fd64929279e2d76" ||
-      sourcePolicy.manifest_sha256 !== "51bbf629fdb1fa55efb60ca6fc0fad67a779f0016c9ecbc74bf668dc3cb13355" ||
-      sourcePolicy.artifact_sha256 !== "b2943263ee1b29fd2bc13373037b322b7505e0af408bb17d4528cc00a2686871" ||
+      sourcePolicy.registration_sha256 !== "fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9" ||
+      sourcePolicy.manifest_sha256 !== "c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5" ||
+      sourcePolicy.artifact_sha256 !== "1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232" ||
       sourcePolicy.source_count !== 15 || sourcePolicy.profile_count !== 8011835 || sourcePolicy.registry_release_id !== "national-business-registry-20260911-022652067Z-1ec656c3" ||
       sourcePolicy.registry_manifest_sha256 !== "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76" ||
       sourcePolicy.lifecycle_release_id !== lineage.lifecycle_eligibility.release_id || sourcePolicy.lifecycle_manifest_sha256 !== lineage.lifecycle_eligibility.manifest_sha256 ||

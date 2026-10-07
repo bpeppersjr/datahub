@@ -303,7 +303,7 @@ export async function readNationalBusinessTemporalClaimMatrix(opts = {}) {
     provenance = reconciliation.provenance;
   check(
     reconciliation.registration.sha256 ===
-      "5e252823ead165ab672c94bce0f38f84ad9629c6461ded829fa67ced0a7371ad" &&
+      "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e" &&
       summary.temporal_rows === raw.summary.source_count &&
       summary.broad_state_dc_source_defined_active ===
         raw.summary.broad_state_dc_source_defined_active &&
