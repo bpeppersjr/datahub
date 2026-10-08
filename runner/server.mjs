@@ -68,6 +68,7 @@ import { readZctaGdpExecutionReadiness } from './zcta-gdp-execution-readiness-re
 import { zctaGdpExecutionReadinessHttp } from './zcta-gdp-execution-readiness-http.mjs';
 import { cmsRetainedDirectoryZipHttp } from './cms-retained-directory-zip-http.mjs';
 import { retainedChildcareZipHttp } from './retained-childcare-zip-http.mjs';
+import { restrictedChildcareExactZipSidecarHttp } from './restricted-childcare-exact-zip-sidecar-http.mjs';
 import { readZipOperationalAdmission } from './zip-inspector-governance.mjs';
 import { readRegisteredCensusZbpZipProfile } from './census-zbp-zip-profile-reader.mjs';
 import { readZipSourceStatusEnvelope } from './zip-source-status-index.mjs';
@@ -886,6 +887,10 @@ const server = http.createServer(async (request, response) => {
     }
     if (url.pathname === '/api/business-map/retained-childcare-zip-evidence') {
       await retainedChildcareZipHttp(request,response,url,{authorize:()=>true},json);
+      return;
+    }
+    if (url.pathname === '/api/business-map/restricted-childcare-exact-zip-sidecar') {
+      await restrictedChildcareExactZipSidecarHttp(request,response,url,{authorize:()=>true},json);
       return;
     }
     if (url.pathname === '/api/business-map/organization-zip-evidence') {

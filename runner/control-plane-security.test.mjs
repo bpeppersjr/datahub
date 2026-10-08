@@ -200,6 +200,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["POST", "/api/data-operations/ok-childcare-collections", "{}"],
     ["GET", "/api/business-map/retained-childcare"],
     ["GET", "/api/business-map/retained-childcare-counties"],
+    ["GET", "/api/business-map/restricted-childcare-exact-zip-sidecar?zip=03755"],
     ["GET", "/api/business-map/pharmacies"],
     ["GET", "/api/business-map/pharmacies/map?level=states"],
     ["POST", "/api/data-operations/operations/fixture/cancel", "{}"],
