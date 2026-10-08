@@ -1,0 +1,28 @@
+{
+  "schema_version": "sc-childcare-interface-assessment-registration@1.0.0",
+  "dataset_id": "sc-dss-childcare-interface-assessment",
+  "publication_scope": "internal-metadata-only",
+  "receipt": {
+    "path": "data/business-sources/sc-childcare/interface-assessments/b575c0a0-9b51-425c-b843-75231b978b83.json",
+    "bytes": 2475,
+    "sha256": "4dbac7dc6b19c83ed6676fc7703eb2cabc9e9d316d319c2112eadce391028bbd"
+  },
+  "observed_at": "2026-10-07T23:26:57.704Z",
+  "source_responses": [
+    {
+      "url": "https://scchildcare.org/provider-search/",
+      "bytes": 49084,
+      "sha256": "8f528398e60095153c6c8f46ce6beb2d1f1c20014d83469bbd407339c8c43945"
+    },
+    {
+      "url": "https://scchildcare.org/js/providerSearch.js?v=2",
+      "bytes": 12870,
+      "sha256": "ecdd323eb79b0c93b3e3f5c98b6d68fc24837037e9cfcc470d04cd067e469b63"
+    }
+  ],
+  "current_pointer": null,
+  "production_enrollment": false,
+  "acquisition_authorized": false,
+  "portal_automation_authorized": false,
+  "automatic_refresh_authorized": false
+}

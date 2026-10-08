@@ -1,0 +1,20 @@
+{
+  "policy_id": "sc-childcare-interface-assessment",
+  "version": "1.0.0",
+  "publisher": "South Carolina Department of Social Services Division of Early Care and Education",
+  "ownership": "Official public search interface and publisher-served static JavaScript; this is not a provider extract.",
+  "allowed_use": ["bounded anonymous fixed public page and static script inspection", "internal sanitized interface evidence retention"],
+  "prohibited_use": ["search submission or all=1 query", "executing downloaded JavaScript", "portal automation", "export or provider-detail requests", "provider acquisition", "inferring export schema from search controls", "automatic refresh", "production admission"],
+  "attribution": "South Carolina DSS; scchildcare.org",
+  "retention": "Retain bounded sanitized metadata internally; raw page/script bytes remain in memory only.",
+  "redistribution": "Internal metadata only; provider reuse and redistribution are unresolved.",
+  "usage_terms_review": "Complete applicable usage notices have not been verified; this assessment does not authorize records or exports.",
+  "contains_personal_data": false,
+  "contains_secrets": false,
+  "export_policy": "internal",
+  "record_acquisition_authorized": false,
+  "portal_automation_authorized": false,
+  "automatic_refresh_authorized": false,
+  "production_admission": false,
+  "discovery_reference": "config/source-discoveries/sc-childcare-2026-10-07.json"
+}
