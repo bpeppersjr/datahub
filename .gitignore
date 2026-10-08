@@ -51,6 +51,10 @@ next-env.d.ts
 /data/imports/dc-corporate-registration/*
 !/data/imports/dc-corporate-registration/README.md
 !/data/imports/dc-corporate-registration/selection.example.json
+!/data/imports/ak-corporations/
+/data/imports/ak-corporations/*
+!/data/imports/ak-corporations/README.md
+!/data/imports/ak-corporations/selection.example.json
 /downloads/*
 !/downloads/.gitkeep
 /tmp/*

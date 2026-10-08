@@ -33,6 +33,17 @@ Focused verification:
 node --test runner/ak-corporations.test.mjs
 ```
 
+## Application-owned offline handoff
+
+The standalone wrapper accepts only the closed, hash-bound package contract in `data/imports/ak-corporations/README.md`. It durably records `RUNNING` before copying a transient operation-owned input snapshot, invokes `buildAkCorporationsOffline`, invokes `verifyAkCorporations` independently, binds the stable release manifest to the start-record source hash and byte count, and writes a closed success, failure, or cancellation receipt. The transient raw snapshot is removed after successful verification because it contains registered-agent and other excluded source fields; failed and cancelled copied inputs and unpublished releases are also removed. Restart-safe verification uses the privacy-minimized release and durable hash bindings, not retained raw input.
+
+```powershell
+node scripts/run-ak-corporations-app.mjs --selection data/imports/ak-corporations/packages/<package-id>/selection.json
+node scripts/verify-ak-corporations-app.mjs --receipt data/imports/ak-corporations/operations/<run-id>/receipt.json
+```
+
+This handoff is zero-network and does not bundle a source file, select a current release, authorize production, or admit records to national registry, coverage, completeness, or Heatmap views. A publisher lock is not used because this wrapper has no publisher request path; concurrent operations are UUID-isolated and the existing builder publishes only non-overwriting run-bound releases.
+
 ## Legal-entity, privacy, and semantic boundary
 
 `ENTITYNUMBER` is preserved as the candidate source identifier. The allowlist admits only named legal-entity types. `Business Name Registration` and `Foreign Corporate Name Registration` are excluded as aliases, and unknown corporation types remain excluded until reviewed.

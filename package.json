@@ -247,6 +247,8 @@
     "de-business:verify": "node scripts/verify-de-business-licenses.mjs",
     "ak-business:build": "node scripts/build-ak-active-business-licenses.mjs",
     "ak-business:verify": "node scripts/verify-ak-active-business-licenses.mjs",
+    "ak-corporations:app": "node scripts/run-ak-corporations-app.mjs",
+    "ak-corporations:verify-app": "node scripts/verify-ak-corporations-app.mjs",
     "dc-bbl:build": "node scripts/build-dc-basic-business-licenses.mjs",
     "dc-bbl:verify": "node scripts/verify-dc-basic-business-licenses.mjs",
     "ca-abc:build": "node scripts/build-ca-abc-active-license-sites.mjs",
