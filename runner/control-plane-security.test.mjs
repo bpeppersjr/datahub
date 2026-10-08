@@ -169,6 +169,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/data-operations/broad-organization-authorization-packet"],
     ["GET", "/api/data-operations/broad-organization-authorization-program"],
     ["GET", "/api/data-operations/broad-organization-current-authorization-chain"],
+    ["GET", "/api/data-operations/illinois-broad-organization-admission-readiness"],
     ["GET", "/api/data-operations/document-only-inquiry-proposals"],
     ["GET", "/api/data-operations/national-geography-goal-status"],
     ["GET", "/api/data-operations/reported-organization-zip-evidence-status"],
@@ -309,6 +310,11 @@ test("protects every live management endpoint while leaving only narrow liveness
   const chainBodyRequest=await rawRequest({port,hostHeader,pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(chainBodyRequest.status,400);
   const chainOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/broad-organization-current-authorization-chain'});assert.equal(chainOptions.status,401);
   const chainPut=await rawRequest({port,hostHeader,method:'PUT',pathname:'/api/data-operations/broad-organization-current-authorization-chain',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(chainPut.status,405);
+  const ilReadiness=await rawRequest({port,hostHeader,pathname:'/api/data-operations/illinois-broad-organization-admission-readiness',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(ilReadiness.status,503);assert.equal(ilReadiness.headers['cache-control'],'no-store');assert.match(ilReadiness.body,/unavailable/);assert.equal(ilReadiness.body.includes('receipt.json'),false);assert.equal(ilReadiness.body.includes(root),false);
+  const ilReadinessQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/illinois-broad-organization-admission-readiness?run=1',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(ilReadinessQuery.status,400);
+  const ilReadinessBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/illinois-broad-organization-admission-readiness',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(ilReadinessBody.status,400);
+  const ilReadinessOptions=await rawRequest({port,hostHeader,method:'OPTIONS',pathname:'/api/data-operations/illinois-broad-organization-admission-readiness'});assert.equal(ilReadinessOptions.status,401);
+  const ilReadinessPost=await rawRequest({port,hostHeader,method:'POST',pathname:'/api/data-operations/illinois-broad-organization-admission-readiness',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(ilReadinessPost.status,405);
   const proposals=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposals.status,503);assert.equal(proposals.headers['cache-control'],'no-store');assert.match(proposals.body,/unavailable/);assert.equal(proposals.body.includes('WAVE-1'),false);
   const proposalsQuery=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals?wave=1',authorization:`Bearer ${CONTROL_TOKEN}`});assert.equal(proposalsQuery.status,400);
   const proposalsBody=await rawRequest({port,hostHeader,pathname:'/api/data-operations/document-only-inquiry-proposals',authorization:`Bearer ${CONTROL_TOKEN}`,body:'{}'});assert.equal(proposalsBody.status,400);

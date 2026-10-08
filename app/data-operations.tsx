@@ -29,6 +29,7 @@ import NationalFsisActiveEstablishmentCoverageStatus from './national-fsis-activ
 import NationalEpaEchoActiveFacilityCoverageStatus from './national-epa-echo-active-facility-coverage-status';
 import NationalIrsEoBmfOrganizationCoverageStatus from './national-irs-eo-bmf-organization-coverage-status';
 import NationalCmsNppesOrganizationPracticeLocationCoverageStatus from './national-cms-nppes-organization-practice-location-coverage-status';
+import IllinoisBroadOrganizationAdmissionReadiness from './illinois-broad-organization-admission-readiness';
 import { operationLabel, operationEvidence, type Operation } from './data-operation-model';
 
 type Catalog = {
@@ -233,6 +234,7 @@ export default function DataOperations() {
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />
     <BroadOrganizationCurrentAuthorizationChain />
+    <IllinoisBroadOrganizationAdmissionReadiness />
     <DocumentOnlyInquiryProposalRegistry />
     <NationalGeographyGoalStatus />
     <ReportedOrganizationZipEvidenceStatus />
