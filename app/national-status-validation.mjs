@@ -1,0 +1,46 @@
+import pin from '../config/national-status-contract.json' with { type: 'json' };
+
+export const exact = (v, keys) => v !== null && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v,k));
+export const equal = (v, ref) => Array.isArray(ref) ? Array.isArray(v) && v.length === ref.length && ref.every((r,i)=>equal(v[i],r)) : ref !== null && typeof ref === 'object' ? exact(v,Object.keys(ref)) && Object.entries(ref).every(([k,r])=>equal(v[k],r)) : v === ref;
+export const integer = v => Number.isSafeInteger(v) && v >= 0;
+const sum = values => values.reduce((n,v)=>n+v,0);
+export const percent = (n,d) => d ? Number((n/d*100).toFixed(1)) : null;
+export const evidenceStatuses = ['evidence-present','measured-zero','source-did-not-publish-for-zip','outside-source-evidence-union','outside-source-denominator','absent-from-retained-source-rows','unavailable'];
+const temporalKeys = ['source_key','source_release_id','source_reference_at','review_due_at','review_qualification','semantic_class','source_status_term'];
+const boundedString = v => typeof v === 'string' && v.length > 0 && v.length <= 1000;
+export function validTemporal(v) {
+  return exact(v,temporalKeys) && temporalKeys.filter(k=>!['review_qualification','semantic_class'].includes(k)).every(k=>v[k]===null || boundedString(v[k])) && ['within-review-window','stale','unmeasured','unmapped'].includes(v.review_qualification) && ['source-defined-current','non-active-reporting','annual-aggregate','linkage-readiness','publisher-active-snapshot','unknown-source-status','unmapped'].includes(v.semantic_class);
+}
+const common = v => v.schema_version === pin.schema_version && equal(v.claims,pin.claims) && exact(v.provenance,['release_id','manifest_sha256','created_at','artifact_sha256','verification_scope']) && v.provenance.release_id===pin.release_id && v.provenance.manifest_sha256===pin.manifest_sha256 && /^[a-f0-9]{64}$/.test(v.provenance.artifact_sha256) && boundedString(v.provenance.created_at) && v.provenance.verification_scope==='Pinned retained aggregate bytes and closed count reconciliation; full replay was verified at publication.';
+export function validIndustryRow(row, state) {
+  const scope=pin.state_scopes[state];
+  if(!scope || !exact(row,['schema_version','state','scope_id','scope_semantics','zip5_rows','id','mapped_dimensions','dimensions_with_retained_evidence','dimension_evidence_availability_percent','measured_zip_dimension_cells','zip_dimension_cell_denominator','exact_zip_measurement_reach_percent','dimensions']) || row.schema_version!=='national-goal-evidence-federation-state-industry@1.0.0' || row.state!==state || row.scope_id!==scope.scope_id || row.zip5_rows!==scope.zip5_rows || row.scope_semantics!=='dominant Census ZCTA polygon overlay; excludes material cross-state, unresolved and non-ZCTA cohorts' || !pin.industries.includes(row.id))return false;
+  const ids=pin.industry_dimensions[row.id];
+  if(!Array.isArray(row.dimensions) || row.dimensions.length!==ids.length || row.mapped_dimensions!==ids.length || row.zip_dimension_cell_denominator!==scope.zip5_rows*ids.length || !integer(row.measured_zip_dimension_cells))return false;
+  for(const [i,d] of row.dimensions.entries()) {
+    if(!exact(d,['id','measured_zip_dimension_cells','positive_zip_dimension_cells','disposition_counts','temporal_qualification']) || d.id!==ids[i] || !exact(d.disposition_counts,evidenceStatuses) || !Object.values(d.disposition_counts).every(integer) || sum(Object.values(d.disposition_counts))!==scope.zip5_rows || d.measured_zip_dimension_cells!==d.disposition_counts['evidence-present']+d.disposition_counts['measured-zero'] || d.positive_zip_dimension_cells!==d.disposition_counts['evidence-present'] || !validTemporal(d.temporal_qualification))return false;
+  }
+  const available=row.dimensions.filter(d=>d.measured_zip_dimension_cells>0).length;
+  return row.measured_zip_dimension_cells===sum(row.dimensions.map(d=>d.measured_zip_dimension_cells)) && row.dimensions_with_retained_evidence===available && row.dimension_evidence_availability_percent===percent(available,ids.length) && row.exact_zip_measurement_reach_percent===percent(row.measured_zip_dimension_cells,row.zip_dimension_cell_denominator);
+}
+/** @param {*} v @param {string|null} [state] */
+export function validNationalStatus(v, state=null) {
+  if(!v || !common(v) || v.provenance.created_at!==pin.created_at || v.provenance.artifact_sha256!==pin.artifact_sha256[v.kind==='summary'?'national-summary.json':v.kind==='state'?'state-industry-status.jsonl':`zip-status/prefix=${typeof v.zip5==='string'?v.zip5.slice(0,2):''}.jsonl.gz`])return false;
+  if(v.kind==='state')return exact(v,['schema_version','kind','state','industries','claims','provenance']) && v.state===state && Object.hasOwn(pin.state_scopes,v.state) && Array.isArray(v.industries) && v.industries.length===9 && v.industries.every((row,i)=>row.id===pin.industries[i] && validIndustryRow(row,v.state));
+  if(v.kind==='summary') {
+    if(!exact(v,['schema_version','kind','zip5_cohort_rows','source_dimensions','matrix_evidence_cells','state_industry_rows','temporal_assessment','geography_scope_counts','gaps','industry_evidence_metrics','territories','claims','provenance']) || v.zip5_cohort_rows!==48194 || v.source_dimensions!==51 || v.matrix_evidence_cells!==v.zip5_cohort_rows*v.source_dimensions || v.state_industry_rows!==459 || !equal(v.temporal_assessment,pin.temporal_assessment) || !equal(v.geography_scope_counts,pin.geography_scope_counts) || sum(Object.values(v.geography_scope_counts))!==v.zip5_cohort_rows || !equal(v.gaps,pin.gaps))return false;
+    if(!Array.isArray(v.industry_evidence_metrics) || v.industry_evidence_metrics.length!==9 || !v.industry_evidence_metrics.every((row,i)=>exact(row,['industry','mapped_dimensions','measured_zip_dimension_cells','zip_dimension_cell_denominator','exact_zip_measurement_reach_percent','scope']) && row.industry===pin.industries[i] && row.mapped_dimensions===pin.industry_dimensions[row.industry].length && row.zip_dimension_cell_denominator===33455*row.mapped_dimensions && integer(row.measured_zip_dimension_cells) && row.measured_zip_dimension_cells<=row.zip_dimension_cell_denominator && row.exact_zip_measurement_reach_percent===percent(row.measured_zip_dimension_cells,row.zip_dimension_cell_denominator) && row.scope==='33455 governed dominant-state Census ZCTA cohort rows'))return false;
+    return Array.isArray(v.territories) && v.territories.length===5 && v.territories.every((row,i)=>exact(row,['code','scope_id','zip5_rows','included_in_state_denominator']) && row.code===['AS','GU','MP','PR','VI'][i] && row.scope_id===['territory:60','territory:66','territory:69','territory:72','territory:78'][i] && row.zip5_rows===pin.geography_scope_counts[row.scope_id] && row.included_in_state_denominator===false);
+  }
+  if(v.kind==='zip') {
+    if(!exact(v,['schema_version','kind','zip5','zip4','found','cohort_classification','zcta_geoid','usps_validity','geography_scope','overlay','dimensions','claims','provenance']) || v.zip5!==state || !/^\d{5}$/.test(v.zip5) || v.zip4!==null || v.usps_validity!==null || typeof v.found!=='boolean')return false;
+    if(!v.found)return v.cohort_classification===null && v.zcta_geoid===null && v.geography_scope===null && v.overlay===null && Array.isArray(v.dimensions) && v.dimensions.length===0;
+    if(!['same-code-census-zcta','source-contributed-outside-zcta','denominator-only-outside-zcta','explicit-placeholder'].includes(v.cohort_classification) || !Object.hasOwn(pin.geography_scope_counts,v.geography_scope) || ![null,v.zip5].includes(v.zcta_geoid) || (v.cohort_classification==='same-code-census-zcta')!==(v.zcta_geoid!==null))return false;
+    if(v.overlay!==null && (!exact(v.overlay,['overlay_status','dominant_state_geo_id','crosses_state_boundary_materially']) || !boundedString(v.overlay.overlay_status) || !(v.overlay.dominant_state_geo_id===null || /^state:\d{2}$/.test(v.overlay.dominant_state_geo_id)) || typeof v.overlay.crosses_state_boundary_materially!=='boolean'))return false;
+    if(v.zcta_geoid===null && v.overlay!==null || v.cohort_classification==='explicit-placeholder' && (v.zip5!=='00000' || v.geography_scope!=='explicit-placeholder') || v.cohort_classification!=='explicit-placeholder' && v.zcta_geoid===null && v.geography_scope!=='non-zcta-unassigned')return false;
+    if(/^(state|territory):/.test(v.geography_scope) && (!v.overlay || v.overlay.overlay_status!=='complete-within-tolerance' || v.overlay.crosses_state_boundary_materially || v.overlay.dominant_state_geo_id!==v.geography_scope.replace('territory:','state:')))return false;
+    if(v.geography_scope==='multi-state-material' && (!v.overlay || !v.overlay.crosses_state_boundary_materially))return false;
+    return Array.isArray(v.dimensions) && v.dimensions.length===51 && v.dimensions.every((d,i)=>exact(d,['id','evidence_status','matrix_release_id','matrix_manifest_sha256','temporal_qualification']) && d.id===pin.dimension_order[i] && evidenceStatuses.includes(d.evidence_status) && d.matrix_release_id===pin.matrix_provenance.release_id && d.matrix_manifest_sha256===pin.matrix_provenance.manifest_sha256 && (d.temporal_qualification===null || validTemporal(d.temporal_qualification)));
+  }
+  return false;
+}

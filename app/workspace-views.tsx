@@ -24,6 +24,7 @@ import zipSourceStatusRegistration from "../config/datasets/zip-source-native-st
 import NonZctaSourceGeographyContext from "./non-zcta-source-geography-context";
 import stateAccessEnrollment from "../config/state-access-ui-enrollment.json";
 import epaIndustryStatusContract from "../config/epa-operational-industry-status-contract.json";
+import { NationalStatusPanel } from "./national-status-panel";
 
 export const workspaceTabs = [
   "State Evidence",
@@ -5965,7 +5966,7 @@ export function EpaOperationalIndustryStatus({state}:{state:string}) {
     </>}
   </section>;
 }
-function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><OperationalIndustryCrosswalkStatus state={state}/><EpaOperationalIndustryStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
+function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><NationalStatusPanel state={state}/><OperationalIndustryCrosswalkStatus state={state}/><EpaOperationalIndustryStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   const [result, setResult] = useState<{
       zip: string;

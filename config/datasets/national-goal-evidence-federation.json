@@ -4,6 +4,7 @@
   "status": "registered-pointer-free-local-review-only",
   "runtime_pointer": null,
   "production_enrollment": false,
+  "application_integration": "bounded-authenticated-read-only-national-status@1.0.0",
   "retained_release": {
     "release_id": "national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9",
     "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9/manifest.json",

@@ -52,6 +52,8 @@ import { readOperationalIndustryEvidenceSummary } from './operational-industry-e
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
 import { readEpaOperationalIndustryStatus } from './epa-operational-industry-status.mjs';
 import { epaOperationalIndustryStatusHttp } from './epa-operational-industry-status-http.mjs';
+import { readNationalStatus } from './national-status.mjs';
+import { nationalStatusHttp, nationalStatusPreflight } from './national-status-http.mjs';
 import { readMnConstructionExactZipEvidenceStatus } from './mn-construction-exact-zip-evidence.mjs';
 import { mnConstructionExactZipEvidenceStatusHttp } from './mn-construction-exact-zip-evidence-http.mjs';
 import { readAdjacentExactZipEvidenceCatalog } from './adjacent-exact-zip-evidence-catalog.mjs';
@@ -481,6 +483,9 @@ const server = http.createServer(async (request, response) => {
       zipEvidenceQualificationPreflight(request,response,json);
       return;
     }
+    if (request.method === 'OPTIONS' && ['/api/business-map/national-status-summary','/api/business-map/national-status-state','/api/business-map/national-status-zip'].includes(url.pathname)) {
+      nationalStatusPreflight(request,response,json);return;
+    }
     if (request.method === 'OPTIONS' && url.pathname !== '/api/data-operations/broad-organization-current-authorization-chain' && url.pathname !== '/api/data-operations/document-only-inquiry-proposals' && url.pathname !== '/api/data-operations/national-geography-goal-status' && url.pathname !== '/api/data-operations/reported-organization-zip-evidence-status' && url.pathname !== '/api/data-operations/zip-denominator-delta-review' && url.pathname !== '/api/data-operations/national-pharmacy-industry-coverage-status' && url.pathname !== '/api/data-operations/national-snap-retailer-industry-coverage-status' && url.pathname !== '/api/data-operations/national-fmcsa-registrant-principal-office-coverage-status' && url.pathname !== '/api/data-operations/national-fdic-bankfind-coverage-status' && url.pathname !== '/api/data-operations/national-ncua-credit-union-coverage-status' && url.pathname !== '/api/data-operations/national-fsis-active-establishment-coverage-status' && url.pathname !== '/api/data-operations/national-epa-echo-active-facility-coverage-status' && url.pathname !== '/api/data-operations/national-irs-eo-bmf-organization-coverage-status' && url.pathname !== '/api/data-operations/national-cms-nppes-organization-practice-location-coverage-status' && url.pathname !== '/api/data-operations/illinois-broad-organization-admission-readiness') {
       response.writeHead(204);
       response.end();
@@ -871,6 +876,9 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/epa-operational-industry-status'){
       await epaOperationalIndustryStatusHttp(request,response,url,readEpaOperationalIndustryStatus,json);return;
+    }
+    if(['/api/business-map/national-status-summary','/api/business-map/national-status-state','/api/business-map/national-status-zip'].includes(url.pathname)){
+      await nationalStatusHttp(request,response,url,readNationalStatus,json);return;
     }
     if(url.pathname==='/api/business-map/mn-construction-exact-zip-evidence-status'){
       await mnConstructionExactZipEvidenceStatusHttp(request,response,url,readMnConstructionExactZipEvidenceStatus,json);return;

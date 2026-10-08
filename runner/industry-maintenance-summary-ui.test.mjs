@@ -30,6 +30,6 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents/);
   assert.match(source,/It remains nonblocking optional context and does not infer a ZIP, population, park, tribal\/Native, private-land, or business status/);
   assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus state=\{state\} \/>\s*<h3>Industry connectivity<\/h3>/);
-  assert.match(source,/function GovernedIndustryStatus\(\{state\}:\{state:string\}\).*<OperationalMaintenanceIntent\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
+  assert.match(source,/function GovernedIndustryStatus\(\{state\}:\{state:string\}\).*<OperationalMaintenanceIntent\/><NationalStatusPanel state=\{state\}\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
   assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");
 });
