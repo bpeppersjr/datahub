@@ -1,0 +1,23 @@
+{
+  "dataset_id": "us-census-naics-reference",
+  "schema_version": "1.0.0",
+  "title": "Official Census edition-bound NAICS code and title references",
+  "status": "published-pointer-free-reference",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "additive_to_generic_business_totals": false,
+  "source_edition_inference": false,
+  "operational_segments_mapped": false,
+  "concordances_applied": false,
+  "retained_release": {
+    "release_id": "us-census-naics-reference-9133b65c6b503247c69e4615378ec3c7d71336aeaba1b256d175fc22a5551427",
+    "manifest": "data/us-census-naics-reference/releases/us-census-naics-reference-9133b65c6b503247c69e4615378ec3c7d71336aeaba1b256d175fc22a5551427/manifest.json",
+    "manifest_sha256": "71e7fc4215725323edc5125b10219dce04b3d6e08eba2d3d40f1beaab6b46d0d",
+    "code_count": 12743,
+    "edition_code_counts": { "1997": 2126, "2002": 2147, "2007": 2134, "2012": 2015, "2017": 2196, "2022": 2125 }
+  },
+  "connector": "config/connectors/us-census-naics-reference.json",
+  "source_policy": "config/source-policies/us-census-naics-reference.json",
+  "schema": "config/schemas/us-census-naics-reference.schema.json",
+  "documentation": "docs/US-CENSUS-NAICS-REFERENCE.md"
+}

@@ -1,0 +1,24 @@
+{
+  "policy_id": "us-census-naics-reference",
+  "version": "1.0.0",
+  "ownership": "U.S. Census Bureau public federal reference publications.",
+  "terms_url": "https://www.census.gov/about/policies.html",
+  "public_access_policy": "https://www2.census.gov/foia/ds_policies/ds027.pdf",
+  "allowed_use": [
+    "Retain and redistribute public code/title references with edition, source URL, hashes, and authority scope.",
+    "Use exact edition/code labels when the source edition is independently established."
+  ],
+  "prohibited_use": [
+    "Infer a business source NAICS edition from code membership.",
+    "Treat missing SUSB vocabulary as proof that a code is invalid.",
+    "Infer concordances, primary industries, operational segments, or complete business coverage."
+  ],
+  "attribution": "Source: U.S. Census Bureau NAICS United States structure (2017, 2022) and Statistics of U.S. Businesses industry references (1997, 2002, 2007, 2012).",
+  "retention": "Indefinite public reference release retention unless an approved retention operation applies.",
+  "redistribution": "Allowed with edition, exact source authority scope, provenance, transformation version, and native source integrity.",
+  "export_policy": "public",
+  "contains_secrets": false,
+  "contains_personal_data": true,
+  "personal_data_scope": "Native official workbooks retain public document-author metadata that may name Census staff. Normalized classification rows contain no person records.",
+  "reviewed_at": "2026-10-08"
+}

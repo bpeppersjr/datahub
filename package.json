@@ -6,6 +6,8 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "naics-reference:build": "node scripts/build-us-census-naics-reference.mjs",
+    "naics-reference:verify": "node scripts/verify-us-census-naics-reference.mjs",
     "dev": "npm run desktop",
     "dev:web": "node scripts/start-dev-web.mjs",
     "dev:ui": "vinext dev",

@@ -1,0 +1,72 @@
+{
+  "connector_id": "us-census-naics-reference",
+  "version": "1.0.0",
+  "description": "Acquire and replay official Census code/title references for six explicitly bound NAICS editions.",
+  "implementation_status": "implemented-standalone-app-runner",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "acquire": {
+        "type": "boolean",
+        "default": false
+      },
+      "replay_manifest": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "default": null
+      }
+    }
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "retained-naics-reference-manifest"
+  ],
+  "output_artifact_types": [
+    "source-native-reference",
+    "exact-edition-code-title-jsonl",
+    "edition-summary-json",
+    "dataset-manifest-json",
+    "operation-receipt-json"
+  ],
+  "allowed_hosts": [
+    "www.census.gov",
+    "www2.census.gov"
+  ],
+  "redirect_policy": "deny",
+  "provider_budget_key": "us-census-naics-reference",
+  "resource_class": "network-cpu-disk",
+  "execution_limits": {
+    "maximum_parallel_requests": 1,
+    "maximum_source_bytes": 1000000,
+    "maximum_sources": 6,
+    "request_timeout_seconds": 60,
+    "maximum_expanded_workbook_bytes": 8000000,
+    "maximum_workbook_parts": 64
+  },
+  "retry": "No automatic network retries; rerun with a new run ID after a failed operation. Retained releases replay without network.",
+  "checkpoint": "Run-scoped source files and receipt; no partial resume. Manifest published last after complete replay validation.",
+  "idempotency": "Content-addressed immutable releases; validate identical existing release and reuse it. No current pointer.",
+  "cancellation": "AbortSignal cancels requests and bounded parsing; terminal run receipt records cancellation; unpublished staging is isolated and no shared lock is held.",
+  "source_policy": "config/source-policies/us-census-naics-reference.json",
+  "retention_profile": "Retain public native and derived immutable releases and operation receipts within datahub.",
+  "produced_entities": [
+    "edition-bound-industry-classification-reference"
+  ],
+  "produced_identifiers": [
+    "naics-edition-and-exact-code"
+  ]
+}

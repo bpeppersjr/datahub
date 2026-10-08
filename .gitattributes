@@ -11,3 +11,8 @@ data/broad-organization-authorization-packet/releases/** text eol=lf
 data/broad-organization-authorization-program/releases/** text eol=lf
 data/broad-organization-current-matrix-authorization-wave/releases/** text eol=lf
 data/broad-organization-matrix-gap-projection/releases/** text eol=lf
+data/us-census-naics-reference/releases/** -text
+data/us-census-naics-reference/releases/**/source-* -diff
+config/connectors/us-census-naics-reference.json text eol=lf
+config/source-policies/us-census-naics-reference.json text eol=lf
+config/schemas/us-census-naics-reference.schema.json text eol=lf
