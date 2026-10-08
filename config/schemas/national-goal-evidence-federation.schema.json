@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-goal-evidence-federation.schema.json",
+  "title": "National goal evidence federation ZIP status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "zip5",
+    "zip4",
+    "cohort_classification",
+    "zcta_geoid",
+    "usps_validity",
+    "geography_scope",
+    "overlay",
+    "dimension_evidence_statuses",
+    "non_zcta_context",
+    "epa_supplemental"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "national-goal-evidence-federation-zip@1.0.0"
+    },
+    "zip5": {
+      "type": "string",
+      "pattern": "^[0-9]{5}$"
+    },
+    "zip4": {
+      "type": "null"
+    },
+    "cohort_classification": {
+      "enum": [
+        "same-code-census-zcta",
+        "source-contributed-outside-zcta",
+        "denominator-only-outside-zcta",
+        "explicit-placeholder"
+      ]
+    },
+    "zcta_geoid": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9]{5}$"
+    },
+    "usps_validity": {
+      "type": "null"
+    },
+    "geography_scope": {
+      "type": "string"
+    },
+    "overlay": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "dimension_evidence_statuses": {
+      "type": "array",
+      "minItems": 51,
+      "maxItems": 51,
+      "items": {
+        "enum": [
+          "evidence-present",
+          "measured-zero",
+          "source-did-not-publish-for-zip",
+          "outside-source-evidence-union",
+          "outside-source-denominator",
+          "absent-from-retained-source-rows",
+          "unavailable"
+        ]
+      }
+    },
+    "non_zcta_context": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "epa_supplemental": {
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "national-goal-evidence-federation",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9",
+    "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9/manifest.json",
+    "manifest_sha256": "c144c10814ae9cc6ea1a41f6f266c6342417af71bead286195180b1f047f2a85",
+    "zip5_rows": 48194,
+    "source_dimensions": 51,
+    "state_industry_rows": 459,
+    "artifact_count": 104
+  },
+  "documentation": "docs/NATIONAL-GOAL-EVIDENCE-FEDERATION.md"
+}

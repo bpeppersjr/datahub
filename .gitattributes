@@ -23,3 +23,8 @@ config/epa-echo-operational-segment-crosswalk.json text eol=lf
 config/connectors/national-epa-echo-operational-segment-evidence.json text eol=lf
 config/schemas/national-epa-echo-operational-segment-evidence.schema.json text eol=lf
 config/source-policies/national-epa-echo-operational-segment-evidence.json text eol=lf
+data/national-goal-evidence-federation/releases/** -text
+config/national-goal-evidence-federation.json text eol=lf
+config/connectors/national-goal-evidence-federation.json text eol=lf
+config/schemas/national-goal-evidence-federation.schema.json text eol=lf
+config/source-policies/national-goal-evidence-federation.json text eol=lf

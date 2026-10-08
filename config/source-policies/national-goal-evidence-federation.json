@@ -1,0 +1,24 @@
+{
+  "policy_id": "national-goal-evidence-federation",
+  "version": "1.0.0",
+  "source_kind": "Derived aggregate evidence federation",
+  "ownership": "Underlying publishers retain source ownership; Co*Tive owns the derived status contracts.",
+  "terms": "Inherits each pinned source policy; all use is local aggregate review.",
+  "allowed_use": [
+    "checksum-bound retained evidence replay",
+    "national/state/industry/ZIP evidence reach reporting",
+    "explicit provenance and gap reporting"
+  ],
+  "prohibited_use": [
+    "network acquisition",
+    "raw entity export",
+    "business completeness or current-operation inference",
+    "cross-industry business summation",
+    "ZCTA-to-USPS validity inference"
+  ],
+  "export_policy": "local-review-aggregate-only",
+  "retention": "Immutable releases until approved removal.",
+  "redistribution": "No public export or production enrollment authorized by this release.",
+  "personal_data_handling": "No source names, addresses, identifiers, coordinates or geometries are exported.",
+  "attribution": "Pinned Census, federal, state and local source releases with their inherited policies."
+}

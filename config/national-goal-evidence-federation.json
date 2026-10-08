@@ -1,0 +1,79 @@
+{
+  "schema_version": "national-goal-evidence-federation-config@1.0.0",
+  "inputs": {
+    "goal": {
+      "path": "data/national-goal-completion-matrix/releases/national-goal-completion-20261007052337-6ca8bb3a/manifest.json",
+      "sha256": "9621cd840cbdcd130a968f8c7b121d25089ac0da9a526d8809e9d7db1fe44004",
+      "release_id": "national-goal-completion-20261007052337-6ca8bb3a",
+      "schema_version": "national-goal-completion-matrix@1.3.0"
+    },
+    "matrix": {
+      "path": "data/national-exact-zip-industry-evidence-matrix-v3-0/releases/national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9/manifest.json",
+      "sha256": "07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7",
+      "release_id": "national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",
+      "schema_version": "national-exact-zip-industry-evidence-matrix@3.0.0"
+    },
+    "disposition": {
+      "path": "data/state-exact-zip-industry-evidence-disposition-v3-0/releases/state-exact-zip-industry-evidence-disposition-62e4ced49cfb1c0d41628864f1b867c8b89a9f58bec66de1e146568f777f544a/manifest.json",
+      "sha256": "1678f94007155d602dd9d803093c1efd368aa862498da8d0108a969b3b0d4f6e",
+      "release_id": "state-exact-zip-industry-evidence-disposition-62e4ced49cfb1c0d41628864f1b867c8b89a9f58bec66de1e146568f777f544a",
+      "schema_version": "state-exact-zip-industry-evidence-disposition@3.0.0"
+    },
+    "epa": {
+      "path": "data/national-epa-echo-operational-segment-evidence/releases/national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461/manifest.json",
+      "sha256": "bb154192843c65ccb7723259c6fda50725a2c7c9e4999477608b61f1fd716dc7",
+      "release_id": "national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461",
+      "schema_version": "national-epa-echo-operational-segment-evidence@1.0.0"
+    },
+    "geography": {
+      "path": "data/national-geography-goal-status/releases/national-geography-goal-status-20260923204343-55952349/manifest.json",
+      "sha256": "5b933dcda10c3c063a5a10ce3ed83c5391eb17b80ad807a768870b1c8bf5aaad",
+      "release_id": "national-geography-goal-status-20260923204343-55952349",
+      "schema_version": "national-geography-goal-status@1.0.0"
+    },
+    "cohort": {
+      "path": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb/manifest.json",
+      "sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+      "release_id": "zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb",
+      "schema_version": "zip-denominator-gap-cohort-manifest@1.0.0"
+    },
+    "non_zcta": {
+      "path": "data/non-zcta-source-geography-context/releases/non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd/manifest.json",
+      "sha256": "c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16",
+      "release_id": "non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd",
+      "schema_version": "non-zcta-source-geography-context@1.0.0"
+    },
+    "crosswalk": {
+      "path": "data/zcta-jurisdiction-crosswalk/releases/us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8/manifest.json",
+      "sha256": "02e19bd98ad587426628cd50013942acc0cc3e9c9a48ac653eaf96cf534b8fe2",
+      "release_id": "us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8",
+      "schema_version": "1.0.0"
+    },
+    "lifecycle": {
+      "path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0/manifest.json",
+      "sha256": "d62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e",
+      "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
+      "schema_version": "business-entity-lifecycle-eligibility-release@1.0.0"
+    },
+    "access": {
+      "path": "data/state-access/reports/20261007023010-5b9c3f32-72fb-4853-80bd-5bca775f640e.json",
+      "sha256": "aba6e72ebcf280e926fd0bb1cf3d996b1ec4e1098292a8dca84f15cf47d36c27"
+    },
+    "industries": {
+      "path": "config/industry-segments.json",
+      "sha256": "9a62d268abd9e955af3a07a710633dfcb4686e6c24b959dee3b102c79615d1f8"
+    },
+    "operational_crosswalk": {
+      "path": "config/exact-zip-operational-industry-crosswalk.json",
+      "sha256": "8c0763a56c4941e410387f986805bf595e227217d816b0c039b9cb2e0c2d219f"
+    },
+    "summary_implementation": {
+      "path": "runner/exact-zip-industry-summary-v3-1.mjs",
+      "sha256": "8aa1ebda8ea005a834e1ce67cc51dd0b5c9d27c18fd7d465e129770a778136f2"
+    },
+    "temporal_mapping": {
+      "path": "runner/exact-zip-industry-temporal-mappings-v3-1.mjs",
+      "sha256": "6f6c72838283797b1556b18ce35f7c6b0b4537446fc1a5542f880c1f3aad928c"
+    }
+  }
+}

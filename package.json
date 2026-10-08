@@ -6,6 +6,8 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "goal-federation:build": "node scripts/build-national-goal-evidence-federation.mjs",
+    "goal-federation:verify": "node scripts/verify-national-goal-evidence-federation.mjs",
     "epa-operational-segments:build": "node scripts/build-national-epa-echo-operational-segment-evidence.mjs",
     "epa-operational-segments:verify": "node scripts/verify-national-epa-echo-operational-segment-evidence.mjs",
     "naics-reference:build": "node scripts/build-us-census-naics-reference.mjs",

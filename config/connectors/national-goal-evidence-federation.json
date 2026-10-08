@@ -1,0 +1,65 @@
+{
+  "connector_id": "national-goal-evidence-federation",
+  "version": "1.0.0",
+  "implementation_status": "implemented-release-only",
+  "description": "Zero-network retained national evidence federation with independent ZIP-cell replay and typed status sidecars.",
+  "lifecycle": [
+    "preflight",
+    "plan",
+    "acquire",
+    "validate",
+    "normalize",
+    "reconcile",
+    "quality gate",
+    "publish",
+    "finalize"
+  ],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "named_secret_references": [],
+  "input_artifact_types": [
+    "dataset-manifest-json",
+    "retained-national-status",
+    "exact-zip-industry-evidence-matrix",
+    "state-exact-zip-evidence-dispositions",
+    "zip-denominator-gap-cohort",
+    "zcta-overlay-summary"
+  ],
+  "output_artifact_types": [
+    "national-goal-evidence-summary-json",
+    "national-goal-state-industry-status-jsonl",
+    "national-goal-zip-evidence-status-jsonl-gzip",
+    "national-goal-gap-ledger-json",
+    "national-goal-territory-evidence-json",
+    "dataset-manifest-json"
+  ],
+  "allowed_hosts": [],
+  "redirect_policy": "deny",
+  "provider_budget_key": "local-retained-goal-federation",
+  "resource_class": "cpu-disk",
+  "execution_limits": {
+    "network_requests": 0,
+    "maximum_input_artifact_bytes": 110000000,
+    "maximum_zip_cohort": 48194,
+    "maximum_dimensions": 51,
+    "maximum_industries": 9
+  },
+  "retry": "Explicit local replay only; no automatic retries or acquisition.",
+  "checkpoint": "Manifest-last owned staging; independent replay before atomic rename.",
+  "idempotency": "Exclusive publication lock and content-addressed immutable release; no overwrite.",
+  "cancellation": "AbortSignal checks on each ZIP/input/output row and streams; remove owned staging and verification directories.",
+  "source_policy": "config/source-policies/national-goal-evidence-federation.json",
+  "retention_profile": "Retain immutable status aggregates and exact dependency pins until approved removal.",
+  "produced_entities": [
+    "governed-national-evidence-status"
+  ],
+  "produced_identifiers": [
+    "release-id",
+    "zip5",
+    "industry",
+    "census-overlay-scope"
+  ]
+}
