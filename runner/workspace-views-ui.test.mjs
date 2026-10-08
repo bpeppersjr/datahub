@@ -2815,6 +2815,41 @@ test("operational industry summary validates exact 9 by 51 state conservation an
 test("operational industry summary rejects malformed, duplicate, rebalanced, extra-key, pin and claim drift",async()=>{const value=await stateAccessIndustrySummary(),h=harness(()=>assert.fail());const malformed=[null,{...value,extra:true},{...value,report_sha256:'0'.repeat(64)},{...value,industries:value.industries.slice(1)},{...value,industries:value.industries.map((row,index)=>index===1?{...row,id:value.industries[0].id}:row)},{...value,industries:value.industries.map((row,index)=>index?row:{...row,states:row.states.map((state,stateIndex)=>stateIndex?state:{...state,access_status:state.access_status==='unsupported-missing'?'national-dataset-state-evidence':'unsupported-missing'})})},{...value,industries:value.industries.map((row,index)=>index?row:{...row,access_status_counts:{...row.access_status_counts,'unsupported-missing':row.access_status_counts['unsupported-missing']+1,'national-dataset-state-evidence':row.access_status_counts['national-dataset-state-evidence']-1}})},{...value,claims:{...value.claims,complete_geocodes:true}}];malformed.forEach((item,index)=>assert.equal(h.render('validOperationalIndustryEvidence',item),false,`malformed operational summary ${index}`));});
 
 test("operational industry status preserves unknown on evidence failure and cancels stale requests",async()=>{const evidence=await stateAccessIndustrySummary(),maintenance={industries:evidence.industries.map(row=>({id:row.id,label:row.id})),maintainedIndustries:[],revision:0,semantics:'Maintenance intent only.'},signals=[],pending=[],h=harness((url,{signal})=>{signals.push(signal);return new Promise((resolve,reject)=>pending.push({url,resolve,reject}))});h.render('OperationalMaintenanceIntent');pending.find(item=>item.url.includes('/api/administration/')).resolve(maintenance);pending.find(item=>item.url.includes('state-access-industry-summary')).reject(Error('unavailable'));await flush();assert.match(text(h.render('OperationalMaintenanceIntent')),/Retained state evidence is unavailable or incompatible; unknown is preserved and no zero is inferred/);h.close();assert.ok(signals.every(signal=>signal.aborted));});
+
+test('industry evidence renders all nine industries while maintenance settings are pending or unavailable', async () => {
+  const evidence = await stateAccessIndustrySummary(), pending = [], h = harness((url, {signal}) => new Promise((resolve, reject) => pending.push({url, signal, resolve, reject})));
+  h.render('OperationalMaintenanceIntent');
+  pending.find(item => item.url.includes('state-access-industry-summary')).resolve(evidence);
+  await flush();
+  let tree = h.render('OperationalMaintenanceIntent');
+  assert.match(text(tree), /Loading local maintenance intent/);
+  assert.equal(nodes(tree).filter(node => node.type === 'table').length, 9);
+  assert.match(text(tree), /Evidence retained/);
+  assert.match(text(tree), /maintenance selection loading/);
+  pending.find(item => item.url.includes('/api/administration/')).reject(Error('settings unavailable'));
+  await flush();
+  tree = h.render('OperationalMaintenanceIntent');
+  assert.equal(nodes(tree).filter(node => node.type === 'table').length, 9);
+  assert.match(text(tree), /Maintenance selection unavailable/);
+  assert.doesNotMatch(text(tree), /Not selected for maintenance/);
+  for (const industry of evidence.industries) assert.match(text(tree), new RegExp(industry.id));
+  h.close();
+  assert.ok(pending.every(item => item.signal.aborted));
+});
+
+test('maintenance settings render before a pending evidence request and preserve unknown status on failure', async () => {
+  const evidence = await stateAccessIndustrySummary(), maintenance = {industries:evidence.industries.map(row => ({id:row.id,label:row.id})),maintainedIndustries:['construction'],revision:4,semantics:'Intent only.'}, pending = [], h = harness(url => new Promise((resolve,reject) => pending.push({url,resolve,reject})));
+  h.render('OperationalMaintenanceIntent');
+  pending.find(item => item.url.includes('/api/administration/')).resolve(maintenance);
+  await flush();
+  const rendered = text(h.render('OperationalMaintenanceIntent'));
+  assert.match(rendered, /Selected for maintenance/);
+  assert.match(rendered, /Loading retained state evidence/);
+  pending.find(item => item.url.includes('state-access-industry-summary')).reject(Error('evidence unavailable'));
+  await flush();
+  assert.match(text(h.render('OperationalMaintenanceIntent')), /unknown is preserved and no zero is inferred/);
+  h.close();
+});
 test("exact ZIP matrix validates forty temporal source dimensions and publisher-specific metadata", async () => {
   const matrix = crossView().industry_evidence,
     h = harness(async () => matrix);
