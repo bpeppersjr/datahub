@@ -1,0 +1,29 @@
+{
+  "schema_version": "epa-operational-industry-status@1.0.0",
+  "release_id": "national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461",
+  "manifest": "data/national-epa-echo-operational-segment-evidence/releases/national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461/manifest.json",
+  "manifest_sha256": "bb154192843c65ccb7723259c6fda50725a2c7c9e4999477608b61f1fd716dc7",
+  "segments": ["construction", "retail-consumer", "financial-services", "transportation", "health-care", "childcare"],
+  "unmapped_industries": ["tax-exempt-organizations", "sales-tax-outlets", "local-business-licenses"],
+  "status_keys": ["missing-naics", "invalid-in-all-reference-editions", "unresolved-naics-edition", "valid-outside-operational-segments", "mapped", "partially-unmapped", "multisegment"],
+  "source_as_of": "2026-08-30T06:36:03.000Z",
+  "claims": {
+    "metric_unit": "source-defined active environmental-program facility record memberships",
+    "cross_segment_counts_additive": false,
+    "unique_business_count": null,
+    "verified_site_count": null,
+    "current_operating_business_count": null,
+    "business_completeness": null,
+    "industry_completeness": null,
+    "naics_edition_inferred": false,
+    "usps_validity_verified": false,
+    "zip4_joined": false,
+    "zcta_membership_is_usps_validity": false,
+    "production_enrollment": false,
+    "main_matrix_changed": false,
+    "generic_business_additivity_delta": 0,
+    "state_positive_zip_count_available": false,
+    "network_requests": 0,
+    "runtime_writes": 0
+  }
+}

@@ -50,6 +50,8 @@ import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http
 import { readExactZipIndustrySummaryV31 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-1.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
+import { readEpaOperationalIndustryStatus } from './epa-operational-industry-status.mjs';
+import { epaOperationalIndustryStatusHttp } from './epa-operational-industry-status-http.mjs';
 import { readMnConstructionExactZipEvidenceStatus } from './mn-construction-exact-zip-evidence.mjs';
 import { mnConstructionExactZipEvidenceStatusHttp } from './mn-construction-exact-zip-evidence-http.mjs';
 import { readAdjacentExactZipEvidenceCatalog } from './adjacent-exact-zip-evidence-catalog.mjs';
@@ -866,6 +868,9 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/operational-industry-evidence'){
       await operationalIndustryEvidenceSummaryHttp(request,response,url,readOperationalIndustryEvidenceSummary,json);return;
+    }
+    if(url.pathname==='/api/business-map/epa-operational-industry-status'){
+      await epaOperationalIndustryStatusHttp(request,response,url,readEpaOperationalIndustryStatus,json);return;
     }
     if(url.pathname==='/api/business-map/mn-construction-exact-zip-evidence-status'){
       await mnConstructionExactZipEvidenceStatusHttp(request,response,url,readMnConstructionExactZipEvidenceStatus,json);return;

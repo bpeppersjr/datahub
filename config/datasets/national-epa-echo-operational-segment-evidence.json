@@ -30,5 +30,5 @@
   "schema": "config/schemas/national-epa-echo-operational-segment-evidence.schema.json",
   "required_datasets": ["epa-echo-active-facilities","national-epa-echo-active-facility-coverage","us-census-geography","zip-denominator-gap-cohort","us-census-naics-reference"],
   "documentation": "docs/NATIONAL-EPA-ECHO-OPERATIONAL-SEGMENT-EVIDENCE.md",
-  "app_integration_status": "registered-release-only; separate Industry Status supplemental view pending"
+  "app_integration_status": "read-only pinned supplemental Industry Status view; base percentages and production enrollment unchanged"
 }

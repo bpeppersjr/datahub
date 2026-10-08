@@ -23,6 +23,7 @@ import StateExactZipEvidenceMap from "./state-exact-zip-evidence-map";
 import zipSourceStatusRegistration from "../config/datasets/zip-source-native-status-distribution.json";
 import NonZctaSourceGeographyContext from "./non-zcta-source-geography-context";
 import stateAccessEnrollment from "../config/state-access-ui-enrollment.json";
+import epaIndustryStatusContract from "../config/epa-operational-industry-status-contract.json";
 
 export const workspaceTabs = [
   "State Evidence",
@@ -5885,7 +5886,86 @@ function validOperationalIndustryCrosswalkView(input: unknown, state: string): i
   });
 }
 function OperationalIndustryCrosswalkStatus({state}:{state:string}){const[result,setResult]=useState<{state:string;view:OperationalIndustryCrosswalkView|null;failed:boolean}|null>(null),view=result?.state===state?result.view:null,failed=result?.state===state&&result.failed;useEffect(()=>{if(!state)return;const controller=new AbortController();setResult(null);void runnerJson<unknown>(`/api/business-map/operational-industry-evidence?state=${encodeURIComponent(state)}`,{signal:controller.signal}).then(value=>{if(controller.signal.aborted)return;setResult(validOperationalIndustryCrosswalkView(value,state)?{state,view:value,failed:false}:{state,view:null,failed:true})}).catch(reason=>{if(!controller.signal.aborted&&reason?.name!=='AbortError')setResult({state,view:null,failed:true})});return()=>controller.abort()},[state]);if(!state)return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>Selected-state industry evidence</h4><p>Select a state to compare the nine operational industries with retained exact-ZIP evidence.</p></section>;if(failed)return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>{state} industry evidence</h4><p role="alert">Verified retained evidence is unavailable; no percentage or zero was inferred.</p></section>;if(!view)return <p role="status">Verifying {state} operational-industry evidence…</p>;return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>{view.state.name} · operational industry evidence</h4><p>{count(view.state.governed_zcta_zip5_rows)} governed state ZCTA ZIP5 keys. Percentages below measure retained source-dimension evidence cells, not businesses or industry completeness.</p><div className="state-industry-progress">{view.industries.map(row=><div key={row.id}><span>{row.id.replaceAll('-',' ')}</span><strong>{row.exact_zip_measurement_reach_percent===null?'Unmeasured':`${row.exact_zip_measurement_reach_percent.toFixed(1)}%`}</strong><small>Exact-ZIP measurement reach · {count(row.measured_zip_dimension_cells)} / {count(row.zip_dimension_cell_denominator)} ZIP5-by-source-dimension cells</small><small>Dimension evidence availability {row.dimension_evidence_availability_percent?.toFixed(1)??'Unmeasured'}% · {row.dimensions_with_retained_evidence}/{row.mapped_dimensions} mapped dimensions</small></div>)}</div><details><summary>Mapped source dimensions and provenance</summary>{view.industries.map(row=><div key={row.id}><strong>{row.id.replaceAll('-',' ')}</strong>{row.dimensions.map(dimension=><small key={dimension.id}><code>{dimension.id}</code> · {dimension.temporal_qualification.review_qualification.replaceAll('-',' ')} · {dimension.temporal_qualification.semantic_class.replaceAll('-',' ')} · release {dimension.temporal_qualification.source_release_id??'unresolved'}</small>)}</div>)}</details><p className="operations-note">The crosswalk does not add overlapping source rows or entities. Non-ZCTA, materially cross-state, unresolved, and placeholder ZIP evidence stays outside the state denominator. ZIP+4 remains separate. Current operation, USPS validity, public export, production enrollment, and business or industry completeness remain unverified.</p></section>}
-function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><OperationalIndustryCrosswalkStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
+type EpaIndustryCounts = {
+  source_record_count:number;records_with_segment:number;segment_memberships:number;records_partially_unmapped:number;
+  status_counts:Record<string,number>;
+  industries:Array<{id:string;mapping:'mapped'|'no-epa-mapping';record_memberships:number|null;positive_zip5_count:number|null}>;
+};
+type EpaJurisdictionCounts = EpaIndustryCounts & {code:string;jurisdiction_kind:'state-or-dc'|'territory'};
+type EpaIndustryStatusView = {
+  schema_version:string;selected_state:string|null;national:EpaIndustryCounts;selected_state_evidence:EpaJurisdictionCounts|null;territories:EpaJurisdictionCounts[];
+  claims:typeof epaIndustryStatusContract.claims;
+  provenance:{release_id:string;manifest_sha256:string;source_release_id:string;source_manifest_sha256:string;source_as_of:string;crosswalk_sha256:string;naics_reference_release_id:string;reference_editions:number[];verification_scope:string};
+};
+
+export function validEpaIndustryStatusView(value:unknown,state:string):value is EpaIndustryStatusView {
+  if (!exactKeys(value,['schema_version','selected_state','national','selected_state_evidence','territories','claims','provenance'])) return false;
+  const view=value as EpaIndustryStatusView, pin=epaIndustryStatusContract;
+  const integer=(n:unknown):n is number=>Number.isSafeInteger(n)&&Number(n)>=0;
+  const ids=[...pin.segments,...pin.unmapped_industries];
+  const validCounts=(row:EpaIndustryCounts,scope:'national'|'state-or-dc'|'territory')=>{
+    const keys=['source_record_count','records_with_segment','segment_memberships','records_partially_unmapped','status_counts','industries'];
+    if(!exactKeys(row,scope==='national'?keys:[...keys,'code','jurisdiction_kind']) ||
+      ![row.source_record_count,row.records_with_segment,row.segment_memberships,row.records_partially_unmapped].every(integer) ||
+      !exactKeys(row.status_counts,pin.status_keys) || !Object.values(row.status_counts).every(integer) ||
+      Object.values(row.status_counts).reduce((n,v)=>n+v,0)!==row.source_record_count ||
+      row.status_counts.mapped+row.status_counts['partially-unmapped']+row.status_counts.multisegment!==row.records_with_segment ||
+      row.records_with_segment>row.source_record_count || row.segment_memberships<row.records_with_segment || row.segment_memberships>row.records_with_segment*6 ||
+      row.records_partially_unmapped<row.status_counts['partially-unmapped'] || row.records_partially_unmapped>row.records_with_segment ||
+      !Array.isArray(row.industries) || row.industries.length!==9) return false;
+    let total=0;
+    for(const [index,item] of row.industries.entries()) {
+      if(!exactKeys(item,['id','mapping','record_memberships','positive_zip5_count'])||item.id!==ids[index])return false;
+      if(pin.unmapped_industries.includes(item.id)) {
+        if(item.mapping!=='no-epa-mapping'||item.record_memberships!==null||item.positive_zip5_count!==null)return false;
+      }else{
+        if(item.mapping!=='mapped'||!integer(item.record_memberships)||item.record_memberships>row.records_with_segment)return false;
+        total+=item.record_memberships;
+        if(scope==='national' ? !integer(item.positive_zip5_count)||item.positive_zip5_count>48194||item.positive_zip5_count>item.record_memberships : item.positive_zip5_count!==null)return false;
+      }
+    }
+    return total===row.segment_memberships;
+  };
+  if(view.schema_version!==pin.schema_version||view.selected_state!==(state||null)||state&&!operationalStates.includes(state as typeof operationalStates[number])||
+    !sameClosed(view.claims,pin.claims)||!validCounts(view.national,'national')||
+    view.national.source_record_count!==1517826||view.national.records_with_segment!==294477||view.national.segment_memberships!==296595||view.national.records_partially_unmapped!==25035||
+    !sameClosed(view.national.status_counts,{'missing-naics':501976,'invalid-in-all-reference-editions':13577,'unresolved-naics-edition':0,'valid-outside-operational-segments':707796,mapped:268041,'partially-unmapped':24329,multisegment:2107})||
+    !sameClosed(view.national.industries.slice(0,6).map(row=>[row.record_memberships,row.positive_zip5_count]),[[93917,12515],[124323,16089],[1888,1218],[47049,12627],[29241,7687],[177,141]])||
+    !Array.isArray(view.territories)||view.territories.length!==5)return false;
+  const territoryCodes=['AS','GU','MP','PR','VI'];
+  if(!view.territories.every((row,index)=>validCounts(row,'territory')&&row.code===territoryCodes[index]&&row.jurisdiction_kind==='territory'))return false;
+  const selected=view.selected_state_evidence;
+  if(state ? !selected||!validCounts(selected,'state-or-dc')||selected.code!==state||selected.jurisdiction_kind!=='state-or-dc' : selected!==null)return false;
+  for(const row of [...view.territories,...(selected?[selected]:[])]){
+    if(row.source_record_count>view.national.source_record_count||row.records_with_segment>view.national.records_with_segment||row.industries.some((industry,index)=>industry.record_memberships!==null&&industry.record_memberships>(view.national.industries[index].record_memberships??0))||pin.status_keys.some(key=>row.status_counts[key]>view.national.status_counts[key]))return false;
+  }
+  const p=view.provenance;
+  return sameClosed(p,{release_id:pin.release_id,manifest_sha256:pin.manifest_sha256,source_release_id:'epa-echo-20260903-002418917Z-3c1270e9',source_manifest_sha256:'3de9a8d9c54006d8983581105cd7e51e8e719291b3731d78e911c65b262625fa',source_as_of:pin.source_as_of,crosswalk_sha256:'3ac9ba1dc9022416c574ba8a93a42d758699cf36d3c32ff1b8e7b21845e07acb',naics_reference_release_id:'us-census-naics-reference-9133b65c6b503247c69e4615378ec3c7d71336aeaba1b256d175fc22a5551427',reference_editions:[1997,2002,2007,2012,2017,2022],verification_scope:'Pinned retained artifact checksums, closed jurisdiction counts and ZIP membership conservation; original source replay was verified at release publication.'});
+}
+
+export function EpaOperationalIndustryStatus({state}:{state:string}) {
+  const[result,setResult]=useState<{state:string;view:EpaIndustryStatusView|null;failed:boolean}|null>(null);
+  const view=result?.state===state?result.view:null,failed=result?.state===state&&result.failed;
+  useEffect(()=>{
+    const controller=new AbortController();setResult(null);
+    const query=state?`?state=${encodeURIComponent(state)}`:'';
+    void runnerJson<unknown>(`/api/business-map/epa-operational-industry-status${query}`,{signal:controller.signal}).then(value=>{
+      if(!controller.signal.aborted)setResult(validEpaIndustryStatusView(value,state)?{state,view:value,failed:false}:{state,view:null,failed:true});
+    }).catch(()=>{if(!controller.signal.aborted)setResult({state,view:null,failed:true})});
+    return()=>controller.abort();
+  },[state]);
+  const context=(row:EpaIndustryCounts)=><p>{count(row.source_record_count)} source records · {count(row.status_counts['missing-naics'])} missing NAICS · {count(row.status_counts['invalid-in-all-reference-editions'])} invalid in retained reference editions · {count(row.status_counts['valid-outside-operational-segments'])} outside mapped segments · {count(row.status_counts['unresolved-naics-edition'])} unresolved edition mapping · {count(row.records_partially_unmapped)} partly unmapped · {count(row.status_counts.multisegment)} multisegment records.</p>;
+  return <section className="supporting-evidence" aria-label="Supplemental EPA industry evidence"><h4>Supplemental EPA regulated-facility evidence</h4><p>Counts are source-defined active environmental-program facility record memberships as of the retained source release. Memberships are nonadditive across segments; they do not establish unique businesses, unique sites, current business operation, or industry completeness.</p>
+    {failed?<p role="alert">Supplemental EPA evidence is unavailable or incompatible. Existing Industry Status remains available; supplemental counts are unknown.</p>:!view?<p role="status">Verifying supplemental EPA evidence…</p>:<>
+      <p>National evidence includes states, D.C. and five territories. Source as of {view.provenance.source_as_of}. State-specific positive ZIP counts are unavailable because ZIP records do not establish a state allocation.</p>
+      <div className="state-industry-progress">{view.national.industries.map((row,index)=><div key={row.id}><strong>{row.id.replaceAll('-',' ')}</strong>{row.mapping==='no-epa-mapping'?<small>No EPA mapping for this industry.</small>:<><small>National · {count(row.record_memberships!)} record memberships · {count(row.positive_zip5_count!)} positive source-reported ZIP5 keys</small><small>{state?`${state} · ${view.selected_state_evidence?count(view.selected_state_evidence.industries[index].record_memberships!):'Unknown'} record memberships`:'Select a state for its membership counts.'}</small></>}</div>)}</div>
+      <details><summary>Classification and source context</summary><h5>National</h5>{context(view.national)}{view.selected_state_evidence&&<><h5>{state}</h5>{context(view.selected_state_evidence)}</>}<p>Exact reported NAICS codes were checked across Census reference editions {view.provenance.reference_editions.join(', ')}. Source edition and primary industry remain unresolved. Retained source ZIPs without Census polygons remain usable evidence.</p></details>
+      <details><summary>Separate territory evidence</summary>{view.territories.map(row=><div key={row.code}><h5>{row.code} · {count(row.segment_memberships)} record memberships</h5>{row.industries.filter(industry=>industry.mapping==='mapped').map(industry=><small key={industry.id}>{industry.id.replaceAll('-',' ')} · {count(industry.record_memberships!)} record memberships</small>)}{context(row)}</div>)}</details>
+      <details><summary>Retained release and provenance</summary><p>Supplemental release <code>{view.provenance.release_id}</code></p><p>Manifest SHA-256 <code>{view.provenance.manifest_sha256}</code></p><p>EPA source <code>{view.provenance.source_release_id}</code> · SHA-256 <code>{view.provenance.source_manifest_sha256}</code></p><p>Census reference <code>{view.provenance.naics_reference_release_id}</code></p><p>Crosswalk SHA-256 <code>{view.provenance.crosswalk_sha256}</code></p><p>{view.provenance.verification_scope}</p></details>
+    </>}
+  </section>;
+}
+function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><OperationalIndustryCrosswalkStatus state={state}/><EpaOperationalIndustryStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   const [result, setResult] = useState<{
       zip: string;
