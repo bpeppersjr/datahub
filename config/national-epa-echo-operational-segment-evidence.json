@@ -1,0 +1,7 @@
+{
+  "schema_version": "national-epa-echo-operational-segment-evidence-config@1.0.0",
+  "echo_replay_config": {"path":"config/national-epa-echo-naics-zip-industry-evidence.json","sha256":"8bbe2f4b3fb51950de7dbbc243bedaa31ef87d491c0f027f1983a01e1198c708"},
+  "naics_reference": {"manifest":"data/us-census-naics-reference/releases/us-census-naics-reference-9133b65c6b503247c69e4615378ec3c7d71336aeaba1b256d175fc22a5551427/manifest.json","manifest_sha256":"71e7fc4215725323edc5125b10219dce04b3d6e08eba2d3d40f1beaab6b46d0d","release_id":"us-census-naics-reference-9133b65c6b503247c69e4615378ec3c7d71336aeaba1b256d175fc22a5551427"},
+  "reference_roster_sha256": "97e91b4a7d2044a733f9b6139a7b60be8d30e8c49323b3f07340f37d35458b7c",
+  "crosswalk": {"path":"config/epa-echo-operational-segment-crosswalk.json","sha256":"3ac9ba1dc9022416c574ba8a93a42d758699cf36d3c32ff1b8e7b21845e07acb"}
+}

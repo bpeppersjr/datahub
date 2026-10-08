@@ -16,3 +16,10 @@ data/us-census-naics-reference/releases/**/source-* -diff
 config/connectors/us-census-naics-reference.json text eol=lf
 config/source-policies/us-census-naics-reference.json text eol=lf
 config/schemas/us-census-naics-reference.schema.json text eol=lf
+data/national-epa-echo-operational-segment-evidence/releases/** -text
+config/national-epa-echo-naics-zip-industry-evidence.json text eol=lf
+config/national-epa-echo-operational-segment-evidence.json text eol=lf
+config/epa-echo-operational-segment-crosswalk.json text eol=lf
+config/connectors/national-epa-echo-operational-segment-evidence.json text eol=lf
+config/schemas/national-epa-echo-operational-segment-evidence.schema.json text eol=lf
+config/source-policies/national-epa-echo-operational-segment-evidence.json text eol=lf

@@ -1,0 +1,14 @@
+{
+  "policy_id": "national-epa-echo-operational-segment-evidence",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained EPA ECHO environmental-program facility records and official Census NAICS references",
+  "ownership": "EPA owns the source publication; Census owns the classification reference publications; Co*Tive owns the governed crosswalk and transformation.",
+  "terms": "Inherits retained EPA ECHO and Census reference policies; zero network access.",
+  "allowed_use": ["local checksum-bound original-row replay","per-record deduplicated operational-segment evidence","exact reference membership and combined-sector-component validation","edition consistency and hierarchy semantic checks","state/DC, territory and ZIP-cohort aggregate review"],
+  "prohibited_use": ["network acquisition","guessing a NAICS edition or primary segment","unique businesses/sites/current general operation or completeness claims","addition to generic business totals or cross-segment summation as a unique population","mapping broad 62/624 or administrative/tax/license categories","export of source identifiers, names, addresses, coordinates or geometries","joining ZIP4 or interpreting ZCTA membership as USPS validity"],
+  "export_policy": "local-review-aggregate-only",
+  "retention": "Retain immutable releases and pinned dependencies until approved removal.",
+  "redistribution": "No public export or production enrollment is authorized by this derivative.",
+  "personal_data_handling": "Aggregate source-record counts and retained NAICS strings only; record identifiers exist only in bounded validation memory.",
+  "attribution": "U.S. EPA ECHO Exporter, source updated August 30, 2026; U.S. Census Bureau NAICS/SUSB references, editions 1997–2022."
+}

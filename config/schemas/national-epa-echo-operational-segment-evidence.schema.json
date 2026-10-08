@@ -1,0 +1,1381 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-epa-echo-operational-segment-evidence.schema.json",
+  "title": "EPA source-row operational segment evidence",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "code",
+        "jurisdiction_kind",
+        "source_record_count",
+        "exact_naics_assignments",
+        "records_with_multiple_naics",
+        "records_with_segment",
+        "records_with_unmapped_codes",
+        "records_partially_unmapped",
+        "segment_assignments",
+        "status_counts",
+        "segments"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence-jurisdiction@1.0.0"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "jurisdiction_kind": {
+          "enum": [
+            "state-or-dc",
+            "territory"
+          ]
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "exact_naics_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512000000
+        },
+        "records_with_multiple_naics": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_segment": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_unmapped_codes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_partially_unmapped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "segment_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12000000
+        },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "missing-naics",
+            "invalid-in-all-reference-editions",
+            "unresolved-naics-edition",
+            "valid-outside-operational-segments",
+            "mapped",
+            "partially-unmapped",
+            "multisegment"
+          ],
+          "properties": {
+            "missing-naics": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "invalid-in-all-reference-editions": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "unresolved-naics-edition": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "valid-outside-operational-segments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "mapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "partially-unmapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "multisegment": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            }
+          }
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "segment",
+              "source_record_count",
+              "triggering_codes"
+            ],
+            "properties": {
+              "segment": {
+                "enum": [
+                  "construction",
+                  "retail-consumer",
+                  "financial-services",
+                  "transportation",
+                  "health-care",
+                  "childcare"
+                ]
+              },
+              "source_record_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2000000
+              },
+              "triggering_codes": {
+                "type": "array",
+                "maxItems": 10000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "naics_code",
+                    "source_record_count"
+                  ],
+                  "properties": {
+                    "naics_code": {
+                      "type": "string",
+                      "pattern": "^[0-9]{2,6}$"
+                    },
+                    "source_record_count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2000000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "zip5",
+        "denominator_classification",
+        "zcta_geoid",
+        "source_record_count",
+        "exact_naics_assignments",
+        "records_with_multiple_naics",
+        "records_with_segment",
+        "records_with_unmapped_codes",
+        "records_partially_unmapped",
+        "segment_assignments",
+        "status_counts",
+        "segment_counts"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence-zip@1.0.0"
+        },
+        "zip5": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "denominator_classification": {
+          "enum": [
+            "same-code-census-zcta",
+            "source-contributed-outside-zcta",
+            "denominator-only-outside-zcta",
+            "explicit-placeholder"
+          ]
+        },
+        "zcta_geoid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5}$"
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "exact_naics_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512000000
+        },
+        "records_with_multiple_naics": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_segment": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_unmapped_codes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_partially_unmapped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "segment_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12000000
+        },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "missing-naics",
+            "invalid-in-all-reference-editions",
+            "unresolved-naics-edition",
+            "valid-outside-operational-segments",
+            "mapped",
+            "partially-unmapped",
+            "multisegment"
+          ],
+          "properties": {
+            "missing-naics": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "invalid-in-all-reference-editions": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "unresolved-naics-edition": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "valid-outside-operational-segments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "mapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "partially-unmapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "multisegment": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            }
+          }
+        },
+        "segment_counts": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "segment",
+              "source_record_count"
+            ],
+            "properties": {
+              "segment": {
+                "enum": [
+                  "construction",
+                  "retail-consumer",
+                  "financial-services",
+                  "transportation",
+                  "health-care",
+                  "childcare"
+                ]
+              },
+              "source_record_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2000000
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "zip5",
+        "denominator_classification",
+        "zcta_geoid",
+        "segment",
+        "source_record_count",
+        "triggering_codes"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence-zip-segment@1.0.0"
+        },
+        "zip5": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "denominator_classification": {
+          "enum": [
+            "same-code-census-zcta",
+            "source-contributed-outside-zcta",
+            "denominator-only-outside-zcta",
+            "explicit-placeholder"
+          ]
+        },
+        "zcta_geoid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{5}$"
+        },
+        "segment": {
+          "enum": [
+            "construction",
+            "retail-consumer",
+            "financial-services",
+            "transportation",
+            "health-care",
+            "childcare"
+          ]
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "triggering_codes": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "naics_code",
+              "source_record_count"
+            ],
+            "properties": {
+              "naics_code": {
+                "type": "string",
+                "pattern": "^[0-9]{2,6}$"
+              },
+              "source_record_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 2000000
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "naics_code",
+        "status",
+        "reference_editions",
+        "segment",
+        "reference_titles",
+        "source_record_count"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence-code@1.0.0"
+        },
+        "naics_code": {
+          "type": "string",
+          "pattern": "^[0-9]{2,6}$"
+        },
+        "status": {
+          "enum": [
+            "invalid-in-all-reference-editions",
+            "unresolved-naics-edition",
+            "valid-outside-operational-segments",
+            "mapped"
+          ]
+        },
+        "reference_editions": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              1997,
+              2002,
+              2007,
+              2012,
+              2017,
+              2022
+            ]
+          }
+        },
+        "segment": {
+          "anyOf": [
+            {
+              "enum": [
+                "construction",
+                "retail-consumer",
+                "financial-services",
+                "transportation",
+                "health-care",
+                "childcare"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference_titles": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edition",
+              "reference_code",
+              "membership",
+              "title"
+            ],
+            "properties": {
+              "edition": {
+                "enum": [
+                  1997,
+                  2002,
+                  2007,
+                  2012,
+                  2017,
+                  2022
+                ]
+              },
+              "reference_code": {
+                "type": "string",
+                "pattern": "^[0-9]{2,6}(-[0-9]{2})?$"
+              },
+              "membership": {
+                "enum": [
+                  "direct-reference-member",
+                  "combined-sector-component"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evidence_unit",
+        "source_record_count",
+        "exact_naics_assignments",
+        "records_with_multiple_naics",
+        "records_with_segment",
+        "records_with_unmapped_codes",
+        "records_partially_unmapped",
+        "segment_assignments",
+        "status_counts",
+        "segments",
+        "state_dc_source_records",
+        "territory_source_records",
+        "state_dc_rows",
+        "territory_rows",
+        "zip5_cohort_rows",
+        "positive_source_zip5_rows",
+        "zip5_segment_cells",
+        "exact_naics_codes",
+        "out_of_cohort_source_records",
+        "missing_zip_source_records",
+        "unmapped_operational_segments"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence@1.0.0"
+        },
+        "evidence_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_record_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "exact_naics_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 512000000
+        },
+        "records_with_multiple_naics": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_segment": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_with_unmapped_codes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "records_partially_unmapped": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "segment_assignments": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12000000
+        },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "missing-naics",
+            "invalid-in-all-reference-editions",
+            "unresolved-naics-edition",
+            "valid-outside-operational-segments",
+            "mapped",
+            "partially-unmapped",
+            "multisegment"
+          ],
+          "properties": {
+            "missing-naics": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "invalid-in-all-reference-editions": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "unresolved-naics-edition": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "valid-outside-operational-segments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "mapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "partially-unmapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "multisegment": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            }
+          }
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "segment",
+              "source_record_count",
+              "triggering_codes"
+            ],
+            "properties": {
+              "segment": {
+                "enum": [
+                  "construction",
+                  "retail-consumer",
+                  "financial-services",
+                  "transportation",
+                  "health-care",
+                  "childcare"
+                ]
+              },
+              "source_record_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2000000
+              },
+              "triggering_codes": {
+                "type": "array",
+                "maxItems": 10000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "naics_code",
+                    "source_record_count"
+                  ],
+                  "properties": {
+                    "naics_code": {
+                      "type": "string",
+                      "pattern": "^[0-9]{2,6}$"
+                    },
+                    "source_record_count": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2000000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "state_dc_source_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "territory_source_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "state_dc_rows": {
+          "const": 51
+        },
+        "territory_rows": {
+          "const": 5
+        },
+        "zip5_cohort_rows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50000
+        },
+        "positive_source_zip5_rows": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "zip5_segment_cells": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000000
+        },
+        "exact_naics_codes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "out_of_cohort_source_records": {
+          "const": 0
+        },
+        "missing_zip_source_records": {
+          "const": 0
+        },
+        "unmapped_operational_segments": {
+          "const": [
+            "tax-exempt-organizations",
+            "sales-tax-outlets",
+            "local-business-licenses"
+          ]
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "release_id",
+        "schema_version",
+        "dataset_id",
+        "status",
+        "publication_mode",
+        "created_at",
+        "processing",
+        "inputs",
+        "config_sha256",
+        "echo_replay_config",
+        "crosswalk",
+        "reference_roster_sha256",
+        "reference_editions",
+        "contract_sha256",
+        "summary",
+        "claims",
+        "verification_scope",
+        "artifacts"
+      ],
+      "properties": {
+        "release_id": {
+          "type": "string",
+          "pattern": "^national-epa-echo-operational-segment-evidence-[a-f0-9]{64}$"
+        },
+        "schema_version": {
+          "const": "national-epa-echo-operational-segment-evidence@1.0.0"
+        },
+        "dataset_id": {
+          "const": "national-epa-echo-operational-segment-evidence"
+        },
+        "status": {
+          "const": "immutable-local-review-only"
+        },
+        "publication_mode": {
+          "const": "pointer-free"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "processing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_shards",
+            "maximum_source_shards_in_memory",
+            "source_rows_buffered",
+            "limits"
+          ],
+          "properties": {
+            "source_shards": {
+              "const": 10
+            },
+            "maximum_source_shards_in_memory": {
+              "const": 1
+            },
+            "source_rows_buffered": {
+              "const": 0
+            },
+            "limits": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "echo",
+            "coverage",
+            "geography",
+            "zip_cohort",
+            "naics_reference"
+          ],
+          "properties": {
+            "echo": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "manifest",
+                "manifest_sha256",
+                "release_id"
+              ],
+              "properties": {
+                "manifest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "release_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "coverage": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "manifest",
+                "manifest_sha256",
+                "release_id"
+              ],
+              "properties": {
+                "manifest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "release_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "geography": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "manifest",
+                "manifest_sha256",
+                "release_id"
+              ],
+              "properties": {
+                "manifest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "release_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "zip_cohort": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "manifest",
+                "manifest_sha256",
+                "release_id"
+              ],
+              "properties": {
+                "manifest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "release_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "naics_reference": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "manifest",
+                "manifest_sha256",
+                "release_id"
+              ],
+              "properties": {
+                "manifest": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "release_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "echo_replay_config": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "crosswalk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "reference_roster_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reference_editions": {
+          "const": [
+            1997,
+            2002,
+            2007,
+            2012,
+            2017,
+            2022
+          ]
+        },
+        "contract_sha256": {
+          "type": "object",
+          "minProperties": 3,
+          "maxProperties": 3,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "evidence_unit",
+            "source_record_count",
+            "exact_naics_assignments",
+            "records_with_multiple_naics",
+            "records_with_segment",
+            "records_with_unmapped_codes",
+            "records_partially_unmapped",
+            "segment_assignments",
+            "status_counts",
+            "segments",
+            "state_dc_source_records",
+            "territory_source_records",
+            "state_dc_rows",
+            "territory_rows",
+            "zip5_cohort_rows",
+            "positive_source_zip5_rows",
+            "zip5_segment_cells",
+            "exact_naics_codes",
+            "out_of_cohort_source_records",
+            "missing_zip_source_records",
+            "unmapped_operational_segments"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "national-epa-echo-operational-segment-evidence@1.0.0"
+            },
+            "evidence_unit": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_record_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "exact_naics_assignments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 512000000
+            },
+            "records_with_multiple_naics": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "records_with_segment": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "records_with_unmapped_codes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "records_partially_unmapped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "segment_assignments": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 12000000
+            },
+            "status_counts": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "missing-naics",
+                "invalid-in-all-reference-editions",
+                "unresolved-naics-edition",
+                "valid-outside-operational-segments",
+                "mapped",
+                "partially-unmapped",
+                "multisegment"
+              ],
+              "properties": {
+                "missing-naics": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "invalid-in-all-reference-editions": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "unresolved-naics-edition": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "valid-outside-operational-segments": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "mapped": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "partially-unmapped": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                },
+                "multisegment": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2000000
+                }
+              }
+            },
+            "segments": {
+              "type": "array",
+              "minItems": 6,
+              "maxItems": 6,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "segment",
+                  "source_record_count",
+                  "triggering_codes"
+                ],
+                "properties": {
+                  "segment": {
+                    "enum": [
+                      "construction",
+                      "retail-consumer",
+                      "financial-services",
+                      "transportation",
+                      "health-care",
+                      "childcare"
+                    ]
+                  },
+                  "source_record_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2000000
+                  },
+                  "triggering_codes": {
+                    "type": "array",
+                    "maxItems": 10000,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "naics_code",
+                        "source_record_count"
+                      ],
+                      "properties": {
+                        "naics_code": {
+                          "type": "string",
+                          "pattern": "^[0-9]{2,6}$"
+                        },
+                        "source_record_count": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 2000000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "state_dc_source_records": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "territory_source_records": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "state_dc_rows": {
+              "const": 51
+            },
+            "territory_rows": {
+              "const": 5
+            },
+            "zip5_cohort_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 50000
+            },
+            "positive_source_zip5_rows": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "zip5_segment_cells": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000000
+            },
+            "exact_naics_codes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "out_of_cohort_source_records": {
+              "const": 0
+            },
+            "missing_zip_source_records": {
+              "const": 0
+            },
+            "unmapped_operational_segments": {
+              "const": [
+                "tax-exempt-organizations",
+                "sales-tax-outlets",
+                "local-business-licenses"
+              ]
+            }
+          }
+        },
+        "claims": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source_defined_active_program_facility_as_of",
+            "exact_reported_naics_only",
+            "exact_reference_membership_validated",
+            "naics_edition_inferred",
+            "primary_segment_inferred",
+            "cross_segment_counts_additive",
+            "childcare_in_health_care",
+            "unique_business_count",
+            "verified_site_count",
+            "current_operating_business_count",
+            "business_completeness",
+            "industry_completeness",
+            "authoritative_current_usps_zip_denominator",
+            "reported_zip4_joined",
+            "zcta_membership_is_usps_validity",
+            "generic_business_additivity_delta",
+            "names_addresses_coordinates_identifiers_exported",
+            "network_requests",
+            "acquisition_performed",
+            "current_pointer_written",
+            "production_enrollment",
+            "main_matrix_changed"
+          ],
+          "properties": {
+            "source_defined_active_program_facility_as_of": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "exact_reported_naics_only": {
+              "const": true
+            },
+            "exact_reference_membership_validated": {
+              "const": true
+            },
+            "naics_edition_inferred": {
+              "const": false
+            },
+            "primary_segment_inferred": {
+              "const": false
+            },
+            "cross_segment_counts_additive": {
+              "const": false
+            },
+            "childcare_in_health_care": {
+              "const": false
+            },
+            "unique_business_count": {
+              "type": "null"
+            },
+            "verified_site_count": {
+              "type": "null"
+            },
+            "current_operating_business_count": {
+              "type": "null"
+            },
+            "business_completeness": {
+              "type": "null"
+            },
+            "industry_completeness": {
+              "type": "null"
+            },
+            "authoritative_current_usps_zip_denominator": {
+              "type": "null"
+            },
+            "reported_zip4_joined": {
+              "const": false
+            },
+            "zcta_membership_is_usps_validity": {
+              "const": false
+            },
+            "generic_business_additivity_delta": {
+              "const": 0
+            },
+            "names_addresses_coordinates_identifiers_exported": {
+              "const": false
+            },
+            "network_requests": {
+              "const": 0
+            },
+            "acquisition_performed": {
+              "const": false
+            },
+            "current_pointer_written": {
+              "const": false
+            },
+            "production_enrollment": {
+              "const": false
+            },
+            "main_matrix_changed": {
+              "const": false
+            }
+          }
+        },
+        "verification_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifacts": {
+          "type": "array",
+          "minItems": 17,
+          "maxItems": 17,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "artifact_type",
+              "bytes",
+              "decoded_bytes",
+              "record_count",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 200000000
+              },
+              "decoded_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 512000000
+              },
+              "record_count": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2000000
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

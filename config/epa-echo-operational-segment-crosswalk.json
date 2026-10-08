@@ -1,0 +1,19 @@
+{
+  "schema_version": "epa-echo-operational-segment-crosswalk@1.0.0",
+  "editions": [1997, 2002, 2007, 2012, 2017, 2022],
+  "segments": ["construction", "retail-consumer", "financial-services", "transportation", "health-care", "childcare"],
+  "combined_sector_components": {"44":"44-45","45":"44-45","48":"48-49","49":"48-49"},
+  "rules": [
+    {"segment":"construction","prefixes":["23"],"reference_root":"23","root_title_pattern":"^construction$"},
+    {"segment":"retail-consumer","prefixes":["44","45"],"reference_root":"44-45","root_title_pattern":"^retail trade$"},
+    {"segment":"financial-services","prefixes":["52"],"reference_root":"52","root_title_pattern":"^finance (and|&) insurance$"},
+    {"segment":"transportation","prefixes":["48","49"],"reference_root":"48-49","root_title_pattern":"^transportation (and|&) warehousing$"},
+    {"segment":"health-care","prefixes":["621"],"reference_root":"621","root_title_pattern":"^ambulatory health care services$"},
+    {"segment":"health-care","prefixes":["622"],"reference_root":"622","root_title_pattern":"^hospitals$"},
+    {"segment":"health-care","prefixes":["623"],"reference_root":"623","root_title_pattern":"^nursing (and|&) residential care facilities$"},
+    {"segment":"childcare","prefixes":["6244"],"reference_root":"6244","root_title_pattern":"^child (day )?care services$"}
+  ],
+  "unmapped_operational_segments": ["tax-exempt-organizations", "sales-tax-outlets", "local-business-licenses"],
+  "broad_health_codes_unmapped": ["62", "624"],
+  "claims": {"naics_edition_inferred":false,"primary_segment_inferred":false,"cross_segment_counts_additive":false,"childcare_in_health_care":false,"edition_resolution":"Map only exact reference members with consistent segment and hierarchy semantics across every supported edition containing the code."}
+}

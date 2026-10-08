@@ -289,3 +289,7 @@ export async function verifyNationalEpaEchoNaicsZipIndustryEvidence(manifestPath
     return { verified:true, release_id:manifest.release_id, manifest_sha256:proof.sha256, ...manifest.summary, claims:manifest.claims };
   } finally { contained(root, replay); await fs.rm(replay, { recursive:true, force:true }); }
 }
+
+// Shared bounded replay primitives. Exporting these does not change the historical
+// derivative; successors still replay original rows and bind their own contracts.
+export const echoReplay = Object.freeze({ secureBuffer, streamArtifact, pinned, declaration, jsonArtifact, load, blank, add, serialize, coverageBlank, addCoverage, reconcile, writeRows, canonical, contained, stableIdentity, equal, exact, check, stop, sha, encoded, METRICS, CLASSIFICATIONS, TERRITORIES, ALL_CODES, LIMITS });
