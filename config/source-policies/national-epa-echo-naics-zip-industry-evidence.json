@@ -1,0 +1,14 @@
+{
+  "policy_id": "national-epa-echo-naics-zip-industry-evidence",
+  "version": "1.0.0",
+  "source_kind": "derived aggregate over retained EPA ECHO accepted active-program-facility source rows",
+  "ownership": "EPA publishes the retained source records. Co*Tive owns only the aggregate transformation.",
+  "terms": "Inherits the retained EPA ECHO source policy; no new acquisition or source access is performed.",
+  "allowed_use": ["local checksum-bound normalized-row replay", "exact reported NAICS memberships by ZIP5", "reported state/DC and separate territory aggregate evidence", "NAICS missingness and overlap accounting"],
+  "prohibited_use": ["network requests or downloads", "unique businesses, independently verified sites, current business operation or completeness claims", "adding overlapping exact NAICS memberships or this existing ECHO cohort to generic business totals", "primary-code selection, prefix expansion or operational-industry mapping without a governed crosswalk", "claiming an official NAICS edition or validating code existence from syntax alone", "publishing names, addresses, coordinates, FRS/program/record identifiers, URLs, geometry, quarantine or raw records", "joining reported ZIP4, using ZCTA as USPS validity, or assigning state from ZIP/ZCTA"],
+  "export_policy": "local-review-aggregate-only",
+  "retention": "Retain immutable derivative releases and pinned dependency metadata until approved removal.",
+  "redistribution": "No public export or production enrollment is authorized by this derivative.",
+  "personal_data_handling": "Aggregate counts and exact classification strings only; source identifiers stay in bounded verification memory.",
+  "attribution": "Source: U.S. Environmental Protection Agency, Enforcement and Compliance History Online Exporter; source update 2026-08-30."
+}

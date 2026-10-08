@@ -1,0 +1,32 @@
+{
+  "schema_version": "national-epa-echo-naics-zip-industry-evidence-config@1.0.0",
+  "echo": {
+    "manifest": "data/business-sources/epa-echo-active-facilities/releases/epa-echo-20260903-002418917Z-3c1270e9/manifest.json",
+    "manifest_sha256": "3de9a8d9c54006d8983581105cd7e51e8e719291b3731d78e911c65b262625fa",
+    "release_id": "epa-echo-20260903-002418917Z-3c1270e9"
+  },
+  "coverage": {
+    "manifest": "data/national-epa-echo-active-facility-coverage/releases/national-epa-echo-active-facility-coverage-ddf773ab24a2942d/manifest.json",
+    "manifest_sha256": "8746387114218de2a8b5c2917dadc548f28adc3f637974a9da4d007c4adf2f9a",
+    "release_id": "national-epa-echo-active-facility-coverage-ddf773ab24a2942d"
+  },
+  "geography": {
+    "manifest": "data/geography/releases/us-census-geography-20260830-132803990Z-3629abc0/manifest.json",
+    "manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "release_id": "us-census-geography-20260830-132803990Z-3629abc0"
+  },
+  "zip_cohort": {
+    "manifest": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb/manifest.json",
+    "manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
+    "release_id": "zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb"
+  },
+  "expected": {
+    "source_rows": 1517826,
+    "jurisdictions": 56,
+    "positive_source_zips": 38401,
+    "coverage_zip_rows": 41584,
+    "cohort_zip_rows": 48194,
+    "zcta_rows": 33791,
+    "shards": 10
+  }
+}

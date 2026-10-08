@@ -1,0 +1,30 @@
+{
+  "dataset_id": "national-epa-echo-naics-zip-industry-evidence",
+  "schema_version": "1.0.0",
+  "title": "Retained EPA ECHO exact NAICS and reported ZIP5 evidence",
+  "status": "published-pointer-free-local-review-evidence",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "additive_to_generic_business_totals": false,
+  "operational_segments_mapped": false,
+  "retained_release": {
+    "release_id": "national-epa-echo-naics-zip-industry-evidence-cd5282edfa7dbf65ff781819c28e74f6f7c9e914c943fdada3daa83e51f7ccba",
+    "manifest": "data/national-epa-echo-naics-zip-industry-evidence/releases/national-epa-echo-naics-zip-industry-evidence-cd5282edfa7dbf65ff781819c28e74f6f7c9e914c943fdada3daa83e51f7ccba/manifest.json",
+    "manifest_sha256": "0526dd13e62b8e1f9cff8298ffa23b72b8de7691123f9eea75b17391f0fc4437",
+    "source_record_count": 1517826,
+    "records_with_naics": 1015850,
+    "records_without_naics": 501976,
+    "records_with_multiple_naics": 140303,
+    "exact_naics_assignments": 1212411,
+    "exact_naics_codes": 2449,
+    "state_dc_rows": 51,
+    "territory_rows": 5,
+    "zip5_cohort_rows": 48194,
+    "zip5_exact_naics_cells": 572842
+  },
+  "configuration": "config/national-epa-echo-naics-zip-industry-evidence.json",
+  "connector": "config/connectors/national-epa-echo-naics-zip-industry-evidence.json",
+  "source_policy": "config/source-policies/national-epa-echo-naics-zip-industry-evidence.json",
+  "required_datasets": ["epa-echo-active-facilities", "national-epa-echo-active-facility-coverage", "us-census-geography", "zip-denominator-gap-cohort"],
+  "documentation": "docs/NATIONAL-EPA-ECHO-NAICS-ZIP-INDUSTRY-EVIDENCE.md"
+}

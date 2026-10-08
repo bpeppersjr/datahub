@@ -5743,7 +5743,95 @@ export function ExactZipIndustryNationalSummary(){const[view,setView]=useState<E
 function GovernedCoverageStates(){return <section className="supporting-evidence" aria-label="Nonblocking geography coverage states"><h4>Geography coverage states</h4><p>These states remain visible and never block retained source evidence. They are context states, not business completeness or ZIP-validity decisions.</p><dl><dt>Census ZCTA</dt><dd>Available map geography where a same-code 2020 Census ZCTA is retained.</dd><dt>Private or special-purpose ZIP evidence</dt><dd>Preserved as reported non-ZCTA/special-purpose evidence only where the governed source supplies that classification; otherwise unresolved. Population may be unavailable and is not required.</dd><dt>Park or protected land</dt><dd>Unavailable until a governed protected-land overlay is retained. No classification is inferred and the map remains usable.</dd><dt>Tribal or Native territory</dt><dd>Unavailable until a governed tribal-area overlay is retained. No classification is inferred and the map remains usable.</dd><dt>Unresolved land outside selected ZCTAs</dt><dd>A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents, providing state-level placement without inventing ZIP coverage. Its components have unique state/cardinal reference labels derived from bounding-box midpoint orientation; these labels do not subdivide geometry or assert centroids. It remains nonblocking optional context and does not infer a ZIP, population, park, tribal/Native, private-land, or business status.</dd></dl></section>}
 
 type OperationalIndustryCrosswalkView={schema_version:'operational-industry-evidence-summary@1.0.0';state:{code:string;name:string;fips:string;governed_zcta_zip5_rows:number};industries:Array<{id:string;mapped_dimensions:number;dimensions_with_retained_evidence:number;dimension_evidence_availability_percent:number|null;measured_zip_dimension_cells:number;zip_dimension_cell_denominator:number;exact_zip_measurement_reach_percent:number|null;dimensions:Array<{id:string;measured_zip_dimension_cells:number;positive_zip_dimension_cells:number;temporal_qualification:{source_release_id:string|null;review_qualification:string;semantic_class:string}}>} >;unmapped_dimensions:Array<{id:string;reason:string}>;special_geography:{included_in_state_denominator:false;non_zcta_unassigned_reported_separately:true;material_cross_state_zctas_reported_separately:true};claims:{metric_unit:'ZIP5-by-source-dimension evidence cells';business_or_entity_counts_added:false;business_completeness:null;industry_completeness:null;current_operation_verified:false;usps_validity_verified:false;zip4_joined:false;network_requests:0;runtime_writes:0;production_enrollment:false;export_authorized:false};provenance:{crosswalk_sha256:string;summary_release_id:string;summary_manifest_sha256:string;state_disposition_release_id:string;state_disposition_manifest_sha256:string;state_disposition_artifact_sha256:string}};
-function validOperationalIndustryCrosswalkView(input:unknown,state:string):input is OperationalIndustryCrosswalkView{if(!exactObject(input)||input.schema_version!=='operational-industry-evidence-summary@1.0.0'||!exactObject(input.state)||input.state.code!==state||!Array.isArray(input.industries)||input.industries.length!==9||new Set(input.industries.map(row=>exactObject(row)?row.id:null)).size!==9||!Array.isArray(input.unmapped_dimensions)||!exactObject(input.claims)||input.claims.metric_unit!=='ZIP5-by-source-dimension evidence cells'||input.claims.business_or_entity_counts_added!==false||input.claims.business_completeness!==null||input.claims.industry_completeness!==null||input.claims.current_operation_verified!==false||input.claims.zip4_joined!==false||input.claims.network_requests!==0||input.claims.runtime_writes!==0||!exactObject(input.provenance))return false;return input.industries.every(item=>{if(!exactObject(item))return false;const row=item as Record<string,unknown>;return operationalIndustryIds.includes(row.id as typeof operationalIndustryIds[number])&&Number.isSafeInteger(row.mapped_dimensions)&&Number(row.mapped_dimensions)>0&&Number.isSafeInteger(row.dimensions_with_retained_evidence)&&Number(row.dimensions_with_retained_evidence)>=0&&Number(row.dimensions_with_retained_evidence)<=Number(row.mapped_dimensions)&&Number.isSafeInteger(row.measured_zip_dimension_cells)&&Number.isSafeInteger(row.zip_dimension_cell_denominator)&&Number(row.measured_zip_dimension_cells)<=Number(row.zip_dimension_cell_denominator)&&Array.isArray(row.dimensions)&&row.dimensions.length===Number(row.mapped_dimensions)})}
+// Closed mappings and provenance for the retained v3.1 crosswalk projection.
+const OPERATIONAL_INDUSTRY_DIMENSIONS: Record<string, string[]> = {
+  'retail-consumer': ['snap_retailers','pharmacy','ca_abc_license_location_profiles','ny_retail_food_location_profiles','cms_nppes_pharmacy_nonprimary_reported_address_rows','ca_abc_active_issued_license_physical_sites','ny_retail_food_license_address_evidence_count'],
+  'health-care': ['healthcare_organizations','pharmacy','cms_hospital_directory','cms_nursing_home_directory','cms_nppes_pharmacy_nonprimary_reported_address_rows'],
+  'financial-services': ['fdic_offices','credit_union_locations'],
+  transportation: ['transportation'],
+  construction: ['wa_lni_active_contractor_organization_mailing_addresses','mn_residential_construction_credential_reported_address_rows'],
+  'tax-exempt-organizations': ['tax_exempt_organizations'],
+  'sales-tax-outlets': ['tx_sales_tax_outlet_profiles','tx_active_sales_tax_permitted_outlet_physical_sites'],
+  'local-business-licenses': ['ak_license_location_profiles','chicago_license_location_profiles','dc_basic_license_location_profiles','la_registered_location_profiles','nyc_dcwp_license_location_profiles','broad_org_de_license_addresses','dc_active_basic_business_license_physical_sites','la_publisher_active_listing_location_account_sites','ak_active_business_license_conditional_physical_sites','chicago_current_active_business_license_physical_sites'],
+  childcare: ['childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates','childcare_ma_reporting_centers','childcare_nj_reporting_centers','childcare_tn_reporting_centers','childcare_oh_reporting_centers'],
+};
+const OPERATIONAL_CROSSWALK_PROVENANCE = {
+  crosswalk_sha256: '8c0763a56c4941e410387f986805bf595e227217d816b0c039b9cb2e0c2d219f',
+  summary_release_id: 'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9',
+  summary_manifest_sha256: '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7',
+  state_disposition_release_id: 'state-exact-zip-industry-evidence-disposition-62e4ced49cfb1c0d41628864f1b867c8b89a9f58bec66de1e146568f777f544a',
+  state_disposition_manifest_sha256: '1678f94007155d602dd9d803093c1efd368aa862498da8d0108a969b3b0d4f6e',
+  state_disposition_artifact_sha256: '647da886fc5dceec381b787d2309f593dcb4db6bc8dedb87c8774e2d405fe888',
+};
+const OPERATIONAL_STATE_FIPS: Record<string, string> = Object.fromEntries(
+  operationalStates.map((state, index) => [state, ['02','01','05','04','06','08','09','11','10','12','13','15','19','16','17','18','20','21','22','25','24','23','26','27','29','28','30','37','38','31','33','34','35','32','36','39','40','41','42','44','45','46','47','48','49','51','50','53','55','54','56'][index]]),
+);
+function validOperationalIndustryCrosswalkView(input: unknown, state: string): input is OperationalIndustryCrosswalkView {
+  const nonnegative = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) >= 0;
+  const percent = (value: unknown, numerator: number, denominator: number) => denominator === 0
+    ? value === null
+    : typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && value === Number((numerator / denominator * 100).toFixed(1));
+  if (!exactObject(input) || !exactKeys(input, ['schema_version','state','industries','unmapped_dimensions','special_geography','claims','provenance']) ||
+    input.schema_version !== 'operational-industry-evidence-summary@1.0.0' ||
+    !operationalStates.includes(state as typeof operationalStates[number]) ||
+    !exactObject(input.state) || !exactKeys(input.state, ['code','name','fips','governed_zcta_zip5_rows']) ||
+    input.state.code !== state || input.state.fips !== OPERATIONAL_STATE_FIPS[state] ||
+    typeof input.state.name !== 'string' || !input.state.name.trim() ||
+    !nonnegative(input.state.governed_zcta_zip5_rows) || input.state.governed_zcta_zip5_rows > 33791 ||
+    !Array.isArray(input.industries) || input.industries.length !== operationalIndustryIds.length ||
+    new Set(input.industries.map(row => exactObject(row) ? row.id : null)).size !== operationalIndustryIds.length ||
+    !Array.isArray(input.unmapped_dimensions) ||
+    !sameClosed(input.provenance, OPERATIONAL_CROSSWALK_PROVENANCE) ||
+    !sameClosed(input.special_geography, {included_in_state_denominator:false,non_zcta_unassigned_reported_separately:true,material_cross_state_zctas_reported_separately:true}) ||
+    !sameClosed(input.claims, {metric_unit:'ZIP5-by-source-dimension evidence cells',business_or_entity_counts_added:false,business_completeness:null,industry_completeness:null,current_operation_verified:false,usps_validity_verified:false,zip4_joined:false,network_requests:0,runtime_writes:0,production_enrollment:false,export_authorized:false})) return false;
+
+  const zipRows = input.state.governed_zcta_zip5_rows;
+  const mapped = new Set(Object.values(OPERATIONAL_INDUSTRY_DIMENSIONS).flat());
+  const unmapped = EXACT_ZIP_V31_SUMMARY_CONTRACT.filter(([id]) => !mapped.has(id));
+  if (input.unmapped_dimensions.length !== unmapped.length ||
+    new Set(input.unmapped_dimensions.map(row => exactObject(row) ? row.id : null)).size !== unmapped.length ||
+    !input.unmapped_dimensions.every(row => exactObject(row) && exactKeys(row, ['id','reason']) &&
+      unmapped.some(([id]) => id === row.id) && typeof row.reason === 'string' && !!row.reason.trim())) return false;
+
+  const seenDimensions = new Map<string, unknown>();
+  return input.industries.every(row => {
+    if (!exactObject(row) || !exactKeys(row, ['id','mapped_dimensions','dimensions_with_retained_evidence','dimension_evidence_availability_percent','measured_zip_dimension_cells','zip_dimension_cell_denominator','exact_zip_measurement_reach_percent','dimensions']) ||
+      typeof row.id !== 'string' || !operationalIndustryIds.includes(row.id as typeof operationalIndustryIds[number])) return false;
+    const expectedDimensions = OPERATIONAL_INDUSTRY_DIMENSIONS[row.id];
+    if (row.mapped_dimensions !== expectedDimensions.length || !nonnegative(row.dimensions_with_retained_evidence) ||
+      row.dimensions_with_retained_evidence > expectedDimensions.length || !nonnegative(row.measured_zip_dimension_cells) ||
+      !nonnegative(row.zip_dimension_cell_denominator) || row.zip_dimension_cell_denominator !== zipRows * expectedDimensions.length ||
+      row.measured_zip_dimension_cells > row.zip_dimension_cell_denominator ||
+      !percent(row.dimension_evidence_availability_percent, row.dimensions_with_retained_evidence, expectedDimensions.length) ||
+      !percent(row.exact_zip_measurement_reach_percent, row.measured_zip_dimension_cells, row.zip_dimension_cell_denominator) ||
+      !Array.isArray(row.dimensions) || row.dimensions.length !== expectedDimensions.length ||
+      new Set(row.dimensions.map(dimension => exactObject(dimension) ? dimension.id : null)).size !== expectedDimensions.length) return false;
+    let measured = 0, evidenced = 0;
+    for (const dimension of row.dimensions) {
+      if (!exactObject(dimension) || !exactKeys(dimension, ['id','measured_zip_dimension_cells','positive_zip_dimension_cells','disposition_counts','temporal_qualification']) ||
+        typeof dimension.id !== 'string' || !expectedDimensions.includes(dimension.id) ||
+        !nonnegative(dimension.measured_zip_dimension_cells) || dimension.measured_zip_dimension_cells > zipRows ||
+        !nonnegative(dimension.positive_zip_dimension_cells) || dimension.positive_zip_dimension_cells > dimension.measured_zip_dimension_cells ||
+        !exactObject(dimension.disposition_counts) || !exactKeys(dimension.disposition_counts, ['evidence-present','measured-zero','source-did-not-publish-for-zip','outside-source-evidence-union','outside-source-denominator','absent-from-retained-source-rows','unavailable']) ||
+        !Object.values(dimension.disposition_counts).every(nonnegative)) return false;
+      const counts = dimension.disposition_counts as Record<string, number>;
+      if (Object.values(counts).reduce((sum, value) => sum + value, 0) !== zipRows ||
+        counts['evidence-present'] !== dimension.positive_zip_dimension_cells ||
+        counts['evidence-present'] + counts['measured-zero'] !== dimension.measured_zip_dimension_cells) return false;
+      const temporal = EXACT_ZIP_V31_SUMMARY_CONTRACT.find(([id]) => id === dimension.id)?.[2];
+      if (!temporal || !sameClosed(dimension.temporal_qualification, {
+        source_key: temporal.source_key, source_release_id: temporal.source_release_id,
+        source_reference_at: temporal.source_reference_at, review_due_at: temporal.review_due_at,
+        review_qualification: temporal.review_qualification, semantic_class: temporal.semantic_class,
+        source_status_term: temporal.source_status_term,
+      }) || seenDimensions.has(dimension.id) && !sameClosed(dimension, seenDimensions.get(dimension.id))) return false;
+      seenDimensions.set(dimension.id, dimension);
+      measured += dimension.measured_zip_dimension_cells;
+      if (dimension.measured_zip_dimension_cells > 0) evidenced++;
+    }
+    return row.measured_zip_dimension_cells === measured && row.dimensions_with_retained_evidence === evidenced;
+  });
+}
 function OperationalIndustryCrosswalkStatus({state}:{state:string}){const[result,setResult]=useState<{state:string;view:OperationalIndustryCrosswalkView|null;failed:boolean}|null>(null),view=result?.state===state?result.view:null,failed=result?.state===state&&result.failed;useEffect(()=>{if(!state)return;const controller=new AbortController();setResult(null);void runnerJson<unknown>(`/api/business-map/operational-industry-evidence?state=${encodeURIComponent(state)}`,{signal:controller.signal}).then(value=>{if(controller.signal.aborted)return;setResult(validOperationalIndustryCrosswalkView(value,state)?{state,view:value,failed:false}:{state,view:null,failed:true})}).catch(reason=>{if(!controller.signal.aborted&&reason?.name!=='AbortError')setResult({state,view:null,failed:true})});return()=>controller.abort()},[state]);if(!state)return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>Selected-state industry evidence</h4><p>Select a state to compare the nine operational industries with retained exact-ZIP evidence.</p></section>;if(failed)return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>{state} industry evidence</h4><p role="alert">Verified retained evidence is unavailable; no percentage or zero was inferred.</p></section>;if(!view)return <p role="status">Verifying {state} operational-industry evidence…</p>;return <section className="supporting-evidence" aria-label="Selected-state operational industry evidence"><h4>{view.state.name} · operational industry evidence</h4><p>{count(view.state.governed_zcta_zip5_rows)} governed state ZCTA ZIP5 keys. Percentages below measure retained source-dimension evidence cells, not businesses or industry completeness.</p><div className="state-industry-progress">{view.industries.map(row=><div key={row.id}><span>{row.id.replaceAll('-',' ')}</span><strong>{row.exact_zip_measurement_reach_percent===null?'Unmeasured':`${row.exact_zip_measurement_reach_percent.toFixed(1)}%`}</strong><small>Exact-ZIP measurement reach · {count(row.measured_zip_dimension_cells)} / {count(row.zip_dimension_cell_denominator)} ZIP5-by-source-dimension cells</small><small>Dimension evidence availability {row.dimension_evidence_availability_percent?.toFixed(1)??'Unmeasured'}% · {row.dimensions_with_retained_evidence}/{row.mapped_dimensions} mapped dimensions</small></div>)}</div><details><summary>Mapped source dimensions and provenance</summary>{view.industries.map(row=><div key={row.id}><strong>{row.id.replaceAll('-',' ')}</strong>{row.dimensions.map(dimension=><small key={dimension.id}><code>{dimension.id}</code> · {dimension.temporal_qualification.review_qualification.replaceAll('-',' ')} · {dimension.temporal_qualification.semantic_class.replaceAll('-',' ')} · release {dimension.temporal_qualification.source_release_id??'unresolved'}</small>)}</div>)}</details><p className="operations-note">The crosswalk does not add overlapping source rows or entities. Non-ZCTA, materially cross-state, unresolved, and placeholder ZIP evidence stays outside the state denominator. ZIP+4 remains separate. Current operation, USPS validity, public export, production enrollment, and business or industry completeness remain unverified.</p></section>}
 function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><OperationalIndustryCrosswalkStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {

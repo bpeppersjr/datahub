@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "national-epa-echo-naics-zip-industry-evidence.schema.json",
+  "title": "Retained EPA ECHO exact NAICS aggregate evidence",
+  "oneOf": [
+    {"$ref": "#/$defs/jurisdiction"},
+    {"$ref": "#/$defs/zipNaics"},
+    {"$ref": "#/$defs/zip"},
+    {"$ref": "#/$defs/summary"},
+    {"$ref": "#/$defs/manifest"}
+  ],
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0, "maximum": 9007199254740991},
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "naics": {"type": "string", "pattern": "^[0-9]{2,6}$"},
+    "naicsEvidence": {
+      "type": "array", "maxItems": 10000,
+      "items": {"type": "object", "additionalProperties": false, "required": ["naics_code", "source_record_count"], "properties": {"naics_code": {"$ref": "#/$defs/naics"}, "source_record_count": {"type": "integer", "minimum": 1, "maximum": 2000000}}}
+    },
+    "classification": {"enum": ["same-code-census-zcta", "source-contributed-outside-zcta", "denominator-only-outside-zcta", "explicit-placeholder"]},
+    "zcta": {"type": ["string", "null"], "pattern": "^[0-9]{5}$"},
+    "jurisdiction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "code", "jurisdiction_kind", "source_record_count", "records_with_naics", "records_without_naics", "records_with_multiple_naics", "exact_naics_assignments", "naics_evidence"],
+      "properties": {
+        "schema_version": {"const": "national-epa-echo-naics-zip-industry-evidence-jurisdiction@1.0.0"},
+        "code": {"type": "string", "pattern": "^[A-Z]{2}$"},
+        "jurisdiction_kind": {"enum": ["state-or-dc", "territory"]},
+        "source_record_count": {"$ref": "#/$defs/count"},
+        "records_with_naics": {"$ref": "#/$defs/count"},
+        "records_without_naics": {"$ref": "#/$defs/count"},
+        "records_with_multiple_naics": {"$ref": "#/$defs/count"},
+        "exact_naics_assignments": {"$ref": "#/$defs/count"},
+        "naics_evidence": {"$ref": "#/$defs/naicsEvidence"}
+      }
+    },
+    "zipNaics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "zip5", "denominator_classification", "zcta_geoid", "naics_code", "source_record_count"],
+      "properties": {
+        "schema_version": {"const": "national-epa-echo-naics-zip-industry-evidence-zip-naics@1.0.0"},
+        "zip5": {"type": "string", "pattern": "^[0-9]{5}$"},
+        "denominator_classification": {"$ref": "#/$defs/classification"},
+        "zcta_geoid": {"$ref": "#/$defs/zcta"},
+        "naics_code": {"$ref": "#/$defs/naics"},
+        "source_record_count": {"type": "integer", "minimum": 1, "maximum": 2000000}
+      }
+    },
+    "zip": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "zip5", "denominator_classification", "zcta_geoid", "source_record_count", "records_with_naics", "records_without_naics", "records_with_multiple_naics", "exact_naics_assignments", "exact_naics_code_count", "naics_status"],
+      "properties": {
+        "schema_version": {"const": "national-epa-echo-naics-zip-industry-evidence-zip@1.0.0"},
+        "zip5": {"type": "string", "pattern": "^[0-9]{5}$"},
+        "denominator_classification": {"$ref": "#/$defs/classification"},
+        "zcta_geoid": {"$ref": "#/$defs/zcta"},
+        "source_record_count": {"$ref": "#/$defs/count"},
+        "records_with_naics": {"$ref": "#/$defs/count"},
+        "records_without_naics": {"$ref": "#/$defs/count"},
+        "records_with_multiple_naics": {"$ref": "#/$defs/count"},
+        "exact_naics_assignments": {"$ref": "#/$defs/count"},
+        "exact_naics_code_count": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "naics_status": {"enum": ["no-retained-echo-records", "retained-records-without-naics", "reported-exact-naics-evidence"]}
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "evidence_unit", "naics_code_interpretation", "source_record_count", "records_with_naics", "records_without_naics", "records_with_multiple_naics", "exact_naics_assignments", "naics_evidence", "state_dc_source_records", "territory_source_records", "state_dc_rows", "territory_rows", "zip5_cohort_rows", "positive_source_zip5_rows", "zip5_exact_naics_cells"],
+      "properties": {
+        "schema_version": {"const": "national-epa-echo-naics-zip-industry-evidence@1.0.0"},
+        "evidence_unit": {"const": "retained ECHO accepted source record with an exact reported NAICS code"},
+        "naics_code_interpretation": {"const": "exact retained 2–6 digit code; no prefix expansion, primary-code selection, official edition verification, or operational-industry mapping"},
+        "source_record_count": {"$ref": "#/$defs/count"},
+        "records_with_naics": {"$ref": "#/$defs/count"},
+        "records_without_naics": {"$ref": "#/$defs/count"},
+        "records_with_multiple_naics": {"$ref": "#/$defs/count"},
+        "exact_naics_assignments": {"$ref": "#/$defs/count"},
+        "naics_evidence": {"$ref": "#/$defs/naicsEvidence"},
+        "state_dc_source_records": {"$ref": "#/$defs/count"},
+        "territory_source_records": {"$ref": "#/$defs/count"},
+        "state_dc_rows": {"const": 51},
+        "territory_rows": {"const": 5},
+        "zip5_cohort_rows": {"type": "integer", "minimum": 0, "maximum": 50000},
+        "positive_source_zip5_rows": {"$ref": "#/$defs/count"},
+        "zip5_exact_naics_cells": {"$ref": "#/$defs/count"}
+      }
+    },
+    "binding": {"type": "object", "additionalProperties": false, "required": ["manifest", "manifest_sha256", "release_id"], "properties": {"manifest": {"type": "string", "minLength": 1}, "manifest_sha256": {"$ref": "#/$defs/hash"}, "release_id": {"type": "string", "minLength": 1}}},
+    "manifest": {
+      "type": "object", "additionalProperties": false,
+      "required": ["release_id", "schema_version", "dataset_id", "status", "publication_mode", "created_at", "processing", "inputs", "config_sha256", "contract_sha256", "summary", "claims", "verification_scope", "artifacts"],
+      "properties": {
+        "release_id": {"type": "string", "pattern": "^national-epa-echo-naics-zip-industry-evidence-[a-f0-9]{64}$"},
+        "schema_version": {"const": "national-epa-echo-naics-zip-industry-evidence@1.0.0"},
+        "dataset_id": {"const": "national-epa-echo-naics-zip-industry-evidence"},
+        "status": {"const": "immutable-local-review-only"},
+        "publication_mode": {"const": "pointer-free"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "processing": {"type": "object", "additionalProperties": false, "required": ["source_shards", "maximum_source_shards_in_memory", "source_rows_buffered", "limits"], "properties": {"source_shards": {"const": 10}, "maximum_source_shards_in_memory": {"const": 1}, "source_rows_buffered": {"const": 0}, "limits": {"type": "object", "additionalProperties": {"$ref": "#/$defs/count"}}}},
+        "inputs": {"type": "object", "additionalProperties": false, "required": ["echo", "coverage", "geography", "zip_cohort"], "properties": {"echo": {"$ref": "#/$defs/binding"}, "coverage": {"$ref": "#/$defs/binding"}, "geography": {"$ref": "#/$defs/binding"}, "zip_cohort": {"$ref": "#/$defs/binding"}}},
+        "config_sha256": {"$ref": "#/$defs/hash"},
+        "contract_sha256": {"type": "object", "minProperties": 3, "maxProperties": 3, "additionalProperties": {"$ref": "#/$defs/hash"}},
+        "summary": {"type": "object"},
+        "claims": {"const": {"source_defined_active_program_facility_as_of": "2026-08-30T06:36:03.000Z", "exact_reported_naics_only": true, "naics_assignments_nonadditive": true, "naics_edition_verified": false, "primary_industry_inferred": false, "operational_segments_mapped": false, "unique_business_count": null, "verified_site_count": null, "current_operating_business_count": null, "business_completeness": null, "industry_completeness": null, "authoritative_current_usps_zip_denominator": null, "reported_zip4_joined": false, "zcta_membership_is_usps_validity": false, "generic_business_additivity_delta": 0, "names_addresses_coordinates_identifiers_exported": false, "network_requests": 0, "acquisition_performed": false, "current_pointer_written": false, "production_enrollment": false, "main_matrix_changed": false}},
+        "verification_scope": {"type": "string", "minLength": 1},
+        "artifacts": {"type": "array", "minItems": 14, "maxItems": 14, "items": {"type": "object", "additionalProperties": false, "required": ["path", "artifact_type", "bytes", "decoded_bytes", "record_count", "sha256"], "properties": {"path": {"type": "string", "minLength": 1}, "artifact_type": {"type": "string", "minLength": 1}, "bytes": {"type": "integer", "minimum": 0, "maximum": 200000000}, "decoded_bytes": {"type": "integer", "minimum": 0, "maximum": 512000000}, "record_count": {"type": "integer", "minimum": 0, "maximum": 2000000}, "sha256": {"$ref": "#/$defs/hash"}}}}
+      }
+    }
+  }
+}
