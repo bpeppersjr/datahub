@@ -55,6 +55,16 @@
       "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
       "schema_version": "business-entity-lifecycle-eligibility-release@1.0.0"
     },
+    "entity_geography_registration": {
+      "path": "config/datasets/business-entity-geography-relationship.json",
+      "sha256": "bc81d33b80a92da55f31713d36813807e7224da599ab24aa3898522b338f5829"
+    },
+    "entity_geography": {
+      "path": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7/manifest.json",
+      "sha256": "07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2",
+      "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
+      "schema_version": "business-entity-geography-relationship-release@1.0.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261007023010-5b9c3f32-72fb-4853-80bd-5bca775f640e.json",
       "sha256": "aba6e72ebcf280e926fd0bb1cf3d996b1ec4e1098292a8dca84f15cf47d36c27"

@@ -5,11 +5,12 @@ import { APP_ROOT } from './paths.mjs';
 import { echoReplay as r, STATE_DC_CODES } from './national-epa-echo-naics-zip-industry-evidence.mjs';
 import { readExactZipIndustrySummaryV31 } from './exact-zip-industry-summary-v3-1.mjs';
 import { projectOperationalIndustryEvidence } from './operational-industry-evidence-summary.mjs';
+import { verifyBusinessEntityGeographyRelationship } from './business-entity-geography-relationship.mjs';
 
 export const DATASET = 'national-goal-evidence-federation';
 export const VERSION = `${DATASET}@1.0.0`;
 export const CLAIMS = Object.freeze({ all_business_denominator:null, business_completeness:null, industry_completeness:null, unique_business_count:null, current_operating_business_count:null, current_operation_verified:false, cross_industry_counts_additive:false, epa_memberships_additive_to_business_totals:false, usps_validity_verified:false, zcta_membership_is_usps_validity:false, zip4_joined:false, business_geometry_required:false, missing_population_blocks_map:false, unresolved_geography_blocks_map:false, raw_business_rows_exported:false, network_requests:0, acquisition_performed:false, current_pointer_written:false, production_enrollment:false });
-const INPUT_NAMES = ['goal','matrix','disposition','epa','geography','cohort','non_zcta','crosswalk','lifecycle','access','industries','operational_crosswalk','summary_implementation','temporal_mapping'];
+const INPUT_NAMES = ['goal','matrix','disposition','epa','geography','cohort','non_zcta','crosswalk','lifecycle','entity_geography_registration','entity_geography','access','industries','operational_crosswalk','summary_implementation','temporal_mapping'];
 const CONTRACTS = ['connectors','schemas','source-policies'].map(part=>`config/${part}/${DATASET}${part==='schemas'?'.schema':''}.json`);
 const count = n => Number.isSafeInteger(n) && n >= 0;
 const EVIDENCE_BY_RAW = {positive:'evidence-present','measured-positive':'evidence-present','retained-linkage-evidence':'evidence-present','measured-zero':'measured-zero','not-published-for-zip':'source-did-not-publish-for-zip','outside-zbp-zcta-evidence-union':'outside-source-evidence-union','outside-source-denominator':'outside-source-denominator','absent-from-retained-source-rows':'absent-from-retained-source-rows',unavailable:'unavailable','no-resolution-decision':'unavailable'};
@@ -25,7 +26,7 @@ async function load(root,configPath,signal) {
   for (const name of INPUT_NAMES) {
     const pin=config.inputs[name], manifest=Object.hasOwn(pin,'release_id');
     check(r.exact(pin,manifest?['path','sha256','release_id','schema_version']:['path','sha256']) && /^[a-f0-9]{64}$/.test(pin.sha256),'pin schema');
-    const proof=await r.secureBuffer(root,r.contained(root,pin.path),name==='access'?10_000_000:200_000,signal);
+    const proof=await r.secureBuffer(root,r.contained(root,pin.path),name==='access'?10_000_000:name==='entity_geography'?1_000_000:200_000,signal);
     check(proof.sha256===pin.sha256,`${name} hash drift`);
     const value=['summary_implementation','temporal_mapping'].includes(name)?null:JSON.parse(proof.raw);
     if(manifest) check(value.release_id===pin.release_id && value.schema_version===pin.schema_version,`${name} release identity`);
@@ -52,7 +53,7 @@ export function federationGeographyScope(row,overlay) {
   return `${['60','66','69','72','78'].includes(fips)?'territory':'state'}:${fips}`;
 }
 
-async function derive(input,output,signal,hooks) {
+async function derive(input,output,signal,hooks,verifyRelationship=true) {
   const {root,inputs,summary}=input;
   const disposition=await artifact(input,'disposition','state-dispositions.json',4_000_000,signal), scopes=new Map(disposition.map(row=>[row.scope_id,row]));
   check(scopes.size===60 && disposition.filter(row=>row.scope_id.startsWith('state:')).length===51 && disposition.reduce((n,row)=>n+row.zip5_rows,0)===48194,'closed geography scopes');
@@ -114,10 +115,18 @@ async function derive(input,output,signal,hooks) {
   const geography=await artifact(input,'geography','national-geography-goal-status.json',100_000,signal);
   const lifecycleSummary=inputs.lifecycle.value.summary;
   check(lifecycleSummary.profile_count===8011835&&Object.values(lifecycleSummary.lifecycle_evidence_counts).reduce((n,v)=>n+v,0)===lifecycleSummary.profile_count,'lifecycle manifest summary conservation');
+  const relationshipRegistration=inputs.entity_geography_registration.value,relationshipManifest=inputs.entity_geography.value;
+  check(relationshipRegistration.selected_release_id===relationshipManifest.release_id && relationshipRegistration.retained_releases.filter(row=>row.selected).length===1 && relationshipRegistration.retained_releases.find(row=>row.selected)?.manifest_sha256===inputs.entity_geography.proof.sha256,'geography relationship registration selection');
+  const relationship=verifyRelationship
+    ? await verifyBusinessEntityGeographyRelationship({root,release_id:relationshipManifest.release_id,expectedManifestSha256:inputs.entity_geography.proof.sha256,signal,requireRegistered:true,acceptPinnedHistoricalBindings:true})
+    : {release_id:relationshipManifest.release_id,manifest_sha256:inputs.entity_geography.proof.sha256,summary:relationshipManifest.summary};
+  const quality=relationship.summary;
+  check(quality.profiles===8011835 && quality.profiles===lifecycleSummary.profile_count && Object.values(quality.postal).reduce((n,v)=>n+v,0)===quality.profiles && Object.values(quality.point).reduce((n,v)=>n+v,0)===quality.profiles && quality.reported_state_conflict===11 && Object.values(quality.source_counts).reduce((n,v)=>n+v,0)===quality.profiles,'geography relationship/lifecycle/registry conservation');
+  const geographyQuality={schema_version:`${DATASET}-geography-relationship-quality@1.0.0`,relationship_release_id:relationship.release_id,relationship_manifest_sha256:relationship.manifest_sha256,profile_count:quality.profiles,postal_relationship_counts:quality.postal,point_relationship_counts:quality.point,reported_state_conflict_count:quality.reported_state_conflict,source_profile_counts:quality.source_counts,scope:'Aggregate relationship quality for the registry profile cohort; non-numerator and separate from ZIP5 evidence dimensions.',claims:{numerator:false,denominator:false,entity_assignment:false,polygon_assignment:false,usps_validity_verified:false,current_operation_verified:false,geocode_verified:false,business_completeness:null,acquisition_performed:false,production_enrollment:false,current_pointer_written:false,network_requests:0}};
   const summaryResult={schema_version:VERSION,scope:'50 states and District of Columbia; territories reported separately',zip5_cohort_rows:zipRows,source_dimensions:51,matrix_evidence_cells:cells,state_industry_rows:459,operational_industries:industries,dimension_order:dimensions,temporal_assessment:summary.temporal_qualification,geography_scope_counts:scopeCounts,industry_evidence_metrics:industries.map(industry=>{
     const rows=stateIndustry.filter(row=>row.id===industry),numerator=rows.reduce((n,row)=>n+row.measured_zip_dimension_cells,0),denominator=rows.reduce((n,row)=>n+row.zip_dimension_cell_denominator,0);
     return {industry,mapped_dimensions:rows[0].mapped_dimensions,measured_zip_dimension_cells:numerator,zip_dimension_cell_denominator:denominator,exact_zip_measurement_reach_percent:percent(numerator,denominator),scope:'33455 governed dominant-state Census ZCTA cohort rows'};
-  }),gaps:{broad_business_missing_states:missingBroad.length,unsupported_industry_access_cells:150,unmeasured_industry_access_cells:2,stale_temporal_dimensions:2,unmeasured_temporal_dimensions:20},sidecars:{goal_matrix:{schema_version:goal.schema_version,denominator:goal.denominator,missing_broad_states:missingBroad},state_access:{generated_at:access.generatedAt,summary:access.summary,scope:'source-reported jurisdiction evidence; separate from Census overlay scopes'},epa:{summary:inputs.epa.value.summary,scope:'nonadditive retained environmental-program facility memberships'},geography:{status:geography},lifecycle:{assessment_as_of:inputs.lifecycle.value.assessment_as_of,summary:lifecycleSummary,scope:'source-profile lifecycle decisions; overlapping evidence units; separate from matrix dimensions'}},claims:CLAIMS};
+  }),gaps:{broad_business_missing_states:missingBroad.length,unsupported_industry_access_cells:150,unmeasured_industry_access_cells:2,stale_temporal_dimensions:2,unmeasured_temporal_dimensions:20},sidecars:{goal_matrix:{schema_version:goal.schema_version,denominator:goal.denominator,missing_broad_states:missingBroad},state_access:{generated_at:access.generatedAt,summary:access.summary,scope:'source-reported jurisdiction evidence; separate from Census overlay scopes'},epa:{summary:inputs.epa.value.summary,scope:'nonadditive retained environmental-program facility memberships'},geography:{status:geography},lifecycle:{assessment_as_of:inputs.lifecycle.value.assessment_as_of,summary:lifecycleSummary,scope:'source-profile lifecycle decisions; overlapping evidence units; separate from matrix dimensions'},entity_geography_relationship:geographyQuality},claims:CLAIMS};
   const gapLedger={schema_version:`${DATASET}-gaps@1.0.0`,broad_business:missingBroad.map(state=>({state,status:'missing-retained-broad-organization-layer',action_class:'admission-review',authorization_status:'not-asserted-by-this-federation',authority_evidence:goal.jurisdictions.find(row=>row.code===state).categories.find(row=>row.category_id==='general-business').datasets[0].authorization})),industry_access:accessCells.filter(row=>row.access_evidence_status.startsWith('unsupported-')),temporal:temporalGaps,special_geography:disposition.filter(row=>!row.scope_id.startsWith('state:')&&!row.scope_id.startsWith('territory:')).map(row=>({scope_id:row.scope_id,zip5_rows:row.zip5_rows,action_class:'retained-reprocessing',map_blocked:false})),claim_gaps:[{id:'all-business-denominator',value:null,blocking:false},{id:'current-general-business-operation',value:false,blocking:false}],claims:CLAIMS};
   const territories={schema_version:`${DATASET}-territories@1.0.0`,included_in_51_state_denominator:false,geography:disposition.filter(row=>row.scope_id.startsWith('territory:')).map(row=>({scope_id:row.scope_id,code:row.postal_abbreviation,zip5_rows:row.zip5_rows,dimensions:row.dimensions})),epa:[],claims:CLAIMS};
   await stream(input,'epa','territories.jsonl',signal,row=>territories.epa.push(row));
@@ -139,13 +148,13 @@ export async function buildNationalGoalEvidenceFederation(options={}) {
   await fs.mkdir(releases,{recursive:true});await r.canonical(root,releases);let locked=false,stage;
   try {
     await fs.mkdir(lock);locked=true;stage=path.join(base,`.stage-${randomUUID()}`);await fs.mkdir(stage);
-    const result=await derive(input,stage,options.signal,options.hooks),manifest=manifestFor(input,result,options.createdAt??new Date().toISOString());
+    const result=await derive(input,stage,options.signal,options.hooks,false),manifest=manifestFor(input,result,options.createdAt??new Date().toISOString());
     await fs.writeFile(path.join(stage,'manifest.json'),r.encoded(manifest),{flag:'wx'});await options.hooks?.('after-manifest-before-verification',{stage,manifest});r.stop(options.signal);
     await verifyNationalGoalEvidenceFederation(path.join(stage,'manifest.json'),{root,configPath:options.configPath,signal:options.signal,allowStaging:true,expectedReleaseId:manifest.release_id});
     await options.hooks?.('after-verification-before-publication',{stage,manifest});r.stop(options.signal);
     // Recheck pins and every output after hooks and before rename.
     check((await r.secureBuffer(root,input.configRead.filename,100_000,options.signal)).sha256===input.configRead.sha256,'publication config mutation');
-    for(const [name,pin] of Object.entries(input.config.inputs))check((await r.secureBuffer(root,inputsPath(input,pin),name==='access'?10_000_000:200_000,options.signal)).sha256===pin.sha256,'publication input mutation');
+    for(const [name,pin] of Object.entries(input.config.inputs))check((await r.secureBuffer(root,inputsPath(input,pin),name==='access'?10_000_000:name==='entity_geography'?1_000_000:200_000,options.signal)).sha256===pin.sha256,'publication input mutation');
     for(const [p,hash] of Object.entries(input.contractHashes))check((await r.secureBuffer(root,r.contained(root,p),200_000,options.signal)).sha256===hash,'publication contract mutation');
     check(r.equal(await inventory(stage),sorted(['manifest.json',...manifest.artifacts.map(a=>a.path)])),'publication inventory mutation');
     for(const a of manifest.artifacts) {const proof=await r.secureBuffer(root,r.contained(stage,a.path),100_000_000,options.signal);check(proof.sha256===a.sha256&&proof.bytes===a.bytes,'publication output mutation');}

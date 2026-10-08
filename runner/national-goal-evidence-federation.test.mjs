@@ -55,6 +55,13 @@ test('retained federation has full independent replay, closed units and correct 
   assert.ok(gaps.industry_access.every(row=>row.action_class==='admission-review' && ['BLOCKED_PREREQUISITE','NOT_READY_EVIDENCE_UNMEASURED'].includes(row.app_handoff_status) && row.acquisition_authorization==='not-asserted-by-this-federation'));
   assert.ok(gaps.industry_access.some(row=>row.authority_evidence.some(e=>e.type==='historical-state-publisher-assessment-hold' && typeof e.reason==='string')));
   assert.ok(summary.industry_evidence_metrics.every(row=>row.exact_zip_measurement_reach_percent===Number((row.measured_zip_dimension_cells/row.zip_dimension_cell_denominator*100).toFixed(1))));
+  const q=summary.sidecars.entity_geography_relationship;assert.equal(q.profile_count,8011835);assert.equal(Object.values(q.postal_relationship_counts).reduce((n,v)=>n+v,0),8011835);assert.equal(Object.values(q.point_relationship_counts).reduce((n,v)=>n+v,0),8011835);assert.equal(Object.values(q.source_profile_counts).reduce((n,v)=>n+v,0),8011835);assert.equal(q.reported_state_conflict_count,11);assert.equal(q.claims.numerator,false);assert.equal(q.claims.denominator,false);
+});
+
+test('successor changes only national summary and preserves prior immutable release',async()=>{
+  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9/manifest.json'),registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),current=path.join(APP_ROOT,registration.retained_release.manifest);
+  const [oldManifest,newManifest]=await Promise.all([json(prior),json(current)]);assert.equal(oldManifest.release_id,'national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9');assert.equal((await fs.stat(prior)).isFile(),true);assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
+  const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256])),unchanged=newManifest.artifacts.filter(a=>a.path!=='national-summary.json'&&oldHashes.get(a.path)===a.sha256);assert.equal(unchanged.length,103);assert.notEqual(oldHashes.get('national-summary.json'),newManifest.artifacts.find(a=>a.path==='national-summary.json').sha256);
 });
 
 test('exclusive publisher lock and cancellation leave no invocation staging',async t=>{

@@ -15,6 +15,7 @@ test('actual runtime enforces bearer/origin/query/method boundaries and serves b
   const token=randomBytes(32).toString('hex');let child;
   try{
     const file=path.join(root,'config/datasets/national-goal-evidence-federation.json');await fs.mkdir(path.dirname(file),{recursive:true});await fs.copyFile(path.join(APP_ROOT,'config/datasets/national-goal-evidence-federation.json'),file);await fs.cp(path.dirname(path.join(APP_ROOT,pin.manifest)),path.dirname(path.join(root,pin.manifest)),{recursive:true});
+    const q=pin.geography_relationship_quality,qr=path.join(root,q.registration_path),qm=path.join(root,q.manifest_path);await fs.mkdir(path.dirname(qr),{recursive:true});await fs.copyFile(path.join(APP_ROOT,q.registration_path),qr);await fs.mkdir(path.dirname(qm),{recursive:true});await fs.copyFile(path.join(APP_ROOT,q.manifest_path),qm);
     child=spawn(process.execPath,['runner/server.mjs'],{cwd:APP_ROOT,env:{...process.env,DATAHUB_ROOT:root,RUNNER_HOST:'127.0.0.1',RUNNER_PORT:String(port),DATAHUB_CONTROL_TOKEN:token},stdio:['ignore','ignore','ignore','ipc'],windowsHide:true});
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Runtime readiness timeout.')),20000);child.once('exit',code=>{clearTimeout(timer);reject(Error(`Runtime exited ${code}.`))});child.on('message',message=>{if(message?.type==='runner-ready'){clearTimeout(timer);resolve()}})});
     const base=`http://127.0.0.1:${port}/api/business-map/national-status-`,headers={Authorization:`Bearer ${token}`};

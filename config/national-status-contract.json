@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-08T14:40:56.228Z",
+  "created_at": "2026-10-08T20:06:52.695Z",
   "artifact_sha256": {
     "gap-ledger.json": "de3c99e7f6ace0538bc45d7041b3c3ccf65a595e8e6477e3ad3add1cfa5f58b5",
-    "national-summary.json": "bd19b0978f8f7e7dc0d59bae7c1ee35e21036f5170a24dee4c7204174c52ce9b",
+    "national-summary.json": "6d935bc07861c3ba87b7e22f64ec570cac4e00a19ca6a190cd63d9daeed9ea44",
     "state-industry-status.jsonl": "695224e6cbdfbf50d2c4a34f7f942fbb55db931a59d19ff48101410344b846e1",
     "territories.json": "95397d92b0a115b4592c3e02b4d80d86c4f8b8802a98d693b6d8a27a1c692f7f",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -110,10 +110,21 @@
     "release_id": "national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",
     "manifest_sha256": "07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"
   },
+  "geography_relationship_quality": {
+    "registration_path": "config/datasets/business-entity-geography-relationship.json",
+    "registration_sha256": "bc81d33b80a92da55f31713d36813807e7224da599ab24aa3898522b338f5829",
+    "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
+    "manifest_path": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7/manifest.json",
+    "manifest_sha256": "07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2",
+    "profile_count": 8011835,
+    "postal_relationship_counts": {"same-code-zcta-candidate":7963395,"outside-zcta":48439,"explicit-placeholder":1,"missing":0},
+    "point_relationship_counts": {"assigned-single-county":372079,"unmatched":21,"ambiguous":7,"conflict":0,"missing-geocode":6976397,"invalid-coordinate":0,"unassignable-legacy-coordinate-crs-unproven":640383,"unassignable-coordinate-not-premise-point":22948},
+    "reported_state_conflict_count": 11
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9/manifest.json",
-  "manifest_sha256": "c144c10814ae9cc6ea1a41f6f266c6342417af71bead286195180b1f047f2a85",
+  "release_id": "national-goal-evidence-federation-a879d0a1778058e0db297dbe7f3e3c7670f035ffe333193be9fb467f006d601e",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-a879d0a1778058e0db297dbe7f3e3c7670f035ffe333193be9fb467f006d601e/manifest.json",
+  "manifest_sha256": "710c2d9acd582cf9c77f04c0d1e50c9a1a2326d5740303b560778aefea32491b",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

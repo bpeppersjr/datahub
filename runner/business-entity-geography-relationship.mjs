@@ -358,7 +358,7 @@ export async function buildBusinessEntityGeographyRelationship({ root = APP_ROOT
   }
 }
 
-export async function verifyBusinessEntityGeographyRelationship({ root = APP_ROOT, release_id, expectedManifestSha256, signal, requireRegistered = true } = {}) {
+export async function verifyBusinessEntityGeographyRelationship({ root = APP_ROOT, release_id, expectedManifestSha256, signal, requireRegistered = true, acceptPinnedHistoricalBindings = false } = {}) {
   root = path.resolve(root); check(typeof release_id === 'string' && release_id.startsWith(`${DATASET}-`) && SHA.test(expectedManifestSha256 ?? ''));
   const input = await readInputs(root, signal);
   if (requireRegistered) {
@@ -369,7 +369,7 @@ export async function verifyBusinessEntityGeographyRelationship({ root = APP_ROO
   const base = path.join(root, 'data', DATASET, 'releases', release_id), manifestBytes = await readFile(path.join(base, 'manifest.json'));
   check(sha(manifestBytes) === expectedManifestSha256); const manifest = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(manifestBytes));
   const { release_id: ignored, ...withoutId } = manifest; void ignored;
-  check(manifest.release_id === release_id && `${DATASET}-${sha(stable(withoutId))}` === release_id && stable(manifest.bindings) === stable(input.pins)
+  check(manifest.release_id === release_id && `${DATASET}-${sha(stable(withoutId))}` === release_id && (acceptPinnedHistoricalBindings || stable(manifest.bindings) === stable(input.pins))
     && manifest.claims?.current_operation_verified === false && manifest.claims?.postal_validity_verified === false && manifest.claims?.entity_polygon_present === false && manifest.claims?.zcta_point_assignment_performed === false);
   const byPath = new Map(manifest.artifacts.map(a => [a.path, a])); check(byPath.size === 100);
   const counts = emptyCounts();
