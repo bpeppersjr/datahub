@@ -214,6 +214,8 @@
     "ok-business-bulk:build": "node scripts/build-ok-business-bulk-offline.mjs",
     "ok-business-bulk:app": "node scripts/run-ok-business-bulk-app.mjs",
     "ok-business-bulk:verify-app": "node scripts/verify-ok-business-bulk-app.mjs",
+    "mississippi-business-report:app": "node scripts/run-mississippi-business-report-app.mjs",
+    "mississippi-business-report:verify-app": "node scripts/verify-mississippi-business-report-app.mjs",
     "overture-us-places:preflight": "node scripts/prepare-overture-us-places.mjs --preflight-only",
     "overture-us-places:prepare": "node scripts/prepare-overture-us-places.mjs",
     "overture-us-places:build": "node scripts/build-overture-us-places.mjs",

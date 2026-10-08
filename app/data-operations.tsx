@@ -81,6 +81,7 @@ export default function DataOperations() {
   const [illinoisBusinessSelection,setIllinoisBusinessSelection]=useState('');
   const [utahBusinessSelection,setUtahBusinessSelection]=useState('');
   const [oklahomaBusinessSelection,setOklahomaBusinessSelection]=useState('');
+  const [mississippiBusinessPackage,setMississippiBusinessPackage]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -213,6 +214,13 @@ export default function DataOperations() {
       <label>Package selection under data/imports <input aria-label="Oklahoma Business Bulk package selection" value={oklahomaBusinessSelection} disabled={busy} placeholder="data/imports/oklahoma-business-bulk/packages/package-id/selection.json" onChange={event=>setOklahomaBusinessSelection(event.target.value)}/></label>
       <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/oklahoma-business-bulk\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}\/selection\.json$/.test(oklahomaBusinessSelection)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ok-business-bulk',{selection:oklahomaBusinessSelection})))}>Start offline Oklahoma package operation</button>
       <p className="operations-note">This operation performs no acquisition, purchase, or account action. Durable status, errors, cancellation, and restart-persistent history appear in shared Operation history below. Terminal receipts and private evidence remain retained locally for governed inspection; they are not offered as downloadable artifacts.</p>
+    </section>
+    <section aria-labelledby="mississippi-business-report-title" className="operations-builder">
+      <h3 id="mississippi-business-report-title">Process a Mississippi Business Report package</h3>
+      <p className="operations-note">Zero-network replay of one operator-supplied local package containing the original workbook, strict derived JSONL, and selection envelope. Co*Tive retains an operation-owned snapshot and independently replays it. Output remains local-review-only and makes no statewide-completeness, current-operation, geocode, physical-site, public-export, pointer, or national-admission claim.</p>
+      <label>Package directory under data/imports <input aria-label="Mississippi Business Report package" value={mississippiBusinessPackage} disabled={busy} placeholder="data/imports/mississippi-business-report/packages/package-id" onChange={event=>setMississippiBusinessPackage(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/mississippi-business-report\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(mississippiBusinessPackage)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ms-business-report',{package:mississippiBusinessPackage})))}>Start offline Mississippi package operation</button>
+      <p className="operations-note">The public report’s 300,000-row ceiling remains a truncation warning, never evidence of statewide completeness. Private receipts and releases stay inside datahub and are not download artifacts.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />

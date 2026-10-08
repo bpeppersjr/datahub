@@ -86,11 +86,19 @@ export function normalizeMississippiBusinessReportRow(row, context) {
   };
 }
 
-export async function inspectMississippiBusinessReportPackage(packageDirectory, { root = APP_ROOT, maximumWorkbookBytes = 1_000_000_000, maximumJsonlBytes = 1_000_000_000, maximumRows = MS_BUSINESS_REPORT_MAX_ROWS, signal } = {}) {
+export async function inspectMississippiBusinessReportPackage(packageDirectory, { root = APP_ROOT, packagesRoot, maximumWorkbookBytes = 1_000_000_000, maximumJsonlBytes = 1_000_000_000, maximumRows = MS_BUSINESS_REPORT_MAX_ROWS, signal } = {}) {
   signal?.throwIfAborted();
   check(path.isAbsolute(packageDirectory), "package path must be absolute");
   check(Number.isSafeInteger(maximumRows) && maximumRows >= 0 && maximumRows <= MS_BUSINESS_REPORT_MAX_ROWS, "maximumRows exceeds the published ceiling");
-  const canonicalRoot = await realpath(path.resolve(root)), expectedRoot = path.join(canonicalRoot, "data", "imports", "mississippi-business-report", "packages"), canonicalPackage = await realpath(packageDirectory);
+  const canonicalRoot = await realpath(path.resolve(root));
+  const expectedRoot = packagesRoot === undefined
+    ? path.join(canonicalRoot, "data", "imports", "mississippi-business-report", "packages")
+    : await realpath(path.resolve(packagesRoot));
+  if (packagesRoot !== undefined) {
+    const relativeRoot = path.relative(canonicalRoot, expectedRoot).split(path.sep).join("/");
+    check(/^data\/imports\/mississippi-business-report\/operations\/[a-f0-9-]{36}\/input-snapshot$/i.test(relativeRoot), "packages root is not an operation-owned snapshot");
+  }
+  const canonicalPackage = await realpath(packageDirectory);
   check(path.dirname(canonicalPackage) === expectedRoot && PACKAGE.test(path.basename(canonicalPackage)), "package location is invalid");
   const info = await lstat(canonicalPackage, { bigint: true }); check(info.isDirectory() && !info.isSymbolicLink(), "package is not a regular directory");
   const names = (await readdir(canonicalPackage)).sort();
