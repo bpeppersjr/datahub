@@ -1,0 +1,35 @@
+{
+  "schema_version": "broad-organization-acquisition-backlog-manifest@3.0.0",
+  "dataset_id": "broad-organization-acquisition-backlog",
+  "release_id": "broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-111caa82f3c6",
+  "status": "published",
+  "derived_only": true,
+  "source_actions_performed": 0,
+  "network_requests": 0,
+  "current_pointer_changed": false,
+  "assessment_catalog_id": "state-business-source-assessment-catalog-51-2026-10-07",
+  "assessment_catalog_sha256": "0a3514b9a6f0b74f2fa3f07dc17e48437c0510a36f147e80a3ea72fddf62d275",
+  "source_matrix_release_id": "national-goal-completion-20261007052337-6ca8bb3a",
+  "source_matrix_manifest_sha256": "9621cd840cbdcd130a968f8c7b121d25089ac0da9a526d8809e9d7db1fe44004",
+  "source_matrix_artifact_sha256": "a7ba35f23bdb7ea846505dcefc5c9c52d960bba348e159e3ffd63d060c17ee9f",
+  "state_count": 40,
+  "first_wave_state_abbreviations": [
+    "CA",
+    "ID",
+    "IL",
+    "OH",
+    "KY",
+    "NC",
+    "NH",
+    "OK",
+    "HI",
+    "MA"
+  ],
+  "artifacts": [
+    {
+      "path": "backlog.json",
+      "bytes": 234621,
+      "sha256": "111caa82f3c63e6fad3540eecdb97949370b62a5ae0f7dc9a3e30e9c38fd1673"
+    }
+  ]
+}

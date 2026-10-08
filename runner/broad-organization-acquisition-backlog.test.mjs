@@ -24,7 +24,20 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
   const [catalog, matrix] = await Promise.all([loadStateBusinessSourceAssessmentCatalog(), loadCurrentBroadOrganizationGapEvidence()]);
   const backlog = deriveBroadOrganizationAcquisitionBacklog(catalog, matrix);
   assert.equal(backlog.states.length, 40);
-  assert.equal(backlog.assessment_catalog.schema_version, "1.2.0");
+  assert.equal(backlog.schema_version, "3.0.0");
+  assert.equal(backlog.assessment_catalog.schema_version, "1.3.0");
+  assert.equal(backlog.states.find(({ assessment }) => assessment.state_abbreviation === "VT").assessment.assessment_id, "vt-business-source-reassessment-2026-10-03");
+  assert.deepEqual(backlog.supplemental_evidence, catalog.supplemental_evidence);
+  const supplemental = backlog.supplemental_evidence[0];
+  assert.equal(supplemental.assessment_id, "vt-business-source-document-prerequisite-2026-10-07");
+  assert.equal(supplemental.supersedes_assessment_id, "vt-business-source-reassessment-2026-10-03");
+  assert.equal(supplemental.interface_observation.content_class, "application-shell");
+  assert.equal(supplemental.fields.website_address_roles_documented, true);
+  assert.equal(supplemental.status_semantics.website_good_standing_definition_established, true);
+  assert.equal(supplemental.claims.business_count, null);
+  assert.equal(supplemental.claims.statewide_completeness, null);
+  assert.equal(supplemental.unresolved_gates.length, 10);
+  assert.equal(Object.values(supplemental.authority).every((value) => value === false), true);
   const arkansas = backlog.states.find(({ assessment }) => assessment.state_abbreviation === "AR");
   assert.equal(arkansas.assessment.assessment_id, "ar-business-source-reassessment-2026-10-03");
   assert.equal(arkansas.assessment.assessment_kind, "official-source-reassessment");
@@ -48,12 +61,28 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
 test("continues to verify the immutable historical v1 lineage without treating it as current", async () => {
   const historical = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
   const currentCatalog = await loadStateBusinessSourceAssessmentCatalog();
-  assert.equal(currentCatalog.schema_version, "1.2.0");
+  assert.equal(currentCatalog.schema_version, "1.3.0");
   const verified = await verifyBroadOrganizationAcquisitionBacklog(historical, { catalog: currentCatalog });
   assert.equal(verified.manifest.schema_version, "broad-organization-acquisition-backlog-manifest@1.0.0");
   assert.equal(verified.backlog.assessment_catalog.schema_version, "1.0.0");
   assert.equal(verified.backlog.states.length, 43);
   assert.equal(verified.backlog.states[0].assessment.state_abbreviation, "AK");
+});
+
+test("continues to verify every immutable historical v2 release without selecting one as current", async () => {
+  const releases = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases");
+  const entries = await readdir(releases, { withFileTypes: true });
+  const verified = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const manifestPath = path.join(releases, entry.name, "manifest.json");
+    let manifest;
+    try { manifest = JSON.parse(await readFile(manifestPath, "utf8")); } catch (error) { if (error.code === "ENOENT") continue; throw error; }
+    if (manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0") continue;
+    verified.push(await verifyBroadOrganizationAcquisitionBacklog(manifestPath));
+  }
+  assert.equal(verified.length, 5);
+  assert.equal(verified.every(({ backlog }) => backlog.schema_version === "2.0.0" && backlog.states.length === 40), true);
 });
 
 test("historical v1 verifier rejects a rehashed mutation instead of trusting its embedded inventory", async () => {
@@ -85,6 +114,7 @@ test("builds a manifest-last immutable release locally and verifies it without c
   try {
     const built = await buildBroadOrganizationAcquisitionBacklog({ outputRoot: path.join(root, "output") });
     assert.equal(built.manifest.source_actions_performed, 0);
+    assert.equal(built.manifest.schema_version, "broad-organization-acquisition-backlog-manifest@3.0.0");
     assert.equal(built.manifest.network_requests, 0);
     assert.equal(built.manifest.current_pointer_changed, false);
     assert.equal(built.reused_existing_release, false);
@@ -162,6 +192,21 @@ test("rejects source catalog drift and missing release artifacts", async () => {
     await assert.rejects(verifyBroadOrganizationAcquisitionBacklog(path.join(releaseDirectory, "manifest.json")), /manifest schema drifted/);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("rejects rehashed supplemental fact, gate, claim, and authority mutation", async () => {
+  const matrix = await loadCurrentBroadOrganizationGapEvidence();
+  for (const mutate of [
+    (catalog) => { catalog.supplemental_evidence[0].interface_observation.content_class = "data-file"; },
+    (catalog) => { catalog.supplemental_evidence[0].unresolved_gates.pop(); },
+    (catalog) => { catalog.supplemental_evidence[0].claims.business_count = 1; },
+    (catalog) => { catalog.supplemental_evidence[0].authority.network_execution_authorized = true; },
+    (catalog) => { catalog.supplemental_evidence = []; },
+  ]) {
+    const catalog = await loadStateBusinessSourceAssessmentCatalog();
+    mutate(catalog);
+    assert.throws(() => deriveBroadOrganizationAcquisitionBacklog(catalog, matrix), /supplemental|content digest|authority/);
   }
 });
 

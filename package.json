@@ -211,6 +211,7 @@
     "il-business:build": "node scripts/build-il-business-registry.mjs",
     "il-business:verify": "node scripts/verify-il-business-registry.mjs",
     "utah-business-list:inspect": "node scripts/inspect-utah-business-list-package.mjs",
+    "utah-business-list:replay": "node scripts/build-utah-business-list-replay.mjs",
     "ok-business-bulk:build": "node scripts/build-ok-business-bulk-offline.mjs",
     "ok-business-bulk:app": "node scripts/run-ok-business-bulk-app.mjs",
     "ok-business-bulk:verify-app": "node scripts/verify-ok-business-bulk-app.mjs",

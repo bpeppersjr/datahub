@@ -148,10 +148,10 @@ function makeRequestItem(stateAbbreviation, gate) {
 
 export function deriveBroadOrganizationAuthorizationPacket(backlog, backlogManifestBytes, backlogManifest) {
   const historical = backlogManifest?.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0";
-  const current = backlogManifest?.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0";
+  const current = ["broad-organization-acquisition-backlog-manifest@2.0.0", "broad-organization-acquisition-backlog-manifest@3.0.0"].includes(backlogManifest?.schema_version);
   if (backlog?.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID
       || (!historical && !current)
-      || backlog?.schema_version !== (historical ? "1.0.0" : "2.0.0")
+      || backlog?.schema_version !== (historical ? "1.0.0" : backlogManifest.schema_version.endsWith("@3.0.0") ? "3.0.0" : "2.0.0")
       || backlog?.states?.length !== (historical ? 43 : 40)
       || backlog?.scope?.first_wave_size !== 10
       || backlog?.scope?.acquisition_authorized !== false) fail("verified backlog identity or authority boundary is invalid");
@@ -266,7 +266,7 @@ export async function buildBroadOrganizationAuthorizationPacket({
 } = {}) {
   if (!backlogManifestPath) fail("an exact verified backlog manifest path is required");
   const source = await verifyBroadOrganizationAcquisitionBacklog(backlogManifestPath);
-  if (source.manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0") fail("new packet builds require the current v2 backlog release");
+  if (source.manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@3.0.0") fail("new packet builds require the current v3 backlog release");
   const expectedSourcePath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, source.manifest.release_id, "manifest.json");
   if (path.resolve(backlogManifestPath) !== path.resolve(expectedSourcePath)) fail("source backlog manifest must be selected from its canonical immutable release directory");
   const backlogManifestBytes = await readFile(backlogManifestPath);
@@ -356,7 +356,7 @@ export async function verifyBroadOrganizationAuthorizationPacket(manifestPath, {
   const sourceManifestBytes = await readFile(sourceManifestPath);
   if (sha256(sourceManifestBytes) !== packet.source_backlog.manifest_sha256) fail("source backlog manifest lineage checksum mismatch");
   const source = await verifyBroadOrganizationAcquisitionBacklog(sourceManifestPath);
-  if (source.manifest.schema_version !== (historical ? "broad-organization-acquisition-backlog-manifest@1.0.0" : "broad-organization-acquisition-backlog-manifest@2.0.0")) fail("packet and backlog lineage versions do not match");
+  if (historical ? source.manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@1.0.0" : !["broad-organization-acquisition-backlog-manifest@2.0.0", "broad-organization-acquisition-backlog-manifest@3.0.0"].includes(source.manifest.schema_version)) fail("packet and backlog lineage versions do not match");
   if (source.manifest.artifacts[0].sha256 !== packet.source_backlog.artifact_sha256) fail("source backlog artifact lineage checksum mismatch");
   const expectedPacket = deriveBroadOrganizationAuthorizationPacket(source.backlog, sourceManifestBytes, source.manifest);
   const expectedManifest = buildBroadOrganizationAuthorizationPacketManifest(expectedPacket);

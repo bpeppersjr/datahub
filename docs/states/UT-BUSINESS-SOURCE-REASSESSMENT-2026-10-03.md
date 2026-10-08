@@ -9,3 +9,7 @@ The [public schema](https://secure.utah.gov/datarequest/businesses/listExample.h
 The [existing offline workflow](../UTAH-BUSINESS-LIST-OFFLINE.md) already supports managed server/UI dispatch. It validates operator-derived JSONL and binds workbook bytes but cannot authenticate the source or replay workbook extraction. Its output remains local-review-only, non-source-native and admission-ineligible. Package and operation directories were empty during this review. Implemented code is not evidence of acquisition or a completed job.
 
 Next technical work, if separately scoped, is deterministic workbook extraction with synthetic fixtures; acquisition still requires resolving product-specific rights, current schema/population, stable IDs, status/address contracts, checksums, refresh/replay and supported delivery. No source contact or purchase was performed.
+
+## October 8 technical successor
+
+The subsequently implemented offline workbook-replay successor closes only the deterministic extraction prerequisite described above. It uses synthetic fixtures and produces a backward-compatible local package from an explicitly operator-supplied XLSX. It does not alter this reassessment's source-authenticity, product-rights, acquisition, freshness, admission or completeness findings.

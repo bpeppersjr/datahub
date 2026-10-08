@@ -38,7 +38,7 @@ export function projectBroadOrganizationAuthorizationPacket(packet, manifest, ba
       || packet.scope?.source_actions_performed !== 0 || packet.scope?.network_requests !== 0
       || packet.scope?.acquisition_authorized !== false || packet.scope?.contact_authorized !== false
       || packet.scope?.row_bearing_evidence_authorized !== false || packet.scope?.current_pointer_changed !== false
-      || backlogManifest?.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0"
+      || !["broad-organization-acquisition-backlog-manifest@2.0.0", "broad-organization-acquisition-backlog-manifest@3.0.0"].includes(backlogManifest?.schema_version)
       || backlogManifest.release_id !== manifest.source_backlog_release_id
       || backlogManifest.source_matrix_release_id === undefined
       || JSON.stringify(manifest.first_wave_state_abbreviations) !== JSON.stringify(["CA", "ID", "IL", "OH", "KY", "NC", "NH", "OK", "HI", "MA"])) fail("identity, bounded selection, lineage, or authority boundary is invalid");

@@ -151,7 +151,9 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
   const expectedCount = historical ? 43 : 40;
   const expectedBacklogManifestSchema = historical
     ? "broad-organization-acquisition-backlog-manifest@1.0.0"
-    : "broad-organization-acquisition-backlog-manifest@2.0.0";
+    : backlog.schema_version === "3.0.0"
+      ? "broad-organization-acquisition-backlog-manifest@3.0.0"
+      : "broad-organization-acquisition-backlog-manifest@2.0.0";
   if (backlogManifest?.schema_version !== expectedBacklogManifestSchema
       || backlog?.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID || backlog.states?.length !== expectedCount
       || backlog.scope?.acquisition_authorized !== false || backlog.scope?.source_actions_performed !== 0) fail("backlog identity, scope, or authority boundary is invalid");

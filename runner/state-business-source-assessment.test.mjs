@@ -24,10 +24,10 @@ test("loads a non-overlapping governed catalog with current source reassessments
     assert.equal(stateAssessment(catalog, stateAbbreviation).authorized_next_action_type, "bounded-connector-implementation");
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
-    schema_version: "1.2.0",
-    assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-10-03",
+    schema_version: "1.3.0",
+    assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-10-07",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
-    observed_at: "2026-10-03",
+    observed_at: "2026-10-07",
     coverage_release_id: catalog.coverage_release_id,
     current_coverage_release_id: catalog.coverage_release_id,
     coverage_release_matches_current: true,
@@ -86,6 +86,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "nv-business-source-reassessment-2026-10-03",
       "ut-business-source-reassessment-2026-10-03",
       "wa-business-source-reassessment-2026-10-03",
+      "vt-business-source-document-prerequisite-2026-10-07",
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 0,
@@ -99,7 +100,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
     production_ready_jurisdictions: 8,
   });
   assert.deepEqual(summarizeLegacyStateBusinessSourceRevalidation(catalog, catalog.coverage_release_id), {
-    schema_version: "1.2.0",
+    schema_version: "1.3.0",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-03",
     coverage_release_id: catalog.coverage_release_id,
@@ -132,6 +133,25 @@ test("loads a non-overlapping governed catalog with current source reassessments
   assert.equal(arkansas.paid_acquisition_authorized, false);
   assert.equal(arkansas.offline_fixture_connector_authorized, false);
   assert.equal(arkansas.production_ready, false);
+  const vermont = stateAssessment(catalog, "VT");
+  assert.equal(vermont.assessment_id, "vt-business-source-reassessment-2026-10-03");
+  assert.equal(vermont.observed_at, "2026-10-03");
+  assert.deepEqual(catalog.source_artifacts.at(-1), {
+    artifact_id: "vt-business-source-document-prerequisite-2026-10-07",
+    artifact_kind: "supplemental-document-prerequisite",
+    observed_at: "2026-10-07",
+    coverage_release_id: catalog.coverage_release_id,
+    state_abbreviation: "VT",
+    primary_assessment_id: "vt-business-source-reassessment-2026-10-03",
+    canonical_file_sha256: "16cdc05219afd5e9dd4bd241781fccb38011ec073505f43621b31c47d0711ebb",
+    authority_granted: false,
+  });
+  assert.equal(catalog.supplemental_evidence.length, 1);
+  assert.equal(catalog.supplemental_evidence[0].assessment_id, "vt-business-source-document-prerequisite-2026-10-07");
+  assert.equal(catalog.supplemental_evidence[0].interface_observation.observed_marker, "<app-root></app-root>");
+  assert.deepEqual(catalog.supplemental_evidence[0].fields.website_address_roles, ["principal-office", "business-mailing-address", "registered-office-agent-address", "agent-mailing-address"]);
+  assert.equal(catalog.supplemental_evidence[0].claims.business_count, null);
+  assert.equal(catalog.supplemental_evidence[0].claims.statewide_completeness, null);
 });
 
 test("rejects overlapping provenance, decision escalation, and source-artifact drift", async () => {
@@ -178,6 +198,23 @@ test("rejects overlapping provenance, decision escalation, and source-artifact d
   const offlineFixture = await loadStateBusinessSourceAssessmentCatalog();
   stateAssessment(offlineFixture, "DC").offline_fixture_connector_authorized = false;
   assert.throws(() => validateStateBusinessSourceAssessmentCatalog(offlineFixture), /DC authorization boundary drifted/);
+});
+
+test("rejects supplemental roster, app-shell fact, status/address finding, gate, claim, next-action, and authority drift", async () => {
+  for (const mutate of [
+    (catalog) => { catalog.supplemental_evidence = []; },
+    (catalog) => { catalog.supplemental_evidence[0].interface_observation.observed_marker = "download-ready"; },
+    (catalog) => { catalog.supplemental_evidence[0].fields.website_address_roles = []; },
+    (catalog) => { catalog.supplemental_evidence[0].status_semantics.website_good_standing_definition_established = false; },
+    (catalog) => { catalog.supplemental_evidence[0].unresolved_gates.pop(); },
+    (catalog) => { catalog.supplemental_evidence[0].claims.statewide_completeness = 1; },
+    (catalog) => { catalog.supplemental_evidence[0].strongest_next_action = "Download now"; },
+    (catalog) => { catalog.supplemental_evidence[0].authority.acquisition_authorized = true; },
+  ]) {
+    const catalog = await loadStateBusinessSourceAssessmentCatalog();
+    mutate(catalog);
+    assert.throws(() => validateStateBusinessSourceAssessmentCatalog(catalog), /supplemental|content digest|authority/);
+  }
 });
 
 test("rejects every aggregate authority escalation", async () => {

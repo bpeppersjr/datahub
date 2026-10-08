@@ -28,9 +28,9 @@ if (!backlogManifestPath) {
     if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith("broad-organization-acquisition-backlog-")) continue;
     const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_PROGRAM_BACKLOG_RELEASES_ROOT, entry.name, "manifest.json");
     const candidate = JSON.parse(await readFile(candidatePath, "utf8"));
-    if (candidate.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0") candidates.push(candidatePath);
+    if (candidate.schema_version === "broad-organization-acquisition-backlog-manifest@3.0.0") candidates.push(candidatePath);
   }
-  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one current v2 backlog release, found ${candidates.length}`);
+  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one current v3 backlog release, found ${candidates.length}`);
   [backlogManifestPath] = candidates;
 }
 const result = await buildBroadOrganizationAuthorizationProgram({ backlogManifestPath, outputRoot });

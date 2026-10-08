@@ -35,7 +35,7 @@ test("closed Utah package validates all sheets and emits only person-free organi
 });
 
 test("normalizer is deterministic and keeps ZIP5 and ZIP4 separate",()=>{
-  const context={package_id:"fixture",observed_at:"2026-10-03T12:00:00.000Z",updated_through:"2026-09-28",original_workbook_sha256:"a".repeat(64),derived_sheets_sha256:"b".repeat(64),transformation_version:"fixture-export@1.0.0"};
+  const context={package_id:"fixture",observed_at:"2026-10-03T12:00:00.000Z",updated_through:"2026-09-28",original_workbook_sha256:"a".repeat(64),derived_sheets_sha256:"b".repeat(64),transformation_version:"fixture-export@1.0.0",reproducible_extraction_verified:false};
   assert.deepEqual(normalizeUtahBusinessEntity(entity(),context),normalizeUtahBusinessEntity(entity(),context));
   const value=normalizeUtahBusinessEntity(entity({ZipCode:"84101"}),context); assert.equal(value.administrative_address.zip5,"84101"); assert.equal(value.administrative_address.zip4,null);
 });

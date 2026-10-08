@@ -1,0 +1,34 @@
+{
+  "schema_version": "broad-organization-authorization-packet-manifest@2.0.0",
+  "dataset_id": "broad-organization-authorization-packet",
+  "release_id": "broad-organization-authorization-packet-2026-10-07T05-23-37.982Z-70964635c980",
+  "status": "published",
+  "derived_only": true,
+  "source_actions_performed": 0,
+  "network_requests": 0,
+  "current_pointer_changed": false,
+  "source_backlog_release_id": "broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-111caa82f3c6",
+  "source_backlog_manifest_sha256": "9300a44afff51429c2733d3bd4f0d3e6daeb552df6b86b50181763099cef0927",
+  "source_backlog_artifact_sha256": "111caa82f3c63e6fad3540eecdb97949370b62a5ae0f7dc9a3e30e9c38fd1673",
+  "state_count": 10,
+  "request_item_count": 78,
+  "first_wave_state_abbreviations": [
+    "CA",
+    "ID",
+    "IL",
+    "OH",
+    "KY",
+    "NC",
+    "NH",
+    "OK",
+    "HI",
+    "MA"
+  ],
+  "artifacts": [
+    {
+      "path": "authorization-packet.json",
+      "bytes": 256620,
+      "sha256": "70964635c980431482d4c68ee0196872c26c1c225e420d60cb1e832e6d70ae9e"
+    }
+  ]
+}

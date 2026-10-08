@@ -29,10 +29,10 @@ if (!backlogManifestPath) {
     const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_BACKLOG_RELEASES_ROOT, entry.name, "manifest.json");
     try {
       const manifest = JSON.parse(await readFile(candidatePath, "utf8"));
-      if (manifest.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0") candidates.push(candidatePath);
+      if (manifest.schema_version === "broad-organization-acquisition-backlog-manifest@3.0.0") candidates.push(candidatePath);
     } catch { /* Exact verification in the builder remains authoritative. */ }
   }
-  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one current v2 backlog release, found ${candidates.length}`);
+  if (candidates.length !== 1) throw new Error(`Specify --backlog-manifest; expected exactly one current v3 backlog release, found ${candidates.length}`);
   [backlogManifestPath] = candidates;
 }
 const result = await buildBroadOrganizationAuthorizationPacket({ backlogManifestPath, outputRoot });

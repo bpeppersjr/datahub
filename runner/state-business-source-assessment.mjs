@@ -21,6 +21,7 @@ import { SC_MN_AL_REASSESSMENT_IDS, loadScMnAlBusinessSourceReassessments } from
 import { WI_REASSESSMENT_ID, loadWisconsinBusinessSourceReassessment } from "./wisconsin-business-source-reassessment.mjs";
 import { TEXAS_REASSESSMENT_ID, loadTexasBusinessSourceReassessment } from "./texas-business-source-reassessment.mjs";
 import { AK_DC_REASSESSMENT_IDS, loadAkDcBusinessSourceReassessments } from "./alaska-dc-business-source-reassessment.mjs";
+import { VERMONT_DOCUMENT_PREREQUISITE_ID, VERMONT_DOCUMENT_PREREQUISITE_SHA256, loadVermontBusinessSourceDocumentPrerequisite, validateVermontBusinessSourceDocumentPrerequisite } from "./vermont-business-source-document-prerequisite.mjs";
 import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
 import { EXISTING_SOURCE_STATES, loadExistingGovernedSourceAssessmentWave } from "./state-business-source-existing-wave.mjs";
 import { APP_ROOT } from "./paths.mjs";
@@ -31,9 +32,9 @@ import {
   validateStateBusinessSourceRevalidation,
 } from "./state-business-source-revalidation.mjs";
 
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.2.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-10-03";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "2657cf08d39c61bb5c02a37dec778447c420002c01e91c223cd75847e26f5a1d";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.3.0";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-10-07";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "0a3514b9a6f0b74f2fa3f07dc17e48437c0510a36f147e80a3ea72fddf62d275";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -172,13 +173,23 @@ const CURRENT_REASSESSMENT_ARTIFACTS = Object.freeze(Object.values(CURRENT_REASS
   observed_at: "2026-10-03",
   coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
 })));
+const VERMONT_SUPPLEMENTAL_ARTIFACT = Object.freeze({
+  artifact_id: VERMONT_DOCUMENT_PREREQUISITE_ID,
+  artifact_kind: "supplemental-document-prerequisite",
+  observed_at: "2026-10-07",
+  coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+  state_abbreviation: "VT",
+  primary_assessment_id: OK_NE_VT_ME_REASSESSMENT_IDS.VT,
+  canonical_file_sha256: VERMONT_DOCUMENT_PREREQUISITE_SHA256,
+  authority_granted: false,
+});
 const CURRENT_REASSESSMENT_PROVENANCE = Object.freeze(Object.fromEntries(Object.entries(CURRENT_REASSESSMENT_IDS).map(([state, assessmentId]) => [state, Object.freeze({
   assessment_id: assessmentId,
   assessment_kind: "official-source-reassessment",
   observed_at: "2026-10-03",
   coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
 })])));
-const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT, ARKANSAS_REASSESSMENT_ARTIFACT, ...CURRENT_REASSESSMENT_ARTIFACTS]);
+const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT, ARKANSAS_REASSESSMENT_ARTIFACT, ...CURRENT_REASSESSMENT_ARTIFACTS, VERMONT_SUPPLEMENTAL_ARTIFACT]);
 const EXPECTED_STATE_SCOPE = Object.freeze(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations));
 const HISTORICAL_STATE_PROVENANCE = Object.fromEntries(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations.map((stateAbbreviation) => [
   stateAbbreviation,
@@ -432,11 +443,22 @@ function normalizeExistingSource(state) {
 }
 
 export function validateStateBusinessSourceAssessmentCatalog(catalog) {
+  if (JSON.stringify(Object.keys(catalog ?? {}).sort()) !== JSON.stringify(["schema_version", "assessment_catalog_id", "observed_at", "coverage_release_id", "source_artifacts", "supplemental_evidence", "states"].sort())) fail("catalog top-level schema drifted");
   if (catalog?.schema_version !== STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION) fail("unsupported schema version");
   if (catalog?.assessment_catalog_id !== STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID) fail("catalog identity drifted");
   if (!exactDate(catalog?.observed_at) || !catalog.assessment_catalog_id.endsWith(catalog.observed_at)) fail("catalog date is invalid");
   if (catalog?.coverage_release_id !== STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID) fail("coverage release is not pinned");
   if (!Array.isArray(catalog?.source_artifacts) || JSON.stringify(catalog.source_artifacts) !== JSON.stringify(EXPECTED_CATALOG_SOURCE_ARTIFACTS)) fail("source artifact descriptors drifted");
+  if (!Array.isArray(catalog?.supplemental_evidence) || catalog.supplemental_evidence.length !== 1) fail("supplemental evidence roster drifted");
+  const supplemental = validateVermontBusinessSourceDocumentPrerequisite(catalog.supplemental_evidence[0]);
+  if (supplemental.assessment_id !== VERMONT_DOCUMENT_PREREQUISITE_ID
+      || supplemental.supersedes_assessment_id !== OK_NE_VT_ME_REASSESSMENT_IDS.VT
+      || supplemental.authority.production_enrollment_authorized !== false
+      || supplemental.interface_observation.content_class !== "application-shell"
+      || supplemental.fields.website_address_roles_documented !== true
+      || supplemental.status_semantics.website_good_standing_definition_established !== true
+      || supplemental.claims.business_count !== null || supplemental.claims.statewide_completeness !== null
+      || supplemental.unresolved_gates.length !== 10 || !supplemental.strongest_next_action) fail("supplemental evidence facts or boundary drifted");
   if (!Array.isArray(catalog?.states) || JSON.stringify(catalog.states.map((state) => state.state_abbreviation)) !== JSON.stringify(EXPECTED_STATE_SCOPE)) fail("state scope or order drifted");
   if (new Set(catalog.states.map((state) => state.state_abbreviation)).size !== catalog.states.length) fail("state assessments overlap");
 
@@ -466,7 +488,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
-  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments, njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, scMnAlReassessments, wisconsinReassessment, texasReassessment, akDcReassessments] = await Promise.all([
+  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments, njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, scMnAlReassessments, wisconsinReassessment, texasReassessment, akDcReassessments, vermontSupplemental] = await Promise.all([
     loadStateBusinessSourceAssessmentWave(),
     Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
     loadExistingGovernedSourceAssessmentWave(),
@@ -495,6 +517,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     loadWisconsinBusinessSourceReassessment(),
     loadTexasBusinessSourceReassessment(),
     loadAkDcBusinessSourceReassessments(),
+    loadVermontBusinessSourceDocumentPrerequisite(),
   ]);
   const sourceArtifacts = [
     {
@@ -515,6 +538,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     { ...KANSAS_CORRECTION_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
     { ...ARKANSAS_REASSESSMENT_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
     ...CURRENT_REASSESSMENT_ARTIFACTS.map((artifact) => ({ ...artifact, coverage_release_id: revalidation.coverage_release_id })),
+    { ...VERMONT_SUPPLEMENTAL_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
   ];
   const catalog = {
     schema_version: STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION,
@@ -522,6 +546,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     observed_at: sourceArtifacts.map((artifact) => artifact.observed_at).sort().at(-1),
     coverage_release_id: revalidation.coverage_release_id,
     source_artifacts: sourceArtifacts,
+    supplemental_evidence: [structuredClone(vermontSupplemental)],
     states: (() => {
       const states = normalizeRevalidation(revalidation);
       const seen = new Set(states.map((state) => state.state_abbreviation));
@@ -564,6 +589,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
         normalized.official_urls = [...new Set([...normalized.official_urls, ...states[index].official_urls])];
         states[index] = normalized;
       }
+      if (vermontSupplemental.assessment_id !== VERMONT_DOCUMENT_PREREQUISITE_ID) fail("Vermont supplemental prerequisite identity drifted");
       return states;
     })(),
   };

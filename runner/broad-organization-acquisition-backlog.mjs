@@ -10,7 +10,7 @@ import { readNewestNationalGoalCompletionMatrix } from "./national-goal-completi
 import { verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
 import { APP_ROOT } from "./paths.mjs";
 
-export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_SCHEMA_VERSION = "2.0.0";
+export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_SCHEMA_VERSION = "3.0.0";
 export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID = "broad-organization-acquisition-backlog";
 export const DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT = path.join(APP_ROOT, "data", BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID);
 export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_FIRST_WAVE_SIZE = 10;
@@ -30,6 +30,13 @@ const HISTORICAL_V1_RELEASE = Object.freeze({
   artifact_sha256: "a485cf7845fff502a7c46e6d15a3222923e31c7c14d73909b38b1c54a5080c75",
   assessment_catalog_sha256: "2aec070420ed885fd52e3a3f7ecd406eb79620a0beee93a455d98254116ab384",
 });
+const HISTORICAL_V2_RELEASES = Object.freeze(new Map([
+  ["broad-organization-acquisition-backlog-2026-09-23T15-28-41.546Z-0b28203dc600", ["57ad207d5f955f6434f54c7a2994d8e73c3d609fcc305e9f5e11c9b6d2988f86", "0b28203dc60033b03fe353749bd8fc9b86f1219a530bdcedcb6ed15f65e6ead5"]],
+  ["broad-organization-acquisition-backlog-2026-09-23T15-28-41.546Z-cf0bcff7cccb", ["e88119c2ac0ccccc3511fd54f7bdfeebf23dcc55a99d5c6a66b0a0bf1a6ce6a0", "cf0bcff7cccb38618c4068b24ca5fe50bdaf2e743e921918866339a5ac5faf13"]],
+  ["broad-organization-acquisition-backlog-2026-10-03T21-39-58.008Z-198a4e2579c0", ["e134b7721b31095c3f7b4b54f7d0493ca6d52ca387dd9aab74a474f88bd7c0e4", "198a4e2579c08e8fdaa5ced6d27ed078c2a583731630e8ec173edbc9fc8cd642"]],
+  ["broad-organization-acquisition-backlog-2026-10-03T21-39-58.008Z-3b06b7e6dc73", ["d3d38cde534304f09e7a42d5ddc270ac2c618c83ef8f2d876805da61fab748fe", "3b06b7e6dc732df0dcb71cbbc13e0ac0947a4498fc7b43d4f9dd6e520a9e69da"]],
+  ["broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-add02eecfa37", ["ba710a3fdbe108fac26527e94951191e052d1359ce47a1d6c4f9b579ce60163b", "add02eecfa37f3abef25686ae9965a4b6eb018b281943fa7315600be38343cab"]],
+]));
 
 function fail(message) {
   throw new Error(`Broad-organization acquisition backlog is invalid: ${message}`);
@@ -134,6 +141,22 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
     first_wave: index < BROAD_ORGANIZATION_ACQUISITION_BACKLOG_FIRST_WAVE_SIZE,
     assessment,
   }));
+  const supplemental = validated.source_artifacts.filter((artifact) => artifact.artifact_kind === "supplemental-document-prerequisite");
+  if (supplemental.length !== 1 || supplemental[0].state_abbreviation !== "VT"
+      || supplemental[0].primary_assessment_id !== "vt-business-source-reassessment-2026-10-03"
+      || supplemental[0].authority_granted !== false || !/^[a-f0-9]{64}$/.test(supplemental[0].canonical_file_sha256)) fail("supplemental prerequisite evidence is invalid");
+  const supplementalEvidence = validated.supplemental_evidence;
+  if (!Array.isArray(supplementalEvidence) || supplementalEvidence.length !== 1
+      || supplementalEvidence[0].assessment_id !== supplemental[0].artifact_id
+      || supplementalEvidence[0].supersedes_assessment_id !== supplemental[0].primary_assessment_id
+      || supplementalEvidence[0].interface_observation?.content_class !== "application-shell"
+      || supplementalEvidence[0].interface_observation?.delivery_interface_verified !== false
+      || supplementalEvidence[0].fields?.website_address_roles_documented !== true
+      || supplementalEvidence[0].status_semantics?.website_good_standing_definition_established !== true
+      || supplementalEvidence[0].claims?.business_count !== null
+      || supplementalEvidence[0].claims?.statewide_completeness !== null
+      || supplementalEvidence[0].unresolved_gates?.length !== 10
+      || Object.values(supplementalEvidence[0].authority ?? {}).some((value) => value !== false)) fail("supplemental prerequisite facts or authority boundary are invalid");
   return {
     schema_version: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_SCHEMA_VERSION,
     dataset_id: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID,
@@ -153,6 +176,7 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
       artifact_sha256: matrixSource.artifactSha256,
       denominator_version: matrix.denominator.version,
     },
+    supplemental_evidence: structuredClone(supplementalEvidence),
     scope: {
       total_assessed_jurisdictions: 51,
       current_broad_layer_gaps: 40,
@@ -175,7 +199,7 @@ export function buildBroadOrganizationAcquisitionBacklogManifest(backlog) {
   const observedToken = backlog.observed_at.replace(/[^A-Za-z0-9._-]/g, "-");
   const releaseId = `${BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID}-${observedToken}-${artifactSha256.slice(0, 12)}`;
   return {
-    schema_version: "broad-organization-acquisition-backlog-manifest@2.0.0",
+    schema_version: "broad-organization-acquisition-backlog-manifest@3.0.0",
     dataset_id: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID,
     release_id: releaseId,
     status: "published",
@@ -263,15 +287,16 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink()) fail("manifest must be a regular file");
   const manifestBytes = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
-  const historical = manifest.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0";
-  const expectedKeys = historical
+  const historicalV1 = manifest.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0";
+  const historicalV2 = manifest.schema_version === "broad-organization-acquisition-backlog-manifest@2.0.0";
+  const expectedKeys = historicalV1
     ? ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "current_pointer_changed", "assessment_catalog_id", "assessment_catalog_sha256", "state_count", "first_wave_state_abbreviations", "artifacts"]
     : ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "network_requests", "current_pointer_changed", "assessment_catalog_id", "assessment_catalog_sha256", "source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256", "state_count", "first_wave_state_abbreviations", "artifacts"];
   if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify([...expectedKeys].sort())) fail("manifest schema drifted");
-  if (!historical && manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@2.0.0"
+  if (!historicalV1 && !historicalV2 && manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@3.0.0"
       || manifest.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID
       || manifest.status !== "published" || manifest.derived_only !== true
-      || manifest.source_actions_performed !== 0 || (!historical && manifest.network_requests !== 0) || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary is invalid");
+      || manifest.source_actions_performed !== 0 || (!historicalV1 && manifest.network_requests !== 0) || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary is invalid");
   const releaseDirectory = path.dirname(manifestPath);
   const releaseStat = await lstat(releaseDirectory);
   if (!releaseStat.isDirectory() || releaseStat.isSymbolicLink()) fail("release directory must be a real directory");
@@ -284,7 +309,7 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
   const artifactBytes = await readFile(artifactPath);
   if (artifactBytes.length !== manifest.artifacts[0].bytes || sha256(artifactBytes) !== manifest.artifacts[0].sha256) fail("backlog artifact checksum mismatch");
   const backlog = JSON.parse(artifactBytes.toString("utf8"));
-  if (historical) {
+  if (historicalV1) {
     if (manifest.release_id !== HISTORICAL_V1_RELEASE.release_id
         || sha256(manifestBytes) !== HISTORICAL_V1_RELEASE.manifest_sha256
         || manifest.artifacts[0].sha256 !== HISTORICAL_V1_RELEASE.artifact_sha256
@@ -294,6 +319,14 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
         || backlog.scope?.source_actions_performed !== 0 || backlog.scope?.current_pointer_changed !== false
         || backlog.assessment_catalog?.canonical_json_sha256 !== HISTORICAL_V1_RELEASE.assessment_catalog_sha256
         || backlog.states.some(({ assessment }) => Object.entries(FORBIDDEN_AUTHORITY).some(([field, value]) => assessment?.[field] !== value))) fail("historical v1 content or authority boundary is invalid");
+  } else if (historicalV2) {
+    const pins = HISTORICAL_V2_RELEASES.get(manifest.release_id);
+    if (!pins || sha256(manifestBytes) !== pins[0] || manifest.artifacts[0].sha256 !== pins[1]
+        || backlog.schema_version !== "2.0.0" || backlog.states?.length !== 40
+        || backlog.scope?.current_broad_layer_gaps !== 40 || backlog.scope?.acquisition_authorized !== false
+        || backlog.scope?.source_actions_performed !== 0 || backlog.scope?.network_requests !== 0
+        || backlog.scope?.current_pointer_changed !== false
+        || backlog.states.some(({ assessment }) => Object.entries(FORBIDDEN_AUTHORITY).some(([field, value]) => assessment?.[field] !== value))) fail("historical v2 content differs from its immutable lineage pins");
   } else {
     const pinnedCatalog = catalog ?? await loadStateBusinessSourceAssessmentCatalog();
     const expectedBacklog = deriveBroadOrganizationAcquisitionBacklog(pinnedCatalog, matrixSource ?? await loadCurrentBroadOrganizationGapEvidence());

@@ -148,7 +148,7 @@ test("continues to verify the immutable historical v1 packet and backlog lineage
 
 test("new builds reject the historical v1 backlog as a current packet source", async () => {
   const historicalBacklog = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
-  await assert.rejects(buildBroadOrganizationAuthorizationPacket({ backlogManifestPath: historicalBacklog }), /current v2 backlog/);
+  await assert.rejects(buildBroadOrganizationAuthorizationPacket({ backlogManifestPath: historicalBacklog }), /current v3 backlog/);
 });
 
 test("cancelled build cleans only its owned staging directory", async () => {

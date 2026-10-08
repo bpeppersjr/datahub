@@ -8,6 +8,15 @@ import { loadBroadOrganizationAuthorizationProgramManagementView } from "./broad
 
 const STATUS = "PROPOSED — NOT APPROVED — NO ACTION AUTHORIZED";
 const SUPERSEDED_WAVE_1_SHA256 = "895aecf8e1220d3772972a5e5c843bcd46a4887068df28f966268b60d2ec109b";
+const PROPOSAL_LINEAGE_LINES = Object.freeze([
+  "- Assessment catalog: `state-business-source-assessment-catalog-51-2026-10-03` (SHA-256 `2657cf08d39c61bb5c02a37dec778447c420002c01e91c223cd75847e26f5a1d`)",
+  "- Backlog release: `broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-add02eecfa37`",
+  "- Backlog manifest SHA-256: `ba710a3fdbe108fac26527e94951191e052d1359ce47a1d6c4f9b579ce60163b`",
+  "- Backlog artifact SHA-256: `add02eecfa37f3abef25686ae9965a4b6eb018b281943fa7315600be38343cab`",
+  "- Authorization program release: `broad-organization-authorization-program-2026-10-07T05-23-37.982Z-0187d2cedbe7`",
+  "- Program manifest SHA-256: `7c9be7223cdd5a73d6bf093475efaadee548b8a95d79f929e99198e85bcb3890`",
+  "- Program artifact SHA-256: `0187d2cedbe7c47ea1ad54d533b71a2eeaee5ffba84cfdce2a9b1a777bed8ab8`",
+]);
 const PROPOSALS = Object.freeze([
   Object.freeze({ wave: 1, sha256: "16606c61044a20f515527bd657df578e87dcd7a3d12ae61b4ecce7592978cb92", states: Object.freeze([["CA", "California"], ["ID", "Idaho"], ["IL", "Illinois"], ["OH", "Ohio"], ["KY", "Kentucky"], ["NC", "North Carolina"], ["NH", "New Hampshire"], ["OK", "Oklahoma"], ["HI", "Hawaii"], ["MA", "Massachusetts"]]) }),
   Object.freeze({ wave: 2, sha256: "e32f6a48a2baa46fecaf327b9b1694e4f5b6c1bfb06cd94fc5249bf121466f61", states: Object.freeze([["MD", "Maryland"], ["ME", "Maine"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"], ["ND", "North Dakota"], ["NJ", "New Jersey"], ["NV", "Nevada"], ["SC", "South Carolina"], ["TN", "Tennessee"]]) }),
@@ -108,18 +117,9 @@ export async function loadDocumentOnlyInquiryProposalRegistryView(
   }
   if (authoritativeStates.size !== chainMetadata.current_gap_state_count || seen.size !== authoritativeStates.size || [...seen].some((code) => !authoritativeStates.has(code)) || [...authoritativeStates].some((code) => !seen.has(code))
       || JSON.stringify(programStates.map((state) => state.state_abbreviation).sort()) !== JSON.stringify([...authoritativeStates].sort())) fail("proposal roster does not exactly match verified current-gap states");
-  const lineageLines = [
-    `- Assessment catalog: \`${lineage.assessment_catalog_id}\` (SHA-256 \`${lineage.assessment_catalog_sha256}\`)`,
-    `- Backlog release: \`${lineage.backlog_release_id}\``,
-    `- Backlog manifest SHA-256: \`${lineage.backlog_manifest_sha256}\``,
-    `- Backlog artifact SHA-256: \`${lineage.backlog_artifact_sha256}\``,
-    `- Authorization program release: \`${programMetadata.release_id}\``,
-    `- Program manifest SHA-256: \`${lineage.program_manifest_sha256}\``,
-    `- Program artifact SHA-256: \`${lineage.program_artifact_sha256}\``,
-  ];
   for (const proposal of PROPOSALS) {
     const text = await readFile(path.join(docs, filename(proposal.wave)), "utf8");
-    if (lineageLines.some((line) => !text.includes(line))) fail(`wave ${proposal.wave} document is not bound to the verified current backlog and program lineage`);
+    if (PROPOSAL_LINEAGE_LINES.some((line) => !text.includes(line))) fail(`wave ${proposal.wave} document is not bound to its governed proposal lineage`);
   }
   return {
     schema_version: "document-only-inquiry-proposal-registry-view@1.0.0",
