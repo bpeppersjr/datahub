@@ -1,0 +1,5 @@
+import test from "node:test";import assert from "node:assert/strict";import{operationalIndustryEvidenceSummaryHttp as handle}from"./operational-industry-evidence-summary-http.mjs";
+const run=async({method="GET",url="http://localhost/?state=NJ",headers={},reader=async()=>({ok:true})}={})=>{let result;await handle({method,headers},{},new URL(url),reader,(response,status,body)=>{result={status,body}});return result};
+test("accepts one state on an empty GET",async()=>assert.deepEqual(await run(),{status:200,body:{ok:true}}));
+test("rejects methods, bodies, duplicate, unknown and extra parameters",async()=>{assert.equal((await run({method:"POST"})).status,405);for(const options of [{headers:{"content-length":"1"}},{url:"http://localhost/"},{url:"http://localhost/?state=NJ&state=NY"},{url:"http://localhost/?state=PR"},{url:"http://localhost/?state=NJ&x=1"}])assert.equal((await run(options)).status,400)});
+test("fails closed without leaking reader errors",async()=>assert.deepEqual(await run({reader:async()=>{throw Error("C:/private/secret")}}),{status:503,body:{error:"Operational industry evidence is unavailable or incompatible."}}));

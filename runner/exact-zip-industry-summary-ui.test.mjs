@@ -63,7 +63,7 @@ test("industry summary exposes bounded national exact-ZIP matrix and non-ZCTA st
     assert.match(source, new RegExp(phrase));
   assert.match(
     source,
-    /\{industries \? \(\s*<>\s*<GovernedIndustryStatus \/>/,
+    /\{industries \? \(\s*<>\s*<GovernedIndustryStatus state=\{state\} \/>/,
   );
   assert.equal(
     source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,

@@ -1,0 +1,9 @@
+# Operational industry evidence crosswalk
+
+This read-only application view connects the nine operational maintenance segments to semantically compatible source dimensions in the retained exact-ZIP v3.0 matrix and its v3.1 temporal summary. Every one of the 51 matrix dimensions is mapped to one or more segments or carries an explicit reason it is not mapped. Broad registries, all-industry Census context, linkage evidence, environmental facilities and FSIS establishments are not forced into an unrelated operational industry.
+
+For a selected state, **dimension evidence availability** is the share of that industry's governed mapped source dimensions with at least one measured evidence cell in the state. **Exact-ZIP measurement reach** is measured ZIP5-by-source-dimension cells divided by the state's governed ZCTA ZIP5 rows times mapped dimensions. It is deliberately a cell measure: overlapping sources are not unioned or added as businesses. Neither percentage measures businesses collected, current operations, industry completeness or national completeness.
+
+The projector verifies the registered pointer-free state-disposition release, its exact artifact, and the exact v3.1 summary's binding to the same matrix. State denominators contain governed state ZCTA assignments only. Non-ZCTA, materially cross-state, unresolved and placeholder scopes remain outside the state denominator and are reported as separate gaps upstream. ZIP4 is never joined to ZIP5.
+
+`GET /api/business-map/operational-industry-evidence?state=NJ` is an authenticated, empty-body management request. It performs no network access or runtime writes and returns no source paths or row-level business data. It changes no acquisition, maintenance selection, schedule, production enrollment, pointer or export authority.

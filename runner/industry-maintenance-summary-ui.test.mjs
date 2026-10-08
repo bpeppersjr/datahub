@@ -8,7 +8,7 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Industry Status/);
   assert.match(source,/Operational maintenance segments/);
   assert.match(source,/Operational segment IDs are shown separately from retained source dimensions and reporting\/map categories/);
-  assert.match(source,/nine operational maintenance segments and governed source dimensions are separate taxonomies/);
+  assert.match(source,/governed crosswalk below relates compatible retained source dimensions to the nine operational segments/);
   assert.match(source,/historical evidence below remains visible and unchanged/);
   assert.match(source,/Manual-only and unauthorized sources retain their own gates/);
   assert.match(source,/of jurisdictions \(/);
@@ -16,8 +16,7 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Retained evidence status:/);
   assert.match(source,/Temporal status:/);
   assert.match(source,/State evidence details for/);
-  assert.match(source,/State provenance is reported only where the enrolled operational ledger supplies it/);
-  assert.match(source,/no crosswalk to retained exact-ZIP source dimensions is inferred/);
+  assert.match(source,/source-access ledger stays separate from the governed exact-ZIP crosswalk below/);
   assert.match(source,/Retained source-dimension status/);
   assert.match(source,/Source vintage \/ temporal status/);
   assert.match(source,/Unknown, absent, or outside denominator/);
@@ -30,7 +29,7 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/Tribal or Native territory.*No classification is inferred/);
   assert.match(source,/A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents/);
   assert.match(source,/It remains nonblocking optional context and does not infer a ZIP, population, park, tribal\/Native, private-land, or business status/);
-  assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus \/>\s*<h3>Industry connectivity<\/h3>/);
-  assert.match(source,/function GovernedIndustryStatus\(\).*<OperationalMaintenanceIntent\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
+  assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus state=\{state\} \/>\s*<h3>Industry connectivity<\/h3>/);
+  assert.match(source,/function GovernedIndustryStatus\(\{state\}:\{state:string\}\).*<OperationalMaintenanceIntent\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
   assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");
 });
