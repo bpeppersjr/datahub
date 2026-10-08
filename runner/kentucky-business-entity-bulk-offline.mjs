@@ -99,12 +99,18 @@ export function normalizeKentuckyBusinessEntity(row, context) {
   };
 }
 
-export async function inspectKentuckyBusinessEntityPackage(packageDirectory, { root = APP_ROOT, maximumSourceBytes = 1_000_000_000, maximumRows = 2_000_000, signal } = {}) {
+export async function inspectKentuckyBusinessEntityPackage(packageDirectory, { root = APP_ROOT, packagesRoot, maximumSourceBytes = 1_000_000_000, maximumRows = 2_000_000, signal } = {}) {
   signal?.throwIfAborted();
   check(path.isAbsolute(packageDirectory), "package path must be absolute");
   check(Number.isSafeInteger(maximumRows) && maximumRows >= 0 && maximumRows <= 2_000_000, "maximumRows is invalid");
   const canonicalRoot = await realpath(path.resolve(root));
-  const expectedRoot = path.join(canonicalRoot, "data", "imports", "kentucky-business-entity-bulk", "packages");
+  const expectedRoot = packagesRoot === undefined
+    ? path.join(canonicalRoot, "data", "imports", "kentucky-business-entity-bulk", "packages")
+    : await realpath(path.resolve(packagesRoot));
+  if (packagesRoot !== undefined) {
+    const rootRelative = path.relative(canonicalRoot, expectedRoot).split(path.sep).join("/");
+    check(/^data\/imports\/kentucky-business-entity-bulk\/operations\/[a-f0-9-]{36}\/input-snapshot$/i.test(rootRelative), "packages root is not an operation-owned snapshot");
+  }
   const canonicalPackage = await realpath(packageDirectory);
   check(path.dirname(canonicalPackage) === expectedRoot && PACKAGE.test(path.basename(canonicalPackage)), "package location is invalid");
   const info = await lstat(canonicalPackage, { bigint: true }); check(info.isDirectory() && !info.isSymbolicLink(), "package is not a regular directory");

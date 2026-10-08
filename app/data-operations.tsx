@@ -82,6 +82,7 @@ export default function DataOperations() {
   const [utahBusinessSelection,setUtahBusinessSelection]=useState('');
   const [oklahomaBusinessSelection,setOklahomaBusinessSelection]=useState('');
   const [mississippiBusinessPackage,setMississippiBusinessPackage]=useState('');
+  const [kentuckyBusinessPackage,setKentuckyBusinessPackage]=useState('');
   const credentialMode=exportType==='mn-construction-credentials';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -221,6 +222,13 @@ export default function DataOperations() {
       <label>Package directory under data/imports <input aria-label="Mississippi Business Report package" value={mississippiBusinessPackage} disabled={busy} placeholder="data/imports/mississippi-business-report/packages/package-id" onChange={event=>setMississippiBusinessPackage(event.target.value)}/></label>
       <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/mississippi-business-report\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(mississippiBusinessPackage)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ms-business-report',{package:mississippiBusinessPackage})))}>Start offline Mississippi package operation</button>
       <p className="operations-note">The public report’s 300,000-row ceiling remains a truncation warning, never evidence of statewide completeness. Private receipts and releases stay inside datahub and are not download artifacts.</p>
+    </section>
+    <section aria-labelledby="kentucky-business-entity-title" className="operations-builder">
+      <h3 id="kentucky-business-entity-title">Process a Kentucky Business Entity package</h3>
+      <p className="operations-note">Zero-network replay of one operator-supplied local company-family package. Officer files are forbidden. Co*Tive retains an immutable operation snapshot and independently replays the strict 42-field input into private local-review evidence.</p>
+      <label>Package directory under data/imports <input aria-label="Kentucky Business Entity package" value={kentuckyBusinessPackage} disabled={busy} placeholder="data/imports/kentucky-business-entity-bulk/packages/package-id" onChange={event=>setKentuckyBusinessPackage(event.target.value)}/></label>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/kentucky-business-entity-bulk\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(kentuckyBusinessPackage)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ky-business-entity',{package:kentuckyBusinessPackage})))}>Start offline Kentucky package operation</button>
+      <p className="operations-note">ZIP5 and ZIP4 stay separate. Output makes no statewide-completeness, current-operation, geocode, physical-site, public-export, pointer, or national-admission claim.</p>
     </section>
     <BroadOrganizationAuthorizationPacket />
     <BroadOrganizationAuthorizationProgram />

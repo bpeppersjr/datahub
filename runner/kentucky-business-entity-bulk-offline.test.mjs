@@ -66,3 +66,9 @@ test("observes cooperative cancellation before any output exists", async t => {
   const directory=await fixture(t), controller=new AbortController(); controller.abort();
   await assert.rejects(inspectKentuckyBusinessEntityPackage(directory,{signal:controller.signal}),error=>error.name==="AbortError");
 });
+
+test("offline replay root override accepts only an operation-owned snapshot", async t => {
+  const directory=await fixture(t);
+  await assert.rejects(inspectKentuckyBusinessEntityPackage(directory,{packagesRoot:path.dirname(directory)}),/operation-owned snapshot/);
+  await assert.rejects(inspectKentuckyBusinessEntityPackage(directory,{packagesRoot:APP_ROOT}),/operation-owned snapshot/);
+});

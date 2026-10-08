@@ -54,7 +54,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk", "ms-business-report"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk", "ms-business-report", "ky-business-entity"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -122,6 +122,7 @@ export class ManagedOperations {
     this.utahAppVerifier = options.utahAppVerifier ?? null;
     this.okBusinessAppVerifier = options.okBusinessAppVerifier ?? null;
     this.mississippiBusinessAppVerifier = options.mississippiBusinessAppVerifier ?? null;
+    this.kentuckyBusinessAppVerifier = options.kentuckyBusinessAppVerifier ?? null;
     this.adoptionTiming={deadlineMs:CMS_ADOPTION_DEADLINE_MS,childCleanupMs:35000,verifierCleanupMs:1000};
     if(options.adoptionTestTiming!==undefined){
       const timing=options.adoptionTestTiming;
@@ -253,6 +254,14 @@ export class ManagedOperations {
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Mississippi Business Report requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('ms-business-report',{sourceId:'mississippi-business-report',package:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
+  }
+  async startKentuckyBusinessEntity(input={}) {
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'package')?.value!=='string')throw invalid('Kentucky Business Entity requires only package.');
+    const selected=path.resolve(APP_ROOT,input.package),packages=path.join(APP_ROOT,'data','imports','kentucky-business-entity-bulk','packages'),relative=path.relative(packages,selected);
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.dirname(selected)!==packages||!safeId(path.basename(selected))||path.basename(selected).length>64)throw invalid('Kentucky Business Entity package must be a direct package directory.');
+    if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Kentucky Business Entity requires native operation storage.');
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start('ky-business-entity',{sourceId:'kentucky-business-entity-bulk',package:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
   }
   async startSourcePrerequisite(input = {}) {
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== 1
@@ -540,6 +549,7 @@ export class ManagedOperations {
       else if(record.kind==='ut-business-list') {script='scripts/run-utah-business-list-app.mjs';args=['--selection',record.details.selection];}
       else if(record.kind==='ok-business-bulk') {script='scripts/run-ok-business-bulk-app.mjs';args=['--selection',record.details.selection];}
       else if(record.kind==='ms-business-report') {script='scripts/run-mississippi-business-report-app.mjs';args=['--package',record.details.package];}
+      else if(record.kind==='ky-business-entity') {script='scripts/run-kentucky-business-entity-app.mjs';args=['--package',record.details.package];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
         script = record.details.sourceId === "overture-httpfs-runtime" ? "scripts/prepare-overture-httpfs-runtime.mjs"
@@ -642,6 +652,13 @@ export class ManagedOperations {
         const proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
         if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.acquisition_performed!==false||proof.receipt.purchase_performed!==false||proof.receipt.account_action_performed!==false||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.statewide_complete!==false||proof.receipt.current_operation_claim!==false||proof.receipt.geocode_claim!==false||proof.receipt.physical_site_claim!==false||proof.receipt.public_export_authorized!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Mississippi Business Report replay disagreed.');
         record.result={sourceId:'mississippi-business-report',recordCount:proof.receipt.source.record_count,receiptIntegrityVerified:true,independentReplayVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,acquisitionPerformed:false,purchasePerformed:false,accountActionPerformed:false,currentPointerWritten:false,nationalAdmissionPerformed:false,statewideComplete:false,currentOperationClaim:false,geocodeClaim:false,physicalSiteClaim:false,publicExportAuthorized:false};record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='ky-business-entity'){
+        if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Kentucky Business Entity did not complete cleanly.');
+        const descriptor=JSON.parse(execution.stdout);if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||!isDeepStrictEqual(Reflect.ownKeys(descriptor).sort(),['operationDirectory','receipt','receiptPath']))throw Error('Kentucky Business Entity descriptor rejected.');
+        const verifier=this.kentuckyBusinessAppVerifier??(await import('./kentucky-business-entity-bulk-app.mjs')).verifyKentuckyBusinessEntityAppJob,proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
+        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.acquisition_performed!==false||proof.receipt.purchase_performed!==false||proof.receipt.account_action_performed!==false||proof.receipt.terms_accepted!==false||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.statewide_complete!==false||proof.receipt.current_operation_claim!==false||proof.receipt.geocode_claim!==false||proof.receipt.physical_site_claim!==false||proof.receipt.public_export_authorized!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Kentucky Business Entity replay disagreed.');
+        record.result={sourceId:'kentucky-business-entity-bulk',recordCount:proof.receipt.source.record_count,receiptIntegrityVerified:true,independentReplayVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,acquisitionPerformed:false,purchasePerformed:false,accountActionPerformed:false,termsAccepted:false,currentPointerWritten:false,nationalAdmissionPerformed:false,statewideComplete:false,currentOperationClaim:false,geocodeClaim:false,physicalSiteClaim:false,publicExportAuthorized:false};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)

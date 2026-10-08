@@ -1,0 +1,104 @@
+{
+  "schema_version": "state-business-source-prerequisite@1.0.0",
+  "assessment_id": "vt-business-source-document-prerequisite-2026-10-07",
+  "observed_at": "2026-10-07",
+  "observation_timezone": "America/Chicago",
+  "audit_started_at": "2026-10-08T02:27:56Z",
+  "state": { "abbreviation": "VT", "name": "Vermont" },
+  "supersedes_assessment_id": "vt-business-source-reassessment-2026-10-03",
+  "supersession_scope": "Document-prerequisite evidence only; the immutable 51-jurisdiction catalog and historical backlog remain unchanged.",
+  "decision": "hold",
+  "connector_candidate": false,
+  "authority": {
+    "network_execution_authorized": false,
+    "acquisition_authorized": false,
+    "row_bearing_preflight_authorized": false,
+    "account_creation_authorized": false,
+    "payment_authorized": false,
+    "terms_acceptance_authorized": false,
+    "publisher_contact_authorized": false,
+    "portal_automation_authorized": false,
+    "production_enrollment_authorized": false,
+    "pointer_change_authorized": false,
+    "redistribution_authorized": false
+  },
+  "controls": {
+    "official_primary_sources_only": true,
+    "public_document_reads_performed": true,
+    "provider_row_requests": 0,
+    "datasets_acquired": 0,
+    "accounts_created": 0,
+    "fees_paid": 0,
+    "terms_accepted": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "interface_observation": {
+    "url": "https://bizfilings.vermont.gov/bulk-download",
+    "method": "GET",
+    "authentication_supplied": false,
+    "http_status": 200,
+    "content_type": "text/html",
+    "reported_response_bytes": 29441,
+    "content_class": "application-shell",
+    "observed_marker": "<app-root></app-root>",
+    "rendered_interface_inspected": false,
+    "browser_limitation": "No browser connection was available. The landing page was read as HTML without executing its scripts or requesting a data file.",
+    "delivery_interface_verified": false,
+    "schema_or_header_received": false,
+    "raw_response_retained": false,
+    "publisher_authenticity_independently_verified": false
+  },
+  "access": {
+    "classification": "official-bulk-availability-current-delivery-contract-unverified",
+    "bulk": "Official February 17, 2026 testimony describes current and historic business registration information, an available bulk download, and data feeds in development. It establishes an offered product, not an observed data-transfer interface.",
+    "historical_free_weekly_evidence": {
+      "document_date": "2025-04-29",
+      "business_data_described_as_free": true,
+      "public_search_described_as_without_user_profile": true,
+      "full_bulk_download_described_as_weekly": true,
+      "bulk_no_account_requirement_explicitly_established": false,
+      "current_access_contract_verified": false
+    },
+    "current_account_requirement": "unverified",
+    "current_payment_requirement": "unverified",
+    "current_refresh_cadence": "unverified",
+    "api": "No current official public API specification or supported unattended transfer contract was established. HTTP 200 for the application shell is not a bulk API readiness signal."
+  },
+  "fields": {
+    "bulk_schema_published_and_verified": false,
+    "bulk_header_verified": false,
+    "website_address_roles_documented": true,
+    "website_address_roles": ["principal-office", "business-mailing-address", "registered-office-agent-address", "agent-mailing-address"],
+    "bulk_field_mapping_verified": false,
+    "summary": "The current SOS Business Filings page distinguishes principal office (described by the publisher as the business physical address), business mailing address, registered office (agent physical business address), and agent mailing address. These website definitions do not establish bulk column names, ZIP coverage, address occupancy, or a complete physical-site contract."
+  },
+  "status_semantics": {
+    "website_good_standing_definition_established": true,
+    "definition": "Good standing concerns up-to-date required filings, registered-agent and office addresses, business principal and mailing addresses, and principal-personnel information.",
+    "bulk_status_codebook_verified": false,
+    "active_only_bulk_scope_established": false,
+    "current_operations_verified": false,
+    "physical_sites_verified": false
+  },
+  "reuse": {
+    "product_specific_grant_established": false,
+    "retention_rights_established": false,
+    "transformation_rights_established": false,
+    "redistribution_rights_established": false,
+    "blanket_prohibition_asserted": false,
+    "summary": "No reviewed product-specific downstream-use grant was established. The general State privacy policy concerns information collected from website visitors and allows site-specific policies; it is not a business-dataset license. Statutory optional-data-service revenue authority is neither a current price schedule nor a reuse grant."
+  },
+  "citations": [
+    { "id": "bulk-landing", "url": "https://bizfilings.vermont.gov/bulk-download", "evidence": "Anonymous ordinary HTML GET returned an application shell; no data endpoint, file, schema or rendered controls were inspected." },
+    { "id": "testimony-2026", "url": "https://legislature.vermont.gov/Documents/2026/Workgroups/Senate%20Institutions/State%20Agencies/Secretary%20of%20State/W~Sarah%20Copeland%20Hanzas~Senate%20Institutions%20Presentation%20-%20Secretary%20Of%20State%20Data~2-17-2026.pdf", "evidence": "Page 4 describes current/historic registration information, bulk-download availability and feeds in development." },
+    { "id": "testimony-2025", "url": "https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Data/W~Lauren%20Hibbert~Transparency%20and%20Accessibility%20of%20SOS%20Data~4-29-2025.pdf", "evidence": "Historical Business Services section describes free public data, public search without a user profile, and weekly full bulk downloads; current bulk account/payment conditions were not verified." },
+    { "id": "filing-semantics", "url": "https://sos.vermont.gov/business-services/business-filings", "evidence": "Current official page defines good-standing filing obligations and distinct office/mailing/agent address roles. Read through the web search tool's official-page text; direct web open returned 403, so no direct-page retrieval success is claimed." },
+    { "id": "privacy-policy", "url": "https://www.vermont.gov/policies/privacy", "evidence": "General visitor-information privacy policy; site-specific policies may replace or modify it. It does not establish a business-data redistribution grant." },
+    { "id": "revenue-authority", "url": "https://legislature.vermont.gov/statutes/section/03/005/00118", "evidence": "Section 118(c) authorizes revenues from optional data services, including subscriptions. This is not current product pricing or a dataset-use contract." }
+  ],
+  "unresolved_gates": ["rendered-bulk-interface", "current-account-and-payment-requirements", "supported-delivery-contract", "bulk-schema-and-header", "identifier-lifecycle", "bulk-status-and-address-mapping", "complete-snapshot-controls", "refresh-deletion-replay-checksums", "product-specific-downstream-use", "privacy-projection"],
+  "strongest_next_action": "Inspect the ordinary rendered bulk landing interface when browser access is available, stopping before data download, login, payment or agreement. Obtain a published schema/header and supported transfer evidence before defining a parser or downloader. This document and its offline loader authorize no network or source action.",
+  "claims": { "source_records_acquired": 0, "business_count": null, "statewide_completeness": null, "source_ready": false, "production_ready": false, "current_pointer_written": false }
+}
