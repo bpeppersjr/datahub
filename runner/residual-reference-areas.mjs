@@ -33,9 +33,7 @@ function longitudeFrame(statePolygons) {
   }
   return value => { const normalized = ((value % 360) + 360) % 360; return normalized < start ? normalized + 360 : normalized; };
 }
-// Direction is an orientation reference, never a centroid, land class or ZIP assignment.
-export function buildResidualReferenceAreas({ state, stateGeometry, residualGeometry, offset = 0, direction = 'all' }) {
-  validateResidualReferenceSelection({ offset, direction });
+function residualComponents(state, stateGeometry, residualGeometry) {
   if (!/^[A-Z]{2}$/.test(state?.state_abbreviation) || typeof state.state_name !== 'string') throw Error('Invalid retained residual state.');
   const statePolygons = polygons(stateGeometry), residualPolygons = polygons(residualGeometry), unwrap = longitudeFrame(statePolygons);
   const stateBounds = bounds(statePolygons.flatMap(rings => rings), unwrap), counts = Object.fromEntries(RESIDUAL_DIRECTIONS.map(key => [key, 0]));
@@ -50,7 +48,26 @@ export function buildResidualReferenceAreas({ state, stateGeometry, residualGeom
     seen.add(id); counts[orientation]++;
     return { id, label: `${state.state_name} · ${orientation} · unresolved area ${digest.slice(0, 12)}`, direction: orientation, reference_bounds: box };
   }).sort((a, b) => a.id.localeCompare(b.id));
+  return { rows, counts, residualPolygons };
+}
+// Direction is an orientation reference, never a centroid, land class or ZIP assignment.
+export function buildResidualReferenceAreas({ state, stateGeometry, residualGeometry, offset = 0, direction = 'all' }) {
+  validateResidualReferenceSelection({ offset, direction });
+  const { rows, counts } = residualComponents(state, stateGeometry, residualGeometry);
   const selected = direction === 'all' ? rows : rows.filter(row => row.direction === direction), page = selected.slice(offset, offset + 100);
   return { method: RESIDUAL_REFERENCE_METHOD, component_count: rows.length, direction_counts: counts, direction, offset, page_size: 100, selected_count: selected.length, next_offset: offset + page.length < selected.length ? offset + page.length : null, rows: page,
     semantics: 'Each ID identifies a polygon component in this immutable residual artifact. Direction uses its bounding-box midpoint in thirds of the retained state bounds, with longitude unwrapped across the antimeridian. It is an orientation reference, not a centroid, ZIP boundary, population value, land classification or business gap. Components spanning regions keep one reference label.' };
+}
+
+// This is presentation metadata for retained geometry, not a land, postal, population, or business classification.
+export function buildResidualGeometryFeatures({ state, stateGeometry, residualGeometry }) {
+  const { rows, residualPolygons } = residualComponents(state, stateGeometry, residualGeometry);
+  const geometryById = new Map(residualPolygons.map(rings => {
+    const id = `${state.state_abbreviation}-unresolved-${createHash('sha256').update(JSON.stringify(rings)).digest('hex')}`;
+    return [id, { type: 'Polygon', coordinates: rings }];
+  }));
+  return rows.map(row => { const geometry = geometryById.get(row.id); if (!geometry) throw Error('Residual component geometry mismatch.'); return ({ type: 'Feature', geometry, properties: {
+    id: row.id, label: row.label, state_abbreviation: state.state_abbreviation, state_name: state.state_name,
+    direction: row.direction, semantics: 'Unresolved Census state-equivalent area outside selected 2020 Census ZCTA polygons; direction is a reference orientation only.'
+  }}); });
 }

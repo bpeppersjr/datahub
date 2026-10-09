@@ -3,8 +3,9 @@ import {lstat,readFile} from 'node:fs/promises';
 import path from 'node:path';
 import {APP_ROOT} from './paths.mjs';
 import {verifyCensusZctaResidualRelease} from './census-zcta-residual-release.mjs';
-import {buildResidualReferenceAreas,validateResidualReferenceSelection} from './residual-reference-areas.mjs';
+import {buildResidualGeometryFeatures,buildResidualReferenceAreas,validateResidualReferenceSelection} from './residual-reference-areas.mjs';
 export const CENSUS_RESIDUAL_SCHEMA='us-census-non-zcta-state-residual-view@1.0.0';
+export const CENSUS_RESIDUAL_GEOMETRY_SCHEMA='us-census-non-zcta-state-residual-geometry-view@1.0.0';
 const SHA=/^[a-f0-9]{64}$/;
 const check=(value,message)=>{if(!value)throw new Error(message)};
 const exact=(value,keys)=>check(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join('|')===[...keys].sort().join('|'),'Invalid residual registration.');
@@ -37,4 +38,19 @@ export async function readCensusZctaResidualView({state,offset=0,direction='all'
     referenceAreas=buildResidualReferenceAreas({state:selected,stateGeometry:stateFeature.geometry,residualGeometry:residualFeature.geometry,offset,direction});
   }
   return{schema_version:CENSUS_RESIDUAL_SCHEMA,ready:true,available:true,status:'verified-state-equivalent-residual-release',release:{release_id:verified.release_id,manifest_sha256:verified.manifest_sha256,publication_mode:verified.summary.publication_mode,state_artifacts:verified.state_artifacts},state:selected,reference_areas:referenceAreas,upstream:verified.summary.upstream,inventory:{state_equivalents:56,zcta_features:33791},conservation:verified.summary.conservation,claims:{zip_completion:verified.claims.zip_completion,population:verified.claims.population,business_count:verified.claims.business_geography,park_status:verified.claims.park_status,tribal_status:verified.claims.tribal_or_native_status,private_land_status:verified.claims.private_land_status,existing_map_blocked:verified.claims.existing_map_blocked,zip_or_postal_geography:verified.claims.zip_or_postal_geography}};
+}
+
+export async function readCensusZctaResidualGeometryView({state}={}) {
+  if(typeof state!=='string'||!/^[A-Z]{2}$/.test(state))throw Object.assign(new Error('Invalid residual state selection.'),{statusCode:400});
+  const view=await readCensusZctaResidualView({state}),registered=await registration(),releaseDirectory=path.dirname(path.resolve(APP_ROOT,registered.retained_release.manifest));
+  const residualBytes=await readFile(path.join(releaseDirectory,view.state.artifact_path));
+  check(residualBytes.length===view.state.artifact_bytes&&sha(residualBytes)===view.state.artifact_sha256,'Residual component artifact identity mismatch.');
+  const upstreamDirectory=path.dirname(path.resolve(APP_ROOT,view.upstream.manifest_path)),manifest=JSON.parse(await readFile(path.join(upstreamDirectory,'manifest.json'))),descriptor=manifest.artifacts.find(row=>row.path==='source/states.geojson');
+  check(descriptor&&SHA.test(descriptor.sha256),'Missing retained state geometry descriptor.');
+  const stateBytes=await readFile(path.join(upstreamDirectory,descriptor.path));
+  check(stateBytes.length===descriptor.bytes&&sha(stateBytes)===descriptor.sha256,'Retained state geometry identity mismatch.');
+  const stateFeature=JSON.parse(stateBytes).features.find(row=>row.properties?.STUSAB===state),residualFeature=JSON.parse(residualBytes).features[0];
+  check(stateFeature&&residualFeature,'Missing retained state/reference geometry.');
+  const features=buildResidualGeometryFeatures({state:view.state,stateGeometry:stateFeature.geometry,residualGeometry:residualFeature.geometry});
+  return {schema_version:CENSUS_RESIDUAL_GEOMETRY_SCHEMA,ready:true,available:true,status:'verified-selected-state-residual-geometry',release:{release_id:view.release.release_id,manifest_sha256:view.release.manifest_sha256},state:{state_abbreviation:state,state_name:view.state.state_name,artifact_sha256:view.state.artifact_sha256},type:'FeatureCollection',features,claims:view.claims};
 }
