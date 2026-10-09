@@ -26,7 +26,9 @@
     "exact-zip-industry-evidence-matrix",
     "state-exact-zip-evidence-dispositions",
     "zip-denominator-gap-cohort",
-    "zcta-overlay-summary"
+    "zcta-overlay-summary",
+    "business-entity-source-policy-provenance",
+    "national-business-temporal-lifecycle-reconciliation-v1-1"
   ],
   "output_artifact_types": [
     "national-goal-evidence-summary-json",

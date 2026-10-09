@@ -4,13 +4,17 @@ import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import { verifyNationalBusinessTemporalLifecycleReconciliation as prior } from "./national-business-temporal-lifecycle-reconciliation.mjs";
 const sha = (b) => createHash("sha256").update(b).digest("hex"),
+  decoder = new TextDecoder("utf-8", { fatal: true }),
   fail = (m) => {
     throw Error("Temporal lifecycle v1.1 rejected: " + m);
   },
   ck = (v, m) => {
     if (!v) fail(m);
   };
-async function read(root, relative) {
+async function read(root, relative, maxBytes, signal) {
+ try {
+  signal?.throwIfAborted();
+  ck(Number.isSafeInteger(maxBytes) && maxBytes > 0, "input");
   ck(
     typeof relative === "string" &&
       !path.isAbsolute(relative) &&
@@ -18,11 +22,17 @@ async function read(root, relative) {
       !relative.split("/").includes(".."),
     "path",
   );
-  const file = path.join(root, relative),
-    h = await fs.open(file, "r");
+  const requestedRoot=path.resolve(root),rootStat=await fs.lstat(requestedRoot,{bigint:true});
+  ck(rootStat.isDirectory()&&!rootStat.isSymbolicLink(),"input");
+  const resolvedRoot=await fs.realpath(requestedRoot);ck(resolvedRoot===requestedRoot,"input");
+  const file = path.resolve(resolvedRoot, relative);
+  ck(file.startsWith(`${resolvedRoot}${path.sep}`), "containment");
+  let cursor=resolvedRoot;
+  for(const part of path.relative(resolvedRoot,file).split(path.sep)){cursor=path.join(cursor,part);const stat=await fs.lstat(cursor,{bigint:true});ck(!stat.isSymbolicLink(),"symlink ancestry");}
+  const h = await fs.open(file, "r");
   try {
     const a = await h.stat({ bigint: true });
-    ck(a.isFile() && a.nlink === 1n, "file");
+    ck(a.isFile() && a.nlink === 1n && a.size<=BigInt(maxBytes), "file bounds");
     const b = await h.readFile(),
       z = await h.stat({ bigint: true }),
       n = await fs.lstat(file, { bigint: true });
@@ -33,11 +43,14 @@ async function read(root, relative) {
         ),
       "mutation",
     );
-    return { value: JSON.parse(b), sha256: sha(b) };
+    signal?.throwIfAborted();
+    return { value: JSON.parse(decoder.decode(b)), sha256: sha(b) };
   } finally {
     await h.close();
   }
+ } catch(error) {if(error?.name==='AbortError')throw error;fail("input");}
 }
+export async function testOnlyReadBoundedReconciliationJson(options={}) {return read(options.root,options.relative,options.maxBytes,options.signal);}
 export async function verifyNationalBusinessTemporalLifecycleReconciliationV11({
   root = APP_ROOT,
   signal,
@@ -47,6 +60,8 @@ export async function verifyNationalBusinessTemporalLifecycleReconciliationV11({
   const reg = await read(
       root,
       "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
+      100_000,
+      signal,
     ),
     c = reg.value,
     b = c.bindings,
@@ -61,9 +76,9 @@ export async function verifyNationalBusinessTemporalLifecycleReconciliationV11({
   );
   const [p, base, ptr, man] = await Promise.all([
     prior({ root, signal }),
-    read(root, b.reconciliation_registration.path),
-    read(root, b.la_pointer.path),
-    read(root, b.la_manifest.path),
+    read(root, b.reconciliation_registration.path,100_000,signal),
+    read(root, b.la_pointer.path,20_000,signal),
+    read(root, b.la_manifest.path,200_000,signal),
   ]);
   ck(
     base.sha256 === b.reconciliation_registration.sha256 &&
@@ -93,7 +108,7 @@ export async function verifyNationalBusinessTemporalLifecycleReconciliationV11({
     path.posix.join(
       path.posix.dirname(b.la_manifest.path),
       b.source_summary.path,
-    ),
+    ), 100_000, signal,
   );
   ck(summary.sha256 === b.source_summary.sha256, "summary pin");
   const s = summary.value;

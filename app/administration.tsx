@@ -1176,11 +1176,7 @@ export default function Administration() {
               <p className="operations-note">
                 Revision {backlog.maintenance_revision} · fingerprint{" "}
                 {backlog.backlog_sha256}.{" "}
-                {"This deterministic batch is planning evidence only."} It does
-                not authorize acquisition, dispatch
-                {
-                  "does not authorize acquisition, dispatch workers, change production, or measure business completeness."
-                }
+                {"This deterministic batch is planning evidence only. It does not authorize acquisition, dispatch workers, change production, or measure business completeness."}
               </p>
             </section>
           )}

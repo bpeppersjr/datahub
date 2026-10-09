@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-10-08T20:06:52.695Z",
+  "created_at": "2026-10-08T23:16:03.790Z",
   "artifact_sha256": {
     "gap-ledger.json": "de3c99e7f6ace0538bc45d7041b3c3ccf65a595e8e6477e3ad3add1cfa5f58b5",
-    "national-summary.json": "6d935bc07861c3ba87b7e22f64ec570cac4e00a19ca6a190cd63d9daeed9ea44",
+    "national-summary.json": "e02a5692baffaccb9e225d61644629ed27499ab70585190e0dc7131c327be725",
     "state-industry-status.jsonl": "695224e6cbdfbf50d2c4a34f7f942fbb55db931a59d19ff48101410344b846e1",
     "territories.json": "95397d92b0a115b4592c3e02b4d80d86c4f8b8802a98d693b6d8a27a1c692f7f",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -121,10 +121,24 @@
     "point_relationship_counts": {"assigned-single-county":372079,"unmatched":21,"ambiguous":7,"conflict":0,"missing-geocode":6976397,"invalid-coordinate":0,"unassignable-legacy-coordinate-crs-unproven":640383,"unassignable-coordinate-not-premise-point":22948},
     "reported_state_conflict_count": 11
   },
+  "source_policy_provenance": {
+    "registration_path": "config/datasets/business-entity-source-policy-provenance.json",
+    "registration_sha256": "fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9",
+    "release_id": "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b",
+    "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b/manifest.json",
+    "manifest_sha256": "c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5",
+    "artifact_sha256": "1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232"
+  },
+  "publisher_membership_reconciliation": {
+    "registration_path": "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
+    "registration_sha256": "e7742a974b25420b5e7993b170ba898df3e555b0ac64c5a1c63dc256070c0b99",
+    "la_manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
+    "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-a879d0a1778058e0db297dbe7f3e3c7670f035ffe333193be9fb467f006d601e",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-a879d0a1778058e0db297dbe7f3e3c7670f035ffe333193be9fb467f006d601e/manifest.json",
-  "manifest_sha256": "710c2d9acd582cf9c77f04c0d1e50c9a1a2326d5740303b560778aefea32491b",
+  "release_id": "national-goal-evidence-federation-baa83ce80fa02bfdcd922e6da9221cad9217480c05694cccc17a5fb50ba4f2db",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-baa83ce80fa02bfdcd922e6da9221cad9217480c05694cccc17a5fb50ba4f2db/manifest.json",
+  "manifest_sha256": "a5dec82355f046a4ff67a07c9893efbf22cabd00c71762c32db5964e89b3258e",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

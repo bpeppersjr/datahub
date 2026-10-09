@@ -65,6 +65,20 @@
       "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
       "schema_version": "business-entity-geography-relationship-release@1.0.0"
     },
+    "source_policy_registration": {
+      "path": "config/datasets/business-entity-source-policy-provenance.json",
+      "sha256": "fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9"
+    },
+    "source_policy_manifest": {
+      "path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b/manifest.json",
+      "sha256": "c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5",
+      "release_id": "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b",
+      "schema_version": "business-entity-source-policy-provenance-release@1.0.0"
+    },
+    "temporal_lifecycle_reconciliation_registration": {
+      "path": "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
+      "sha256": "e7742a974b25420b5e7993b170ba898df3e555b0ac64c5a1c63dc256070c0b99"
+    },
     "access": {
       "path": "data/state-access/reports/20261007023010-5b9c3f32-72fb-4853-80bd-5bca775f640e.json",
       "sha256": "aba6e72ebcf280e926fd0bb1cf3d996b1ec4e1098292a8dca84f15cf47d36c27"
