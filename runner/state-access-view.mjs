@@ -715,7 +715,7 @@ export async function stateAccessMaintenanceBacklog({
                 "official-wvpath-provider-search-identified-bulk-contract-unverified",
                 "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
                 "official-active-childcare-rosters-identified-export-contract-unverified",
-                "official-datastore-app-and-retained-reporting-validated",
+                "official-datastore-preflights-validated-reporting-not-enrolled",
                 "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified",
                 "official-monthly-active-provider-list-download-identified-acquisition-disabled",
               ].includes(discovery.decision) &&

@@ -101,7 +101,7 @@ type Backlog = {
         | "official-wvpath-provider-search-identified-bulk-contract-unverified"
         | "official-monthly-socrata-api-metadata-validated-acquisition-disabled"
         | "official-active-childcare-rosters-identified-export-contract-unverified"
-        | "official-datastore-app-and-retained-reporting-validated"
+        | "official-datastore-preflights-validated-reporting-not-enrolled"
         | "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified"
         | "official-monthly-active-provider-list-download-identified-acquisition-disabled";
       official_source_count: number;
@@ -500,7 +500,7 @@ export function validAdministrationBacklog(
           row.source_discovery.status ===
             ({
               AZ: "official-monthly-table-metadata-validated-acquisition-disabled",
-              CA: "official-datastore-app-and-retained-reporting-validated",
+              CA: "official-datastore-preflights-validated-reporting-not-enrolled",
               CO: "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
               CT: "official-active-childcare-rosters-identified-export-contract-unverified",
               DC: "official-monthly-pdf-identified-offline-parser-required",

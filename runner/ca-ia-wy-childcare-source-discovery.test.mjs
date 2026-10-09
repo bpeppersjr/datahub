@@ -5,13 +5,16 @@ import { readIaChildcareSourceDiscovery } from "./ia-childcare-source-discovery.
 import { readWyChildcareSourceDiscovery } from "./wy-childcare-source-discovery.mjs";
 import { stateAccessMaintenanceBacklog } from "./state-access-view.mjs";
 
-test("California discovery binds the existing app and retained reporting without authorizing a repull", () => {
+test("California discovery distinguishes verified preflights from an absent reporting enrollment", () => {
   const value = readCaChildcareSourceDiscovery();
   assert.equal(value.access.supported_bulk_export_verified, true);
   assert.equal(value.access.supported_api_verified, true);
   assert.equal(value.access.record_acquisition_authorized, false);
-  assert.match(value.scope.retained_application_evidence, /checksum-pinned/);
+  assert.equal(value.decision, "official-datastore-preflights-validated-reporting-not-enrolled");
+  assert.match(value.scope.retained_application_evidence, /no-enrollment-binding-installed/);
   assert.equal(value.claims.provider_rows_acquired, 0);
+  assert.equal(value.claims.provider_reporting_enrolled, false);
+  assert.match(value.next_action, /No provider-row release is installed/);
 });
 
 test("Iowa discovery preserves regulated cohorts and the agreement gate", () => {

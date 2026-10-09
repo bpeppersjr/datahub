@@ -1,6 +1,6 @@
 # California childcare retained reporting
 
-`ca-childcare-reporting@1.1.0` is a read-only projection of one independently verified Co*Tive California childcare app receipt. It does not contact the publisher, create a current pointer, enroll national production, or publish record-level data.
+`ca-childcare-reporting@1.1.0` is a read-only projection contract for an independently verified Co*Tive California childcare app receipt. No reporting enrollment is currently installed, so the current runtime returns `not-enrolled`; the retained California artifacts are metadata/schema/geography/status preflights with zero provider rows. This contract does not contact the publisher, create a current pointer, enroll national production, or publish record-level data.
 
 The reader verifies the terminal receipt, acquired release, normalized release, and exact acquired-to-normalized lineage before streaming `normalized.jsonl`. It conserves the source, accepted, and quarantine counts and reports bounded aggregates by source-reported state, separate ZIP5, source resource, publisher status, and lifecycle qualification. ZIP4 remains a separate quality count. Geocodes remain absent, and source-reported ZIP5 is not treated as USPS validity or Census ZCTA membership.
 
