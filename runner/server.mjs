@@ -45,9 +45,9 @@ import { readZctaDemographicReadiness } from './zcta-demographic-readiness-reade
 import { zctaDemographicReadinessHttp } from './zcta-demographic-readiness-http.mjs';
 import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet.mjs';
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
-import { readExactZipIndustryEvidenceWithTemporalQualificationV31 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v3-1.mjs';
+import { readExactZipIndustryEvidenceWithTemporalQualificationV32 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v3-2.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
-import { readExactZipIndustrySummaryV31 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-1.mjs';
+import { readExactZipIndustrySummaryV32 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-2.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
 import { readEpaOperationalIndustryStatus } from './epa-operational-industry-status.mjs';

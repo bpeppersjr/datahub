@@ -43,9 +43,9 @@ test("v3.1 maps all retained temporal placeholders without changing matrix count
   assert.equal(value.claims.all_business_completeness, false);
 });
 
-test("server serves v3.1 national summary with its existing read-only query boundary",async()=>{
+test("server preserves the read-only national summary query boundary",async()=>{
   const source=await readFile(new URL("./server.mjs",import.meta.url),"utf8");
-  assert.match(source,/import \{ readExactZipIndustrySummaryV31 as readExactZipIndustrySummary \} from '\.\/exact-zip-industry-summary-v3-1\.mjs'/);
+  assert.match(source,/import \{ readExactZipIndustrySummaryV32 as readExactZipIndustrySummary \} from '\.\/exact-zip-industry-summary-v3-2\.mjs'/);
   assert.match(source,/if\(request.method==='GET'&&url.pathname==='\/api\/business-map\/exact-zip-industry-summary'\)\{\s*if\(\[\.\.\.url.searchParams.keys\(\)\]\.length\)\{json\(response,400,\{error:'Exact-ZIP industry summary does not accept options\.'\}\);return;\}\s*json\(response,200,await readExactZipIndustrySummary\(\)\)/);
 });
 

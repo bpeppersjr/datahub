@@ -1,0 +1,19 @@
+{
+  "schema_version": "3.2.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v3-2/releases/national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629/manifest.json",
+    "manifest_sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",
+    "manifest_bytes": 21986,
+    "zip5_rows": 48194,
+    "dimension_count": 51,
+    "industry_cells": 2457894
+  },
+  "replaces_dimension_from": "national-exact-zip-industry-evidence-matrix-v3-0",
+  "replaced_dimension": "ny_retail_food_license_address_evidence_count",
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}
