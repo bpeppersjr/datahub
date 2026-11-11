@@ -1,0 +1,21 @@
+{
+  "schema_version": "3.2.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v3-2/releases/state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4/manifest.json",
+    "manifest_sha256": "70f5d98ef96a96f9ac591bdff1d1ac1213edd0d3c8f890de8dd5db90048b95a5",
+    "manifest_bytes": 4713,
+    "artifact_sha256": "71bd9cafba998ef78490f73ed1501adf6cfa7b370a182d48a077a33b2434b54d",
+    "artifact_bytes": 3292136,
+    "scope_rows": 60,
+    "dimension_count": 51,
+    "industry_cells": 2457894
+  },
+  "replaces_dimension_from": "state-exact-zip-industry-evidence-disposition-v3-0",
+  "replaced_dimension": "ny_retail_food_license_address_evidence_count",
+  "documentation": "docs/STATE-EXACT-ZIP-INDUSTRY-EVIDENCE-DISPOSITION.md"
+}

@@ -1,5 +1,11 @@
 # State exact-ZIP industry evidence disposition
 
+## Version 3.2 New York replacement
+
+Version 3.2 binds the state projection to national exact-ZIP matrix v3.2 and replaces only `ny_retail_food_license_address_evidence_count`. All other 50 dimensions are byte-derived from the registered v3.0 state artifact. The builder independently assigns every one of the 48,194 matrix ZIP rows through the governed Census ZCTA/state overlay, preserving 51 state/DC scopes, five territory scopes, and four explicit non-state scopes. New York’s 1,497 positive ZIP cells, 36,339 measured-zero cells, 10,358 outside-denominator cells, and 23,663 address-evidence count are conserved nationally.
+
+The refreshed dimension is `non-active-reporting` and `within-review-window`; it does not establish current operation, continuous operation, occupancy, public access, unique businesses, business completeness, USPS validity, or additive totals. Non-ZCTA, material cross-state, and unresolved-overlay cohorts remain outside state heat denominators and do not block the map.
+
 This pointer-free, local-review-only dataset assigns each retained exact-ZIP cohort member to one governed geography scope and aggregates 40 industry evidence dimensions.
 
 ## Scope rules

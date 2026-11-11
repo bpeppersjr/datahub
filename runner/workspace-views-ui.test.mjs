@@ -20,6 +20,16 @@ import { readExactZipIndustryEvidenceWithTemporalQualificationV32 } from "./exac
 import { TEMPORAL_MAPPINGS_V31 } from "./exact-zip-industry-temporal-mappings-v3-1.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from "./exact-zip-industry-temporal-qualification-v3-0.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
+import { readOperationalIndustryEvidenceSummary } from "./operational-industry-evidence-summary.mjs";
+
+test("v3.2 selected-state operational industry view validates refreshed provenance",async()=>{
+  const value=await readOperationalIndustryEvidenceSummary({state:"NY"}),h=harness(async()=>value);
+  assert.equal(h.render("validOperationalIndustryCrosswalkView",value,"NY"),true);
+  h.render("OperationalIndustryCrosswalkStatus",{state:"NY"});await flush();const rendered=text(h.render("OperationalIndustryCrosswalkStatus",{state:"NY"}));
+  assert.match(rendered,/New York · operational industry evidence/);assert.match(rendered,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
+  for(const mutate of [v=>{v.provenance.summary_release_id="invented"},v=>{v.provenance.crosswalk_sha256="0".repeat(64)},v=>{v.industries.find(row=>row.id==="retail-consumer").dimensions.find(row=>row.id==="ny_retail_food_license_address_evidence_count").temporal_qualification.review_qualification="stale"}]){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validOperationalIndustryCrosswalkView",invalid,"NY"),false);}
+  h.close();
+});
 
 test("v3.2 national and ZIP views accept only the refreshed governed New York release",async()=>{
   const [summary,evidence]=await Promise.all([readExactZipIndustrySummaryV32(),readExactZipIndustryEvidenceWithTemporalQualificationV32({zip5:"10001"})]),h=harness(async()=>summary);

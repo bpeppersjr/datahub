@@ -13,6 +13,7 @@ import { readStateExactZipIndustryEvidenceProjectionV27 } from "./state-exact-zi
 import { readStateExactZipIndustryEvidenceProjectionV28 } from "./state-exact-zip-industry-evidence-map-v2-8.mjs";
 import { readStateExactZipIndustryEvidenceProjectionV29 } from "./state-exact-zip-industry-evidence-map-v2-9.mjs";
 import { readStateExactZipIndustryEvidenceProjectionV30 } from "./state-exact-zip-industry-evidence-map-v3-0.mjs";
+import { readStateExactZipIndustryEvidenceProjectionV32 } from "./state-exact-zip-industry-evidence-map-v3-2.mjs";
 const require = createRequire(import.meta.url),
   source = await readFile(
     new URL("../app/state-exact-zip-evidence-map.tsx", import.meta.url),
@@ -108,6 +109,15 @@ const require = createRequire(import.meta.url),
       "utf8",
     ),
   ),
+  registrationV32 = JSON.parse(
+    await readFile(
+      new URL(
+        "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-2.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ),
   nodes = (v) =>
     !v || typeof v !== "object"
       ? []
@@ -177,6 +187,9 @@ function harness(request) {
                               : name ===
                                   "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-0.json"
                                 ? { default: registrationV30 }
+                                : name ===
+                                    "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-2.json"
+                                  ? { default: registrationV32 }
                                 : name === "react"
                                   ? {
                                       useState: (init) => {
@@ -782,5 +795,15 @@ test("actual v3.0 projection renders New York address evidence without physical-
       false,
     );
   }
+  h.close();
+});
+test("actual v3.2 projection renders refreshed New York evidence within review window",async()=>{
+  const dimension="ny_retail_food_license_address_evidence_count",base=await readStateExactZipIndustryEvidenceProjectionV32({dimensionId:"healthcare_organizations"}),view=await readStateExactZipIndustryEvidenceProjectionV32({dimensionId:dimension}),h=harness(async url=>url.includes(encodeURIComponent(dimension))?view:base);
+  assert.equal(h.exports.validStateEvidenceProjection(view,dimension),true);
+  h.render({selected:"NY",onSelect:()=>{}});await flush();let tree=h.render({selected:"NY",onSelect:()=>{}});
+  nodes(tree).find(n=>n.type==="select"&&n.props?.["aria-label"]==="Exact-ZIP source evidence dimension").props.onChange({target:{value:dimension}});
+  h.render({selected:"NY",onSelect:()=>{}});await flush();tree=h.render({selected:"NY",onSelect:()=>{}});const rendered=text(tree);
+  assert.match(rendered,/within its source-review window through February 11, 2027/);assert.match(rendered,/New York retail food overlap warning/);
+  for(const mutate of [v=>{v.claims.review_qualification="stale"},v=>{v.provenance.matrix.release_id="invented"},v=>{v.provenance.ny_retail_food_license_snapshot.manifest_sha256="0".repeat(64)}]){const invalid=structuredClone(view);mutate(invalid);assert.equal(h.exports.validStateEvidenceProjection(invalid,dimension),false);}
   h.close();
 });

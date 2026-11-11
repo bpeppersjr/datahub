@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { readExactZipIndustrySummaryV31 } from "./exact-zip-industry-summary-v3-1.mjs";
+import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
 
 const sha = value => createHash("sha256").update(value).digest("hex");
 const check = (value, message) => { if (!value) throw new Error(`Operational industry evidence rejected: ${message}.`); };
@@ -38,11 +38,11 @@ export function projectOperationalIndustryEvidence({ crosswalk, summary, disposi
   return { schema_version:"operational-industry-evidence-summary@1.0.0", state:{code:state,name:disposition.state_name,fips:disposition.state_fips,governed_zcta_zip5_rows:disposition.zip5_rows}, industries, unmapped_dimensions:crosswalk.dimensions.filter(row=>row.industries.length===0).map(row=>({id:row.id,reason:row.unmapped_reason})), special_geography:{included_in_state_denominator:false,non_zcta_unassigned_reported_separately:true,material_cross_state_zctas_reported_separately:true}, claims:{metric_unit:"ZIP5-by-source-dimension evidence cells",business_or_entity_counts_added:false,business_completeness:null,industry_completeness:null,current_operation_verified:false,usps_validity_verified:false,zip4_joined:false,network_requests:0,runtime_writes:0,production_enrollment:false,export_authorized:false} };
 }
 
-export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV31 }={}) {
+export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV32 }={}) {
   check(STATES.has(state), "state"); root=await fs.realpath(path.resolve(root));
   const crosswalkRead=await boundedJson(path.join(root,"config","exact-zip-operational-industry-crosswalk.json"),200_000);
-  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-0.json"),200_000), registration=registrationRead.value;
-  check(registration.schema_version==="3.0.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
+  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-2.json"),200_000), registration=registrationRead.value;
+  check(registration.schema_version==="3.2.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
   const manifestRead=await boundedJson(path.join(root,...registration.retained_release.manifest.split("/")),100_000), manifest=manifestRead.value;
   check(manifestRead.sha256===registration.retained_release.manifest_sha256&&manifest.release_id===registration.retained_release.release_id&&manifest.bindings?.matrix?.release_id,"disposition manifest");
   const artifact=manifest.artifacts?.[0], artifactRead=await boundedJson(path.join(path.dirname(manifestRead.path),artifact?.path??""),4_000_000);

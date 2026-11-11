@@ -12,6 +12,7 @@ import registrationV27 from "../config/datasets/state-exact-zip-industry-evidenc
 import registrationV28 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v2-8.json";
 import registrationV29 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v2-9.json";
 import registrationV30 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-0.json";
+import registrationV32 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-2.json";
 
 const SHA = /^[a-f0-9]{64}$/,
   LIFECYCLES = [
@@ -279,6 +280,14 @@ function validV30Projection(
     Number.isSafeInteger(q.source_bytes_read) &&
     Number(q.source_bytes_read) > 0
   );
+}
+function validV32Projection(q:Record<string,unknown>,dimension:string):boolean{
+  const provenance=q.provenance as Record<string,unknown>,matrix=provenance?.matrix as Record<string,unknown>,source=provenance?.ny_retail_food_license_snapshot as Record<string,unknown>,claims=q.claims as Record<string,unknown>;
+  if(q.schema_version!=="state-exact-zip-industry-evidence-projection@3.2.0"||provenance?.release_id!==registrationV32.retained_release.release_id||provenance.manifest_sha256!==registrationV32.retained_release.manifest_sha256||provenance.artifact_sha256!==registrationV32.retained_release.artifact_sha256||matrix?.release_id!=="national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629"||matrix.manifest_sha256!=="d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1"||source?.manifest_sha256!=="f207c68e2427c0647c71b92b20dc95d32662c96a55d5d89e39bcc53349f0aadc"||claims?.review_qualification!=="within-review-window"||claims.current_operations_verified!==false)return false;
+  const normalized=JSON.parse(JSON.stringify(q)) as Record<string,unknown>;normalized.schema_version="state-exact-zip-industry-evidence-projection@3.0.0";
+  normalized.provenance={...(normalized.provenance as Record<string,unknown>),release_id:registrationV30.retained_release.release_id,manifest_sha256:registrationV30.retained_release.manifest_sha256,artifact_sha256:registrationV30.retained_release.artifact_sha256,matrix:{release_id:"national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",manifest_sha256:"07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"},chicago_current_active_business_licenses:{manifest_sha256:"0".repeat(64)},ny_retail_food_license_snapshot:{manifest_sha256:"0c263a3a76edc73a4519f6f945e450951acc454118e193b1e69395d02ce3e815"}};
+  normalized.claims={...(normalized.claims as Record<string,unknown>),review_qualification:"stale"};
+  return validV30Projection(normalized,dimension);
 }
 function validV29Projection(
   q: Record<string, unknown>,
@@ -1605,6 +1614,7 @@ export function validStateEvidenceProjection(
   input: unknown,
   dimension: string,
 ): input is Projection {
+  if(input&&typeof input==="object"&&!Array.isArray(input)&&(input as Record<string,unknown>).schema_version==="state-exact-zip-industry-evidence-projection@3.2.0")return validV32Projection(input as Record<string,unknown>,dimension);
   if (
     input &&
     typeof input === "object" &&
@@ -2027,7 +2037,7 @@ export default function StateExactZipEvidenceMap({
       {dimension === "ny_retail_food_license_address_evidence_count" && (
         <p className="operations-note">
           New York retail-food license address evidence is an annual snapshot
-          qualified as stale for current-operation review. Addresses and source
+          {view.schema_version==="state-exact-zip-industry-evidence-projection@3.2.0"?" within its source-review window through February 11, 2027":" qualified as stale for current-operation review"}. Addresses and source
           coordinates do not establish physical-site occupancy, public access, a
           verified premise, unique businesses, or statewide completeness. Record
           detail remains local-review-only.
