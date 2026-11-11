@@ -106,6 +106,24 @@ test("normalizes license, site, source geocode, and documented and undocumented 
   assert.equal(normalized.export_policy, "local-review-only");
 });
 
+test("accepts compact and publisher comma-delimited establishment codes only", () => {
+  const compact = normalizeNyRetailFoodStore(row({estab_type: "ACY"}), context());
+  const delimited = normalizeNyRetailFoodStore(row({estab_type: "A,A,C,Y"}), context());
+  assert.deepEqual(
+    compact.retail_food_store_license_profile.establishment_codes.map(({code}) => code),
+    ["A", "C", "Y"],
+  );
+  assert.deepEqual(
+    delimited.retail_food_store_license_profile.establishment_codes.map(({code}) => code),
+    ["A", "C", "Y"],
+  );
+  for (const estab_type of ["A, C", "A,,C", "AC,Y", "B,C", "A;C", ""])
+    assert.throws(
+      () => normalizeNyRetailFoodStore(row({estab_type}), context()),
+      /source-filter-drift/,
+    );
+});
+
 test("retains ZIP evidence without inventing a site when the street number is missing", () => {
   const normalized = normalizeNyRetailFoodStore(row({ street_number: undefined, georeference: undefined }), context());
   assert.equal(normalized.entity_candidates.physical_site_id, undefined);

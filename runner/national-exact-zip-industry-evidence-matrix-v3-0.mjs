@@ -123,13 +123,13 @@ async function inputs(root, signal) {
     cb = await readFile(
       path.join(
         root,
-        "config/datasets/ny-retail-food-store-license-sites.json",
+        "config/datasets/ny-retail-food-store-license-sites-v20260907.json",
       ),
     ),
     pb = await readFile(
       path.join(
         root,
-        "data/business-sources/ny-retail-food-store-license-sites/current.json",
+        "config/datasets/ny-retail-food-store-license-sites-pointer-v20260907.json",
       ),
     );
   ck(sha(cb) === CFG && sha(pb) === PTR, "New York registration");

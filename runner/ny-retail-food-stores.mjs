@@ -9,7 +9,7 @@ import { createGunzip, createGzip } from "node:zlib";
 import { assertNormalizedUsPostalFieldsDeep } from "./normalized-us-postal-code.mjs";
 
 export const NY_RETAIL_FOOD_SCHEMA_VERSION = "1.0.0";
-export const NY_RETAIL_FOOD_TRANSFORMATION_VERSION = "ny-retail-food-stores@1.0.1";
+export const NY_RETAIL_FOOD_TRANSFORMATION_VERSION = "ny-retail-food-stores@1.0.2";
 export const NY_RETAIL_FOOD_DATASET_ID = "9a8c-vfzj";
 export const NY_RETAIL_FOOD_METADATA_URL = `https://data.ny.gov/api/views/${NY_RETAIL_FOOD_DATASET_ID}`;
 export const NY_RETAIL_FOOD_API_URL = `https://data.ny.gov/resource/${NY_RETAIL_FOOD_DATASET_ID}.json`;
@@ -143,8 +143,14 @@ function coordinate(value) {
 
 function establishmentCodes(value) {
   const source = textValue(value);
-  if (!source || !/^[A-Z]+$/.test(source) || !source.includes("A")) throw new Error("source-filter-drift");
-  return [...new Set(source)].map((code) => ({
+  if (!source) throw new Error("source-filter-drift");
+  const codes = /^[A-Z]+$/.test(source)
+    ? [...source]
+    : /^(?:[A-Z],)*[A-Z]$/.test(source)
+      ? source.split(",")
+      : null;
+  if (!codes?.includes("A")) throw new Error("source-filter-drift");
+  return [...new Set(codes)].map((code) => ({
     code,
     label: ESTABLISHMENT_CODE_LABELS[code] ?? null,
     definition_status: ESTABLISHMENT_CODE_LABELS[code] ? "documented-in-source-code-reference" : "undocumented-in-current-source-code-reference",
@@ -599,7 +605,7 @@ export async function buildNyRetailFoodStores({
     manifest_version: "1.0.0",
     dataset_id: "ny-retail-food-store-license-sites",
     schema_version: NY_RETAIL_FOOD_SCHEMA_VERSION,
-    connector: { id: "ny-retail-food-stores", version: "1.0.1" },
+    connector: { id: "ny-retail-food-stores", version: "1.0.2" },
     release_id: releaseId,
     source_release_id: sourceReleaseId,
     run_id: runId,
