@@ -6,7 +6,8 @@
   "allowed_use": [
     "one bounded metadata request to the exact canonical Socrata dataset ID",
     "internal validation of official provenance, Public Domain license, daily publishing claim, temporal scope, geographic unit, and field contract",
-    "immutable retention of a privacy-safe metadata receipt and manifest"
+    "immutable retention of a privacy-safe metadata receipt and manifest",
+    "offline testing of the future closed provider-row contract using non-source synthetic fixtures only"
   ],
   "prohibited_use": [
     "provider-record acquisition, export, query, pagination, or download under this connector version",
@@ -19,5 +20,5 @@
   "retention": "Metadata receipt and manifest only; the response body is hashed and discarded.",
   "redistribution": "No provider rows are acquired or redistributed by this metadata-only version.",
   "temporal_limits": "The publisher describes the dataset as current information published daily; dataset membership still does not independently verify a provider is operating at observation time.",
-  "review": "A later governed acquisition version must pin pagination, row conservation, selected fields, ZIP5/ZIP4 handling, enforcement semantics, source timestamps, and privacy exclusions."
+  "review": "The unexecuted future request contract pins resource_id keyset pagination, selected fields, ZIP5/ZIP4 separation, enforcement-source preservation, source timestamps, point preservation, privacy exclusions, and fail-closed normalization. A later explicitly authorized acquisition version must additionally prove publisher snapshot stability, final row conservation, transport limits, immutable source retention, independent replay, and production admission before making any provider-record request."
 }
