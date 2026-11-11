@@ -1,10 +1,10 @@
 {
   "connector_id": "acs-zcta-demographic-admission",
-  "version": "1.1.0",
-  "description": "Offline prerequisite inspection plus app-owned admission of an explicitly authorized closed local ACS package. A checksum-pinned 2024 ACS 5-year ZCTA network-acquisition plan is reviewed but remains execution-disabled pending explicit authorization.",
+  "version": "1.2.0",
+  "description": "Offline prerequisite inspection plus app-owned admission of an explicitly authorized closed local ACS package. A checksum-pinned 2024 ACS 5-year ZCTA network-acquisition plan and fail-closed four-group response/reconciliation validators are implemented, but network execution remains disabled pending explicit authorization.",
   "implementation_status": "implemented-offline-local-review-admission",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
-  "lifecycle_status": {"preflight":"implemented-local-contract-and-pin-validation","plan":"checksum-pinned-2024-acs-5-year-zcta-plan-reviewed-awaiting-explicit-network-authorization","acquire":"disabled-network-local-package-copied-to-app-owned-operation-storage","validate":"implemented-full-metadata-authorization-data-and-governed-zcta-replay","normalize":"raw-e-m-ea-ma-preserved-without-derived-percentages","reconcile":"exact-33791-governed-zcta-conservation","quality_gate":"closed-schema-independent-replay","publish":"immutable-local-review-release-manifest-last-no-current-pointer","finalize":"managed-operation-receipt-with-independent-verification"},
+  "lifecycle_status": {"preflight":"implemented-local-contract-and-pin-validation","plan":"checksum-pinned-2024-acs-5-year-zcta-plan-reviewed-awaiting-explicit-network-authorization","acquire":"disabled-network-local-package-copied-to-app-owned-operation-storage","validate":"implemented-offline-package-validation-and-network-response-validation-without-network-execution","normalize":"raw-e-m-ea-ma-preserved-without-derived-percentages","reconcile":"offline-exact-33791-plus-network-four-group-source-roster-gap-accounting","quality_gate":"closed-schema-independent-replay","publish":"immutable-local-review-release-manifest-last-no-current-pointer","finalize":"managed-operation-receipt-with-independent-verification"},
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
