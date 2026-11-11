@@ -138,7 +138,7 @@ test('retained Census NES adds governed annual aggregate context without changin
   const ledger = await buildStateAccessLedger({ temporalAsOf });
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, withoutContext.summary.accessEvidenceStatusCounts);
   assert.equal(ledger.summary.governedAnnualAggregateContextCells, 102);
-  assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 57);
+  assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 56);
   assert.equal(withoutContext.summary.governedAnnualAggregateContextCells, 0);
   assert.equal(withoutContext.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 0);
 
@@ -217,10 +217,10 @@ function nhRestrictedEvidence() {
   return {status:'available',enrollment:{enrollment_sha256:'a'.repeat(64),operation_id:'86c727ff-e93d-42d0-9a05-9aab9a81c365',operation_receipt_sha256:'b'.repeat(64)},samples:{claims,groups:[{state:'OK'},{state:'NH',count:6,rows,query_zip5:'03755',scope:'retained-query-sample-not-statewide',observed_at:'2026-09-10T17:57:56.067Z',normalized_at:'2026-09-10T18:01:14.356Z',source_policy:'nh-childcare-visible-internal@1.0.0'}]}};
 }
 
-test('NH retained query sample is admitted only as unmeasured evidence with no business, site, or operation claims',async t=>{
+test('NH retained query sample has an explicit restricted-sample status with no statewide business, site, or operation claims',async t=>{
   const f=await fixture(t);f.nhRestrictedChildcareLoader=async()=>nhRestrictedEvidence();
   const ledger=await buildStateAccessLedger(f),cell=ledger.jurisdictions.find(row=>row.state==='NH').industries.find(row=>row.industry==='childcare');
-  assert.equal(cell.accessEvidenceStatus,'unsupported-evidence-not-measured');
+  assert.equal(cell.accessEvidenceStatus,'restricted-query-sample-evidence');
   assert.equal(cell.temporalStatus.status,'no-positive-count-evidence');
   assert.equal(cell.temporalStatus.positiveEvidenceItems,0);
   const evidence=cell.evidence.find(item=>item.evidenceClass==='restricted-retained-childcare-query-sample');
@@ -947,9 +947,13 @@ test('annual aggregate temporal context never inflates access temporal status', 
   const ledger = await buildStateAccessLedger({ temporalAsOf: '2026-09-22T05:00:00.000Z' });
   const cells = ledger.jurisdictions.flatMap((jurisdiction) => jurisdiction.industries);
   const unsupportedWithContext = cells.filter((cell) => cell.accessEvidenceStatus.startsWith('unsupported-') && cell.annualAggregateContext);
-  assert.equal(unsupportedWithContext.length, 57);
+  assert.equal(unsupportedWithContext.length, 56);
   assert.ok(unsupportedWithContext.every((cell) => cell.temporalStatus.status === 'no-positive-count-evidence' && cell.temporalStatus.positiveEvidenceItems === 0));
   assert.ok(unsupportedWithContext.every((cell) => cell.annualAggregateContext.temporalEvidence.binding === 'exact-governed-source-release' && cell.annualAggregateContext.temporalEvidence.status === 'within-review-window'));
+  const restrictedWithContext = cells.filter((cell) => cell.accessEvidenceStatus === 'restricted-query-sample-evidence' && cell.annualAggregateContext);
+  assert.equal(restrictedWithContext.length, 1);
+  assert.equal(restrictedWithContext[0].temporalStatus.status, 'no-positive-count-evidence');
+  assert.equal(restrictedWithContext[0].temporalStatus.positiveEvidenceItems, 0);
   const alChildcare = ledger.jurisdictions.find((jurisdiction) => jurisdiction.state === 'AL').industries.find((cell) => cell.industry === 'childcare');
   assert.equal(alChildcare.temporalStatus.status, 'no-positive-count-evidence');
   assert.equal(alChildcare.temporalStatus.positiveEvidenceItems, 0);
@@ -1013,7 +1017,7 @@ test('state ledger discloses historical assessment provenance when coverage snap
   const f = { ...await fixture(t), coverageReassessmentLoader: async () => null };
   const baseline = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [] }) });
   const ledger = await buildStateAccessLedger({ ...f, assessmentLoader: async () => ({ assessment_catalog_id: 'historic-assessment', coverage_release_id: 'older-coverage', observed_at: '2026-09-01', states: [{ state_abbreviation: 'AL', assessment_id: 'al-history', decision: 'hold', strongest_bounded_next_action: 'Revalidate against the current release.' }] }) });
-  assert.equal(ledger.schemaVersion, 4);
+  assert.equal(ledger.schemaVersion, 5);
   assert.equal(ledger.evidence.assessmentCoverageReleaseId, 'older-coverage');
   assert.equal(ledger.evidence.assessmentObservedAt, '2026-09-01');
   assert.equal(ledger.evidence.assessmentCoverageMatchesCurrent, false);

@@ -44,7 +44,7 @@ test("maintenance backlog verifies all three final discovery contracts before ba
     iaChildcareDiscoveryLoader: () => { reads.IA++; return readIaChildcareSourceDiscovery(); },
     wyChildcareDiscoveryLoader: async () => { reads.WY++; return readWyChildcareSourceDiscovery(); },
   });
-  assert.equal(value.schema_version, "state-access-maintenance-backlog@2.18.0");
+  assert.equal(value.schema_version, "state-access-maintenance-backlog@2.19.0");
   assert.deepEqual(reads, { CA: 1, IA: 1, WY: 1 });
   assert.equal(value.claims.acquisition_authorized, false);
 });

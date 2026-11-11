@@ -21,7 +21,7 @@ import {
 } from "./state-access-view.mjs";
 
 const REPORT =
-  "data/state-access/reports/20261111202109-46a7ec81-9207-414b-9c00-c66474dd2dec.json";
+  "data/state-access/reports/20261111215829-146e8e11-df71-4ed6-839f-f4fa8ecdf553.json";
 test("bounded state-access view exposes exact temporal, aggregate, and typed directory evidence", async () => {
   const construction = await stateAccessView({
     state: "AL",
@@ -88,7 +88,7 @@ test("bounded state-access view exposes exact temporal, aggregate, and typed dir
   });
   assert.equal(
     nhChildcare.accessEvidenceStatus,
-    "unsupported-evidence-not-measured",
+    "restricted-query-sample-evidence",
   );
   assert.equal(nhChildcare.temporalStatus.status, "no-positive-count-evidence");
   assert.equal(nhChildcare.temporalStatus.positiveEvidenceItems, 0);
@@ -159,7 +159,7 @@ test("state-access enrollment rejects a hard-linked report", async (t) => {
 });
 test("industry summary conserves exact operational 51 by 9 cells and false completeness claims", async () => {
   const view = await stateAccessIndustrySummary();
-  assert.equal(view.schema_version, "state-access-industry-summary@1.3.0");
+  assert.equal(view.schema_version, "state-access-industry-summary@1.4.0");
   assert.match(view.report_sha256, /^[a-f0-9]{64}$/);
   assert.equal(view.jurisdictions, 51);
   assert.equal(view.industry_cells, 459);
@@ -306,7 +306,7 @@ test("maintenance backlog deterministically bounds selected-industry attention t
     maintainedIndustries: ["childcare", "retail-consumer"],
     maintenanceRevision: 3,
   });
-  assert.equal(view.schema_version, "state-access-maintenance-backlog@2.18.0");
+  assert.equal(view.schema_version, "state-access-maintenance-backlog@2.19.0");
   assert.match(view.backlog_sha256, /^[a-f0-9]{64}$/);
   assert.ok(view.total_attention_cells > 0);
   assert.equal(

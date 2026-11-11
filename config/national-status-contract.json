@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-11T20:31:27.359Z",
+  "created_at": "2026-11-11T22:01:58.935Z",
   "artifact_sha256": {
-    "gap-ledger.json": "d755a4e25e08adfdb4226b8835608bc8270b741c26f6ee26884d86e64cc7579a",
-    "national-summary.json": "79bc508aa70a05d75423b96baab10476c5aeec7179d774ff042147b4cbc500b9",
+    "gap-ledger.json": "67550a581e5a436b67f584c59cc6605d588a4c57bca803b55e6df22d670c1a46",
+    "national-summary.json": "64d54a5ac4326abbe2740e72ec0a4d8a1883fa16f2ece2de23ecc569cee067ec",
     "state-industry-status.jsonl": "695224e6cbdfbf50d2c4a34f7f942fbb55db931a59d19ff48101410344b846e1",
     "territories.json": "95397d92b0a115b4592c3e02b4d80d86c4f8b8802a98d693b6d8a27a1c692f7f",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -136,9 +136,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-229705407511e79f4e7515ccbbbe51312759498056e2dc9f6a1a68c64b4b62dd",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-229705407511e79f4e7515ccbbbe51312759498056e2dc9f6a1a68c64b4b62dd/manifest.json",
-  "manifest_sha256": "7a0219de53b895fc809f9763839b19c86e14efe56220e27365f877807ebdc3ad",
+  "release_id": "national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8/manifest.json",
+  "manifest_sha256": "c66be48710c72ecb01f4d3da2ee01a8fbeb62434c63fcee55c28183b016e5b2a",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -515,7 +515,8 @@
   "gaps": {
     "broad_business_missing_states": 40,
     "unsupported_industry_access_cells": 149,
-    "unmeasured_industry_access_cells": 3,
+    "unmeasured_industry_access_cells": 2,
+    "restricted_sample_industry_access_cells": 1,
     "stale_temporal_dimensions": 2,
     "unmeasured_temporal_dimensions": 20
   },

@@ -57,7 +57,7 @@ type MaintenanceSchedule = {
   };
 };
 type Backlog = {
-  schema_version: "state-access-maintenance-backlog@2.18.0";
+  schema_version: "state-access-maintenance-backlog@2.19.0";
   report_sha256: string;
   backlog_sha256: string;
   maintenance_revision: number;
@@ -222,6 +222,7 @@ const accessStatuses = [
   "direct-state-publisher",
   "local-publisher-substate-evidence",
   "national-dataset-state-evidence",
+  "restricted-query-sample-evidence",
   "unsupported-evidence-not-measured",
   "unsupported-missing",
 ] as const;
@@ -232,9 +233,9 @@ const temporalStatuses = [
   "within-review-window",
 ] as const;
 const reportSha =
-  "5fa5fcfba9525393969e41213f9303421423636830641860fe9348db080108d0";
+  "3f51792383fafbe22f31b72cf06d5d1d2017fcb7b293ed93a24c6f208ad063dd";
 type IndustryEvidence = {
-  schema_version: "state-access-industry-summary@1.3.0";
+  schema_version: "state-access-industry-summary@1.4.0";
   report_sha256: string;
   jurisdictions: 51;
   industry_cells: 459;
@@ -500,7 +501,7 @@ export function validAdministrationBacklog(
     return false;
   const v = input as Backlog;
   if (
-    v.schema_version !== "state-access-maintenance-backlog@2.18.0" ||
+    v.schema_version !== "state-access-maintenance-backlog@2.19.0" ||
     v.report_sha256 !== reportSha ||
     !/^[a-f0-9]{64}$/.test(v.backlog_sha256) ||
     v.maintenance_revision !== view.revision ||
@@ -796,7 +797,7 @@ export function validAdministrationIndustryEvidence(
     return false;
   const v = input as IndustryEvidence;
   if (
-    v.schema_version !== "state-access-industry-summary@1.3.0" ||
+    v.schema_version !== "state-access-industry-summary@1.4.0" ||
     v.report_sha256 !== reportSha ||
     v.jurisdictions !== 51 ||
     v.industry_cells !== 459 ||

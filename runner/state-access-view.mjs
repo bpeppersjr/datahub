@@ -66,6 +66,7 @@ const ACCESS_STATUSES = new Set([
   "direct-state-publisher",
   "local-publisher-substate-evidence",
   "national-dataset-state-evidence",
+  "restricted-query-sample-evidence",
   "unsupported-evidence-not-measured",
   "unsupported-missing",
 ]);
@@ -135,7 +136,7 @@ async function enrolledReport(root) {
   );
   const report = JSON.parse(bytes);
   check(
-    report.schemaVersion === 4 &&
+    report.schemaVersion === 5 &&
       report.evidence?.temporalBindingRequiredForPositiveCounts === true &&
       report.summary?.jurisdictions === 51 &&
       report.summary?.industryCells === 459 &&
@@ -400,7 +401,7 @@ export async function stateAccessIndustrySummary({
     );
   }
   return {
-    schema_version: "state-access-industry-summary@1.3.0",
+    schema_version: "state-access-industry-summary@1.4.0",
     report_sha256: config.reportSha256,
     jurisdictions: 51,
     industry_cells: 459,
@@ -500,9 +501,10 @@ export async function stateAccessMaintenanceBacklog({
   );
   const severity = {
       "unsupported-missing": 0,
-      "unsupported-evidence-not-measured": 1,
-      "review-due": 2,
-      "missing-source-reference": 3,
+      "restricted-query-sample-evidence": 1,
+      "unsupported-evidence-not-measured": 2,
+      "review-due": 3,
+      "missing-source-reference": 4,
     },
     items = [];
   for (const jurisdiction of report.jurisdictions)
@@ -511,6 +513,7 @@ export async function stateAccessMaintenanceBacklog({
       const issue_codes = [];
       if (
         cell.accessEvidenceStatus === "unsupported-missing" ||
+        cell.accessEvidenceStatus === "restricted-query-sample-evidence" ||
         cell.accessEvidenceStatus === "unsupported-evidence-not-measured"
       )
         issue_codes.push(cell.accessEvidenceStatus);
@@ -781,7 +784,7 @@ export async function stateAccessMaintenanceBacklog({
       a.state.localeCompare(b.state),
   );
   const view = {
-    schema_version: "state-access-maintenance-backlog@2.18.0",
+    schema_version: "state-access-maintenance-backlog@2.19.0",
     report_sha256: config.reportSha256,
     maintenance_revision: maintenanceRevision,
     maintained_industries: selected,
