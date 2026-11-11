@@ -36,6 +36,26 @@ type View = {
   semantics: string;
   revision: number;
 };
+type MaintenanceSchedule = {
+  id: string;
+  industries: string[];
+  states: string[];
+  intervalHours: number;
+  enabled: boolean;
+  planHash: string;
+  resources: string[];
+  createdAt: string;
+  status: "READY" | "DISABLED" | "RUNNING" | "PAUSED";
+  nextDueAt: string | null;
+  reason: string | null;
+  lastOccurrence: null | {
+    operationId: string;
+    status: string;
+    dueAt: string;
+    createdAt?: string;
+    finishedAt?: string;
+  };
+};
 type Backlog = {
   schema_version: "state-access-maintenance-backlog@2.18.0";
   report_sha256: string;
@@ -102,6 +122,7 @@ type Backlog = {
         | "official-monthly-socrata-api-metadata-validated-acquisition-disabled"
         | "official-active-childcare-rosters-identified-export-contract-unverified"
         | "official-datastore-preflights-validated-reporting-not-enrolled"
+        | "official-source-migration-preflights-validated-reporting-not-enrolled"
         | "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified"
         | "official-monthly-active-provider-list-download-identified-acquisition-disabled";
       official_source_count: number;
@@ -255,6 +276,106 @@ const exact = (value: unknown, keys: string[]) =>
 const same = (a: unknown, b: unknown) =>
   JSON.stringify(a, Object.keys(a as object).sort()) ===
   JSON.stringify(b, Object.keys(b as object).sort());
+const validDate = (value: unknown) =>
+  typeof value === "string" && Number.isFinite(Date.parse(value));
+
+export function validMaintenanceSchedules(
+  input: unknown,
+): input is MaintenanceSchedule[] {
+  if (!Array.isArray(input) || input.length > 1000) return false;
+  const ids = new Set<string>();
+  return input.every((row) => {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return false;
+    const value = row as MaintenanceSchedule & Record<string, unknown>;
+    const expected = new Set([
+      "id",
+      "industries",
+      "states",
+      "intervalHours",
+      "enabled",
+      "planHash",
+      "resources",
+      "createdAt",
+      "status",
+      "nextDueAt",
+      "lastOccurrence",
+      "reason",
+    ]);
+    if (
+      Object.keys(value).length !== expected.size ||
+      Object.keys(value).some((key) => !expected.has(key))
+    )
+      return false;
+    if (
+      typeof value.id !== "string" ||
+      !/^[a-f0-9-]{36}$/.test(value.id) ||
+      ids.has(value.id) ||
+      !Array.isArray(value.industries) ||
+      !value.industries.length ||
+      value.industries.some((id) => !industryIds.includes(id as typeof industryIds[number])) ||
+      new Set(value.industries).size !== value.industries.length ||
+      !Array.isArray(value.states) ||
+      !value.states.length ||
+      value.states.some((state) => !states.includes(state as typeof states[number])) ||
+      new Set(value.states).size !== value.states.length ||
+      !Number.isSafeInteger(value.intervalHours) ||
+      value.intervalHours < 24 ||
+      value.intervalHours > 8760 ||
+      typeof value.enabled !== "boolean" ||
+      typeof value.planHash !== "string" ||
+      !/^[a-f0-9]{64}$/.test(value.planHash) ||
+      !Array.isArray(value.resources) ||
+      !value.resources.length ||
+      value.resources.some((resource) => typeof resource !== "string" || !resource) ||
+      new Set(value.resources).size !== value.resources.length ||
+      !validDate(value.createdAt) ||
+      !["READY", "DISABLED", "RUNNING", "PAUSED"].includes(value.status) ||
+      (value.nextDueAt !== null && !validDate(value.nextDueAt)) ||
+      (value.reason !== null && typeof value.reason !== "string")
+    )
+      return false;
+    if (value.lastOccurrence !== null) {
+      const occurrence = value.lastOccurrence;
+      if (
+        !occurrence ||
+        typeof occurrence !== "object" ||
+        typeof occurrence.operationId !== "string" ||
+        !occurrence.operationId ||
+        typeof occurrence.status !== "string" ||
+        !occurrence.status ||
+        !validDate(occurrence.dueAt) ||
+        (occurrence.createdAt !== undefined && !validDate(occurrence.createdAt)) ||
+        (occurrence.finishedAt !== undefined && !validDate(occurrence.finishedAt))
+      )
+        return false;
+    }
+    ids.add(value.id);
+    return true;
+  });
+}
+
+export function maintenanceExecutionLabel(
+  industry: string,
+  maintained: boolean,
+  schedules: MaintenanceSchedule[] | null,
+) {
+  if (!maintained) return "Not selected";
+  if (schedules === null) return "Selected intent only · schedule status unavailable";
+  const applicable = schedules.filter((row) => row.industries.includes(industry));
+  if (!applicable.length) return "Selected intent only · no schedule configured";
+  const running = applicable.find((row) => row.status === "RUNNING");
+  if (running) return `Running · ${running.lastOccurrence?.operationId ?? "operation pending"}`;
+  const enabled = applicable.find((row) => row.enabled && row.status === "READY");
+  if (enabled)
+    return `Scheduled enabled · next due ${enabled.nextDueAt ?? "unknown"}`;
+  const failed = applicable.find((row) =>
+    ["FAILED", "CANCELLED"].includes(row.lastOccurrence?.status ?? ""),
+  );
+  if (failed)
+    return `Scheduled paused · latest ${failed.lastOccurrence!.status.toLowerCase()}`;
+  if (applicable.some((row) => row.status === "PAUSED")) return "Scheduled paused · needs review";
+  return "Schedule configured but disabled";
+}
 const caStatuses = [
   "CLOSED",
   "INACTIVE",
@@ -500,7 +621,7 @@ export function validAdministrationBacklog(
           row.source_discovery.status ===
             ({
               AZ: "official-monthly-table-metadata-validated-acquisition-disabled",
-              CA: "official-datastore-preflights-validated-reporting-not-enrolled",
+              CA: "official-source-migration-preflights-validated-reporting-not-enrolled",
               CO: "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
               CT: "official-active-childcare-rosters-identified-export-contract-unverified",
               DC: "official-monthly-pdf-identified-offline-parser-required",
@@ -795,6 +916,7 @@ export default function Administration() {
   const [evidence, setEvidence] = useState<IndustryEvidence | null>(null);
   const [evidenceError, setEvidenceError] = useState(false);
   const [caReadiness, setCaReadiness] = useState<CaReadiness | null>(null);
+  const [schedules, setSchedules] = useState<MaintenanceSchedule[] | null>(null);
   const draftChanged =
     !!view &&
     [...selected].sort().join("|") !==
@@ -841,6 +963,14 @@ export default function Administration() {
       .then((value) => {
         if (!controller.signal.aborted && validCaReadiness(value))
           setCaReadiness(value);
+      })
+      .catch(() => {});
+    void runnerJson<unknown>("/api/data-operations/schedules", {
+      signal: controller.signal,
+    })
+      .then((value) => {
+        if (!controller.signal.aborted && validMaintenanceSchedules(value))
+          setSchedules(value);
       })
       .catch(() => {});
     return () => controller.abort();
@@ -949,12 +1079,13 @@ export default function Administration() {
         <h3>Industry evidence status</h3>
         <p>Existing holdings are reportable even when maintenance settings, population, geocodes or nationwide coverage are incomplete. Percentages below describe jurisdictions with retained source evidence.</p>
         {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
-          <table><thead><tr><th scope="col">Industry</th><th scope="col">Retained source evidence</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
+          <table><thead><tr><th scope="col">Industry</th><th scope="col">Retained source evidence</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
             <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
             <td>{row.jurisdictions_with_retained_access_evidence}/51 jurisdictions · {row.retained_access_evidence_percent.toFixed(1)}%</td>
             <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
             <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
             <td>{view ? view.maintainedIndustries.includes(row.id) ? "Selected" : "Not selected" : "Settings unavailable — evidence still reportable"}</td>
+            <td>{view ? maintenanceExecutionLabel(row.id, view.maintainedIndustries.includes(row.id), schedules) : "Unknown — settings unavailable"}</td>
           </tr>)}</tbody></table>
           <small>Retained state-access report SHA-256 {evidence.report_sha256}. Detailed state/source provenance is available in Industry Status.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
@@ -1037,6 +1168,9 @@ export default function Administration() {
                         <small>
                           Authorization not represented by this ledger;
                           maintenance selection grants none.
+                        </small>
+                        <small>
+                          Execution: {maintenanceExecutionLabel(industry.id, view.maintainedIndustries.includes(industry.id), schedules)}.
                         </small>
                       </>
                     ) : (
