@@ -48,7 +48,7 @@ export function projectUtChildcareStateEvidence(enrollment, state) {
     reportedZIP5Count: s.by_reported_zip.filter(row => row.state === state && row.zip5 !== null).length,
     quality: s.quality, qualityScope: 'entire-retained-cohort-not-state-filtered', appReceiptSha256: s.provenance.app_receipt_sha256,
     appRunId: s.provenance.app_run_id, industryRunId: s.provenance.industry_run_id,
-    normalizedManifestSha256: s.provenance.normalized_manifest_sha256, observedAt: s.provenance.observed_at,
+    sourceReleaseId: s.provenance.source_release_id, normalizedManifestSha256: s.provenance.normalized_manifest_sha256, observedAt: s.provenance.observed_at,
     adoptedAt: s.provenance.adoption_finished_at, enrollmentSha256: enrollment.enrollmentSha256,
     nationalReportingIntegrated: false, nationalIndustryPercent: null, uniqueActiveBusinessCount: null,
     currentUspsAssignmentVerified: false, boundaryAssignmentVerified: false, physicalSiteVerified: false, currentOperationsVerified: false};

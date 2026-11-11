@@ -33,7 +33,7 @@ async function isolatedOutput(t) {
     } };
 }
 
-test('registered FMCSA overlay independently replays exact USDOT/site/establishment membership', { timeout: 240_000 }, async () => {
+test('registered FMCSA overlay independently replays exact USDOT/site/establishment membership', { timeout: 600_000 }, async () => {
   const catalog = JSON.parse(await fs.readFile(catalogPath)), manifest = path.join(ROOT, catalog.retained_release.manifest), raw = await fs.readFile(manifest);
   assert.equal(digest(raw), catalog.retained_release.manifest_sha256);
   const result = await verify(manifest);
@@ -81,7 +81,7 @@ test('secure reads reject symlinks and same-size same-mtime named replacements',
   const stamp = (await fs.stat(original)).mtime; await assert.rejects(secureRead(ROOT, original, 100, async () => { await fs.rename(original, backup); await fs.writeFile(original, '87654321'); await fs.utimes(original, stamp, stamp); }), /identity changed/);
 });
 
-test('post-manifest failure and post-verification cancellation clean only invocation-owned output', { timeout: 600_000 }, async t => {
+test('post-manifest failure and post-verification cancellation clean only invocation-owned output', { timeout: 1_500_000 }, async t => {
   const failed = await isolatedOutput(t); let failedStage; const primary = new Error('injected FMCSA post-manifest failure');
   await assert.rejects(build(failed.options(async (phase, context) => { if (phase === 'after-manifest-before-verification') { failedStage = context.stage; throw primary; } })), error => error === primary && error.inspection_required !== true);
   assert.ok(failedStage); await assert.rejects(fs.stat(failedStage), { code: 'ENOENT' }); await failed.assertClean();

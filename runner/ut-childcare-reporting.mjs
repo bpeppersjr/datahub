@@ -67,7 +67,7 @@ export async function summarizeUtChildcareAppJob(receiptPath, options = {}) {
       by_reported_state: byState, by_reported_zip: byZip, quality,
       provenance: {app_receipt_sha256: app.receipt_sha256, app_run_id: receipt.run_id, industry_run_id: receipt.industry_run_id,
         execution_mode: receipt.execution_mode, normalized_manifest_sha256: normalized.manifest_sha256, normalized_run_id: normalized.run_id,
-        source_sha256: source.source_sha256, source_url: source.source.source_url, report_edition: source.report_edition,
+        source_release_id: `ut-childcare-pdf-${source.source_sha256}`, source_sha256: source.source_sha256, source_url: source.source.source_url, report_edition: source.report_edition,
         origin_receipt_sha256: source.origin_receipt_sha256, prerequisite_receipt_sha256: source.prerequisite_receipt_sha256,
         observed_at: source.source.observed_at, normalization_processed_at: manifest.processed_at,
         adoption_started_at: receipt.started_at, adoption_finished_at: receipt.finished_at},

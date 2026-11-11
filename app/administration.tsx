@@ -211,7 +211,7 @@ const temporalStatuses = [
   "within-review-window",
 ] as const;
 const reportSha =
-  "aba6e72ebcf280e926fd0bb1cf3d996b1ec4e1098292a8dca84f15cf47d36c27";
+  "3b1be89e74568587f1da67fac7da765a03c179d64a145e3c2afde4f79c55df43";
 type IndustryEvidence = {
   schema_version: "state-access-industry-summary@1.3.0";
   report_sha256: string;

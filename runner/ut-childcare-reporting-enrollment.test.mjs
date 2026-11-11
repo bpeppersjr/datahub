@@ -34,13 +34,14 @@ test('UT projection keeps candidate denominators and observation/adoption clocks
     source_candidate_rows: 4, accepted_candidate_rows: 4, quarantined_candidate_rows: 0,
     by_reported_state: [{state: 'UT', candidate_rows: 3, percent_of_accepted_cohort: 75}, {state: null, candidate_rows: 1, percent_of_accepted_cohort: 25}],
     by_reported_zip: [{state: 'UT', zip5: '84001'}, {state: 'UT', zip5: null}], quality: {missing_points: 4},
-    provenance: {observed_at: '2026-09-08T22:59:26.309Z', adoption_finished_at: '2026-09-09T00:55:46.000Z'},
+    provenance: {source_release_id: 'ut-childcare-pdf-' + 'a'.repeat(64), observed_at: '2026-09-08T22:59:26.309Z', adoption_finished_at: '2026-09-09T00:55:46.000Z'},
   }};
   const result = project(enrollment, 'UT');
   assert.equal(result.candidateRows, 3);assert.equal(result.percentOfAcceptedCohort, 75);assert.equal(result.reportedZIP5Count, 1);
   assert.equal(result.reportedAddressStateUnavailableRows, 1);assert.notEqual(result.observedAt, result.adoptedAt);
   assert.equal(result.nationalIndustryPercent, null);assert.equal(result.uniqueActiveBusinessCount, null);
   assert.equal(result.currentOperationsVerified, false);assert.equal(result.boundaryAssignmentVerified, false);
+  assert.equal(result.sourceReleaseId, enrollment.summary.provenance.source_release_id);
   assert.equal(project(enrollment, 'CO').status, 'outside-publisher-scope');
 });
 
@@ -52,6 +53,7 @@ test('UT installed enrollment replays real retained evidence without acquisition
     assert.equal(evidence.reportedZIP5Count, 113);assert.equal(evidence.percentOfAcceptedCohort, 100);
     assert.equal(evidence.quality.with_points, 0);assert.equal(evidence.quality.with_zip4, 0);
     assert.equal(evidence.appReceiptSha256, '79e3303235bbcf04dc366cc4b85c7c22de5b05a896f8d5f910bbd8d17424e190');
+    assert.equal(evidence.sourceReleaseId, 'ut-childcare-pdf-85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa');
   } finally {globalThis.fetch = original;}
 });
 

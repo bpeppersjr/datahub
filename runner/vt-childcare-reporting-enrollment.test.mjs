@@ -60,12 +60,13 @@ test('VT publisher projection conserves null address states without inventing st
  by_reported_state:[{state:null,candidate_rows:4,percent_of_accepted_cohort:100}],
  by_reported_zip:[{state:null,zip5:'05001',candidate_rows:3},{state:null,zip5:null,candidate_rows:1}],
  quality:{with_zip5:3,with_zip4:1,with_points:0,missing_points:4},
- provenance:{app_receipt_sha256:'b'.repeat(64),app_run_id:'fixture',industry_run_id:'managed',normalized_manifest_sha256:'c'.repeat(64),acquired_manifest_sha256:'d'.repeat(64),observed_at:'2026-09-08T12:00:00.000Z',source_updated_at:'2026-08-14T16:48:56.000Z',view_last_modified_at:'2026-08-14T16:48:53.000Z',publication_at:'2026-08-13T19:15:21.000Z',reporting_file:'Provider_Report_07012026_08012026.xlsx',reporting_period:null,reporting_period_verified:false}
+ provenance:{app_receipt_sha256:'b'.repeat(64),app_run_id:'fixture',industry_run_id:'managed',source_release_id:'vt-childcare-acquisition-fixture',normalized_manifest_sha256:'c'.repeat(64),acquired_manifest_sha256:'d'.repeat(64),observed_at:'2026-09-08T12:00:00.000Z',source_updated_at:'2026-08-14T16:48:56.000Z',view_last_modified_at:'2026-08-14T16:48:53.000Z',publication_at:'2026-08-13T19:15:21.000Z',reporting_file:'Provider_Report_07012026_08012026.xlsx',reporting_period:null,reporting_period_verified:false}
  }};
  const vt=project(enrolled,'VT');
  assert.equal(vt.publisherCohortRows,4);assert.equal(vt.reportedAddressStateUnavailableRows,4);assert.equal(vt.reportedAddressState,null);assert.equal(vt.evidenceBasis,'publisher-scope-not-reported-address-state');assert.equal(vt.sourceRows,5);assert.equal(vt.quarantinedRows,1);
  assert.equal(vt.percentOfAcceptedCohort,100);assert.equal(vt.distinctReportedZIP5Values,1);assert.equal(vt.rowsWithZIP5,3);assert.equal(vt.rowsWithZIP4,1);assert.equal(vt.nationalIndustryPercent,null);assert.equal(vt.uniqueActiveBusinessCount,null);assert.equal(vt.currentOperationsVerified,false);
  assert.equal(vt.reportingPeriod,null);assert.equal(vt.reportingPeriodVerified,false);assert.equal(vt.reportingFile,enrolled.summary.provenance.reporting_file);assert.equal(vt.sourceUpdatedAt,enrolled.summary.provenance.source_updated_at);assert.equal(vt.viewLastModifiedAt,enrolled.summary.provenance.view_last_modified_at);assert.equal(vt.publicationAt,enrolled.summary.provenance.publication_at);
+ assert.equal(vt.sourceReleaseId,enrolled.summary.provenance.source_release_id);
  assert.equal(vt.candidateRows,undefined);assert.equal(vt.physicalSiteVerified,false);assert.equal(vt.nationalReportingIntegrated,false);
  assert.deepEqual(project(enrolled,'NY'),{status:'outside-publisher-scope',sourceId:enrolled.sourceId,publisherJurisdiction:'VT'});
  for(const mutate of [s=>{s.by_reported_state[0].state='VT';},s=>{s.by_reported_zip[0].state='VT';},s=>{s.provenance.reporting_period='2026-07';},s=>{s.quality.with_points=4;},s=>{s.by_reported_zip[0].candidate_rows=2;}]){const changed=structuredClone(enrolled);mutate(changed.summary);assert.throws(()=>project(changed,'VT'));}
@@ -78,7 +79,7 @@ test('VT installed native enrollment independently replays retained evidence off
   try{
     const enrollment=await load(),md=project(enrollment,'VT');assert.equal(enrollment.status,'available');assert.equal(enrollment.summary.provenance.execution_mode,'fixed-native-fetch');
     assert.equal(md.appReceiptSha256,installed.app_receipt_sha256);assert.equal(md.publisherCohortRows,503);assert.equal(md.sourceRows,503);assert.equal(md.acceptedCohortRows,503);assert.equal(md.quarantinedRows,0);
-    assert.ok(md.distinctReportedZIP5Values>0);assert.equal(md.percentOfAcceptedCohort,100);assert.equal(md.nationalIndustryPercent,null);assert.equal(md.physicalSiteVerified,false);
+    assert.ok(md.distinctReportedZIP5Values>0);assert.equal(md.percentOfAcceptedCohort,100);assert.equal(md.nationalIndustryPercent,null);assert.equal(md.physicalSiteVerified,false);assert.equal(md.sourceReleaseId,'vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0');
   }finally{globalThis.fetch=original;}
 });
 

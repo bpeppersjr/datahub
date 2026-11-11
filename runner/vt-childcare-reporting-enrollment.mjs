@@ -37,7 +37,7 @@ export function projectVtChildcarePublisherEvidence(enrollment,state) {
     denominator:'accepted source candidate rows in this retained Vermont publisher cohort; not Vermont address-state coverage, verified facilities or all U.S. businesses',
     distinctReportedZIP5Values:s.by_reported_zip.filter(row=>row.zip5!==null).length,rowsWithZIP5:s.quality.with_zip5,rowsWithZIP4:s.quality.with_zip4,
     quality:s.quality,qualityScope:'entire-retained-publisher-cohort-not-address-state-filtered',
-    appReceiptSha256:s.provenance.app_receipt_sha256,appRunId:s.provenance.app_run_id,industryRunId:s.provenance.industry_run_id,normalizedManifestSha256:s.provenance.normalized_manifest_sha256,acquiredManifestSha256:s.provenance.acquired_manifest_sha256,
+    appReceiptSha256:s.provenance.app_receipt_sha256,appRunId:s.provenance.app_run_id,industryRunId:s.provenance.industry_run_id,sourceReleaseId:s.provenance.source_release_id,normalizedManifestSha256:s.provenance.normalized_manifest_sha256,acquiredManifestSha256:s.provenance.acquired_manifest_sha256,
     reportingFile:s.provenance.reporting_file,reportingPeriod:null,reportingPeriodVerified:false,observedAt:s.provenance.observed_at,sourceUpdatedAt:s.provenance.source_updated_at,viewLastModifiedAt:s.provenance.view_last_modified_at,publicationAt:s.provenance.publication_at,enrollmentSha256:enrollment.enrollmentSha256,
     nationalReportingIntegrated:false,nationalIndustryPercent:null,uniqueActiveBusinessCount:null,currentUspsAssignmentVerified:false,boundaryAssignmentVerified:false,physicalSiteVerified:false,currentOperationsVerified:false};
 }

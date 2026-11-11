@@ -46,7 +46,7 @@ test('retained federation has full independent replay, closed units and correct 
   const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),manifest=path.join(APP_ROOT,registration.retained_release.manifest);
   const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,registration.retained_release.manifest_sha256);
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
-  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:150,unmeasured_industry_access_cells:2,stale_temporal_dimensions:2,unmeasured_temporal_dimensions:20});
+  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:149,unmeasured_industry_access_cells:3,stale_temporal_dimensions:2,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
   assert.equal(Object.entries(summary.geography_scope_counts).filter(([s])=>s.startsWith('state:')).reduce((n,[,v])=>n+v,0),33455);
   assert.equal(summary.geography_scope_counts['non-zcta-unassigned'],14402);assert.equal(summary.geography_scope_counts['multi-state-material'],184);assert.equal(summary.geography_scope_counts['zcta-overlay-unresolved'],3);assert.equal(summary.geography_scope_counts['explicit-placeholder'],1);
@@ -60,10 +60,10 @@ test('retained federation has full independent replay, closed units and correct 
   const la=summary.sidecars.publisher_membership_reconciliation;assert.equal(la.registration_sha256,'e7742a974b25420b5e7993b170ba898df3e555b0ac64c5a1c63dc256070c0b99');assert.equal(la.source_rows,la.normalized_profiles+la.quarantined_rows);assert.deepEqual(la.effective_source_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});assert.equal(la.row_status,null);assert.equal(la.lifecycle_evidence,'unknown');assert.equal(la.active_business_eligible_count,0);assert.equal(la.active_business_count,null);assert.equal(la.completeness_percentage,null);assert.equal(la.claims.inference_performed,false);
 });
 
-test('successor changes only national summary and preserves prior immutable release',async()=>{
+test('successor changes only national summary and gap ledger while preserving prior immutable release',async()=>{
   const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9/manifest.json'),registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),current=path.join(APP_ROOT,registration.retained_release.manifest);
   const [oldManifest,newManifest]=await Promise.all([json(prior),json(current)]);assert.equal(oldManifest.release_id,'national-goal-evidence-federation-bcaa809a159afff40ee6983509e350c76dbd8910a99c6f50b9909c43c00ec8a9');assert.equal((await fs.stat(prior)).isFile(),true);assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
-  const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256])),unchanged=newManifest.artifacts.filter(a=>a.path!=='national-summary.json'&&oldHashes.get(a.path)===a.sha256);assert.equal(unchanged.length,103);assert.notEqual(oldHashes.get('national-summary.json'),newManifest.artifacts.find(a=>a.path==='national-summary.json').sha256);
+  const changed=new Set(['national-summary.json','gap-ledger.json']),oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256])),unchanged=newManifest.artifacts.filter(a=>!changed.has(a.path)&&oldHashes.get(a.path)===a.sha256);assert.equal(unchanged.length,102);for(const name of changed)assert.notEqual(oldHashes.get(name),newManifest.artifacts.find(a=>a.path===name).sha256);
 });
 
 test('exclusive publisher lock and cancellation leave no invocation staging',async t=>{
