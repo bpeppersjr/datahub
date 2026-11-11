@@ -359,6 +359,10 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
         "metadata_requests",
         "data_requests",
         "maximum_total_requests",
+        "maximum_metadata_response_bytes",
+        "maximum_group_response_bytes",
+        "maximum_total_source_bytes",
+        "minimum_free_disk_bytes",
         "tables",
         "data_geography_query",
         "credential_policy",
@@ -371,6 +375,10 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
       plan.request_contract.metadata_requests === 4 &&
       plan.request_contract.data_requests === 4 &&
       plan.request_contract.maximum_total_requests === 8 &&
+      plan.request_contract.maximum_metadata_response_bytes === 5_000_000 &&
+      plan.request_contract.maximum_group_response_bytes === 536_870_912 &&
+      plan.request_contract.maximum_total_source_bytes === 1_073_741_824 &&
+      plan.request_contract.minimum_free_disk_bytes === 2_147_483_648 &&
       JSON.stringify(plan.request_contract.tables) === JSON.stringify(TABLES) &&
       plan.request_contract.data_geography_query ===
         "for=zip code tabulation area:*" &&
@@ -505,6 +513,13 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
       public_release_date: plan.dataset.public_release_date,
       api_base_url: plan.dataset.api_base_url,
       maximum_total_requests: plan.request_contract.maximum_total_requests,
+      maximum_metadata_response_bytes:
+        plan.request_contract.maximum_metadata_response_bytes,
+      maximum_group_response_bytes:
+        plan.request_contract.maximum_group_response_bytes,
+      maximum_total_source_bytes:
+        plan.request_contract.maximum_total_source_bytes,
+      minimum_free_disk_bytes: plan.request_contract.minimum_free_disk_bytes,
       tables: [...plan.request_contract.tables],
       geography: plan.dataset.geography,
       non_zcta_space_blocks_map:

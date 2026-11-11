@@ -150,7 +150,7 @@ test("loads the complete repository registry deterministically without secret va
   assert.equal(acsManifest.execution_limits.production_admission_enabled, false);
   assert.equal(acsManifest.execution_limits.local_review_publication_enabled, true);
   assert.equal(acsManifest.execution_limits.production_publication_enabled, false);
-  assert.equal(acsManifest.lifecycle_status.acquire, "disabled-network-local-package-copied-to-app-owned-operation-storage");
+  assert.equal(acsManifest.lifecycle_status.acquire, "network-disabled-bounded-streaming-source-spool-implemented-local-package-copy-implemented");
   assert.equal(acsManifest.lifecycle_status.publish, "immutable-local-review-release-manifest-last-no-current-pointer");
   for (const id of ["mn-dli-contractor-registrations", "mn-dli-residential-contractors"]) {
     assert.equal(registry.get(id).provider_budget_key, "mn-dli-construction");
