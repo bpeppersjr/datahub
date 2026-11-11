@@ -30,6 +30,51 @@ type CaReadiness = {
   };
   semantics: string;
 };
+type AcsReadiness = {
+  schema_version: "acs-zcta-demographic-network-readiness-view@1.0.0";
+  status: "reviewed-plan-awaiting-explicit-network-authorization";
+  source: {
+    publisher: "United States Census Bureau";
+    vintage: 2024;
+    period: "2020-2024";
+    product: "ACS 5-Year Detailed Tables";
+    public_release_date: "2026-01-29";
+    geography: "zip code tabulation area";
+  };
+  request_budget: {
+    metadata_requests: 4;
+    data_requests: 4;
+    maximum_total_requests: 8;
+    maximum_metadata_response_bytes: 5000000;
+    maximum_group_response_bytes: 536870912;
+    maximum_total_source_bytes: 1073741824;
+    minimum_free_disk_bytes: 2147483648;
+    maximum_parallel_requests: 1;
+  };
+  tables: ["B01001", "B02001", "B03002", "B04006"];
+  prerequisites: {
+    plan_verified: true;
+    network_acquisition_authorized: false;
+    trusted_official_metadata_release_available: false;
+    approved_structured_authorization_receipt_available: false;
+    immutable_governed_acs_source_release_available: false;
+  };
+  blockers: string[];
+  geography: {
+    governed_zctas: 33791;
+    private_unique_or_po_box_zip_without_zcta: "not-applicable-no-census-zcta-demographic-estimate";
+    non_zcta_space_blocks_map: false;
+  };
+  claims: {
+    network_requests: 0;
+    acquisition_performed: false;
+    current_pointer_written: false;
+    production_enrollment: false;
+    demographic_percentages: false;
+    demographic_gdp_allocation: false;
+  };
+  provenance: { plan_sha256: string; admission_config_sha256: string };
+};
 type View = {
   industries: Industry[];
   maintainedIndustries: string[];
@@ -279,6 +324,46 @@ const same = (a: unknown, b: unknown) =>
   JSON.stringify(b, Object.keys(b as object).sort());
 const validDate = (value: unknown) =>
   typeof value === "string" && Number.isFinite(Date.parse(value));
+const acsBlockers = [
+  "missing-trusted-retained-official-acs-group-metadata",
+  "missing-approved-structured-authorization-receipt",
+  "missing-immutable-governed-acs-source-release",
+  "unresolved-official-sentinel-and-annotation-semantics",
+  "network-acquisition-plan-awaiting-explicit-authorization",
+];
+
+export function validAcsReadiness(input: unknown): input is AcsReadiness {
+  if (
+    !exact(input, [
+      "schema_version", "status", "source", "request_budget", "tables",
+      "prerequisites", "blockers", "geography", "claims", "provenance",
+    ])
+  ) return false;
+  const value = input as AcsReadiness;
+  return (
+    value.schema_version === "acs-zcta-demographic-network-readiness-view@1.0.0" &&
+    value.status === "reviewed-plan-awaiting-explicit-network-authorization" &&
+    exact(value.source, ["publisher", "vintage", "period", "product", "public_release_date", "geography"]) &&
+    value.source.publisher === "United States Census Bureau" &&
+    value.source.vintage === 2024 && value.source.period === "2020-2024" &&
+    value.source.product === "ACS 5-Year Detailed Tables" &&
+    value.source.public_release_date === "2026-01-29" &&
+    value.source.geography === "zip code tabulation area" &&
+    exact(value.request_budget, ["metadata_requests", "data_requests", "maximum_total_requests", "maximum_metadata_response_bytes", "maximum_group_response_bytes", "maximum_total_source_bytes", "minimum_free_disk_bytes", "maximum_parallel_requests"]) &&
+    same(value.request_budget, { metadata_requests: 4, data_requests: 4, maximum_total_requests: 8, maximum_metadata_response_bytes: 5000000, maximum_group_response_bytes: 536870912, maximum_total_source_bytes: 1073741824, minimum_free_disk_bytes: 2147483648, maximum_parallel_requests: 1 }) &&
+    JSON.stringify(value.tables) === JSON.stringify(["B01001", "B02001", "B03002", "B04006"]) &&
+    exact(value.prerequisites, ["plan_verified", "network_acquisition_authorized", "trusted_official_metadata_release_available", "approved_structured_authorization_receipt_available", "immutable_governed_acs_source_release_available"]) &&
+    same(value.prerequisites, { plan_verified: true, network_acquisition_authorized: false, trusted_official_metadata_release_available: false, approved_structured_authorization_receipt_available: false, immutable_governed_acs_source_release_available: false }) &&
+    JSON.stringify(value.blockers) === JSON.stringify(acsBlockers) &&
+    exact(value.geography, ["governed_zctas", "private_unique_or_po_box_zip_without_zcta", "non_zcta_space_blocks_map"]) &&
+    same(value.geography, { governed_zctas: 33791, private_unique_or_po_box_zip_without_zcta: "not-applicable-no-census-zcta-demographic-estimate", non_zcta_space_blocks_map: false }) &&
+    exact(value.claims, ["network_requests", "acquisition_performed", "current_pointer_written", "production_enrollment", "demographic_percentages", "demographic_gdp_allocation"]) &&
+    same(value.claims, { network_requests: 0, acquisition_performed: false, current_pointer_written: false, production_enrollment: false, demographic_percentages: false, demographic_gdp_allocation: false }) &&
+    exact(value.provenance, ["plan_sha256", "admission_config_sha256"]) &&
+    /^[a-f0-9]{64}$/.test(value.provenance.plan_sha256) &&
+    /^[a-f0-9]{64}$/.test(value.provenance.admission_config_sha256)
+  );
+}
 
 export function validMaintenanceSchedules(
   input: unknown,
@@ -917,6 +1002,8 @@ export default function Administration() {
   const [evidence, setEvidence] = useState<IndustryEvidence | null>(null);
   const [evidenceError, setEvidenceError] = useState(false);
   const [caReadiness, setCaReadiness] = useState<CaReadiness | null>(null);
+  const [acsReadiness, setAcsReadiness] = useState<AcsReadiness | null>(null);
+  const [acsReadinessError, setAcsReadinessError] = useState(false);
   const [schedules, setSchedules] = useState<MaintenanceSchedule[] | null>(null);
   const draftChanged =
     !!view &&
@@ -966,6 +1053,16 @@ export default function Administration() {
           setCaReadiness(value);
       })
       .catch(() => {});
+    void runnerJson<unknown>(
+      "/api/data-operations/acs-zcta-demographic-network-readiness",
+      { signal: controller.signal },
+    )
+      .then((value) => {
+        if (controller.signal.aborted) return;
+        if (validAcsReadiness(value)) setAcsReadiness(value);
+        else setAcsReadinessError(true);
+      })
+      .catch(() => !controller.signal.aborted && setAcsReadinessError(true));
     void runnerJson<unknown>("/api/data-operations/schedules", {
       signal: controller.signal,
     })
@@ -1090,6 +1187,41 @@ export default function Administration() {
           </tr>)}</tbody></table>
           <small>Retained state-access report SHA-256 {evidence.report_sha256}. Detailed state/source provenance is available in Industry Status.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
+      </section>
+      <section
+        className="maintenance-backlog"
+        aria-label="ACS ZCTA demographic acquisition readiness"
+      >
+        <h3>2020–2024 ACS ZCTA demographics</h3>
+        {acsReadiness ? (
+          <>
+            <p>
+              <strong>Plan verified · Network authorization pending.</strong>{" "}
+              Zero Census API requests have been made and no demographic
+              release, current pointer, or production enrollment exists.
+            </p>
+            <p>
+              Governed scope: {acsReadiness.geography.governed_zctas.toLocaleString()} Census
+              ZCTAs · tables {acsReadiness.tables.join(", ")} · maximum{" "}
+              {acsReadiness.request_budget.maximum_total_requests} serial requests.
+            </p>
+            <p>
+              Retained-source ceiling: 1 GiB · minimum free disk before execution:
+              2 GiB. Private, unique, or PO-box ZIPs without a Census ZCTA are
+              not applicable for this estimate and do not block the map.
+            </p>
+            <p className="operations-note">
+              Remaining gates: {acsReadiness.blockers.map((item) => item.replaceAll("-", " ")).join(" · ")}.
+              No demographic percentages or demographic GDP allocation are claimed.
+            </p>
+          </>
+        ) : (
+          <p role={acsReadinessError ? "alert" : "status"}>
+            {acsReadinessError
+              ? "ACS acquisition readiness is unavailable; no authorization or completed download is inferred."
+              : "Verifying ACS acquisition readiness…"}
+          </p>
+        )}
       </section>
       {view && (
         <>

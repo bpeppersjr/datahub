@@ -28,6 +28,11 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(admin, /does not authorize acquisition, dispatch workers, change production, or measure business completeness/);
   assert.match(server, /\/api\/administration\/industry-backlog/);
   assert.match(server, /stateAccessMaintenanceBacklog/);
+  assert.match(admin, /2020–2024 ACS ZCTA demographics/);
+  assert.match(admin, /Plan verified · Network authorization pending/);
+  assert.match(admin, /Private, unique, or PO-box ZIPs without a Census ZCTA/);
+  assert.match(server, /\/api\/data-operations\/acs-zcta-demographic-network-readiness/);
+  assert.doesNotMatch(admin, /Authorize ACS acquisition/);
   assert.doesNotMatch(server, /updateSettings\(\{ maintainedIndustries/);
 });
 
