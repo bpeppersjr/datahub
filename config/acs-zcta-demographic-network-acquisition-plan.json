@@ -1,0 +1,59 @@
+{
+  "schema_version": "acs-zcta-demographic-network-acquisition-plan@1.0.0",
+  "status": "reviewed-proposed-awaiting-explicit-acquisition-authorization",
+  "publisher": "United States Census Bureau",
+  "dataset": {
+    "vintage": 2024,
+    "period": "2020-2024",
+    "product": "ACS 5-Year Detailed Tables",
+    "api_base_url": "https://api.census.gov/data/2024/acs/acs5",
+    "public_release_date": "2026-01-29",
+    "geography": "zip code tabulation area",
+    "geography_summary_level": "860"
+  },
+  "official_evidence": {
+    "release_schedule_url": "https://www.census.gov/programs-surveys/acs/news/data-releases/2024/release-schedule.html",
+    "developer_documentation_url": "https://www.census.gov/data/developers/data-sets/acs-5year/2024.html",
+    "api_dataset_url": "https://api.census.gov/data/2024/acs/acs5.html",
+    "api_geography_url": "https://api.census.gov/data/2024/acs/acs5/geography.html",
+    "zip_zcta_explanation_url": "https://www.census.gov/help/topics/faq.how-can-i-find-data-for-zip-codes-on-data-census-gov.html"
+  },
+  "request_contract": {
+    "allowed_host": "api.census.gov",
+    "redirect_policy": "same-host-only",
+    "metadata_requests": 4,
+    "data_requests": 4,
+    "maximum_total_requests": 8,
+    "tables": ["B01001", "B02001", "B03002", "B04006"],
+    "data_geography_query": "for=zip code tabulation area:*",
+    "credential_policy": "no-secret-in-plan; optional named Census API key only if a later connector contract requires one",
+    "retries_per_request": 2,
+    "request_timeout_seconds": 120,
+    "maximum_parallel_requests": 1
+  },
+  "reconciliation_contract": {
+    "governed_map_geography_release": "us-census-geography-20260830-132803990Z-3629abc0",
+    "join_key": "five-digit Census ZCTA identifier",
+    "source_zcta_roster_must_be_retained_exactly": true,
+    "governed_map_roster_must_not_be_silently_replaced": true,
+    "source_only_and_map_only_zctas_reported_separately": true,
+    "private_unique_or_po_box_zip_without_zcta": "not-applicable-no-census-zcta-demographic-estimate",
+    "non_zcta_space_blocks_map": false
+  },
+  "semantic_boundaries": {
+    "acs_values_are_estimates": true,
+    "estimate_margin_of_error_and_annotations_preserved": true,
+    "zcta_is_usps_delivery_zip": false,
+    "zip4_joined": false,
+    "race_ancestry_hispanic_origin_sex_age_cube_constructed": false,
+    "demographic_gdp_allocation_authorized": false,
+    "missing_population_blocks_map": false
+  },
+  "authorization": {
+    "network_acquisition_authorized": false,
+    "production_enrollment_authorized": false,
+    "current_pointer_authorized": false,
+    "execution_performed": false,
+    "network_requests_performed": 0
+  }
+}

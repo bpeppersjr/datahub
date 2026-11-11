@@ -23,7 +23,22 @@ test("production contract is fail-closed and replays the exact governed denomina
     "missing-approved-structured-authorization-receipt",
     "missing-immutable-governed-acs-source-release",
     "unresolved-official-sentinel-and-annotation-semantics",
+    "network-acquisition-plan-awaiting-explicit-authorization",
   ]);
+  assert.deepEqual(result.network_acquisition_plan, {
+    vintage: 2024,
+    period: "2020-2024",
+    product: "ACS 5-Year Detailed Tables",
+    public_release_date: "2026-01-29",
+    api_base_url: "https://api.census.gov/data/2024/acs/acs5",
+    maximum_total_requests: 8,
+    tables: ["B01001", "B02001", "B03002", "B04006"],
+    geography: "zip code tabulation area",
+    non_zcta_space_blocks_map: false,
+    private_unique_or_po_box_zip_without_zcta:
+      "not-applicable-no-census-zcta-demographic-estimate",
+    status: "reviewed-proposed-awaiting-explicit-acquisition-authorization",
+  });
   assert.deepEqual(result.claims, {
     network_requests: 0,
     current_pointer_written: false,

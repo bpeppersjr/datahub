@@ -1,5 +1,5 @@
 {
-  "schema_version": "acs-zcta-demographic-admission-config@1.0.0",
+  "schema_version": "acs-zcta-demographic-admission-config@1.1.0",
   "publication_mode": "immutable-local-review-only-pointer-free",
   "expected_zcta_count": 33791,
   "geography": {
@@ -26,5 +26,9 @@
   "authorization_registry": {
     "path": "config/acs-zcta-demographic-authorization-registry.json",
     "sha256": "2c8d4657eab53cc3919460901c309cd207736d6663fad5a2891ed9576a198a59"
+  },
+  "network_acquisition_plan": {
+    "path": "config/acs-zcta-demographic-network-acquisition-plan.json",
+    "sha256": "249dffbc48f070567128f35670fe4846a1edc0bf078d205a5ff30eca4538bf5c"
   }
 }

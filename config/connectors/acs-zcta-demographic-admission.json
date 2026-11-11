@@ -1,10 +1,10 @@
 {
   "connector_id": "acs-zcta-demographic-admission",
-  "version": "1.0.0",
-  "description": "Offline-only prerequisite inspection plus app-owned admission of an explicitly authorized closed local ACS package into an immutable, independently replayed, pointer-free local-review release; network acquisition and production enrollment remain disabled.",
+  "version": "1.1.0",
+  "description": "Offline prerequisite inspection plus app-owned admission of an explicitly authorized closed local ACS package. A checksum-pinned 2024 ACS 5-year ZCTA network-acquisition plan is reviewed but remains execution-disabled pending explicit authorization.",
   "implementation_status": "implemented-offline-local-review-admission",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
-  "lifecycle_status": {"preflight":"implemented-local-contract-and-pin-validation","plan":"fixed-closed-offline-package-contract","acquire":"disabled-network-local-package-copied-to-app-owned-operation-storage","validate":"implemented-full-metadata-authorization-data-and-governed-zcta-replay","normalize":"raw-e-m-ea-ma-preserved-without-derived-percentages","reconcile":"exact-33791-governed-zcta-conservation","quality_gate":"closed-schema-independent-replay","publish":"immutable-local-review-release-manifest-last-no-current-pointer","finalize":"managed-operation-receipt-with-independent-verification"},
+  "lifecycle_status": {"preflight":"implemented-local-contract-and-pin-validation","plan":"checksum-pinned-2024-acs-5-year-zcta-plan-reviewed-awaiting-explicit-network-authorization","acquire":"disabled-network-local-package-copied-to-app-owned-operation-storage","validate":"implemented-full-metadata-authorization-data-and-governed-zcta-replay","normalize":"raw-e-m-ea-ma-preserved-without-derived-percentages","reconcile":"exact-33791-governed-zcta-conservation","quality_gate":"closed-schema-independent-replay","publish":"immutable-local-review-release-manifest-last-no-current-pointer","finalize":"managed-operation-receipt-with-independent-verification"},
   "configuration_schema": {
     "type": "object",
     "additionalProperties": false,
@@ -13,7 +13,7 @@
     }
   },
   "named_secret_references": [],
-  "input_artifact_types": ["acs-zcta-demographic-admission-config-json", "us-census-acs-zcta-demographics-source-policy-json", "acs-zcta-demographic-official-metadata-registry-json", "acs-zcta-demographic-authorization-registry-json", "verified-us-census-geography-manifest-json", "governed-us-census-zcta-index-jsonl", "acs-zcta-offline-package-manifest-json", "acs-zcta-official-metadata-json", "acs-zcta-offline-authorization-json", "acs-zcta-demographic-jsonl"],
+  "input_artifact_types": ["acs-zcta-demographic-admission-config-json", "acs-zcta-demographic-network-acquisition-plan-json", "us-census-acs-zcta-demographics-source-policy-json", "acs-zcta-demographic-official-metadata-registry-json", "acs-zcta-demographic-authorization-registry-json", "verified-us-census-geography-manifest-json", "governed-us-census-zcta-index-jsonl", "acs-zcta-offline-package-manifest-json", "acs-zcta-official-metadata-json", "acs-zcta-offline-authorization-json", "acs-zcta-demographic-jsonl"],
   "output_artifact_types": ["acs-zcta-demographic-prerequisite-inspection-json", "acs-zcta-demographic-immutable-local-review-release"],
   "allowed_hosts": [],
   "redirect_policy": "No network transport exists. URLs, hosts, redirects, acquisition, and download are outside this validator.",

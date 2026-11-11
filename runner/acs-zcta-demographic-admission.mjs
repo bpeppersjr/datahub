@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import { mnSelectionCanonical as canonical } from "./mn-construction-retained-selection.mjs";
 
-export const VERSION = "acs-zcta-demographic-admission-prerequisites@1.1.0";
+export const VERSION = "acs-zcta-demographic-admission-prerequisites@1.2.0";
 export const TABLES = Object.freeze(["B01001", "B02001", "B03002", "B04006"]);
 const fail = (message) => {
   throw new Error(`ACS ZCTA prerequisite inspection rejected: ${message}.`);
@@ -245,7 +245,7 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
     configRead = await json(configFile, 200000, options.signal),
     config = configRead.value;
   check(
-    config.schema_version === "acs-zcta-demographic-admission-config@1.0.0" &&
+    config.schema_version === "acs-zcta-demographic-admission-config@1.1.0" &&
       config.publication_mode === "immutable-local-review-only-pointer-free" &&
       config.expected_zcta_count === 33791,
     "configuration",
@@ -299,6 +299,133 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
         "acs-zcta-demographic-authorization-registry@1.0.0" &&
       Array.isArray(authorization.value.approved_receipts),
     "authorization registry pin",
+  );
+  const acquisitionPlan = await json(
+    inside(root, config.network_acquisition_plan.path),
+    200000,
+    options.signal,
+  );
+  const plan = acquisitionPlan.value;
+  check(
+    acquisitionPlan.sha256 === config.network_acquisition_plan.sha256 &&
+      exact(plan, [
+        "schema_version",
+        "status",
+        "publisher",
+        "dataset",
+        "official_evidence",
+        "request_contract",
+        "reconciliation_contract",
+        "semantic_boundaries",
+        "authorization",
+      ]) &&
+      plan.schema_version ===
+        "acs-zcta-demographic-network-acquisition-plan@1.0.0" &&
+      plan.status ===
+        "reviewed-proposed-awaiting-explicit-acquisition-authorization" &&
+      plan.publisher === "United States Census Bureau" &&
+      exact(plan.dataset, [
+        "vintage",
+        "period",
+        "product",
+        "api_base_url",
+        "public_release_date",
+        "geography",
+        "geography_summary_level",
+      ]) &&
+      plan.dataset.vintage === 2024 &&
+      plan.dataset.period === "2020-2024" &&
+      plan.dataset.product === "ACS 5-Year Detailed Tables" &&
+      plan.dataset.api_base_url ===
+        "https://api.census.gov/data/2024/acs/acs5" &&
+      plan.dataset.public_release_date === "2026-01-29" &&
+      plan.dataset.geography === "zip code tabulation area" &&
+      plan.dataset.geography_summary_level === "860" &&
+      exact(plan.official_evidence, [
+        "release_schedule_url",
+        "developer_documentation_url",
+        "api_dataset_url",
+        "api_geography_url",
+        "zip_zcta_explanation_url",
+      ]) &&
+      Object.values(plan.official_evidence).every(
+        (value) =>
+          typeof value === "string" &&
+          /^https:\/\/(?:www\.)?(?:api\.)?census\.gov\//.test(value),
+      ) &&
+      exact(plan.request_contract, [
+        "allowed_host",
+        "redirect_policy",
+        "metadata_requests",
+        "data_requests",
+        "maximum_total_requests",
+        "tables",
+        "data_geography_query",
+        "credential_policy",
+        "retries_per_request",
+        "request_timeout_seconds",
+        "maximum_parallel_requests",
+      ]) &&
+      plan.request_contract.allowed_host === "api.census.gov" &&
+      plan.request_contract.redirect_policy === "same-host-only" &&
+      plan.request_contract.metadata_requests === 4 &&
+      plan.request_contract.data_requests === 4 &&
+      plan.request_contract.maximum_total_requests === 8 &&
+      JSON.stringify(plan.request_contract.tables) === JSON.stringify(TABLES) &&
+      plan.request_contract.data_geography_query ===
+        "for=zip code tabulation area:*" &&
+      plan.request_contract.retries_per_request === 2 &&
+      plan.request_contract.request_timeout_seconds === 120 &&
+      plan.request_contract.maximum_parallel_requests === 1 &&
+      exact(plan.reconciliation_contract, [
+        "governed_map_geography_release",
+        "join_key",
+        "source_zcta_roster_must_be_retained_exactly",
+        "governed_map_roster_must_not_be_silently_replaced",
+        "source_only_and_map_only_zctas_reported_separately",
+        "private_unique_or_po_box_zip_without_zcta",
+        "non_zcta_space_blocks_map",
+      ]) &&
+      plan.reconciliation_contract.governed_map_geography_release ===
+        config.geography.release_id &&
+      plan.reconciliation_contract.source_zcta_roster_must_be_retained_exactly ===
+        true &&
+      plan.reconciliation_contract.governed_map_roster_must_not_be_silently_replaced ===
+        true &&
+      plan.reconciliation_contract.source_only_and_map_only_zctas_reported_separately ===
+        true &&
+      plan.reconciliation_contract.private_unique_or_po_box_zip_without_zcta ===
+        "not-applicable-no-census-zcta-demographic-estimate" &&
+      plan.reconciliation_contract.non_zcta_space_blocks_map === false &&
+      exact(plan.semantic_boundaries, [
+        "acs_values_are_estimates",
+        "estimate_margin_of_error_and_annotations_preserved",
+        "zcta_is_usps_delivery_zip",
+        "zip4_joined",
+        "race_ancestry_hispanic_origin_sex_age_cube_constructed",
+        "demographic_gdp_allocation_authorized",
+        "missing_population_blocks_map",
+      ]) &&
+      plan.semantic_boundaries.acs_values_are_estimates === true &&
+      plan.semantic_boundaries.estimate_margin_of_error_and_annotations_preserved ===
+        true &&
+      plan.semantic_boundaries.zcta_is_usps_delivery_zip === false &&
+      plan.semantic_boundaries.zip4_joined === false &&
+      plan.semantic_boundaries.race_ancestry_hispanic_origin_sex_age_cube_constructed ===
+        false &&
+      plan.semantic_boundaries.demographic_gdp_allocation_authorized === false &&
+      plan.semantic_boundaries.missing_population_blocks_map === false &&
+      exact(plan.authorization, [
+        "network_acquisition_authorized",
+        "production_enrollment_authorized",
+        "current_pointer_authorized",
+        "execution_performed",
+        "network_requests_performed",
+      ]) &&
+      Object.values(plan.authorization).every(
+        (value) => value === false || value === 0,
+      ),
+    "network acquisition plan pin or boundary",
   );
   const geographyManifest = await json(
     inside(root, config.geography.manifest),
@@ -360,13 +487,32 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
       unsupported_or_untrusted_metadata_entries: unsupportedMetadataEntries,
       unsupported_or_untrusted_authorization_entries:
         unsupportedAuthorizationEntries,
+      reviewed_network_acquisition_plan_available: true,
+      network_acquisition_authorized:
+        plan.authorization.network_acquisition_authorized,
     },
     blockers: [
       !official && "missing-trusted-retained-official-acs-group-metadata",
       !approved && "missing-approved-structured-authorization-receipt",
       "missing-immutable-governed-acs-source-release",
       "unresolved-official-sentinel-and-annotation-semantics",
+      "network-acquisition-plan-awaiting-explicit-authorization",
     ].filter(Boolean),
+    network_acquisition_plan: {
+      vintage: plan.dataset.vintage,
+      period: plan.dataset.period,
+      product: plan.dataset.product,
+      public_release_date: plan.dataset.public_release_date,
+      api_base_url: plan.dataset.api_base_url,
+      maximum_total_requests: plan.request_contract.maximum_total_requests,
+      tables: [...plan.request_contract.tables],
+      geography: plan.dataset.geography,
+      non_zcta_space_blocks_map:
+        plan.reconciliation_contract.non_zcta_space_blocks_map,
+      private_unique_or_po_box_zip_without_zcta:
+        plan.reconciliation_contract.private_unique_or_po_box_zip_without_zcta,
+      status: plan.status,
+    },
     sentinel_contract: {
       raw_negative_sentinel_preservation_required: true,
       estimate_and_moe_annotations_preservation_required: true,
@@ -387,6 +533,7 @@ export async function inspectAcsZctaDemographicPrerequisites(options = {}) {
       source_policy_sha256: policy.sha256,
       official_metadata_registry_sha256: metadata.sha256,
       authorization_registry_sha256: authorization.sha256,
+      network_acquisition_plan_sha256: acquisitionPlan.sha256,
       geography_manifest_sha256: geographyManifest.sha256,
       geography_artifact_sha256: geography.sha256,
     },
