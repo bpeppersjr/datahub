@@ -3178,8 +3178,20 @@ test("ZIP economics withholds unsupported GDP outputs and exposes modeled method
 test("readiness panels expose distinct non-additive memberships and exact ZIP blockers", async () => {
   const sha = "a".repeat(64),
     view = {
-      schema_version: "business-intelligence-readiness-view@1.2.0",
+      schema_version: "business-intelligence-readiness-view@1.3.0",
       source_replay_performed: false,
+      acs_zcta_demographics: {
+        schema_version: "acs-zcta-demographic-network-readiness-view@1.0.0",
+        status: "reviewed-plan-awaiting-explicit-network-authorization",
+        source: { publisher: "United States Census Bureau", vintage: 2024, period: "2020-2024", product: "ACS 5-Year Detailed Tables", public_release_date: "2026-01-29", geography: "zip code tabulation area" },
+        request_budget: { metadata_requests: 4, data_requests: 4, maximum_total_requests: 8, maximum_metadata_response_bytes: 5000000, maximum_group_response_bytes: 536870912, maximum_total_source_bytes: 1073741824, minimum_free_disk_bytes: 2147483648, maximum_parallel_requests: 1 },
+        tables: ["B01001", "B02001", "B03002", "B04006"],
+        prerequisites: { plan_verified: true, network_acquisition_authorized: false, trusted_official_metadata_release_available: false, approved_structured_authorization_receipt_available: false, immutable_governed_acs_source_release_available: false },
+        blockers: ["missing-trusted-retained-official-acs-group-metadata", "missing-approved-structured-authorization-receipt", "missing-immutable-governed-acs-source-release", "unresolved-official-sentinel-and-annotation-semantics", "network-acquisition-plan-awaiting-explicit-authorization"],
+        geography: { governed_zctas: 33791, private_unique_or_po_box_zip_without_zcta: "not-applicable-no-census-zcta-demographic-estimate", non_zcta_space_blocks_map: false },
+        claims: { network_requests: 0, acquisition_performed: false, current_pointer_written: false, production_enrollment: false, demographic_percentages: false, demographic_gdp_allocation: false },
+        provenance: { plan_sha256: sha, admission_config_sha256: sha },
+      },
       pharmacy_overlay: {
         status: "verified-retained-nonadditive-overlay",
         release_id: `national-nppes-pharmacy-registry-overlay-${sha}`,
@@ -3327,6 +3339,9 @@ test("readiness panels expose distinct non-additive memberships and exact ZIP bl
   );
   assert.match(output, /missing-authorized-authoritative-usps-zip-artifact/);
   assert.match(output, /Valid USPS ZIP countUnknown/);
+  assert.match(output, /ACS ZCTA demographic source/);
+  assert.match(output, /Plan verified · network authorization pending/);
+  assert.match(output, /No ACS source rows have been acquired/);
   zip.close();
   const invalid = [
     { ...view, extra: true },

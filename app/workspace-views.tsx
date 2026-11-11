@@ -649,6 +649,18 @@ type IrsMembership = {
 type BiReadiness = {
   schema_version: string;
   source_replay_performed: false;
+  acs_zcta_demographics: {
+    schema_version: "acs-zcta-demographic-network-readiness-view@1.0.0";
+    status: "reviewed-plan-awaiting-explicit-network-authorization";
+    source: { publisher: "United States Census Bureau"; vintage: 2024; period: "2020-2024"; product: "ACS 5-Year Detailed Tables"; public_release_date: "2026-01-29"; geography: "zip code tabulation area" };
+    request_budget: { metadata_requests: 4; data_requests: 4; maximum_total_requests: 8; maximum_metadata_response_bytes: 5000000; maximum_group_response_bytes: 536870912; maximum_total_source_bytes: 1073741824; minimum_free_disk_bytes: 2147483648; maximum_parallel_requests: 1 };
+    tables: string[];
+    prerequisites: { plan_verified: true; network_acquisition_authorized: false; trusted_official_metadata_release_available: false; approved_structured_authorization_receipt_available: false; immutable_governed_acs_source_release_available: false };
+    blockers: string[];
+    geography: { governed_zctas: 33791; private_unique_or_po_box_zip_without_zcta: "not-applicable-no-census-zcta-demographic-estimate"; non_zcta_space_blocks_map: false };
+    claims: { network_requests: 0; acquisition_performed: false; current_pointer_written: false; production_enrollment: false; demographic_percentages: false; demographic_gdp_allocation: false };
+    provenance: { plan_sha256: string; admission_config_sha256: string };
+  };
   pharmacy_overlay: {
     status: string;
     release_id: string;
@@ -744,6 +756,7 @@ export function validBiReadiness(value: unknown): value is BiReadiness {
     f = v.fmcsa_transportation_membership,
     i = v.irs_tax_exempt_organization_membership,
     z = v.zip_denominator,
+    a = v.acs_zcta_demographics,
     s = p?.summary,
     fs = f?.summary,
     fc = f?.claims,
@@ -808,9 +821,10 @@ export function validBiReadiness(value: unknown): value is BiReadiness {
       "fmcsa_transportation_membership",
       "irs_tax_exempt_organization_membership",
       "zip_denominator",
+      "acs_zcta_demographics",
       "source_replay_performed",
     ]) &&
-    v.schema_version === "business-intelligence-readiness-view@1.2.0" &&
+    v.schema_version === "business-intelligence-readiness-view@1.3.0" &&
     v.source_replay_performed === false &&
     p?.status === "verified-retained-nonadditive-overlay" &&
     /^national-nppes-pharmacy-registry-overlay-[a-f0-9]{64}$/.test(
@@ -941,7 +955,20 @@ export function validBiReadiness(value: unknown): value is BiReadiness {
     z.claims?.authoritative_current_usps_zip_denominator === null &&
     z.claims.valid_usps_zip_count === null &&
     z.claims.zip_validity_classified === false &&
-    z.claims.production_execution === false
+    z.claims.production_execution === false &&
+    exactKeys(a, ["schema_version","status","source","request_budget","tables","prerequisites","blockers","geography","claims","provenance"]) &&
+    a.schema_version === "acs-zcta-demographic-network-readiness-view@1.0.0" &&
+    a.status === "reviewed-plan-awaiting-explicit-network-authorization" &&
+    exactKeys(a.source, ["publisher","vintage","period","product","public_release_date","geography"]) &&
+    a.source.publisher === "United States Census Bureau" && a.source.vintage === 2024 && a.source.period === "2020-2024" && a.source.product === "ACS 5-Year Detailed Tables" && a.source.public_release_date === "2026-01-29" && a.source.geography === "zip code tabulation area" &&
+    exactKeys(a.request_budget, ["metadata_requests","data_requests","maximum_total_requests","maximum_metadata_response_bytes","maximum_group_response_bytes","maximum_total_source_bytes","minimum_free_disk_bytes","maximum_parallel_requests"]) &&
+    a.request_budget.metadata_requests === 4 && a.request_budget.data_requests === 4 && a.request_budget.maximum_total_requests === 8 && a.request_budget.maximum_metadata_response_bytes === 5000000 && a.request_budget.maximum_group_response_bytes === 536870912 && a.request_budget.maximum_total_source_bytes === 1073741824 && a.request_budget.minimum_free_disk_bytes === 2147483648 && a.request_budget.maximum_parallel_requests === 1 &&
+    JSON.stringify(a.tables) === JSON.stringify(["B01001","B02001","B03002","B04006"]) &&
+    exactKeys(a.prerequisites, ["plan_verified","network_acquisition_authorized","trusted_official_metadata_release_available","approved_structured_authorization_receipt_available","immutable_governed_acs_source_release_available"]) && a.prerequisites.plan_verified === true && a.prerequisites.network_acquisition_authorized === false && a.prerequisites.trusted_official_metadata_release_available === false && a.prerequisites.approved_structured_authorization_receipt_available === false && a.prerequisites.immutable_governed_acs_source_release_available === false &&
+    Array.isArray(a.blockers) && JSON.stringify(a.blockers) === JSON.stringify(["missing-trusted-retained-official-acs-group-metadata","missing-approved-structured-authorization-receipt","missing-immutable-governed-acs-source-release","unresolved-official-sentinel-and-annotation-semantics","network-acquisition-plan-awaiting-explicit-authorization"]) &&
+    exactKeys(a.geography, ["governed_zctas","private_unique_or_po_box_zip_without_zcta","non_zcta_space_blocks_map"]) && a.geography.governed_zctas === 33791 && a.geography.private_unique_or_po_box_zip_without_zcta === "not-applicable-no-census-zcta-demographic-estimate" && a.geography.non_zcta_space_blocks_map === false &&
+    exactKeys(a.claims, ["network_requests","acquisition_performed","current_pointer_written","production_enrollment","demographic_percentages","demographic_gdp_allocation"]) && a.claims.network_requests === 0 && a.claims.acquisition_performed === false && a.claims.current_pointer_written === false && a.claims.production_enrollment === false && a.claims.demographic_percentages === false && a.claims.demographic_gdp_allocation === false &&
+    exactKeys(a.provenance, ["plan_sha256","admission_config_sha256"]) && sha(a.provenance.plan_sha256) && sha(a.provenance.admission_config_sha256)
   );
 }
 export function BusinessIntelligenceReadiness({
@@ -1079,6 +1106,7 @@ export function BusinessIntelligenceReadiness({
     );
   }
   const z = view.zip_denominator;
+  const a = view.acs_zcta_demographics;
   return (
     <section aria-label="ZIP denominator readiness">
       <h3>ZIP denominator readiness</h3>
@@ -1112,6 +1140,24 @@ export function BusinessIntelligenceReadiness({
           Readiness SHA-256: <code>{z.readiness_sha256}</code>
         </p>
       </details>
+      <article aria-label="ACS ZCTA demographic source readiness">
+        <h4>ACS ZCTA demographic source</h4>
+        <p>
+          <strong>Plan verified · network authorization pending.</strong>{" "}
+          {count(a.geography.governed_zctas)} governed Census ZCTAs across {a.tables.join(", ")}.
+          No ACS source rows have been acquired.
+        </p>
+        <p>
+          Private, unique, and PO-box ZIPs without a Census ZCTA are not applicable
+          to this estimate and do not block the map. Demographic percentages and
+          demographic GDP allocation remain unavailable.
+        </p>
+        <details>
+          <summary>ACS plan gates and provenance</summary>
+          <ul>{a.blockers.map((blocker)=><li key={blocker}><code>{blocker}</code></li>)}</ul>
+          <p>Plan SHA-256: <code>{a.provenance.plan_sha256}</code></p>
+        </details>
+      </article>
     </section>
   );
 }
