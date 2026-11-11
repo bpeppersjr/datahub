@@ -10,7 +10,9 @@ test("California discovery distinguishes verified preflights from an absent repo
   assert.equal(value.access.supported_bulk_export_verified, true);
   assert.equal(value.access.supported_api_verified, true);
   assert.equal(value.access.record_acquisition_authorized, false);
-  assert.equal(value.decision, "official-datastore-preflights-validated-reporting-not-enrolled");
+  assert.equal(value.decision, "official-source-migration-preflights-validated-reporting-not-enrolled");
+  assert.equal(value.migration_evidence.current_distribution, "ArcGIS GeoService");
+  assert.equal(value.migration_evidence.receipts.length, 3);
   assert.match(value.scope.retained_application_evidence, /no-enrollment-binding-installed/);
   assert.equal(value.claims.provider_rows_acquired, 0);
   assert.equal(value.claims.provider_reporting_enrolled, false);

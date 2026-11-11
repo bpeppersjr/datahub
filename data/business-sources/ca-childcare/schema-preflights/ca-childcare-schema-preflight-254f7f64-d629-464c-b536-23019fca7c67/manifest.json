@@ -1,0 +1,18 @@
+{
+  "schema_version": "ca-childcare-schema-preflight-manifest@1.0.0",
+  "run_id": "254f7f64-d629-464c-b536-23019fca7c67",
+  "status": "immutable-zero-record-schema-readiness-only",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 8324,
+    "sha256": "44883a3be8987a67cf501b0377e43317815ef45766b327fa44e42a2492dd1f73"
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_records_returned": 0,
+    "csv_body_requests": 0,
+    "datastore_schema_verified": true,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

@@ -21,7 +21,7 @@ import {
 } from "./state-access-view.mjs";
 
 const REPORT =
-  "data/state-access/reports/20261009044158-a18ff326-68bb-44d9-a3bf-23afd32aceae.json";
+  "data/state-access/reports/20261111202109-46a7ec81-9207-414b-9c00-c66474dd2dec.json";
 test("bounded state-access view exposes exact temporal, aggregate, and typed directory evidence", async () => {
   const construction = await stateAccessView({
     state: "AL",

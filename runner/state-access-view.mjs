@@ -716,6 +716,7 @@ export async function stateAccessMaintenanceBacklog({
                 "official-monthly-socrata-api-metadata-validated-acquisition-disabled",
                 "official-active-childcare-rosters-identified-export-contract-unverified",
                 "official-datastore-preflights-validated-reporting-not-enrolled",
+                "official-source-migration-preflights-validated-reporting-not-enrolled",
                 "official-near-real-time-provider-search-and-data-sharing-path-identified-bulk-contract-unverified",
                 "official-monthly-active-provider-list-download-identified-acquisition-disabled",
               ].includes(discovery.decision) &&
@@ -771,6 +772,11 @@ export async function stateAccessMaintenanceBacklog({
     (a, b) =>
       Math.min(...a.issue_codes.map((code) => severity[code])) -
         Math.min(...b.issue_codes.map((code) => severity[code])) ||
+      (a.action_kind === "temporal-source-review" &&
+      b.action_kind === "temporal-source-review"
+        ? b.refresh_posture.applicable_collection_sources.length -
+          a.refresh_posture.applicable_collection_sources.length
+        : 0) ||
       a.industry.localeCompare(b.industry) ||
       a.state.localeCompare(b.state),
   );

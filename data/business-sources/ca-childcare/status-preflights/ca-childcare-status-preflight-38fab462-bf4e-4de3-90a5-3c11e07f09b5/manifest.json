@@ -1,0 +1,18 @@
+{
+  "schema_version": "ca-childcare-status-preflight-manifest@1.0.0",
+  "run_id": "38fab462-bf4e-4de3-90a5-3c11e07f09b5",
+  "status": "immutable-aggregate-status-readiness-only",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 5044,
+    "sha256": "80cdfde7b93a0c7841519ad39555e65ec6a5d1c877bcc8ee02a3e4ede0e906ef"
+  },
+  "claims": {
+    "provider_rows_acquired": 0,
+    "provider_rows_returned": 0,
+    "personal_fields_requested": false,
+    "current_operations_verified": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}
