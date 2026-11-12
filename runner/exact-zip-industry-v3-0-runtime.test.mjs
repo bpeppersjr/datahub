@@ -34,7 +34,7 @@ test("national v3.0 summary conserves New York raw states without additive claim
   assert.deepEqual([value.source_dimensions, value.industry_cells, value.dimensions.length], [51, 2457894, 51]);
   assert.deepEqual(dimension.raw_status_counts, { positive: 1500, "measured-zero": 36336, "outside-source-denominator": 10358 });
   assert.equal(Object.values(dimension.raw_status_counts).reduce((sum, item) => sum + item, 0), 48194);
-  assert.equal(value.temporal_qualification.dimension_counts.stale, 2);
+  assert.deepEqual(value.temporal_qualification.dimension_counts, { "within-review-window": 29, stale: 1, unmeasured: 11, unmapped: 10 });
   assert.equal(value.temporal_qualification.semantic_dimension_counts["non-active-reporting"], 9);
   assert.equal(value.claims.current_operation_verified, false);
   assert.equal(value.claims.all_business_completeness, false);

@@ -3,7 +3,32 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, rm, writeFile, copyFile, link, symlink } from 'node:fs/promises';
 import path from 'node:path';
 import { APP_ROOT } from './paths.mjs';
-import { readContainedPolicyProfile, readReportingOnlySiteQualification, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
+import { readContainedPolicyProfile, readReportingOnlySiteQualification, verifyReportingOnlyHistoricalInputSelections, verifyReportingOnlySiteQualification } from './reporting-only-site-qualification.mjs';
+
+test('historical reporting replay uses an exact closed selection receipt and rejects substitutions', async () => {
+  const verified = await verifyReportingOnlyHistoricalInputSelections();
+  assert.equal(verified.receipt_sha256, '42a800718a7c588cc167447ea536545639687f23d24957bc6d0a7f6f08f2272e');
+  assert.equal(verified.registry_selection_sha256, 'e7292501aecbf000c5d3360135b6529a7539f32e267933764254df22afecbd74');
+  assert.equal(verified.registry_release_id, 'national-business-registry-20260911-022652067Z-1ec656c3');
+  const root = await mkdtemp(path.join(APP_ROOT, 'data/tmp/reporting-historical-selection-'));
+  try {
+    const receipt = 'config/datasets/reporting-only-site-qualification-historical-inputs.json';
+    const selection = 'config/datasets/history/reporting-only-site-qualification-national-business-registry-20260911.json';
+    for (const relative of [receipt, selection]) {
+      const target = path.join(root, relative); await mkdir(path.dirname(target), { recursive: true });
+      await copyFile(path.join(APP_ROOT, relative), target);
+    }
+    const changed = JSON.parse(await readFile(path.join(root, receipt), 'utf8'));
+    changed.temporal.release_id = `${changed.temporal.release_id}-substituted`;
+    await writeFile(path.join(root, receipt), `${JSON.stringify(changed, null, 2)}\n`);
+    await assert.rejects(verifyReportingOnlyHistoricalInputSelections({ root }), /selection|changed/i);
+    await copyFile(path.join(APP_ROOT, receipt), path.join(root, receipt));
+    const changedSelection = JSON.parse(await readFile(path.join(root, selection), 'utf8'));
+    changedSelection.current_release.manifest_sha256 = '0'.repeat(64);
+    await writeFile(path.join(root, selection), `${JSON.stringify(changedSelection, null, 2)}\n`);
+    await assert.rejects(verifyReportingOnlyHistoricalInputSelections({ root }), /selection|changed/i);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
 
 test('reporting-only qualification conserves 13,182 source sites outside matching profiles', async () => {
   const result = await verifyReportingOnlySiteQualification();

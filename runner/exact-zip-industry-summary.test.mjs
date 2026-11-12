@@ -11,7 +11,9 @@ test('v1.9 national successor conserves 40 dimensions without completeness uplif
   assert.equal(view.industry_cells, 1927760);
   assert.equal(Object.values(view.status_counts).reduce((sum, value) => sum + value, 0), view.industry_cells);
   assert.equal(Object.values(view.temporal_status_counts).reduce((sum, value) => sum + value, 0), view.industry_cells);
-  assert.deepEqual(view.temporal_qualification.dimension_counts, { 'within-review-window': 26, stale: 1, unmeasured: 4, unmapped: 9 });
+  assert.equal(view.temporal_qualification.release_id, 'exact-zip-industry-temporal-qualification-f94b7d998adaf47defe9512116113811c8c3af3a738db4e623d817b29c402bbb');
+  assert.equal(view.temporal_qualification.manifest_sha256, '176738a36c9c947120a78f4916a0fab9394b75f1535ac38c7e50c900f28bccbc');
+  assert.deepEqual(view.temporal_qualification.dimension_counts, { 'within-review-window': 26, stale: 0, unmeasured: 5, unmapped: 9 });
   assert.deepEqual(view.temporal_qualification.semantic_dimension_counts, { 'source-defined-current': 23, 'non-active-reporting': 8, unmapped: 9 });
   const wa = view.dimensions.find(row => row.id === 'wa_lni_active_contractor_organization_mailing_addresses');
   assert.equal(wa.status_counts.positive, 3113);

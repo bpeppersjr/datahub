@@ -44,19 +44,19 @@ test("reads the selected temporal matrix with pinned local supplemental postures
   assert.equal(view.provenance.organization_assertion_status_posture.scope, "separate-organization-assertion-cohort");
   assert.equal(
     view.provenance.temporal.release_id,
-    "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+    "national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd",
   );
   assert.equal(
     view.provenance.temporal.manifest_sha256,
-    "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+    "1890a7941062ac71e79c25b773a56ecd122b9abf00f8173cd4d8f1a00fb9c7b8",
   );
   assert.equal(
     view.provenance.temporal.artifact_sha256,
-    "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0",
+    "91de493ef612a8dcba2a4d7db44707f695f754cfb5485ae771a06238015a0fee",
   );
   assert.equal(
     view.provenance.reconciliation.registration_sha256,
-    "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e",
+    "0f51842c8197550ebd0e4df62bc797e41309c535c122bafc31ee5f46398c919b",
   );
   assert.deepEqual(view.mismatch, {
     source_key: "la_active_business_location_accounts",
@@ -110,7 +110,7 @@ test("internal semantic reader exposes only validated compact source semantics w
   assert.equal(new Set(internal.rows.map((row) => row.source_key)).size, 30);
   assert.equal(
     internal.provenance.artifact_sha256,
-    "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0",
+    "91de493ef612a8dcba2a4d7db44707f695f754cfb5485ae771a06238015a0fee",
   );
   assert.equal(internal.summary.source_defined_current_membership_sources, 22);
   const ny = internal.rows.find(
@@ -118,7 +118,7 @@ test("internal semantic reader exposes only validated compact source semantics w
   );
   assert.equal(
     ny.source_release_id,
-    "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8",
+    "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",
   );
   assert.equal(ny.classification, "non-active-reporting-membership");
   assert.equal(ny.policy_sha256.length, 64);

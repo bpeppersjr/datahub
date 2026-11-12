@@ -21,6 +21,7 @@ import { TEMPORAL_MAPPINGS_V31 } from "./exact-zip-industry-temporal-mappings-v3
 import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from "./exact-zip-industry-temporal-qualification-v3-0.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
 import { readOperationalIndustryEvidenceSummary } from "./operational-industry-evidence-summary.mjs";
+import { readNationalBusinessTemporalClaimMatrix } from "./national-business-temporal-claim-matrix-reader.mjs";
 
 test("v3.2 selected-state operational industry view validates refreshed provenance",async()=>{
   const value=await readOperationalIndustryEvidenceSummary({state:"NY"}),h=harness(async()=>value);
@@ -2384,46 +2385,8 @@ test("ZIP selection restores when switching workspaces and publishes exact ZIP s
   assert.deepEqual(selected, ["00601"]);
   h.close();
 });
-test("coverage aside shows the exact retained temporal boundary and fails closed", () => {
-  const h = harness(() => assert.fail()),
-    sha = "a".repeat(64),
-    view = {
-      schema_version: "national-business-temporal-claim-matrix-view@1.2.0",
-      available: true,
-      scope: "effective-profile-classification-with-source-cohort-provenance",
-      summary: {
-        source_count: 30,
-        source_cohort_counts:{source_defined_current_membership:22,non_active_reporting_membership:7,annual_aggregate:1},
-        effective_profile_source_counts:{source_defined_current_membership:21,non_active_reporting_membership:7,annual_aggregate:1,unknown_source_status:1},
-        lifecycle_bound_sources:15,classification_matches:14,classification_mismatches:1,mismatch_profiles:633232,
-        broad_state_dc_source_defined_active: 11,
-        broad_state_dc_total: 51,
-        broad_state_dc_gaps: 40,
-        verified_current_complete_jurisdictions: 0,
-        verified_current_complete_gaps: 51,
-        active_business_count: null,
-        completeness_percentage: null,
-      },
-      publisher_membership:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",assertion:"active-list-membership-without-row-status",profile_count:633232,row_status:"null",lifecycle_evidence:"unknown"},
-      source_status_posture:{source_id:"cms-nppes-monthly-v2",status:"source-defined-current-registration-status",profile_count:1958089,non_primary_reporting_count:130691},
-      organization_assertion_status_posture:{source_id:"co-business-registry",good_standing:{status:"source-defined-current-registry-standing",organization_count:1019372},delinquent:{status:"non-active-reporting",organization_count:1145439}},
-      mismatch:{source_key:"la_active_business_location_accounts",profile_source_id:"los-angeles-office-of-finance-active-businesses",source_release_id:"la-release",source_cohort_classification:"source-defined-current-membership",effective_profile_classification:"unknown-source-status",lifecycle_evidence:"unknown",profile_count:633232,current_operations_verified:false},
-      provenance: {
-        temporal:{release_id: `national-business-temporal-claim-matrix-${sha}`,manifest_sha256:sha,artifact_sha256:sha,created_at:"2026-10-03T00:00:00.000Z",registry_release_id:"registry-r1",registry_manifest_sha256:sha,coverage_release_id:"coverage-r1",coverage_manifest_sha256:sha},
-        reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation.json",registration_sha256:"8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e",schema_version:"national-business-temporal-lifecycle-reconciliation@1.0.0",status:"one-bounded-profile-classification-conflict",lifecycle_release_id:"lifecycle-r1",lifecycle_manifest_sha256:sha,taxonomy_path:"config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",taxonomy_sha256:sha,los_angeles_pointer_sha256:sha,los_angeles_manifest_sha256:sha},
-        publisher_membership_reconciliation:{registration_path:"config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",registration_sha256:sha,schema_version:"national-business-temporal-lifecycle-reconciliation@1.1.0",source_artifact_sha256:sha,source_summary_sha256:sha},
-        source_status_posture:{registration_path:"config/datasets/national-business-source-status-posture.json",access_mode:"pointer-pinned-local-only",pointer_sha256:sha,manifest_sha256:sha,taxonomy_sha256:sha},
-        organization_assertion_status_posture:{registration_path:"config/datasets/national-business-co-registration-status-posture.json",scope:"separate-organization-assertion-cohort",pointer_sha256:sha,manifest_sha256:sha,source_summary_sha256:sha,taxonomy_sha256:sha},
-      },
-      claims: {
-        network_requests: 0,
-        current_pointer_written: false,
-        production_enrollment: false,
-        current_operations_verified: false,
-        active_business_count: null,
-        completeness_percentage: null,
-      },
-    };
+test("coverage aside shows the exact retained temporal boundary and fails closed", async () => {
+  const h = harness(() => assert.fail()), view = await readNationalBusinessTemporalClaimMatrix();
   assert.equal(h.render("validTemporalMatrix", view), true);
   const value = text(
     h.render("TemporalCoverageSummary", { view, error: false }),
@@ -2448,11 +2411,12 @@ test("coverage aside shows the exact retained temporal boundary and fails closed
   assert.match(value, /Active-business countUnknown/);
   assert.match(value, /All-business completenessUnknown/);
   assert.match(value, /do not independently verify current operation/);
-  assert.match(value, new RegExp(sha));
+  assert.ok(value.includes(view.provenance.temporal.manifest_sha256));
   for (const malformed of [
     { ...view, summary: { ...view.summary, active_business_count: 1 } },
     { ...view, claims: { ...view.claims, current_operations_verified: true } },
     { ...view, provenance: { ...view.provenance, reconciliation:{...view.provenance.reconciliation,registration_sha256:"bad"} } },
+    { ...view, provenance: { ...view.provenance, organization_assertion_status_posture: { ...view.provenance.organization_assertion_status_posture, taxonomy_sha256: "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc" } } },
     { ...view, source_status_posture:{...view.source_status_posture,status:"business-active"} },
     { ...view, source_status_posture:{...view.source_status_posture,profile_count:1958090} },
     { ...view, provenance:{...view.provenance,source_status_posture:{...view.provenance.source_status_posture,manifest_sha256:"bad"}} },

@@ -1,0 +1,34 @@
+{
+  "schema_version": "reporting-only-site-qualification-historical-inputs@1.0.0",
+  "dataset_id": "reporting-only-site-qualification",
+  "scope": "immutable release replay only; these selections are not current dataset pointers",
+  "registry": {
+    "selection_path": "config/datasets/history/reporting-only-site-qualification-national-business-registry-20260911.json",
+    "selection_sha256": "e7292501aecbf000c5d3360135b6529a7539f32e267933764254df22afecbd74",
+    "source_registration_sha256": "6a1e0be6811e9c69d3e7f0a995e0ab3da86907f9373f016fa2dfeed7d2a9a72f",
+    "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+    "manifest_path": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
+    "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+  },
+  "temporal": {
+    "source_registration_sha256": "65e7c8e5a3f32ee1a71f816f4aeb449c43925c924926ec6a1d777a727e19d738",
+    "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+    "manifest_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090/manifest.json",
+    "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+    "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0"
+  },
+  "zip_temporal": {
+    "source_registration_sha256": "8c4be333c1a1974005b63dd594213b4ec0ee8a32aa25b3118643ff46d86070b4",
+    "release_id": "exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503",
+    "manifest_path": "data/exact-zip-industry-temporal-qualification/releases/exact-zip-industry-temporal-qualification-53f10242b04721edbe71f6214e0930be1ab95c205f4ec95828eb66e6871d0503/manifest.json",
+    "manifest_sha256": "771a0f27951569bc7f1a96d02b8b9f114b65b2a37fdb1db3fb98217c6ad50e3e",
+    "artifact_sha256": "958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed",
+    "assessment_as_of": "2026-10-02T16:30:00.000Z"
+  },
+  "claims": {
+    "current_selection_changed": false,
+    "source_acquisition_performed": false,
+    "network_requests": 0,
+    "production_enrollment": false
+  }
+}

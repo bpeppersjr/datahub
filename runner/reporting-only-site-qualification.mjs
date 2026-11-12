@@ -6,14 +6,14 @@ import { APP_ROOT } from './paths.mjs';
 import { loadReportingSiteGeographyContext } from './business-entity-geography-relationship.mjs';
 import { normalizeCoordinateGeocode } from './business-location-profile-contract.mjs';
 import { assignPointToCounty } from './national-business-coverage-views.mjs';
-import { readNationalBusinessTemporalClaimRows } from './national-business-temporal-claim-matrix-reader.mjs';
-import { readExactZipIndustryTemporalQualification } from './exact-zip-industry-temporal-qualification.mjs';
 
 export const REPORTING_ONLY_SITE_QUALIFICATION_VERSION = 'reporting-only-site-qualification@1.1.0';
 const DATASET = 'reporting-only-site-qualification';
 const REGISTRY_RELEASE = 'national-business-registry-20260911-022652067Z-1ec656c3';
 const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
 const AS_OF = '2026-10-02T16:30:00.000Z';
+const HISTORICAL_INPUTS_PATH = 'config/datasets/reporting-only-site-qualification-historical-inputs.json';
+const HISTORICAL_INPUTS_SHA = '42a800718a7c588cc167447ea536545639687f23d24957bc6d0a7f6f08f2272e';
 const SOURCE = Object.freeze({
   MA: { id: 'ma-licensed-center-based-childcare', key: 'ma_childcare_centers', dimension: 'childcare_ma_reporting_centers', manifest: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifestSha: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', policyId: 'massgis-eec-childcare-local-review', policyPath: 'config/source-policies/massgis-eec-childcare-local-review.json', policySha: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742', count: 3007, statuses: { Current: 'source-defined-current', 'Renewal in progress': 'non-active-reporting', Expired: 'non-active-reporting', 'Regional Enrollment Freeze': 'unknown' } },
   NJ: { id: 'nj-licensed-childcare-centers', key: 'nj_childcare_centers', dimension: 'childcare_nj_reporting_centers', manifest: 'data/business-sources/nj-licensed-childcare-centers-reprocessed/releases/nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812/manifest.json', manifestSha: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', policyId: 'njdep-childcare-local-review', policyPath: 'config/source-policies/njdep-childcare-local-review.json', policySha: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc', count: 4075, statuses: {} },
@@ -38,6 +38,67 @@ async function boundedJson(file, max = 8_000_000) {
   const stat = await lstat(file); check(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && stat.size <= max);
   const bytes = await readFile(file); check(bytes.length === stat.size);
   return { value: JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)), sha256: sha(bytes), bytes };
+}
+const safeRelative = value => typeof value === 'string' && !path.isAbsolute(value)
+  && path.normalize(value).replaceAll('\\', '/') === value
+  && !value.split('/').some(part => !part || part === '.' || part === '..');
+async function historicalInputs(root) {
+  const receipt = await boundedJson(path.join(root, HISTORICAL_INPUTS_PATH), 64_000);
+  check(receipt.sha256 === HISTORICAL_INPUTS_SHA && receipt.value.schema_version === 'reporting-only-site-qualification-historical-inputs@1.0.0'
+    && receipt.value.dataset_id === DATASET && receipt.value.claims?.current_selection_changed === false
+    && receipt.value.claims?.source_acquisition_performed === false && receipt.value.claims?.network_requests === 0
+    && receipt.value.claims?.production_enrollment === false, 'historical input selection receipt changed');
+  for (const key of ['registry', 'temporal', 'zip_temporal']) {
+    const row = receipt.value[key];
+    check(row && /^[0-9a-f]{64}$/.test(row.source_registration_sha256 ?? '')
+      && /^[0-9a-f]{64}$/.test(row.manifest_sha256 ?? '') && safeRelative(row.manifest_path), `${key} historical selection invalid`);
+  }
+  const registrySelection = await boundedJson(path.join(root, receipt.value.registry.selection_path), 64_000);
+  check(registrySelection.sha256 === receipt.value.registry.selection_sha256
+    && registrySelection.value.schema_version === 'historical-dataset-selection@1.0.0'
+    && registrySelection.value.source_registration_sha256 === receipt.value.registry.source_registration_sha256
+    && stable(registrySelection.value.current_release) === stable({ release_id: receipt.value.registry.release_id,
+      manifest: receipt.value.registry.manifest_path, manifest_sha256: receipt.value.registry.manifest_sha256 })
+    && registrySelection.value.claims?.current_registration === false
+    && registrySelection.value.claims?.historical_source_bytes_reconstructed === false, 'historical registry selection changed');
+  return { ...receipt.value, receipt_sha256: receipt.sha256, registry_selection_sha256: registrySelection.sha256 };
+}
+export async function verifyReportingOnlyHistoricalInputSelections({ root = APP_ROOT } = {}) {
+  const selected = await historicalInputs(path.resolve(root));
+  return { status: 'verified', receipt_sha256: selected.receipt_sha256,
+    registry_selection_sha256: selected.registry_selection_sha256,
+    registry_release_id: selected.registry.release_id, temporal_release_id: selected.temporal.release_id,
+    zip_temporal_release_id: selected.zip_temporal.release_id };
+}
+async function historicalTemporal(root, selection) {
+  const manifestRead = await boundedJson(path.join(root, selection.manifest_path), 128_000), manifest = manifestRead.value;
+  check(manifestRead.sha256 === selection.manifest_sha256 && manifest.release_id === selection.release_id
+    && manifest.inputs?.registry_release_id === REGISTRY_RELEASE && manifest.inputs?.registry_manifest_sha256 === REGISTRY_SHA
+    && manifest.artifacts?.length === 1 && manifest.artifacts[0].sha256 === selection.artifact_sha256
+    && manifest.artifacts[0].record_count === 30 && safeRelative(manifest.artifacts[0].path), 'historical temporal manifest changed');
+  const artifactPath = path.join(path.dirname(path.join(root, selection.manifest_path)), manifest.artifacts[0].path);
+  const stat = await lstat(artifactPath), bytes = await readFile(artifactPath);
+  check(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && bytes.length === stat.size
+    && bytes.length === manifest.artifacts[0].bytes && sha(bytes) === selection.artifact_sha256, 'historical temporal artifact changed');
+  const rows = new TextDecoder('utf-8', { fatal: true }).decode(bytes).split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+  check(rows.length === 30 && new Set(rows.map(row => row.source_key)).size === 30
+    && rows.every(row => row.current_operations_verified === false), 'historical temporal rows changed');
+  return { rows, provenance: { release_id: manifest.release_id, manifest_sha256: manifestRead.sha256,
+    artifact_sha256: selection.artifact_sha256, registry_release_id: manifest.inputs.registry_release_id,
+    registry_manifest_sha256: manifest.inputs.registry_manifest_sha256 } };
+}
+async function historicalZipTemporal(root, selection) {
+  const manifestRead = await boundedJson(path.join(root, selection.manifest_path), 128_000), manifest = manifestRead.value;
+  check(manifestRead.sha256 === selection.manifest_sha256 && manifest.release_id === selection.release_id
+    && manifest.assessment_as_of === selection.assessment_as_of && manifest.artifact?.sha256 === selection.artifact_sha256
+    && manifest.artifact?.record_count === 39 && safeRelative(manifest.artifact.path), 'historical ZIP temporal manifest changed');
+  const artifactRead = await boundedJson(path.join(path.dirname(path.join(root, selection.manifest_path)), manifest.artifact.path), 128_000);
+  const artifact = artifactRead.value;
+  check(artifactRead.sha256 === selection.artifact_sha256 && artifact.assessment_as_of === selection.assessment_as_of
+    && Array.isArray(artifact.rows) && artifact.rows.length === 39 && new Set(artifact.rows.map(row => row.dimension_id)).size === 39
+    && artifact.rows.every(row => row.current_operations_verified === false), 'historical ZIP temporal artifact changed');
+  return { rows: artifact.rows, assessment_as_of: artifact.assessment_as_of,
+    provenance: { release_id: manifest.release_id, manifest_sha256: manifestRead.sha256, artifact_sha256: artifactRead.sha256 } };
 }
 export async function readContainedPolicyProfile({ root = APP_ROOT, relativePath, sourceState } = {}) {
   const expected = SOURCE[sourceState]; check(expected && relativePath === expected.policyPath, 'unrecognized reporting policy profile path');
@@ -128,9 +189,8 @@ function classifyGeography(row, source, context) {
 }
 
 async function loadInputs(root, signal) {
-  const registryMeta = await boundedJson(path.join(root, 'config/datasets/national-business-registry.json'), 300_000);
-  const r = registryMeta.value.current_release;
-  check(registryMeta.value.dataset_id === 'national-business-registry' && r?.release_id === REGISTRY_RELEASE && r.manifest_sha256 === REGISTRY_SHA);
+  const historical = await historicalInputs(root), r = { release_id: historical.registry.release_id,
+    manifest: historical.registry.manifest_path, manifest_sha256: historical.registry.manifest_sha256 };
   const registry = await boundedJson(path.join(root, r.manifest), 8_000_000);
   check(registry.sha256 === REGISTRY_SHA && registry.value.release_id === REGISTRY_RELEASE && registry.value.coverage.reporting_location_evidence === EXPECTED.total
     && registry.value.coverage.resolution_location_profiles === 8011835 && registry.value.coverage.physical_sites === 8025017);
@@ -161,14 +221,12 @@ async function loadInputs(root, signal) {
         : state === 'NJ' ? { null: 4075 } : state === 'TN' ? { Active: 1863 } : { Open: 4237 } };
     check(manifest.counts?.accepted === expected.count, `${state} source manifest count`);
   }
-  const temporal = await readNationalBusinessTemporalClaimRows({ root, signal });
-  const temporalRegistration = await boundedJson(path.join(root, 'config/datasets/national-business-temporal-claim-matrix.json'), 300_000);
-  const temporalSelected = temporalRegistration.value.retained_releases.filter(x => x.selected === true);
-  check(temporalSelected.length === 1 && temporalSelected[0].release_id === temporal.provenance.release_id
-    && temporalSelected[0].manifest_sha256 === temporal.provenance.manifest_sha256 && temporal.provenance.registry_release_id === REGISTRY_RELEASE
+  const temporal = await historicalTemporal(root, historical.temporal);
+  check(temporal.provenance.release_id === historical.temporal.release_id
+    && temporal.provenance.manifest_sha256 === historical.temporal.manifest_sha256 && temporal.provenance.registry_release_id === REGISTRY_RELEASE
     && temporal.provenance.registry_manifest_sha256 === REGISTRY_SHA);
   const temporalRows = new Map(temporal.rows.map(row => [row.source_key, row]));
-  const zipTemporal = await readExactZipIndustryTemporalQualification({ root, zip5: '00501', signal });
+  const zipTemporal = await historicalZipTemporal(root, historical.zip_temporal);
   const qualRows = new Map(zipTemporal.rows.map(row => [row.dimension_id, row]));
   const semanticByState = {};
   for (const [state, source] of Object.entries(sources)) {
@@ -180,9 +238,16 @@ async function loadInputs(root, signal) {
       && qualification.review_qualification === 'unmeasured' && qualification.current_operations_verified === false);
     semanticByState[state] = semantic;
   }
-  const geographyContext = await loadReportingSiteGeographyContext({ root, signal });
+  const geographyContext = await loadReportingSiteGeographyContext({ root, signal,
+    registryCatalogPath: historical.registry.selection_path, registryCatalogSha256: historical.registry.selection_sha256,
+    registryReleaseId: REGISTRY_RELEASE, registryManifestSha256: REGISTRY_SHA, registryProfileCount: 8011835,
+    coverageReleaseId: 'national-business-coverage-views-20260911-040908332Z-f01c882a',
+    coverageManifestSha256: 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6' });
   check(geographyContext.pins.registry.release_id === REGISTRY_RELEASE && geographyContext.pins.registry.manifest_sha256 === REGISTRY_SHA);
-  return { registry: registry.value, registryManifestSha: registry.sha256, registryRegistrationSha: registryMeta.sha256, selectedArtifacts, sources, semanticByState, qualRows, temporal, temporalRegistrationSha: temporalRegistration.sha256, zipTemporal, geographyContext };
+  return { registry: registry.value, registryManifestSha: registry.sha256,
+    registryRegistrationSha: historical.registry.source_registration_sha256, selectedArtifacts, sources, semanticByState, qualRows,
+    temporal, temporalRegistrationSha: historical.temporal.source_registration_sha256, zipTemporal, geographyContext,
+    historicalInputsReceiptSha: historical.receipt_sha256 };
 }
 
 async function rowsFromInputs(input, root, signal) {

@@ -6,6 +6,10 @@ import { APP_ROOT } from "./paths.mjs";
 const sha = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const requireTrue = (condition, detail) => { if (!condition) throw new Error(`Colorado registration-status posture rejected: ${detail}`); };
 const exactKeys = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("|") === [...keys].sort().join("|");
+const LIFECYCLE_TAXONOMY = {
+  path: "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",
+  sha256: "cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676",
+};
 async function read(root, relativePath) { const bytes = await fs.readFile(path.join(root, relativePath)); return { value: JSON.parse(bytes), sha256: sha(bytes) }; }
 
 export async function verifyNationalBusinessCoRegistrationStatusPosture({ root = APP_ROOT, signal } = {}) {
@@ -17,6 +21,8 @@ export async function verifyNationalBusinessCoRegistrationStatusPosture({ root =
   requireTrue(registration.schema_version === "1.0.0" && registration.status === "registered-pointer-pinned-local-review-only" && registration.scope === "separate-organization-assertion-cohort" && registration.runtime_pointer === null && registration.production_enrollment === false, "registration semantics");
   const bindingNames = ["pointer", "manifest", "source_summary", "dataset_registration", "source_policy", "record_schema", "lifecycle_taxonomy"];
   requireTrue(exactKeys(registration.bindings, bindingNames), "binding keys");
+  const taxonomy = registration.bindings.lifecycle_taxonomy;
+  requireTrue(taxonomy?.path === LIFECYCLE_TAXONOMY.path && taxonomy.sha256 === LIFECYCLE_TAXONOMY.sha256, "selected lifecycle_taxonomy binding");
   const loaded = Object.fromEntries(await Promise.all(bindingNames.map(async (name) => { const binding = registration.bindings[name]; requireTrue(exactKeys(binding, ["path", "sha256"]) && /^[a-f0-9]{64}$/.test(binding.sha256), `${name} binding`); const file = await read(root, binding.path); requireTrue(file.sha256 === binding.sha256, `${name} pin`); return [name, file.value]; })));
   signal?.throwIfAborted();
   const expected = registration.expected, coverage = loaded.manifest.coverage, summary = loaded.source_summary;

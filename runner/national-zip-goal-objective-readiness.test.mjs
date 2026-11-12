@@ -7,9 +7,8 @@ import path from 'node:path';
 import { readNationalZipGoalAcceptance, projectNationalZipObjectiveReadiness, NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS } from './national-zip-goal-acceptance.mjs';
 import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 
-const codes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory'];
+const codes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory'];
 const ledger = [['geography','achieved'],['entity-geography-relationship','partial'],['postal-denominator','blocked'],['source-authorization-policy-and-provenance','partial'],['broad-state-coverage','blocked'],['industry-coverage','unmeasured'],['temporal-and-current-operation','blocked'],['lifecycle-eligibility','blocked'],['reconciliation-and-benchmark','blocked'],['all-business-completeness-denominator','unmeasured'],['reporting-only-site-qualification','partial'],['business-entity-source-policy-provenance','achieved']];
-const actual = async () => projectNationalZipObjectiveReadiness(await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' }));
 
 function harness(method = 'GET', options = {}) {
   const request = new EventEmitter(); Object.assign(request, { method, headers: {}, aborted: false, resume() {}, ...options.request });
@@ -20,22 +19,27 @@ function harness(method = 'GET', options = {}) {
 }
 
 test('strict projection exposes twelve ordered requirements, blockers, forty gaps, null completeness, and pinned lineage', async () => {
-  const value = await actual();
+  const endpoint = harness();
+  await endpoint.run();
+  assert.equal(endpoint.get().status, 200);
+  const value = endpoint.get().body;
   assert.equal(value.status, 'not-accepted'); assert.equal(value.acceptance.accepted, false);
   assert.deepEqual(value.requirements_ledger.map(row => [row.requirement, row.status]), ledger);
   assert.equal(value.requirements_ledger.length, 12); assert.equal(value.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   const reporting = value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification');
   assert.deepEqual([reporting.site_count, reporting.matching_profile_count, reporting.zip_present_count, reporting.zip_absent_count,
     reporting.active_business_eligible_count, reporting.current_operation_verified_count, reporting.usps_unverified_count], [13182, 0, 13010, 172, 0, 0, 13182]);
+  assert.equal(reporting.matching_profile_denominator, 8011835);
+  assert.equal(reporting.combined_retained_site_evidence_count, 8025017);
   const geoRow = value.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
-  assert.equal(geoRow.status, 'partial'); assert.equal(geoRow.profile_count, 8011835); assert.equal(geoRow.registry_profile_count, 8011835);
-  assert.equal(geoRow.postal_counts['same-code-zcta-candidate'], 7963395); assert.equal(geoRow.postal_counts['outside-zcta'], 48439);
+  assert.equal(geoRow.status, 'partial'); assert.equal(geoRow.profile_count, 8011213); assert.equal(geoRow.registry_profile_count, 8011213);
+  assert.equal(geoRow.postal_counts['same-code-zcta-candidate'], 7962776); assert.equal(geoRow.postal_counts['outside-zcta'], 48436);
   assert.equal(geoRow.postal_counts['explicit-placeholder'], 1); assert.equal(geoRow.postal_counts.missing, 0);
-  assert.equal(geoRow.point_assignment_counts['assigned-single-county'], 372079); assert.equal(geoRow.point_assignment_counts['missing-geocode'], 6976397);
-  assert.equal(geoRow.point_assignment_counts['unassignable-legacy-coordinate-crs-unproven'], 640383); assert.equal(geoRow.reported_state_conflict_count, 11);
-  assert.equal(geoRow.usps_unverified_profile_count, 8011835); assert.equal(geoRow.same_code_zcta_is_membership, false);
+  assert.equal(geoRow.point_assignment_counts['assigned-single-county'], 994752); assert.equal(geoRow.point_assignment_counts['missing-geocode'], 6976316);
+  assert.equal(geoRow.point_assignment_counts['unassignable-legacy-coordinate-crs-unproven'], 0); assert.equal(geoRow.reported_state_conflict_count, 50);
+  assert.equal(geoRow.usps_unverified_profile_count, 8011213); assert.equal(geoRow.same_code_zcta_is_membership, false);
   assert.equal(geoRow.entity_polygons_present, false); assert.equal(geoRow.usps_operational_assignment_verified, false);
-  assert.deepEqual(value.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility'), { requirement: 'lifecycle-eligibility', status: 'blocked', profile_count: 8011835, registry_profile_count: 8011835, active_business_eligible_count: 0, stale_count: 24230, unknown_or_contradictory_count: 635899, verified_current_operation_count: 0, evidence: 'Retained lifecycle evidence is conservative: stale, unknown, and contradictory profiles remain ineligible; no row independently verifies current operation.' });
+  assert.deepEqual(value.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility'), { requirement: 'lifecycle-eligibility', status: 'blocked', profile_count: 8011213, registry_profile_count: 8011213, active_business_eligible_count: 0, stale_count: 0, unmeasured_count: 23608, unknown_or_contradictory_count: 635899, verified_current_operation_count: 0, evidence: 'Unmeasured, unknown and contradictory evidence remains ineligible. Zero profiles independently verify current operation.' });
   assert.equal(value.broad_jurisdiction_gap_count, 40); assert.equal(value.claims.all_business_completion_percent, null);
   assert.equal(value.claims.active_business_count, null); assert.equal(value.claims.current_operating_business_count, null);
   assert.equal(value.claims.current_operations_verified, false); assert.equal(value.claims.all_business_completeness, false);
@@ -45,10 +49,10 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.lineage.organization_assertion_status_posture.good_standing_count,1019372); assert.equal(value.lineage.organization_assertion_status_posture.delinquent_count,1145439); assert.equal(value.lineage.organization_assertion_status_posture.scope,'separate-organization-assertion-cohort');
   assert.equal(value.lineage.publisher_membership_reconciliation.profile_count,633232);
   assert.equal(value.lineage.publisher_membership_reconciliation.publisher_cohort_assertion,'active-list-membership-without-row-status');
-  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.7.0');
+  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.8.0');
   assert.deepEqual([value.lineage.non_zcta_source_geography_context.rows,value.lineage.non_zcta_source_geography_context.relationship_keys,value.lineage.non_zcta_source_geography_context.no_relationship_keys],[14402,8871,5531]);
   assert.equal(value.lineage.non_zcta_source_geography_context.map_blocked,false);
-  assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e');
+  assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'0f51842c8197550ebd0e4df62bc797e41309c535c122bafc31ee5f46398c919b');
   for (const key of ['zip_entity_resolution','zip_industry_matrix','temporal_claim_matrix']) assert.match(value.lineage[key].manifest_sha256, /^[a-f0-9]{64}$/);
 assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9');
   assert.equal(value.lineage.zip_industry_matrix.manifest_sha256,'07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7');
@@ -56,19 +60,19 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
   assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'6d08eb60a5182fa3316467f67fd3ebfb72daecd0f99993c36faa185be9164155');
   assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[51,2457894]);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
-  assert.match(value.lineage.broad_organization_projection.program_manifest_sha256, /^[a-f0-9]{64}$/);
-  assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011835);
+  assert.equal(value.lineage.broad_organization_projection.program_manifest_sha256, "6609ff744a497db7be6156f65c12237a27de3a50db2158479f316eaa6fbd25e2");
+  assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011213);
   assert.equal(value.lineage.lifecycle_eligibility.active_business_eligible_count, 0);
-  assert.equal(value.lineage.lifecycle_eligibility.registry_profile_count, 8011835);
-  assert.equal(value.lineage.business_entity_geography_relationship.release_id, 'business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7');
-  assert.equal(value.lineage.business_entity_geography_relationship.registration_sha256, 'bc81d33b80a92da55f31713d36813807e7224da599ab24aa3898522b338f5829');
-  assert.equal(value.lineage.business_entity_geography_relationship.artifact_inventory_sha256, 'ca92485cf7659fc8f4565fe81de5728c960de9667f9b5c605f66c9e07d24a5f5');
+  assert.equal(value.lineage.lifecycle_eligibility.registry_profile_count, 8011213);
+  assert.equal(value.lineage.business_entity_geography_relationship.release_id, 'business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00');
+  assert.equal(value.lineage.business_entity_geography_relationship.registration_sha256, '9c1dcc2f18ecde9f3f128d6097bfddaf38f49acb9a1fd8bea2b6e6007f76a067');
+  assert.equal(value.lineage.business_entity_geography_relationship.artifact_inventory_sha256, '4741fd3ea42dc7c57ad544efef602e2a1662a541010cbe3d27d0f5e6064d821b');
   assert.equal(value.lineage.business_entity_geography_relationship.artifact_count, 100);
   assert.equal(value.lineage.reporting_only_site_qualification.record_count, 13182);
-  assert.equal(value.lineage.business_entity_source_policy_provenance.release_id, 'business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803');
-  assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, 'bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.release_id, 'business-entity-source-policy-provenance-ffd0c199435fbe1447774f149cf6eaba7f502a0c96da7851ef6b2354f934510f');
+  assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, '619e3768bd89717d228caeaf1821de9438cde5a8899a35da13bf064123704564');
   assert.equal(value.lineage.business_entity_source_policy_provenance.source_count, 15);
-  assert.equal(value.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance').profile_policy_rows_verified, 8011835);
+  assert.equal(value.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance').profile_policy_rows_verified, 8011213);
   assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba');
   assert.deepEqual(value.lineage.reporting_only_site_qualification.source_manifest_hashes, { MA: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' });
   assert.equal(value.lineage.reporting_only_site_qualification.source_bindings.MA.transformation_version, 'ma-childcare-normalization@1.0.0');
@@ -80,6 +84,10 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
   assert.throws(() => projectNationalZipObjectiveReadiness({ ...report, objective_readiness: { ...report.objective_readiness, bindings: { ...report.objective_readiness.bindings, lifecycle_eligibility: { ...report.objective_readiness.bindings.lifecycle_eligibility, artifact_inventory_sha256: '0'.repeat(64) } } } }), /rejected/);
   const geo = report.objective_readiness.bindings.business_entity_geography_relationship;
   for (const mutate of [
+    value => { value.bindings.lifecycle_eligibility.taxonomy_sha256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc'; },
+    value => { value.bindings.business_entity_source_policy_provenance.source_profile_counts_sha256 = 'f'.repeat(64); },
+    value => { value.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility').unmeasured_count = 24230; },
+    value => { value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification').matching_profile_denominator = 8011213; },
     value => { delete value.bindings.business_entity_geography_relationship; },
     value => { value.bindings.business_entity_geography_relationship.registration_sha256 = '0'.repeat(64); },
     value => { value.bindings.business_entity_geography_relationship.manifest_sha256 = '0'.repeat(64); },
@@ -100,7 +108,7 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
     const changed = structuredClone(report.objective_readiness); mutate(changed);
     assert.throws(() => projectNationalZipObjectiveReadiness({ ...report, objective_readiness: changed }), /rejected/);
   }
-  assert.equal(geo.profile_count, 8011835);
+  assert.equal(geo.profile_count, 8011213);
 });
 
 test('HTTP accepts only bodyless GET and projects through the bound reader', async () => {
@@ -145,7 +153,7 @@ test('disconnect aborts the acceptance read and emits no response', async () => 
 
 test('geography binding reader fails closed on missing or tampered registration, manifest, inventory, and shard bytes', async () => {
   const sourceRegistration = await readFile('config/datasets/business-entity-geography-relationship.json');
-  const sourceManifestPath = 'data/business-entity-geography-relationship/releases/business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7/manifest.json';
+  const sourceManifestPath = 'data/business-entity-geography-relationship/releases/business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00/manifest.json';
   const sourceManifest = await readFile(sourceManifestPath), manifest = JSON.parse(sourceManifest.toString('utf8'));
   async function fixture({ includeRegistration = true, includeManifest = true, mutateRegistration, mutateManifest, includeFirstShard = false, corruptFirstShard = false } = {}) {
     const root = await mkdtemp(path.join(tmpdir(), 'goal-geography-binding-'));

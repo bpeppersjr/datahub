@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -23,4 +24,25 @@ test("Colorado posture is abortable and fails closed on a pinned-byte change", a
   await fs.appendFile(path.join(root, "config/source-policies/co-business-registry.json"), " ");
   await assert.rejects(verify({ root }), /source_policy pin/);
   await fs.rm(root, { recursive: true, force: true });
+});
+
+test("Colorado posture rejects the prior taxonomy and a rehashed source count substitution", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "co-posture-selection-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const registrationPath = "config/datasets/national-business-co-registration-status-posture.json";
+  const registration = JSON.parse(await fs.readFile(new URL(`../${registrationPath}`, import.meta.url), "utf8"));
+  const binding = registration.bindings.lifecycle_taxonomy;
+  const taxonomy = JSON.parse(await fs.readFile(new URL(`../${binding.path}`, import.meta.url), "utf8"));
+  taxonomy.expected_profile_counts["new-york-agriculture-markets-retail-food-stores"] = 24230;
+  const substituted = JSON.stringify(taxonomy);
+  await fs.mkdir(path.dirname(path.join(root, registrationPath)), { recursive: true });
+  await fs.writeFile(path.join(root, binding.path), substituted);
+  for (const digest of [
+    "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc",
+    createHash("sha256").update(substituted).digest("hex"),
+  ]) {
+    binding.sha256 = digest;
+    await fs.writeFile(path.join(root, registrationPath), JSON.stringify(registration));
+    await assert.rejects(verify({ root }), /selected lifecycle_taxonomy binding/);
+  }
 });

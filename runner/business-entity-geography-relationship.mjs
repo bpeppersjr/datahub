@@ -171,14 +171,27 @@ async function* readGzipRows(file, descriptor, signal) {
   check(bytes === descriptor.bytes && hash.digest('hex') === descriptor.sha256 && count === descriptor.record_count, `Output artifact integrity mismatch: ${descriptor.path}`);
 }
 
-async function readInputs(root, signal) {
+async function readInputs(root, signal, {
+  registryCatalogPath = 'config/datasets/national-business-registry.json',
+  registryCatalogSha256 = null,
+  registryReleaseId = REGISTRY_RELEASE,
+  registryManifestSha256 = REGISTRY_SHA,
+  registryProfileCount = EXPECTED.profiles,
+  coverageReleaseId = COVERAGE_RELEASE,
+  coverageManifestSha256 = COVERAGE_SHA,
+} = {}) {
   const load = async rel => boundedJson(path.join(root, rel));
-  const registryCatalog = (await load('config/datasets/national-business-registry.json')).value;
-  const registryMeta = registryCatalog.current_release; check(registryMeta.release_id === REGISTRY_RELEASE && registryMeta.manifest_sha256 === REGISTRY_SHA && safeRelative(registryMeta.manifest));
+  check(typeof registryCatalogPath === 'string' && safeRelative(registryCatalogPath));
+  const registryCatalogRead = await load(registryCatalogPath);
+  if (registryCatalogSha256 !== null) check(SHA.test(registryCatalogSha256) && registryCatalogRead.sha256 === registryCatalogSha256, 'Registry catalog selection changed.');
+  const registryCatalog = registryCatalogRead.value;
+  check(SHA.test(registryManifestSha256) && Number.isSafeInteger(registryProfileCount) && registryProfileCount > 0
+    && SHA.test(coverageManifestSha256));
+  const registryMeta = registryCatalog.current_release; check(registryMeta.release_id === registryReleaseId && registryMeta.manifest_sha256 === registryManifestSha256 && safeRelative(registryMeta.manifest));
   const registryPath = path.join(root, registryMeta.manifest), registryRead = await boundedJson(registryPath, 4_000_000), registry = registryRead.value;
-  check(registryRead.sha256 === REGISTRY_SHA && registry.release_id === REGISTRY_RELEASE && registry.coverage.resolution_location_profiles === EXPECTED.profiles);
+  check(registryRead.sha256 === registryManifestSha256 && registry.release_id === registryReleaseId && registry.coverage.resolution_location_profiles === registryProfileCount);
   const profiles = registry.artifacts.filter(a => a.artifact_type === 'entity-resolution-location-profile-jsonl-gzip');
-  check(profiles.length === 100 && profiles.reduce((n, a) => n + a.record_count, 0) === EXPECTED.profiles);
+  check(profiles.length === 100 && profiles.reduce((n, a) => n + a.record_count, 0) === registryProfileCount);
   const geographyConfig = (await load('config/datasets/us-census-geography.json')).value;
   const geoPointer = await load('data/geography/current.json'), geoManifestPath = path.join(root, 'data/geography', geoPointer.value.manifest);
   const geoRead = await boundedJson(geoManifestPath, 8_000_000), geo = geoRead.value;
@@ -186,11 +199,13 @@ async function readInputs(root, signal) {
   const crosswalkConfig = (await load('config/datasets/us-census-zcta-jurisdiction-crosswalk.json')).value;
   const crosswalkPointer = await load('data/zcta-jurisdiction-crosswalk/current.json'), crosswalkRead = await boundedJson(path.join(root, 'data/zcta-jurisdiction-crosswalk', crosswalkPointer.value.manifest), 5_000_000), crosswalk = crosswalkRead.value;
   check(crosswalkPointer.value.release_id === CROSSWALK_RELEASE && crosswalkConfig.current_verified_release.release_id === CROSSWALK_RELEASE && crosswalkRead.sha256 === CROSSWALK_SHA && crosswalk.release_id === CROSSWALK_RELEASE);
-  const coverageConfig = (await load('config/datasets/national-business-coverage-views.json')).value;
-  const coverageMeta = coverageConfig.current_verified_release, coverageRead = await boundedJson(path.join(root, coverageMeta.manifest), 10_000_000), coverage = coverageRead.value;
-  check(coverageMeta.release_id === COVERAGE_RELEASE && coverageRead.sha256 === COVERAGE_SHA && coverage.release_id === COVERAGE_RELEASE);
+  const coverageMeta = coverageReleaseId === COVERAGE_RELEASE
+    ? (await load('config/datasets/national-business-coverage-views.json')).value.current_verified_release
+    : { release_id: coverageReleaseId, manifest: `data/business-coverage-views/releases/${coverageReleaseId}/manifest.json`, manifest_sha256: coverageManifestSha256 };
+  const coverageRead = await boundedJson(path.join(root, coverageMeta.manifest), 10_000_000), coverage = coverageRead.value;
+  check(coverageMeta.release_id === coverageReleaseId && coverageRead.sha256 === coverageManifestSha256 && coverage.release_id === coverageReleaseId);
   const profileSummaryArtifact = coverage.artifacts.find(a => a.path === 'derived/profile-geography-summary.json');
-  const profileSummaryPath = path.join(root, 'data/business-coverage-views/releases', COVERAGE_RELEASE, profileSummaryArtifact.path);
+  const profileSummaryPath = path.join(root, 'data/business-coverage-views/releases', coverageReleaseId, profileSummaryArtifact.path);
   const summaryRead = await boundedJson(profileSummaryPath, 100_000);
   check(summaryRead.sha256 === profileSummaryArtifact.sha256);
   const gapReg = (await load('config/datasets/zip-denominator-gap-cohort.json')).value.retained_release;
@@ -249,12 +264,12 @@ async function readInputs(root, signal) {
     zctaDecl, countyDecl, countyIndexDecl, statesDecl, stateFipsByAbbreviation, zctaRows, countyIndexRows, countyIndex, zipClasses,
     gap, gapReg, gapRowsArtifact, qualityReg, qualityManifest,
     pins: {
-      registry: { dataset_id: 'national-business-registry', release_id: REGISTRY_RELEASE, manifest_sha256: REGISTRY_SHA, profile_artifact_inventory_sha256: sha(JSON.stringify(profiles)) },
+      registry: { dataset_id: 'national-business-registry', release_id: registryReleaseId, manifest_sha256: registryManifestSha256, profile_artifact_inventory_sha256: sha(JSON.stringify(profiles)) },
       geography: { release_id: GEO_RELEASE, manifest_sha256: GEO_SHA, zcta_index_sha256: zctaDecl.sha256, state_index_sha256: statesDecl.sha256, county_index_sha256: countyIndexDecl.sha256, county_geometry_inventory_sha256: sha(JSON.stringify(countyDecl.map(a => ({ path: a.path, sha256: a.sha256, bytes: a.bytes })))) },
       crosswalk: { release_id: CROSSWALK_RELEASE, manifest_sha256: CROSSWALK_SHA, artifact_inventory_sha256: sha(JSON.stringify(crosswalk.artifacts)) },
       zip_quality: { release_id: ZIP_QUALITY_RELEASE, manifest_sha256: ZIP_QUALITY_SHA, artifact_inventory_sha256: qualityReg.artifact_inventory_sha256 },
       zip_audit: { release_id: GAP_RELEASE, manifest_sha256: GAP_SHA, cohort_sha256: gapRowsArtifact.sha256 },
-      point_assignment: { release_id: COVERAGE_RELEASE, manifest_sha256: COVERAGE_SHA, summary_sha256: profileSummaryArtifact.sha256, summary_artifact_sha256: summaryRead.sha256 },
+      point_assignment: { release_id: coverageReleaseId, manifest_sha256: coverageManifestSha256, summary_sha256: profileSummaryArtifact.sha256, summary_artifact_sha256: summaryRead.sha256 },
       assignment_algorithms: algorithmPins,
     },
   };
@@ -265,8 +280,10 @@ export async function inspectBusinessEntityGeographyRelationshipInputs({ root = 
   return { inputs_verified: true, pins: input.pins, source_partitions: input.profiles.length, source_profiles: input.profiles.reduce((n, item) => n + item.record_count, 0), zcta_count: input.zctaRows.size, county_count: input.countyIndexRows.length, audited_zip_count: input.zipClasses.size };
 }
 
-export async function loadReportingSiteGeographyContext({ root = APP_ROOT, signal } = {}) {
-  const input = await readInputs(path.resolve(root), signal);
+export async function loadReportingSiteGeographyContext({ root = APP_ROOT, signal, registryCatalogPath, registryCatalogSha256,
+  registryReleaseId, registryManifestSha256, registryProfileCount, coverageReleaseId, coverageManifestSha256 } = {}) {
+  const input = await readInputs(path.resolve(root), signal, { registryCatalogPath, registryCatalogSha256,
+    registryReleaseId, registryManifestSha256, registryProfileCount, coverageReleaseId, coverageManifestSha256 });
   return {
     zctaCodes: new Set(input.zctaRows.keys()), countyIndex: input.countyIndex,
     stateFipsByAbbreviation: input.stateFipsByAbbreviation, zipClasses: input.zipClasses,

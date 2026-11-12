@@ -50,6 +50,14 @@ next-env.d.ts
 !/data/broad-organization-acquisition-backlog/releases/broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f/
 !/data/broad-organization-acquisition-backlog/releases/broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f/backlog.json
 !/data/broad-organization-acquisition-backlog/releases/broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f/manifest.json
+!/data/broad-organization-authorization-program/
+/data/broad-organization-authorization-program/*
+!/data/broad-organization-authorization-program/releases/
+/data/broad-organization-authorization-program/releases/*
+/data/broad-organization-authorization-program/releases/*/*
+!/data/broad-organization-authorization-program/releases/broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177/
+!/data/broad-organization-authorization-program/releases/broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177/authorization-program.json
+!/data/broad-organization-authorization-program/releases/broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177/manifest.json
 !/data/broad-organization-matrix-gap-projection/
 /data/broad-organization-matrix-gap-projection/*
 !/data/broad-organization-matrix-gap-projection/releases/

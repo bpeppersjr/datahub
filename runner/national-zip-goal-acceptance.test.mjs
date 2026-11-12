@@ -131,7 +131,7 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.7.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.8.0');
   assert.deepEqual(readiness.bindings.non_zcta_source_geography_context, {
     registration_path:'config/datasets/non-zcta-source-geography-context.json',registration_sha256:'b8d9f6cc7ccea0c031f2ba7bf6a5f4176fcb747cef5594fc83607553c84595bd',
     release_id:'non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd',manifest_sha256:'c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16',summary_sha256:'e2d2d113bb6c6844970eb7ac18d6dc888aafb99df5bbef3ab453b9c3e31bf95b',rows:14402,source_contributed_outside_zcta:14361,denominator_only_outside_zcta:41,relationship_keys:8871,no_relationship_keys:5531,state_assignment:false,cardinal_or_central_grouping:null,map_blocked:false,state_denominator_integration:false,business_completeness:null,
@@ -145,33 +145,33 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
   assert.deepEqual(readiness.requirements_ledger.find(row=>row.requirement==='temporal-and-current-operation'),{requirement:'temporal-and-current-operation',status:'blocked',effective_source_defined_current_membership_sources:21,effective_non_active_reporting_sources:7,effective_annual_aggregate_sources:1,effective_unknown_status_sources:1,source_cohort_current_membership_sources:22,mismatch_profiles:633232,verified_current_complete_jurisdictions:0,evidence:'Lifecycle reconciliation is authoritative for effective status; the retained source cohort labels and reference clocks do not independently verify current operation.'});
   const geoRow = readiness.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
-  assert.equal(geoRow.profile_count, 8011835); assert.equal(geoRow.registry_profile_count, 8011835);
-  assert.deepEqual(geoRow.postal_counts, { 'same-code-zcta-candidate': 7963395, 'outside-zcta': 48439, 'explicit-placeholder': 1, missing: 0 });
-  assert.deepEqual(geoRow.point_assignment_counts, { 'assigned-single-county': 372079, unmatched: 21, ambiguous: 7, conflict: 0, 'missing-geocode': 6976397, 'invalid-coordinate': 0, 'unassignable-legacy-coordinate-crs-unproven': 640383, 'unassignable-coordinate-not-premise-point': 22948 });
-  assert.equal(geoRow.reported_state_conflict_count, 11); assert.equal(geoRow.usps_unverified_profile_count, 8011835);
+  assert.equal(geoRow.profile_count, 8011213); assert.equal(geoRow.registry_profile_count, 8011213);
+  assert.deepEqual(geoRow.postal_counts, { 'same-code-zcta-candidate': 7962776, 'outside-zcta': 48436, 'explicit-placeholder': 1, missing: 0 });
+  assert.deepEqual(geoRow.point_assignment_counts, { 'assigned-single-county': 994752, unmatched: 40138, ambiguous: 7, conflict: 0, 'missing-geocode': 6976316, 'invalid-coordinate': 0, 'unassignable-legacy-coordinate-crs-unproven': 0, 'unassignable-coordinate-not-premise-point': 0 });
+  assert.equal(geoRow.reported_state_conflict_count, 50); assert.equal(geoRow.usps_unverified_profile_count, 8011213);
   assert.equal(geoRow.usps_operational_assignment_verified, false); assert.equal(geoRow.usps_deliverability_verified, false);
   assert.equal(geoRow.same_code_zcta_is_membership, false); assert.equal(geoRow.entity_polygons_present, false);
   assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
     'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
     'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete',
-    'lifecycle-active-eligibility-not-established', 'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']);
+    'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory']);
   assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
   const lifecycleRow = readiness.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility');
-  assert.equal(lifecycleRow.profile_count, 8011835); assert.equal(lifecycleRow.active_business_eligible_count, 0);
-  assert.equal(lifecycleRow.stale_count, 24230); assert.equal(lifecycleRow.unknown_or_contradictory_count, 635899);
-  assert.deepEqual(readiness.bindings.lifecycle_eligibility.review_status_counts, { 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 });
-  assert.deepEqual(readiness.bindings.lifecycle_eligibility.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 });
+  assert.equal(lifecycleRow.profile_count, 8011213); assert.equal(lifecycleRow.active_business_eligible_count, 0);
+  assert.equal(lifecycleRow.stale_count, 0); assert.equal(lifecycleRow.unmeasured_count, 23608); assert.equal(lifecycleRow.unknown_or_contradictory_count, 635899);
+  assert.deepEqual(readiness.bindings.lifecycle_eligibility.review_status_counts, { 'within-review-window': 7987605, stale: 0, unmeasured: 23608, unmapped: 0 });
+  assert.deepEqual(readiness.bindings.lifecycle_eligibility.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2134833, unknown: 633232, contradictory: 2667 });
   const policyRow = readiness.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance');
   assert.deepEqual([policyRow.source_count, policyRow.profile_count, policyRow.policy_files_verified, policyRow.profile_policy_rows_verified,
-    policyRow.authorization_granted, policyRow.acquisition_authorized, policyRow.export_authorized], [15, 8011835, 15, 8011835, false, false, false]);
+    policyRow.authorization_granted, policyRow.acquisition_authorized, policyRow.export_authorized], [15, 8011213, 15, 8011213, false, false, false]);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
-  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').profile_count, 8011835);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').profile_count, 8011213);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').eligible_count, 0);
-  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-stale-records-present').count, 24230);
+  assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unmeasured-records-present').count, 23608);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unknown-or-contradictory').count, 635899);
   for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
     'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established',
-    'lifecycle-stale-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
+    'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
   for (const [name, binding] of Object.entries(readiness.bindings)) {
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
@@ -203,17 +203,17 @@ assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-z
   assert.equal(readiness.bindings.zip_industry_matrix.claims.continuous_operation_verified,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.complete_all_businesses,false);
   assert.equal(readiness.bindings.zip_industry_matrix.claims.record_export_policy,'local-review-only');
-  assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05');
-  assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e');
+  assert.equal(readiness.bindings.temporal_claim_matrix.manifest_sha256, '1890a7941062ac71e79c25b773a56ecd122b9abf00f8173cd4d8f1a00fb9c7b8');
+  assert.equal(readiness.bindings.temporal_lifecycle_reconciliation.registration_sha256,'0f51842c8197550ebd0e4df62bc797e41309c535c122bafc31ee5f46398c919b');
   assert.deepEqual(readiness.bindings.temporal_lifecycle_reconciliation.effective_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});
-  assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1');
-  assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, '2e9266d0e68627edcaaf09cf2fc4593971eb6a4176672841f1b29f56d76c3ced');
+  assert.equal(readiness.bindings.lifecycle_eligibility.release_id, 'business-entity-lifecycle-eligibility-a4b84f5cace847e888832a2efefd09efadb773463864b11bcfad89be3936087f');
+  assert.equal(readiness.bindings.lifecycle_eligibility.registration_sha256, 'b2e3e336977b43f39a90299c40c67b849c792a50c5b495306c823191a594d127');
   assert.equal(readiness.bindings.reporting_only_site_qualification.record_count, 13182);
   assert.deepEqual(readiness.bindings.reporting_only_site_qualification.source_manifest_policy_hashes, { MA: 'bc5877f6f0b12a875e59464a71814ce7395e2cd8d292abae57e42f93086d8201', NJ: '79c0957df9fcdc66a856e5a6c242e24ef0296179eb93e4c8b298a32df2f61410', TN: '78300cd344afafd62d3a662a30d913871bd3fbd96cb59b03793e11b0b60f3b1b', OH: '53ead19c9463f270ed5def5eb0f848e46d3288d2a59844c53a8b317cad0b5c98' });
   assert.deepEqual(readiness.bindings.reporting_only_site_qualification.policy_profile_hashes, { MA: '8a2812e436c3b2bc9c4c88dd2299d406b8d8610cd88f851a9f5f664fa43a4742', NJ: '3a935abc814e7f46e6048bdb20ec25c67b3a70aa4cfb81b0d9494a35c9cb26cc', TN: '06b8b84549c26d2e3bcabdb89244463ef5fbd525c88170aab548b42267e1110e', OH: 'f1aa0c95eb96ba2cb6d10e75ded2011890cea61816d7b8b337ef1081dda4b6e2' });
-  assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, '218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528');
-  assert.equal(readiness.bindings.lifecycle_eligibility.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
-  assert.equal(readiness.bindings.lifecycle_eligibility.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');
+  assert.equal(readiness.bindings.lifecycle_eligibility.manifest_sha256, 'd5477035d4cf9f248ecabac77de1a54ac5acf02bb5658ae591eb530e2ad925ac');
+  assert.equal(readiness.bindings.lifecycle_eligibility.taxonomy_sha256, 'cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676');
+  assert.equal(readiness.bindings.lifecycle_eligibility.artifact_inventory_sha256, '6a24a12d9baf237e3a876e0152e17444faade376600140afe6115e99b6d1d939');
   assert.equal(readiness.bindings.goal_completion_matrix.broad_layer_gaps, 40);
   assert.equal(readiness.bindings.broad_organization_projection.metadata.gate_readiness.distinct_keys_classified, 121);
   assert.equal(readiness.claims.acceptance, false); assert.equal(readiness.claims.report_only, true);
