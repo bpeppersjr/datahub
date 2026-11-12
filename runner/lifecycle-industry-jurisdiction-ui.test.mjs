@@ -272,6 +272,8 @@ function moduleWith(
           ? { jsx, jsxs: jsx, Fragment: "fragment" }
           : id === "./runner-client"
             ? { runnerJson }
+            : id === "./state-registration-license-supplemental"
+              ? { __esModule: true, default: () => jsx("article", {}) }
             : require(id),
     AbortController,
     encodeURIComponent,

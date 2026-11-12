@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import registration from "../config/datasets/national-business-lifecycle-industry-jurisdiction-evidence.json";
 import supplementalRegistration from "../config/datasets/national-irs-eo-supplemental-industry-evidence.json";
 import { runnerJson } from "./runner-client";
+import StateRegistrationLicenseSupplemental from "./state-registration-license-supplemental";
 const industries = [
     "retail-consumer",
     "health-care",
@@ -1248,6 +1249,7 @@ export default function LifecycleIndustryJurisdictionPanel({
           </p>
         </>
       )}
+      <StateRegistrationLicenseSupplemental state={state || undefined} />
     </section>
   );
 }

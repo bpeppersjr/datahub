@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import registration from "../config/datasets/national-business-lifecycle-industry-zip-evidence.json";
 import supplementalRegistration from "../config/datasets/national-irs-eo-supplemental-industry-evidence.json";
 import { runnerJson } from "./runner-client";
+import StateRegistrationLicenseSupplemental from "./state-registration-license-supplemental";
 const industries = [
     "retail-consumer",
     "health-care",
@@ -1153,6 +1154,7 @@ export default function LifecycleIndustryZipPanel({ zip5 }: { zip5: string }) {
           </p>
         </>
       )}
+      <StateRegistrationLicenseSupplemental zip5={zip5} />
     </section>
   );
 }

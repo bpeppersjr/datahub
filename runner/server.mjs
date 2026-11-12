@@ -57,6 +57,8 @@ import { readNationalBusinessLifecycleIndustryZipEvidence, readNationalBusinessL
 import { nationalBusinessLifecycleIndustryZipEvidenceHttp, nationalBusinessLifecycleIndustryZipSummaryHttp } from './national-business-lifecycle-industry-zip-evidence-http.mjs';
 import { readNationalIrsEoSupplementalIndustryJurisdiction, readNationalIrsEoSupplementalIndustrySummary, readNationalIrsEoSupplementalIndustryZip } from './national-irs-eo-supplemental-industry-evidence-reader.mjs';
 import { nationalIrsEoSupplementalIndustryJurisdictionHttp, nationalIrsEoSupplementalIndustrySummaryHttp, nationalIrsEoSupplementalIndustryZipHttp } from './national-irs-eo-supplemental-industry-evidence-http.mjs';
+import { readNationalStateRegistrationLicenseSupplementalJurisdiction, readNationalStateRegistrationLicenseSupplementalSummary, readNationalStateRegistrationLicenseSupplementalZip } from './national-state-registration-license-supplemental-evidence-reader.mjs';
+import { nationalStateRegistrationLicenseSupplementalJurisdictionHttp, nationalStateRegistrationLicenseSupplementalSummaryHttp, nationalStateRegistrationLicenseSupplementalZipHttp } from './national-state-registration-license-supplemental-evidence-http.mjs';
 import { readExactZipIndustrySummaryV32 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-2.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
@@ -944,6 +946,15 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/irs-eo-supplemental-industry-jurisdiction'){
       await nationalIrsEoSupplementalIndustryJurisdictionHttp(request,response,url,readNationalIrsEoSupplementalIndustryJurisdiction,json);return;
+    }
+    if(url.pathname==='/api/business-map/state-registration-license-supplemental-summary'){
+      await nationalStateRegistrationLicenseSupplementalSummaryHttp(request,response,url,readNationalStateRegistrationLicenseSupplementalSummary,json);return;
+    }
+    if(url.pathname==='/api/business-map/state-registration-license-supplemental-zip'){
+      await nationalStateRegistrationLicenseSupplementalZipHttp(request,response,url,readNationalStateRegistrationLicenseSupplementalZip,json);return;
+    }
+    if(url.pathname==='/api/business-map/state-registration-license-supplemental-jurisdiction'){
+      await nationalStateRegistrationLicenseSupplementalJurisdictionHttp(request,response,url,readNationalStateRegistrationLicenseSupplementalJurisdiction,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/exact-zip-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'Exact-ZIP industry summary does not accept options.'});return;}
