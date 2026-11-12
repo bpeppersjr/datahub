@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { V30_STATE_TEST as contract, buildStateExactZipIndustryEvidenceDispositionV30 as build,
-  readStateExactZipIndustryEvidenceDispositionV30 as read } from "./state-exact-zip-industry-evidence-disposition-v3-0.mjs";
+  readStateExactZipIndustryEvidenceDispositionV30 as read,
+  readStateExactZipIndustryEvidenceStateV30 as readState } from "./state-exact-zip-industry-evidence-disposition-v3-0.mjs";
 import { readStateExactZipIndustryEvidenceProjectionV30 as project } from "./state-exact-zip-industry-evidence-map-v3-0.mjs";
 
 test("v3.0 replays the registered conserved 51-dimension successor", async () => {
@@ -30,4 +31,14 @@ test("v3.0 projection exposes all scopes and 51 dimensions", async () => {
   assert.equal(value.special_scopes.length, 4);
   assert.equal(value.dimensions.length, 51);
   assert.equal(value.states.find((row) => row.postal_abbreviation === "NY").count_sum > 0, true);
+});
+
+test("v3.0 full-state reader exposes all 51 dimensions with closed geography", async () => {
+  const value = await readState({ state: "MD" });
+  assert.equal(value.schema_version, "state-exact-zip-industry-evidence-disposition@3.0.0");
+  assert.equal(value.row.postal_abbreviation, "MD");
+  assert.equal(Object.keys(value.row.dimensions).length, 51);
+  assert.equal(Object.values(value.geography_scope_counts).reduce((sum, count) => sum + count, 0), 48194);
+  assert.equal(value.full_matrix_replay_performed, false);
+  assert.equal(value.claims.current_operations_verified, false);
 });

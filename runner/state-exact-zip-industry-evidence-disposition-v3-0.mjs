@@ -467,4 +467,120 @@ export async function readStateExactZipIndustryEvidenceDispositionV30({
     claims: m.claims,
   };
 }
+export async function readStateExactZipIndustryEvidenceStateV30({
+  root = APP_ROOT,
+  state,
+} = {}) {
+  root = path.resolve(root);
+  ck(typeof state === "string" && /^[A-Z]{2}$/.test(state), "state query");
+  const registration = (
+      await read(
+        path.join(
+          root,
+          "config/datasets/state-exact-zip-industry-evidence-disposition-v3-0.json",
+        ),
+      )
+    ).value,
+    selected = registration.retained_release;
+  ck(
+    registration.schema_version === "3.0.0" &&
+      registration.dataset_id === DATASET &&
+      registration.runtime_pointer === null &&
+      registration.production_enrollment === false,
+    "state registration",
+  );
+  const manifestRead = await read(path.join(root, selected.manifest), 1e6),
+    manifest = manifestRead.value,
+    artifact = manifest.artifacts?.[0],
+    artifactRead = await read(
+      path.join(path.dirname(path.join(root, selected.manifest)), artifact.path),
+      7e6,
+    );
+  ck(
+    manifestRead.sha256 === selected.manifest_sha256 &&
+      manifest.release_id === selected.release_id &&
+      artifactRead.sha256 === selected.artifact_sha256 &&
+      artifactRead.sha256 === artifact.sha256 &&
+      artifactRead.b.length === selected.artifact_bytes &&
+      Array.isArray(artifactRead.value) &&
+      artifactRead.value.length === 60,
+    "state pins",
+  );
+  const rows = artifactRead.value,
+    retainedRow = rows.find(
+      (item) => item.postal_abbreviation === state && /^state:\d{2}$/.test(item.scope_id),
+    );
+  ck(retainedRow && Object.keys(retainedRow.dimensions).length === 51, "state scope");
+  const normalizeCounts = (counts, vocabulary) => {
+      ck(Object.keys(counts).every((key) => vocabulary.includes(key)), "state vocabulary");
+      return Object.fromEntries(vocabulary.map((key) => [key, counts[key] ?? 0]));
+    },
+    row = {
+      ...retainedRow,
+      dimensions: Object.fromEntries(
+        Object.entries(retainedRow.dimensions).map(([id, dimension]) => [
+          id,
+          {
+            ...dimension,
+            raw_status_counts: normalizeCounts(
+              dimension.raw_status_counts,
+              manifest.summary.raw_status_vocabulary,
+            ),
+            derived_evidence_status_counts: normalizeCounts(
+              dimension.derived_evidence_status_counts,
+              manifest.summary.derived_evidence_status_vocabulary,
+            ),
+            lifecycle_status_counts: normalizeCounts(
+              dimension.lifecycle_status_counts,
+              manifest.summary.lifecycle_status_vocabulary,
+            ),
+          },
+        ]),
+      ),
+    };
+  for (const dimension of Object.values(row.dimensions))
+    for (const key of [
+      "raw_status_counts",
+      "derived_evidence_status_counts",
+      "lifecycle_status_counts",
+    ])
+      ck(
+        Object.values(dimension[key]).reduce((sum, value) => sum + value, 0) ===
+          row.zip5_rows,
+        "state dimension conservation",
+      );
+  const sum = (selectedRows) =>
+      selectedRows.reduce((total, item) => total + item.zip5_rows, 0),
+    byScope = new Map(rows.map((item) => [item.scope_id, item]));
+  const geography_scope_counts = {
+    state: sum(rows.filter((item) => /^state:\d{2}$/.test(item.scope_id))),
+    territory: sum(rows.filter((item) => /^territory:\d{2}$/.test(item.scope_id))),
+    "multi-state-material": byScope.get("multi-state-material")?.zip5_rows ?? 0,
+    "zcta-overlay-unresolved": byScope.get("zcta-overlay-unresolved")?.zip5_rows ?? 0,
+    "non-zcta-unassigned": byScope.get("non-zcta-unassigned")?.zip5_rows ?? 0,
+    "explicit-placeholder": byScope.get("explicit-placeholder")?.zip5_rows ?? 0,
+  };
+  ck(
+    Object.values(geography_scope_counts).reduce((total, value) => total + value, 0) ===
+      48194,
+    "state geography conservation",
+  );
+  return {
+    schema_version: VERSION,
+    status: "present",
+    scope_id: row.scope_id,
+    row,
+    geography_scope_counts,
+    raw_status_vocabulary: manifest.summary.raw_status_vocabulary,
+    derived_evidence_status_vocabulary:
+      manifest.summary.derived_evidence_status_vocabulary,
+    lifecycle_status_vocabulary: manifest.summary.lifecycle_status_vocabulary,
+    release_id: manifest.release_id,
+    manifest_sha256: manifestRead.sha256,
+    artifact_sha256: artifactRead.sha256,
+    source_bytes_read: manifestRead.b.length + artifactRead.b.length,
+    full_matrix_replay_performed: false,
+    claims: manifest.claims,
+  };
+}
 export const V30_STATE_TEST = { RAW, EVIDENCE, LIFE, DIM, claims };

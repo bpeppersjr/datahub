@@ -7,7 +7,7 @@ const source = await readFile(new URL("./server.mjs", import.meta.url), "utf8");
 
 test("state exact-ZIP evidence route is read-only, authenticated, and query bounded", () => {
   assert.match(source, /controlPlane\.authorize\(request\);[\s\S]*\/api\/business-map\/state-exact-zip-industry-evidence/);
-  assert.match(source, /stateExactZipEvidenceHttp\(request,response,url,readStateExactZipIndustryEvidenceDisposition,json\)/);
+  assert.match(source, /stateExactZipEvidenceHttp\(request,response,url,readStateExactZipIndustryEvidenceStateV30,json\)/);
   assert.doesNotMatch(source, /request\.method==='POST'&&url\.pathname==='\/api\/business-map\/state-exact-zip-industry-evidence'/);
 });
 
