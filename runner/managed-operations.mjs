@@ -459,6 +459,16 @@ export class ManagedOperations {
     return snapshot;
   }
   async list() { await this.ready; await this.#refreshUnknown(); return Promise.all([...this.operations.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((record) => this.#snapshot(record))); }
+  async maintenanceCollections() {
+    await this.ready; await this.#refreshUnknown();
+    return [...this.operations.values()].filter((record) => record.kind === "collection").sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((record) => ({
+      operation_id: record.id,
+      industries: [...(record.details?.plan?.industries ?? [])],
+      status: record.status,
+      created_at: record.createdAt,
+      finished_at: record.finishedAt ?? null,
+    }));
+  }
   async get(id) { await this.ready; await this.#refreshUnknown(); return this.operations.has(id) ? this.#snapshot(this.operations.get(id)) : null; }
   async cancel(id) { await this.ready; const record = this.operations.get(id); if (!record) return null; this.running.get(id)?.abort(); return this.#snapshot(record); }
   async artifact(id, filename) {

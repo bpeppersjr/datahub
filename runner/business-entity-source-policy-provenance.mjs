@@ -7,11 +7,13 @@ import { readNationalBusinessTemporalClaimRows } from './national-business-tempo
 export const BUSINESS_ENTITY_SOURCE_POLICY_PROVENANCE_VERSION = 'business-entity-source-policy-provenance@1.0.0';
 const DATASET = 'business-entity-source-policy-provenance';
 const LIFECYCLE_DATASET = 'business-entity-lifecycle-eligibility';
-const REGISTRY_ID = 'national-business-registry-20260911-022652067Z-1ec656c3';
-const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
+const REGISTRY_ID = 'national-business-registry-20261112-005851952Z-44f0a338';
+const REGISTRY_SHA = '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048';
 const LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074';
 const LIFECYCLE_SHA = '6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65';
-const TAXONOMY_SHA = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
+const TAXONOMY_SHA = 'cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676';
+const LIFECYCLE_TAXONOMY_SHA = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
+const LIFECYCLE_PROFILE_COUNT = 8011835;
 const AS_OF = '2026-10-02T16:30:00.000Z';
 const REGISTRATION_SHA = 'bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68';
 const SHA = /^[a-f0-9]{64}$/;
@@ -35,13 +37,13 @@ const SOURCES = Object.freeze({
   'fmcsa-company-census-active-us-principal-office': { dataset_id: 'fmcsa-active-us-company-census', registration_path: 'config/datasets/fmcsa-active-us-company-census.json', policy_id: 'fmcsa-company-census', profile_export_policy: 'public', profile_count: 2195563 },
   'los-angeles-office-of-finance-active-businesses': { dataset_id: 'la-active-business-location-accounts', registration_path: 'config/datasets/la-active-business-location-accounts.json', policy_id: 'la-active-businesses', profile_export_policy: 'local-review-only', profile_count: 633232 },
   'ncua-final-quarterly-call-report': { dataset_id: 'ncua-quarterly-credit-unions', registration_path: 'config/datasets/ncua-quarterly-credit-unions.json', policy_id: 'ncua-quarterly', profile_export_policy: 'public', profile_count: 22445 },
-  'new-york-agriculture-markets-retail-food-stores': { dataset_id: 'ny-retail-food-store-license-sites', registration_path: 'config/datasets/ny-retail-food-store-license-sites.json', policy_id: 'ny-retail-food-stores', profile_export_policy: 'local-review-only', profile_count: 24230 },
+  'new-york-agriculture-markets-retail-food-stores': { dataset_id: 'ny-retail-food-store-license-sites', registration_path: 'config/datasets/ny-retail-food-store-license-sites.json', policy_id: 'ny-retail-food-stores', profile_export_policy: 'local-review-only', profile_count: 23608 },
   'nyc-dcwp-issued-licenses-active-premises': { dataset_id: 'nyc-dcwp-active-license-sites', registration_path: 'config/datasets/nyc-dcwp-active-license-sites-v1-1.json', runtime_registration_path: 'config/datasets/nyc-dcwp-active-license-sites.json', policy_id: 'nyc-dcwp-active-premises', profile_export_policy: 'local-review-only', profile_count: 31163 },
   'texas-comptroller-active-sales-tax-permits': { dataset_id: 'tx-active-sales-tax-outlets', registration_path: 'config/datasets/tx-active-sales-tax-outlets.json', policy_id: 'tx-active-sales-tax-permits', profile_export_policy: 'local-review-only', profile_count: 885097 },
   'usda-fsis-active-mpi-directory': { dataset_id: 'fsis-active-mpi-establishments', registration_path: 'config/datasets/fsis-active-mpi-establishments.json', policy_id: 'fsis-mpi', profile_export_policy: 'public', profile_count: 7237 },
   'usda-snap-current-retailers': { dataset_id: 'usda-snap-retailers', registration_path: 'config/datasets/usda-snap-retailers.json', policy_id: 'usda-snap-retailers', profile_export_policy: 'public', profile_count: 252080 },
 });
-const EXPECTED_TOTAL = 8011835;
+const EXPECTED_TOTAL = 8011213;
 
 function field(object, key) { return { present: Object.hasOwn(object, key), value: Object.hasOwn(object, key) ? object[key] : null }; }
 async function readContainedBytes(root, relativePath, maximum = 2_000_000, signal) {
@@ -106,7 +108,7 @@ async function readInputs(root, signal) {
   check(lifecycleRegistration.dataset_id === LIFECYCLE_DATASET && lifecycleRetained.length === 1
     && lifecycleRetained[0].manifest_sha256 === LIFECYCLE_SHA
     && lifecycleManifestRead.sha256 === LIFECYCLE_SHA && lifecycleManifestRead.value.release_id === LIFECYCLE_ID
-    && lifecycleManifestRead.value.bindings?.taxonomy?.sha256 === TAXONOMY_SHA && lifecycleManifestRead.value.summary?.profile_count === EXPECTED_TOTAL,
+    && lifecycleManifestRead.value.bindings?.taxonomy?.sha256 === LIFECYCLE_TAXONOMY_SHA && lifecycleManifestRead.value.summary?.profile_count === LIFECYCLE_PROFILE_COUNT,
   'selected lifecycle release/taxonomy pin');
   const temporal = await readNationalBusinessTemporalClaimRows({ root, signal });
   check(temporal.provenance.registry_release_id === REGISTRY_ID && temporal.provenance.registry_manifest_sha256 === REGISTRY_SHA);

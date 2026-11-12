@@ -1,8 +1,8 @@
 {
   "schema_version": "national-business-temporal-claim-matrix-config@1.0.0",
-  "semantic_roster_sha256": "cfcb4bc0ac1e49b3082fc9fb2b8c66ece009321ac29e821e28b9da4511f42e8c",
-  "registry": {"release_id":"national-business-registry-20260911-022652067Z-1ec656c3","manifest":"data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json","sha256":"d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"},
-  "coverage": {"release_id":"national-business-coverage-views-20260911-040908332Z-f01c882a","manifest":"data/business-coverage-views/releases/national-business-coverage-views-20260911-040908332Z-f01c882a/manifest.json","sha256":"f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6","source_artifact":"views/sources.jsonl","source_artifact_sha256":"5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e"},
+  "semantic_roster_sha256": "6fcd20cbe84561ff405105d1978ef295852be9b4c4b65e15b8c2b4873b519506",
+  "registry": {"release_id":"national-business-registry-20261112-005851952Z-44f0a338","manifest":"data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json","sha256":"657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048"},
+  "coverage": {"release_id":"national-business-coverage-views-20261112-025948835Z-76733954","manifest":"data/business-coverage-views/releases/national-business-coverage-views-20261112-025948835Z-76733954/manifest.json","sha256":"7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a","source_artifact":"views/sources.jsonl","source_artifact_sha256":"99f31e3bb9dc93167aa935869ff8468be0bb2314f2ed755ca153fa41faafbcd9"},
   "sources": {
     "ak_active_business_licenses":{"class":"source-defined-current-membership","term":"Active business license","jurisdiction":"AK","scope":"state business-license cohort","broad_state_dc":true,"policy":"config/source-policies/ak-active-business-licenses.json"},
     "california_abc_active_issued_license_sites":{"class":"source-defined-current-membership","term":"ACTIVE/LIC alcohol license","jurisdiction":"CA","scope":"alcohol-license cohort","broad_state_dc":false,"policy":"config/source-policies/ca-abc-active-license-sites.json"},

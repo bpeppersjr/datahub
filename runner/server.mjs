@@ -133,6 +133,8 @@ import { cmsNursingHomeChainReviewHttp } from './cms-nursing-home-chain-review-h
 import { cmsNppesPharmacyView } from './cms-nppes-pharmacy-view.mjs';
 import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
+import { loadIndustryConfig } from './industry-segments.mjs';
+import { maintenanceExecutionStatusHttp, readMaintenanceExecutionStatus } from './maintenance-execution-status.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
 const censusZbpIndustryView=createCensusZbpIndustryView();
@@ -375,6 +377,16 @@ const managedOperations = createManagedOperations();
 const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
 let refreshSchedulerUnavailable = false;
 void refreshScheduler.ready.catch(() => { refreshSchedulerUnavailable = true; console.warn('Refresh scheduler unavailable; inspect its stored state and ownership before enabling refreshes.'); });
+async function maintenanceExecutionStatus() {
+  if (refreshSchedulerUnavailable) throw new Error('Refresh scheduler unavailable.');
+  const before = industryMaintenance.view();
+  const [catalog, schedules, operations, config] = await Promise.all([
+    managedOperations.catalog(), refreshScheduler.list(), managedOperations.maintenanceCollections(), loadIndustryConfig(),
+  ]);
+  const after = industryMaintenance.view();
+  if (after.revision !== before.revision) throw new Error('Maintenance selection changed during status read.');
+  return readMaintenanceExecutionStatus({ maintenance: before, catalog, schedules, operations, config });
+}
 const pool = new RunnerPool(store.getSettings());
 const activity = [];
 const cleanupGoogleOutputs = () => cleanupExpiredGooglePlacesOutputs().catch((error) => {
@@ -1159,6 +1171,11 @@ const server = http.createServer(async (request, response) => {
       const value = industryMaintenance.view();
       response.setHeader('ETag', `"${value.revision}"`);
       json(response, 200, value);
+      return;
+    }
+
+    if (url.pathname === '/api/administration/industry-maintenance-execution-status') {
+      await maintenanceExecutionStatusHttp(request, response, url, maintenanceExecutionStatus, json);
       return;
     }
 

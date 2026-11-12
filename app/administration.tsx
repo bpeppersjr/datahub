@@ -101,6 +101,39 @@ type MaintenanceSchedule = {
     finishedAt?: string;
   };
 };
+type MaintenanceExecutionStatus = {
+  schema_version: "industry-maintenance-execution-status@1.0.0";
+  generated_at: string;
+  maintenance_revision: number;
+  industries: Array<{
+    id: string;
+    selected_intent: boolean;
+    configured_sources: { total: number; national: number; state: number; manual_only: number };
+    automatic_refresh: {
+      authorized: number;
+      blocked: number;
+      reason_counts: Record<"AUTOMATIC_REFRESH_NOT_REVIEWED" | "GOVERNED_SOURCE_HOLD" | "MANUAL_SELECTION_REQUIRED", number>;
+    };
+    schedule: {
+      configured: number;
+      enabled: number;
+      running: number;
+      paused: number;
+      next_due_at: string | null;
+      last_occurrence_status: string | null;
+    };
+    latest_collection: null | { operation_id: string; status: string; created_at: string; finished_at: string | null };
+    prerequisites: { declared: number; present: number; missing: number; status: "none" | "missing" | "present-unvalidated" };
+    effective_status: "not-selected" | "selected-running" | "selected-scheduled-enabled" | "selected-scheduled-paused" | "selected-scheduled-disabled" | "selected-blocked-automatic-refresh" | "selected-blocked-prerequisite" | "selected-manual-only" | "selected-intent-only";
+  }>;
+  claims: {
+    selection_authorizes_acquisition: false;
+    status_starts_work: false;
+    prerequisite_contents_validated: false;
+    latest_success_implies_current_evidence: false;
+    business_completeness: null;
+  };
+};
 type Backlog = {
   schema_version: "state-access-maintenance-backlog@2.19.0";
   report_sha256: string;
@@ -461,6 +494,45 @@ export function maintenanceExecutionLabel(
     return `Scheduled paused · latest ${failed.lastOccurrence!.status.toLowerCase()}`;
   if (applicable.some((row) => row.status === "PAUSED")) return "Scheduled paused · needs review";
   return "Schedule configured but disabled";
+}
+const executionReasons = ["AUTOMATIC_REFRESH_NOT_REVIEWED", "GOVERNED_SOURCE_HOLD", "MANUAL_SELECTION_REQUIRED"] as const;
+const operationStatuses = ["QUEUED", "RUNNING", "UNKNOWN", "SUCCEEDED", "FAILED", "CANCELLED"];
+const effectiveStatuses = ["not-selected", "selected-running", "selected-scheduled-enabled", "selected-scheduled-paused", "selected-scheduled-disabled", "selected-blocked-automatic-refresh", "selected-blocked-prerequisite", "selected-manual-only", "selected-intent-only"];
+const nonnegative = (value: unknown) => Number.isSafeInteger(value) && Number(value) >= 0;
+export function validMaintenanceExecutionStatus(input: unknown, view: View): input is MaintenanceExecutionStatus {
+  if (!exact(input, ["schema_version", "generated_at", "maintenance_revision", "industries", "claims"])) return false;
+  const value = input as MaintenanceExecutionStatus;
+  if (value.schema_version !== "industry-maintenance-execution-status@1.0.0" || !validDate(value.generated_at) || value.maintenance_revision !== view.revision || !Array.isArray(value.industries) || value.industries.length !== industryIds.length || !same(value.claims, { selection_authorizes_acquisition: false, status_starts_work: false, prerequisite_contents_validated: false, latest_success_implies_current_evidence: false, business_completeness: null })) return false;
+  if (value.industries.map(row => row.id).join("|") !== industryIds.join("|")) return false;
+  return value.industries.every(row => {
+    if (!exact(row, ["id", "selected_intent", "configured_sources", "automatic_refresh", "schedule", "latest_collection", "prerequisites", "effective_status"]) || row.selected_intent !== view.maintainedIndustries.includes(row.id) || !effectiveStatuses.includes(row.effective_status)) return false;
+    const configured = row.configured_sources;
+    if (!exact(configured, ["total", "national", "state", "manual_only"]) || !Object.values(configured).every(nonnegative) || configured.total !== configured.national + configured.state || configured.manual_only > configured.total) return false;
+    const automatic = row.automatic_refresh;
+    if (!exact(automatic, ["authorized", "blocked", "reason_counts"]) || !nonnegative(automatic.authorized) || !nonnegative(automatic.blocked) || automatic.authorized + automatic.blocked !== configured.total || !exact(automatic.reason_counts, [...executionReasons]) || !Object.values(automatic.reason_counts).every(nonnegative) || Object.values(automatic.reason_counts).reduce((sum, count) => sum + count, 0) !== automatic.blocked) return false;
+    const schedule = row.schedule;
+    if (!exact(schedule, ["configured", "enabled", "running", "paused", "next_due_at", "last_occurrence_status"]) || ![schedule.configured, schedule.enabled, schedule.running, schedule.paused].every(nonnegative) || schedule.enabled > schedule.configured || schedule.running > schedule.configured || schedule.paused > schedule.configured || (schedule.next_due_at !== null && !validDate(schedule.next_due_at)) || (schedule.last_occurrence_status !== null && !operationStatuses.includes(schedule.last_occurrence_status))) return false;
+    const prerequisite = row.prerequisites;
+    if (!exact(prerequisite, ["declared", "present", "missing", "status"]) || ![prerequisite.declared, prerequisite.present, prerequisite.missing].every(nonnegative) || prerequisite.declared !== prerequisite.present + prerequisite.missing || !["none", "missing", "present-unvalidated"].includes(prerequisite.status)) return false;
+    const latest = row.latest_collection;
+    if (!(latest === null || exact(latest, ["operation_id", "status", "created_at", "finished_at"]) && typeof latest.operation_id === "string" && latest.operation_id.length > 0 && operationStatuses.includes(latest.status) && validDate(latest.created_at) && (latest.finished_at === null || validDate(latest.finished_at)))) return false;
+    let expected = "not-selected";
+    if (row.selected_intent) {
+      if (schedule.running > 0 || latest && ["QUEUED", "RUNNING", "UNKNOWN"].includes(latest.status)) expected = "selected-running";
+      else if (prerequisite.missing > 0) expected = "selected-blocked-prerequisite";
+      else if (automatic.authorized === 0 && configured.manual_only === configured.total) expected = "selected-manual-only";
+      else if (automatic.authorized === 0) expected = "selected-blocked-automatic-refresh";
+      else if (schedule.paused > 0) expected = "selected-scheduled-paused";
+      else if (schedule.enabled > 0) expected = "selected-scheduled-enabled";
+      else if (schedule.configured > 0) expected = "selected-scheduled-disabled";
+      else expected = "selected-intent-only";
+    }
+    return row.effective_status === expected;
+  });
+}
+export function maintenanceExecutionStatusLabel(row: MaintenanceExecutionStatus["industries"][number] | undefined) {
+  if (!row) return "Unknown — execution status unavailable";
+  return row.effective_status.replaceAll("-", " ");
 }
 const caStatuses = [
   "CLOSED",
@@ -1004,7 +1076,7 @@ export default function Administration() {
   const [caReadiness, setCaReadiness] = useState<CaReadiness | null>(null);
   const [acsReadiness, setAcsReadiness] = useState<AcsReadiness | null>(null);
   const [acsReadinessError, setAcsReadinessError] = useState(false);
-  const [schedules, setSchedules] = useState<MaintenanceSchedule[] | null>(null);
+  const [execution, setExecution] = useState<MaintenanceExecutionStatus | null>(null);
   const draftChanged =
     !!view &&
     [...selected].sort().join("|") !==
@@ -1021,6 +1093,12 @@ export default function Administration() {
             throw Error("Invalid administration settings.");
           setView(value);
           setSelected(value.maintainedIndustries);
+          void runnerJson<unknown>("/api/administration/industry-maintenance-execution-status", { signal: controller.signal })
+            .then((status) => {
+              if (!controller.signal.aborted)
+                setExecution(validMaintenanceExecutionStatus(status, value) ? status : null);
+            })
+            .catch(() => {});
           void runnerJson<unknown>("/api/administration/industry-backlog", {
             signal: controller.signal,
           })
@@ -1063,14 +1141,6 @@ export default function Administration() {
         else setAcsReadinessError(true);
       })
       .catch(() => !controller.signal.aborted && setAcsReadinessError(true));
-    void runnerJson<unknown>("/api/data-operations/schedules", {
-      signal: controller.signal,
-    })
-      .then((value) => {
-        if (!controller.signal.aborted && validMaintenanceSchedules(value))
-          setSchedules(value);
-      })
-      .catch(() => {});
     return () => controller.abort();
   }, []);
 
@@ -1097,13 +1167,17 @@ export default function Administration() {
       setView(value);
       setSelected(value.maintainedIndustries);
       setMessage("Maintenance selection saved locally.");
+      setExecution(null);
       try {
-        const next = await runnerJson<unknown>(
-          "/api/administration/industry-backlog",
-        );
+        const [next, executionValue] = await Promise.all([
+          runnerJson<unknown>("/api/administration/industry-backlog"),
+          runnerJson<unknown>("/api/administration/industry-maintenance-execution-status"),
+        ]);
         setBacklog(validAdministrationBacklog(next, value) ? next : null);
+        setExecution(validMaintenanceExecutionStatus(executionValue, value) ? executionValue : null);
       } catch {
         setBacklog(null);
+        setExecution(null);
       }
     } catch {
       try {
@@ -1183,7 +1257,13 @@ export default function Administration() {
             <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
             <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
             <td>{view ? view.maintainedIndustries.includes(row.id) ? "Selected" : "Not selected" : "Settings unavailable — evidence still reportable"}</td>
-            <td>{view ? maintenanceExecutionLabel(row.id, view.maintainedIndustries.includes(row.id), schedules) : "Unknown — settings unavailable"}</td>
+            <td>{view ? (() => { const status = execution?.industries.find(item => item.id === row.id); return status ? <>
+              <strong>{maintenanceExecutionStatusLabel(status)}</strong>
+              <div>{status.automatic_refresh.authorized}/{status.configured_sources.total} sources authorized for automatic refresh · {status.automatic_refresh.blocked} blocked</div>
+              <div>Prerequisites: {status.prerequisites.status.replaceAll("-", " ")} ({status.prerequisites.present}/{status.prerequisites.declared} present)</div>
+              <div>Schedules: {status.schedule.enabled} enabled · {status.schedule.running} running{status.schedule.next_due_at ? ` · next due ${status.schedule.next_due_at}` : ""}</div>
+              <div>Latest collection: {status.latest_collection ? `${status.latest_collection.status} · ${status.latest_collection.operation_id}` : "none retained"}</div>
+            </> : "Unknown — execution status unavailable"; })() : "Unknown — settings unavailable"}</td>
           </tr>)}</tbody></table>
           <small>Retained state-access report SHA-256 {evidence.report_sha256}. Detailed state/source provenance is available in Industry Status.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
@@ -1303,7 +1383,7 @@ export default function Administration() {
                           maintenance selection grants none.
                         </small>
                         <small>
-                          Execution: {maintenanceExecutionLabel(industry.id, view.maintainedIndustries.includes(industry.id), schedules)}.
+                          Execution: {maintenanceExecutionStatusLabel(execution?.industries.find(row => row.id === industry.id))}.
                         </small>
                       </>
                     ) : (

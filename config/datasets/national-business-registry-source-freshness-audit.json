@@ -4,16 +4,16 @@
   "status": "registered-pointer-free-local-audit",
   "registry": {
     "pointer_path": "data/business-registry/current.json",
-    "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
-    "manifest_path": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
-    "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-    "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+    "pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+    "manifest_path": "data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json",
+    "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+    "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
     "dependency_count": 85
   },
   "migration": {
     "definition_path": "config/migrations/normalized-us-postal-fields-v1.json",
     "definition_file_sha256": "2f3aaf19c64e9d1032c8d785c93aead47128e7bb7ac87930b52abfa4a560713b",
-    "frozen_candidate_readiness_sha256": "bf6bcf0a063328d8dba9e61bfc41a2a3ae81a273486a32da3b8f9fa2ad5002aa",
+    "frozen_candidate_readiness_sha256": "00863f3ac3636e9e0ba37878967c3d8e019857d20e0cf56dc6cd98057b1051b1",
     "source_count": 25
   },
   "expected_summary": {

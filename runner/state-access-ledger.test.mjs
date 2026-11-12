@@ -138,7 +138,7 @@ test('retained Census NES adds governed annual aggregate context without changin
   const ledger = await buildStateAccessLedger({ temporalAsOf });
   assert.deepEqual(ledger.summary.accessEvidenceStatusCounts, withoutContext.summary.accessEvidenceStatusCounts);
   assert.equal(ledger.summary.governedAnnualAggregateContextCells, 102);
-  assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 56);
+  assert.equal(ledger.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 88);
   assert.equal(withoutContext.summary.governedAnnualAggregateContextCells, 0);
   assert.equal(withoutContext.summary.previouslyUnsupportedCellsWithAnnualAggregateContext, 0);
 
@@ -853,9 +853,20 @@ test('zero MN credential observations remain missing and do not manufacture publ
   assert.equal(cell.evidence.some(e=>e.sourceId==='mn-construction-credential-reporting'),false);
 });
 
-test('MN credential admission rejects an unverified or mismatched publication receipt chain',async(t)=>{
+test('MN credential admission reports an unverified or mismatched publication receipt without blocking the ledger',async(t)=>{
   for(const publication of [{status:'evidence-unverified'},{status:'verified-downstream-publication',included:true,credentialRows:11456,recordUnit:'publisher-business-credential-row',exportPolicy:'local-review-only',uniqueBusinessCount:null,activeBusinessCount:null,physicalSiteCount:null,nationalCompletenessPercent:null,geographicAssignmentPerformed:false,publicExportAuthorized:false,coverageReleaseId:'wrong',coverageManifestSha256:'a'.repeat(64)}]){
-    const f=await fixture(t);await assert.rejects(buildStateAccessLedger({...f,mnCredentialPublicationLoader:async()=>publication}),/verified downstream publication receipt chain/);
+    const f=await fixture(t),ledger=await buildStateAccessLedger({...f,mnCredentialPublicationLoader:async()=>publication});
+    assert.deepEqual(ledger.evidence.credentialPublicationStatus,{
+      sourceStatus:publication.status,reportingPresentInCurrentCoverage:true,verifiedForCurrentCoverage:false,
+      nationalCrossStateEvidenceAdmitted:false,localMinnesotaPublisherEvidenceRetained:true,
+      currentCoverageReleaseId:f.manifest.release_id,receiptCoverageReleaseId:publication.coverageReleaseId??null,
+      reasonCode:'downstream-publication-receipt-not-bound-to-current-coverage',currentOperationsVerified:false,
+      uniqueBusinessCount:null,nationalCompletenessPercent:null,
+    });
+    const mn=ledger.jurisdictions.find(row=>row.state==='MN').industries.find(row=>row.industry==='construction');
+    const al=ledger.jurisdictions.find(row=>row.state==='AL').industries.find(row=>row.industry==='construction');
+    assert.equal(mn.evidence.some(item=>item.type==='published-direct-state-credential-count'),true);
+    assert.equal(al.evidence.some(item=>item.type==='published-national-source-cohort-reported-address-count'),false);
   }
 });
 
@@ -947,7 +958,7 @@ test('annual aggregate temporal context never inflates access temporal status', 
   const ledger = await buildStateAccessLedger({ temporalAsOf: '2026-09-22T05:00:00.000Z' });
   const cells = ledger.jurisdictions.flatMap((jurisdiction) => jurisdiction.industries);
   const unsupportedWithContext = cells.filter((cell) => cell.accessEvidenceStatus.startsWith('unsupported-') && cell.annualAggregateContext);
-  assert.equal(unsupportedWithContext.length, 56);
+  assert.equal(unsupportedWithContext.length, 88);
   assert.ok(unsupportedWithContext.every((cell) => cell.temporalStatus.status === 'no-positive-count-evidence' && cell.temporalStatus.positiveEvidenceItems === 0));
   assert.ok(unsupportedWithContext.every((cell) => cell.annualAggregateContext.temporalEvidence.binding === 'exact-governed-source-release' && cell.annualAggregateContext.temporalEvidence.status === 'within-review-window'));
   const restrictedWithContext = cells.filter((cell) => cell.accessEvidenceStatus === 'restricted-query-sample-evidence' && cell.annualAggregateContext);
@@ -960,14 +971,14 @@ test('annual aggregate temporal context never inflates access temporal status', 
   assert.equal(alChildcare.annualAggregateContext.temporalEvidence.status, 'within-review-window');
 });
 
-test('New York overdue source and publisher-unmeasured childcare control the cell temporal status', async (t) => {
+test('New York future-dated source and publisher-unmeasured childcare control the cell temporal status', async (t) => {
   const f = await fixture(t); await childcareCounts(f, 7);
   const ledger = await buildStateAccessLedger({ ...f, temporalAsOf: '2026-09-22T05:00:00.000Z' });
   const ny = ledger.jurisdictions.find((row) => row.state === 'NY').industries.find((row) => row.industry === 'retail-consumer');
   const food = ny.evidence.find((item) => item.sourceId === 'new-york-agriculture-markets-retail-food-stores');
   assert.deepEqual([food.temporalEvidence.status, food.temporalEvidence.sourceReferenceAt, food.temporalEvidence.reviewDueDate],
-    ['review-due', '2025-09-30T15:15:15.000Z', '2026-01-28']);
-  assert.equal(ny.temporalStatus.status, 'review-due');
+    ['future-source-reference', '2026-10-14T19:08:34.000Z', '2027-02-11']);
+  assert.equal(ny.temporalStatus.status, 'future-source-reference');
   for (const state of ['MA','NJ','TN']) {
     const cell = ledger.jurisdictions.find((row) => row.state === state).industries.find((row) => row.industry === 'childcare');
     const item = cell.evidence.find((value) => value.recordCount === 7);
