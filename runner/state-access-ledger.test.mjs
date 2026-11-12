@@ -311,18 +311,18 @@ test('IA publisher-cohort admission rejects missing, tampered, and malformed enr
 });
 
 test('verified VT publisher cohort is admitted as direct VT-only evidence without address-state or business claims', async () => {
-  const binding = JSON.parse(await readFile(path.join(APP_ROOT, 'config/vt-childcare-reporting-enrollment.json')));
+  const binding = JSON.parse(await readFile(path.join(APP_ROOT, 'config/current/vt-childcare-reporting-enrollment.json')));
   const ledger = await buildStateAccessLedger();
   const vt = ledger.jurisdictions.find(row => row.state === 'VT').industries.find(row => row.industry === 'childcare');
   assert.equal(vt.accessEvidenceStatus, 'direct-state-publisher');
   const evidence = vt.evidence.find(item => item.type === 'published-direct-state-publisher-cohort-count');
   assert.deepEqual({recordCount:evidence.recordCount,rowUnit:evidence.rowUnit,stateBasis:evidence.stateBasis,publisherJurisdiction:evidence.publisherJurisdiction,reportedAddressState:evidence.reportedAddressState},
-    {recordCount:503,rowUnit:'retained-publisher-childcare-candidate',stateBasis:'publisher-jurisdiction',publisherJurisdiction:'VT',reportedAddressState:null});
-  assert.equal(evidence.enrollmentSha256, 'f43656656ef9ebd4f6afb1ae35d9ed817aaae173dbdec647a3ea3d0cbeab64b8');
+    {recordCount:507,rowUnit:'retained-publisher-childcare-candidate',stateBasis:'publisher-jurisdiction',publisherJurisdiction:'VT',reportedAddressState:null});
+  assert.equal(evidence.enrollmentSha256, 'a7d8f0b26d97c2305d3fe9611ad295069a14d5350b0824a842ac22b2908ecb3f');
   assert.equal(evidence.appReceiptSha256, binding.app_receipt_sha256);
   for (const key of ['facilityCount','uniqueBusinessCount','uniqueActiveBusinessCount','nationalCompletenessPercent','reportingPeriod']) assert.equal(evidence[key], null);
   for (const key of ['identityMatchingEligible','physicalSiteVerified','currentOperationsVerified','publicExportAuthorized','nationalReportingIntegrated','reportingPeriodVerified']) assert.equal(evidence[key], false);
-  assert.equal(vt.localPublisherCohortEvidence.publisherCohortRows, 503);
+  assert.equal(vt.localPublisherCohortEvidence.publisherCohortRows, 507);
   assert.equal(vt.appHandoff.jobSubmitted, false);
   for (const jurisdiction of ledger.jurisdictions.filter(row => row.state !== 'VT')) {
     const cell = jurisdiction.industries.find(row => row.industry === 'childcare');

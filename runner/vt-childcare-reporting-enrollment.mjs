@@ -8,8 +8,8 @@ const check=value=>{if(!value)throw Error('Vermont reporting enrollment rejected
 export async function loadVtChildcareReportingEnrollment(options={}) {
   check(options&&typeof options==='object'&&!Array.isArray(options)&&Reflect.ownKeys(options).every(k=>['root','signal'].includes(k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(options,k),'value')));
   const {root=APP_ROOT,signal}=options;check(typeof root==='string'&&root===path.resolve(root)&&(signal===undefined||signal instanceof AbortSignal));
-  signal?.throwIfAborted();const config=path.join(root,'config/vt-childcare-reporting-enrollment.json'),meter={};let binding;
-  try{binding=await readJson(config,10000,signal,meter);}catch(error){if(error.code==='ENOENT')return {status:'not-enrolled'};throw error;}
+  signal?.throwIfAborted();const current=path.join(root,'config/current/vt-childcare-reporting-enrollment.json'),legacy=path.join(root,'config/vt-childcare-reporting-enrollment.json'),meter={};let binding,config=current;
+  try{binding=await readJson(config,10000,signal,meter);}catch(error){if(error.code!=='ENOENT')throw error;config=legacy;try{binding=await readJson(config,10000,signal,meter);}catch(fallback){if(fallback.code==='ENOENT')return {status:'not-enrolled'};throw fallback;}}
   check(binding&&Object.keys(binding).length===3&&binding.schema_version==='vt-childcare-reporting-enrollment@1.0.0'&&/^[a-f0-9]{64}$/.test(binding.app_receipt_sha256)
     &&typeof binding.app_receipt_path==='string'&&binding.app_receipt_path.startsWith('data/')&&binding.app_receipt_path.split('/').every(part=>part&&!['.','..'].includes(part)&&!part.includes('\\')));
   const receipt=path.resolve(root,binding.app_receipt_path),relative=path.relative(root,receipt);check(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative));

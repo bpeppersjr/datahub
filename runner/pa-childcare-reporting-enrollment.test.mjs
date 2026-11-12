@@ -1,11 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp,mkdir,writeFile,rm,symlink} from 'node:fs/promises';
 import path from 'node:path';
 import {APP_ROOT} from './paths.mjs';
 import {loadPaChildcareReportingEnrollment as load,projectPaChildcareStateEvidence as project} from './pa-childcare-reporting-enrollment.mjs';
 async function fixture(t){const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/pa-report-enrollment-'));await mkdir(path.join(root,'config'));t.after(()=>rm(root,{recursive:true,force:true}));return root;}
 const binding={schema_version:'pa-childcare-reporting-enrollment@1.0.0',app_receipt_path:'data/jobs/missing/receipt.json',app_receipt_sha256:'a'.repeat(64)};
+test('PA current enrollment overrides the immutable legacy release binding',async t=>{
+  const root=await fixture(t),legacy=JSON.stringify(binding),currentBinding={...binding,app_receipt_path:'data/jobs/current-missing/receipt.json',app_receipt_sha256:'b'.repeat(64)},current=JSON.stringify(currentBinding);
+  await writeFile(path.join(root,'config/pa-childcare-reporting-enrollment.json'),legacy);await mkdir(path.join(root,'config/current'));await writeFile(path.join(root,'config/current/pa-childcare-reporting-enrollment.json'),current);
+  const value=await load({root});assert.equal(value.status,'unavailable');assert.equal(value.enrollmentSha256,createHash('sha256').update(current).digest('hex'));
+});
 test('PA reporting distinguishes absent enrollment, missing local data, and early cancellation without fetching',async t=>{
   const root=await fixture(t),original=globalThis.fetch;globalThis.fetch=()=>assert.fail('reporting must not fetch');
   try{assert.deepEqual(await load({root}),{status:'not-enrolled'});await assert.rejects(load({root,signal:AbortSignal.abort()}));

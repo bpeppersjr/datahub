@@ -1,0 +1,5 @@
+{
+  "schema_version": "vt-childcare-reporting-enrollment@1.0.0",
+  "app_receipt_path": "data/business-sources/vt-childcare-licensed-center-candidates/jobs/2a188fc7-2720-4b74-9556-29cf8a0c3f3d/receipt.json",
+  "app_receipt_sha256": "4c0ed6606168698bd415b7bbce6af91520d01e55e2782dde0c96c6d40e5a224b"
+}

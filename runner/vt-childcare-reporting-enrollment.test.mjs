@@ -13,6 +13,12 @@ import {loadVtChildcareReportingEnrollment as load,projectVtChildcarePublisherEv
 async function fixture(t){const root=await mkdtemp(path.join(APP_ROOT,'data/tmp/vt-report-enrollment-'));await mkdir(path.join(root,'config'));t.after(()=>rm(root,{recursive:true,force:true}));return root;}
 const binding={schema_version:'vt-childcare-reporting-enrollment@1.0.0',app_receipt_path:'data/jobs/missing/receipt.json',app_receipt_sha256:'a'.repeat(64)};
 
+test('VT current enrollment overrides the immutable legacy release binding',async t=>{
+  const root=await fixture(t),legacy=JSON.stringify(binding),currentBinding={...binding,app_receipt_path:'data/jobs/current-missing/receipt.json',app_receipt_sha256:'b'.repeat(64)},current=JSON.stringify(currentBinding);
+  await writeFile(path.join(root,'config/vt-childcare-reporting-enrollment.json'),legacy);await mkdir(path.join(root,'config/current'));await writeFile(path.join(root,'config/current/vt-childcare-reporting-enrollment.json'),current);
+  const value=await load({root});assert.equal(value.status,'unavailable');assert.equal(value.enrollmentSha256,createHash('sha256').update(current).digest('hex'));
+});
+
 test('VT reporting CLI rejects overrides and malformed receipt arguments without acquisition',()=>{
  for(const args of [['--url','https://private.invalid'],['--receipt'],['--receipt','relative'],['--receipt',APP_ROOT,'--receipt',APP_ROOT]]){
   const result=spawnSync(process.execPath,['scripts/report-vt-childcare.mjs',...args],{cwd:APP_ROOT,encoding:'utf8',timeout:5000,windowsHide:true});assert.equal(result.status,1);assert.equal(result.stderr.includes('private.invalid'),false);assert.match(result.stderr,/No acquisition was performed/);
@@ -73,13 +79,13 @@ test('VT publisher projection conserves null address states without inventing st
  const empty=structuredClone(enrolled);Object.assign(empty.summary,{accepted_candidate_rows:0,source_candidate_rows:0,quarantined_candidate_rows:0,by_reported_state:[],by_reported_zip:[],quality:{with_zip5:0,with_zip4:0,with_points:0,missing_points:0}});assert.equal(project(empty,'VT').percentOfAcceptedCohort,null);
 });
 test('VT installed native enrollment independently replays retained evidence offline',async t=>{
-  let installed;try{installed=JSON.parse(await readFile(path.join(APP_ROOT,'config/vt-childcare-reporting-enrollment.json'),'utf8'));}catch(error){if(error.code==='ENOENT'){t.skip('Native VT enrollment not installed; no network fallback.');return;}throw error;}
+  let installed;try{installed=JSON.parse(await readFile(path.join(APP_ROOT,'config/current/vt-childcare-reporting-enrollment.json'),'utf8'));}catch(error){if(error.code==='ENOENT'){t.skip('Native VT enrollment not installed; no network fallback.');return;}throw error;}
   try{await lstat(path.join(APP_ROOT,installed.app_receipt_path));}catch(error){if(error.code==='ENOENT'){t.skip('Pinned native VT app receipt is not installed; no network fallback.');return;}throw error;}
   const original=globalThis.fetch;globalThis.fetch=()=>assert.fail('native retained reporting must not fetch');
   try{
     const enrollment=await load(),md=project(enrollment,'VT');assert.equal(enrollment.status,'available');assert.equal(enrollment.summary.provenance.execution_mode,'fixed-native-fetch');
-    assert.equal(md.appReceiptSha256,installed.app_receipt_sha256);assert.equal(md.publisherCohortRows,503);assert.equal(md.sourceRows,503);assert.equal(md.acceptedCohortRows,503);assert.equal(md.quarantinedRows,0);
-    assert.ok(md.distinctReportedZIP5Values>0);assert.equal(md.percentOfAcceptedCohort,100);assert.equal(md.nationalIndustryPercent,null);assert.equal(md.physicalSiteVerified,false);assert.equal(md.sourceReleaseId,'vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0');
+    assert.equal(md.appReceiptSha256,installed.app_receipt_sha256);assert.equal(md.publisherCohortRows,507);assert.equal(md.sourceRows,507);assert.equal(md.acceptedCohortRows,507);assert.equal(md.quarantinedRows,0);
+    assert.ok(md.distinctReportedZIP5Values>0);assert.equal(md.percentOfAcceptedCohort,100);assert.equal(md.nationalIndustryPercent,null);assert.equal(md.physicalSiteVerified,false);assert.equal(md.sourceReleaseId,'vt-childcare-acquisition-1f564f53-26b8-48c7-b5a2-b0bae0e4d503');
   }finally{globalThis.fetch=original;}
 });
 
