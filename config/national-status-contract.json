@@ -1,16 +1,16 @@
 {
-  "created_at": "2026-11-12T18:20:35.253Z",
+  "created_at": "2026-11-12T22:28:02.108Z",
   "artifact_sha256": {
-    "gap-ledger.json": "24ff1f161368bc2745946fbe2cfdbcbb94d67451fe2c1b8d16b9961e0a458d6c",
-    "national-summary.json": "f6cdb75c3151ad1da5f6bfcd7f715a16374e3a79d103dca62a2934c1dbe8ee5c",
-    "state-industry-status.jsonl": "0f4b31d8c94e1e82b61eea0f36c765b1d084bcdf60f1247e6ef1558a6e9786f2",
-    "territories.json": "a35b10d006a6205c19993b1643cc99758f29e9803adfe67890c454260561186a",
+    "gap-ledger.json": "011e2045cfc21fbb7a516f86c05c1548c08a0cfd6deb2d7470457b794ec55ff7",
+    "national-summary.json": "cef3c4c2715a86754374ab5b3e0b00ed2304ef050332d38e448c30808ca44d2d",
+    "state-industry-status.jsonl": "656ea5fe8d50ff0ea2b685b88e7f0455cd577c771cfab1233edd4d0c21483f6b",
+    "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
     "zip-status/prefix=01.jsonl.gz": "b68407063f415a025b01aa7732cefb5283cb8519e5ab8568074b2837611d8846",
     "zip-status/prefix=02.jsonl.gz": "b280ea17afb90eb849cdd0c2e9a908b2021f3cc7fa40ade3993910c64e6a8502",
     "zip-status/prefix=03.jsonl.gz": "28258f9a115d8d2a1ccd5acd0e71408d17dc67e2c2a73fa224f6774ab791dd8d",
     "zip-status/prefix=04.jsonl.gz": "014096a7808d1ba3dbe888452796f928aa3dbbb595c21c0596069665f91acedf",
-    "zip-status/prefix=05.jsonl.gz": "2f66e6a5aa2cbac87a25baaa5eba3d3851a45e429ecc9b7f048c4b00c873f982",
+    "zip-status/prefix=05.jsonl.gz": "dfef96b1c70d31d5cd17405e891c9955f62911971fa55ff44dfdbd1263140972",
     "zip-status/prefix=06.jsonl.gz": "df94fe9c137ec630c4be28554c1ebf52e60f6ffc27d201e09392836ded4895a8",
     "zip-status/prefix=07.jsonl.gz": "4b4d442759f930d911340154a3e29402d26aac0a17c142d8bf6ee2015782a161",
     "zip-status/prefix=08.jsonl.gz": "6f7c78bdbdaa69cb8b4f50a0df9a7d62171744f6db2fd5dc3deed3732291c685",
@@ -107,8 +107,8 @@
     "zip-status/prefix=99.jsonl.gz": "acb8380ccee3c401c082528f822f053ed988564a45ec13167e8b7e28dcb79a31"
   },
   "matrix_provenance": {
-    "release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
-    "manifest_sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1"
+    "release_id": "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13",
+    "manifest_sha256": "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad"
   },
   "geography_relationship_quality": {
     "registration_path": "config/datasets/business-entity-geography-relationship.json",
@@ -117,8 +117,22 @@
     "manifest_path": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00/manifest.json",
     "manifest_sha256": "76e78c9b87f83a0cce24fe0604a4c2920c6e56578e4e1d6c3f16d0a82799c4cd",
     "profile_count": 8011213,
-    "postal_relationship_counts": {"same-code-zcta-candidate":7962776,"outside-zcta":48436,"explicit-placeholder":1,"missing":0},
-    "point_relationship_counts": {"assigned-single-county":994752,"unmatched":40138,"ambiguous":7,"conflict":0,"missing-geocode":6976316,"invalid-coordinate":0,"unassignable-legacy-coordinate-crs-unproven":0,"unassignable-coordinate-not-premise-point":0},
+    "postal_relationship_counts": {
+      "same-code-zcta-candidate": 7962776,
+      "outside-zcta": 48436,
+      "explicit-placeholder": 1,
+      "missing": 0
+    },
+    "point_relationship_counts": {
+      "assigned-single-county": 994752,
+      "unmatched": 40138,
+      "ambiguous": 7,
+      "conflict": 0,
+      "missing-geocode": 6976316,
+      "invalid-coordinate": 0,
+      "unassignable-legacy-coordinate-crs-unproven": 0,
+      "unassignable-coordinate-not-premise-point": 0
+    },
     "reported_state_conflict_count": 50
   },
   "source_policy_provenance": {
@@ -136,9 +150,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-7759bbfd3679a96e78886f91b94f1a64bdda297dd8c329c05df5b1970c030d7b",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-7759bbfd3679a96e78886f91b94f1a64bdda297dd8c329c05df5b1970c030d7b/manifest.json",
-  "manifest_sha256": "f386b18be2bb9a9325f141a27a6b0183dba638d84aa5df6feb5be22d19f370ae",
+  "release_id": "national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d/manifest.json",
+  "manifest_sha256": "2d8f783d8a188143c8fa6e368e2497eeef1872fa540821d069f36d16acce0b78",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -493,12 +507,13 @@
     "zcta-overlay-unresolved": 3
   },
   "temporal_assessment": {
-    "schema_version": "exact-zip-industry-temporal-summary-projection@3.2.0",
-    "matrix_release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
-    "matrix_manifest_sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",
+    "schema_version": "exact-zip-industry-temporal-summary-projection@3.3.0",
+    "matrix_release_id": "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13",
+    "matrix_manifest_sha256": "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad",
     "source_dimensions": 51,
     "retained_assessment_dimension_counts": {
-      "2026-10-02T16:30:00.000Z": 49,
+      "2026-10-02T16:30:00.000Z": 42,
+      "2026-11-12T19:21:14.719Z": 7,
       "2026-11-11T23:21:47.684Z": 2
     },
     "dimension_counts": {
@@ -516,7 +531,7 @@
       "publisher-active-snapshot": 3,
       "unknown-source-status": 1
     },
-    "projection_sha256": "00c98718d3dac7519f42ff27470b12cf3342be2b6ae05192d5b5f9f302ea551f"
+    "projection_sha256": "9502054c1f4319f3e63b20997381912741f87634989ab25ae9bf726b51bcb855"
   },
   "gaps": {
     "broad_business_missing_states": 40,

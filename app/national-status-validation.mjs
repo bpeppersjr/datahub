@@ -13,7 +13,7 @@ export function validTemporal(v) {
 }
 export function validTemporalAssessment(value) {
   return equal(value,pin.temporal_assessment) &&
-    value.schema_version==='exact-zip-industry-temporal-summary-projection@3.2.0' &&
+    value.schema_version==='exact-zip-industry-temporal-summary-projection@3.3.0' &&
     value.matrix_release_id===pin.matrix_provenance.release_id && value.matrix_manifest_sha256===pin.matrix_provenance.manifest_sha256 &&
     value.source_dimensions===pin.dimension_order.length && /^[a-f0-9]{64}$/.test(value.projection_sha256) &&
     [value.dimension_counts,value.semantic_dimension_counts,value.retained_assessment_dimension_counts]

@@ -15,7 +15,6 @@ import { readExactZipIndustrySummaryV29 } from "./exact-zip-industry-summary-v2-
 import { readExactZipIndustryEvidenceWithTemporalQualificationV29 } from "./exact-zip-industry-temporal-qualification-v2-9.mjs";
 import { readExactZipIndustrySummaryV30 } from "./exact-zip-industry-summary-v3-0.mjs";
 import { readExactZipIndustrySummaryV31 } from "./exact-zip-industry-summary-v3-1.mjs";
-import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV32 } from "./exact-zip-industry-temporal-qualification-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV33 } from "./exact-zip-industry-temporal-qualification-v3-3.mjs";
 import { readExactZipIndustrySummaryV33 } from "./exact-zip-industry-summary-v3-3.mjs";
@@ -40,15 +39,15 @@ test("v3.2 selected-state operational industry view validates refreshed provenan
   h.close();
 });
 
-test("v3.2 national and ZIP views accept only the refreshed governed New York release",async()=>{
-  const [summary,evidence]=await Promise.all([readExactZipIndustrySummaryV32(),readExactZipIndustryEvidenceWithTemporalQualificationV32({zip5:"10001"})]),h=harness(async()=>summary);
+test("v3.3 national and ZIP views accept only the promoted governed release",async()=>{
+  const [summary,evidence]=await Promise.all([readExactZipIndustrySummaryV33(),readExactZipIndustryEvidenceWithTemporalQualificationV33({zip5:"10001"})]),h=harness(async()=>summary);
   assert.equal(h.render("validExactZipIndustrySummary",summary),true);
   assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
   const renderedSummary=text((h.render("ExactZipIndustryNationalSummary"),await flush(),h.render("ExactZipIndustryNationalSummary")));
   assert.match(renderedSummary,/31 dimensions are within review window; 0 is stale; 20 are unmeasured/);
-  assert.match(renderedSummary,/2026-10-02 \(49 dimensions\).*2026-11-11 \(2 dimensions\)/);
+  assert.match(renderedSummary,/2026-10-02 \(42 dimensions\).*2026-11-12 \(7 dimensions\).*2026-11-11 \(2 dimensions\)/);
   assert.match(renderedSummary,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
-  for(const mutate of [v=>{v.temporal_qualification.schema_version="exact-zip-industry-temporal-qualification-v2-1-runtime-projection"},v=>{v.temporal_qualification.source_dimensions=42},v=>{v.temporal_qualification.projection_sha256="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
+  for(const [index,mutate] of [v=>{v.temporal_qualification.schema_version="exact-zip-industry-temporal-qualification-v2-1-runtime-projection"},v=>{v.source_dimensions=42},v=>{v.temporal_qualification.projection_sha256="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"}].entries()){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false,`summary mutation ${index} must fail closed`);}
   for(const mutate of [v=>{v.manifest_sha256="0".repeat(64)},v=>{v.status_counts.positive++},v=>{v.dimensions.at(-1).temporal_qualification.review_qualification="stale"},v=>{v.ny_retail_food_license_address_dispositions[0].site_occupancy_verified=true}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
   const temporal = (view, id) => view.temporal_qualification.rows.find(row=>row.dimension_id===id);
   for(const mutate of [
