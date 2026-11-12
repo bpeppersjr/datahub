@@ -1,0 +1,39 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "ny-retail-food-stores-2026-11-12",
+  "source_id": "ny-retail-food-stores",
+  "dataset_id": "ny-retail-food-store-license-sites",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 1, "aggregate_requests": 2, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "6623e4b51e6074581b26d19723d20eb4b3ed8d64f6fd61c171fe132ce3b39766",
+    "aggregate_sha256": "8ae8bf46fa58efb29c8b0e10b4c72db6d785626fac2add0a557335d605e5d2c8",
+    "aggregate_records": 23664,
+    "aggregate_label": "current publisher licensed-entity rows",
+    "distinct_license_numbers": 23664,
+    "catalog_rows_updated_at": "2026-10-14T19:08:34.000Z",
+    "catalog_time_period": "Current",
+    "catalog_posting_frequency": "Annually",
+    "catalog_coverage": "Statewide",
+    "catalog_granularity": "Licensed entity",
+    "selected_schema_fingerprint": "562e707cc527afbf3028a5f8c167b0a71125af7d6c7f852b8d9208f61911e365",
+    "selected_schema_matches_connector": true,
+    "retained_release_rows": 23608,
+    "live_minus_retained_rows": 56,
+    "publisher_clock_count_consistent_with_retained_release": false,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "annual_snapshot_membership_is_current_operation": false,
+    "reported_address_is_verified_operating_site": false,
+    "complete_all_new_york_food_retailers": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://data.ny.gov/Economic-Development/Retail-Food-Stores/9a8c-vfzj/about",
+    "https://data.ny.gov/api/views/9a8c-vfzj",
+    "https://data.ny.gov/api/views/77gx-ii52/files/ef0c1840-ad54-4240-92fd-6397c49fde46?filename=OPEN-NY_20Terms_20of_20Use.pdf"
+  ],
+  "next_action": "Use only the authorization-bound Co*Tive operation. Recheck catalog schema, total rows and distinct license count before and after serial selected-field acquisition; bind the selected-source checksum because the publisher count can change without a catalog-clock change; preserve annual-snapshot, address and platform-geocode limitations; independently verify the immutable release before changing the governed source pointer."
+}
