@@ -4,7 +4,7 @@ import{mnSelectionReadJson as readJson}from'./mn-construction-retained-selection
 import{readExactZipIndustryEvidenceV21}from'./national-exact-zip-industry-evidence-matrix-v2-1.mjs';
 import{classifyExactZipEvidenceDisposition,readExactZipIndustryTemporalQualification}from'./exact-zip-industry-temporal-qualification.mjs';
 
-const MATRIX_ID='national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3',MATRIX_SHA='2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4',PRE_ID='exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee',PRE_SHA='c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409';
+const MATRIX_ID='national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3',MATRIX_SHA='2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4',PRE_ID='exact-zip-industry-temporal-qualification-f94b7d998adaf47defe9512116113811c8c3af3a738db4e623d817b29c402bbb',PRE_SHA='176738a36c9c947120a78f4916a0fab9394b75f1535ac38c7e50c900f28bccbc';
 const check=(v,m='Exact-ZIP v2.1 temporal projection rejected.')=>{if(!v)throw Error(m)},exact=(v,k)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===k.length&&k.every(x=>Object.hasOwn(v,x));
 export async function readExactZipIndustryEvidenceWithTemporalQualificationV21({root=APP_ROOT,zip5,signal}={}){
  check(/^\d{5}$/.test(zip5??''));const reg=await readJson(path.join(root,'config/datasets/exact-zip-industry-temporal-qualification-v2-1.json'),32000,signal);

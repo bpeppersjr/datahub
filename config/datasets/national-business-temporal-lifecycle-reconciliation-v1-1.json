@@ -7,7 +7,7 @@
   "bindings": {
     "reconciliation_registration": {
       "path": "config/datasets/national-business-temporal-lifecycle-reconciliation.json",
-      "sha256": "8d772918c6f0bcf3ab664bc769f732a1c4941414bd1b5ce4c430516a252b007e"
+      "sha256": "0f51842c8197550ebd0e4df62bc797e41309c535c122bafc31ee5f46398c919b"
     },
     "la_pointer": {
       "path": "data/business-sources/la-active-business-location-accounts/current.json",

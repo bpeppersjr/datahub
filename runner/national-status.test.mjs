@@ -18,7 +18,7 @@ test('National Status conserves headline units, nine state/DC industries and sep
   for(const state of ['NJ','DC']){const view=await readNationalStatus({kind:'state',state});assert.equal(view.industries.length,9);assert.equal(validNationalStatus(view,state),true);assert.ok(Buffer.byteLength(JSON.stringify(view))<128000)}
   for(const state of ['PR','AS','ZZ','nj','',null])await assert.rejects(readNationalStatus({kind:'state',state}),/selector/);
   assert.equal(summary.claims.business_completeness,null);assert.equal(summary.claims.unresolved_geography_blocks_map,false);
-  assert.equal(summary.geography_relationship_quality.profile_count,8011835);assert.equal(Object.values(summary.geography_relationship_quality.postal_relationship_counts).reduce((n,v)=>n+v,0),8011835);assert.equal(Object.values(summary.geography_relationship_quality.point_relationship_counts).reduce((n,v)=>n+v,0),8011835);assert.equal(summary.geography_relationship_quality.reported_state_conflict_count,11);assert.equal(summary.geography_relationship_quality.claims.numerator,false);
+  assert.equal(summary.geography_relationship_quality.profile_count,8011213);assert.equal(Object.values(summary.geography_relationship_quality.postal_relationship_counts).reduce((n,v)=>n+v,0),8011213);assert.equal(Object.values(summary.geography_relationship_quality.point_relationship_counts).reduce((n,v)=>n+v,0),8011213);assert.equal(summary.geography_relationship_quality.reported_state_conflict_count,50);assert.equal(summary.geography_relationship_quality.claims.numerator,false);
 });
 
 test('ZIP endpoint retains exact zero-prefixed strings, separate ZIP4 and unknown outside-cohort results',async()=>{

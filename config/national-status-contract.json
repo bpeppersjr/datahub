@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-11-12T00:06:57.207Z",
+  "created_at": "2026-11-12T04:14:13.318Z",
   "artifact_sha256": {
-    "gap-ledger.json": "90d2646db9761b5cc05cd603c89946c878675fc8ca0d55f85f079756894db363",
-    "national-summary.json": "b58d087bee0a22ac1e8885cb8f54d367204ef6c60a72e079dfd7752a904fc29a",
-    "state-industry-status.jsonl": "fae351db9152cf93cc43f95f0110148e5f967ec4924056d5540b27b1ce78f343",
+    "gap-ledger.json": "2c8a008698d7992d3a5af6ef84875e734622f939ae4476c7073225e99ac28d8a",
+    "national-summary.json": "a084b557906ef77097e58683309ffd8f3c85363cfba46138e6d16073a7838310",
+    "state-industry-status.jsonl": "52b920961bdf0f16eb3ffa084b95dbb724488fc2f30260ab481a0f2af5360974",
     "territories.json": "a35b10d006a6205c19993b1643cc99758f29e9803adfe67890c454260561186a",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
     "zip-status/prefix=01.jsonl.gz": "b68407063f415a025b01aa7732cefb5283cb8519e5ab8568074b2837611d8846",
@@ -112,33 +112,33 @@
   },
   "geography_relationship_quality": {
     "registration_path": "config/datasets/business-entity-geography-relationship.json",
-    "registration_sha256": "bc81d33b80a92da55f31713d36813807e7224da599ab24aa3898522b338f5829",
-    "release_id": "business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7",
-    "manifest_path": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7/manifest.json",
-    "manifest_sha256": "07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2",
-    "profile_count": 8011835,
-    "postal_relationship_counts": {"same-code-zcta-candidate":7963395,"outside-zcta":48439,"explicit-placeholder":1,"missing":0},
-    "point_relationship_counts": {"assigned-single-county":372079,"unmatched":21,"ambiguous":7,"conflict":0,"missing-geocode":6976397,"invalid-coordinate":0,"unassignable-legacy-coordinate-crs-unproven":640383,"unassignable-coordinate-not-premise-point":22948},
-    "reported_state_conflict_count": 11
+    "registration_sha256": "9c1dcc2f18ecde9f3f128d6097bfddaf38f49acb9a1fd8bea2b6e6007f76a067",
+    "release_id": "business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00",
+    "manifest_path": "data/business-entity-geography-relationship/releases/business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00/manifest.json",
+    "manifest_sha256": "76e78c9b87f83a0cce24fe0604a4c2920c6e56578e4e1d6c3f16d0a82799c4cd",
+    "profile_count": 8011213,
+    "postal_relationship_counts": {"same-code-zcta-candidate":7962776,"outside-zcta":48436,"explicit-placeholder":1,"missing":0},
+    "point_relationship_counts": {"assigned-single-county":994752,"unmatched":40138,"ambiguous":7,"conflict":0,"missing-geocode":6976316,"invalid-coordinate":0,"unassignable-legacy-coordinate-crs-unproven":0,"unassignable-coordinate-not-premise-point":0},
+    "reported_state_conflict_count": 50
   },
   "source_policy_provenance": {
     "registration_path": "config/datasets/business-entity-source-policy-provenance.json",
-    "registration_sha256": "bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68",
-    "release_id": "business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803",
-    "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803/manifest.json",
-    "manifest_sha256": "4c9e2482848b614809c23b97dbf16b7b3830b40c632643a676005a89c8dde303",
-    "artifact_sha256": "0613ee43a9eb65719cad471725d29dd74b88100141d0c55ae42e8e2d62f0de1a"
+    "registration_sha256": "619e3768bd89717d228caeaf1821de9438cde5a8899a35da13bf064123704564",
+    "release_id": "business-entity-source-policy-provenance-ffd0c199435fbe1447774f149cf6eaba7f502a0c96da7851ef6b2354f934510f",
+    "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-ffd0c199435fbe1447774f149cf6eaba7f502a0c96da7851ef6b2354f934510f/manifest.json",
+    "manifest_sha256": "5809e881502f503b410c05f104234de31574b2e62a48effb276b311fb063401b",
+    "artifact_sha256": "abe3f83ff6d54e64ab78d1e7a1aa5bdebf252121c640238bef4d6cf99b37b0b4"
   },
   "publisher_membership_reconciliation": {
     "registration_path": "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
-    "registration_sha256": "e7742a974b25420b5e7993b170ba898df3e555b0ac64c5a1c63dc256070c0b99",
+    "registration_sha256": "8bb9d80ddd7192e76f1a48a75e83b03afd8e91170eafb646193adde2b8961d75",
     "la_manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-b697e611330082d304b7ad65fa10be5ee17aa6a9857b1eef9ea597f86e6fb874",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-b697e611330082d304b7ad65fa10be5ee17aa6a9857b1eef9ea597f86e6fb874/manifest.json",
-  "manifest_sha256": "744ba2f61f73c53248882de509ae583e2b4934aee448bd066e492a4b78d853eb",
+  "release_id": "national-goal-evidence-federation-de8539508011bf3b5d1ca05cbd13c5ab22b7517657e9e838fbcbb4640626879f",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-de8539508011bf3b5d1ca05cbd13c5ab22b7517657e9e838fbcbb4640626879f/manifest.json",
+  "manifest_sha256": "6234ed1484890a42b0bea824668c19276cc8609928571247241c8c99ca52e4a0",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -498,8 +498,8 @@
     "assessment_as_of": "2026-10-02T16:30:00.000Z",
     "dimension_counts": {
       "within-review-window": 30,
-      "stale": 1,
-      "unmeasured": 20,
+      "stale": 0,
+      "unmeasured": 21,
       "unmapped": 0
     },
     "semantic_dimension_counts": {
@@ -517,8 +517,8 @@
     "unsupported_industry_access_cells": 149,
     "unmeasured_industry_access_cells": 2,
     "restricted_sample_industry_access_cells": 1,
-    "stale_temporal_dimensions": 1,
-    "unmeasured_temporal_dimensions": 20
+    "stale_temporal_dimensions": 0,
+    "unmeasured_temporal_dimensions": 21
   },
   "industry_dimensions": {
     "retail-consumer": [
