@@ -12,6 +12,7 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(admin, /Select none/);
   assert.match(admin, /Save maintenance selection/);
   assert.match(admin, /does not authorize acquisition, start downloads, prove coverage, or change production enrollment/);
+  assert.match(admin, /an all-business denominator is not required/);
   assert.match(admin, /expectedRevision/);
   assert.match(admin, /If-Match/);
   assert.match(server, /bodyJson\(request, 16 \* 1024\)/);

@@ -934,12 +934,16 @@ export function validAdministrationBacklog(
           typeof source.source_id === "string" &&
           ["national", "state"].includes(source.scope) &&
           typeof source.manual_selection_required === "boolean" &&
-          source.automatic_refresh_authorized === false &&
+          typeof source.automatic_refresh_authorized === "boolean" &&
           typeof source.automatic_refresh_reason_code === "string",
       ) &&
       row.refresh_posture.manual_app_plan_available ===
         row.refresh_posture.applicable_collection_sources.length > 0 &&
-      row.refresh_posture.automatic_refresh_authorized === false &&
+      row.refresh_posture.automatic_refresh_authorized ===
+        (row.refresh_posture.applicable_collection_sources.length > 0 &&
+          row.refresh_posture.applicable_collection_sources.every(
+            (source) => source.automatic_refresh_authorized,
+          )) &&
       row.refresh_posture.newer_publisher_release_guaranteed === false &&
       row.refresh_posture.gap_resolution_guaranteed === false,
   );
@@ -1297,7 +1301,7 @@ export default function Administration() {
       {message && <p role="status">{message}</p>}
       <section className="industry-summary" aria-label="Industry evidence status overview">
         <h3>Industry evidence status</h3>
-        <p>Evidence availability is the share of the 50 states and D.C. with retained source evidence. It is not the percent of businesses collected or nationwide industry completeness. Population, geocode, and Census-ZCTA gaps do not suppress otherwise retained industry evidence.</p>
+        <p>Evidence availability is the share of the 50 states and D.C. with retained source evidence. It is not the percent of businesses collected or nationwide industry completeness. Reporting starts with the governed evidence already retained; an all-business denominator is not required. Population, geocode, and Census-ZCTA gaps do not suppress otherwise retained industry evidence.</p>
         {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
           <table><thead><tr><th scope="col">Industry</th><th scope="col">Evidence availability</th><th scope="col">Known gaps</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
             <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
