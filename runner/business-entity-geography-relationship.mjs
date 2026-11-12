@@ -20,6 +20,7 @@ const CROSSWALK_RELEASE = 'us-census-zcta-jurisdiction-crosswalk-20260830-222631
 const CROSSWALK_SHA = '02e19bd98ad587426628cd50013942acc0cc3e9c9a48ac653eaf96cf534b8fe2';
 const GAP_RELEASE = 'zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb';
 const GAP_SHA = '792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea';
+const GAP_COHORT_SHA = 'c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9';
 const ZIP_QUALITY_RELEASE = 'registry-zip-quality-index-f9c232d42c69f74a1abc10156aae857157209de7377bea5c6c0aaef9332479a8';
 const ZIP_QUALITY_SHA = '8537365ffb54123678b1141d17f4998a31d754497e0473334d6f5348096b2429';
 const COVERAGE_RELEASE = 'national-business-coverage-views-20261112-025948835Z-76733954';
@@ -208,11 +209,12 @@ async function readInputs(root, signal, {
   const profileSummaryPath = path.join(root, 'data/business-coverage-views/releases', coverageReleaseId, profileSummaryArtifact.path);
   const summaryRead = await boundedJson(profileSummaryPath, 100_000);
   check(summaryRead.sha256 === profileSummaryArtifact.sha256);
-  const gapReg = (await load('config/datasets/zip-denominator-gap-cohort.json')).value.retained_release;
-  check(gapReg.release_id === GAP_RELEASE && gapReg.manifest_sha256 === GAP_SHA);
+  const gapReg = { release_id: GAP_RELEASE,
+    manifest: `data/zip-denominator-gap-cohort/releases/${GAP_RELEASE}/manifest.json`,
+    manifest_sha256: GAP_SHA, cohort_sha256: GAP_COHORT_SHA };
   const gapRead = await boundedJson(path.join(root, gapReg.manifest), 1_000_000), gap = gapRead.value;
   check(gapRead.sha256 === GAP_SHA && gap.release_id === GAP_RELEASE);
-  const gapRowsArtifact = gap.artifacts.find(a => a.path === 'cohort.jsonl'); check(gapRowsArtifact?.sha256 === gapReg.cohort_sha256);
+  const gapRowsArtifact = gap.artifacts.find(a => a.path === 'cohort.jsonl'); check(gapRowsArtifact?.sha256 === GAP_COHORT_SHA && gapRowsArtifact.record_count === 48194);
   const zctaDecl = geo.artifacts.find(a => a.path === 'derived/index/zctas.jsonl'), countyDecl = geo.artifacts.filter(a => /^source\/counties\/state=\d{2}\.geojson$/.test(a.path));
   const statesDecl = geo.artifacts.find(a => a.path === 'derived/index/states.jsonl');
   const countyIndexDecl = geo.artifacts.find(a => a.path === 'derived/index/counties.jsonl');
