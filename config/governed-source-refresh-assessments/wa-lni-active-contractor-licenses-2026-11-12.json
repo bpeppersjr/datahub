@@ -1,0 +1,43 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "wa-lni-active-contractor-licenses-2026-11-12",
+  "source_id": "wa-lni-active-contractor-licenses",
+  "dataset_id": "wa-lni-active-contractor-organizations",
+  "observed_at": "2026-11-12",
+  "controls": {
+    "metadata_requests": 1,
+    "aggregate_requests": 1,
+    "entity_row_requests": 0,
+    "records_downloaded": 0,
+    "production_changes": 0
+  },
+  "observation": {
+    "metadata_url": "https://data.wa.gov/api/views/m8qx-ubtq",
+    "metadata_http_status": 200,
+    "metadata_bytes": 42752,
+    "metadata_sha256": "e17cc4d458450d7f4846bd7b55d0b13e6aed67ad8d85fc592fd53895fc3d11cd",
+    "source_rows_updated_at": "2026-11-12T01:36:20.000Z",
+    "publication_stage": "published",
+    "license": "PDDL",
+    "column_count": 23,
+    "selected_schema_fingerprint": "4cac6e9c4c07bcfcfd0e39f9e3a0baf4976b171978721cd8d9c47c556fa46dca",
+    "aggregate_url": "https://data.wa.gov/resource/m8qx-ubtq.json?$select=count(*)%20as%20records&$where=statuscode%3D%27A%27%20AND%20contractorlicensestatus%3D%27ACTIVE%27",
+    "aggregate_http_status": 200,
+    "aggregate_bytes": 22,
+    "aggregate_sha256": "9d7a29459f351ab1f41d12621b5c9a182899e38074ee365cb2cf415227c85a73",
+    "aggregate_records": 76306
+  },
+  "claims": {
+    "active_license_is_current_operation": false,
+    "reported_mailing_address_is_verified_premise": false,
+    "complete_all_washington_businesses": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://data.wa.gov/api/views/m8qx-ubtq",
+    "https://data.wa.gov/Labor/L-I-Contractor-License-Data-General/m8qx-ubtq",
+    "https://data.wa.gov/stories/s/Open-Data-License-Metadata-Guidance/a9xy-d2e5/"
+  ],
+  "next_action": "Use only the authorization-bound Co*Tive operation; independently verify identity conservation, schema, hashes, quarantine, temporal metadata, and immutable publication before changing this source pointer."
+}

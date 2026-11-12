@@ -14,7 +14,7 @@ const rows = [
   ["OR","or-business-registry","or-business-registry-active-registrations","verifyOrBusinessRegistry"],
   ["PA","pa-business-registry","pa-business-registry-active-registrations","verifyPaBusinessRegistry"],
   ["TX","tx-active-sales-tax-permits","tx-active-sales-tax-outlets","verifyTxActiveSalesTaxPermits","config/governed-source-refresh-assessments/tx-active-sales-tax-permits-2026-11-12.json"],
-  ["WA","wa-lni-active-contractor-licenses","wa-lni-active-contractor-organizations","verifyWaLniActiveContractors"],
+  ["WA","wa-lni-active-contractor-licenses","wa-lni-active-contractor-organizations","verifyWaLniActiveContractors","config/governed-source-refresh-assessments/wa-lni-active-contractor-licenses-2026-11-12.json"],
 ];
 
 export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntries(rows.map(([state,sourceId,datasetId,verifierExport,assessment])=>[sourceId,Object.freeze({
@@ -52,7 +52,7 @@ function validateAssessment(value,descriptor){
     ||typeof value.assessment_id!=="string"||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(value.assessment_id)||typeof value.observed_at!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value.observed_at)
     ||!exact(value.controls,["metadata_requests","aggregate_requests","entity_row_requests","records_downloaded","production_changes"])||value.controls.metadata_requests!==1||value.controls.aggregate_requests!==1||value.controls.entity_row_requests!==0||value.controls.records_downloaded!==0||value.controls.production_changes!==0
     ||!value.observation||typeof value.observation!=="object"||Array.isArray(value.observation)||typeof value.observation.metadata_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.metadata_sha256)||typeof value.observation.aggregate_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.aggregate_sha256)||!Number.isSafeInteger(value.observation.aggregate_records)||value.observation.aggregate_records<1
-    ||!exact(value.claims,["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"])||Object.values(value.claims).some(item=>item!==false)
+    ||!exact(value.claims,descriptor.sourceId==="tx-active-sales-tax-permits"?["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="wa-lni-active-contractor-licenses"?["active_license_is_current_operation","reported_mailing_address_is_verified_premise","complete_all_washington_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:[])||Object.values(value.claims).some(item=>item!==false)
     ||!Array.isArray(value.citations)||value.citations.length<1||value.citations.some(item=>typeof item!=="string"||!item.startsWith("https://"))||typeof value.next_action!=="string"||value.next_action.length<1)throw new Error(`Governed refresh assessment is invalid for ${descriptor.sourceId}.`);
   return value;
 }

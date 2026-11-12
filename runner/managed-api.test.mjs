@@ -326,14 +326,15 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.ok((await history.json()).some((item) => item.id === operation.id && item.status === "FAILED" && item.artifacts.length === 0));
 });
 
-test("managed refresh schedule API rejects sources without reviewed automatic-refresh authorization", { timeout: 20_000 }, async (t) => {
+test("managed refresh schedule API reports reviewed sources and rejects an unreviewed selection", { timeout: 20_000 }, async (t) => {
   const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
   const catalog = await (await request(fixture.base, "/api/data-operations/catalog")).json();
   assert.equal(catalog.automaticRefreshSources.length, 28);
-  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 1);
+  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 2);
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-tx-sales-tax").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-ca-childcare").reasonCode, "AUTOMATIC_REFRESH_NOT_REVIEWED");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-wa-contractors").governedSourceId, "wa-lni-active-contractor-licenses");
+  assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-wa-contractors").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-tx-sales-tax").governedSourceId, "tx-active-sales-tax-permits");
   assert.equal((await request(fixture.base, route, { authenticated: false })).status, 401);
   const initial = await request(fixture.base, route); assert.equal(initial.status, 200); assert.deepEqual(await initial.json(), []);

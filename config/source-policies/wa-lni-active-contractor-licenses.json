@@ -1,6 +1,6 @@
 {
   "policy_id": "wa-lni-active-contractor-licenses",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Washington State Department of Labor & Industries",
   "ownership": "Official Washington contractor-license records published through the State of Washington open-data portal",
   "source_home": "https://data.wa.gov/Labor/L-I-Contractor-License-Data-General/m8qx-ubtq",
@@ -31,5 +31,7 @@
   "contains_personal_data": true,
   "personal_data_handling": "The connector requests neither phonenumber nor primaryprincipalname. Business names can identify natural persons and mailing addresses can be residences, so normalized record-level artifacts remain local-review-only.",
   "contains_secrets": false,
-  "reviewed_at": "2026-09-01"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Washington L&I publishes this contractor-license dataset under PDDL. ACTIVE license status, reported business names, mailing addresses, and license classifications remain publisher assertions; they do not establish continuous operation, current compliance, a verified physical site or worksite, ownership, or every business operating in Washington. Record-level output remains local-review-only."
 }

@@ -128,6 +128,22 @@
         "terms_reviewed": true,
         "source_access_reviewed": true
       }
+    },
+    "wa-lni-active-contractor-licenses": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "wa-lni-active-contractor-licenses-production-20261112-01",
+      "source_id": "wa-lni-active-contractor-licenses",
+      "approved_at": "2026-11-12T13:20:00.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "5534d4f33352b917c94bf76e40d21abcf22e57e9fabb6a0e78c525d0f063c4ca",
+      "permissions": {
+        "fresh_acquisition": true,
+        "autonomous_acquisition": true,
+        "production_pointer_change": true,
+        "terms_reviewed": true,
+        "source_access_reviewed": true
+      }
     }
   }
 }

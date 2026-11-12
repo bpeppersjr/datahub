@@ -7,14 +7,14 @@ import { loadIndustryConfig, industryPlanFingerprint } from "./industry-segments
 import { loadAutomaticRefreshAuthorizations } from "./automatic-refresh-authorization.mjs";
 import { ManagedOperations } from "./managed-operations.mjs";
 
-test("automatic-refresh contract covers every industry source and distinguishes authorized Texas from held Washington", async () => {
+test("automatic-refresh contract covers every industry source and authorizes reviewed Texas and Washington", async () => {
   const config = await loadIndustryConfig(), decisions = await loadAutomaticRefreshAuthorizations(config);
   assert.equal(decisions.length, Object.keys(config.sources).length);
-  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,1);
+  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,2);
   assert.equal(decisions.find((item)=>item.sourceId==="state-tx-sales-tax").automaticRefreshAuthorized,true);
   assert.deepEqual(decisions.filter((item) => item.governedSourceId).map((item) => [item.sourceId, item.governedSourceId, item.reasonCode]), [
     ["state-tx-sales-tax", "tx-active-sales-tax-permits", "REVIEWED_AUTOMATIC_REFRESH"],
-    ["state-wa-contractors", "wa-lni-active-contractor-licenses", "GOVERNED_SOURCE_HOLD"],
+    ["state-wa-contractors", "wa-lni-active-contractor-licenses", "REVIEWED_AUTOMATIC_REFRESH"],
   ]);
 });
 
@@ -23,7 +23,7 @@ test("reviewed governed authorization can enable app-owned dispatch while HOLD a
   t.after(() => rm(root, { recursive: true, force: true }));
   const source = JSON.parse(await readFile(path.join(APP_ROOT, "config/automatic-refresh-authorizations.json"), "utf8"));
   const file = path.join(root, "authorized.json"); await writeFile(file, `${JSON.stringify(source)}\n`);
-  const authorizedBinding = async (sourceId) => sourceId === "tx-active-sales-tax-permits"
+  const authorizedBinding = async (sourceId) => ["tx-active-sales-tax-permits","wa-lni-active-contractor-licenses"].includes(sourceId)
     ? ({ sourceId, status: "AUTHORIZED", dispatchAvailable: true, freshAcquisitionAuthorized: true,
       autonomousAcquisitionAuthorized: true, productionPointerChangeAuthorized: true })
     : ({ sourceId, status: "HOLD", dispatchAvailable: false, freshAcquisitionAuthorized: false,
@@ -36,12 +36,12 @@ test("reviewed governed authorization can enable app-owned dispatch while HOLD a
   await assert.rejects(loadAutomaticRefreshAuthorizations(config, { file, governedValidator: authorizedBinding }), /governed binding is invalid/);
 });
 
-test("scheduled plans authorize Texas while held Washington remains manual-only", async (t) => {
+test("scheduled plans authorize reviewed Texas and Washington", async (t) => {
   const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/automatic-refresh-plan-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const operations = new ManagedOperations({ root }); t.after(() => operations.close()); await operations.ready;
   const washington={industries:["construction"],states:["WA"]},texas={industries:["sales-tax-outlets"],states:["TX"]};
-  assert.equal((await operations.plan(washington)).taskCount,1);await assert.rejects(operations.planScheduled(washington),(error)=>error.code==="AUTOMATIC_REFRESH_NOT_AUTHORIZED"&&error.statusCode===409);
+  assert.equal((await operations.plan(washington)).taskCount,1);const scheduledWa=await operations.planScheduled(washington);assert.equal(scheduledWa.taskCount,1);assert.equal(scheduledWa.tasks[0].sourceId,"state-wa-contractors");
   const scheduled=await operations.planScheduled(texas);assert.equal(scheduled.taskCount,1);assert.equal(scheduled.tasks[0].sourceId,"state-tx-sales-tax");
 });
 

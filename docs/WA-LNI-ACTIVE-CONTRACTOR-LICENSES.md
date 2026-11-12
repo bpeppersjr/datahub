@@ -55,3 +55,9 @@ npm run wa-lni-contractors:build -- --resume-source-staging-run <run-uuid>
 ```
 
 Outputs remain under `data/business-sources/wa-lni-active-contractor-organizations`.
+
+## Governed refresh authorization on November 12, 2026
+
+A metadata-and-count-only preflight observed the official published PDDL dataset at source refresh `2026-11-12T01:36:20.000Z`. The pinned 21-field selected schema remains unchanged. The exact `A` / `ACTIVE` filter reported 76,306 license rows. The preflight requested no entity rows, downloaded no entity records, and changed no production pointer.
+
+The resulting assessment is bound into the governed refresh descriptor. Co*Tive may run the existing full-snapshot builder automatically, but publication remains conditional on its independent verifier, immutable artifacts, exact source/count/schema checks, identity conservation, quarantine rules, and atomic pointer change. The observed count is not a business count, a completeness denominator, or evidence of net business creation. The application must display the PDDL attribution and license/address limitations recorded in the source policy.
