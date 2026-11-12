@@ -171,6 +171,8 @@
     "retained-childcare-zip:v1.3:verify": "node scripts/verify-retained-childcare-zip-evidence-v1-3.mjs",
     "childcare-state-availability:build": "node scripts/build-childcare-state-industry-availability-projection.mjs",
     "childcare-state-availability:verify": "node scripts/verify-childcare-state-industry-availability-projection.mjs",
+    "childcare-state-availability:v1.2:build": "node scripts/build-childcare-state-industry-availability-projection-v1-2.mjs",
+    "childcare-state-availability:v1.2:verify": "node scripts/verify-childcare-state-industry-availability-projection-v1-2.mjs",
     "zip-denominator-gaps:build": "node scripts/build-zip-denominator-gap-cohort.mjs",
     "zip-denominator-gaps:verify": "node scripts/verify-zip-denominator-gap-cohort.mjs",
     "exact-zip-industry-matrix:build": "node scripts/build-national-exact-zip-industry-evidence-matrix.mjs",

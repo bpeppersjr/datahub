@@ -4,7 +4,7 @@ import { cp, link, lstat, mkdir, mkdtemp, readFile, rm, symlink, unlink, writeFi
 import os from "node:os";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { buildChildcareStateIndustryAvailabilityProjection, deriveChildcareStateIndustryAvailabilityProjection, verifyChildcareStateIndustryAvailabilityProjection } from "./childcare-state-industry-availability-projection.mjs";
+import { buildChildcareStateIndustryAvailabilityProjection, buildChildcareStateIndustryAvailabilityProjectionSuccessor, deriveChildcareStateIndustryAvailabilityProjection, deriveChildcareStateIndustryAvailabilityProjectionSuccessor, verifyChildcareStateIndustryAvailabilityProjection, verifyChildcareStateIndustryAvailabilityProjectionSuccessor } from "./childcare-state-industry-availability-projection.mjs";
 
 test("projection exposes seven retained cohorts and 44 unmeasured jurisdictions without denominator claims", async () => {
   const registration = JSON.parse(await readFile(path.join(APP_ROOT, "config/datasets/retained-childcare-zip-evidence.json"))), raw = await readFile(path.join(APP_ROOT, registration.retained_release.manifest)), manifest = JSON.parse(raw);
@@ -14,6 +14,17 @@ test("projection exposes seven retained cohorts and 44 unmeasured jurisdictions 
   assert.deepEqual(projection.totals, { retained_candidate_rows: 12210, zip_present_candidate_rows: 12208, missing_zip_candidate_rows: 1, invalid_zip_candidate_rows: 1 }); assert.equal(projection.claims.denominator, null); assert.equal(projection.claims.business_count, null); assert.equal(projection.claims.current_operating_count, null); assert.equal(projection.claims.production_enrollment, false);
   assert.equal(projection.jurisdictions.find((row) => row.code === "VT").missing_zip_candidate_rows, 1);
   assert.equal(projection.source.created_at, manifest.created_at); assert.deepEqual(projection.derivative_time_policy, { derivative_created_at: null, rule: "No derivative clock is invented; source.created_at is retained source metadata only." }); assert.equal("created_at" in projection, false);
+});
+
+test("v1.2 successor derives all refreshed rows while leaving the registered projection selected", async () => {
+  const release = "retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e", manifestPath = path.join(APP_ROOT, "data/retained-childcare-zip-evidence/releases", release, "manifest.json"), raw = await readFile(manifestPath), manifest = JSON.parse(raw), digest = (await import("node:crypto")).createHash("sha256").update(raw).digest("hex");
+  const projection = deriveChildcareStateIndustryAvailabilityProjectionSuccessor(manifest, digest);
+  assert.equal(projection.schema_version, "childcare-state-industry-availability-projection@1.2.0");
+  assert.deepEqual(projection.totals, { retained_candidate_rows: 12234, zip_present_candidate_rows: 12232, missing_zip_candidate_rows: 1, invalid_zip_candidate_rows: 1 });
+  assert.equal(projection.jurisdictions.find((row) => row.code === "PA").retained_candidate_rows, 5019);
+  const built = await buildChildcareStateIndustryAvailabilityProjectionSuccessor(), verified = await verifyChildcareStateIndustryAvailabilityProjectionSuccessor(path.join(built.releaseDirectory, "manifest.json"));
+  assert.equal(built.reused_existing_release, true); assert.equal(verified.manifest.release_id, "childcare-state-industry-availability-projection-1c3c55909afdee8f4d35ed935db75cfd68bd60778411513b49538fb9985a45c4"); assert.equal(verified.manifest_sha256, "af65c5be68c850904271fcb7f69d1604382aa0f1ec9b30e8cd275714046586f1");
+  const registration = JSON.parse(await readFile(path.join(APP_ROOT, "config/datasets/childcare-state-industry-availability-projection.json"))); assert.notEqual(registration.retained_release.release_id, verified.manifest.release_id);
 });
 
 async function releaseFixture(t) {
