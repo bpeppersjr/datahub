@@ -5,7 +5,7 @@
   "runtime_pointer": null,
   "production_enrollment": false,
   "current_pointer_written": false,
-  "selected_release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
+  "selected_release_id": "business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1",
   "retained_releases": [
     {
       "release_id": "business-entity-lifecycle-eligibility-f37556f8722c5a48c114a763ce1786cbe2e6d11b985b875602a97afb45671057",
@@ -32,6 +32,13 @@
       "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0",
       "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0/manifest.json",
       "manifest_sha256": "d62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e",
+      "profile_count": 8011835,
+      "selected": false
+    },
+    {
+      "release_id": "business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1",
+      "manifest": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1/manifest.json",
+      "manifest_sha256": "218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528",
       "profile_count": 8011835,
       "selected": true
     }

@@ -8,16 +8,16 @@
       "schema_version": "national-goal-completion-matrix@1.3.0"
     },
     "matrix": {
-      "path": "data/national-exact-zip-industry-evidence-matrix-v3-0/releases/national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9/manifest.json",
-      "sha256": "07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7",
-      "release_id": "national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",
-      "schema_version": "national-exact-zip-industry-evidence-matrix@3.0.0"
+      "path": "data/national-exact-zip-industry-evidence-matrix-v3-2/releases/national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629/manifest.json",
+      "sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",
+      "release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
+      "schema_version": "national-exact-zip-industry-evidence-matrix@3.2.0"
     },
     "disposition": {
-      "path": "data/state-exact-zip-industry-evidence-disposition-v3-0/releases/state-exact-zip-industry-evidence-disposition-62e4ced49cfb1c0d41628864f1b867c8b89a9f58bec66de1e146568f777f544a/manifest.json",
-      "sha256": "1678f94007155d602dd9d803093c1efd368aa862498da8d0108a969b3b0d4f6e",
-      "release_id": "state-exact-zip-industry-evidence-disposition-62e4ced49cfb1c0d41628864f1b867c8b89a9f58bec66de1e146568f777f544a",
-      "schema_version": "state-exact-zip-industry-evidence-disposition@3.0.0"
+      "path": "data/state-exact-zip-industry-evidence-disposition-v3-2/releases/state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4/manifest.json",
+      "sha256": "70f5d98ef96a96f9ac591bdff1d1ac1213edd0d3c8f890de8dd5db90048b95a5",
+      "release_id": "state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4",
+      "schema_version": "state-exact-zip-industry-evidence-disposition@3.2.0"
     },
     "epa": {
       "path": "data/national-epa-echo-operational-segment-evidence/releases/national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461/manifest.json",
@@ -67,12 +67,12 @@
     },
     "source_policy_registration": {
       "path": "config/datasets/business-entity-source-policy-provenance.json",
-      "sha256": "fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9"
+      "sha256": "bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68"
     },
     "source_policy_manifest": {
-      "path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b/manifest.json",
-      "sha256": "c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5",
-      "release_id": "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b",
+      "path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803/manifest.json",
+      "sha256": "4c9e2482848b614809c23b97dbf16b7b3830b40c632643a676005a89c8dde303",
+      "release_id": "business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803",
       "schema_version": "business-entity-source-policy-provenance-release@1.0.0"
     },
     "temporal_lifecycle_reconciliation_registration": {
@@ -89,11 +89,11 @@
     },
     "operational_crosswalk": {
       "path": "config/exact-zip-operational-industry-crosswalk.json",
-      "sha256": "8c0763a56c4941e410387f986805bf595e227217d816b0c039b9cb2e0c2d219f"
+      "sha256": "58f761e870e7a72684dbb38b882f7c2ee794bf235d0da2d8bedeff483225fec4"
     },
     "summary_implementation": {
-      "path": "runner/exact-zip-industry-summary-v3-1.mjs",
-      "sha256": "8aa1ebda8ea005a834e1ce67cc51dd0b5c9d27c18fd7d465e129770a778136f2"
+      "path": "runner/exact-zip-industry-summary-v3-2.mjs",
+      "sha256": "515f23bd1d2edd9c5cab2d66b3f43f32389289929ff5a607d99e6785da6a9d45"
     },
     "temporal_mapping": {
       "path": "runner/exact-zip-industry-temporal-mappings-v3-1.mjs",

@@ -1,10 +1,10 @@
 {
-  "created_at": "2026-11-11T22:01:58.935Z",
+  "created_at": "2026-11-12T00:06:57.207Z",
   "artifact_sha256": {
-    "gap-ledger.json": "67550a581e5a436b67f584c59cc6605d588a4c57bca803b55e6df22d670c1a46",
-    "national-summary.json": "64d54a5ac4326abbe2740e72ec0a4d8a1883fa16f2ece2de23ecc569cee067ec",
-    "state-industry-status.jsonl": "695224e6cbdfbf50d2c4a34f7f942fbb55db931a59d19ff48101410344b846e1",
-    "territories.json": "95397d92b0a115b4592c3e02b4d80d86c4f8b8802a98d693b6d8a27a1c692f7f",
+    "gap-ledger.json": "90d2646db9761b5cc05cd603c89946c878675fc8ca0d55f85f079756894db363",
+    "national-summary.json": "b58d087bee0a22ac1e8885cb8f54d367204ef6c60a72e079dfd7752a904fc29a",
+    "state-industry-status.jsonl": "fae351db9152cf93cc43f95f0110148e5f967ec4924056d5540b27b1ce78f343",
+    "territories.json": "a35b10d006a6205c19993b1643cc99758f29e9803adfe67890c454260561186a",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
     "zip-status/prefix=01.jsonl.gz": "b68407063f415a025b01aa7732cefb5283cb8519e5ab8568074b2837611d8846",
     "zip-status/prefix=02.jsonl.gz": "b280ea17afb90eb849cdd0c2e9a908b2021f3cc7fa40ade3993910c64e6a8502",
@@ -15,11 +15,11 @@
     "zip-status/prefix=07.jsonl.gz": "4b4d442759f930d911340154a3e29402d26aac0a17c142d8bf6ee2015782a161",
     "zip-status/prefix=08.jsonl.gz": "6f7c78bdbdaa69cb8b4f50a0df9a7d62171744f6db2fd5dc3deed3732291c685",
     "zip-status/prefix=09.jsonl.gz": "6de7f3f758ed3127d34cf09292d50b11c98f85558cade95a895ab5a900bb6ca0",
-    "zip-status/prefix=10.jsonl.gz": "fdd1d9cde32d9a2c298f21c7fb13cd8756cb7d22f3a1503020aa18535c3d90c8",
-    "zip-status/prefix=11.jsonl.gz": "d6c5d2bbe1bd302483a28fab543cd531f39fe1cf67c4a62386db21f6aed82712",
-    "zip-status/prefix=12.jsonl.gz": "6203e9ede41c832e5c2c501a378f06cb6532d5e7a6a9740652b80f3d73d59ce5",
-    "zip-status/prefix=13.jsonl.gz": "10c00578414b9385799c54a0db3c6833d6444809db3a65b60dcd73d461144371",
-    "zip-status/prefix=14.jsonl.gz": "73e4161ed421bea5ac95ccdd882a4cbbcb961958c6b10c23facb99ca5fbfbc33",
+    "zip-status/prefix=10.jsonl.gz": "0a9bff6ebf493903fe54104174b8f26e218b422b1856a4a83fb2a4197da5d009",
+    "zip-status/prefix=11.jsonl.gz": "e87cb55caa79cc50fc5fa7bba5e47b616b8407401ccc8cf2607bea4d5cf2389e",
+    "zip-status/prefix=12.jsonl.gz": "03a2d98230c594b28b14881b580acd892089af433f265932b0364480b2139250",
+    "zip-status/prefix=13.jsonl.gz": "414f5051bb8b27c8ad5951a63746b0d08876ccbddea5fe1600b992db0516dc9c",
+    "zip-status/prefix=14.jsonl.gz": "3d722a8f043423171317074566c3a688d58868d528797b2166c282d61c96500a",
     "zip-status/prefix=15.jsonl.gz": "8e2e41ca13bcfe418c8a08a6c6d559e266ac7e23335eba15b4b6cb5d842ce31d",
     "zip-status/prefix=16.jsonl.gz": "9dd869cb995fd2346f5ef07ae2178b8afed33ad0d6ef7ea364838ac2c2921001",
     "zip-status/prefix=17.jsonl.gz": "509be2295002c983eb730e4dd6ad6a2a5c4a8254cb5b4775a7415d6f4c9476c7",
@@ -107,8 +107,8 @@
     "zip-status/prefix=99.jsonl.gz": "acb8380ccee3c401c082528f822f053ed988564a45ec13167e8b7e28dcb79a31"
   },
   "matrix_provenance": {
-    "release_id": "national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",
-    "manifest_sha256": "07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"
+    "release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
+    "manifest_sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1"
   },
   "geography_relationship_quality": {
     "registration_path": "config/datasets/business-entity-geography-relationship.json",
@@ -123,11 +123,11 @@
   },
   "source_policy_provenance": {
     "registration_path": "config/datasets/business-entity-source-policy-provenance.json",
-    "registration_sha256": "fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9",
-    "release_id": "business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b",
-    "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b/manifest.json",
-    "manifest_sha256": "c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5",
-    "artifact_sha256": "1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232"
+    "registration_sha256": "bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68",
+    "release_id": "business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803",
+    "manifest_path": "data/business-entity-source-policy-provenance/releases/business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803/manifest.json",
+    "manifest_sha256": "4c9e2482848b614809c23b97dbf16b7b3830b40c632643a676005a89c8dde303",
+    "artifact_sha256": "0613ee43a9eb65719cad471725d29dd74b88100141d0c55ae42e8e2d62f0de1a"
   },
   "publisher_membership_reconciliation": {
     "registration_path": "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
@@ -136,9 +136,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8/manifest.json",
-  "manifest_sha256": "c66be48710c72ecb01f4d3da2ee01a8fbeb62434c63fcee55c28183b016e5b2a",
+  "release_id": "national-goal-evidence-federation-b697e611330082d304b7ad65fa10be5ee17aa6a9857b1eef9ea597f86e6fb874",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-b697e611330082d304b7ad65fa10be5ee17aa6a9857b1eef9ea597f86e6fb874/manifest.json",
+  "manifest_sha256": "744ba2f61f73c53248882de509ae583e2b4934aee448bd066e492a4b78d853eb",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -497,8 +497,8 @@
     "manifest_sha256": "2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4",
     "assessment_as_of": "2026-10-02T16:30:00.000Z",
     "dimension_counts": {
-      "within-review-window": 29,
-      "stale": 2,
+      "within-review-window": 30,
+      "stale": 1,
       "unmeasured": 20,
       "unmapped": 0
     },
@@ -517,7 +517,7 @@
     "unsupported_industry_access_cells": 149,
     "unmeasured_industry_access_cells": 2,
     "restricted_sample_industry_access_cells": 1,
-    "stale_temporal_dimensions": 2,
+    "stale_temporal_dimensions": 1,
     "unmeasured_temporal_dimensions": 20
   },
   "industry_dimensions": {

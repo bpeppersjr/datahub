@@ -15,10 +15,10 @@ import { readBusinessEntitySourcePolicyProvenance } from './business-entity-sour
 export const BUSINESS_ENTITY_LIFECYCLE_VERSION = 'business-entity-lifecycle-eligibility@1.0.0';
 const DATASET = 'business-entity-lifecycle-eligibility';
 const AS_OF = '2026-10-02T16:30:00.000Z';
-const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0';
-const SELECTED_MANIFEST_SHA256 = 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e';
+const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1';
+const SELECTED_MANIFEST_SHA256 = '218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528';
 const SELECTED_TAXONOMY_SHA256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
-const SELECTED_REGISTRATION_SHA256 = '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c';
+const SELECTED_REGISTRATION_SHA256 = '2e9266d0e68627edcaaf09cf2fc4593971eb6a4176672841f1b29f56d76c3ced';
 const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074';
 const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_SHA256 = '6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65';
 const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee', manifest_sha256: 'c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409', artifact_sha256: '8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a', assessment_as_of: AS_OF });

@@ -301,12 +301,12 @@ function validateGoalReadinessBindings(value) {
     && broad.source_lineage.source_matrix_artifact_sha256 === goal.report_sha256
     && SHA.test(broad.source_lineage.program_manifest_sha256 ?? '') && SHA.test(broad.source_lineage.backlog_manifest_sha256 ?? '')
     && SHA.test(broad.source_lineage.assessment_catalog_sha256 ?? ''), 'broad organization readiness semantics');
-  check(lifecycle?.release_id === 'business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0'
+  check(lifecycle?.release_id === 'business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1'
     && lifecycle.registration_path === 'config/datasets/business-entity-lifecycle-eligibility.json'
     && lifecycle.manifest_path === `data/business-entity-lifecycle-eligibility/releases/${lifecycle.release_id}/manifest.json`
     && lifecycle.taxonomy_path === 'config/datasets/business-entity-lifecycle-eligibility-taxonomy.json'
-    && lifecycle.registration_sha256 === '2afa49be56059b2e61873f6dd328dfbf873b24feb03e5cf5ee8f9c288f9e979c'
-    && lifecycle.manifest_sha256 === 'd62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e'
+    && lifecycle.registration_sha256 === '2e9266d0e68627edcaaf09cf2fc4593971eb6a4176672841f1b29f56d76c3ced'
+    && lifecycle.manifest_sha256 === '218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528'
     && lifecycle.taxonomy_sha256 === '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc'
     && lifecycle.artifact_inventory_sha256 === 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907'
     && lifecycle.artifact_count === 100 && lifecycle.artifact_record_count === 8011835
@@ -329,11 +329,11 @@ function validateGoalReadinessBindings(value) {
     && lifecycle.exception_counts?.ny_retail_food_stale_non_active === 24230
     && lifecycle.current_operation_verified_count === 0 && lifecycle.active_business_eligible_count === 0
     && lifecycle.assessment_as_of === '2026-10-02T16:30:00.000Z', 'business-entity lifecycle registration/release/summary binding');
-  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b'
+  check(sourcePolicy?.release_id === 'business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803'
     && sourcePolicy.registration_path === 'config/datasets/business-entity-source-policy-provenance.json'
-    && sourcePolicy.registration_sha256 === 'fb7b2405c5444d0e572aaccaa98138e295d21b348dff9e9398e3332726b7b3d9'
-    && sourcePolicy.manifest_sha256 === 'c0d347c47ff23f61e6b0b39401ac4671bc43c8922209106f79435e0305cf8ed5'
-    && sourcePolicy.artifact_sha256 === '1c9728424770612ef28e80eac4258d40a0653ca516385ce18a4a5d4daf591232'
+    && sourcePolicy.registration_sha256 === 'bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68'
+    && sourcePolicy.manifest_sha256 === '4c9e2482848b614809c23b97dbf16b7b3830b40c632643a676005a89c8dde303'
+    && sourcePolicy.artifact_sha256 === '0613ee43a9eb65719cad471725d29dd74b88100141d0c55ae42e8e2d62f0de1a'
     && sourcePolicy.source_count === 15 && sourcePolicy.profile_count === 8011835
     && sourcePolicy.registry_release_id === lifecycle.registry_release_id
     && sourcePolicy.registry_manifest_sha256 === lifecycle.registry_manifest_sha256
@@ -410,7 +410,7 @@ function validateGoalReadinessBindings(value) {
     'closed objective blockers/count');
   for (const [id, evidence] of Object.entries(value.bindings ?? {}))
     check(evidence && typeof evidence.release_id === 'string' && SHA.test(evidence.manifest_sha256), `missing/malformed ${id} binding`);
-  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-84d96465d8718c5c1bcb3a5dac650fe50267912f6768e40f98f690f743a8e68b',
+  check(value.bindings.business_entity_source_policy_provenance.release_id === 'business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803',
     'source-policy inventory binding absent');
   return true;
 }

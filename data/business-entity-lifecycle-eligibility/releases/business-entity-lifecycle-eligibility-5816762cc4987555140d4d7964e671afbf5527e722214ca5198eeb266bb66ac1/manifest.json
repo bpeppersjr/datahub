@@ -1,0 +1,814 @@
+{
+  "schema_version": "business-entity-lifecycle-eligibility-release@1.0.0",
+  "dataset_id": "business-entity-lifecycle-eligibility",
+  "release_id": "business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1",
+  "status": "immutable-pointer-free-local-review-only",
+  "publication_mode": "pointer-free",
+  "assessment_as_of": "2026-10-02T16:30:00.000Z",
+  "bindings": {
+    "registry": {
+      "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+      "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+      "profile_artifact_inventory_sha256": "da61ea20bac546e9368d95923c54d0a6a0960f206d806782bf9760091ab5aa80"
+    },
+    "temporal": {
+      "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+      "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
+      "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0"
+    },
+    "qualification": {
+      "release_id": "exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee",
+      "manifest_sha256": "c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409",
+      "artifact_sha256": "8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a",
+      "assessment_as_of": "2026-10-02T16:30:00.000Z"
+    },
+    "taxonomy": {
+      "path": "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",
+      "sha256": "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc",
+      "source_count": 15,
+      "exact_source_status_value_count": 17
+    },
+    "source_policy_provenance": {
+      "release_id": "business-entity-source-policy-provenance-d477ffbcd6e0b6aa382e56d9b299cb17f11d1f2690febdaed61f63e8eb3dc803",
+      "registration_sha256": "bc80e0d974ad1432aec9e7285118f6c20b3bc5d5ebb75bbcfc81c382bc330e68",
+      "manifest_sha256": "4c9e2482848b614809c23b97dbf16b7b3830b40c632643a676005a89c8dde303",
+      "artifact_sha256": "0613ee43a9eb65719cad471725d29dd74b88100141d0c55ae42e8e2d62f0de1a",
+      "predecessor_lifecycle_release_id": "business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074",
+      "predecessor_lifecycle_manifest_sha256": "6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65"
+    }
+  },
+  "summary": {
+    "profile_count": 8011835,
+    "source_count": 15,
+    "source_status_value_count": 17,
+    "assessment_as_of": "2026-10-02T16:30:00.000Z",
+    "source_counts": {
+      "alaska-dcced-active-business-licenses": 94550,
+      "california-abc-daily-active-licenses": 84497,
+      "city-of-chicago-bacp-current-active-business-licenses": 42940,
+      "cms-nppes-monthly-v2": 2088780,
+      "dc-dlcp-active-basic-business-licenses": 54910,
+      "epa-echo-exporter-active-facility": 1517826,
+      "fdic-bankfind-current-structure": 77285,
+      "fmcsa-company-census-active-us-principal-office": 2195563,
+      "los-angeles-office-of-finance-active-businesses": 633232,
+      "ncua-final-quarterly-call-report": 22445,
+      "new-york-agriculture-markets-retail-food-stores": 24230,
+      "nyc-dcwp-issued-licenses-active-premises": 31163,
+      "texas-comptroller-active-sales-tax-permits": 885097,
+      "usda-fsis-active-mpi-directory": 7237,
+      "usda-snap-current-retailers": 252080
+    },
+    "status_value_counts": {
+      "active-in-alaska-business-license-download-as-of-retrieval": 94550,
+      "epa-echo-active-program-facility-as-of-source-release": 1517826,
+      "fdic-current-location-for-active-institution-as-of-index": 77285,
+      "fmcsa-active-registration-as-of-daily-source-release": 2195563,
+      "included-in-current-new-york-retail-food-store-license-snapshot": 24230,
+      "listed-as-active-business-license-in-official-dc-dlcp-feed-at-source-refresh": 54910,
+      "listed-as-active-issued-license-in-california-abc-daily-export": 84497,
+      "listed-as-active-nyc-dcwp-premise-license-as-of-source-refresh": 31163,
+      "listed-as-active-texas-sales-tax-permit-outlet-as-of-source-refresh": 885097,
+      "listed-in-city-of-chicago-current-active-business-license-view-as-of-source-refresh": 42940,
+      "listed-in-fsis-active-mpi-directory-as-of-release": 7237,
+      "ncua-reported-us-branch-for-federally-insured-credit-union-as-of-final-quarterly-release": 22445,
+      "npi-active-as-of-source-release": 1955672,
+      "npi-reactivated-as-of-source-release": 2417,
+      "reported-non-primary-practice-location-for-active-npi": 130691,
+      "snap-authorized-as-of-source-update": 252080
+    },
+    "review_status_counts": {
+      "within-review-window": 7987605,
+      "stale": 24230,
+      "unmeasured": 0,
+      "unmapped": 0
+    },
+    "lifecycle_evidence_counts": {
+      "source-defined-current": 5240481,
+      "non-active-reporting": 2135455,
+      "unknown": 633232,
+      "contradictory": 2667
+    },
+    "exception_counts": {
+      "la_null_source_status": 633232,
+      "ca_expiration_before_observation_profiles": 2667,
+      "ny_retail_food_stale_non_active": 24230
+    },
+    "bindings": {
+      "registry_release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+      "temporal_release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
+      "qualification_release_id": "exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee"
+    }
+  },
+  "claims": {
+    "current_operation_verified": false,
+    "active_business_eligible": false,
+    "identity_resolution_applied": false,
+    "registry_bytes_modified": false,
+    "source_acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "artifacts": [
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=00.jsonl.gz",
+      "record_count": 27758,
+      "bytes": 1833565,
+      "sha256": "5d1ed365e949c8c4858b699288a36cb93c9560127f927324c8d92cc701d8db48"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=01.jsonl.gz",
+      "record_count": 60737,
+      "bytes": 4031517,
+      "sha256": "c24057ba46af808c6fd205be3434a0a10372c62512832b4b4296d3c58123b536"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=02.jsonl.gz",
+      "record_count": 74131,
+      "bytes": 4927924,
+      "sha256": "a8f474869711f6af4238e0cc9542352bd763a44edca4ab5481060868e33de4cd"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=03.jsonl.gz",
+      "record_count": 22800,
+      "bytes": 1509681,
+      "sha256": "46617552737d12de01adbd604aa6dc31cb04efa265b116cd4cfa8e6b2bd45ae5"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=04.jsonl.gz",
+      "record_count": 29428,
+      "bytes": 1951919,
+      "sha256": "089748b676d24d50fd25c58921df580d2ae20a6b6dc0b0c8b615222651f44e43"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=05.jsonl.gz",
+      "record_count": 11833,
+      "bytes": 782916,
+      "sha256": "b8df317408c5b427e5f357f304a6fd283e82e40bf1be06f900605235e9056aa3"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=06.jsonl.gz",
+      "record_count": 56485,
+      "bytes": 3751631,
+      "sha256": "9c6566392242ff1c1e4d551c7a7a00c0c5a58ffae898bfdaf2ae07098e6133cb"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=07.jsonl.gz",
+      "record_count": 88115,
+      "bytes": 5851654,
+      "sha256": "03865f4cb08c7d31f81f56e87e3e74eaed654a011aed4f666c66f54498bd5298"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=08.jsonl.gz",
+      "record_count": 68217,
+      "bytes": 4521642,
+      "sha256": "c380798bcf711a442ee0d5f53729d541e9c669629dde0ca72b2d0d43c16bad1f"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=09.jsonl.gz",
+      "record_count": 136,
+      "bytes": 10169,
+      "sha256": "cfe4f58dd7193a47fe7628199028f30ad6a868c9f744f95f47466bd1b08dbeeb"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=10.jsonl.gz",
+      "record_count": 88953,
+      "bytes": 5880277,
+      "sha256": "3044ac6a5427a2963aedd4dbf75a8804303ab4abe5b5aec36dac4f5fd9e43f34"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=11.jsonl.gz",
+      "record_count": 143929,
+      "bytes": 9533491,
+      "sha256": "e12aa9e2c67b4e36dfff7ddc6fe8d21da2c1065b08398f75cee69650f05537f1"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=12.jsonl.gz",
+      "record_count": 47208,
+      "bytes": 3130708,
+      "sha256": "3fedeee3266b762c675395be001b62dcd9b5ea5e54214fc0bd8e9f591517c378"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=13.jsonl.gz",
+      "record_count": 34372,
+      "bytes": 2280606,
+      "sha256": "e1bda91927fe78ae82aff22644e8e4520f48f42fd86be309d54cf8bd0fb918ca"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=14.jsonl.gz",
+      "record_count": 53076,
+      "bytes": 3522553,
+      "sha256": "cc9b879400cad14d4711b201d3483ff3998fa79a5797d26f7e9404f1fe0e21a2"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=15.jsonl.gz",
+      "record_count": 45375,
+      "bytes": 3011228,
+      "sha256": "2f480ce97657267e826d2214e91138af3e67489185c48aee3c083387d4e098f4"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=16.jsonl.gz",
+      "record_count": 30054,
+      "bytes": 1991753,
+      "sha256": "ea676f0b1bb970d53659ae0526f1f7ab1f45ff206d4772d8c39eb8aea2d8b995"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=17.jsonl.gz",
+      "record_count": 47941,
+      "bytes": 3175641,
+      "sha256": "6f57d043594df5c9ff07fa5d64e9b0efb8c1758c82cdfd6c02d53537be644e81"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=18.jsonl.gz",
+      "record_count": 40680,
+      "bytes": 2694636,
+      "sha256": "4b110e9b6ac784fede856c2d0846c1021ccd9f018c67e00b135c0e125c5b9147"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=19.jsonl.gz",
+      "record_count": 79853,
+      "bytes": 5300485,
+      "sha256": "321da3003a738faf17d9e37cbb37e373663fedd9d5fa629191f24bf445d0dc9f"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=20.jsonl.gz",
+      "record_count": 115633,
+      "bytes": 7576199,
+      "sha256": "aa07b6d67c0fb4832c01d434788320d8fa89704f582d38ea149e65ae9c2ba4ab"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=21.jsonl.gz",
+      "record_count": 83722,
+      "bytes": 5536718,
+      "sha256": "e2baff2c5dea429a89296e559771286896ed0ecdb64510fe7156b648ef0e3e4f"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=22.jsonl.gz",
+      "record_count": 36850,
+      "bytes": 2434149,
+      "sha256": "93a79b3ce3ce701239d7c6f6c60f278523dea2159bff04a7c1d6f1f65fc0d95c"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=23.jsonl.gz",
+      "record_count": 45061,
+      "bytes": 2982414,
+      "sha256": "946df61b7204648a8920428f17d578650af1394eb7fcce33d00155a7cb00e586"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=24.jsonl.gz",
+      "record_count": 24926,
+      "bytes": 1652937,
+      "sha256": "fda52f8ff5c1202b3004367cff02e288a50df61b9d7b1e92ad2f53e08ace96ce"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=25.jsonl.gz",
+      "record_count": 19243,
+      "bytes": 1273222,
+      "sha256": "6c0dce1ca3998710c340aad279ecd98b780452de61b0c98d3fccd383e5268629"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=26.jsonl.gz",
+      "record_count": 20283,
+      "bytes": 1337927,
+      "sha256": "94e826ada04c56743ba66ec47ad8c6ab4aa658beaa972dc91837bfc83b4420bc"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=27.jsonl.gz",
+      "record_count": 79639,
+      "bytes": 5279513,
+      "sha256": "a9830d90616b9ef369a208a45b9caeacac811ae2ed757e09803ab2469f2aa22a"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=28.jsonl.gz",
+      "record_count": 96229,
+      "bytes": 6389924,
+      "sha256": "19faf5bad0f26e06fcda3ac50584cd9f71eb2679eb1485210b6fbe62397efe0a"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=29.jsonl.gz",
+      "record_count": 81799,
+      "bytes": 5433730,
+      "sha256": "f9ef9f5036b973c5a1d016e5ad5929d686a7d35a74ec076f0d4e1e1aced9db7d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=30.jsonl.gz",
+      "record_count": 181557,
+      "bytes": 12070069,
+      "sha256": "4de6eca4c0af631bfdd8cdb24c7deb63d66a1d1ab61f90d7866a4c279e31de63"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=31.jsonl.gz",
+      "record_count": 51167,
+      "bytes": 3386006,
+      "sha256": "a8c94e5103aebf51e583e1b903d77ef9c60cb79427c4420237d152dad804c20b"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=32.jsonl.gz",
+      "record_count": 114100,
+      "bytes": 7587420,
+      "sha256": "c5b13d110c45e1fb50f4fcd8f972f570d36bf1da9fe604f77c4db45c82246f9e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=33.jsonl.gz",
+      "record_count": 229288,
+      "bytes": 15251380,
+      "sha256": "1523d183c353764de3ca8768bc74555a15c0f95fe3d461d36a4b63c699dea7e1"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=34.jsonl.gz",
+      "record_count": 66804,
+      "bytes": 4420344,
+      "sha256": "368e71ac37ec3dc67d20ee8e53253473acbcb44d038495a367ba2958134dbd4e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=35.jsonl.gz",
+      "record_count": 50137,
+      "bytes": 3326134,
+      "sha256": "fe5a9f893945b2688a52bb2adaecc3b14b76f9c563a81dc83663cedbb1e32a38"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=36.jsonl.gz",
+      "record_count": 39822,
+      "bytes": 2639691,
+      "sha256": "3175e9a1e9a2319a5f36b24e73e324b66458fcec661a208385365755f116fc4c"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=37.jsonl.gz",
+      "record_count": 64463,
+      "bytes": 4281449,
+      "sha256": "6efef320ec7b5aa89534c7d8abf2ed4c709c7bd43e506559539cb6d69280a932"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=38.jsonl.gz",
+      "record_count": 40422,
+      "bytes": 2679381,
+      "sha256": "56d558f315ff1603068ce90022b1c46a5a878fa1ca39bbd03a80a427e6303c6b"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=39.jsonl.gz",
+      "record_count": 32498,
+      "bytes": 2153267,
+      "sha256": "8aae938b50b31937cf6186dfc925f79bb0a7a98f8e20ea1b8c9937194edb0eb8"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=40.jsonl.gz",
+      "record_count": 43927,
+      "bytes": 2902264,
+      "sha256": "5e7c1ec74216142593a21d6966fb8e1f43468c98162b050e5dd15354ba6a30e8"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=41.jsonl.gz",
+      "record_count": 17862,
+      "bytes": 1179266,
+      "sha256": "cc5264f497fb4c781facec9391f6beac0e2c9a5dff65fdd08bdad8840b05c86d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=42.jsonl.gz",
+      "record_count": 28263,
+      "bytes": 1863929,
+      "sha256": "6d4394df327e58d7768628d7326f0c2b63a5c68563a1b848e9f89a1e3319d82b"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=43.jsonl.gz",
+      "record_count": 52150,
+      "bytes": 3451904,
+      "sha256": "4f43b6c401ff10582ff02f83f47f1c7e403b5482c511b176f897a392c3175895"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=44.jsonl.gz",
+      "record_count": 61850,
+      "bytes": 4109151,
+      "sha256": "c6a17f29b589803568c9b5696d4827e5a1b9927172d1a72c5837a30b638c11ae"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=45.jsonl.gz",
+      "record_count": 49609,
+      "bytes": 3291337,
+      "sha256": "1e1fbbe9123a1648181fbe6eb309c192b90a8de57e5d4e57fefb974cbc1cb7a7"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=46.jsonl.gz",
+      "record_count": 78143,
+      "bytes": 5187113,
+      "sha256": "ea2eadb80a81b1719ada23126d2896a79361df4f57a0733f3c5b810b04b80c04"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=47.jsonl.gz",
+      "record_count": 34821,
+      "bytes": 2308564,
+      "sha256": "2313b28c8ba68fecbc8ed1b9590bdaa1cf78b6a1b3f84cec0357161ba4109c7a"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=48.jsonl.gz",
+      "record_count": 130873,
+      "bytes": 8709402,
+      "sha256": "3e43e4c5e6de7fe8573fec7632e7cbff338783befdefb040c07cf4cb40f2cd89"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=49.jsonl.gz",
+      "record_count": 60525,
+      "bytes": 4021799,
+      "sha256": "3ecce1c941e84becec080a7bb79060cd1dc0b11bb414725692db43a52b038707"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=50.jsonl.gz",
+      "record_count": 27894,
+      "bytes": 1850324,
+      "sha256": "3b29a1f5e60f5c1f5fe0a2c65ee92b45bb5af45703862893ce2f0e985bc9135f"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=51.jsonl.gz",
+      "record_count": 11655,
+      "bytes": 771674,
+      "sha256": "91c01588a0765e55c1f2e79fbb3093c68d7fd25ba0dc7962a6bb812abf9fb05e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=52.jsonl.gz",
+      "record_count": 20704,
+      "bytes": 1370811,
+      "sha256": "918bf43fe81272cdc57592e6a544f0223998c1a5bd1f7c43ec5203322f80abee"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=53.jsonl.gz",
+      "record_count": 65548,
+      "bytes": 4348047,
+      "sha256": "2aabf2fdd4652bd0366c36d6c64797c8717346249db5c1656bc6a4c9b0296c8d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=54.jsonl.gz",
+      "record_count": 58244,
+      "bytes": 3869181,
+      "sha256": "c2d7a0d103ecf39d9edf9fc5efd4f08259416cfd6b7f908e9e437b2d86c68953"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=55.jsonl.gz",
+      "record_count": 106645,
+      "bytes": 7081936,
+      "sha256": "3ff564f6ddc2f95bb1e939dbf95732b9e24ab139ddc7fcc1eb3c7ab9cfe38559"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=56.jsonl.gz",
+      "record_count": 43180,
+      "bytes": 2867266,
+      "sha256": "759fa6f25da8654c91df4428271e72b0026384df929626b3b666f4461b84d042"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=57.jsonl.gz",
+      "record_count": 17743,
+      "bytes": 1172477,
+      "sha256": "91cf580a406716aa9563a7e335410d990c3bad044e1bb25bfd9b1c047005c9d9"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=58.jsonl.gz",
+      "record_count": 17638,
+      "bytes": 1159119,
+      "sha256": "007fab356c4483271822f09b9cc4120ac7a04d60f42eab9fdd0e1b27d5692b56"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=59.jsonl.gz",
+      "record_count": 25587,
+      "bytes": 1692896,
+      "sha256": "b0469142e0f9100327463ee1a1e8f8012b812bfa48765b51ded2bcf7d689ea6e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=60.jsonl.gz",
+      "record_count": 170163,
+      "bytes": 11287053,
+      "sha256": "435892d0ff5a0a100a6f570a1c4f4a34648970dacc3849682eb66906ddf8122a"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=61.jsonl.gz",
+      "record_count": 30060,
+      "bytes": 1994755,
+      "sha256": "2e8b3f414b1d94e32b4a91b6ffefed67e879c7cff54f8104a8224a9a6c697521"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=62.jsonl.gz",
+      "record_count": 30934,
+      "bytes": 2054679,
+      "sha256": "6c32ea8ea31ef454212873ae1994cb1b97de7cd8bc6cad423eba1de6e07c24ce"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=63.jsonl.gz",
+      "record_count": 43329,
+      "bytes": 2870610,
+      "sha256": "62fd5bd92bfe570e15610bc8d7c20e4ccba00e215375a20aac574915b795558d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=64.jsonl.gz",
+      "record_count": 26828,
+      "bytes": 1777673,
+      "sha256": "77cb01a26ebe474cd79e8b157b32d94db3c2e89631f76a91c0284cad9531779d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=65.jsonl.gz",
+      "record_count": 24066,
+      "bytes": 1591924,
+      "sha256": "b0b29ab502ff57e97dd6493a740337f511359fdc4918fb754f0c131dc6ac51f9"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=66.jsonl.gz",
+      "record_count": 27222,
+      "bytes": 1802958,
+      "sha256": "9b9a2d0448e857bdfa69c58834c549af7f8dff52f1e833aa63224c2e8ce965c7"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=67.jsonl.gz",
+      "record_count": 27595,
+      "bytes": 1826358,
+      "sha256": "9a69d3d8c13c71131126a3df8e8545c5d47b72896340d9942430f81cc5ad512c"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=68.jsonl.gz",
+      "record_count": 45645,
+      "bytes": 3028803,
+      "sha256": "a1d3e13f7b401cd86ff4a7dc41fe1f6484de119e7e1cc4a802be9424dc769351"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=69.jsonl.gz",
+      "record_count": 6476,
+      "bytes": 425641,
+      "sha256": "c6b0d4bb435d5385f01eb9efdd11d0332a0d1943cbe1201e4e022044ac5a583b"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=70.jsonl.gz",
+      "record_count": 66948,
+      "bytes": 4428545,
+      "sha256": "e65f8d553136d306b313a0123c0eaea3162cb33dbbec61969b195799b46eda60"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=71.jsonl.gz",
+      "record_count": 33398,
+      "bytes": 2210283,
+      "sha256": "794bb3f85a087379dc853c0c2d2fd57a8da022e3c66acd23f72b1720f7d261ab"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=72.jsonl.gz",
+      "record_count": 34720,
+      "bytes": 2299156,
+      "sha256": "cab47fec6a2a2fb3f097f581b889e6d581b71bf1145cc2d6a46ff104f03f0cbe"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=73.jsonl.gz",
+      "record_count": 44267,
+      "bytes": 2928946,
+      "sha256": "b047995e8b778d7f02a591a6488abe655c69b081b9ef73b7ba78271ff6a46e4d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=74.jsonl.gz",
+      "record_count": 34685,
+      "bytes": 2299426,
+      "sha256": "2446d36547e154bd143bf3a7554d3bd636c37696821b8f0c3d904d2da30fa51a"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=75.jsonl.gz",
+      "record_count": 312900,
+      "bytes": 20779949,
+      "sha256": "6bd16eb7af24b0353015feed7b34a26deadddfe37b34f1a3d4cc4b9b98149a91"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=76.jsonl.gz",
+      "record_count": 202538,
+      "bytes": 13438476,
+      "sha256": "ad0075e9838a0278c7b39aaafc6580648ed0227708e417b74cb46b05ace2b476"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=77.jsonl.gz",
+      "record_count": 389443,
+      "bytes": 25862685,
+      "sha256": "89839bc12442d4aab05a979e963342a9cfde1073a81a0ac9c696bd8ccc73da6e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=78.jsonl.gz",
+      "record_count": 343955,
+      "bytes": 22836066,
+      "sha256": "2b4afcdf83705cb1952b78475165c400f77508a57d5c5c2358992090b096f3a8"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=79.jsonl.gz",
+      "record_count": 121806,
+      "bytes": 8037358,
+      "sha256": "64d67b05abffa4da14a527c302827855738c772b8ce969dcd352b056430d08e4"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=80.jsonl.gz",
+      "record_count": 110469,
+      "bytes": 7318636,
+      "sha256": "5875d0ce298e87274b08aab9ecc234ee035d17112a35f5db9d0101101c20e2b9"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=81.jsonl.gz",
+      "record_count": 27317,
+      "bytes": 1797643,
+      "sha256": "b34c8c33dfc30cb4f17983b7212fda62fd6c0ad74c3baa85ffadd6920126c261"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=82.jsonl.gz",
+      "record_count": 14703,
+      "bytes": 964932,
+      "sha256": "9cf24bf50b765774a93b7a56237b3efb0c88a72f72bec7e2792021bd8565693d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=83.jsonl.gz",
+      "record_count": 35430,
+      "bytes": 2342142,
+      "sha256": "d221c3b6cb04679fecb4570485ad158c352c9d36cc997c098c28f858d333b810"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=84.jsonl.gz",
+      "record_count": 63783,
+      "bytes": 4221613,
+      "sha256": "e534934bbdf3e45cb76fc46be389f6065fc959c6286da43a22aa52d6fb792c2d"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=85.jsonl.gz",
+      "record_count": 89529,
+      "bytes": 5939044,
+      "sha256": "3ed46444d9e4b0bc1c4a840391cc6286c8a3bd047865d3a7d177193490185e6e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=86.jsonl.gz",
+      "record_count": 9314,
+      "bytes": 610082,
+      "sha256": "d5013f031ee1361376c2c209e1a3af770527f9eab4aa1901b37fe2936ad2db59"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=87.jsonl.gz",
+      "record_count": 24546,
+      "bytes": 1609568,
+      "sha256": "81a13324bd872997f103b8d58e0ac7045e93c17677852105a0f58e28eef8aa7e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=88.jsonl.gz",
+      "record_count": 15580,
+      "bytes": 1015573,
+      "sha256": "d93acbb678444adf6a31742d3ceaf86ee9547fbb48a94c05968d3f1119500c78"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=89.jsonl.gz",
+      "record_count": 44173,
+      "bytes": 2913987,
+      "sha256": "5f2006172c0fcdc0e889dfae3e478ba465c8031bdb8e627ff058a4b523d32943"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=90.jsonl.gz",
+      "record_count": 547658,
+      "bytes": 35856544,
+      "sha256": "480f92ba150621fec76392247d5d1aeaf558771f8afe2ca09c6d842283cf3002"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=91.jsonl.gz",
+      "record_count": 407938,
+      "bytes": 26643782,
+      "sha256": "71b6136c563ef06b82ad0928f96cea2884706292f350cab70622f0a145171e75"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=92.jsonl.gz",
+      "record_count": 286609,
+      "bytes": 19045305,
+      "sha256": "04910f303656cebbf4da60fd7962e7329e2863584bc3882f3980d6431f1e51c7"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=93.jsonl.gz",
+      "record_count": 151185,
+      "bytes": 10000826,
+      "sha256": "dba60315bf2c944e692d48eb205b437eb031de2d00944d2158846fc1c447b45e"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=94.jsonl.gz",
+      "record_count": 161245,
+      "bytes": 10712003,
+      "sha256": "ea9fa9c0993fb8a069ae8451ee68e56ca4bc16ef291026221018839f30c631fc"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=95.jsonl.gz",
+      "record_count": 193780,
+      "bytes": 12899933,
+      "sha256": "e1de5230c69c1ae34565086670c3dc8253669853a803ccf4857b7ac862f531b6"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=96.jsonl.gz",
+      "record_count": 34908,
+      "bytes": 2295061,
+      "sha256": "66ca52f34ab3e80522f4e1045cb53ece80769491b3e2bde3429c05c6d92896ec"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=97.jsonl.gz",
+      "record_count": 71278,
+      "bytes": 4739898,
+      "sha256": "86afab2b8c26bd1de516858760b332297aab336d68d20c9f73b3244a110dcbb2"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=98.jsonl.gz",
+      "record_count": 103500,
+      "bytes": 6909824,
+      "sha256": "771c364d2f6b5f037e5f02e4abb338d5ebaa1c7b5c4515af329ea8770470d236"
+    },
+    {
+      "artifact_type": "business-entity-lifecycle-decision-jsonl-gzip",
+      "path": "decisions/zip2=99.jsonl.gz",
+      "record_count": 124327,
+      "bytes": 10611006,
+      "sha256": "7fc3f58ac2020b7d8b3c4440b468e46ea7f91d17a43b13a66c40012a018ff7a9"
+    }
+  ]
+}
