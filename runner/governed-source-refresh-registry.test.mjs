@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import test from "node:test";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
@@ -32,8 +33,24 @@ test("ten governed refresh descriptors bind exact builders, verifiers, datasets,
 async function fixture(t,sourceId){
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-registry-"));t.after(()=>rm(root,{recursive:true,force:true}));
   const d=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];for(const relative of [d.builder,d.verifier,d.connector,d.policy,d.dataset]){const target=path.join(root,...relative.split("/"));await mkdir(path.dirname(target),{recursive:true});await cp(path.join(APP_ROOT,...relative.split("/")),target);}
+  await mkdir(path.join(root,"config"),{recursive:true});await cp(path.join(APP_ROOT,"config/governed-source-refresh-authorizations.json"),path.join(root,"config/governed-source-refresh-authorizations.json"));
   return {root,d};
 }
+
+test("a separate reviewed receipt authorizes only the exact governed implementation evidence",async t=>{
+  const f=await fixture(t,"co-business-registry"),hold=await validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root});
+  assert.equal(hold.status,"HOLD");assert.equal(hold.authorization,null);
+  const evidenceSha=createHash("sha256").update(JSON.stringify(hold.evidence)).digest("hex"),receipt={
+    schema_version:"governed-source-refresh-authorization@1.0.0",authorization_id:"co-reviewed-fixture",source_id:"co-business-registry",
+    approved_at:"2026-11-12T12:00:00.000Z",approved_by:"test-reviewer",mode:"app-owned-automatic-full-snapshot-refresh",
+    descriptor_evidence_sha256:evidenceSha,permissions:{fresh_acquisition:true,autonomous_acquisition:true,production_pointer_change:true,terms_reviewed:true,source_access_reviewed:true},
+  },registry={schema_version:"governed-source-refresh-authorizations@1.0.0",authorizations:{"co-business-registry":receipt}},file=path.join(f.root,"config/governed-source-refresh-authorizations.json");
+  await writeFile(file,JSON.stringify(registry));
+  const authorized=await validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root});
+  assert.equal(authorized.status,"AUTHORIZED");assert.equal(authorized.dispatchAvailable,true);assert.equal(authorized.autonomousAcquisitionAuthorized,true);assert.equal(authorized.authorization.authorization_id,"co-reviewed-fixture");
+  await writeFile(path.join(f.root,...f.d.builder.split("/")),`${await readFile(path.join(f.root,...f.d.builder.split("/")),"utf8")}\n`);
+  await assert.rejects(validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root}),/authorization receipt is invalid/);
+});
 
 test("governed refresh validation rejects connector, policy and dataset pin drift",async t=>{
   for(const kind of ["connector","policy","dataset"]){await t.test(kind,async t=>{const f=await fixture(t,"co-business-registry"),file=path.join(f.root,...f.d[kind].split("/")),value=JSON.parse(await readFile(file));

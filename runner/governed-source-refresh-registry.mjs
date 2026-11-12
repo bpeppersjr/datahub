@@ -23,6 +23,8 @@ export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntr
 export const GOVERNED_SOURCE_REFRESH_SOURCE_IDS = Object.freeze(rows.map(([,sourceId])=>sourceId));
 
 const sha256=value=>createHash("sha256").update(value).digest("hex");
+const AUTHORIZATION_REGISTRY = "config/governed-source-refresh-authorizations.json";
+const exact=(value,keys)=>value&&typeof value==="object"&&!Array.isArray(value)&&Object.keys(value).sort().join("|")===[...keys].sort().join("|");
 function inside(root,relative){
   if(typeof relative!=="string"||relative.includes("\\")||path.isAbsolute(relative)||relative.split("/").some(part=>!part||part==="."||part===".."))throw new Error("Governed refresh path is invalid.");
   const file=path.resolve(root,...relative.split("/")),rel=path.relative(path.resolve(root),file);
@@ -36,7 +38,28 @@ async function fixedFile(root,relative,maximum=1024*1024){
   return {bytes,sha256:sha256(bytes)};
 }
 
-export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=APP_ROOT}={}){
+function validateAuthorizationRegistry(value){
+  if(!exact(value,["schema_version","authorizations"])||value.schema_version!=="governed-source-refresh-authorizations@1.0.0"
+    ||!value.authorizations||typeof value.authorizations!=="object"||Array.isArray(value.authorizations))throw new Error("Governed refresh authorization registry is invalid.");
+  return value;
+}
+
+function authorizationBinding(sourceId,evidence,registry){
+  const receipt=registry.authorizations[sourceId];
+  if(receipt===undefined)return null;
+  const keys=["schema_version","authorization_id","source_id","approved_at","approved_by","mode","descriptor_evidence_sha256","permissions"];
+  if(!exact(receipt,keys)||receipt.schema_version!=="governed-source-refresh-authorization@1.0.0"
+    ||receipt.source_id!==sourceId||typeof receipt.authorization_id!=="string"||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(receipt.authorization_id)
+    ||typeof receipt.approved_by!=="string"||receipt.approved_by.length<1||receipt.approved_by.length>128
+    ||typeof receipt.approved_at!=="string"||new Date(receipt.approved_at).toISOString()!==receipt.approved_at
+    ||receipt.mode!=="app-owned-automatic-full-snapshot-refresh"
+    ||receipt.descriptor_evidence_sha256!==sha256(JSON.stringify(evidence))
+    ||!exact(receipt.permissions,["fresh_acquisition","autonomous_acquisition","production_pointer_change","terms_reviewed","source_access_reviewed"])
+    ||Object.values(receipt.permissions).some(value=>value!==true))throw new Error(`Governed refresh authorization receipt is invalid for ${sourceId}.`);
+  return Object.freeze(structuredClone(receipt));
+}
+
+export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=APP_ROOT,authorizationRegistry=AUTHORIZATION_REGISTRY}={}){
   const descriptor=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];if(!descriptor)throw new Error("Unsupported governed source refresh.");
   const root=path.resolve(appRoot);if(root!==appRoot)throw new Error("Governed refresh root must be absolute and canonical.");
   const entries=await Promise.all([descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset].map(relative=>fixedFile(root,relative)));
@@ -45,8 +68,12 @@ export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=
     ||dataset.dataset_id!==descriptor.datasetId||dataset.connector!==descriptor.connector||dataset.source_policy!==descriptor.policy
     ||!entries[0].bytes.toString("utf8").includes(`../runner/${sourceId}.mjs`)
     ||!entries[1].bytes.toString("utf8").includes(`export async function ${descriptor.verifierExport}`))throw new Error("Governed source refresh binding drifted from its fixed contract.");
-  return Object.freeze({...descriptor,status:"HOLD",dispatchAvailable:false,freshAcquisitionAuthorized:false,autonomousAcquisitionAuthorized:false,productionPointerChangeAuthorized:false,
-    evidence:[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset].map((relative,index)=>({path:relative,sha256:entries[index].sha256,bytes:entries[index].bytes.length}))});
+  const evidence=[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset].map((relative,index)=>({path:relative,sha256:entries[index].sha256,bytes:entries[index].bytes.length}));
+  const authorizationRead=await fixedFile(root,authorizationRegistry),registry=validateAuthorizationRegistry(JSON.parse(authorizationRead.bytes));
+  if(Object.keys(registry.authorizations).some(id=>!GOVERNED_SOURCE_REFRESH_DESCRIPTORS[id]))throw new Error("Governed refresh authorization registry names an unsupported source.");
+  const authorization=authorizationBinding(sourceId,evidence,registry);
+  return Object.freeze({...descriptor,status:authorization?"AUTHORIZED":"HOLD",dispatchAvailable:Boolean(authorization),freshAcquisitionAuthorized:Boolean(authorization),autonomousAcquisitionAuthorized:Boolean(authorization),productionPointerChangeAuthorized:Boolean(authorization),authorization,
+    authorizationRegistry:{path:authorizationRegistry,sha256:authorizationRead.sha256,bytes:authorizationRead.bytes.length},evidence});
 }
 
 export async function governedSourceRefreshHoldPlan(sourceId){
