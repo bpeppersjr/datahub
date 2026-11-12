@@ -11,9 +11,9 @@ const sha = value => createHash("sha256").update(value).digest("hex");
 const json = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
 const fail = message => { throw new Error(`ZIP denominator gap cohort rejected: ${message}.`); };
 const EXPECTED = Object.freeze({
-  registry_pointer: "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
-  registry_manifest: "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-  registry_zip_artifact: "2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e",
+  registry_pointer: "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+  registry_manifest: "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+  registry_zip_artifact: "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8",
   geography_pointer: "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
   geography_manifest: "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
   zcta_index: "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6",

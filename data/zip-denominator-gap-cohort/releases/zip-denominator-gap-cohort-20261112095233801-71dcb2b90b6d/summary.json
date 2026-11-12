@@ -1,0 +1,63 @@
+{
+  "schema_version": "zip-denominator-gap-cohort@1.0.0",
+  "dataset_id": "zip-denominator-gap-cohort",
+  "created_at": "2026-11-12T09:52:33.801Z",
+  "projection_kind": "pointer-free-retained-zip-denominator-gap-cohort",
+  "bindings": {
+    "registry_pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+    "registry_manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+    "registry_zip_artifact_sha256": "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8",
+    "geography_pointer_sha256": "5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403",
+    "geography_manifest_sha256": "5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b",
+    "zcta_index_sha256": "41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6",
+    "candidate_pointer_sha256": "f73299cbf72f98ffbd61009a022db0ecedbc2a2a0e94487571e12017eb19d54a",
+    "candidate_manifest_sha256": "7b18a2ffdb2448515be8dd9831f0d72c743cba755362e90f508b46c3bc0acace",
+    "candidate_release_id": "national-business-registry-20260907-140848014Z-9b1fdcb8",
+    "postal_candidate_zip_artifact_sha256": "e8a1ac5f1b87c79e3c5f4b550c025f638f19a19bef6301d514589c501d54f4c2"
+  },
+  "counts": {
+    "rows": 48194,
+    "same-code-census-zcta": 33791,
+    "source-contributed-outside-zcta": 14361,
+    "denominator-only-outside-zcta": 41,
+    "explicit-placeholder": 1,
+    "production_only_vs_postal_candidate": 4
+  },
+  "member_sets": {
+    "same-code-census-zcta": {
+      "count": 33791,
+      "member_set_sha256": "dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f"
+    },
+    "source-contributed-outside-zcta": {
+      "count": 14361,
+      "member_set_sha256": "4c14dc70a6dc7efce235c6866fa49dc8bd7545b6bedd53086a9e0bd3f945c56b"
+    },
+    "denominator-only-outside-zcta": {
+      "count": 41,
+      "member_set_sha256": "8cf7668ba58ffd7892f3a3f33ef9d5c09459e5c8eb0420101e7505118ca40b61"
+    },
+    "explicit-placeholder": {
+      "count": 1,
+      "member_set_sha256": "64f277fa6be054fb021b92d8199f38025231e6d3c833a54dd501da394b547ce6"
+    }
+  },
+  "exact_production_only_vs_postal_candidate": [
+    "01065",
+    "01385",
+    "02363",
+    "45730"
+  ],
+  "claims": {
+    "census_zcta_spatial_denominator": 33791,
+    "authoritative_current_usps_zip_denominator": null,
+    "business_count": null,
+    "current_operating_business_count": null,
+    "completeness_percent": null,
+    "state_inferred": false,
+    "deliverability_inferred": false,
+    "network_requests": 0,
+    "current_pointer_written": false,
+    "production_enrollment": false,
+    "production_execution": false
+  }
+}

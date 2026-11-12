@@ -7,6 +7,8 @@ export type Operation = {
     readinessStatus?: 'blocked' | 'operator-attested-awaiting-independent-review' | 'ready-for-normalization-review';
     readinessGates?: Record<string, string>; rowsObserved?: number | null; warnings?: string[];
     adoptedAt?:string; newAcquisitionPerformed?:boolean; summary?:{sourceRunId:string;sourceManifestSha256:string;selectedSha256:string;sourceDates:{issued:string;modified:string;released:string};acquisitionStartedAt:string;acquisitionCompletedAt?:string;acquisitionFailedAt?:string;recoveryCreatedAt?:string;failedSourceRunId?:string;failedSourceReceiptSha256?:string;historicalAcquisitionStatus?:'FAILED';directoryRows:number;statesDcRows:number;territoryRows:number;unknownStateRows:number;states:Record<string,number>;territories:Record<string,number>};
+    okChildcareBatch?: { available: false } | { available: true; accepted_queries: number; rejected_zip5: string;
+      failure_http_status: number; never_issued_queries: number; reused_baseline_source_rows: number };
     plan?: { taskCount?: number }; tasks?: Array<{ task_id: string; source_id?: string; state?: string; status: string }> } | null;
 };
 export function operationLabel(kind: string) {
@@ -23,6 +25,11 @@ export function eligibleOvertureAcquisition(operation: Operation) {
 }
 export function operationEvidence(operation: Operation) {
   const result = operation.result;
+  const batch = result?.okChildcareBatch;
+  if (operation.kind === 'collection' && operation.status === 'FAILED' && batch) {
+    if (!batch.available) return 'Oklahoma childcare ZIP batch: retained details unavailable for verification.';
+    return `Oklahoma childcare ZIP batch: ZIP ${batch.rejected_zip5} returned HTTP ${batch.failure_http_status}. ${batch.accepted_queries} new queries accepted, ${batch.never_issued_queries} never issued. ${batch.reused_baseline_source_rows} source rows came from the previously retained search. Inspection required.`;
+  }
   if(operation.kind==='source-adoption'&&operation.status==='SUCCEEDED'&&result?.receiptIntegrityVerified===true)return 'Existing source replayed at adoption time; no new acquisition. Dated directory rows, not unique businesses or verified current operating sites. No downloads or national promotion.';
   if(operation.kind==='credential-export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return 'Credential rows independently verified. Local review only; not business or physical-site totals.';
   if(operation.kind==='organization-zip-export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return 'Pinned retained-source administrative organization addresses, independently verified. Not physical sites, current operations, or business/site totals.';

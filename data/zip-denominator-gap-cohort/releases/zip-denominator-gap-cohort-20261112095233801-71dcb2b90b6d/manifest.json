@@ -1,0 +1,32 @@
+{
+  "schema_version": "zip-denominator-gap-cohort-manifest@1.0.0",
+  "dataset_id": "zip-denominator-gap-cohort",
+  "release_id": "zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d",
+  "status": "immutable-local-derived-release",
+  "publication_mode": "pointer-free",
+  "created_at": "2026-11-12T09:52:33.801Z",
+  "clock_policy": {
+    "source_time_lower_bound": "2026-09-11T02:26:52.067Z",
+    "maximum_future_skew_ms": 300000,
+    "manifest_mtime_tolerance_ms": 60000,
+    "release_id_timestamp_digits": 17
+  },
+  "current_pointer": null,
+  "network_requests": 0,
+  "production_enrollment": false,
+  "production_execution": false,
+  "artifacts": [
+    {
+      "path": "summary.json",
+      "bytes": 2661,
+      "sha256": "757a88ef3384899164c1a35c39a1cd4be6b2fff05d3731f5e74365167c8d4cfd",
+      "record_count": 1
+    },
+    {
+      "path": "cohort.jsonl",
+      "bytes": 83379683,
+      "sha256": "cb3ba83b13d3a7d91442c00fbbfb239d5de25e7116cec6f97c87aec82dcd3a3c",
+      "record_count": 48194
+    }
+  ]
+}

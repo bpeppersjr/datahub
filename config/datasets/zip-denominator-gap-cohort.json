@@ -7,13 +7,13 @@
   "production_enrollment": false,
   "national_denominator_enrollment": false,
   "retained_release": {
-    "release_id": "zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb",
-    "manifest": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb/manifest.json",
-    "manifest_sha256": "792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea",
-    "summary_sha256": "1d352390604dfde65dcb25bdebde4393d0575990e844f45cc37f856df3b47389",
-    "cohort_sha256": "c33c344ddf23c1ac3cc13bfa21365f80b6f489ae318e0d68e94cbb4f381fa3d9",
+    "release_id": "zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d",
+    "manifest": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d/manifest.json",
+    "manifest_sha256": "30a5027eb2cce3c21ed5f01743419559eb8739bf0498c6b6cd9570a1ecafe2b1",
+    "summary_sha256": "757a88ef3384899164c1a35c39a1cd4be6b2fff05d3731f5e74365167c8d4cfd",
+    "cohort_sha256": "cb3ba83b13d3a7d91442c00fbbfb239d5de25e7116cec6f97c87aec82dcd3a3c",
     "rows": 48194,
-    "created_at": "2026-10-03T07:22:43.230Z"
+    "created_at": "2026-11-12T09:52:33.801Z"
   },
   "claims": {
     "authoritative_current_usps_zip_denominator": null,

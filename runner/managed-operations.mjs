@@ -26,6 +26,7 @@ import {getNyBusinessRegistryRefreshReadiness,NY_BUSINESS_REGISTRY_REFRESH_SOURC
 import {getRetainedBusinessRefreshReadiness,RETAINED_BUSINESS_REFRESH_DESCRIPTORS,RETAINED_BUSINESS_REFRESH_SOURCE_IDS} from './retained-business-refresh-readiness.mjs';
 import {GOVERNED_SOURCE_REFRESH_SOURCE_IDS,governedSourceRefreshHoldPlan,validateGovernedSourceRefreshDescriptor} from './governed-source-refresh-registry.mjs';
 import {assertAutomaticRefreshAuthorized,loadAutomaticRefreshAuthorizations} from './automatic-refresh-authorization.mjs';
+import { OK_HISTORICAL_BATCH_OPERATION, OK_HISTORICAL_BATCH_ROOT } from './ok-childcare-batch-history.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
 const SOURCE_REFRESH_DISPATCH=new Map([
   [IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,{readiness:getIaBusinessRegistryRefreshReadiness,rejection:"ACQUISITION_NOT_AUTHORIZED: Iowa refresh remains on the reviewed source-assessment HOLD; no operation was created."}],
@@ -479,6 +480,11 @@ export class ManagedOperations {
           ...(task.cancellation?.requested === true ? { cancellation: { requested: true, childExitSucceeded: task.cancellation.child_exit_succeeded === true, outputState: "inspection-required" } } : {}),
         }));
       } catch { /* No child receipt yet; keep the operation's recorded state. */ }
+      if (record.id === OK_HISTORICAL_BATCH_OPERATION && record.status === 'FAILED'
+        && this.root === path.join(APP_ROOT, 'data/managed-operations')) {
+        const { inspectOkChildcareBatchStatus } = await import('./ok-childcare-batch-status.mjs');
+        snapshot.result.okChildcareBatch = await inspectOkChildcareBatchStatus(OK_HISTORICAL_BATCH_ROOT);
+      }
     }
     return snapshot;
   }

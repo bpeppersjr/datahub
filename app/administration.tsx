@@ -1258,6 +1258,9 @@ export default function Administration() {
         <section aria-labelledby="maintained-industries-heading">
           <h3 id="maintained-industries-heading">Maintained industries</h3>
           <p>The saved selection sets defaults for collection and refresh planning. Downloads and recurring schedules have their own controls.</p>
+          <p className="scope-note">
+            This selection records local maintenance intent only; it does not authorize acquisition, start downloads, prove coverage, or change production enrollment.
+          </p>
           <div className="administration-actions">
             <button type="button" disabled={saving} onClick={() => setSelected(view.industries.map(({ id }) => id))}>Select all</button>
             <button type="button" disabled={saving} onClick={() => setSelected([])}>Select none</button>

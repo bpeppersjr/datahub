@@ -1,5 +1,13 @@
 # Oklahoma retained batch status projection
 
+## September 10 journal compatibility
+
+The standalone status command and the failed collection entry in Data Operations can verify the September 10 journal after current implementation hashes change. The historical reader applies to approval `78ec4fe1-dac0-40e9-aac7-e5672f67f7fe` and collection `c12cb298-a6be-4493-811b-0196d7905488`. It checks the original plan, first ZIP intent and result, dispatch intent with its embedded approval and scope hash, and terminal managed receipt against fixed SHA-256 pins. It also independently replays the linked ZIP `73102` retained bundle. Missing or altered evidence leaves the counts unavailable. Replacing or revoking the current approval does not rewrite the archived dispatch intent.
+
+The verified journal records one rejection for ZIP `66778` after HTTP 502, 665 never-issued queries, zero accepted new queries, and a separately retained four-row baseline. The collection remains `FAILED`, with inspection required. This read-only status has no retry or acquisition authority, grants no export permission, and makes no statewide completeness claim. Other batch paths still use current implementation pins.
+
+The paragraphs below describe the original September status-reader release.
+
 The app-owned Oklahoma acquisition adapter and approval-bound handoff are already implemented. The September 10 dispatch failed on its first search response (HTTP 502); this slice does not build another collector, authorize recovery, retry any intent, replace an approval or change a receipt.
 
 `runner/ok-childcare-batch-status.mjs` adds a pure typed projection and a read-only wrapper around the existing `inspectOkZipBatch`. `scripts/inspect-ok-childcare-batch-status.mjs --output ABSOLUTE_PATH` exposes it without modifying the original collection CLI. The original CLI belongs to the approved implementation hash roster: even editing its inspect-only output would change the regenerated plan hash. Every existing pinned implementation file remains untouched in this slice.

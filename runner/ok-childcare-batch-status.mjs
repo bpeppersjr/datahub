@@ -3,6 +3,7 @@ import {isDeepStrictEqual as same} from 'node:util';
 import {mnSelectionReadJson as readJson} from './mn-construction-retained-selection.mjs';
 import {inspectOkZipBatch} from './ok-childcare-zip-batch.mjs';
 import {okRetainedHash as hash} from './ok-childcare-retained-contract.mjs';
+import {OK_HISTORICAL_BATCH_ROOT,readOkChildcareBatchHistory} from './ok-childcare-batch-history.mjs';
 const fail=()=>{throw Error('Oklahoma batch status projection rejected.');};
 const count=n=>Number.isSafeInteger(n)&&n>=0;
 const sha=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
@@ -41,11 +42,16 @@ export function projectOkChildcareBatchStatus(state,plannedZip5){
   query_conservation:'planned_new = accepted + rejected + unresolved_intent + never_issued; baseline reuse is separate',...claims};
 }
 
-/** Read-only wrapper; current-pins failures do not authorize historical bypass or retry. */
+/** Read-only wrapper. The archived journal and current plans use separate verification paths. */
 export async function inspectOkChildcareBatchStatus(outputRoot,{signal}={}){
  signal?.throwIfAborted();
  if(typeof outputRoot!=='string'||outputRoot!==path.resolve(outputRoot))fail();
+ const historical=outputRoot===OK_HISTORICAL_BATCH_ROOT;
  try{
+  if(historical){
+   const {state,plan,provenance}=await readOkChildcareBatchHistory({signal});
+   return {...projectOkChildcareBatchStatus(state,plan.zip5),...provenance,verification_mode:'historical-digest-pinned-retained-inspector'};
+  }
   // Existing inspector owns root admissibility, journal replay and current implementation pins.
   const state=await inspectOkZipBatch(outputRoot,{signal});
   const meter={},saved=await readJson(path.join(outputRoot,'plan.json'),7000000,signal,meter);
@@ -56,7 +62,7 @@ export async function inspectOkChildcareBatchStatus(outputRoot,{signal}={}){
   return {...projected,verification_mode:'current-pinned-retained-inspector',plan_file_sha256:meter.sha256};
  }catch(error){if(signal?.aborted)throw error;
   return {schema_version:'ok-childcare-batch-status@1.0.0',available:false,status:'inspection-required',verification_mode:'unavailable',
-   reason:'current-pinned-retained-inspection-not-verified',planned_new_queries:null,terminal_queries:null,accepted_queries:null,rejected_queries:null,
+   reason:historical?'historical-pinned-retained-inspection-not-verified':'current-pinned-retained-inspection-not-verified',planned_new_queries:null,terminal_queries:null,accepted_queries:null,rejected_queries:null,
    unresolved_intent_queries:null,never_issued_queries:null,accepted_query_source_rows:null,reused_baseline_queries:null,reused_baseline_source_rows:null,...claims};
  }
 }
