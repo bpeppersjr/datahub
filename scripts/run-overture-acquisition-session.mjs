@@ -6,23 +6,27 @@ import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION } from '../runner/overture-us-p
 
 const args = process.argv.slice(2);
 const flags = ['--output', '--operation-id', '--metadata-operation-id', '--runtime-operation-id', '--metadata-sha256', '--runtime-sha256', '--authorization'];
+const resumeFlags = ['--resume-operation-id', '--resume-receipt-sha256'];
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const sha = /^[a-f0-9]{64}$/;
 if (args.length === 1 && args[0] === '--help') {
-  console.log('Usage: node scripts/run-overture-acquisition-session.mjs ' + flags.map(flag => `${flag} VALUE`).join(' ') + '\nRequires explicit large-acquisition confirmation and pinned successful prerequisite operations. No automatic prerequisite downloads, retries or publication.');
+  console.log('Usage: node scripts/run-overture-acquisition-session.mjs ' + flags.map(flag => `${flag} VALUE`).join(' ')
+    + ' [--resume-operation-id ID --resume-receipt-sha256 SHA256]\nRequires explicit large-acquisition confirmation and pinned successful prerequisite operations. No automatic prerequisite downloads, retries or publication.');
 } else {
   let fields;
   try {
-    if (args.length !== 14) throw Error('arguments');
+    if (![14, 18].includes(args.length)) throw Error('arguments');
     fields = new Map();
     for (let index = 0; index < args.length; index += 2) {
       const flag = args[index], value = args[index + 1];
-      if (!flags.includes(flag) || fields.has(flag) || !value || value.startsWith('--')) throw Error('arguments');
+      if (![...flags, ...resumeFlags].includes(flag) || fields.has(flag) || !value || value.startsWith('--')) throw Error('arguments');
       fields.set(flag, value);
     }
-    if (fields.size !== flags.length || fields.get('--authorization') !== OVERTURE_LARGE_ACQUISITION_CONFIRMATION
-      || !['--operation-id', '--metadata-operation-id', '--runtime-operation-id'].every(flag => uuid.test(fields.get(flag)))
-      || new Set(['--operation-id', '--metadata-operation-id', '--runtime-operation-id'].map(flag => fields.get(flag))).size !== 3
+    const idFlags = ['--operation-id', '--metadata-operation-id', '--runtime-operation-id'];
+    if (args.length === 18) idFlags.push(resumeFlags[0]);
+    if (!flags.every(flag => fields.has(flag)) || fields.get('--authorization') !== OVERTURE_LARGE_ACQUISITION_CONFIRMATION
+      || !idFlags.every(flag => uuid.test(fields.get(flag))) || new Set(idFlags.map(flag => fields.get(flag))).size !== idFlags.length
+      || (args.length === 18 && !sha.test(fields.get(resumeFlags[1])))
       || !['--metadata-sha256', '--runtime-sha256'].every(flag => sha.test(fields.get(flag)))
       || fields.get('--output') !== path.resolve(fields.get('--output')) || path.basename(fields.get('--output')) !== 'output'
       || path.basename(path.dirname(fields.get('--output'))) !== fields.get('--operation-id')) throw Error('arguments');
@@ -30,8 +34,9 @@ if (args.length === 1 && args[0] === '--help') {
     fields = null; console.error('Invalid bounded Overture acquisition arguments.'); process.exitCode = 1;
   }
   if (fields) {
-    const cancellation = createCliCancellation();
+    const cancellation = createCliCancellation({ abortOnDisconnect: true });
     try {
+      if (typeof process.send === 'function' && !process.connected) throw Error('managed parent disconnected');
       const output = fields.get('--output'), root = path.dirname(path.dirname(output));
       async function prerequisite(name, sourceId, readiness) {
         const operationId = fields.get(`--${name}-operation-id`);
@@ -49,8 +54,16 @@ if (args.length === 1 && args[0] === '--help') {
       }
       const metadata = await prerequisite('metadata', 'overture-source-preflight', 'metadataReady');
       const runtime = await prerequisite('runtime', 'overture-httpfs-runtime', 'runtimeReady');
+      const resume = fields.has(resumeFlags[0]) ? { operationId: fields.get(resumeFlags[0]), receiptSha256: fields.get(resumeFlags[1]) } : null;
+      if (resume) {
+        const operationId = fields.get('--operation-id');
+        const record = await mnSelectionReadJson(path.join(root, operationId, 'receipt.json'), 1024 ** 2, cancellation.signal);
+        if (record.id !== operationId || record.status !== 'RUNNING' || record.kind !== 'source-acquisition'
+          || record.details?.sourceId !== 'overture-us-places' || record.details.resume?.operationId !== resume.operationId
+          || record.details.resume?.receiptSha256 !== resume.receiptSha256) throw Error('managed recovery required');
+      }
       const descriptor = await runOvertureAcquisitionSession({ output, operationId: fields.get('--operation-id'), metadata, runtime,
-        authorization: fields.get('--authorization'), signal: cancellation.signal });
+        authorization: fields.get('--authorization'), signal: cancellation.signal, resume });
       console.log(JSON.stringify(descriptor)); if (descriptor.cancellation_after_publication) process.exitCode = 1;
     } catch (error) {
       if (error?.recovery) console.log(JSON.stringify({ recovery: error.recovery }));

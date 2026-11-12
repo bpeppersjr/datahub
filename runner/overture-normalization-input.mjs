@@ -39,7 +39,10 @@ async function resolve(options, synthetic) {
     if (!isDeepStrictEqual(actual, expected) || !uuid(actual?.operation_id) || !sha(actual?.descriptor?.sha256)) fail();
   }
   const selected = manifest.selected;
-  if (typeof selected?.path !== 'string' || !/^engine\/[a-f0-9-]{36}\/selected\/[a-f0-9-]{36}\/selected-us-places\.jsonl\.gz$/.test(selected.path)
+  const selectedPathValid = manifest.schema_version === 'overture-acquisition-session@2.0.0'
+    ? selected?.path === 'selected/selected-us-places.jsonl.gz'
+    : typeof selected?.path === 'string' && /^engine\/[a-f0-9-]{36}\/selected\/[a-f0-9-]{36}\/selected-us-places\.jsonl\.gz$/.test(selected.path);
+  if (!selectedPathValid
     || !sha(selected.sha256) || !Number.isSafeInteger(selected.bytes) || selected.bytes < 1 || selected.bytes > 4 * 1024 ** 3
     || !Number.isSafeInteger(selected.record_count) || selected.record_count < 0 || selected.record_count > 20000000) fail();
   const end = {}; await readJson(filename, 1024 ** 2, signal, end);

@@ -15,7 +15,7 @@ const SHA = /^[a-f0-9]{64}$/;
 const STATUS = 'selected-source-retained-not-published';
 const descriptorKeys = ['run_id','operation_id','manifest','sha256','status','cancellation_after_publication'];
 const claimKeys = ['native_acquisition_verified','normalized_businesses_published','complete_us_business_coverage','restart_resume_supported','process_memory_cap_enforced','hard_deadline_enforced','public_export_authorized'];
-const settings = { threads:'1',memory_limit:'2GiB',max_temp_directory_size:'4GiB',home_directory:'owned-run-directory',extension_directory:'owned-run-directory',temp_directory:'owned-run-directory',autoinstall_known_extensions:'false',autoload_known_extensions:'false',allow_unsigned_extensions:'false',allow_community_extensions:'false',enable_external_access:'true',http_retries:'0',auto_fallback_to_full_download:'false',force_download:'false',force_download_threshold:'0',http_timeout:'30',enable_server_cert_verification:'true',enable_curl_server_cert_verification:'true' };
+export const OVERTURE_ENGINE_RECEIPT_SETTINGS = Object.freeze({ threads:'1',memory_limit:'2GiB',max_temp_directory_size:'4GiB',home_directory:'owned-run-directory',extension_directory:'owned-run-directory',temp_directory:'owned-run-directory',autoinstall_known_extensions:'false',autoload_known_extensions:'false',allow_unsigned_extensions:'false',allow_community_extensions:'false',enable_external_access:'true',http_retries:'0',auto_fallback_to_full_download:'false',force_download:'false',force_download_threshold:'0',http_timeout:'30',enable_server_cert_verification:'true',enable_curl_server_cert_verification:'true' });
 const exact = (v, keys) => v && Object.getPrototypeOf(v) === Object.prototype && Reflect.ownKeys(v).length === keys.length && keys.every(k => Object.hasOwn(v,k)) && Object.values(Object.getOwnPropertyDescriptors(v)).every(d => Object.hasOwn(d,'value'));
 const fail = () => { throw new Error('Overture acquisition receipt rejected; preserve retained evidence for inspection.'); };
 const integer = (v,max) => Number.isSafeInteger(v) && v >= 0 && v <= max;
@@ -23,7 +23,7 @@ const iso = v => typeof v === 'string' && Number.isFinite(Date.parse(v)) && new 
 const same = (a,b) => a.dev === b.dev && a.ino === b.ino && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs && !b.isSymbolicLink();
 const equivalent = (a,b) => exact(a,Object.keys(b)) && Object.keys(b).every(k => a[k] === b[k]);
 
-async function selectedFile(filename, selected) {
+export async function validateOvertureSelectedFile(filename, selected, {signal, onCompressed} = {}) {
   await canonical(path.dirname(filename));
   const initial = await lstat(filename,{bigint:true});
   if (!initial.isFile() || initial.isSymbolicLink() || initial.nlink !== 1n || initial.size !== BigInt(selected.bytes)) fail();
@@ -36,7 +36,8 @@ async function selectedFile(filename, selected) {
         const buffer = Buffer.alloc(65536), {bytesRead} = await handle.read(buffer,0,buffer.length,null);
         if (!bytesRead) break;
         compressed += bytesRead; if (compressed > selected.bytes) fail();
-        const chunk = buffer.subarray(0,bytesRead); digest.update(chunk); yield chunk;
+        signal?.throwIfAborted();
+        const chunk = buffer.subarray(0,bytesRead); digest.update(chunk); await onCompressed?.(chunk); yield chunk;
       }
     }
     await pipeline(Readable.from(chunks()),createGunzip(),async source => {
@@ -52,7 +53,7 @@ async function selectedFile(filename, selected) {
         }
         if (pending.length > 16 * 1024 ** 2) fail();
       }
-    });
+    },{signal});
     if (pending.length || compressed !== selected.bytes || raw !== selected.uncompressed_bytes || count !== selected.record_count || digest.digest('hex') !== selected.sha256) fail();
     for (const current of [await handle.stat({bigint:true}),await lstat(filename,{bigint:true})]) if (!same(initial,current) || current.nlink !== 1n || !current.isFile()) fail();
     return initial;
@@ -61,8 +62,10 @@ async function selectedFile(filename, selected) {
 
 async function inspect(descriptor,options,synthetic) {
   const keys = ['output','operationId']; if (options && Object.hasOwn(options,'startedAt')) keys.push('startedAt');
+  if (options && Object.hasOwn(options, 'signal')) keys.push('signal');
   if (!exact(options,keys) || typeof options.output !== 'string' || options.output !== path.resolve(options.output) || typeof options.operationId !== 'string' || !UUID.test(options.operationId)
-    || path.basename(options.output) !== 'output' || path.basename(path.dirname(options.output)) !== options.operationId || (options.startedAt !== undefined && !iso(options.startedAt))) fail();
+    || path.basename(options.output) !== 'output' || path.basename(path.dirname(options.output)) !== options.operationId || (options.startedAt !== undefined && !iso(options.startedAt))
+    || (options.signal !== undefined && !(options.signal instanceof AbortSignal))) fail();
   if (!exact(descriptor,descriptorKeys) || typeof descriptor.run_id !== 'string' || !UUID.test(descriptor.run_id) || descriptor.operation_id !== options.operationId || typeof descriptor.sha256 !== 'string' || !SHA.test(descriptor.sha256) || descriptor.status !== STATUS || typeof descriptor.cancellation_after_publication !== 'boolean') fail();
   descriptor = {...descriptor}; options = {...options};
   const directory = path.join(options.output,'jobs',descriptor.run_id);
@@ -82,7 +85,7 @@ async function inspect(descriptor,options,synthetic) {
   }
   const metadata = await prerequisites(), engine = manifest.engine, selected = manifest.selected, journal = manifest.journal;
   if (!selected || selected.record_count > metadata.declared_global_rows) fail();
-  if (!exact(engine,['directory','query_fingerprint','engine_settings']) || typeof engine.directory !== 'string' || !engine.directory.startsWith('engine/') || !UUID.test(engine.directory.slice(7)) || engine.query_fingerprint !== overtureStreamingQueryFingerprint(metadata.asset_count) || !equivalent(engine.engine_settings,settings)) fail();
+  if (!exact(engine,['directory','query_fingerprint','engine_settings']) || typeof engine.directory !== 'string' || !engine.directory.startsWith('engine/') || !UUID.test(engine.directory.slice(7)) || engine.query_fingerprint !== overtureStreamingQueryFingerprint(metadata.asset_count) || !equivalent(engine.engine_settings,OVERTURE_ENGINE_RECEIPT_SETTINGS)) fail();
   const planMeter = {}, plan = await readJson(path.join(directory,'plan.json'),1024**2,undefined,planMeter);
   if (planMeter.sha256 !== manifest.plan_sha256 || !exact(plan,['schema_version','run_id','operation_id','execution_mode','started_at','metadata_reference','runtime_reference','asset_urls','query_fingerprint'])) fail();
   for (const key of ['schema_version','run_id','operation_id','execution_mode','started_at','metadata_reference','runtime_reference']) if (JSON.stringify(plan[key]) !== JSON.stringify(manifest[key])) fail();
@@ -100,7 +103,7 @@ async function inspect(descriptor,options,synthetic) {
     }
   }
   await inventory();
-  const selectedIdentity = await selectedFile(path.join(directory,selected.path),selected);
+  const selectedIdentity = await validateOvertureSelectedFile(path.join(directory,selected.path),selected);
   const replay = await inspectOvertureAcquisitionJournal(path.join(directory,journal.directory),{operationId:options.operationId});
   if (replay.pending_request !== null || replay.execution_mode !== manifest.execution_mode || replay.sha256 !== journal.sha256 || !equivalent(journal.counters,replay.counters) || replay.counters.requests_reserved !== replay.counters.requests_completed) fail();
   const expectedTransport = {requests_reserved:replay.counters.requests_reserved,fetch_calls:replay.counters.requests_reserved,bytes_reserved:replay.counters.bytes_reserved,bytes_observed:replay.counters.bytes_observed,bytes_delivered:replay.counters.bytes_delivered};
@@ -122,5 +125,15 @@ async function inspect(descriptor,options,synthetic) {
   return {manifest,sha256:descriptor.sha256,verification:{artifact_integrity_verified:true,selected_field_contract_verified:true,native_source_replayed:false}};
 }
 
-export async function readOvertureAcquisitionSession(descriptor,options) { try { return await inspect(descriptor,options,false); } catch { fail(); } }
-export async function readOvertureAcquisitionSessionForTest(descriptor,options) { try { return await inspect(descriptor,options,true); } catch { fail(); } }
+async function readSession(descriptor, options, synthetic) {
+  if (!exact(descriptor, descriptorKeys) || !UUID.test(descriptor.run_id) || typeof options?.output !== 'string'
+    || descriptor.manifest !== path.join(options.output, 'jobs', descriptor.run_id, 'manifest.json')) fail();
+  const manifest = await readJson(descriptor.manifest, 1024 ** 2);
+  if (manifest.schema_version === 'overture-acquisition-session@2.0.0') {
+    const { readCheckpointedAcquisition } = await import('./overture-checkpointed-acquisition.mjs');
+    return readCheckpointedAcquisition(descriptor, options, synthetic);
+  }
+  return inspect(descriptor, options, synthetic);
+}
+export async function readOvertureAcquisitionSession(descriptor,options) { try { return await readSession(descriptor,options,false); } catch { fail(); } }
+export async function readOvertureAcquisitionSessionForTest(descriptor,options) { try { return await readSession(descriptor,options,true); } catch { fail(); } }

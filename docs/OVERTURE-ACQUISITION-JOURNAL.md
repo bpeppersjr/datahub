@@ -14,7 +14,7 @@ The journal bounds accounting to 100,000 requests, 32 GiB reserved payload, 64 M
 
 `inspectOvertureAcquisitionJournal(directory, {operationId})` performs bounded, stable, single-link replay of the exact directory/file inventory and event sequence. It returns a file SHA-256, counters and a pending request index if present. It always reports `incomplete-acquisition-evidence`, even when every reservation has a completion. Neither a caller-supplied execution-mode label nor valid accounting proves native source acquisition, authenticity, output integrity or completeness.
 
-The inspector does not resume a process, retry a fetch or authorize a new run. Torn/malformed records are rejected and left for inspection; a well-formed prefix remains incomplete evidence. Separate creations use new run directories and never overwrite an earlier journal. There is no cross-process exclusion or shared/restart budget in this library. A future managed worker must bind the journal hash to immutable asset identities, retained runtime, selected output and its final operation receipt, and classify uncertain termination explicitly.
+The standalone inspector retains its strict complete-line replay. In v2 managed acquisition, a checkpoint journal contains the requests for one asset. Recovery can count the complete reservation prefix of an interrupted journal while leaving an unterminated final line on disk. Every complete line must pass sequence and budget validation. The transport syncs a reservation before issuing its request, so even a torn completion retains its prior reservation. The managed acquisition composes these journals with its cross-process lock, shared recovery budget, pinned asset identities, and verified selected outputs.
 
 ## Verification scope
 

@@ -125,14 +125,16 @@ async function create(options) {
     execution_mode: header.execution_mode, counters: { ...state.counters }, pending_request: state.pending?.request_index ?? null, claims: claims() }) };
 }
 
-async function inspect(directory, options) {
+async function inspect(directory, options, recovery) {
   if (!exact(options, ['operationId']) || typeof options.operationId !== 'string' || !UUID.test(options.operationId) || typeof directory !== 'string'
     || directory !== path.resolve(directory) || !UUID.test(path.basename(directory))) reject();
   options = { ...options };
   await inventory(directory);
   const owner = await lstat(directory, { bigint: true }), meter = {};
-  let header, state = initial(), count = 0;
-  for await (const line of readLines(path.join(directory, 'events.jsonl'), MAX_BYTES, undefined, meter)) {
+  let header, state = initial(), count = 0, firstMethod, heads = 0;
+  const methods = new Set();
+  for await (const line of readLines(path.join(directory, 'events.jsonl'), MAX_BYTES, recovery?.signal, meter,
+    { allowUnterminatedTail: recovery?.allowUnterminatedTail === true })) {
     count++;
     if (count === 1) {
       if (!exact(line, ['type','schema_version','operation_id','run_id','execution_mode','asset_count'])
@@ -140,16 +142,32 @@ async function inspect(directory, options) {
         || line.run_id !== path.basename(directory) || !MODES.includes(line.execution_mode)
         || !Number.isSafeInteger(line.asset_count) || line.asset_count < 1 || line.asset_count > 32) reject();
       header = line;
-    } else state = advance(state, line, header);
+    } else {
+      state = advance(state, line, header);
+      if (line.type === 'request-reserved') {
+        firstMethod ??= line.method;
+        if (line.method === 'HEAD') heads++;
+      }
+      if (line.type === 'request-completed') methods.add(line.method);
+    }
   }
-  if (!header) reject();
+  if (!header && !recovery?.allowUnterminatedTail) reject();
   await inventory(directory, owner);
   return { status: 'incomplete-acquisition-evidence', counters: { ...state.counters }, pending_request: state.pending?.request_index ?? null,
-    execution_mode: header.execution_mode, sha256: meter.sha256, claims: claims() };
+    execution_mode: header?.execution_mode ?? null, sha256: meter.sha256, claims: claims(),
+    ...(recovery ? { asset_count: header?.asset_count ?? null, completed_methods: [...methods], first_method: firstMethod ?? null,
+      head_requests: heads, unterminated_tail_bytes: meter.unterminatedTailBytes ?? 0 } : {}) };
 }
 
 export async function inspectOvertureAcquisitionJournal(directory, options) {
   try { return await inspect(directory, options); } catch { reject(); }
+}
+
+// The transport syncs the entire reservation line before starting a fetch.
+// For an interrupted attempt, only the last unterminated write can be ignored.
+// If it was a completion, its preceding reservation remains fully counted.
+export async function inspectOvertureAcquisitionCheckpointJournal(directory, operationId, recovery) {
+  try { return await inspect(directory, { operationId }, recovery); } catch { reject(); }
 }
 
 export async function createOvertureAcquisitionJournal(options) {

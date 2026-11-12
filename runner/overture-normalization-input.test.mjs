@@ -35,6 +35,16 @@ test('synthetic binding preserves every dependency hash with no publication clai
   assert.equal(resolved.binding.normalized_published, false);
   assert.equal(resolved.sourceFile, path.join(path.dirname(f.record.result.snapshot.manifest), f.manifest.selected.path));
 });
+test('normalization binds the verified v2 combined artifact to its selected checkpoint digest', async t => {
+  const f = await fixture(t);
+  f.manifest.schema_version = 'overture-acquisition-session@2.0.0';
+  f.manifest.selected.path = 'selected/selected-us-places.jsonl.gz';
+  const resolved = await read(f.options);
+  assert.equal(resolved.sourceFile, path.join(path.dirname(f.record.result.snapshot.manifest), f.manifest.selected.path));
+  assert.equal(resolved.binding.journal_sha256, f.manifest.journal.sha256);
+  f.manifest.selected.path = 'assets/00/selected-us-places.jsonl.gz';
+  await assert.rejects(read(f.options));
+});
 test('failed, cancelled, incomplete or wrong-source receipts reject before snapshot inspection', async t => {
   const f = await fixture(t), original = structuredClone(f.record);
   for (const mutate of [r => r.status = 'FAILED', r => r.result.snapshotReady = false, r => r.result.inspectionRequired = true,

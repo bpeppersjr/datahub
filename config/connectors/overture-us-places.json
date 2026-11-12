@@ -1,6 +1,6 @@
 {
   "connector_id": "overture-us-places",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "implementation_status": "offline-conformance-and-explicitly-authorized-large-acquisition",
   "description": "Preflights a pinned Overture release and publishes privacy-minimized U.S. place candidates with address latitude/longitude only; remote extraction is blocked unless separately and explicitly authorized.",
   "lifecycle": ["preflight", "plan", "acquire", "validate", "minimize", "normalize", "reconcile", "quality gate", "publish", "finalize"],
@@ -28,14 +28,17 @@
     "maximum_stac_assets": 32,
     "maximum_declared_global_rows": 100000000,
     "large_acquisition_requires_explicit_authorization": true,
+    "managed_recovery_maximum_attempts": 8,
+    "managed_recovery_maximum_reserved_requests": 100000,
+    "managed_recovery_maximum_reserved_response_bytes": 34359738368,
     "store_business_geometry": false
   },
-  "retry": "Retry transient STAC metadata requests with bounded backoff. Do not retry redirects, host/path drift, release mutation, schema drift, duplicate GERS IDs, quality-gate failures, or a missing large-acquisition authorization flag.",
-  "checkpoint": "Pin the latest immutable STAC release and all place assets; after explicit authorization, perform one DuckDB predicate/column-pushdown extraction into a run-scoped minimized source file. Build and verify a separate release before atomically changing current.json.",
-  "idempotency": "The pinned Overture release ID, ordered asset URLs and declared row counts, extraction contract version, selected source checksum, and GERS IDs identify the input snapshot.",
+  "retry": "Retry transient STAC metadata requests with bounded backoff. Each managed recovery attempt requires fresh explicit authorization and the stopped operation ID. Release or asset identity drift fails before further ranges are read.",
+  "checkpoint": "Pin the STAC release, ordered asset URLs, and runtime manifest. Record each asset's strong ETag and length before reading ranges. Checkpoint only a verified privacy-minimized U.S. output with its source identity and journal hash. Recovery reuses verified completed assets and shares cumulative reservations across attempts.",
+  "idempotency": "The pinned metadata and runtime manifests, ordered asset identities, extraction fingerprint, and verified checkpoint and final output hashes bind the selected snapshot.",
   "cancellation": "Abort STAC requests or interrupt DuckDB, close gzip streams, leave the previous current pointer unchanged, and retain no promoted partial release.",
   "source_policy": "config/source-policies/overture-us-places.json",
-  "retention_profile": "Retain pinned STAC metadata, the privacy-minimized U.S. selected source snapshot, governed normalized releases, and checksums. Do not materialize or retain global GeoParquet assets.",
+  "retention_profile": "Retain pinned STAC metadata, privacy-minimized U.S. per-asset checkpoints and selected source snapshots, governed normalized releases, and checksums. Global GeoParquet assets stay remote.",
   "produced_entities": ["physical-site-candidate", "establishment-candidate", "brand-candidate", "source-operating-status-assertion", "reported-address-assertion"],
   "produced_identifiers": ["overture-gers-id", "overture-source-record-id", "zip5", "zip-plus-4", "latitude-longitude"]
 }

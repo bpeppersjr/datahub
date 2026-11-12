@@ -86,6 +86,14 @@ function processPresence(pid) {
   try { process.kill(pid, 0); return "present"; }
   catch (error) { return error.code === "ESRCH" ? "missing" : "unknown"; }
 }
+function managedOwnerMissing(record) {
+  if (processPresence(record.owner?.supervisorPid) !== "missing") return false;
+  if (processPresence(record.owner?.childPid) === "missing") return true;
+  // An Overture child aborts on parent IPC loss and its separate OS-backed
+  // lock prevents a replacement from issuing requests while it drains.
+  return record.kind === "source-acquisition" && record.details?.sourceId === "overture-us-places"
+    && record.details.checkpointFormatVersion === 2 && record.owner?.childPid === undefined;
+}
 function invalid(message) { return Object.assign(new Error(message), { statusCode: 400 }); }
 function conflict(message) { return Object.assign(new Error(message), { code: "OPERATION_CONFLICT", statusCode: 409 }); }
 function validate(action) { try { return action(); } catch (error) { error.statusCode ??= 400; throw error; } }
@@ -145,7 +153,7 @@ export class ManagedOperations {
         const record = JSON.parse(await readFile(path.join(this.root, entry.name, "receipt.json"), "utf8"));
         if (record.id !== entry.name || !["collection", "export", "credential-export", "organization-zip-export", ...PRIVATE_EVIDENCE].includes(record.kind)) continue;
         if (["QUEUED", "RUNNING"].includes(record.status)) {
-          const missing = processPresence(record.owner?.supervisorPid) === "missing" && processPresence(record.owner?.childPid) === "missing";
+          const missing = managedOwnerMissing(record);
           record.status = missing ? "FAILED" : "UNKNOWN"; record.finishedAt = missing ? this.now() : null;
           record.error = missing ? "Operation was interrupted before service restart." : "Operation process ownership remains unresolved; duplicate execution is blocked.";
           if (missing) await atomicJson(path.join(this.root, entry.name, "receipt.json"), record);
@@ -287,10 +295,12 @@ export class ManagedOperations {
   }
   async startOvertureAcquisition(input) {
     const fields = ["metadataOperationId", "runtimeOperationId", "authorization"];
+    if (Object.hasOwn(input ?? {}, "resumeOperationId")) fields.push("resumeOperationId");
     if (!input || Object.getPrototypeOf(input) !== Object.prototype || Reflect.ownKeys(input).length !== fields.length
-      || !fields.every(key => Object.hasOwn(Object.getOwnPropertyDescriptor(input, key) ?? {}, "value"))) throw invalid("Overture acquisition requires explicit prerequisite IDs and authorization only.");
-    const { metadataOperationId, runtimeOperationId, authorization } = input;
+      || !fields.every(key => Object.hasOwn(Object.getOwnPropertyDescriptor(input, key) ?? {}, "value"))) throw invalid("Overture acquisition requires explicit prerequisite IDs, authorization, and an optional resume operation ID.");
+    const { metadataOperationId, runtimeOperationId, authorization, resumeOperationId } = input;
     if (!uuid(metadataOperationId) || !uuid(runtimeOperationId) || metadataOperationId === runtimeOperationId
+      || fields.includes("resumeOperationId") && (!uuid(resumeOperationId) || [metadataOperationId, runtimeOperationId].includes(resumeOperationId))
       || authorization !== OVERTURE_LARGE_ACQUISITION_CONFIRMATION) throw invalid("Overture acquisition requires valid distinct prerequisite IDs and explicit large-acquisition authorization.");
     if (!contained(path.join(APP_ROOT, "data"), this.root) || contained(path.join(APP_ROOT, "data/tmp"), this.root)) throw invalid("Overture acquisition requires native operation storage.");
     await this.ready;
@@ -301,7 +311,21 @@ export class ManagedOperations {
       runtime = await this.#retainedOverturePrerequisite(runtimeOperationId, false);
     } catch { throw conflict("Overture prerequisites are missing, unsafe, or not verified; acquisition is blocked."); }
     await this.#refreshUnknown(); this.#reserve();
-    try { return await this.#start("source-acquisition", { sourceId: "overture-us-places", metadata, runtime, authorization }); }
+    try {
+      let resume;
+      if (resumeOperationId) {
+        try {
+          const prior = this.operations.get(resumeOperationId), meter = {};
+          if (!["FAILED", "CANCELLED"].includes(prior?.status)) throw Error("Prior ownership is unresolved.");
+          await mnSelectionReadJson(path.join(this.root, resumeOperationId, "receipt.json"), 1024 ** 2, undefined, meter);
+          resume = { operationId: resumeOperationId, receiptSha256: meter.sha256 };
+          const { acquisitionPrerequisites, inspectOvertureResumePlan } = await import("./overture-acquisition-checkpoints.mjs");
+          const prerequisites = await acquisitionPrerequisites(metadata, runtime, false);
+          await inspectOvertureResumePlan({ root: this.root, resume, context: { mode: "native-fetch", metadata, runtime, prerequisites } });
+        } catch { throw conflict("Overture recovery requires a stopped checkpoint-format operation and its original verified prerequisites."); }
+      }
+      return await this.#start("source-acquisition", { sourceId: "overture-us-places", checkpointFormatVersion: 2, metadata, runtime, authorization, ...(resume ? { resume } : {}) });
+    }
     catch (error) { this.reserved = false; throw error; }
   }
   async startOvertureNormalization(input) {
@@ -436,7 +460,7 @@ export class ManagedOperations {
         const latest = JSON.parse(await readFile(path.join(this.root, id, "receipt.json"), "utf8"));
         if (latest.id !== id || latest.kind !== previous.kind) continue;
         if (["SUCCEEDED", "FAILED", "CANCELLED"].includes(latest.status)) this.operations.set(id, latest);
-        else if (processPresence(latest.owner?.supervisorPid) === "missing" && processPresence(latest.owner?.childPid) === "missing") {
+        else if (managedOwnerMissing(latest)) {
           latest.status = "FAILED"; latest.finishedAt = this.now(); latest.error = "Operation processes stopped before a terminal receipt was published.";
           await this.#persist(latest); this.operations.set(id, latest);
         }
@@ -577,6 +601,7 @@ export class ManagedOperations {
           "--metadata-operation-id", record.details.metadata.operation_id, "--runtime-operation-id", record.details.runtime.operation_id,
           "--metadata-sha256", record.details.metadata.descriptor.sha256, "--runtime-sha256", record.details.runtime.descriptor.sha256,
           "--authorization", record.details.authorization];
+        if (record.details.resume) args.push("--resume-operation-id", record.details.resume.operationId, "--resume-receipt-sha256", record.details.resume.receiptSha256);
       }
       else if (record.kind === "source-normalization") {
         script = "scripts/run-overture-normalization-session.mjs";
@@ -673,7 +698,7 @@ export class ManagedOperations {
       else if (PRIVATE_EVIDENCE.includes(record.kind)) {
         const recovered = record.kind === "source-normalization" ? await this.#verifyOvertureNormalization(record, execution?.stdout)
           : record.kind === "source-acquisition" ? record.details.sourceId === "ok-childcare-retained-73102"
-            ? await this.#verifyOkRetainedCollection(record, execution?.stdout) : await this.#verifyOvertureAcquisition(record, execution?.stdout)
+            ? await this.#verifyOkRetainedCollection(record, execution?.stdout) : await this.#verifyOvertureAcquisition(record, execution?.stdout, controller.signal)
           : record.kind === "cohort-snapshot" ? await this.#verifyCohortSnapshot(record, execution?.stdout)
           : ["overture-httpfs-runtime", "overture-source-preflight"].includes(record.details.sourceId) ? await this.#verifyOverturePrerequisite(record, execution?.stdout)
             : record.details.sourceId === "me-asc-preflight" ? await this.#verifyMeAscPrerequisite(record, execution?.stdout)
@@ -887,7 +912,7 @@ export class ManagedOperations {
     record.artifacts = [];
     return rejected;
   }
-  async #verifyOvertureAcquisition(record, stdout) {
+  async #verifyOvertureAcquisition(record, stdout, signal) {
     const reject = () => { throw new Error("Overture acquisition evidence rejected."); };
     if (typeof stdout !== "string" || stdout.length > 65536) reject();
     let parsed; try { parsed = JSON.parse(stdout); } catch { reject(); }
@@ -905,14 +930,21 @@ export class ManagedOperations {
     record.result = { sourceId: "overture-us-places", snapshot: descriptor, receiptIntegrityVerified: false,
       inspectionRequired: true, snapshotReady: false, normalizedPublished: false, completeUsBusinessCoverage: false, exportPolicy: "internal" };
     const { readOvertureAcquisitionSession } = await import("./overture-acquisition-receipt.mjs");
-    const checked = await readOvertureAcquisitionSession(descriptor, { output: path.join(this.root, record.id, "output"), operationId: record.id, startedAt: record.startedAt });
+    const checked = await readOvertureAcquisitionSession(descriptor, { output: path.join(this.root, record.id, "output"), operationId: record.id, startedAt: record.startedAt, signal });
     for (const key of ["metadata", "runtime"]) {
       const actual = checked.manifest[`${key}_reference`], expected = record.details[key];
       if (!actual || actual.output !== expected.output || actual.operation_id !== expected.operation_id
         || !Object.keys(expected.descriptor).every(field => actual.descriptor?.[field] === expected.descriptor[field])) reject();
     }
+    if (!isDeepStrictEqual(checked.manifest.resume ?? null, record.details.resume ?? null)) reject();
     const rejected = recovery || descriptor.cancellation_after_publication;
     record.result = { ...record.result, receiptIntegrityVerified: true, inspectionRequired: rejected, snapshotReady: !rejected };
+    if (checked.manifest.schema_version === "overture-acquisition-session@2.0.0") {
+      const checkpoints = checked.manifest.journal.checkpoints;
+      record.result.checkpointCount = checkpoints.length;
+      record.result.reusedCheckpointCount = checkpoints.filter(checkpoint => checkpoint.operation_id !== record.id).length;
+      record.result.resumedFromOperationId = record.details.resume?.operationId ?? null;
+    }
     record.artifacts = [];
     return rejected;
   }

@@ -1,13 +1,14 @@
 import process from "node:process";
 
 /** Wire SIGINT/SIGTERM and parent IPC cancellation into one AbortSignal. */
-export function createCliCancellation({ processRef = process } = {}) {
+export function createCliCancellation({ processRef = process, abortOnDisconnect = false } = {}) {
   const controller = new AbortController();
   const abort = () => controller.abort();
   const message = (value) => { if (value?.type === "cancel") abort(); };
   processRef.on?.("SIGINT", abort);
   processRef.on?.("SIGTERM", abort);
   processRef.on?.("message", message);
+  if (abortOnDisconnect) processRef.on?.("disconnect", abort);
   // IPC remains available for cancellation while work is active, but must not
   // prevent a successful direct CLI from exiting after its build completes.
   processRef.channel?.unref?.();
@@ -17,6 +18,7 @@ export function createCliCancellation({ processRef = process } = {}) {
       processRef.off?.("SIGINT", abort);
       processRef.off?.("SIGTERM", abort);
       processRef.off?.("message", message);
+      if (abortOnDisconnect) processRef.off?.("disconnect", abort);
       if (processRef.connected && typeof processRef.disconnect === "function") processRef.disconnect();
     },
   };

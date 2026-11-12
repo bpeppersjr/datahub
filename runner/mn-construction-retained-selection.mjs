@@ -48,7 +48,7 @@ async function *readChunks(file,maximum,signal,meter={}) {
   }finally{await handle.close();}
 }
 async function readJson(file,maximum,signal,meter={}){const chunks=[];for await(const chunk of readChunks(file,maximum,signal,meter))chunks.push(chunk);return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));}
-export async function *mnSelectionReadLines(file,maximum,signal,meter={}) {
+export async function *mnSelectionReadLines(file,maximum,signal,meter={}, { allowUnterminatedTail = false } = {}) {
   let tail=Buffer.alloc(0);meter.records=0;
   for await(const chunk of readChunks(file,maximum,signal,meter)){
     let start=0;
@@ -56,7 +56,8 @@ export async function *mnSelectionReadLines(file,maximum,signal,meter={}) {
       meter.records++;yield JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(line));tail=Buffer.alloc(0);start=i+1;}
     tail=Buffer.concat([tail,chunk.subarray(start)]);check(tail.length<=65536,'line ceiling');
   }
-  check(tail.length===0,'unterminated retained line');
+  check(tail.length===0||allowUnterminatedTail,'unterminated retained line');
+  if(allowUnterminatedTail)meter.unterminatedTailBytes=tail.length;
 }
 const readLines=mnSelectionReadLines;
 async function writer(file,maximum,signal,owned) {

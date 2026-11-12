@@ -14,7 +14,7 @@ export function projectOvertureHeatmapReadiness(value){
     ||failed?.operation_id!=='a8ff9f6d-b2be-4d56-905b-17984788b1d5'||failed.status!=='FAILED'||failed.snapshot_ready!==false
     ||failed.inspection_required!==true||failed.reason_code!=='failed-acquisition-not-resumable'
     ||journal?.present!==true||journal.pending_request_index!==24||journal.requests_reserved!==24||journal.completed_requests!==23||journal.delivered_bytes!==3292783
-    ||selected?.present!==true||selected.bytes!==0||selected.sha256!=='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'||selected.integrity_verified!==true
+    ||selected?.present!==true||selected.bytes!==0||selected.sha256!=='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'||selected.integrity_verified!==false
     ||!Array.isArray(value.blockers)||!value.blockers.includes('fresh-explicit-large-acquisition-authorization-required')
     ||!value.blockers.includes('failed-acquisition-is-not-a-resumable-checkpoint'))throw new Error('Overture retained readiness evidence rejected.');
   return Object.freeze({schema_version:'overture-heatmap-readiness@1.0.0',read_only:true,source_id:'overture-us-places',status:'metadata-only-no-place-admission',
@@ -27,5 +27,5 @@ export function projectOvertureHeatmapReadiness(value){
 }
 
 export async function createOvertureHeatmapReadiness(options={}){
-  return projectOvertureHeatmapReadiness(await inspectOvertureReadiness(options));
+  return projectOvertureHeatmapReadiness(await inspectOvertureReadiness({ ...options, historical: true }));
 }

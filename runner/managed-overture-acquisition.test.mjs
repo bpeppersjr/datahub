@@ -4,6 +4,7 @@ import path from 'node:path';
 import { mkdir, mkdtemp, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { APP_ROOT } from './paths.mjs';
 import { ManagedOperations } from './managed-operations.mjs';
 import { OVERTURE_HTTPFS_RUNTIME as C } from './overture-httpfs-runtime.mjs';
@@ -11,6 +12,7 @@ import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION as authorization } from './over
 import { probeOvertureSourcePreflightForTest } from './overture-source-preflight.mjs';
 import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } from './overture-acquisition-journal.mjs';
 import { OVERTURE_SELECTED_FIELDS, overtureStreamingQueryFingerprint } from './overture-us-places.mjs';
+import { acquisitionPlan, acquisitionPrerequisites, assetDirectory, pinRecord } from './overture-acquisition-checkpoints.mjs';
 
 const BASE = path.join(APP_ROOT, 'data/managed-overture-acquisition-tests');
 const digest = value => createHash('sha256').update(value).digest('hex');
@@ -236,5 +238,74 @@ test('verified acquisition with nonzero exit, recovery or late cancellation reta
       if (mode === 'cancelled') assert.equal(done.result.cancellation.requested, true);
       await manager.close();
     }
+  } finally { await cleanup(root, manager); }
+});
+
+test('managed recovery requires fresh confirmation and binds a stopped checkpoint operation to a new receipt', async () => {
+  const root = await workspace();
+  let manager;
+  try {
+    const input = await prerequisites(root), previousId = randomUUID(), runId = randomUUID();
+    const operationDirectory = path.join(root, previousId), directory = path.join(operationDirectory, 'output', 'jobs', runId);
+    const asset = assetDirectory(directory, 0);
+    await mkdir(asset, { recursive: true });
+    async function reference(operationId) {
+      const record = JSON.parse(await readFile(path.join(root, operationId, 'receipt.json'), 'utf8'));
+      return { output: path.join(root, operationId, 'output'), operation_id: operationId, descriptor: record.result.prerequisite };
+    }
+    const metadata = await reference(input.metadataOperationId), runtime = await reference(input.runtimeOperationId);
+    const verified = await acquisitionPrerequisites(metadata, runtime, false);
+    const now = new Date().toISOString(), mode = 'native-fetch';
+    const plan = acquisitionPlan({ directory, operationId: previousId, mode, startedAt: now, metadata, runtime, prerequisites: verified });
+    const raw = JSON.stringify({ id: previousId, kind: 'source-acquisition', status: 'FAILED', createdAt: now, startedAt: now, finishedAt: now,
+      details: { sourceId: 'overture-us-places', metadata, runtime }, result: { snapshotReady: false } });
+    const planPath = path.join(directory, 'plan.json'), receiptPath = path.join(operationDirectory, 'receipt.json');
+    await writeFile(receiptPath, raw);
+    await writeFile(planPath, JSON.stringify({ ...plan, schema_version: 'overture-acquisition-session@1.0.0' }));
+    let calls = 0;
+    manager = new ManagedOperations({ root, executor: async ({ args }) => {
+      calls++;
+      assert.notEqual(args[3], previousId);
+      assert.deepEqual(args.slice(12), ['--authorization', authorization, '--resume-operation-id', previousId, '--resume-receipt-sha256', digest(raw)]);
+      return { code: 1, stdout: '' };
+    } });
+    assert.equal((await manager.get(previousId)).status, 'FAILED');
+    await assert.rejects(manager.startOvertureAcquisition({ ...input, authorization: undefined, resumeOperationId: previousId }), /explicit large-acquisition authorization/);
+    await assert.rejects(manager.startOvertureAcquisition({ ...input, resumeOperationId: previousId }), /checkpoint-format/);
+    const planBytes = JSON.stringify(plan);
+    await writeFile(planPath, planBytes);
+    await assert.rejects(manager.startOvertureAcquisition({ ...input, resumeOperationId: previousId }), /checkpoint-format/);
+    const journal = await createOvertureAcquisitionJournal({ output: path.join(asset, 'journal'), operationId: previousId, executionMode: mode, assetCount: 1 });
+    try {
+      for (const type of ['request-reserved', 'request-completed']) await journal.onEvent({ type, execution_mode: mode, request_index: 1,
+        asset_index: 0, method: 'HEAD', reserved_bytes: 0, observed_bytes: 0, delivered_bytes: 0 });
+    } finally { await journal.close(); }
+    await writeFile(path.join(asset, 'pin.json'), JSON.stringify(pinRecord(plan, digest(planBytes), 0, { content_length: 1, etag: '"fixture"' })));
+    const done = await terminal(manager, await manager.startOvertureAcquisition({ ...input, resumeOperationId: previousId }));
+    assert.equal(calls, 1);
+    assert.equal(done.status, 'FAILED');
+    assert.equal(done.result.snapshotReady, false);
+    assert.equal(await readFile(receiptPath, 'utf8'), raw);
+  } finally { await cleanup(root, manager); }
+});
+
+test('restart settles a checkpoint-format operation whose supervisor exited before the child PID was persisted', async () => {
+  const root = await workspace();
+  let manager;
+  try {
+    const id = randomUUID(), directory = path.join(root, id);
+    const child = spawnSync(process.execPath, ['-e', ''], { windowsHide: true });
+    assert.equal(child.status, 0);
+    await mkdir(directory);
+    const filename = path.join(directory, 'receipt.json');
+    await writeFile(filename, JSON.stringify({ id, kind: 'source-acquisition', status: 'RUNNING',
+      createdAt: new Date().toISOString(), owner: { supervisorPid: child.pid },
+      details: { sourceId: 'overture-us-places', checkpointFormatVersion: 2 } }));
+    manager = new ManagedOperations({ root, executor: () => assert.fail('restart must not acquire') });
+    const done = await manager.get(id);
+    assert.equal(done.status, 'FAILED');
+    assert.equal(done.result.snapshotReady, false);
+    assert.equal(JSON.parse(await readFile(filename, 'utf8')).status, 'FAILED');
+    assert.equal(manager.running.size, 0);
   } finally { await cleanup(root, manager); }
 });

@@ -13,7 +13,7 @@ import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } f
 import { OVERTURE_SELECTED_FIELDS, normalizeOvertureUsPlace, overtureStreamingQueryFingerprint } from './overture-us-places.mjs';
 import { runOvertureBoundedEngine } from './overture-bounded-engine.mjs';
 import { probeOvertureSourcePreflightForTest } from './overture-source-preflight.mjs';
-import { runOvertureAcquisitionSessionForTest } from './overture-acquisition-session.mjs';
+import { runCheckpointedAcquisitionForTest } from './overture-checkpointed-acquisition.mjs';
 import { readOvertureAcquisitionSessionForTest, readOvertureAcquisitionSession } from './overture-acquisition-receipt.mjs';
 
 const operationId = process.env.DATAHUB_TEST_OVERTURE_RUNTIME_OPERATION;
@@ -161,7 +161,7 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
       fetchImpl: async url => { assert.ok(documents.has(url)); return Response.json(documents.get(url)); } });
     const acquisitionId = randomUUID(), acquisitionOutput = path.join(directory, acquisitionId, 'output');
     let acquisitionCalls = 0;
-    const acquisition = await runOvertureAcquisitionSessionForTest({ output: acquisitionOutput, operationId: acquisitionId,
+    const acquisition = await runCheckpointedAcquisitionForTest({ output: acquisitionOutput, operationId: acquisitionId,
       metadata: { output: metadataOutput, operation_id: metadataId, descriptor: metadataDescriptor },
       runtime: { output: path.join(operation, 'output'), operation_id: operationId, descriptor },
       fetchImpl: async (url, init) => {
@@ -175,8 +175,8 @@ test('native retained httpfs reads a local Parquet through the bounded asset bri
       } });
     const verified = await readOvertureAcquisitionSessionForTest(acquisition, { output: acquisitionOutput, operationId: acquisitionId });
     assert.equal(verified.manifest.selected.record_count, 3);
-    assert.equal(verified.manifest.transport.fetch_calls, acquisitionCalls);
-    assert.equal(verified.manifest.journal.counters.requests_completed, acquisitionCalls);
+    assert.equal(verified.manifest.journal.lineage_budget.requests_reserved, acquisitionCalls);
+    assert.equal(verified.manifest.journal.checkpoints.length, 1);
     assert.equal(verified.verification.selected_field_contract_verified, true);
     assert.equal(verified.verification.native_source_replayed, false);
     assert.equal(verified.manifest.claims.normalized_businesses_published, false);

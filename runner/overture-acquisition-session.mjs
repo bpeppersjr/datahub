@@ -10,6 +10,7 @@ import { createOvertureAcquisitionJournal, inspectOvertureAcquisitionJournal } f
 import { runOvertureBoundedEngine } from './overture-bounded-engine.mjs';
 import { OVERTURE_LARGE_ACQUISITION_CONFIRMATION, overtureStreamingQueryFingerprint } from './overture-us-places.mjs';
 import { readOvertureAcquisitionSession, readOvertureAcquisitionSessionForTest } from './overture-acquisition-receipt.mjs';
+import { runCheckpointedAcquisition } from './overture-checkpointed-acquisition.mjs';
 
 const VERSION = 'overture-acquisition-session@1.0.0';
 const STATUS = 'selected-source-retained-not-published';
@@ -155,7 +156,7 @@ async function acquire(value, synthetic) {
 }
 
 export async function runOvertureAcquisitionSession(options) {
-  try { return await acquire(options, false); } catch (error) { const fixed = failure(); if (error?.recovery) fixed.recovery = error.recovery; throw fixed; }
+  return runCheckpointedAcquisition(options);
 }
 export async function runOvertureAcquisitionSessionForTest(options) {
   try { return await acquire(options, true); } catch (error) { const fixed = failure(); if (error?.recovery) fixed.recovery = error.recovery; throw fixed; }
