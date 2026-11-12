@@ -9,5 +9,17 @@
   "source_policy": "config/source-policies/fmcsa-company-census.json",
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "FMCSA registrations with STATUS_CODE=A, PHY_COUNTRY=US, and an accepted reported principal-office address in a supported U.S. state or territory; not every business, carrier location, vehicle base, storefront, or proof of status outside FMCSA scope.",
+  "current_verified_release": {
+    "release_id": "fmcsa-company-census-20260903-002625766Z-4429b92f",
+    "source_release_id": "fmcsa-company-census-2026-08-30-55fd24985d97e66e",
+    "source_updated_at": "2026-08-30T11:55:17.000Z",
+    "full_company_census_records": 4494460,
+    "selected_active_us_and_territory_records": 2211982,
+    "accepted_principal_office_records": 2195563,
+    "quarantined_selected_records": 16419,
+    "source_zip_codes": 35648,
+    "zip_union_records": 39151,
+    "complete_all_transportation_businesses": false
+  },
   "documentation": "docs/FMCSA-COMPANY-CENSUS.md"
 }

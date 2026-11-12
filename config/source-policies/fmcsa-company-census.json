@@ -1,6 +1,6 @@
 {
   "policy_id": "fmcsa-company-census",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "United States Department of Transportation, Federal Motor Carrier Safety Administration",
   "ownership": "Public FMCSA registration records published through the FMCSA Open Data Program and the U.S. Department of Transportation public data portal",
   "source_home": "https://www.fmcsa.dot.gov/registration/fmcsa-data-dissemination-program",
@@ -32,5 +32,7 @@
   "contains_personal_data": true,
   "personal_data_handling": "A registered entity can be an individual proprietor, a legal name may be a person's name, and the reported principal office may be home-based. Contact, officer, D&B, and mailing fields are excluded before acquisition; normalized records retain explicit sensitivity warnings and only the minimum business-registration and geography fields needed for the governed purpose.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "FMCSA provides regulated-entity census data at no charge through its open-data program. The Company Census is generated daily from a database about 24 hours old and is not real-time. Active registration and reported principal-office fields do not establish continuous operation, public access, a verified occupied premise, every carrier location, ownership, or every transportation business. Contact, officer, D&B, mailing-address, and unrelated safety fields are excluded before acquisition."
 }

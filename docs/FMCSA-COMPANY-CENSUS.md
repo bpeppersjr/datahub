@@ -59,3 +59,9 @@ Official references:
 - [FMCSA Open Data Program](https://www.fmcsa.dot.gov/registration/fmcsa-data-dissemination-program)
 - [DOT Company Census dataset](https://data.transportation.gov/w/az4n-8mr2/m7rw-edbr)
 - [DOT dataset metadata](https://data.transportation.gov/api/views/az4n-8mr2)
+
+## Governed refresh authorization on November 12, 2026
+
+A metadata-and-count-only preflight observed the official published dataset at source refresh `2026-11-11T12:39:50.000Z`. The pinned minimized schema remains unchanged, and the exact `STATUS_CODE=A` plus `PHY_COUNTRY=US` filter reported 2,224,000 registrations. The preflight requested no entity rows, downloaded no entity records, and changed no production pointer.
+
+The assessment, privacy exclusions, connector, retained August release, and reviewed source policy are hash-bound to the governed full-snapshot operation. Co*Tive may refresh the national source once and partition verified transportation evidence locally by state and ZIP. Publication remains conditional on rechecking source timestamp and counts, retaining only approved fields, validating the dictionary and schema, reconciling quarantine, independently verifying every artifact, and atomically changing the pointer. Count differences are not net business creation, and this source is not an all-transportation-business or all-business denominator.
