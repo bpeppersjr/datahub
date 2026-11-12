@@ -1297,11 +1297,12 @@ export default function Administration() {
       {message && <p role="status">{message}</p>}
       <section className="industry-summary" aria-label="Industry evidence status overview">
         <h3>Industry evidence status</h3>
-        <p>Coverage here is the share of the 50 states and D.C. with retained source evidence. The assessment uses available records even where population or geocodes are missing.</p>
+        <p>Evidence availability is the share of the 50 states and D.C. with retained source evidence. It is not the percent of businesses collected or nationwide industry completeness. Population, geocode, and Census-ZCTA gaps do not suppress otherwise retained industry evidence.</p>
         {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
-          <table><thead><tr><th scope="col">Industry</th><th scope="col">Retained source evidence</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
+          <table><thead><tr><th scope="col">Industry</th><th scope="col">Evidence availability</th><th scope="col">Known gaps</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
             <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
-            <td>{row.jurisdictions_with_retained_access_evidence} of {row.jurisdictions} jurisdictions ({row.retained_access_evidence_percent.toFixed(1)}%)</td>
+            <td>{row.jurisdictions_with_retained_access_evidence} of {row.jurisdictions} jurisdictions ({row.retained_access_evidence_percent.toFixed(1)}% evidence availability; completeness unknown)</td>
+            <td>Unsupported: {(row.access_status_counts["unsupported-missing"] ?? 0) + (row.access_status_counts["unsupported-evidence-not-measured"] ?? 0)} · unmeasured: {row.access_status_counts["unsupported-evidence-not-measured"] ?? 0} · restricted sample: {row.access_status_counts["restricted-query-sample-evidence"] ?? 0} · temporal review due/unknown: {(row.temporal_status_counts["review-due"] ?? 0) + (row.temporal_status_counts["missing-source-reference"] ?? 0)}</td>
             <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
             <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
             <td>{view ? view.maintainedIndustries.includes(row.id) ? "Selected" : "Not selected" : "Settings unavailable — evidence still reportable"}</td>
