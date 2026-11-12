@@ -1172,7 +1172,7 @@ export function projectOutOfCohortSourceZipGaps(cohortZip5s, sources) {
       a.zip5.localeCompare(b.zip5) || a.source_id.localeCompare(b.source_id),
   );
 }
-async function inputs(root) {
+async function inputs(root, historicalBindings = null) {
   const predecessor = await readPinned(
     root,
     V17_PREDECESSOR.manifest_path,
@@ -1186,11 +1186,34 @@ async function inputs(root) {
       predecessor.value.summary?.status_counts?.["absent-from-retained-source-rows"] === 1237187,
     "immutable v1.7 predecessor binding",
   );
-  const cohortReg = await readPinned(
-    root,
-    "config/datasets/zip-denominator-gap-cohort.json",
-  );
-  const cr = cohortReg.value.retained_release;
+  let cohortReg, cr;
+  if (historicalBindings?.cohort) {
+    const bound = historicalBindings.cohort;
+    check(
+      Object.keys(bound).sort().join("|") ===
+        "artifact_sha256|manifest_path|manifest_sha256|registration_sha256|release_id" &&
+        SHA.test(bound.registration_sha256) &&
+        SHA.test(bound.manifest_sha256) &&
+        SHA.test(bound.artifact_sha256) &&
+        /^data\/zip-denominator-gap-cohort\/releases\/[a-z0-9-]+\/manifest\.json$/.test(bound.manifest_path) &&
+        path.posix.basename(path.posix.dirname(bound.manifest_path)) === bound.release_id,
+      "historical cohort binding",
+    );
+    cohortReg = { sha256: bound.registration_sha256 };
+    cr = {
+      rows: 48194,
+      manifest: bound.manifest_path,
+      manifest_sha256: bound.manifest_sha256,
+      cohort_sha256: bound.artifact_sha256,
+      release_id: bound.release_id,
+    };
+  } else {
+    cohortReg = await readPinned(
+      root,
+      "config/datasets/zip-denominator-gap-cohort.json",
+    );
+    cr = cohortReg.value.retained_release;
+  }
   check(
     cr.rows === 48194 &&
       SHA.test(cr.manifest_sha256) &&
@@ -1206,7 +1229,8 @@ async function inputs(root) {
     (a) => a.path === "cohort.jsonl",
   );
   check(
-    ca?.sha256 === cr.cohort_sha256 && ca.record_count === 48194,
+    cohortManifest.value.release_id === cr.release_id &&
+      ca?.sha256 === cr.cohort_sha256 && ca.record_count === 48194,
     "cohort artifact",
   );
   const cohort = await lines(
@@ -2582,7 +2606,7 @@ export async function verifyExactZipIndustryEvidenceMatrix(
     JSON.stringify(m.predecessor) === JSON.stringify(V17_PREDECESSOR),
     "v1.8 immutable predecessor lineage",
   );
-  const i = await inputs(root),
+  const i = await inputs(root, m.bindings),
     result = compose(i),
     prefixArtifacts = m.artifacts.filter((a) => a.path.startsWith("prefix=")),
     gapArtifact = m.artifacts.find(
