@@ -1,6 +1,6 @@
 {
   "policy_id": "ct-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Connecticut Secretary of the State, Business Services Division",
   "ownership": "Official public Business Registry records published by the Connecticut Secretary of the State",
   "source_home": "https://data.ct.gov/stories/s/CT-Business-Registrations/dagr-u2hb/",
@@ -26,10 +26,13 @@
     "agents_principals_organizers_and_other_people": "excluded"
   },
   "attribution": "Source: Connecticut Secretary of the State, Business Services Division, Connecticut Business Registry - Business Master.",
+  "source_terms": "https://data.ct.gov/terms",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Connecticut Open Data Portal content is provided as a public service on an as-is basis. The State makes no warranty about content, accuracy, timeliness, completeness, or fitness for a particular purpose, assumes no liability for reliance on the data, and may discontinue availability at any time.",
   "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
   "redistribution": "Approved normalized fields may be redistributed with Connecticut Secretary-of-the-State attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the selected-field raw snapshot remains internal.",
   "contains_personal_data": false,
   "personal_data_handling": "This connector deliberately excludes email, ownership-survey, agent, principal, organizer, and other person-linked fields and datasets. Organization names can incidentally contain a person's name because that is the registered organization name.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12"
 }

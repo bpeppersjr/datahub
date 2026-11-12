@@ -22,6 +22,21 @@ The connector:
 
 The current source release identity is bound to the catalog `rowsUpdatedAt` timestamp and the SHA-256 checksum of the complete ordered source artifact.
 
+## Recurring source review
+
+The official Connecticut catalog, open-data terms, and anonymous API transport were reviewed again on 2026-11-12. The catalog identifies the Business Master as a Public Domain, daily-updated Secretary-of-the-State dataset. Connecticut's open-data guidance describes open data as freely reusable and redistributable without legal or financial restrictions. The portal terms provide the data as-is, disclaim warranties and liability, and reserve the right to discontinue availability; Co*Tive displays that limitation and fails closed on transport, schema, count, or timestamp drift.
+
+A zero-record transport preflight returned HTTP 200 for the official metadata endpoint and HTTP 200 for an aggregate `Status='Active'` count query. The metadata response reported dataset `n7gp-d28j`, the expected title, a Public Domain license, and `rowsUpdatedAt=1794480283`; its 113,751 response bytes hashed to `b7baa9c45e56a51fd56093515e306cb744bf3506a5c8f143dd356e66b2115a9a`. The aggregate response contained only `count=461875`; its 21 bytes hashed to `c6347bd75bf87ee785e3f3702f1ecc5e4045db8d47ff4e9d800dcc0924e386e8`. No business rows were requested or retained by this review.
+
+Authorization `ct-business-registry-production-20261112-01` permits Co*Tive—not Codex—to run the full-snapshot refresh, independently verify the new immutable release, and change only this source's production pointer after verification. It is cryptographically bound to the exact builder, verifier, connector, policy, and dataset configuration. Any byte change invalidates dispatch. The authorization does not promote source `Active` to verified operation, physical-site evidence, or an all-business denominator.
+
+Reviewed official sources:
+
+- <https://data.ct.gov/Business/Connecticut-Business-Registry-Business-Master/n7gp-d28j>
+- <https://data.ct.gov/stories/s/CT-Business-Registrations/dagr-u2hb/>
+- <https://data.ct.gov/terms>
+- <https://portal.ct.gov/-/media/CT-Data/Data-Publication-Guidelines-V1.pdf>
+
 ## Field boundary
 
 Approved normalized fields include the source record ID, non-placeholder Authoritative Legal Entity Identifier (ALEI), registered name and formation-jurisdiction name, business type, status and sub-status, registration and reporting dates, formation fields, NAICS values, the reported business address, and the source address geocode.
