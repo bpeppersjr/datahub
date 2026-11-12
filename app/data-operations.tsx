@@ -36,7 +36,7 @@ type Catalog = {
   industries: Array<{ id: string; label?: string }>;
   states: string[];
   collectionSources?: Array<{ id: string; scope: 'national'|'state'; states: string[] | 'all'; industries: string[]; manualSelectionRequired: boolean }>;
-  automaticRefreshSources?:Array<{sourceId:string;script:string;automaticRefreshAuthorized:boolean;reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED'|'GOVERNED_SOURCE_HOLD'|'MANUAL_SELECTION_REQUIRED';governedSourceId:string|null}>;
+  automaticRefreshSources?:Array<{sourceId:string;script:string;automaticRefreshAuthorized:boolean;reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED'|'GOVERNED_SOURCE_HOLD'|'MANUAL_SELECTION_REQUIRED'|'REVIEWED_AUTOMATIC_REFRESH';governedSourceId:string|null}>;
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
   credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
   retainedSourceAdoptions?:Array<{sourceId:string;action:string}>;

@@ -4,14 +4,18 @@ import { APP_ROOT, assertInsideApp } from "./paths.mjs";
 import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS, validateGovernedSourceRefreshDescriptor } from "./governed-source-refresh-registry.mjs";
 
 export const AUTOMATIC_REFRESH_AUTHORIZATION_FILE = path.join(APP_ROOT, "config", "automatic-refresh-authorizations.json");
-const allowedReasons = new Set(["AUTOMATIC_REFRESH_NOT_REVIEWED", "GOVERNED_SOURCE_HOLD", "MANUAL_SELECTION_REQUIRED"]);
+const blockedReasons = new Set(["AUTOMATIC_REFRESH_NOT_REVIEWED", "GOVERNED_SOURCE_HOLD", "MANUAL_SELECTION_REQUIRED"]);
+const AUTHORIZED_REASON = "REVIEWED_AUTOMATIC_REFRESH";
 const invalid = (message) => Object.assign(new Error(message), { code: "AUTOMATIC_REFRESH_AUTHORIZATION_INVALID", statusCode: 503 });
 
-export async function loadAutomaticRefreshAuthorizations(config, { file = AUTOMATIC_REFRESH_AUTHORIZATION_FILE } = {}) {
+export async function loadAutomaticRefreshAuthorizations(config, {
+  file = AUTOMATIC_REFRESH_AUTHORIZATION_FILE,
+  governedValidator = validateGovernedSourceRefreshDescriptor,
+} = {}) {
   const resolved = assertInsideApp(path.resolve(APP_ROOT, file));
   let document;
   try { document = JSON.parse(await readFile(resolved, "utf8")); } catch { throw invalid("Automatic-refresh authorization contract is unavailable or malformed."); }
-  if (!document || document.schema_version !== "automatic-refresh-authorizations@1.0.0" || !document.sources || Array.isArray(document.sources)
+  if (!document || document.schema_version !== "automatic-refresh-authorizations@1.1.0" || !document.sources || Array.isArray(document.sources)
     || Object.keys(document).sort().join("|") !== "schema_version|sources") throw invalid("Automatic-refresh authorization contract has an unsupported schema.");
   const configured = Object.keys(config.sources).sort(), declared = Object.keys(document.sources).sort();
   if (configured.join("|") !== declared.join("|")) throw invalid("Automatic-refresh authorization contract does not exactly cover the industry source catalog.");
@@ -20,17 +24,26 @@ export async function loadAutomaticRefreshAuthorizations(config, { file = AUTOMA
   for (const sourceId of configured) {
     const source = config.sources[sourceId], decision = document.sources[sourceId];
     if (!decision || Object.keys(decision).sort().join("|") !== "authorized|governed_source_id|reason_code|script"
-      || decision.script !== source.script || decision.authorized !== false || !allowedReasons.has(decision.reason_code)
+      || decision.script !== source.script || typeof decision.authorized !== "boolean"
+      || ![...blockedReasons, AUTHORIZED_REASON].includes(decision.reason_code)
       || (decision.governed_source_id !== null && typeof decision.governed_source_id !== "string")) throw invalid(`Automatic-refresh authorization is invalid for ${sourceId}.`);
     const governedSourceId = governedByScript.get(source.script) ?? null;
     if (decision.governed_source_id !== governedSourceId) throw invalid(`Automatic-refresh governed binding is invalid for ${sourceId}.`);
     if (governedSourceId) {
-      const hold = await validateGovernedSourceRefreshDescriptor(governedSourceId);
-      if (hold.status !== "HOLD" || hold.dispatchAvailable !== false || hold.autonomousAcquisitionAuthorized !== false
+      const binding = await governedValidator(governedSourceId);
+      if (decision.authorized) {
+        if (decision.reason_code !== AUTHORIZED_REASON || binding.status !== "AUTHORIZED" || binding.dispatchAvailable !== true
+          || binding.freshAcquisitionAuthorized !== true || binding.autonomousAcquisitionAuthorized !== true
+          || binding.productionPointerChangeAuthorized !== true) throw invalid(`Automatic-refresh authorization binding is invalid for ${sourceId}.`);
+      } else if (binding.status !== "HOLD" || binding.dispatchAvailable !== false || binding.autonomousAcquisitionAuthorized !== false
         || decision.reason_code !== "GOVERNED_SOURCE_HOLD") throw invalid(`Automatic-refresh HOLD binding is invalid for ${sourceId}.`);
+    } else if (decision.authorized || decision.reason_code === AUTHORIZED_REASON) {
+      throw invalid(`Automatic-refresh authorization has no governed source binding for ${sourceId}.`);
+    } else if (!blockedReasons.has(decision.reason_code)) {
+      throw invalid(`Automatic-refresh blocker is invalid for ${sourceId}.`);
     }
-    if (source.manual_selection_required === true && decision.reason_code !== "MANUAL_SELECTION_REQUIRED") throw invalid(`Manual-only source ${sourceId} has an invalid automatic-refresh reason.`);
-    result.push(Object.freeze({ sourceId, script: source.script, automaticRefreshAuthorized: false, reasonCode: decision.reason_code, governedSourceId }));
+    if (source.manual_selection_required === true && (decision.authorized || decision.reason_code !== "MANUAL_SELECTION_REQUIRED")) throw invalid(`Manual-only source ${sourceId} has an invalid automatic-refresh reason.`);
+    result.push(Object.freeze({ sourceId, script: source.script, automaticRefreshAuthorized: decision.authorized, reasonCode: decision.reason_code, governedSourceId }));
   }
   return Object.freeze(result);
 }

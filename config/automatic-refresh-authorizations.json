@@ -1,5 +1,5 @@
 {
-  "schema_version": "automatic-refresh-authorizations@1.0.0",
+  "schema_version": "automatic-refresh-authorizations@1.1.0",
   "sources": {
     "state-ok-childcare-spatial-batch": { "script": "scripts/build-ok-childcare-zip-batch.mjs", "authorized": false, "reason_code": "MANUAL_SELECTION_REQUIRED", "governed_source_id": null },
     "state-ia-childcare-centers": { "script": "scripts/build-ia-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },

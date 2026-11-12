@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import test from "node:test";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
 import { loadIndustryConfig, industryPlanFingerprint } from "./industry-segments.mjs";
 import { loadAutomaticRefreshAuthorizations } from "./automatic-refresh-authorization.mjs";
@@ -15,6 +15,24 @@ test("automatic-refresh contract covers every industry source and canonically bi
     ["state-tx-sales-tax", "tx-active-sales-tax-permits", "GOVERNED_SOURCE_HOLD"],
     ["state-wa-contractors", "wa-lni-active-contractor-licenses", "GOVERNED_SOURCE_HOLD"],
   ]);
+});
+
+test("reviewed governed authorization can enable app-owned dispatch while HOLD and unbound claims fail closed", async (t) => {
+  const config = await loadIndustryConfig(), root = await mkdtemp(path.join(APP_ROOT, "data/tmp/automatic-refresh-authorization-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const source = JSON.parse(await readFile(path.join(APP_ROOT, "config/automatic-refresh-authorizations.json"), "utf8"));
+  source.sources["state-tx-sales-tax"] = { ...source.sources["state-tx-sales-tax"], authorized: true, reason_code: "REVIEWED_AUTOMATIC_REFRESH" };
+  const file = path.join(root, "authorized.json"); await writeFile(file, `${JSON.stringify(source)}\n`);
+  const authorizedBinding = async (sourceId) => sourceId === "tx-active-sales-tax-permits"
+    ? ({ sourceId, status: "AUTHORIZED", dispatchAvailable: true, freshAcquisitionAuthorized: true,
+      autonomousAcquisitionAuthorized: true, productionPointerChangeAuthorized: true })
+    : ({ sourceId, status: "HOLD", dispatchAvailable: false, freshAcquisitionAuthorized: false,
+      autonomousAcquisitionAuthorized: false, productionPointerChangeAuthorized: false });
+  const decisions = await loadAutomaticRefreshAuthorizations(config, { file, governedValidator: authorizedBinding });
+  assert.equal(decisions.find((item) => item.sourceId === "state-tx-sales-tax").automaticRefreshAuthorized, true);
+  await assert.rejects(loadAutomaticRefreshAuthorizations(config, { file }), /authorization binding is invalid/);
+  source.sources["state-tx-sales-tax"].governed_source_id = null; await writeFile(file, `${JSON.stringify(source)}\n`);
+  await assert.rejects(loadAutomaticRefreshAuthorizations(config, { file, governedValidator: authorizedBinding }), /governed binding is invalid/);
 });
 
 test("scheduled plans reject HOLD aliases while manual collection planning remains available", async (t) => {

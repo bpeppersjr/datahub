@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { runnerJson } from './runner-client';
 
 type CollectionSource = { id:string; scope:'national'|'state'; states:string[]|'all'; industries:string[]; manualSelectionRequired:boolean };
-type AutomaticRefreshSource = { sourceId:string; script:string; automaticRefreshAuthorized:boolean; reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED'|'GOVERNED_SOURCE_HOLD'|'MANUAL_SELECTION_REQUIRED'; governedSourceId:string|null };
+type AutomaticRefreshSource = { sourceId:string; script:string; automaticRefreshAuthorized:boolean; reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED'|'GOVERNED_SOURCE_HOLD'|'MANUAL_SELECTION_REQUIRED'|'REVIEWED_AUTOMATIC_REFRESH'; governedSourceId:string|null };
 type Catalog = { industries: Array<{ id: string; label?: string }>; states: string[]; collectionSources?:CollectionSource[]; automaticRefreshSources?:AutomaticRefreshSource[] };
 type Schedule = {
   id: string; industries: string[]; states: string[]; intervalHours: number;
@@ -15,7 +15,7 @@ const endpoint = '/api/data-operations/schedules';
 const readable = (value: string) => value.replaceAll('_', ' ').replaceAll('-', ' ');
 const selected = (element: HTMLSelectElement) => Array.from(element.selectedOptions, (option) => option.value);
 const exact=(value:object,keys:string[])=>Object.keys(value).sort().join('|')===[...keys].sort().join('|');
-const reasonText:Record<AutomaticRefreshSource['reasonCode'],string>={AUTOMATIC_REFRESH_NOT_REVIEWED:'Automatic refresh has not been reviewed',GOVERNED_SOURCE_HOLD:'Governed source remains on HOLD',MANUAL_SELECTION_REQUIRED:'Manual source selection is required'};
+const reasonText:Record<AutomaticRefreshSource['reasonCode'],string>={AUTOMATIC_REFRESH_NOT_REVIEWED:'Automatic refresh has not been reviewed',GOVERNED_SOURCE_HOLD:'Governed source remains on HOLD',MANUAL_SELECTION_REQUIRED:'Manual source selection is required',REVIEWED_AUTOMATIC_REFRESH:'Reviewed governed automatic refresh'};
 
 export function automaticRefreshScope(catalog:Catalog|null,industries:string[],states:string[]){
   const sources=catalog?.collectionSources,decisions=catalog?.automaticRefreshSources;
