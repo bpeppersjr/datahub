@@ -26,7 +26,7 @@
     "national-ncua-quarterly": { "script": "scripts/build-ncua-quarterly.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "ncua-quarterly" },
     "national-fmcsa-census": { "script": "scripts/build-fmcsa-company-census.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "fmcsa-company-census" },
     "state-ny-retail-food": { "script": "scripts/build-ny-retail-food-stores.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
-    "state-ca-abc": { "script": "scripts/build-ca-abc-active-license-sites.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-ca-abc": { "script": "scripts/build-ca-abc-active-license-sites.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "ca-abc-active-license-sites" },
     "state-wa-contractors": { "script": "scripts/build-wa-lni-active-contractor-licenses.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "wa-lni-active-contractor-licenses" },
     "state-tx-sales-tax": { "script": "scripts/build-tx-active-sales-tax-permits.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "tx-active-sales-tax-permits" }
   }
