@@ -14,6 +14,7 @@ import { readStateExactZipIndustryEvidenceProjectionV28 } from "./state-exact-zi
 import { readStateExactZipIndustryEvidenceProjectionV29 } from "./state-exact-zip-industry-evidence-map-v2-9.mjs";
 import { readStateExactZipIndustryEvidenceProjectionV30 } from "./state-exact-zip-industry-evidence-map-v3-0.mjs";
 import { readStateExactZipIndustryEvidenceProjectionV32 } from "./state-exact-zip-industry-evidence-map-v3-2.mjs";
+import { readStateExactZipIndustryEvidenceProjectionV33 } from "./state-exact-zip-industry-evidence-map-v3-3.mjs";
 const require = createRequire(import.meta.url),
   source = await readFile(
     new URL("../app/state-exact-zip-evidence-map.tsx", import.meta.url),
@@ -118,6 +119,9 @@ const require = createRequire(import.meta.url),
       "utf8",
     ),
   ),
+  registrationV33 = JSON.parse(
+    await readFile(new URL("../config/datasets/state-exact-zip-industry-evidence-disposition-v3-3.json",import.meta.url),"utf8"),
+  ),
   nodes = (v) =>
     !v || typeof v !== "object"
       ? []
@@ -190,6 +194,9 @@ function harness(request) {
                                 : name ===
                                     "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-2.json"
                                   ? { default: registrationV32 }
+                                  : name ===
+                                      "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-3.json"
+                                    ? { default: registrationV33 }
                                 : name === "react"
                                   ? {
                                       useState: (init) => {
@@ -805,5 +812,11 @@ test("actual v3.2 projection renders refreshed New York evidence within review w
   h.render({selected:"NY",onSelect:()=>{}});await flush();tree=h.render({selected:"NY",onSelect:()=>{}});const rendered=text(tree);
   assert.match(rendered,/within its source-review window through February 11, 2027/);assert.match(rendered,/New York retail food overlap warning/);
   for(const mutate of [v=>{v.claims.review_qualification="stale"},v=>{v.provenance.matrix.release_id="invented"},v=>{v.provenance.ny_retail_food_license_snapshot.manifest_sha256="0".repeat(64)}]){const invalid=structuredClone(view);mutate(invalid);assert.equal(h.exports.validStateEvidenceProjection(invalid,dimension),false);}
+  h.close();
+});
+test("actual v3.3 projection renders refreshed childcare and rejects gap-allocation drift",async()=>{
+  const dimension="childcare_pa_candidates",view=await readStateExactZipIndustryEvidenceProjectionV33({dimensionId:dimension}),h=harness(async()=>view);
+  assert.equal(h.exports.validStateEvidenceProjection(view,dimension),true);
+  for(const mutate of [v=>{v.provenance.manifest_sha256="0".repeat(64)},v=>{v.provenance.retained_childcare_zip_evidence.release_id="invented"},v=>{v.claims.missing_zip_allocated=true},v=>{v.states[0].lifecycle_status_counts.unmeasured--}]){const invalid=structuredClone(view);mutate(invalid);assert.equal(h.exports.validStateEvidenceProjection(invalid,dimension),false);}
   h.close();
 });

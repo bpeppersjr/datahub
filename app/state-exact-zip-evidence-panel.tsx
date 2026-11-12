@@ -9,7 +9,7 @@ const LIFE = ["source-defined-current-positive-within-review-window","source-def
 type Counts = Record<string, number>;
 type Dimension = { dimension_id: string; raw_status_counts: Counts; derived_evidence_status_counts: Counts; lifecycle_status_counts: Counts; count_sum: number };
 type View = {
-  schema_version: "state-exact-zip-industry-evidence-disposition@3.0.0"; status: "present"; scope_id: string;
+  schema_version: "state-exact-zip-industry-evidence-disposition@3.3.0"; status: "present"; scope_id: string;
   release_id: string; manifest_sha256: string; artifact_sha256: string; source_bytes_read: number; full_matrix_replay_performed: false;
   geography_scope_counts: { state: number; territory: number; "multi-state-material": number; "zcta-overlay-unresolved": number; "non-zcta-unassigned": number; "explicit-placeholder": number };
   raw_status_vocabulary: string[]; derived_evidence_status_vocabulary: string[]; lifecycle_status_vocabulary: string[];
@@ -25,7 +25,7 @@ const exactVocabulary = (value: unknown, expected: readonly string[]) => Array.i
 export function validStateExactZipEvidence(value: unknown, state: string): value is View {
   if(!value||typeof value!=="object"||Array.isArray(value))return false;const view=value as Partial<View>;
   if(!keysExactly(view,["schema_version","status","scope_id","row","geography_scope_counts","raw_status_vocabulary","derived_evidence_status_vocabulary","lifecycle_status_vocabulary","release_id","manifest_sha256","artifact_sha256","source_bytes_read","full_matrix_replay_performed","claims"])
-    ||view.schema_version!=="state-exact-zip-industry-evidence-disposition@3.0.0"||view.status!=="present"||!/^state:\d{2}$/.test(view.scope_id??"")||view.full_matrix_replay_performed!==false
+    ||view.schema_version!=="state-exact-zip-industry-evidence-disposition@3.3.0"||view.status!=="present"||!/^state:\d{2}$/.test(view.scope_id??"")||view.full_matrix_replay_performed!==false
     ||!/^[a-f0-9]{64}$/.test(view.manifest_sha256??"")||!/^[a-f0-9]{64}$/.test(view.artifact_sha256??"")||!Number.isSafeInteger(view.source_bytes_read)||(view.source_bytes_read??0)<=0
     ||!exactVocabulary(view.raw_status_vocabulary,RAW)||!exactVocabulary(view.derived_evidence_status_vocabulary,EVIDENCE)||!exactVocabulary(view.lifecycle_status_vocabulary,LIFE)
     ||!view.row||!keysExactly(view.row,["scope_id","scope_label","state_fips","state_name","postal_abbreviation","zip5_rows","dimensions"])||view.row.scope_id!==view.scope_id||view.row.postal_abbreviation!==state||!Number.isSafeInteger(view.row.zip5_rows)||(view.row.zip5_rows??-1)<0

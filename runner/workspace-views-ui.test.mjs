@@ -18,6 +18,7 @@ import { readExactZipIndustrySummaryV31 } from "./exact-zip-industry-summary-v3-
 import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV32 } from "./exact-zip-industry-temporal-qualification-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV33 } from "./exact-zip-industry-temporal-qualification-v3-3.mjs";
+import { readExactZipIndustrySummaryV33 } from "./exact-zip-industry-summary-v3-3.mjs";
 import { TEMPORAL_MAPPINGS_V31 } from "./exact-zip-industry-temporal-mappings-v3-1.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from "./exact-zip-industry-temporal-qualification-v3-0.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
@@ -64,8 +65,9 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
 });
 
 test("v3.3 ZIP view accepts refreshed childcare lineage and rejects drift",async()=>{
-  const evidence=await readExactZipIndustryEvidenceWithTemporalQualificationV33({zip5:"10001"}),h=harness(async()=>evidence);
+  const [evidence,summary]=await Promise.all([readExactZipIndustryEvidenceWithTemporalQualificationV33({zip5:"10001"}),readExactZipIndustrySummaryV33()]),h=harness(async()=>summary);
   assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
+  assert.equal(h.render("validExactZipIndustrySummary",summary),true);
   const temporal=(view,id)=>view.temporal_qualification.rows.find(row=>row.dimension_id===id);
   for(const mutate of [
     v=>{v.manifest_sha256="0".repeat(64)},
@@ -73,6 +75,11 @@ test("v3.3 ZIP view accepts refreshed childcare lineage and rejects drift",async
     v=>{temporal(v,"childcare_vt_candidates").review_qualification="within-review-window"},
     v=>{temporal(v,"childcare_ia_candidates").current_operations_verified=true},
   ]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
+  for(const mutate of [
+    v=>{v.retained_childcare_refresh.represented_candidate_rows++},
+    v=>{v.temporal_qualification.projection_sha256="0".repeat(64)},
+    v=>{v.dimensions.find(row=>row.id==="childcare_md_candidates").temporal_qualification.source_release_id="invented"},
+  ]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
   h.close();
 });
 
