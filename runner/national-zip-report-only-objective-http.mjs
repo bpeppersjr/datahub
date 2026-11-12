@@ -2,10 +2,13 @@ import { readNationalZipGoalAcceptance } from './national-zip-goal-acceptance.mj
 
 const SHA = /^[a-f0-9]{64}$/;
 const PINS = Object.freeze({
-  registry_manifest: 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76',
-  coverage_manifest: 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6',
+  registry_pointer: 'b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb',
+  registry_manifest: '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048',
+  coverage_pointer: '922bf3e4a483659727a72e953b226e1dcf48b8ad5ad92fbd555f1dc98174a9c1',
+  coverage_manifest: '7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a',
+  geography_pointer: '5f89350482630a7d2e888772512aca36fdd21f68c8d3f01f1113dc6c2c400403',
   geography_manifest: '5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b',
-  registry_zip_membership: '2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e',
+  registry_zip_membership: '7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8',
   zcta_index: '41cbef263f88514d6c6e139e54527350c23f9e05a96a9576a6d7b2478f28ffc6',
   usps_candidate_catalog: '01f633315d96037140bbc52476a666f287ceb662c692bbd401e811ea6752f7f6',
 });

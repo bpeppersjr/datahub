@@ -1,0 +1,132 @@
+{
+  "schema_version": "national-zip-coverage-summary@1.0.0",
+  "dataset_id": "national-zip-coverage-summary",
+  "release_id": "national-zip-coverage-20261112101522-3cb2e444",
+  "created_at": "2026-11-12T10:15:22.331Z",
+  "projection_mode": "immutable-release",
+  "bindings": {
+    "zip_denominator_audit_schema_version": "1.3.0",
+    "zip_denominator_audit_id": "zip-denominator-audit-654ffd45549018d0aac10843",
+    "cohort_id": "production-current",
+    "registry_pointer_path": "data/business-registry/current.json",
+    "registry_pointer_dataset_id": "national-business-registry",
+    "registry_pointer_release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+    "registry_pointer_status": "published-partial",
+    "registry_pointer_manifest": "releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json",
+    "registry_release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+    "registry_dataset_id": "national-business-registry",
+    "registry_release_status": "published-partial",
+    "registry_publisher_version": "2.15.0",
+    "registry_complete_national_business_registry": false,
+    "registry_pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+    "registry_manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+    "registry_zip_artifact_path": "derived/zip-coverage.jsonl",
+    "registry_zip_artifact_bytes": 503302415,
+    "registry_zip_artifact_record_count": 48194,
+    "registry_zip_artifact_type": "registry-zip-coverage-jsonl",
+    "registry_zip_artifact_distribution_policy": "local-review-only",
+    "registry_zip_artifact_sha256": "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8",
+    "census_zcta_source_release_id": "us-census-geography-20260830-132803990Z-3629abc0",
+    "census_zcta_member_set_sha256": "dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f",
+    "reconciliation_artifact_path": null,
+    "reconciliation_artifact_bytes": null,
+    "reconciliation_artifact_sha256": null,
+    "usps_source_dataset_id": null,
+    "usps_source_release_id": null,
+    "usps_source_month": null,
+    "usps_source_manifest_sha256": null,
+    "usps_assignment_artifact_sha256": null,
+    "usps_evidence_scope": null,
+    "usps_distribution_policy": null
+  },
+  "registry_zip5": {
+    "semantics": "unique five-digit registry coverage keys; not a deliverability assertion",
+    "members": {
+      "count": 48194,
+      "member_set_sha256": "47544ffa3dc5d7e700d1ab51cfce93bfa3026ec9e688219ee6382ce6b307524d"
+    },
+    "record_level_source_contribution": {
+      "count": 47995,
+      "member_set_sha256": "6a11ca196506aedb81efabe4b71f243f7965c88957e293ead4c779f9f2d2191e"
+    },
+    "denominator_only_no_record_level_contribution": {
+      "count": 199,
+      "member_set_sha256": "10da163c175bfd3374cc0b3797bfd5bc0d7c5c04a6d3eb5d2e93890a9d68420b"
+    },
+    "explicit_placeholder": {
+      "count": 1,
+      "member_set_sha256": "64f277fa6be054fb021b92d8199f38025231e6d3c833a54dd501da394b547ce6"
+    },
+    "conservation": {
+      "classified_count": 48194,
+      "total_count": 48194,
+      "status": "passed"
+    }
+  },
+  "census_zcta": {
+    "semantics": "Census statistical polygon membership; not a USPS ZIP assignment or delivery boundary",
+    "statistical_geography_not_usps_postal_delivery_boundary": true,
+    "same_code_governed_zcta_members": {
+      "count": 33791,
+      "member_set_sha256": "dd7962961de1a57b2d028e9be4a93dc03ab952354d156ae64b6da1e0c5e2626f"
+    },
+    "source_reported_zip5_without_same_code_zcta": {
+      "count": 14361,
+      "member_set_sha256": "4c14dc70a6dc7efce235c6866fa49dc8bd7545b6bedd53086a9e0bd3f945c56b"
+    },
+    "denominator_only_zip5_without_same_code_zcta": {
+      "count": 41,
+      "member_set_sha256": "8cf7668ba58ffd7892f3a3f33ef9d5c09459e5c8eb0420101e7505118ca40b61"
+    },
+    "classification_conservation": {
+      "classified_count": 48194,
+      "total_count": 48194,
+      "status": "passed"
+    }
+  },
+  "usps_assignment": {
+    "semantics": "governed USPS Area/District five-digit assignment membership; address-level deliverability is not asserted",
+    "governed_dependency_present": false,
+    "assignment_members": null,
+    "registry_listed_members": {
+      "count": 0,
+      "member_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "registry_not_listed_members": {
+      "count": 0,
+      "member_set_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "registry_unverified_members": {
+      "count": 48194,
+      "member_set_sha256": "47544ffa3dc5d7e700d1ab51cfce93bfa3026ec9e688219ee6382ce6b307524d"
+    },
+    "status_conservation": {
+      "classified_count": 48194,
+      "total_count": 48194,
+      "status": "passed"
+    },
+    "exact_member_set_reconciliation": null,
+    "complete_current_assignment_denominator_verified": false,
+    "address_level_deliverability_asserted": false
+  },
+  "zip4_policy": {
+    "applicability": "required",
+    "status": "passed",
+    "invalid_counts": {
+      "missing_postal_code": 0,
+      "joined_postal_code": 0,
+      "mismatched_postal_code": 0,
+      "missing_zip4": 0,
+      "non_null_zip4": 0
+    },
+    "stored_separately_from_zip5": true,
+    "geometric": false
+  },
+  "claim_boundary": {
+    "valid_usps_zip_denominator_complete": false,
+    "complete_all_businesses": null,
+    "all_business_completion_percentage": null,
+    "active_business_completion_percentage": null,
+    "reason": "Census ZCTA membership and source-reported ZIP5 values do not establish a complete current USPS operational ZIP denominator without exact governed USPS member-set reconciliation."
+  }
+}

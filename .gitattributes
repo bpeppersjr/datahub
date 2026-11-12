@@ -37,3 +37,5 @@ config/zip-denominator-admission-readiness.json text eol=lf
 config/datasets/zip-denominator-gap-cohort.json text eol=lf
 config/datasets/zip-denominator-delta-review.json text eol=lf
 config/schemas/zip-denominator-delta-review.schema.json text eol=lf
+data/national-zip-coverage-summary/releases/** text eol=lf
+data/national-zip-business-evidence-alignment/releases/** text eol=lf
