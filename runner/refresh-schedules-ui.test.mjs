@@ -53,6 +53,13 @@ test('schedule form exposes the matching HOLD and fails closed without posting',
   assert.equal(calls.length, 0);
 });
 
+test('initial catalog loading is distinct from incompatible authorization evidence',()=>{
+  const tree=fixture(()=>assert.fail('must not dispatch'),{}, {catalog:null}).render();
+  assert.match(text(tree),/Loading automatic-refresh authorization evidence/);
+  assert.doesNotMatch(text(tree),/authorization evidence is unavailable or incompatible/i);
+  assert.equal(button(tree,'Create disabled schedule').props.disabled,true);
+});
+
 test('persisted Administration industries initialize and can restore only the schedule form', async () => {
   const expanded={...catalog,industries:[{id:'retail',label:'Retail'},{id:'childcare',label:'Childcare'}],collectionSources:[...catalog.collectionSources,{id:'state-tx-childcare',scope:'state',states:['TX'],industries:['childcare'],manualSelectionRequired:false}],automaticRefreshSources:[...catalog.automaticRefreshSources,{sourceId:'state-tx-childcare',script:'scripts/childcare.mjs',automaticRefreshAuthorized:false,reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED',governedSourceId:null}]};
   const f=fixture(async()=>[],{}, {catalog:expanded,administrationIndustries:['childcare','unknown','childcare']});
@@ -87,6 +94,25 @@ test('authorization validator fails closed on missing, duplicate, extra, or inve
   assert.equal(f.exports.automaticRefreshScope(catalog,['retail'],['TX']).valid,true);
   const cases=[{...catalog,automaticRefreshSources:undefined},{...catalog,automaticRefreshSources:[]},{...catalog,automaticRefreshSources:[...catalog.automaticRefreshSources,catalog.automaticRefreshSources[0]]},{...catalog,automaticRefreshSources:[{...catalog.automaticRefreshSources[0],automaticRefreshAuthorized:true}]},{...catalog,automaticRefreshSources:[{...catalog.automaticRefreshSources[0],extra:true}]}];
   for(const malformed of cases){const view=fixture(()=>assert.fail('must not dispatch'),{1:['retail'],2:['TX'],4:true},{catalog:malformed}).render();assert.equal(button(view,'Create disabled schedule').props.disabled,true);assert.match(text(view),/authorization evidence is unavailable or incompatible/i);}
+});
+
+test('reviewed governed authorization is accepted and enables an all-authorized schedule scope',()=>{
+  const authorized={...catalog,automaticRefreshSources:[{sourceId:'state-tx-retail',script:'scripts/tx.mjs',automaticRefreshAuthorized:true,reasonCode:'REVIEWED_AUTOMATIC_REFRESH',governedSourceId:'tx-retail'}]};
+  const f=fixture(async()=>record,{1:['retail'],2:['TX'],4:true},{catalog:authorized});
+  const scope=f.exports.automaticRefreshScope(authorized,['retail'],['TX']);
+  assert.deepEqual({valid:scope.valid,authorized:scope.authorized,blocked:scope.blocked},{valid:true,authorized:1,blocked:0});
+  const tree=f.render();
+  assert.equal(button(tree,'Create disabled schedule').props.disabled,false);
+  assert.match(text(tree),/1\s+authorized/);
+  assert.match(text(tree),/Authorized for automatic refresh/);
+});
+
+test('mixed reviewed and held sources remain visible and fail the schedule scope closed',()=>{
+  const mixed={industries:[{id:'retail'}],states:['TX'],collectionSources:[...catalog.collectionSources,{id:'national-retail',scope:'national',states:'all',industries:['retail'],manualSelectionRequired:false}],automaticRefreshSources:[{sourceId:'state-tx-retail',script:'scripts/tx.mjs',automaticRefreshAuthorized:true,reasonCode:'REVIEWED_AUTOMATIC_REFRESH',governedSourceId:'tx-retail'},{sourceId:'national-retail',script:'scripts/national.mjs',automaticRefreshAuthorized:false,reasonCode:'AUTOMATIC_REFRESH_NOT_REVIEWED',governedSourceId:null}]};
+  const tree=fixture(()=>assert.fail('must not dispatch'),{1:['retail'],2:['TX'],4:true},{catalog:mixed}).render();
+  assert.equal(button(tree,'Create disabled schedule').props.disabled,true);
+  assert.match(text(tree),/1\s+authorized/);
+  assert.match(text(tree),/1\s+unauthorized/);
 });
 
 test('selected scope lists national and matching state decisions but not unrelated state sources',()=>{
