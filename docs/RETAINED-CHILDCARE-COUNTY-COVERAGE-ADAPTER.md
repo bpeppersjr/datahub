@@ -2,6 +2,8 @@
 
 `runner/retained-childcare-county-coverage-adapter.mjs` implements the separately versioned `retained-childcare-county-coverage@1.0.0` contract. It prepares in-memory national coverage additions from the already retained PA/MD county derivative. It does not change `retained-childcare-coverage-extension.mjs`, publish a coverage successor, enroll one, change any pointer, acquire data, or authorize redistribution.
 
+Compatibility verification keeps the derivative's historical registry and coverage releases immutable while also pinning the current November registry and coverage pointers. It proves that the seven-source, 12,206-row retained childcare cohort and selected candidate artifact are identical across the historical and current registry generations. A current-pointer promotion therefore does not invalidate the retained derivative, but it also does not silently enroll that derivative into current national reporting.
+
 ## Exact retained chain
 
 The adapter accepts only the existing county display enrollment (`cf68097002840033d4f21a61659ad09d88d3023ce92906ad7efa1792b77362f7`) and derivative run `b660d059-25c4-44fc-8c4a-b94bc87d855e`, manifest SHA-256 `be0798c546d0016d7633c563f73e62734358cd0a8dd0025c28e35a0cdc3298ee`. It pins the original derivative registry, the September 11 registry and coverage releases, the Census geography release, PA and MD policy bytes, all seven source enrollment/configuration bindings, and the selected candidate artifact.

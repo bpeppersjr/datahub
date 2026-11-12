@@ -15,6 +15,14 @@ const pins = Object.freeze({
   registry_sha256: 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76',
   coverage: 'data/business-coverage-views/releases/national-business-coverage-views-20260911-040908332Z-f01c882a/manifest.json',
   coverage_sha256: 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6',
+  current_registry_pointer: 'data/business-registry/current.json',
+  current_registry_pointer_sha256: 'b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb',
+  current_registry: 'data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json',
+  current_registry_sha256: '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048',
+  current_coverage_pointer: 'data/business-coverage-views/current.json',
+  current_coverage_pointer_sha256: '922bf3e4a483659727a72e953b226e1dcf48b8ad5ad92fbd555f1dc98174a9c1',
+  current_coverage: 'data/business-coverage-views/releases/national-business-coverage-views-20261112-025948835Z-76733954/manifest.json',
+  current_coverage_sha256: '7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a',
   md_policy: 'config/source-policies/md-childcare-county-derivation-internal.json',
   md_policy_sha256: 'cf520ac70cb59965129549842cdaea2916f242ade599e3508b68c388775ebad1',
 });
@@ -53,6 +61,10 @@ async function metadata(signal) {
   const original = await pinned(COUNTY_RELATION_INPUTS.registry, COUNTY_RELATION_INPUTS.registry_sha256, signal);
   const registry = await pinned(pins.registry, pins.registry_sha256, signal);
   const coverage = await pinned(pins.coverage, pins.coverage_sha256, signal);
+  const currentRegistryPointer = await pinned(pins.current_registry_pointer, pins.current_registry_pointer_sha256, signal, 10000);
+  const currentRegistry = await pinned(pins.current_registry, pins.current_registry_sha256, signal);
+  const currentCoveragePointer = await pinned(pins.current_coverage_pointer, pins.current_coverage_pointer_sha256, signal, 10000);
+  const currentCoverage = await pinned(pins.current_coverage, pins.current_coverage_sha256, signal);
   const geography = await pinned(COUNTY_RELATION_INPUTS.geography, COUNTY_RELATION_INPUTS.geography_sha256, signal);
   await pinned(COUNTY_RELATION_INPUTS.pa_policy, COUNTY_RELATION_INPUTS.pa_policy_sha256, signal);
   await pinned(pins.md_policy, pins.md_policy_sha256, signal, 30000);
@@ -62,22 +74,29 @@ async function metadata(signal) {
   check(registry.publisher.version === '2.15.0' && coverage.publisher.version === '2.11.0'
     && registry.complete_national_business_registry === false && coverage.complete_all_businesses === false, 'unsupported retained release');
   check(same(original.retained_childcare_reporting, registry.retained_childcare_reporting)
-    && same(artifact(original), artifact(registry)), 'registry cohort changed');
-  for (const [folder, manifest, hash] of [['business-registry', registry, pins.registry_sha256], ['business-coverage-views', coverage, pins.coverage_sha256]]) {
-    const pointer = await readJson(path.join(APP_ROOT, `data/${folder}/current.json`), 10000, signal);
-    check(pointer.release_id === manifest.release_id && pointer.manifest === `releases/${manifest.release_id}/manifest.json`, 'current release moved');
-    if (folder === 'business-registry') {
-      const dep = coverage.dependencies.filter(row => row.dataset_id === 'national-business-registry');
-      check(dep.length === 1 && dep[0].release_id === manifest.release_id && dep[0].manifest_sha256 === hash, 'coverage registry dependency');
-    }
+    && same(artifact(original), artifact(registry))
+    && same(registry.retained_childcare_reporting, currentRegistry.retained_childcare_reporting)
+    && same(artifact(registry), artifact(currentRegistry)), 'registry cohort changed');
+  check(currentRegistryPointer.release_id === currentRegistry.release_id
+    && currentRegistryPointer.manifest === `releases/${currentRegistry.release_id}/manifest.json`
+    && currentCoveragePointer.release_id === currentCoverage.release_id
+    && currentCoveragePointer.manifest === `releases/${currentCoverage.release_id}/manifest.json`, 'current pointer binding');
+  for (const [view, manifest, hash] of [[coverage, registry, pins.registry_sha256], [currentCoverage, currentRegistry, pins.current_registry_sha256]]) {
+    const dep = view.dependencies.filter(row => row.dataset_id === 'national-business-registry');
+    check(dep.length === 1 && dep[0].release_id === manifest.release_id && dep[0].manifest_sha256 === hash, 'coverage registry dependency');
   }
-  const geo = coverage.dependencies.filter(row => row.dataset_id === 'us-census-geography');
-  check(geo.length === 1 && geo[0].release_id === geography.release_id && geo[0].manifest_sha256 === COUNTY_RELATION_INPUTS.geography_sha256
-    && geography.complete_national_release === true && geography.coverage.county_equivalents === 3235, 'coverage geography dependency');
+  for (const view of [coverage, currentCoverage]) {
+    const geo = view.dependencies.filter(row => row.dataset_id === 'us-census-geography');
+    check(geo.length === 1 && geo[0].release_id === geography.release_id && geo[0].manifest_sha256 === COUNTY_RELATION_INPUTS.geography_sha256
+      && geography.complete_national_release === true && geography.coverage.county_equivalents === 3235, 'coverage geography dependency');
+  }
   check(coverage.retained_childcare_reporting.registry_manifest_path === pins.registry
-    && same(coverage.retained_childcare_reporting.summary, registry.retained_childcare_reporting.summary), 'coverage cohort declaration');
+    && same(coverage.retained_childcare_reporting.summary, registry.retained_childcare_reporting.summary)
+    && currentCoverage.retained_childcare_reporting.registry_manifest_path === pins.current_registry
+    && same(currentCoverage.retained_childcare_reporting.summary, currentRegistry.retained_childcare_reporting.summary), 'coverage cohort declaration');
   const bindings = { ...pins, derivative_registry: COUNTY_RELATION_INPUTS.registry, derivative_registry_sha256: COUNTY_RELATION_INPUTS.registry_sha256,
     derivative_registry_release_id: original.release_id, registry_release_id: registry.release_id, coverage_release_id: coverage.release_id,
+    current_registry_release_id: currentRegistry.release_id, current_coverage_release_id: currentCoverage.release_id,
     geography: COUNTY_RELATION_INPUTS.geography, geography_sha256: COUNTY_RELATION_INPUTS.geography_sha256, geography_release_id: geography.release_id,
     pa_policy: COUNTY_RELATION_INPUTS.pa_policy, pa_policy_sha256: COUNTY_RELATION_INPUTS.pa_policy_sha256,
     candidate_artifact: artifact(registry), candidate_selection: registry.retained_childcare_reporting.selection,

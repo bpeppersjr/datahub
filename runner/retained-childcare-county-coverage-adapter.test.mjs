@@ -91,6 +91,8 @@ test('exact retained metadata binds the old derivative cohort to the identical c
   assert.equal(result.bindings.candidate_artifact.record_count, 12206);
   assert.equal(result.bindings.candidate_artifact.sha256, '9056279e54106e06d1f4c38236ff236b858927efe87fd8fd421238b960c264df');
   assert.notEqual(result.bindings.derivative_registry_sha256, result.bindings.registry_sha256);
+  assert.equal(result.bindings.current_registry_release_id, 'national-business-registry-20261112-005851952Z-44f0a338');
+  assert.equal(result.bindings.current_coverage_release_id, 'national-business-coverage-views-20261112-025948835Z-76733954');
   assert.equal(result.bindings.candidate_source_bindings.length, 7);
   assert.equal(result.bindings.candidate_enrollment_pins.length, 7);
   assert.equal(result.national_reporting_integrated, false);
