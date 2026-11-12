@@ -14,12 +14,12 @@ test("state v3.2 projects refreshed New York evidence with closed geography cons
   assert.equal(value.claims.review_qualification,"within-review-window");
 });
 
-test("operational industry status binds refreshed summary and state release",async()=>{
+test("operational industry status binds v3.3 summary and state release",async()=>{
   const value=await readOperationalIndustryEvidenceSummary({state:"NY"});
-  assert.equal(value.schema_version,"operational-industry-evidence-summary@1.0.0");
+  assert.equal(value.schema_version,"operational-industry-evidence-summary@1.1.0");
   assert.equal(value.industries.length,9);
-  assert.equal(value.provenance.summary_release_id,"national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629");
-  assert.equal(value.provenance.state_disposition_release_id,"state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4");
+  assert.equal(value.provenance.summary_release_id,"national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13");
+  assert.equal(value.provenance.state_disposition_release_id,"state-exact-zip-industry-evidence-disposition-60d8b416710c0916606a370b82fc8f0c1ef2134acedab29ec928528343f87617");
   const retail=value.industries.find(row=>row.id==="retail-consumer"),ny=retail.dimensions.find(row=>row.id==="ny_retail_food_license_address_evidence_count");
   assert.equal(ny.temporal_qualification.review_qualification,"within-review-window");
   assert.equal(ny.temporal_qualification.source_release_id,"ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0");

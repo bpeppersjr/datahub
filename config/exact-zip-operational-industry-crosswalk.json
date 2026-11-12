@@ -1,6 +1,6 @@
 {
-  "schema_version": "exact-zip-operational-industry-crosswalk@1.0.0",
-  "matrix_schema_version": "national-exact-zip-industry-summary-view@3.2.0",
+  "schema_version": "exact-zip-operational-industry-crosswalk@1.1.0",
+  "matrix_schema_version": "national-exact-zip-industry-summary-view@3.3.0",
   "operational_industries": ["retail-consumer", "health-care", "financial-services", "transportation", "construction", "tax-exempt-organizations", "sales-tax-outlets", "local-business-licenses", "childcare"],
   "dimensions": [
     {"id":"healthcare_organizations","industries":["health-care"]},

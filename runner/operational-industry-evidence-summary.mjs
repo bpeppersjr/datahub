@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
+import { readExactZipIndustrySummaryV33 } from "./exact-zip-industry-summary-v3-3.mjs";
 
 const sha = value => createHash("sha256").update(value).digest("hex");
 const check = (value, message) => { if (!value) throw new Error(`Operational industry evidence rejected: ${message}.`); };
@@ -12,7 +12,7 @@ const percent = (n, d) => d ? Number((n / d * 100).toFixed(1)) : null;
 async function boundedJson(file, max) { const resolved = await fs.realpath(file), info = await fs.lstat(resolved); check(info.isFile() && !info.isSymbolicLink() && info.size > 0 && info.size <= max, "bounded regular file"); const bytes = await fs.readFile(resolved); const after = await fs.lstat(resolved); check(after.size === info.size && after.mtimeMs === info.mtimeMs, "file changed while reading"); return { value: JSON.parse(bytes), bytes, sha256: sha(bytes), path: resolved }; }
 
 export function projectOperationalIndustryEvidence({ crosswalk, summary, disposition, state }) {
-  check(crosswalk?.schema_version === "exact-zip-operational-industry-crosswalk@1.0.0" && crosswalk.matrix_schema_version === summary?.schema_version, "crosswalk version");
+  check(crosswalk?.schema_version === "exact-zip-operational-industry-crosswalk@1.1.0" && crosswalk.matrix_schema_version === summary?.schema_version, "crosswalk version");
   check(STATES.has(state), "state");
   const summaryById = new Map(summary.dimensions.map(row => [row.id, row]));
   const dimensionIds = Object.keys(disposition.dimensions ?? {});
@@ -35,14 +35,14 @@ export function projectOperationalIndustryEvidence({ crosswalk, summary, disposi
     const evidenced = dimensions.filter(row => row.measured_zip_dimension_cells > 0).length;
     return { id:industry, mapped_dimensions:dimensions.length, dimensions_with_retained_evidence:evidenced, dimension_evidence_availability_percent:percent(evidenced, dimensions.length), measured_zip_dimension_cells:measured, zip_dimension_cell_denominator:denominator, exact_zip_measurement_reach_percent:percent(measured, denominator), dimensions };
   });
-  return { schema_version:"operational-industry-evidence-summary@1.0.0", state:{code:state,name:disposition.state_name,fips:disposition.state_fips,governed_zcta_zip5_rows:disposition.zip5_rows}, industries, unmapped_dimensions:crosswalk.dimensions.filter(row=>row.industries.length===0).map(row=>({id:row.id,reason:row.unmapped_reason})), special_geography:{included_in_state_denominator:false,non_zcta_unassigned_reported_separately:true,material_cross_state_zctas_reported_separately:true}, claims:{metric_unit:"ZIP5-by-source-dimension evidence cells",business_or_entity_counts_added:false,business_completeness:null,industry_completeness:null,current_operation_verified:false,usps_validity_verified:false,zip4_joined:false,network_requests:0,runtime_writes:0,production_enrollment:false,export_authorized:false} };
+  return { schema_version:"operational-industry-evidence-summary@1.1.0", state:{code:state,name:disposition.state_name,fips:disposition.state_fips,governed_zcta_zip5_rows:disposition.zip5_rows}, industries, unmapped_dimensions:crosswalk.dimensions.filter(row=>row.industries.length===0).map(row=>({id:row.id,reason:row.unmapped_reason})), special_geography:{included_in_state_denominator:false,non_zcta_unassigned_reported_separately:true,material_cross_state_zctas_reported_separately:true}, claims:{metric_unit:"ZIP5-by-source-dimension evidence cells",business_or_entity_counts_added:false,business_completeness:null,industry_completeness:null,current_operation_verified:false,usps_validity_verified:false,zip4_joined:false,network_requests:0,runtime_writes:0,production_enrollment:false,export_authorized:false} };
 }
 
-export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV32 }={}) {
+export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV33 }={}) {
   check(STATES.has(state), "state"); root=await fs.realpath(path.resolve(root));
   const crosswalkRead=await boundedJson(path.join(root,"config","exact-zip-operational-industry-crosswalk.json"),200_000);
-  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-2.json"),200_000), registration=registrationRead.value;
-  check(registration.schema_version==="3.2.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
+  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-3.json"),200_000), registration=registrationRead.value;
+  check(registration.schema_version==="3.3.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
   const manifestRead=await boundedJson(path.join(root,...registration.retained_release.manifest.split("/")),100_000), manifest=manifestRead.value;
   check(manifestRead.sha256===registration.retained_release.manifest_sha256&&manifest.release_id===registration.retained_release.release_id&&manifest.bindings?.matrix?.release_id,"disposition manifest");
   const artifact=manifest.artifacts?.[0], artifactRead=await boundedJson(path.join(path.dirname(manifestRead.path),artifact?.path??""),4_000_000);

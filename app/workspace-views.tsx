@@ -6378,7 +6378,7 @@ export function ExactZipIndustryNationalSummary(){const[view,setView]=useState<E
 
 function GovernedCoverageStates(){return <section className="supporting-evidence" aria-label="Nonblocking geography coverage states"><h4>Geography coverage states</h4><p>These states remain visible and never block retained source evidence. They are context states, not business completeness or ZIP-validity decisions.</p><dl><dt>Census ZCTA</dt><dd>Available map geography where a same-code 2020 Census ZCTA is retained.</dd><dt>Private or special-purpose ZIP evidence</dt><dd>Preserved as reported non-ZCTA/special-purpose evidence only where the governed source supplies that classification; otherwise unresolved. Population may be unavailable and is not required.</dd><dt>Park or protected land</dt><dd>Unavailable until a governed protected-land overlay is retained. No classification is inferred and the map remains usable.</dd><dt>Tribal or Native territory</dt><dd>Unavailable until a governed tribal-area overlay is retained. No classification is inferred and the map remains usable.</dd><dt>Unresolved land outside selected ZCTAs</dt><dd>A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents, providing state-level placement without inventing ZIP coverage. Its components have unique state/cardinal reference labels derived from bounding-box midpoint orientation; these labels do not subdivide geometry or assert centroids. It remains nonblocking optional context and does not infer a ZIP, population, park, tribal/Native, private-land, or business status.</dd></dl></section>}
 
-type OperationalIndustryCrosswalkView={schema_version:'operational-industry-evidence-summary@1.0.0';state:{code:string;name:string;fips:string;governed_zcta_zip5_rows:number};industries:Array<{id:string;mapped_dimensions:number;dimensions_with_retained_evidence:number;dimension_evidence_availability_percent:number|null;measured_zip_dimension_cells:number;zip_dimension_cell_denominator:number;exact_zip_measurement_reach_percent:number|null;dimensions:Array<{id:string;measured_zip_dimension_cells:number;positive_zip_dimension_cells:number;temporal_qualification:{source_release_id:string|null;review_qualification:string;semantic_class:string}}>} >;unmapped_dimensions:Array<{id:string;reason:string}>;special_geography:{included_in_state_denominator:false;non_zcta_unassigned_reported_separately:true;material_cross_state_zctas_reported_separately:true};claims:{metric_unit:'ZIP5-by-source-dimension evidence cells';business_or_entity_counts_added:false;business_completeness:null;industry_completeness:null;current_operation_verified:false;usps_validity_verified:false;zip4_joined:false;network_requests:0;runtime_writes:0;production_enrollment:false;export_authorized:false};provenance:{crosswalk_sha256:string;summary_release_id:string;summary_manifest_sha256:string;state_disposition_release_id:string;state_disposition_manifest_sha256:string;state_disposition_artifact_sha256:string}};
+type OperationalIndustryCrosswalkView={schema_version:'operational-industry-evidence-summary@1.1.0';state:{code:string;name:string;fips:string;governed_zcta_zip5_rows:number};industries:Array<{id:string;mapped_dimensions:number;dimensions_with_retained_evidence:number;dimension_evidence_availability_percent:number|null;measured_zip_dimension_cells:number;zip_dimension_cell_denominator:number;exact_zip_measurement_reach_percent:number|null;dimensions:Array<{id:string;measured_zip_dimension_cells:number;positive_zip_dimension_cells:number;temporal_qualification:{source_release_id:string|null;review_qualification:string;semantic_class:string}}>} >;unmapped_dimensions:Array<{id:string;reason:string}>;special_geography:{included_in_state_denominator:false;non_zcta_unassigned_reported_separately:true;material_cross_state_zctas_reported_separately:true};claims:{metric_unit:'ZIP5-by-source-dimension evidence cells';business_or_entity_counts_added:false;business_completeness:null;industry_completeness:null;current_operation_verified:false;usps_validity_verified:false;zip4_joined:false;network_requests:0;runtime_writes:0;production_enrollment:false;export_authorized:false};provenance:{crosswalk_sha256:string;summary_release_id:string;summary_manifest_sha256:string;state_disposition_release_id:string;state_disposition_manifest_sha256:string;state_disposition_artifact_sha256:string}};
 // Closed mappings and provenance for the retained v3.1 crosswalk projection.
 const OPERATIONAL_INDUSTRY_DIMENSIONS: Record<string, string[]> = {
   'retail-consumer': ['snap_retailers','pharmacy','ca_abc_license_location_profiles','ny_retail_food_location_profiles','cms_nppes_pharmacy_nonprimary_reported_address_rows','ca_abc_active_issued_license_physical_sites','ny_retail_food_license_address_evidence_count'],
@@ -6392,12 +6392,18 @@ const OPERATIONAL_INDUSTRY_DIMENSIONS: Record<string, string[]> = {
   childcare: ['childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates','childcare_ma_reporting_centers','childcare_nj_reporting_centers','childcare_tn_reporting_centers','childcare_oh_reporting_centers'],
 };
 const OPERATIONAL_CROSSWALK_PROVENANCE = {
-  crosswalk_sha256: '58f761e870e7a72684dbb38b882f7c2ee794bf235d0da2d8bedeff483225fec4',
-  summary_release_id: 'national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629',
-  summary_manifest_sha256: 'd4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1',
-  state_disposition_release_id: 'state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4',
-  state_disposition_manifest_sha256: '70f5d98ef96a96f9ac591bdff1d1ac1213edd0d3c8f890de8dd5db90048b95a5',
-  state_disposition_artifact_sha256: '71bd9cafba998ef78490f73ed1501adf6cfa7b370a182d48a077a33b2434b54d',
+  crosswalk_sha256: '114b34577108a3c0f07ade860d6771800f6111b2e3ed5d0966726dd970b59666',
+  summary_release_id: EXACT_ZIP_V33_RELEASE,
+  summary_manifest_sha256: EXACT_ZIP_V33_MANIFEST,
+  state_disposition_release_id: 'state-exact-zip-industry-evidence-disposition-60d8b416710c0916606a370b82fc8f0c1ef2134acedab29ec928528343f87617',
+  state_disposition_manifest_sha256: '5e4f158779ffba9ca3bdee140da4fcd657c535b061b7300c53620413d0672920',
+  state_disposition_artifact_sha256: 'f21183124dc7070e60f7c27c61d45fa312b856bb24d09bec25aa8e39cf562412',
+};
+const OPERATIONAL_V33_CHILDCARE = new Set(['childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates']);
+const operationalTemporalContract = (id:string) => {
+  const prior = EXACT_ZIP_V32_SUMMARY_CONTRACT.find(([dimension]) => dimension === id)?.[2];
+  if (!prior || !OPERATIONAL_V33_CHILDCARE.has(id)) return prior;
+  return {...prior, source_release_id: RETAINED_CHILDCARE_V12_RELEASE, ...(id === 'childcare_vt_candidates' ? {source_reference_at:'2026-10-14T19:56:37.000Z'} : {})};
 };
 const OPERATIONAL_STATE_FIPS: Record<string, string> = Object.fromEntries(
   operationalStates.map((state, index) => [state, ['02','01','05','04','06','08','09','11','10','12','13','15','19','16','17','18','20','21','22','25','24','23','26','27','29','28','30','37','38','31','33','34','35','32','36','39','40','41','42','44','45','46','47','48','49','51','50','53','55','54','56'][index]]),
@@ -6408,7 +6414,7 @@ export function validOperationalIndustryCrosswalkView(input: unknown, state: str
     ? value === null
     : typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 && value === Number((numerator / denominator * 100).toFixed(1));
   if (!exactObject(input) || !exactKeys(input, ['schema_version','state','industries','unmapped_dimensions','special_geography','claims','provenance']) ||
-    input.schema_version !== 'operational-industry-evidence-summary@1.0.0' ||
+    input.schema_version !== 'operational-industry-evidence-summary@1.1.0' ||
     !operationalStates.includes(state as typeof operationalStates[number]) ||
     !exactObject(input.state) || !exactKeys(input.state, ['code','name','fips','governed_zcta_zip5_rows']) ||
     input.state.code !== state || input.state.fips !== OPERATIONAL_STATE_FIPS[state] ||
@@ -6454,7 +6460,7 @@ export function validOperationalIndustryCrosswalkView(input: unknown, state: str
       if (Object.values(counts).reduce((sum, value) => sum + value, 0) !== zipRows ||
         counts['evidence-present'] !== dimension.positive_zip_dimension_cells ||
         counts['evidence-present'] + counts['measured-zero'] !== dimension.measured_zip_dimension_cells) return false;
-      const temporal = EXACT_ZIP_V32_SUMMARY_CONTRACT.find(([id]) => id === dimension.id)?.[2];
+      const temporal = operationalTemporalContract(dimension.id);
       if (!temporal || !sameClosed(dimension.temporal_qualification, {
         source_key: temporal.source_key, source_release_id: temporal.source_release_id,
         source_reference_at: temporal.source_reference_at, review_due_at: temporal.review_due_at,
