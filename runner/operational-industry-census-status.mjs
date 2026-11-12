@@ -3,8 +3,9 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
 
-export const OPERATIONAL_INDUSTRY_CENSUS_STATUS_VERSION = "operational-industry-census-status@1.0.0";
+export const OPERATIONAL_INDUSTRY_CENSUS_STATUS_VERSION = "operational-industry-census-status@1.1.0";
 const POINTER = "data/business-baselines/census-zbp/current.json";
+const ASSESSMENT = "config/source-assessments/census-zbp-current-release-2026-11-12.json";
 const ORDER = ["childcare", "construction", "financial-services", "health-care", "local-business-licenses", "retail-consumer", "sales-tax-outlets", "tax-exempt-organizations", "transportation"];
 const MAPPING = Object.freeze({
   childcare: ["624410", "Child Care Services"],
@@ -37,6 +38,8 @@ async function fixedFile(root, relative, maximum) {
 
 export async function readOperationalIndustryCensusStatus({ root = APP_ROOT } = {}) {
   root = await realpath(path.resolve(root));
+  const assessmentRead=await fixedFile(root,ASSESSMENT,32_768),assessment=JSON.parse(assessmentRead.bytes);
+  if(assessment.schema_version!=="census-zbp-current-release-assessment@1.0.0"||assessment.assessment_id!=="census-zbp-current-release-2026-11-12"||assessment.observed_at!=="2026-11-12"||assessment.publisher!=="United States Census Bureau"||assessment.current_reference_year!==2023||assessment.next_reference_year!==2024||assessment.next_release_status!=="no-planned-release-date-publisher-evaluating-alternative-approach"||!Array.isArray(assessment.citations)||assessment.citations.length!==2||assessment.citations.some(item=>!/^https:\/\/www\.census\.gov\//.test(item.url??""))||JSON.stringify(assessment.controls)!==JSON.stringify({source_data_requests:0,source_archives_downloaded:0,baseline_rebuilds:0,production_changes:0})||JSON.stringify(assessment.claims)!==JSON.stringify({retained_2023_is_latest_publisher_reference_year:true,retained_2023_is_current_business_operation:false,reference_year_2024_available:false,future_release_date_known:false,named_businesses:false,business_completeness:null}))fail("publisher release assessment");
   const pointerRead = await fixedFile(root, POINTER, 16_384), pointer = JSON.parse(pointerRead.bytes);
   if (pointer.dataset_id !== "census-zbp-baseline" || !/^releases\/[A-Za-z0-9-]+\/manifest\.json$/.test(pointer.manifest ?? "")) fail("pointer identity");
   const manifestRelative = path.posix.join(path.posix.dirname(POINTER), pointer.manifest);
@@ -58,7 +61,7 @@ export async function readOperationalIndustryCensusStatus({ root = APP_ROOT } = 
   });
   return Object.freeze({
     schema_version: OPERATIONAL_INDUSTRY_CENSUS_STATUS_VERSION,
-    source: { dataset_id: manifest.dataset_id, release_id: manifest.release_id, reference_year: manifest.reference_year, pointer_sha256: pointerRead.sha256, manifest_sha256: manifestRead.sha256, naics_catalog_sha256: catalogRead.sha256 },
+    source: { dataset_id: manifest.dataset_id, release_id: manifest.release_id, reference_year: manifest.reference_year, publisher_release_status:"latest-publisher-reference-year", publisher_assessment_id:assessment.assessment_id, publisher_assessment_observed_at:assessment.observed_at, publisher_assessment_sha256:assessmentRead.sha256, next_reference_year:assessment.next_reference_year, next_release_status:assessment.next_release_status, pointer_sha256: pointerRead.sha256, manifest_sha256: manifestRead.sha256, naics_catalog_sha256: catalogRead.sha256 },
     industries,
     claims: { annual_aggregate_context_only: true, named_businesses: false, current_operations_verified: false, business_completeness: null, industry_completeness: null, state_access_gap_resolution_performed: false, zip5_is_zcta: false, zip4_joined: false, network_requests: 0, runtime_writes: 0 },
   });

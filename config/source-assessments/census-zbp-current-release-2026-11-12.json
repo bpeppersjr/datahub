@@ -1,0 +1,34 @@
+{
+  "schema_version": "census-zbp-current-release-assessment@1.0.0",
+  "assessment_id": "census-zbp-current-release-2026-11-12",
+  "observed_at": "2026-11-12",
+  "publisher": "United States Census Bureau",
+  "current_reference_year": 2023,
+  "next_reference_year": 2024,
+  "next_release_status": "no-planned-release-date-publisher-evaluating-alternative-approach",
+  "publisher_explanation": "Census reports that 2023 remains the current CBP/ZBP reference year and that it has no planned 2024 release date while evaluating alternative approaches following the Department of Commerce administrative order prohibiting noise infusion.",
+  "citations": [
+    {
+      "url": "https://www.census.gov/programs-surveys/cbp/data.html",
+      "role": "official-current-reference-year-and-release-status"
+    },
+    {
+      "url": "https://www.census.gov/data/developers/data-sets/cbp-zbp.html",
+      "role": "official-zbp-api-product-scope"
+    }
+  ],
+  "controls": {
+    "source_data_requests": 0,
+    "source_archives_downloaded": 0,
+    "baseline_rebuilds": 0,
+    "production_changes": 0
+  },
+  "claims": {
+    "retained_2023_is_latest_publisher_reference_year": true,
+    "retained_2023_is_current_business_operation": false,
+    "reference_year_2024_available": false,
+    "future_release_date_known": false,
+    "named_businesses": false,
+    "business_completeness": null
+  }
+}

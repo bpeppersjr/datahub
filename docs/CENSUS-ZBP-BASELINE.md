@@ -1,6 +1,6 @@
 # Census ZIP Business Patterns baseline
 
-`census-zbp-baseline` is the governed denominator for employer establishments by ZIP and NAICS. It does not provide business names. As of August 30, 2026, the latest published reference year is 2023; Census has announced that 2024 data is expected in September 2026.
+`census-zbp-baseline` is the governed denominator for employer establishments by ZIP and NAICS. It does not provide business names. The November 12, 2026 official-publisher review confirms that 2023 remains the latest published reference year. Census now reports that it has no planned release date for 2024 while it evaluates alternative approaches following the Department of Commerce administrative order prohibiting noise infusion. Co*Tive therefore retains 2023 as the latest publisher release, not as proof of current business operation. The governed assessment is `config/source-assessments/census-zbp-current-release-2026-11-12.json`.
 
 ## Build and verify
 
