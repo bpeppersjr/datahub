@@ -13,3 +13,12 @@ npm run business-lifecycle-industry-zip:build
 npm run business-lifecycle-industry-zip:verify
 node --test runner/national-business-lifecycle-industry-zip-evidence.test.mjs
 ```
+
+## Protected runtime API
+
+The read-only runtime hard-pins the registration, manifest, crosswalk, summary and closed 100-partition inventory. It uses stable bounded non-link reads. A summary request reads only the compact summary artifact; an exact-ZIP request decompresses only its two-digit ZIP partition with strict compressed, decoded and line bounds.
+
+- `GET /api/business-map/lifecycle-industry-zip-summary` returns the national summary.
+- `GET /api/business-map/lifecycle-industry-zip?zip=00501` returns one exact governed ZIP row or an explicit outside-cohort result.
+
+The API distinguishes a governed zero-profile row from a ZIP absent from the governed cohort. Neither status establishes zero businesses or an invalid ZIP. Returned industry counts remain nonadditive source-relative memberships, not unique businesses, completeness, current operations, USPS assignments or ZIP+4 evidence.
