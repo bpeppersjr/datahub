@@ -24,7 +24,7 @@ import {getIaBusinessRegistryRefreshReadiness,IA_BUSINESS_REGISTRY_REFRESH_SOURC
 import {getOrBusinessRegistryRefreshReadiness,OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './or-business-registry-refresh-readiness.mjs';
 import {getNyBusinessRegistryRefreshReadiness,NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID} from './ny-business-registry-refresh-readiness.mjs';
 import {getRetainedBusinessRefreshReadiness,RETAINED_BUSINESS_REFRESH_DESCRIPTORS,RETAINED_BUSINESS_REFRESH_SOURCE_IDS} from './retained-business-refresh-readiness.mjs';
-import {GOVERNED_SOURCE_REFRESH_SOURCE_IDS,governedSourceRefreshHoldPlan,validateGovernedSourceRefreshDescriptor} from './governed-source-refresh-registry.mjs';
+import {GOVERNED_SOURCE_REFRESH_SOURCE_IDS,governedSourceRefreshPlan,validateGovernedSourceRefreshDescriptor} from './governed-source-refresh-registry.mjs';
 import {assertAutomaticRefreshAuthorized,loadAutomaticRefreshAuthorizations} from './automatic-refresh-authorization.mjs';
 import { OK_HISTORICAL_BATCH_OPERATION, OK_HISTORICAL_BATCH_ROOT } from './ok-childcare-batch-history.mjs';
 const ADOPTIONS=[CMS_HOSPITAL_RETAINED_ADOPTION,CMS_NURSING_HOME_RETAINED_ADOPTION];
@@ -37,8 +37,8 @@ const SOURCE_REFRESH_DISPATCH=new Map([
 for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){
   const prior=SOURCE_REFRESH_DISPATCH.get(sourceId);
   SOURCE_REFRESH_DISPATCH.set(sourceId,{readiness:async()=>{
-    const binding=await validateGovernedSourceRefreshDescriptor(sourceId),existing=prior?await prior.readiness():null,hold=await governedSourceRefreshHoldPlan(sourceId);
-    return existing?{...existing,plan:{...existing.plan,implementation:hold.implementation}}:{sourceId,label:`${binding.state} governed source refresh`,readinessStatus:'HOLD',dispatchAvailable:false,freshAcquisitionAuthorized:false,autonomousAcquisitionAuthorized:false,productionPointerChangeAuthorized:false,plan:hold};
+    const binding=await validateGovernedSourceRefreshDescriptor(sourceId),existing=prior?await prior.readiness():null,plan=await governedSourceRefreshPlan(sourceId);
+    return existing?{...existing,readinessStatus:binding.status,dispatchAvailable:binding.dispatchAvailable,freshAcquisitionAuthorized:binding.freshAcquisitionAuthorized,autonomousAcquisitionAuthorized:binding.autonomousAcquisitionAuthorized,productionPointerChangeAuthorized:binding.productionPointerChangeAuthorized,sourceUseNotice:binding.sourceUseNotice,plan:{...existing.plan,...plan,implementation:plan.implementation}}:{sourceId,label:`${binding.state} governed source refresh`,readinessStatus:binding.status,dispatchAvailable:binding.dispatchAvailable,freshAcquisitionAuthorized:binding.freshAcquisitionAuthorized,autonomousAcquisitionAuthorized:binding.autonomousAcquisitionAuthorized,productionPointerChangeAuthorized:binding.productionPointerChangeAuthorized,sourceUseNotice:binding.sourceUseNotice,plan};
   },rejection:prior?.rejection??`ACQUISITION_NOT_AUTHORIZED: ${sourceId} managed refresh remains on HOLD; no operation was created.`});
 }
 
@@ -55,7 +55,7 @@ function adoptionStage(work,signal,cleanupMs){
 }
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
-const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk", "ms-business-report", "ky-business-entity"];
+const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-refresh", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk", "ms-business-report", "ky-business-entity"];
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -140,6 +140,9 @@ export class ManagedOperations {
     }
     this.configLoader = options.configLoader ?? loadIndustryConfig;
     this.automaticRefreshLoader = options.automaticRefreshLoader ?? loadAutomaticRefreshAuthorizations;
+    this.sourceRefreshDispatch = options.sourceRefreshDispatch ?? SOURCE_REFRESH_DISPATCH;
+    this.governedSourceValidator = options.governedSourceValidator ?? validateGovernedSourceRefreshDescriptor;
+    this.governedSourceVerifier = options.governedSourceVerifier ?? null;
     this.now = options.now ?? (() => new Date().toISOString());
     this.idFactory = options.idFactory ?? randomUUID;
     this.receiptWriter = options.receiptWriter ?? atomicJson;
@@ -179,8 +182,11 @@ export class ManagedOperations {
   }
   async startSourceRefresh(input = {}) {
     const dispatch=this.#exactSourceRefreshInput(input);
-    await dispatch.readiness();
-    throw Object.assign(new Error(dispatch.rejection), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
+    const readiness=await dispatch.readiness();
+    if(readiness.dispatchAvailable!==true||readiness.plan?.status!=="AUTHORIZED")throw Object.assign(new Error(dispatch.rejection), { code: "ACQUISITION_NOT_AUTHORIZED", statusCode: 409 });
+    await this.ready;await this.#refreshUnknown();this.#reserve();
+    try{return await this.#start("source-refresh",{sourceId:readiness.sourceId,plan:readiness.plan});}
+    catch(error){this.reserved=false;throw error;}
   }
   async plan(input = {}) { await this.ready; this.#only(input, ["industries", "states", "sourceIds", "retainedInputs"]); const config = await this.configLoader(); const plan = validate(() => buildIndustryPlan(config, this.#selection(input))); await verifyRetainedPlan(plan); return plan; }
   async planScheduled(input = {}) {
@@ -529,7 +535,7 @@ export class ManagedOperations {
   #selection(input) { return { industries: this.#strings(input.industries, "industries"), states: this.#strings(input.states, "states").map((x) => x.toUpperCase()), ...(Object.hasOwn(input,"sourceIds") ? {sourceIds: input.sourceIds === undefined ? null : input.sourceIds} : {}), ...(Object.hasOwn(input,'retainedInputs') ? {retainedInputs: input.retainedInputs === undefined ? null : input.retainedInputs} : {}) }; }
   #exactSourceRefreshInput(input) {
     const descriptor = input && Object.getPrototypeOf(input) === Object.prototype && Object.getOwnPropertyDescriptor(input, "sourceId");
-    const dispatch=descriptor&&Object.hasOwn(descriptor,"value")&&SOURCE_REFRESH_DISPATCH.get(descriptor.value);
+    const dispatch=descriptor&&Object.hasOwn(descriptor,"value")&&this.sourceRefreshDispatch.get(descriptor.value);
     if (!dispatch || Reflect.ownKeys(input).length !== 1) throw invalid("Source refresh requires exactly one supported sourceId.");
     return dispatch;
   }
@@ -580,6 +586,7 @@ export class ManagedOperations {
       } else {
       let args; let script;
       if (record.kind === "collection") { script = "scripts/run-industry-segments.mjs"; args = ["run", "--run-id", record.id]; for (const value of record.details.plan.industries) args.push("--industry", value); for (const value of record.details.plan.states) args.push("--state", value); if(record.details.plan.sourceIds !== undefined) args.push("--sources",record.details.plan.sourceIds.join(",")); if(record.details.plan.retainedInputs !== undefined) { await verifyRetainedPlan(record.details.plan, controller.signal); args.push('--retained-inputs-json', JSON.stringify(record.details.plan.retainedInputs), '--expected-plan-sha256', industryPlanFingerprint(record.details.plan)); } }
+      else if(record.kind==='source-refresh'){script=record.details.plan.implementation.builder;args=[];}
       else if(record.kind==='credential-export') {script='scripts/export-managed-mn-credentials.mjs';args=['--operation-id',record.id,'--output',path.join(directory,'output'),'--format',record.details.format];for(const field of record.details.fields)args.push('--field',field);for(const state of record.details.states)args.push('--state',state);}
       else if(record.kind==='source-adoption') {script=record.details.sourceId===CMS_NURSING_HOME_RETAINED_ADOPTION.sourceId?'scripts/adopt-cms-nursing-homes.mjs':'scripts/adopt-cms-hospitals.mjs';args=['--operation-id',record.id];}
       else if(record.kind==='source-admission') {script='scripts/admit-acs-zcta-demographic-package.mjs';args=['--package',record.details.packageDirectory,'--operation-id',record.id,'--operation-directory',directory];}
@@ -628,6 +635,23 @@ export class ManagedOperations {
         if(!source||receipt.operationId!==record.id||receipt.executionMode!=='verified-retained-source'||receipt.startedAt<record.startedAt||receipt.finishedAt<receipt.startedAt||receipt.summary.sourceRunId!==source.runId||receipt.summary.sourceManifestSha256!==source.manifestSha256||nursing&&(receipt.summary.historicalAcquisitionStatus!=='FAILED'||receipt.summary.failedSourceRunId!==source.failedSourceRunId))throw Error('Retained adoption binding rejected.');
         record.result={sourceId:record.details.sourceId,receiptIntegrityVerified:true,inspectionRequired:false,adoptedAt:receipt.finishedAt,sourceReplayPerformedAtAdoption:true,sourceReplayPerformedThisRead:false,summary:receipt.summary,exportPolicy:nursing?'internal':'local-review-only',...(nursing?{jsonOutputPolicy:'metadata-only-internal-no-source-download'}:{}),newAcquisitionPerformed:false,descriptor};
         record.artifacts=[];record.status='SUCCEEDED';
+      }
+      else if(record.kind==='source-refresh'){
+        if(controller.signal.aborted||execution?.code!==0)throw new Error('Governed source refresh did not complete cleanly.');
+        const binding=await this.governedSourceValidator(record.details.sourceId);
+        if(binding.status!=="AUTHORIZED"||binding.authorization?.authorization_id!==record.details.plan.authorization?.authorizationId)throw new Error('Governed source refresh authorization changed during execution.');
+        const outputRoot=path.join(APP_ROOT,...binding.outputRoot.split('/')),outputReal=await realpath(outputRoot),pointerPath=path.join(outputRoot,'current.json'),pointerInfo=await lstat(pointerPath,{bigint:true});
+        if(!pointerInfo.isFile()||pointerInfo.isSymbolicLink()||pointerInfo.nlink!==1n||pointerInfo.size<=0n||pointerInfo.size>100000n||await realpath(pointerPath)!==pointerPath)throw new Error('Governed source refresh pointer is unsafe.');
+        const pointerBytes=await readFile(pointerPath),pointerAfter=await lstat(pointerPath,{bigint:true});
+        if(pointerBytes.length!==Number(pointerInfo.size)||pointerAfter.dev!==pointerInfo.dev||pointerAfter.ino!==pointerInfo.ino||pointerAfter.size!==pointerInfo.size||pointerAfter.mtimeNs!==pointerInfo.mtimeNs||pointerAfter.ctimeNs!==pointerInfo.ctimeNs)throw new Error('Governed source refresh pointer changed while read.');
+        const pointer=JSON.parse(pointerBytes);
+        if(pointer.dataset_id!==binding.datasetId||typeof pointer.release_id!=="string"||typeof pointer.manifest!=="string")throw new Error('Governed source refresh pointer is invalid.');
+        const requestedManifest=path.resolve(path.dirname(pointerPath),pointer.manifest),manifestPath=await realpath(requestedManifest);
+        if(!contained(outputReal,manifestPath))throw new Error('Governed source refresh manifest escapes its output root.');
+        const verifier=this.governedSourceVerifier??(await import(`./${path.basename(binding.verifier)}`))[binding.verifierExport];
+        if(typeof verifier!=="function")throw new Error('Governed source refresh verifier is unavailable.');
+        const proof=await verifier(manifestPath,{signal:controller.signal});controller.signal.throwIfAborted();
+        record.result={sourceId:binding.sourceId,datasetId:binding.datasetId,releaseId:pointer.release_id,authorizationId:binding.authorization.authorization_id,receiptIntegrityVerified:true,inspectionRequired:false,productionPointerChanged:true,verification:proof};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if(record.kind==='credential-export') {
         if(controller.signal.aborted||execution?.code!==0)throw new Error('Credential export did not complete cleanly.');

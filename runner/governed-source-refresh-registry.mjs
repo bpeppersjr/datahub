@@ -73,12 +73,17 @@ export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=
   if(Object.keys(registry.authorizations).some(id=>!GOVERNED_SOURCE_REFRESH_DESCRIPTORS[id]))throw new Error("Governed refresh authorization registry names an unsupported source.");
   const authorization=authorizationBinding(sourceId,evidence,registry);
   return Object.freeze({...descriptor,status:authorization?"AUTHORIZED":"HOLD",dispatchAvailable:Boolean(authorization),freshAcquisitionAuthorized:Boolean(authorization),autonomousAcquisitionAuthorized:Boolean(authorization),productionPointerChangeAuthorized:Boolean(authorization),authorization,
+    sourceUseNotice:typeof policy.required_application_notice==="string"&&policy.required_application_notice.length>0?policy.required_application_notice:null,
     authorizationRegistry:{path:authorizationRegistry,sha256:authorizationRead.sha256,bytes:authorizationRead.bytes.length},evidence});
 }
 
-export async function governedSourceRefreshHoldPlan(sourceId){
-  const binding=await validateGovernedSourceRefreshDescriptor(sourceId);
-  return Object.freeze({planId:`${sourceId}-managed-refresh-hold-${sha256(JSON.stringify(binding.evidence)).slice(0,16)}`,sourceId,mode:"governed-full-snapshot-refresh",status:"HOLD",allocationCount:0,networkRequestCount:0,operationCreated:false,
+export async function governedSourceRefreshPlan(sourceId,options){
+  const binding=await validateGovernedSourceRefreshDescriptor(sourceId,options);
+  const authorized=binding.status==="AUTHORIZED";
+  return Object.freeze({planId:`${sourceId}-managed-refresh-${authorized?"authorized":"hold"}-${sha256(JSON.stringify(binding.evidence)).slice(0,16)}`,sourceId,mode:"governed-full-snapshot-refresh",status:binding.status,dispatchAvailable:binding.dispatchAvailable,allocationCount:0,networkRequestCount:0,operationCreated:false,
     implementation:{state:binding.state,builder:binding.builder,verifier:binding.verifier,verifierExport:binding.verifierExport,outputRoot:binding.outputRoot,datasetId:binding.datasetId,connector:binding.connector,policy:binding.policy,evidence:binding.evidence},
-    unresolvedGates:["fresh-acquisition-authorization","autonomous-acquisition-authorization","production-pointer-change-authorization"]});
+    authorization:binding.authorization?{authorizationId:binding.authorization.authorization_id,approvedAt:binding.authorization.approved_at,approvedBy:binding.authorization.approved_by}:null,
+    unresolvedGates:authorized?[]:["fresh-acquisition-authorization","autonomous-acquisition-authorization","production-pointer-change-authorization"]});
 }
+
+export const governedSourceRefreshHoldPlan=governedSourceRefreshPlan;

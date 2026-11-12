@@ -5,7 +5,7 @@ import test from "node:test";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
 import { ManagedOperations } from "./managed-operations.mjs";
-import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS, GOVERNED_SOURCE_REFRESH_SOURCE_IDS, validateGovernedSourceRefreshDescriptor } from "./governed-source-refresh-registry.mjs";
+import { GOVERNED_SOURCE_REFRESH_DESCRIPTORS, GOVERNED_SOURCE_REFRESH_SOURCE_IDS, governedSourceRefreshPlan, validateGovernedSourceRefreshDescriptor } from "./governed-source-refresh-registry.mjs";
 
 const expected={
   "co-business-registry":["CO","co-business-registry-good-standing-or-delinquent-organizations","verifyCoBusinessRegistry"],
@@ -24,8 +24,9 @@ test("ten governed refresh descriptors bind exact builders, verifiers, datasets,
   assert.deepEqual(GOVERNED_SOURCE_REFRESH_SOURCE_IDS,Object.keys(expected));
   for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){
     const binding=await validateGovernedSourceRefreshDescriptor(sourceId),[state,datasetId,verifierExport]=expected[sourceId];
+    const productionAuthorized=sourceId==="co-business-registry";
     assert.deepEqual({state:binding.state,datasetId:binding.datasetId,verifierExport:binding.verifierExport,builder:binding.builder,verifier:binding.verifier,outputRoot:binding.outputRoot,connector:binding.connector,policy:binding.policy,dataset:binding.dataset,status:binding.status,dispatchAvailable:binding.dispatchAvailable},
-      {state,datasetId,verifierExport,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,outputRoot:`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,status:"HOLD",dispatchAvailable:false});
+      {state,datasetId,verifierExport,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,outputRoot:`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,status:productionAuthorized?"AUTHORIZED":"HOLD",dispatchAvailable:productionAuthorized});
     assert.equal(binding.evidence.length,5);assert.ok(binding.evidence.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)&&item.bytes>0));
   }
 });
@@ -33,7 +34,7 @@ test("ten governed refresh descriptors bind exact builders, verifiers, datasets,
 async function fixture(t,sourceId){
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-registry-"));t.after(()=>rm(root,{recursive:true,force:true}));
   const d=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];for(const relative of [d.builder,d.verifier,d.connector,d.policy,d.dataset]){const target=path.join(root,...relative.split("/"));await mkdir(path.dirname(target),{recursive:true});await cp(path.join(APP_ROOT,...relative.split("/")),target);}
-  await mkdir(path.join(root,"config"),{recursive:true});await cp(path.join(APP_ROOT,"config/governed-source-refresh-authorizations.json"),path.join(root,"config/governed-source-refresh-authorizations.json"));
+  await mkdir(path.join(root,"config"),{recursive:true});await writeFile(path.join(root,"config/governed-source-refresh-authorizations.json"),JSON.stringify({schema_version:"governed-source-refresh-authorizations@1.0.0",authorizations:{}}));
   return {root,d};
 }
 
@@ -48,6 +49,8 @@ test("a separate reviewed receipt authorizes only the exact governed implementat
   await writeFile(file,JSON.stringify(registry));
   const authorized=await validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root});
   assert.equal(authorized.status,"AUTHORIZED");assert.equal(authorized.dispatchAvailable,true);assert.equal(authorized.autonomousAcquisitionAuthorized,true);assert.equal(authorized.authorization.authorization_id,"co-reviewed-fixture");
+  const plan=await governedSourceRefreshPlan("co-business-registry",{appRoot:f.root});
+  assert.equal(plan.status,"AUTHORIZED");assert.equal(plan.dispatchAvailable,true);assert.deepEqual(plan.unresolvedGates,[]);assert.equal(plan.authorization.authorizationId,"co-reviewed-fixture");
   await writeFile(path.join(f.root,...f.d.builder.split("/")),`${await readFile(path.join(f.root,...f.d.builder.split("/")),"utf8")}\n`);
   await assert.rejects(validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root}),/authorization receipt is invalid/);
 });
@@ -66,10 +69,24 @@ test("governed refresh validation rejects escaping and linked paths",async t=>{
   await assert.rejects(validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:f.root}),/safe regular file/);
 });
 
-test("all ten managed plans remain HOLD and starts allocate nothing before rejecting",async t=>{
+test("unauthorized managed plans remain HOLD and allocate nothing before rejecting",async t=>{
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-managed-"));t.after(()=>rm(root,{recursive:true,force:true}));let executions=0,writes=0;
   const service=new ManagedOperations({root,executor:async()=>{executions++;},receiptWriter:async()=>{writes++;}});t.after(()=>service.close());await service.ready;const before=await readdir(root);
-  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
-    await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
+  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,sourceId==="co-business-registry"?"AUTHORIZED":"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
+    if(sourceId!=="co-business-registry")await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
   assert.deepEqual(await readdir(root),before);assert.equal(executions,0);assert.equal(writes,0);assert.deepEqual(await service.list(),[]);
+});
+
+test("an authorized managed source refresh is app-owned and independently verified",async t=>{
+  const output=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-output-")),root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-operation-"));
+  t.after(()=>Promise.all([rm(output,{recursive:true,force:true}),rm(root,{recursive:true,force:true})]));
+  const relativeOutput=path.relative(APP_ROOT,output).replaceAll("\\","/"),authorization={authorization_id:"co-managed-test"};
+  const plan={status:"AUTHORIZED",authorization:{authorizationId:authorization.authorization_id},implementation:{builder:"scripts/build-co-business-registry.mjs",outputRoot:relativeOutput,datasetId:"co-business-registry-good-standing-or-delinquent-organizations"}};
+  const readiness={sourceId:"co-business-registry",dispatchAvailable:true,plan};let executed=0,verified=0;
+  const service=new ManagedOperations({root,sourceRefreshDispatch:new Map([["co-business-registry",{readiness:async()=>readiness,rejection:"held"}]]),executor:async()=>{
+    executed++;const release="co-test-release",directory=path.join(output,"releases",release);await mkdir(directory,{recursive:true});await writeFile(path.join(directory,"manifest.json"),"{}\n");await writeFile(path.join(output,"current.json"),JSON.stringify({dataset_id:plan.implementation.datasetId,release_id:release,manifest:`releases/${release}/manifest.json`}));return{code:0,stdout:""};
+  },governedSourceValidator:async()=>({sourceId:"co-business-registry",datasetId:plan.implementation.datasetId,outputRoot:relativeOutput,verifier:"runner/co-business-registry.mjs",verifierExport:"verifyCoBusinessRegistry",status:"AUTHORIZED",authorization}),governedSourceVerifier:async()=>{verified++;return{verified:true};}});
+  t.after(()=>service.close());const started=await service.startSourceRefresh({sourceId:"co-business-registry"});assert.equal(started.kind,"source-refresh");
+  let operation;for(let attempt=0;attempt<100;attempt++){operation=await service.get(started.id);if(["SUCCEEDED","FAILED","CANCELLED"].includes(operation.status))break;await new Promise(resolve=>setTimeout(resolve,10));}
+  assert.equal(operation.status,"SUCCEEDED");assert.equal(operation.result.releaseId,"co-test-release");assert.equal(operation.result.authorizationId,"co-managed-test");assert.equal(operation.artifacts.length,0);assert.equal(executed,1);assert.equal(verified,1);
 });

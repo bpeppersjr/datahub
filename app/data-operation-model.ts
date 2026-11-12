@@ -1,7 +1,7 @@
 export type Operation = {
   id: string; kind: string; status: string; createdAt: string; finishedAt: string | null;
   error: string | null; artifacts: Array<{ name: string; bytes: number; sha256?: string }>;
-  result: { rowsWritten?: number; credentialRowsWritten?:number|null; organizationZipRowCount?:number|null; organizationZip5?:string; publisherState?:string|null; recordUnit?:string; artifactIntegrityVerified?:boolean; manifestSha256?:string; artifactSha256s?:Record<string,string>; aggregationClaims?:{cross_source_additive:false;entity_resolution_applied:false;current_operation_verified:false;active_business_eligible:false;unique_business_count:null;usps_validity:'unverified'}; localReviewOnly?:boolean; policyMode?: string; sourceId?: string; receiptIntegrityVerified?: boolean;
+  result: { rowsWritten?: number; credentialRowsWritten?:number|null; organizationZipRowCount?:number|null; organizationZip5?:string; publisherState?:string|null; recordUnit?:string; artifactIntegrityVerified?:boolean; manifestSha256?:string; artifactSha256s?:Record<string,string>; aggregationClaims?:{cross_source_additive:false;entity_resolution_applied:false;current_operation_verified:false;active_business_eligible:false;unique_business_count:null;usps_validity:'unverified'}; localReviewOnly?:boolean; policyMode?: string; sourceId?: string; datasetId?:string; releaseId?:string; authorizationId?:string; productionPointerChanged?:boolean; receiptIntegrityVerified?: boolean;
     inspectionRequired?: boolean; snapshotReady?: boolean; normalizationReady?: boolean; normalizedPublished?: boolean;
     normalizedPlaces?: number; metadataReady?: boolean; runtimeReady?: boolean;
     readinessStatus?: 'blocked' | 'operator-attested-awaiting-independent-review' | 'ready-for-normalization-review';
@@ -13,7 +13,7 @@ export type Operation = {
 };
 export function operationLabel(kind: string) {
   const labels: Record<string, string> = { collection: 'Industry collection', export: 'Flat-file export', 'credential-export':'Credential flat-file export', 'organization-zip-export': 'Organization ZIP evidence export',
-    'source-prerequisite': 'Source prerequisite', 'source-acquisition': 'Source acquisition',
+    'source-prerequisite': 'Source prerequisite', 'source-acquisition': 'Source acquisition', 'source-refresh':'Governed source refresh',
     'source-normalization': 'Retained-data normalization', 'cohort-snapshot': 'Retained cohort snapshot', 'ms-business-report': 'Mississippi Business Report intake' };
   labels['source-adoption']='Retained source inspection / adoption';
   return Object.hasOwn(labels, kind) ? labels[kind] : 'Data operation';
@@ -33,6 +33,7 @@ export function operationEvidence(operation: Operation) {
   if(operation.kind==='source-adoption'&&operation.status==='SUCCEEDED'&&result?.receiptIntegrityVerified===true)return 'Existing source replayed at adoption time; no new acquisition. Dated directory rows, not unique businesses or verified current operating sites. No downloads or national promotion.';
   if(operation.kind==='credential-export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return 'Credential rows independently verified. Local review only; not business or physical-site totals.';
   if(operation.kind==='organization-zip-export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return 'Pinned retained-source administrative organization addresses, independently verified. Not physical sites, current operations, or business/site totals.';
+  if(operation.kind==='source-refresh'&&operation.status==='SUCCEEDED'&&result?.receiptIntegrityVerified===true&&result?.productionPointerChanged===true)return `Authorization-bound full snapshot independently verified and promoted for ${result.sourceId??'the governed source'}. Registration status remains source-specific and does not prove current operation or a physical site.`;
   if(operation.kind==='export'&&operation.status==='SUCCEEDED'&&result?.artifactIntegrityVerified===true)return `Flat export independently verified; ${result.recordUnit??'source evidence rows'} are nonadditive and do not establish unique businesses or current operation. Manifest SHA-256 ${result.manifestSha256??'unavailable'}.`;
   if (result?.inspectionRequired || (['source-acquisition', 'source-normalization'].includes(operation.kind) && ['FAILED', 'CANCELLED', 'UNKNOWN'].includes(operation.status))) {
     return 'Retained evidence requires inspection. Not ready for downstream processing.';

@@ -256,7 +256,7 @@ export default function DataOperations() {
     <IaBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is IaBusinessRegistryRefreshStatus=>source.sourceId==='ia-business-registry')}/>
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')}/>
     <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')}/>
-    {catalog?.governedSourceServices?.filter((source):source is RetainedBusinessRefreshStatus=>['co-business-registry','ct-business-registry','de-business-licenses','fl-business-registry','pa-business-registry'].includes(source.sourceId)).map(status=><RetainedBusinessRefreshStatusCard key={status.sourceId} status={status}/>)}
+    {catalog?.governedSourceServices?.filter((source):source is RetainedBusinessRefreshStatus=>['co-business-registry','ct-business-registry','de-business-licenses','fl-business-registry','pa-business-registry'].includes(source.sourceId)).map(status=><RetainedBusinessRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />

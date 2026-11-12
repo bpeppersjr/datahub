@@ -1,6 +1,6 @@
 {
   "policy_id": "co-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Colorado Department of State (CDOS)",
   "ownership": "Official public business-entity registration records published through the Colorado Information Marketplace",
   "source_home": "https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h",
@@ -24,10 +24,13 @@
     "registered_agent_names_and_addresses": "excluded"
   },
   "attribution": "Source: Colorado Department of State (CDOS), Business Entities in Colorado, via the Colorado Information Marketplace.",
+  "source_terms": "https://data.colorado.gov/terms",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "The data made available here has been modified for use from its original source, which is the State of Colorado. THE STATE OF COLORADO MAKES NO REPRESENTATIONS OR WARRANTY AS TO THE COMPLETENESS, ACCURACY, TIMELINESS, OR CONTENT OF ANY DATA MADE AVAILABLE THROUGH THIS SITE. THE STATE OF COLORADO EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS OR IMPLIED, INCLUDING ANY IMPLIED WARRANTIES OF MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. The data is subject to change as modifications and updates are complete. It is understood that the information contained in the Web feed is being used at one's own risk.",
   "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
   "redistribution": "Approved normalized fields may be redistributed with CDOS attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the selected-field raw snapshot remains internal.",
   "contains_personal_data": false,
   "personal_data_handling": "The connector excludes every registered-agent name and address plus the principal-office mailing address. Organization names and principal-office street addresses can incidentally identify a person or home because they are public registration fields.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12"
 }

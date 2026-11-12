@@ -22,6 +22,18 @@ The connector:
 
 The current source release identity is bound to the catalog `rowsUpdatedAt` timestamp and SHA-256 checksum of the complete ordered source artifact.
 
+## Recurring source authorization
+
+The official Colorado Information Marketplace catalog and source terms were reviewed again on 2026-11-12. The catalog continues to expose the CDOS Business Entities dataset through the public API with a Public Domain license. Colorado describes open data as reusable and shareable, while its terms reserve the right to change or discontinue feeds and require applications to retain a State-of-Colorado origin and warranty disclaimer.
+
+Authorization `co-business-registry-production-20261112-01` permits Co*Tive—not Codex—to run a full-snapshot refresh, independently verify the immutable release, and change this source's production pointer only after verification. The receipt is cryptographically bound to the exact builder, verifier, connector, policy, and dataset configuration. Any byte change invalidates dispatch. The authorization does not turn registry standing into proof of operation, does not authorize agent or mailing-address fields, and does not enroll the source as a complete business denominator.
+
+Reviewed official sources:
+
+- <https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h>
+- <https://data.colorado.gov/terms>
+- <https://data.colorado.gov/stories/s/What-is-Open-Data-/ec2n-ub7h/>
+
 ## Field boundary
 
 Approved normalized fields are the Colorado entity ID, registered entity name, entity status, entity type, formation jurisdiction, formation date, and principal-office street address.

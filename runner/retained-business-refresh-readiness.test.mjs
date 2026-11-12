@@ -61,16 +61,16 @@ test("copied pointer and manifest fixtures fail closed on identity and count dri
   }
 });
 
-test("managed previews allocate nothing and starts validate before rejecting",async t=>{
+test("managed previews allocate nothing and unauthorized retained starts reject",async t=>{
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/retained-refresh-managed-"));t.after(()=>rm(root,{recursive:true,force:true}));let executions=0,writes=0;
   const service=new ManagedOperations({root,executor:async()=>{executions++;},receiptWriter:async()=>{writes++;}});t.after(()=>service.close());await service.ready;const before=await readdir(root);
-  for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.operationCreated,false);await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
+  for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.operationCreated,false);if(sourceId!=="co-business-registry")await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
   assert.deepEqual(await readdir(root),before);assert.equal(executions,0);assert.equal(writes,0);assert.deepEqual(await service.list(),[]);
   const managedSource=await readFile(new URL("./managed-operations.mjs",import.meta.url),"utf8"),start=managedSource.slice(managedSource.indexOf("async startSourceRefresh"),managedSource.indexOf("async plan",managedSource.indexOf("async startSourceRefresh")));
-  assert.ok(start.indexOf("await dispatch.readiness()")<start.indexOf("ACQUISITION_NOT_AUTHORIZED"));
+  assert.ok(start.indexOf("const readiness=await dispatch.readiness()")<start.indexOf("ACQUISITION_NOT_AUTHORIZED"));
 });
 
-test("five-state UI is reusable and remains closed",async()=>{
+test("five-state UI enables only authorization-bound dispatch",async()=>{
   const [page,card,config]=await Promise.all([readFile(new URL("../app/data-operations.tsx",import.meta.url),"utf8"),readFile(new URL("../app/retained-business-refresh-status.tsx",import.meta.url),"utf8"),readFile(new URL("../config/industry-segments.json",import.meta.url),"utf8")]);
-  assert.match(page,/RetainedBusinessRefreshStatusCard/);assert.match(card,/Preview refresh plan/);assert.match(card,/<button className="primary-button" disabled/);assert.doesNotMatch(card,/source-refreshes/);for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS)assert.doesNotMatch(config,new RegExp(`"${sourceId}"`));
+  assert.match(page,/RetainedBusinessRefreshStatusCard/);assert.match(card,/Preview refresh plan/);assert.match(card,/source-refreshes/);assert.match(card,/disabled=\{!authorized\|\|disabled\|\|busy\}/);assert.match(card,/Publisher notice/);for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS)assert.doesNotMatch(config,new RegExp(`"${sourceId}"`));
 });
