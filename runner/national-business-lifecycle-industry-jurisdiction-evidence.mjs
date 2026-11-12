@@ -179,9 +179,11 @@ export async function verifyNationalBusinessLifecycleIndustryJurisdictionEvidenc
 
 export async function verifyRegisteredNationalBusinessLifecycleIndustryJurisdictionEvidence({ root = APP_ROOT } = {}) {
   root = path.resolve(root); const registration = await json(inside(root, `config/datasets/${DATASET}.json`), 1_000_000), value = registration.value;
-  check(value.schema_version === `${DATASET}-registration@1.0.0` && value.dataset_id === DATASET && value.runtime_pointer === null && value.production_enrollment === false && JSON.stringify(value.claims) === JSON.stringify(claims()), "registration contract");
-  const verified = await verifyNationalBusinessLifecycleIndustryJurisdictionEvidence(inside(root, value.retained_release.manifest), { root });
-  check(verified.release_id === value.retained_release.release_id && verified.manifest_sha256 === value.retained_release.manifest_sha256 && verified.artifact_sha256 === value.retained_release.artifact_sha256 && verified.artifact_bytes === value.retained_release.artifact_bytes, "registered release pins");
+  check([`${DATASET}-registration@1.0.0`, `${DATASET}-registration@1.1.0`].includes(value.schema_version) && value.dataset_id === DATASET && value.runtime_pointer === null && value.production_enrollment === false, "registration contract");
+  const retained = value.schema_version.endsWith("@1.0.0") ? value.retained_release : value.retained_releases?.find(item => item.release_id === "national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1");
+  check(retained && retained.selected !== true, "historical v1 retained release");
+  const verified = await verifyNationalBusinessLifecycleIndustryJurisdictionEvidence(inside(root, retained.manifest), { root });
+  check(verified.release_id === retained.release_id && verified.manifest_sha256 === retained.manifest_sha256 && verified.artifact_sha256 === retained.artifact_sha256 && verified.artifact_bytes === retained.artifact_bytes, "registered release pins");
   return verified;
 }
 

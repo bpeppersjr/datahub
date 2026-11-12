@@ -59,6 +59,8 @@ next-env.d.ts
 /data/national-business-lifecycle-industry-jurisdiction-evidence/releases/*
 !/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1/
 !/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1/*
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/*
 !/data/national-business-lifecycle-industry-zip-evidence/
 /data/national-business-lifecycle-industry-zip-evidence/*
 !/data/national-business-lifecycle-industry-zip-evidence/releases/
